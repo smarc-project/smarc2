@@ -12,6 +12,9 @@
 # Creating a new ROS2 package for SMaRC2
 Navigate to where the new package will live, and use the command `ros2 pkg create --description <ONE LINE DESC> --license MIT --build-type {ament_cmake, ament_python} --maintainer-email <YOUR-EMAIL> --maintainer-name <YOUR-NAME> <PACKAGE-NAME>`
 
+And then remove the auto-generated tests in the test directory.
+Because for _our_ use cases, they will just be confusing _IMO_.
+
 If your package is C++, use `ament_cmake`.
 
 OR 
