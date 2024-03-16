@@ -1,16 +1,19 @@
-# Porting a package from ROS to ROS2?
-I heavily recommend doing this by first creating a fresh new package [like below](#creating-a-new-ros2-package-for-smarc2). 
-This will create the bare minimums that you need with examples in every file.
-Then copy the _functionality_ of the old package to the new one.
-Then check out [this mini tutorial](./Porting%20a%20package.md) for more depth.
-
-You can use [my journey notes](./media/SAM%20Humble%20Port.png) as a guide.
-It has links to related online documentation and the errors that I received and how I resolved them.
-See [the ported sam_basic_controllers package](../examples/sam_basic_controllers/) for an example ported package.
+># Porting a package from ROS to ROS2?
+>I heavily recommend doing this by first creating a fresh new package [like below](#creating-a-new-ros2-package-for-smarc2). 
+>This will create the bare minimums that you need with examples in every file.
+>Then copy the _functionality_ of the old package to the new one.
+>Then check out [this mini tutorial](./Porting%20a%20package.md) for more depth.
+> 
+>You can use [my journey notes](./media/SAM%20Humble%20Port.png) as a guide.
+>It has links to related online documentation and the errors that I received and how I resolved them.
+>See [the ported sam_basic_controllers package](../examples/sam_basic_controllers/) for an example ported package.
 
 
 # Creating a new ROS2 package for SMaRC2
-Navigate to where the new package will live, and use the command `ros2 pkg create --description <ONE LINE DESC> --license mit --build-type {ament_cmake, ament_python} --maintainer-email <YOUR-EMAIL> --maintainer-name <YOUR-NAME> <PACKAGE-NAME>`
+Navigate to where the new package will live, and use the command `ros2 pkg create --description <ONE LINE DESC> --license MIT --build-type {ament_cmake, ament_python} --maintainer-email <YOUR-EMAIL> --maintainer-name <YOUR-NAME> <PACKAGE-NAME>`
+
+And then remove the auto-generated tests in the test directory.
+Because for _our_ use cases, they will just be confusing _IMO_.
 
 If your package is C++, use `ament_cmake`.
 

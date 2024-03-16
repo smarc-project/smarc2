@@ -18,7 +18,7 @@ Notice that ROS2 moved from catkin to colcon for its build process, and there ar
 ### Optional Step 0.5: Tame colcon
 Colcon, unlike catkin, cares about your current directory when building, by default.
 This is a dumb default.
-Put in `~/.colcon/defaults.yaml` the following, with paths changed to fit your setup:
+Put in `~/.colcon/defaults.yaml` the following, **with paths changed to fit your setup**:
 ```
 {
     "build": {
@@ -74,7 +74,7 @@ colcon build
 ### Add your workspace to bashrc
 ```bash
 cd colcon_ws
-echo "/home/USERNAME/colcon_ws/install/setup.sh" >> ~/.bashrc
+echo "source /home/USERNAME/colcon_ws/install/setup.sh" >> ~/.bashrc
 ```
 
 
