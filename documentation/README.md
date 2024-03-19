@@ -5,6 +5,7 @@ This folder contains documentation that applies to larger concepts and construct
 - Flowcharts of design decisions
 - Shared images, pdfs etc.
 
+**Want to follow a complete end to end _get things running_ workshop?** [Slide in here](./ROS2%20Workshop.md)
 
 **Installing for the first time?** [I gotchu fam](./Installing%20ROS2.md)
 

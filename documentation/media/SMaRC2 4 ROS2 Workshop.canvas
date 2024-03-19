@@ -1,0 +1,4323 @@
+{
+  "nodes": [
+    {
+      "id": "3df831e3b0534559",
+      "type": "group",
+      "isStartNode": false,
+      "x": 2980,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "1"
+    },
+    {
+      "id": "c5f5f9b9cf0112a3",
+      "type": "group",
+      "x": 5580,
+      "y": -420,
+      "width": 1200,
+      "height": 675,
+      "label": "5"
+    },
+    {
+      "id": "70143b7035bb4bb2",
+      "type": "group",
+      "x": 5580,
+      "y": 300,
+      "width": 1200,
+      "height": 675,
+      "label": "6"
+    },
+    {
+      "id": "bfbb4fa5aeeff78c",
+      "type": "group",
+      "x": 16880,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "45"
+    },
+    {
+      "id": "1ce48c4c58c66650",
+      "type": "group",
+      "x": 15280,
+      "y": 1800,
+      "width": 1200,
+      "height": 675,
+      "label": "41"
+    },
+    {
+      "id": "1ff84fdc36344b19",
+      "type": "group",
+      "x": 16880,
+      "y": 2520,
+      "width": 1200,
+      "height": 675,
+      "label": "49"
+    },
+    {
+      "id": "e676944701861bd0",
+      "type": "group",
+      "x": 16880,
+      "y": 3260,
+      "width": 1200,
+      "height": 675,
+      "label": "50"
+    },
+    {
+      "id": "5ea3dc66eee31571",
+      "type": "group",
+      "x": 16880,
+      "y": 4000,
+      "width": 1200,
+      "height": 675,
+      "label": "51"
+    },
+    {
+      "id": "90e46e923ab3bff0",
+      "type": "group",
+      "x": 10660,
+      "y": 2610,
+      "width": 1200,
+      "height": 675,
+      "label": "28"
+    },
+    {
+      "id": "bb4c1ba19ca5c925",
+      "type": "group",
+      "x": 10660,
+      "y": 3320,
+      "width": 1200,
+      "height": 675,
+      "label": "29"
+    },
+    {
+      "id": "6a139e0fb7ae5f1a",
+      "type": "group",
+      "isStartNode": true,
+      "x": 10660,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "1"
+    },
+    {
+      "id": "4a8a1371627ab8b2",
+      "type": "group",
+      "isStartNode": false,
+      "x": 10660,
+      "y": -320,
+      "width": 1200,
+      "height": 675,
+      "label": "24"
+    },
+    {
+      "id": "e0cce810208b7b04",
+      "type": "group",
+      "x": 10660,
+      "y": 420,
+      "width": 1200,
+      "height": 675,
+      "label": "25"
+    },
+    {
+      "id": "b3295fa36ddca8d8",
+      "type": "group",
+      "x": 7160,
+      "y": -103,
+      "width": 1200,
+      "height": 675,
+      "label": "12"
+    },
+    {
+      "id": "f931d945bb65cdd4",
+      "type": "group",
+      "x": 7160,
+      "y": 637,
+      "width": 1200,
+      "height": 675,
+      "label": "13"
+    },
+    {
+      "id": "ff0fcf8739310b0f",
+      "type": "group",
+      "x": 8840,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "14"
+    },
+    {
+      "id": "fdedf76b603103c1",
+      "type": "group",
+      "x": 5580,
+      "y": 3920,
+      "width": 1200,
+      "height": 675,
+      "label": "11"
+    },
+    {
+      "id": "def6fd732e7831e9",
+      "type": "group",
+      "x": 8840,
+      "y": -440,
+      "width": 1200,
+      "height": 675,
+      "label": "15"
+    },
+    {
+      "id": "39d0bf29bce0f661",
+      "type": "group",
+      "x": 8840,
+      "y": 280,
+      "width": 1200,
+      "height": 675,
+      "label": "16"
+    },
+    {
+      "id": "0976022e64fd7b74",
+      "type": "group",
+      "x": 8840,
+      "y": 1020,
+      "width": 1200,
+      "height": 675,
+      "label": "17"
+    },
+    {
+      "id": "a73913dea7c4f3c0",
+      "type": "group",
+      "x": 8840,
+      "y": 1740,
+      "width": 1200,
+      "height": 675,
+      "label": "18"
+    },
+    {
+      "id": "d32e4f09484ed31b",
+      "type": "group",
+      "isStartNode": false,
+      "x": 8840,
+      "y": 2460,
+      "width": 1200,
+      "height": 675,
+      "label": "19"
+    },
+    {
+      "id": "0f0a906e4d6e6314",
+      "type": "group",
+      "x": 8840,
+      "y": 3200,
+      "width": 1200,
+      "height": 675,
+      "label": "20"
+    },
+    {
+      "id": "d991a57dd2911a5f",
+      "type": "group",
+      "x": 8840,
+      "y": 3940,
+      "width": 1200,
+      "height": 675,
+      "label": "21"
+    },
+    {
+      "id": "c55118cd43268f89",
+      "type": "group",
+      "x": 8840,
+      "y": 4680,
+      "width": 1200,
+      "height": 675,
+      "label": "22"
+    },
+    {
+      "id": "1bcfc5ce2dbc76fa",
+      "type": "group",
+      "x": 8840,
+      "y": 5440,
+      "width": 1200,
+      "height": 675,
+      "label": "23"
+    },
+    {
+      "id": "6f8d730493206bcd",
+      "type": "group",
+      "x": 5580,
+      "y": 3180,
+      "width": 1200,
+      "height": 675,
+      "label": "10"
+    },
+    {
+      "id": "27ca343f9698980d",
+      "type": "group",
+      "x": 5580,
+      "y": 2460,
+      "width": 1200,
+      "height": 675,
+      "label": "9"
+    },
+    {
+      "id": "092230b8304eff7b",
+      "type": "group",
+      "x": 5580,
+      "y": 1020,
+      "width": 1200,
+      "height": 675,
+      "label": "7"
+    },
+    {
+      "id": "1a7f27a22d3cb400",
+      "type": "group",
+      "x": 5580,
+      "y": 1740,
+      "width": 1200,
+      "height": 675,
+      "label": "8"
+    },
+    {
+      "id": "b5286427131f58cc",
+      "type": "group",
+      "isStartNode": false,
+      "x": 7160,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "1"
+    },
+    {
+      "id": "a7a5e47707779f21",
+      "type": "group",
+      "x": 11920,
+      "y": -320,
+      "width": 1200,
+      "height": 675,
+      "color": "3",
+      "label": "24*"
+    },
+    {
+      "id": "587d3d786486746b",
+      "type": "group",
+      "x": 11920,
+      "y": 423,
+      "width": 1200,
+      "height": 675,
+      "color": "3",
+      "label": "25*"
+    },
+    {
+      "id": "3899cdd87c74e9a1",
+      "type": "group",
+      "x": 4240,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "2"
+    },
+    {
+      "id": "e8338f41c61edadc",
+      "type": "group",
+      "x": 4240,
+      "y": -420,
+      "width": 1200,
+      "height": 675,
+      "label": "3"
+    },
+    {
+      "id": "612545e5e2732398",
+      "type": "group",
+      "x": 5580,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "4"
+    },
+    {
+      "id": "e967adc15658d961",
+      "type": "group",
+      "x": 10660,
+      "y": 1140,
+      "width": 1200,
+      "height": 675,
+      "label": "26"
+    },
+    {
+      "id": "b9c0ff402716f437",
+      "type": "group",
+      "x": 11920,
+      "y": 1140,
+      "width": 1200,
+      "height": 675,
+      "color": "3",
+      "label": "26*"
+    },
+    {
+      "id": "cab16075fc045bf0",
+      "type": "group",
+      "x": 10660,
+      "y": 1880,
+      "width": 1200,
+      "height": 675,
+      "label": "27"
+    },
+    {
+      "id": "94126f3d23e8daaa",
+      "type": "group",
+      "x": 10660,
+      "y": 4040,
+      "width": 1200,
+      "height": 675,
+      "label": "30"
+    },
+    {
+      "id": "95d2b8b453e0d372",
+      "type": "group",
+      "x": 13660,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "31"
+    },
+    {
+      "id": "4d486337c9dedef1",
+      "type": "group",
+      "x": 13660,
+      "y": -440,
+      "width": 1200,
+      "height": 675,
+      "label": "32"
+    },
+    {
+      "id": "fa4f0e6c58d60443",
+      "type": "group",
+      "x": 13660,
+      "y": 300,
+      "width": 1200,
+      "height": 675,
+      "label": "33"
+    },
+    {
+      "id": "cbad42f3551c85dc",
+      "type": "group",
+      "x": 13660,
+      "y": 1020,
+      "width": 1200,
+      "height": 675,
+      "label": "34"
+    },
+    {
+      "id": "d548cc0c29633c08",
+      "type": "group",
+      "x": 13660,
+      "y": 2480,
+      "width": 1200,
+      "height": 675,
+      "label": "35 the 2nd"
+    },
+    {
+      "id": "4c1ec7f6fab74c6d",
+      "type": "group",
+      "x": 13660,
+      "y": 1740,
+      "width": 1200,
+      "height": 675,
+      "label": "35"
+    },
+    {
+      "id": "74ab4b47a57b706b",
+      "type": "group",
+      "x": 12200,
+      "y": 2480,
+      "width": 1200,
+      "height": 675,
+      "color": "3",
+      "label": "35*"
+    },
+    {
+      "id": "8fb1c12920dea8f7",
+      "type": "group",
+      "x": 13660,
+      "y": 3240,
+      "width": 1200,
+      "height": 675,
+      "label": "36"
+    },
+    {
+      "id": "d70df20aa7f03703",
+      "type": "group",
+      "x": 15280,
+      "y": -1160,
+      "width": 1200,
+      "height": 675,
+      "label": "37"
+    },
+    {
+      "id": "15a7c65f9c756fde",
+      "type": "group",
+      "x": 15280,
+      "y": -420,
+      "width": 1200,
+      "height": 675,
+      "label": "38"
+    },
+    {
+      "id": "721b2dad9c2db651",
+      "type": "group",
+      "x": 15280,
+      "y": 340,
+      "width": 1200,
+      "height": 675,
+      "label": "39"
+    },
+    {
+      "id": "958c961c98b10fd0",
+      "type": "group",
+      "x": 15280,
+      "y": 1060,
+      "width": 1200,
+      "height": 675,
+      "label": "40"
+    },
+    {
+      "id": "d7c56b0b7fb37dd5",
+      "type": "group",
+      "x": 15280,
+      "y": 2540,
+      "width": 1200,
+      "height": 675,
+      "label": "42"
+    },
+    {
+      "id": "f0a551ad8a4d1965",
+      "type": "group",
+      "x": 15280,
+      "y": 3300,
+      "width": 1200,
+      "height": 675,
+      "label": "43"
+    },
+    {
+      "id": "21ce9a816c7b34cb",
+      "type": "group",
+      "x": 15280,
+      "y": 4040,
+      "width": 1200,
+      "height": 675,
+      "label": "44"
+    },
+    {
+      "id": "87f490516e9a24b4",
+      "type": "group",
+      "isStartNode": false,
+      "x": 16880,
+      "y": -440,
+      "width": 1200,
+      "height": 675,
+      "label": "46"
+    },
+    {
+      "id": "0ce4451c0d9d73bb",
+      "type": "group",
+      "x": 16880,
+      "y": 300,
+      "width": 1200,
+      "height": 675,
+      "label": "47"
+    },
+    {
+      "id": "8dff3ef94f330d69",
+      "type": "group",
+      "isStartNode": false,
+      "x": 16880,
+      "y": 1040,
+      "width": 1200,
+      "height": 675,
+      "label": "48"
+    },
+    {
+      "id": "94742dc2946e1435",
+      "type": "group",
+      "x": 16880,
+      "y": 1780,
+      "width": 1200,
+      "height": 675,
+      "label": "48"
+    },
+    {
+      "id": "68182699bed4f2b0",
+      "type": "text",
+      "text": "## Dirty hands!\nLet's make a simple ROS2 Node that will speak with the sim!",
+      "x": 3057,
+      "y": -720,
+      "width": 576,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "3bb2935c30860f7e",
+      "type": "text",
+      "text": "## Discussion, loop-back\nThe good, the bad and the ugly. Now that we have gone through the main points, we can talk about things.",
+      "x": 3057,
+      "y": -600,
+      "width": 973,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "c8c0c95ac960ec37",
+      "type": "text",
+      "text": "# SMaRC2 4 ROS2",
+      "x": 3000,
+      "y": -1140,
+      "width": 340,
+      "height": 60,
+      "color": "1"
+    },
+    {
+      "id": "7f0b863978001b8e",
+      "type": "text",
+      "text": "## ROS1 -> ROS2, the differences\nWhat changed? Ideals behind the changes. Things to keep in mind.",
+      "x": 3057,
+      "y": -1060,
+      "width": 633,
+      "height": 95,
+      "color": "2"
+    },
+    {
+      "id": "3fe60c9f00846fdd",
+      "type": "text",
+      "text": "Break",
+      "x": 3001,
+      "y": -820,
+      "width": 113,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "da922faa47502ffe",
+      "type": "text",
+      "text": "## Anti-Spaghetti\nOrganic growth is fast and loose, but horrible for anything lives for longer than a year.",
+      "x": 3057,
+      "y": -940,
+      "width": 789,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "f773cb7a49800f17",
+      "type": "text",
+      "text": "# ...and the Crocodiles\nIron is the (current) latest release, so all the pages of the ROS wiki will warn you to check out the Iron version of the wiki.\n- Iron is not a LTS, it will EOL soon",
+      "x": 4260,
+      "y": -40,
+      "width": 663,
+      "height": 285,
+      "color": "4"
+    },
+    {
+      "id": "c7d597f84269f1cf",
+      "type": "text",
+      "text": "## Choose humble here!",
+      "shape": "centered-rectangle",
+      "x": 4940,
+      "y": -40,
+      "width": 301,
+      "height": 60,
+      "color": "1"
+    },
+    {
+      "id": "f09ea018ae71a495",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311153936.png",
+      "isSticker": true,
+      "x": 4940,
+      "y": 25,
+      "width": 301,
+      "height": 220
+    },
+    {
+      "id": "c94c59839a75a034",
+      "type": "text",
+      "text": "# Beware of Foxes...\nGoogling \"ROS2 <problem>\" results in a lot of \"Foxy\" results\n- Foxy is a previous (EOL) version of ROS2, not LTS, but one that lots of people decided to try out. So there is a lot of talk about it. Many of the advice you can read about this version is applicable to Humble as well.\n- Even the ROS2 Foxy's wiki is the first thing that you'll find when googling ros2...",
+      "x": 4260,
+      "y": -380,
+      "width": 663,
+      "height": 318,
+      "color": "3"
+    },
+    {
+      "id": "7e842e610fc01301",
+      "type": "link",
+      "url": "https://www.google.com/search?channel=fs&q=ros2+wiki",
+      "x": 4940,
+      "y": -380,
+      "width": 483,
+      "height": 318
+    },
+    {
+      "id": "08422feb1deb5ad5",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311153715.png",
+      "isSticker": true,
+      "x": 5271,
+      "y": -40,
+      "width": 152,
+      "height": 285
+    },
+    {
+      "id": "e9550f4018d4afec",
+      "type": "text",
+      "text": "# ROS1 = Noetic",
+      "x": 4390,
+      "y": -1120,
+      "width": 320,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "c21ac82143e97bc0",
+      "type": "text",
+      "text": "# ROS2 = Humble",
+      "x": 4970,
+      "y": -1120,
+      "width": 320,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "00b6738800ddbea5",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311145739.png",
+      "isSticker": true,
+      "x": 5047,
+      "y": -1040,
+      "width": 166,
+      "height": 205
+    },
+    {
+      "id": "cb9e524884738fa0",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311145634.png",
+      "isSticker": true,
+      "x": 4461,
+      "y": -1040,
+      "width": 178,
+      "height": 205
+    },
+    {
+      "id": "a4ba1bba38b5fa27",
+      "type": "text",
+      "text": "- EOL\n\t- 4 years old in a month\n- Previous LTS\n\t- Most of you moved into this from Melodic or started here\n- OS: Ubuntu 20.04",
+      "x": 4280,
+      "y": -795,
+      "width": 540,
+      "height": 300,
+      "color": "4"
+    },
+    {
+      "id": "ef72c984e3cbce37",
+      "type": "text",
+      "text": "- v1.0 came out end of 2017\n\t- More differences between versions compared to (late) ROS1 versions\n- Current LTS\n\t- Support until 2027\n\t- Probably don't have to think about changing versions until end of SMaRC(2)\n- OS: Ubuntu 22.04",
+      "x": 4860,
+      "y": -795,
+      "width": 540,
+      "height": 300,
+      "color": "5"
+    },
+    {
+      "id": "4582712f7bf85904",
+      "type": "text",
+      "text": "```\n- catkin <command>\n+ colcon <command>\n```",
+      "x": 5640,
+      "y": 1860,
+      "width": 267,
+      "height": 95,
+      "color": "2"
+    },
+    {
+      "id": "8affda8e76b3c2b0",
+      "type": "text",
+      "text": "While `ament` is the new package type, `colcon` is the tool to build and test the new packages.",
+      "x": 5960,
+      "y": 1860,
+      "width": 460,
+      "height": 95,
+      "color": "5"
+    },
+    {
+      "id": "00fddc33b0d6a77c",
+      "type": "text",
+      "text": "To make colcon ignore a folder, put a file called `COLCON_IGNORE` in it. This is useful when you are working on a thing that you haven't made \"proper\" yet.",
+      "x": 5960,
+      "y": 1980,
+      "width": 540,
+      "height": 125,
+      "color": "5"
+    },
+    {
+      "id": "4bdae7522d443d31",
+      "type": "text",
+      "text": "`rviz` -> `rviz2`",
+      "x": 5640,
+      "y": 2160,
+      "width": 220,
+      "height": 60,
+      "color": "2"
+    },
+    {
+      "id": "4cc997636fee1f6c",
+      "type": "text",
+      "text": "That's it, really.",
+      "x": 5990,
+      "y": 2200,
+      "width": 260,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "90e20d2e3a9710dc",
+      "type": "text",
+      "text": "`rqt` is unchanged",
+      "x": 5640,
+      "y": 2240,
+      "width": 220,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "5d50221761553f77",
+      "type": "text",
+      "text": "The files themselves are largely unchanged.",
+      "x": 6140,
+      "y": 2820,
+      "width": 438,
+      "height": 50,
+      "color": "4"
+    },
+    {
+      "id": "6586be89a1a2942f",
+      "type": "text",
+      "text": "How they are available within your program is also the same.",
+      "x": 6140,
+      "y": 2940,
+      "width": 579,
+      "height": 65,
+      "color": "4"
+    },
+    {
+      "id": "ebe171dfafa05cfe",
+      "type": "text",
+      "text": "C++ and Python software objects look the same now, they both expose **RCL (Ros Client Library)**",
+      "x": 5640,
+      "y": 2500,
+      "width": 360,
+      "height": 120,
+      "color": "2"
+    },
+    {
+      "id": "229da749f457dc13",
+      "type": "text",
+      "text": "All the .msg .srv .action stuff is now declared together in one list in the packages. \n\nDependencies for _all_ definitions together as well.",
+      "x": 6140,
+      "y": 2625,
+      "width": 570,
+      "height": 130,
+      "color": "3"
+    },
+    {
+      "id": "4084ae3f7fb4a7bf",
+      "type": "text",
+      "text": "`rosidl` (Ros Interface Language)",
+      "x": 5740,
+      "y": 2660,
+      "width": 360,
+      "height": 60,
+      "color": "3"
+    },
+    {
+      "id": "a944437f8cba8fd5",
+      "type": "text",
+      "text": "Like how one defines an executable in `CMakeLists.txt` for  a C++ Node, `setup.py` defines a python file and a method in that file as \"the executable node\"\n- One file can contain multiple nodes, each of which is exposed to `ros2` commands.\n- This is great for writing _slightly_ different nodes using the same code-base.\n- This file.py::Function() executable is what is availble to run with `ros2 run` or in launch files.",
+      "x": 5990,
+      "y": 3360,
+      "width": 760,
+      "height": 280,
+      "color": "3"
+    },
+    {
+      "id": "d42b73754e6a287f",
+      "type": "text",
+      "text": "This means there can be multiple nodes in the same process.\n- Useful? Maybe.\n- Potentially very confusing? Definitely.\n- Don't unless it helps _a lot_.",
+      "x": 5990,
+      "y": 3660,
+      "width": 760,
+      "height": 180,
+      "color": "3"
+    },
+    {
+      "id": "5c2ba0404e338c71",
+      "type": "text",
+      "text": "In general, one can translate between Cpp and Python almost one to one now :D",
+      "x": 6320,
+      "y": 3200,
+      "width": 365,
+      "height": 110,
+      "color": "5"
+    },
+    {
+      "id": "1f43c1aa7177faa0",
+      "type": "text",
+      "text": "`rospy` -> `rclpy` and `roscpp` -> `rclcpp`\nThe main way to interact with the ROS system is to create a `Node` object and then call its methods, everywhere.\n",
+      "x": 5660,
+      "y": 3200,
+      "width": 595,
+      "height": 110,
+      "color": "3"
+    },
+    {
+      "id": "722ee45698ac8ce1",
+      "type": "text",
+      "text": "No more py2, anywhere. Good riddance.",
+      "x": 5640,
+      "y": -640,
+      "width": 420,
+      "height": 60,
+      "color": "1"
+    },
+    {
+      "id": "815e4d264c3149a9",
+      "type": "text",
+      "text": "# `diff ros1 ros2`",
+      "x": 5640,
+      "y": -1140,
+      "width": 320,
+      "height": 80,
+      "color": "6"
+    },
+    {
+      "id": "812c8251adfcb54d",
+      "type": "text",
+      "text": "The turtle mascot :D",
+      "x": 5640,
+      "y": -1000,
+      "width": 260,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "b40a4dcc8d851124",
+      "type": "text",
+      "text": "## Pubs, subs, services, actions are the same.",
+      "x": 5640,
+      "y": -882,
+      "width": 740,
+      "height": 65,
+      "color": "4"
+    },
+    {
+      "id": "bc40e326ce30307e",
+      "type": "text",
+      "text": "With minimal differences in implementation; things like re-ordered arguments and QoS.",
+      "x": 6120,
+      "y": -770,
+      "width": 464,
+      "height": 85,
+      "color": "5"
+    },
+    {
+      "id": "194605c2cfcf2b1c",
+      "type": "text",
+      "text": "```\n- catkin\n+ ament\n```",
+      "x": 5640,
+      "y": 1040,
+      "width": 200,
+      "height": 95,
+      "color": "2"
+    },
+    {
+      "id": "4bfe71aa6f7e447a",
+      "type": "text",
+      "text": "The build system has changed from catkin to ament.\nIn most cases, this has **almost no effect** on your workflow once you port over.",
+      "x": 5900,
+      "y": 1040,
+      "width": 840,
+      "height": 95,
+      "color": "5"
+    },
+    {
+      "id": "38099ca9d2adf5c0",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311155743.png",
+      "isSticker": true,
+      "x": 5655,
+      "y": 1160,
+      "width": 170,
+      "height": 121
+    },
+    {
+      "id": "20b638cb8dd9ba1e",
+      "type": "text",
+      "text": "- `ament_cmake`\n\t- Used for C++ packages, or packages with message/service/action definitions. \n\t- Basically anything but pure-python.\n\t- `CMakeLists.txt` with modifications.\n- `ament_python`\n\t- Used for _pure-python_ packages. (Imports!)\n\t- This is actually just a standard python package in disguise!\n\t- `setup.py` replaces `CMakeLists.txt` \n\n```\nros2 pkg create \\\n--description <ONE LINE DESC> \\\n--license mit \\\n--build-type {ament_cmake, ament_python} \\\n--maintainer-email <YOUR-EMAIL> \\\n--maintainer-name <YOUR-NAME> <PACKAGE-NAME>\n```",
+      "x": 5900,
+      "y": 1160,
+      "width": 840,
+      "height": 500,
+      "color": "3"
+    },
+    {
+      "id": "c2c757fab8a7b5f2",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311155814.png",
+      "isSticker": true,
+      "x": 5655,
+      "y": 1350,
+      "width": 170,
+      "height": 121
+    },
+    {
+      "id": "1e6c262f57d17bd4",
+      "type": "text",
+      "text": "`rqt` <3",
+      "x": 6660,
+      "y": 66,
+      "width": 105,
+      "height": 68,
+      "color": "4"
+    },
+    {
+      "id": "bd93e7a68a2e64ff",
+      "type": "text",
+      "text": "### (Q)uality (o)f (S)ervice\nQoS is now an integral part of ROS2.\n- Formal declaration of \"this data _will_ be published\" vs \"this data _might not_ be available _all the time_\". **Familiar?**\n- Every sub/pub must declare what level of QoS they provide/expect.\n\t- We can ignore this at the beginning, and dig in proper _later_.\n\t- Acoustics, maybe?",
+      "x": 5980,
+      "y": 320,
+      "width": 759,
+      "height": 290,
+      "color": "2"
+    },
+    {
+      "id": "1df7d024bd5afff7",
+      "type": "text",
+      "text": "```\n- ROS_MASTER_URI\n+ ROS_DOMAIN_ID\n```",
+      "x": 5980,
+      "y": 648,
+      "width": 280,
+      "height": 100,
+      "color": "2"
+    },
+    {
+      "id": "fc0ac53d4d9e4a1c",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240311171608.png",
+      "isSticker": true,
+      "x": 6000,
+      "y": 860,
+      "width": 100,
+      "height": 86
+    },
+    {
+      "id": "b113cc7b6310ca0a",
+      "type": "text",
+      "text": "The distributed nature of ROS2 lends itself very well to containerization. \n\nFor when two people need different versions of a library installed...",
+      "x": 6300,
+      "y": 780,
+      "width": 400,
+      "height": 166,
+      "color": "5"
+    },
+    {
+      "id": "55b345ae2417790d",
+      "type": "text",
+      "text": "Since there is no more roscore, nodes connect to every other node. `ROS_DOMAIN_ID`  groups them. ",
+      "x": 6300,
+      "y": 648,
+      "width": 400,
+      "height": 100,
+      "color": "5"
+    },
+    {
+      "id": "b37715c70bfa25f6",
+      "type": "text",
+      "text": "Containers! ",
+      "x": 5960,
+      "y": 780,
+      "width": 180,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "e03390bddf5f7565",
+      "type": "text",
+      "text": "## No more `roscore`\nROS2 is now a distributed system.\n- Nodes discover and connect to each other peer-to-peer.\n- No central point of failure.\n- No more \"is anyone running core?\" in the field.\n- No more \"the one terminal with core in it\".",
+      "x": 5640,
+      "y": -340,
+      "width": 600,
+      "height": 280,
+      "color": "1"
+    },
+    {
+      "id": "64fb9606174a31a0",
+      "type": "text",
+      "text": "You will likely read something about a \"DDS\". Unless you are mucking around with the networking back-end, you need not concern yourself with this.",
+      "x": 6259,
+      "y": -271,
+      "width": 500,
+      "height": 143,
+      "color": "5"
+    },
+    {
+      "id": "32c880319697f589",
+      "type": "text",
+      "text": "### No more...\n- Parameter server.\n\t- Since there is no roscore that connects to _every_ node.\n\t- Everything is private now.\n- Dynamic reconfigure setup.\n\t- Each node can now have callbacks for parameter changes\n\t- Every declared parameter is by default configurable ",
+      "x": 6000,
+      "y": -40,
+      "width": 640,
+      "height": 280,
+      "color": "1"
+    },
+    {
+      "id": "e2fdd803d5326834",
+      "type": "text",
+      "text": "``` \n+ launchfile.py\n+ launchfile.xml\n+ launchfile.yaml\n```",
+      "x": 5640,
+      "y": 3940,
+      "width": 280,
+      "height": 140,
+      "color": "2"
+    },
+    {
+      "id": "4df1a485f1c28ed1",
+      "type": "text",
+      "text": "We can now write launchfiles in 3 ways.\n- The XML one is the same as ROS1, good ol' tags\n\t- Most people know this, and used this, you can keep doing so.\n\t- IMO the simplest \"just works\" option.\n- YAML is XML without the tags\n- PY is basically a python script that uses a ros2 launch library to do things to ros2 objects.\n\t- This can be very powerful, but also very confusing.\n\t- Since this is a complete program that happens to interact with ros2, it can launch things very dynamically, potentially replacing a bringup.sh script.\n\t\t- `if (whoami)==\"sam\": launch(sam_drivers.launch); else launch(sam_simstuff.launch)` \n\t\t- Processing args, string manipulation, file operations etc. all doable while launching nodes. \n\t\t\t- This can make multi-agent launches and configurations very easy.\n\t\t\t- This can make simulation launches very easy.",
+      "x": 5960,
+      "y": 3940,
+      "width": 790,
+      "height": 540,
+      "color": "5"
+    },
+    {
+      "id": "5ab899e36a2f3573",
+      "type": "text",
+      "text": "# SMaRC2 4 ROS2",
+      "x": 7180,
+      "y": -1140,
+      "width": 340,
+      "height": 60,
+      "color": "1"
+    },
+    {
+      "id": "74ae88773771fbac",
+      "type": "text",
+      "text": "Break",
+      "x": 7181,
+      "y": -820,
+      "width": 113,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "58bfd62ab7675513",
+      "type": "text",
+      "text": "## ROS1 -> ROS2, the differences\nWhat changed? Ideals behind the changes. Things to keep in mind.",
+      "x": 7237,
+      "y": -1060,
+      "width": 633,
+      "height": 95
+    },
+    {
+      "id": "ed771a180166a2e9",
+      "type": "text",
+      "text": "## Anti-Spaghetti\nOrganic growth is fast and loose, but horrible for anything lives for longer than a year.",
+      "x": 7237,
+      "y": -940,
+      "width": 789,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "e0c5e395579b4868",
+      "type": "text",
+      "text": "## Dirty hands!\nLet's make a simple ROS2 Node that will speak with the sim!",
+      "x": 7237,
+      "y": -720,
+      "width": 576,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "ca11950dad6208df",
+      "type": "text",
+      "text": "## Discussion, loop-back\nThe good, the bad and the ugly. Now that we have gone through the main points, we can talk about things.",
+      "x": 7237,
+      "y": -600,
+      "width": 973,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "1b83e3d8ca3e3c6b",
+      "type": "text",
+      "text": "Artifacts\n- Take time to produce\n- Usually little feedback to create incentives",
+      "x": 7595,
+      "y": 857,
+      "width": 309,
+      "height": 180,
+      "color": "5"
+    },
+    {
+      "id": "998eae8bdff6eae0",
+      "type": "text",
+      "text": "Make artifacts useful; Impressive github profiles get jobs, save _your_ time",
+      "x": 7595,
+      "y": 1058,
+      "width": 309,
+      "height": 119,
+      "color": "2"
+    },
+    {
+      "id": "8c8e457b0323c6bb",
+      "type": "text",
+      "text": "Incentive\n- My time > your time\n- Main incentive = paper, not artifacts",
+      "x": 8020,
+      "y": 657,
+      "width": 309,
+      "height": 200,
+      "color": "5"
+    },
+    {
+      "id": "b8f82880a8029972",
+      "type": "text",
+      "text": "A \"just works\" system from others write your papers. Close that loop.",
+      "x": 8020,
+      "y": 1017,
+      "width": 309,
+      "height": 119,
+      "color": "2"
+    },
+    {
+      "id": "547236235dddb7af",
+      "type": "text",
+      "text": "Time\n- Not enough to create artifacts\n- Incentivised by system to hoard",
+      "x": 7180,
+      "y": 657,
+      "width": 309,
+      "height": 200,
+      "color": "5"
+    },
+    {
+      "id": "f98b134d21b38ee3",
+      "type": "text",
+      "text": "Make it quick to create artifacts, make it obvious that this saves _your_ time.",
+      "x": 7180,
+      "y": 1017,
+      "width": 309,
+      "height": 119,
+      "color": "2"
+    },
+    {
+      "id": "ce625193f9de66fa",
+      "type": "text",
+      "text": "Automation + Common patterns = **Structure** = **Artifacts** that save **time** for a **purpose**.",
+      "x": 7350,
+      "y": 1218,
+      "width": 800,
+      "height": 80,
+      "color": "1"
+    },
+    {
+      "id": "15713e55b79282a8",
+      "type": "file",
+      "file": "98 Attachments/Pasted image 20240312150742.png",
+      "isSticker": true,
+      "x": 7760,
+      "y": 19,
+      "width": 569,
+      "height": 374
+    },
+    {
+      "id": "756b069e436a5849",
+      "type": "text",
+      "text": "## What causes it?\n- \"Quick hack, I'll clean this up later\"\n- \"I just need to run this once\"\n- \"I dont have time to do this properly\"\n- \"I have a deadline\"\n- \"What's a doh-kyu-men-tation?\"\n- \"Nobody told me no\"\n- \"I dont know how else I can do this\"\n- \"I had to follow the other guys method\"",
+      "x": 7193,
+      "y": 117,
+      "width": 495,
+      "height": 340,
+      "color": "5"
+    },
+    {
+      "id": "4e9ec776e509dfd1",
+      "type": "text",
+      "text": "Commonality: Time, Artifacts, Incentive",
+      "x": 7193,
+      "y": 477,
+      "width": 495,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "6add645d00235ac9",
+      "type": "text",
+      "text": "Delicious in food form, but a PITA in software form.",
+      "x": 7193,
+      "y": 19,
+      "width": 495,
+      "height": 76,
+      "color": "5"
+    },
+    {
+      "id": "1f445bd932890b81",
+      "type": "text",
+      "text": "# Spaghetti",
+      "x": 7330,
+      "y": -73,
+      "width": 220,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "16006af1a0d66a4a",
+      "type": "text",
+      "text": "# Some very common things I've heard",
+      "x": 8860,
+      "y": -1120,
+      "width": 636,
+      "height": 46,
+      "color": "6"
+    },
+    {
+      "id": "cf9715e700e0d656",
+      "type": "text",
+      "text": "\"We want to run the whole system with one command\"",
+      "x": 8888,
+      "y": -1020,
+      "width": 530,
+      "height": 54,
+      "color": "4"
+    },
+    {
+      "id": "3101485e6edd2dcf",
+      "type": "text",
+      "text": "We have used bringup scripts before. \n- (+) Simple and flexible (to some)\n- (+) We are experienced\n- (-) Kind of a mess to configure\n- (-) No dependency management\n\nAlternative: Python launch file?",
+      "x": 9560,
+      "y": -1020,
+      "width": 419,
+      "height": 260,
+      "color": "5"
+    },
+    {
+      "id": "35cad3a759551036",
+      "type": "text",
+      "text": "A mono-repo that has this script _and_ all its dependencies by default kind of fixes the last point.\n\nUsually not modified much.",
+      "x": 9560,
+      "y": -720,
+      "width": 419,
+      "height": 160,
+      "color": "5"
+    },
+    {
+      "id": "45c675aa72aa45b4",
+      "type": "text",
+      "text": "[GitHub - smarc-project/smarc2: smarc ros2-humble main repository](https://github.com/smarc-project/smarc2)",
+      "x": 9082,
+      "y": -672,
+      "width": 381,
+      "height": 65,
+      "color": "6"
+    },
+    {
+      "id": "114cf97277370dbb",
+      "type": "text",
+      "text": "\"Which THING is used by which other THING?\"",
+      "x": 8888,
+      "y": -400,
+      "width": 461,
+      "height": 50,
+      "color": "4"
+    },
+    {
+      "id": "4591163bc5e36062",
+      "type": "text",
+      "text": "Auto-generate artifacts\n- README's with lists of launchfiles, nodes, topics etc. \n- Graphical representation of the system when \"all is running\"",
+      "x": 9340,
+      "y": -332,
+      "width": 658,
+      "height": 125,
+      "color": "5"
+    },
+    {
+      "id": "dec135414fd01506",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/smarc2_structure.md",
+      "x": 8900,
+      "y": -191,
+      "width": 720,
+      "height": 400
+    },
+    {
+      "id": "c841b27fb20c3dad",
+      "type": "text",
+      "text": "We can run this script _on push/merge_.",
+      "x": 9716,
+      "y": -42,
+      "width": 263,
+      "height": 102,
+      "color": "6"
+    },
+    {
+      "id": "319c34bf27082073",
+      "type": "text",
+      "text": "\"Will your update break my thing?\"",
+      "x": 8888,
+      "y": 320,
+      "width": 366,
+      "height": 54,
+      "color": "4"
+    },
+    {
+      "id": "528c68ea29587fe9",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/messages/sam_msgs/msg/Topics.msg",
+      "x": 9548,
+      "y": 400,
+      "width": 480,
+      "height": 550
+    },
+    {
+      "id": "c21869271faa6ade",
+      "type": "text",
+      "text": "A shared interface has been fiddled with.\nEvery. Time. \n\"Your thing broke mine!\"",
+      "x": 9029,
+      "y": 420,
+      "width": 414,
+      "height": 132,
+      "color": "5"
+    },
+    {
+      "id": "6b0ac92c44910eac",
+      "type": "text",
+      "text": "Name + Type:\n- Use one master list.\n- Extend previous script to ensure namespacing + type.\n- (I would even use this one list for the _types_ with enough reflection, but let's not :) )",
+      "x": 8992,
+      "y": 589,
+      "width": 488,
+      "height": 230,
+      "color": "3"
+    },
+    {
+      "id": "79b17631a3633005",
+      "type": "text",
+      "text": "Field meaning + Content:\n- Write minimal tests. \n\t- The test should fail before your node does on the vehicle!\n\t- These tests should ideally require no code from the \"main\" thing to run.\n\t- Basically just the input-output types should be checked. \n\t\t- If input looks good, produce a mock output for the nodes downstream.\n- Document the _why_'s of your inputs/outputs in your READMEs!\n\t- We can automate the _what_'s, but we can not do the _why_'s. (yet? AGI plz.)",
+      "x": 8992,
+      "y": 1080,
+      "width": 906,
+      "height": 320,
+      "color": "3"
+    },
+    {
+      "id": "19b60e527c2fba11",
+      "type": "text",
+      "text": "These tests can be automatically run on every push/merge on github.\n\nAnd also locally by you with a simple docker container.",
+      "x": 9589,
+      "y": 1460,
+      "width": 399,
+      "height": 154,
+      "color": "5"
+    },
+    {
+      "id": "49ba5502084d3244",
+      "type": "text",
+      "text": "\"Yo I'm out with SAM and I need to change this thing in your code, halp\"",
+      "x": 8892,
+      "y": 2500,
+      "width": 674,
+      "height": 65,
+      "color": "4"
+    },
+    {
+      "id": "4b4ad3f3de3d0480",
+      "type": "text",
+      "text": "Hopefully the previous steps reduce the need for this, but in the cases that it does not:\n\n- Use common software design!\n\t- Such that everyone has at least some idea of how everything else works.",
+      "x": 9080,
+      "y": 2660,
+      "width": 803,
+      "height": 125,
+      "color": "3"
+    },
+    {
+      "id": "149e5bb643eacb1b",
+      "type": "text",
+      "text": "Two common patterns that I think match our use cases:\n- Model View Controller\n- Entity Component System",
+      "x": 9318,
+      "y": 2840,
+      "width": 327,
+      "height": 180,
+      "color": "5"
+    },
+    {
+      "id": "65c81dd367f9e4dc",
+      "type": "text",
+      "text": "\"Can we change this one THING so I can test this other THING?\"",
+      "x": 8892,
+      "y": 1780,
+      "width": 635,
+      "height": 65,
+      "color": "4"
+    },
+    {
+      "id": "74bfa064ffd5f6ed",
+      "type": "text",
+      "text": "**Services and parameters** \n\nWe need more services/live parameters provided by each node.\n- Parameters\n\t- Enable/disable partial functions: \"Dont thrust, but still vector\"\n\t- Change _rate_ of work: \"Publish at 10hz instead of 15hz\"\n\t- Change _param_ of work: \"Forward is 500rpm now\"\n\t- Change _kind_ of work: \"Use alg X instead of Y to do the work\"\n\t- Pause/Resume: \"Wait until later, keep memory though\"\n- Services\n\t- Simple commands: \"Move forward for 3 seconds\"\n\t- Interface: \"What is your state?\"\n\t- Common functions: \"What is the lat/lon of utm XYZ?\"",
+      "x": 8960,
+      "y": 1900,
+      "width": 665,
+      "height": 435,
+      "color": "3"
+    },
+    {
+      "id": "73918b3f1ae304df",
+      "type": "text",
+      "text": "These can all be auto-discovered by the previous script and rqt_reconfigure",
+      "x": 9680,
+      "y": 2055,
+      "width": 294,
+      "height": 126,
+      "color": "5"
+    },
+    {
+      "id": "09b8d392af8a71a5",
+      "type": "text",
+      "text": "**View**\n- Classically \"the monitor\", the thing a user _sees_.\n\t- One-way communication\n- Can be:\n\t- The robot. The state of the robot = pixels on screen.\n\t- A file. \n\t- A plot.\n\t- _All of the above in any combination_\n- If you define an interface, and use that for _different implementations_, then you can easily swap them around!\n\t- \"SetRPM()\" -> RobotView moves props, PlotView paints a dot on a graph, FileView writes a line of csv.\n- These objects should do minimal processing\n\t- Only enough to marry the output of a model with the input of the receiver. \n\t- Think \"create ROS message, fill fields of it from a Model object\"",
+      "x": 8929,
+      "y": 4700,
+      "width": 520,
+      "height": 640,
+      "color": "3"
+    },
+    {
+      "id": "eaccf83beb3f1498",
+      "type": "text",
+      "text": "```python\nclass IView:\n  def update(self, model: Model):\n    print(\"Unimplemented!\")\n```\n\n```python\nclass RobotView(Iview):\n  def RobotView(self):\n    # buncha pubs\n  def update(self, model: Model):\n    self.rpm_pub.publish(model.control_input)\n```\n\n```python\nclass PlotView(IView):\n  def PlotView(self, size):\n    # init a canvas\n  def update(self, model):\n    self.num_plotted += 1\n    self.canvas.plot(self.num_plotted, model.control_input)\n```",
+      "x": 9500,
+      "y": 4745,
+      "width": 520,
+      "height": 550,
+      "color": "2"
+    },
+    {
+      "id": "a3a5a79b330e66d6",
+      "type": "text",
+      "text": "```python\nclass Controller:\n  def Controller(self):\n    rclpy.init()\n    self.node = rclpy.create_node()\n    self.view = View(node)\n    self.model = Model()\n    # buncha subs, services etc.\n  def timer_cb(self):\n    if(self.some_conditions):\n      model.update(some_data)\n    if(self.some_other_conditions):\n      view.update(model)\n  def run(self):\n    self.node.create_timer(period, timer_cb)\n    try:\n      rclpy.spin(self.node)\n    except KeyboardInterrupt:\n      pass\n    rclpy.shutdown()\n```",
+      "x": 9480,
+      "y": 5510,
+      "width": 520,
+      "height": 540,
+      "color": "2"
+    },
+    {
+      "id": "04a50a148d6b1836",
+      "type": "text",
+      "text": "**Controller**\n- Not for the hardware :D\n- Connects the model to the view\n- Basically where the \"main\" should be. \n\t- In ROS terms, this would be the executable Node object.\n\t- Creates the View and Model objects, pipes them around, puts them in a loop.\n\t- Checks for ROS-health in that loop.\n- Acts as the gate to the rest of the software\n\t- Any commands, desires, setpoints etc. are given to the controller, which will distribute them to the relevant parts\n\t- If some command says \"stop publishing this\", the controller will stop the view from publishing.",
+      "x": 8929,
+      "y": 5518,
+      "width": 511,
+      "height": 524,
+      "color": "3"
+    },
+    {
+      "id": "95fae34c4fcbc204",
+      "type": "text",
+      "text": "#### Expanding on the concerns",
+      "x": 8929,
+      "y": 3960,
+      "width": 391,
+      "height": 60,
+      "color": "3"
+    },
+    {
+      "id": "233e800c69b569b4",
+      "type": "text",
+      "text": "We're going into some surface-level basic software engineering",
+      "x": 9600,
+      "y": 3960,
+      "width": 385,
+      "height": 76,
+      "color": "5"
+    },
+    {
+      "id": "05df69a9543287a7",
+      "type": "text",
+      "text": "**Model**\n- This is where _your_ science happens. \n- This is the _point_ of the software you are writing.\n- Usually the largest and most complicated part.\n\t- Could be split into its own sub-pieces, and for that I would actually recommend ECS.\n- Should be written in such a way that it has minimal external(to the package) requirements; The model should be a program itself\n\t- that can be run from the command line\n\t- that can be tested by itself\n\t- that should have clear inputs and outputs\n\t\t- if you can minimize the amount of _state_, even better\n- **All the heavy lifting is done here.** ",
+      "x": 8929,
+      "y": 4070,
+      "width": 520,
+      "height": 500,
+      "color": "3"
+    },
+    {
+      "id": "f9fe29891dadc05a",
+      "type": "text",
+      "text": "```python\nclass PIDModel:\n  def PIDModel(self, gains):\n    self.gains = gains\n  def calculate(self, target):\n    # do science!\n    # use gains and target!\n    self.control_input = something\n```",
+      "x": 9500,
+      "y": 4192,
+      "width": 440,
+      "height": 257,
+      "color": "2"
+    },
+    {
+      "id": "0ee0e8251eb88af0",
+      "type": "text",
+      "text": "Notice how this piece of code can be easily tested _with no ros installation at all_",
+      "x": 9511,
+      "y": 4490,
+      "width": 418,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "87a50d7858c7cded",
+      "type": "text",
+      "text": "MVC:\n- Model -> Science\n- View -> Robot\n- Controller -> ROS/User\n",
+      "x": 8892,
+      "y": 3238,
+      "width": 382,
+      "height": 163,
+      "color": "3"
+    },
+    {
+      "id": "4e0b57b96c02310b",
+      "type": "text",
+      "text": "ECS:\n- Node has\n\t- robot mover\n\t- plot generator\n\t- controller\n\t- scientist\n\t- ...",
+      "x": 9620,
+      "y": 3238,
+      "width": 376,
+      "height": 273,
+      "color": "3"
+    },
+    {
+      "id": "37e0ed583947a7a9",
+      "type": "text",
+      "text": "- The three \"concerns\"  match nicely with our use cases.\n- Simpler.\n- Some parts require _minimal_ modification once written.",
+      "x": 8892,
+      "y": 3451,
+      "width": 382,
+      "height": 180,
+      "color": "5"
+    },
+    {
+      "id": "fae70a996f4c8ab1",
+      "type": "text",
+      "text": "- Very, very flexible.\n\t- Do we need _this much_ flexibility in _each node_?\n- Can get complicated fast.\n-  Requires some experience to keep from becoming spaghetti.",
+      "x": 9620,
+      "y": 3577,
+      "width": 376,
+      "height": 214,
+      "color": "5"
+    },
+    {
+      "id": "0de9f24e26647dfd",
+      "type": "text",
+      "text": "Better for us",
+      "x": 8998,
+      "y": 3731,
+      "width": 170,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "e72ca64b87ba8368",
+      "type": "text",
+      "text": "# SMaRC2 4 ROS2",
+      "x": 10680,
+      "y": -1140,
+      "width": 340,
+      "height": 60,
+      "color": "1"
+    },
+    {
+      "id": "6c3172cf006cd302",
+      "type": "text",
+      "text": "Break",
+      "x": 10681,
+      "y": -820,
+      "width": 113,
+      "height": 60,
+      "color": "4"
+    },
+    {
+      "id": "9b70977c9794c364",
+      "type": "text",
+      "text": "## ROS1 -> ROS2, the differences\nWhat changed? Ideals behind the changes. Things to keep in mind.",
+      "x": 10737,
+      "y": -1060,
+      "width": 633,
+      "height": 95
+    },
+    {
+      "id": "d25201803de5512e",
+      "type": "text",
+      "text": "## Anti-Spaghetti\nOrganic growth is fast and loose, but horrible for anything lives for longer than a year.",
+      "x": 10737,
+      "y": -940,
+      "width": 789,
+      "height": 94
+    },
+    {
+      "id": "366bdf69a7401033",
+      "type": "text",
+      "text": "## Dirty hands!\nLet's make a simple ROS2 Node that will speak with the sim!",
+      "x": 10737,
+      "y": -720,
+      "width": 576,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "938795753f049762",
+      "type": "text",
+      "text": "## Discussion, loop-back\nThe good, the bad and the ugly. Now that we have gone through the main points, we can talk about things.",
+      "x": 10737,
+      "y": -600,
+      "width": 973,
+      "height": 94,
+      "color": "2"
+    },
+    {
+      "id": "fbce3b87c593a415",
+      "type": "link",
+      "url": "https://docs.docker.com/engine/install/",
+      "x": 12340,
+      "y": -300,
+      "width": 760,
+      "height": 640
+    },
+    {
+      "id": "77f957a11dac3519",
+      "type": "text",
+      "text": "### Install Docker \nThis is platform dependent:\n",
+      "x": 11960,
+      "y": 244,
+      "width": 320,
+      "height": 93,
+      "color": "3"
+    },
+    {
+      "id": "86530f5a05693d90",
+      "type": "text",
+      "text": "## Make a new package\nWe'll use python for this workshop, mostly because it has the most changes compared to ROS1 packages.",
+      "x": 11480,
+      "y": 1180,
+      "width": 348,
+      "height": 220,
+      "color": "2"
+    },
+    {
+      "id": "8af4ad47bdc68adf",
+      "type": "text",
+      "text": "Just dont name your package \"workshopfun\" :)",
+      "x": 11524,
+      "y": 1500,
+      "width": 260,
+      "height": 108,
+      "color": "5"
+    },
+    {
+      "id": "a2401b1e1728ca15",
+      "type": "text",
+      "text": "Congrats, you have your first pure python ROS2 Humble package!",
+      "x": 11540,
+      "y": 1645,
+      "width": 271,
+      "height": 115,
+      "color": "2"
+    },
+    {
+      "id": "81210f264ae5fc90",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/documentation/Making%20a%20new%20package.md",
+      "x": 10680,
+      "y": 1160,
+      "width": 760,
+      "height": 640
+    },
+    {
+      "id": "ac5893e76c36159a",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/simulation/README.md",
+      "x": 12340,
+      "y": 440,
+      "width": 760,
+      "height": 640
+    },
+    {
+      "id": "b78c3a57700ec49a",
+      "type": "text",
+      "text": "## Acquire Dockerfile then build and run\nEither clone the smarc2 repo, or just download the Dockerfile in smarc2/docker\n",
+      "x": 11960,
+      "y": 500,
+      "width": 320,
+      "height": 220,
+      "color": "3"
+    },
+    {
+      "id": "be550dee14966829",
+      "type": "text",
+      "text": "Once you have _a_ container running, you can then create a new one that shares a folder with the host like so:\n```\ndocker run -it -v \"$PWD/FOLDER_ON_HOST\":\"/FOLDER_IN_CONTAINER\" smarc2/base\n```\nYou can use  `/home/CONTAINER_USERNAME/colcon_ws/src/PACKAGE_NAME` (or `/colcon_ws/src/PACKAGE_NAME` if you're `root` in the container) as your `FOLDER_IN_CONTAINER`.",
+      "x": 12240,
+      "y": 1240,
+      "width": 808,
+      "height": 300,
+      "color": "3"
+    },
+    {
+      "id": "e564fb02d4481483",
+      "type": "text",
+      "text": "This will let you edit files on the host while easily running them inside the container.\nFrom here on out, you have an Ubuntu 22.04 with ROS Humble installed in it and can follow along the \"Native\" path",
+      "x": 12120,
+      "y": 1587,
+      "width": 808,
+      "height": 115,
+      "color": "5"
+    },
+    {
+      "id": "ac44cebc1ebc03b3",
+      "type": "text",
+      "text": "# Let's write a simple ROS2 node that does _something_",
+      "x": 10830,
+      "y": -300,
+      "width": 880,
+      "height": 80,
+      "color": "6"
+    },
+    {
+      "id": "bf244ae0069de39d",
+      "type": "link",
+      "url": "https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html",
+      "x": 11120,
+      "y": -186,
+      "width": 740,
+      "height": 430
+    },
+    {
+      "id": "fd07f53d943b3990",
+      "type": "text",
+      "text": "## Install Humble\nAssuming ubuntu 22.04 already on your system.",
+      "x": 10762,
+      "y": -36,
+      "width": 330,
+      "height": 130,
+      "color": "2"
+    },
+    {
+      "id": "a3eed6eafc89c9c8",
+      "type": "text",
+      "text": "\"I don't have ubuntu 22.04 :(\"",
+      "x": 10769,
+      "y": 260,
+      "width": 315,
+      "height": 60,
+      "color": "3"
+    },
+    {
+      "id": "0f670db2bc8c3231",
+      "type": "text",
+      "text": "## Install smarc2",
+      "x": 11570,
+      "y": 500,
+      "width": 190,
+      "height": 100,
+      "color": "2"
+    },
+    {
+      "id": "087e8f230159f869",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/documentation/Installing%20ROS2.md",
+      "x": 10680,
+      "y": 440,
+      "width": 760,
+      "height": 640
+    },
+    {
+      "id": "8fb233fe21158a6c",
+      "type": "text",
+      "text": "### setup.cfg\nYou probably won't ever need to touch this file, because it is correctly auto-gen'd for us.",
+      "x": 10706,
+      "y": 2640,
+      "width": 466,
+      "height": 140,
+      "color": "3"
+    },
+    {
+      "id": "70bbc37f9f5b16a8",
+      "type": "text",
+      "text": "Until you decide to run `colcon_build` and see a warnings about underscores and dashes. This is due to an update to setuptools that is newer than ROS2 Humble.\n\nThese warnings can be ignored, but they are annoying. To get rid of them do:\n```\npip install setuptools==58.2.0\n```",
+      "x": 11240,
+      "y": 2640,
+      "width": 580,
+      "height": 280,
+      "color": "5"
+    },
+    {
+      "id": "c69e226ccfd038c1",
+      "type": "text",
+      "text": "### resource\nThis folder contains an empty file that is used as a marker later. Do not change it, do not touch it, do not even look at it.\n",
+      "x": 10706,
+      "y": 2840,
+      "width": 466,
+      "height": 160,
+      "color": "3"
+    },
+    {
+      "id": "a30eb23238342c9d",
+      "type": "text",
+      "text": "### test\nFolder to put our tests in. By default `ros2 pkg` puts in style tests in here that I would recommend deleting unless you want to obey the stlye guides :)",
+      "x": 10706,
+      "y": 3060,
+      "width": 514,
+      "height": 160,
+      "color": "3"
+    },
+    {
+      "id": "67365e783663c190",
+      "type": "text",
+      "text": "### setup.py\nNow, THIS file, you will work with a lot. This replaces the CMAKELISTS.txt file of ROS1 for pure-python packages.\n\n",
+      "x": 10706,
+      "y": 3340,
+      "width": 634,
+      "height": 140,
+      "color": "3"
+    },
+    {
+      "id": "e70fabc81d871db9",
+      "type": "text",
+      "text": "First things first: `import glob, os` and add to `data-files=[]` the following:\n```\n(os.path.join('share', package_name, 'config'), glob.glob('config/*')),\n(os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),\n```\nThis basically tells ros \"hey, anything in the config and launch folders, install them too\". You can then access these files from launch files, ros2 CLI and so on. We will use these later.",
+      "x": 11023,
+      "y": 3500,
+      "width": 802,
+      "height": 280,
+      "color": "2"
+    },
+    {
+      "id": "6754bcb37c57cf19",
+      "type": "text",
+      "text": "Take a look at the `entry-points={...}` dict at the end. This is the second important list that you will need to touch later. \nThis list effectively tells ROS2 \"Define an executable name that runs this function in this file. \" Kind of like a compiled main function, but you can have as many as you want in whatever organizational structure you like.",
+      "x": 11023,
+      "y": 3800,
+      "width": 802,
+      "height": 175,
+      "color": "2"
+    },
+    {
+      "id": "5d85e974cfdb2d66",
+      "type": "text",
+      "text": "### `<Your package name>`\nFinally, where code goes. \nThis already contains an empty `__init__.py` file.\n\nLet's get something running!\n\nAnd let's already make this in the MVC pattern.",
+      "x": 10706,
+      "y": 4080,
+      "width": 514,
+      "height": 240,
+      "color": "3"
+    },
+    {
+      "id": "9dd4fd5af7241177",
+      "type": "text",
+      "text": "First order of business in MVC can change from project to project, but I like to _get my output_ first, so that I can SEE something, anything, as I write later parts.\n\nThis is handled by the View component.\nSo lets create an interface for all views going forward first. We will write a simple forward/backward thruster \"controller\", so I will name my view interface `IThrustView`.",
+      "x": 10780,
+      "y": 4420,
+      "width": 840,
+      "height": 200,
+      "color": "2"
+    },
+    {
+      "id": "3361079991c306fa",
+      "type": "text",
+      "text": "Let's check what files we have lying around",
+      "x": 10720,
+      "y": 1900,
+      "width": 440,
+      "height": 50,
+      "color": "5"
+    },
+    {
+      "id": "8ea9bff86496cff1",
+      "type": "text",
+      "text": "### LICENSE\n`ros2 pkg` put the MIT license conditions for us in here. How nice.",
+      "x": 10706,
+      "y": 2000,
+      "width": 469,
+      "height": 146,
+      "color": "3"
+    },
+    {
+      "id": "de863f1e6f2e9261",
+      "type": "text",
+      "text": "### package.xml\nFamiliar stuff. \nrosdep-acquirable dependencies go here.\nMight as well add two packages that everyone almost always will need:\n```\n<depend>tf_transformations</depend>\n<depend>python3-transforms3d</depend>\n```\n",
+      "x": 10706,
+      "y": 2180,
+      "width": 466,
+      "height": 340,
+      "color": "3"
+    },
+    {
+      "id": "66cdb414a67f2dc0",
+      "type": "text",
+      "text": "These two packages replace the tf.transformations package from ROS1.\n\nFirst one has the _functionality_ but with slightly different call signatures.\nThe second one is a wrapper around the first, to make the signatures look _exactly the same_.\nThis is good for porting, with both here, old ROS1 TF code should work directly.",
+      "x": 11220,
+      "y": 2180,
+      "width": 400,
+      "height": 340,
+      "color": "5"
+    },
+    {
+      "id": "47552ee97ee34be0",
+      "type": "text",
+      "text": "Now that we have codified our promise, we can make it real.\n\nMake a new file+class: `SAMThrustView`",
+      "x": 13733,
+      "y": -800,
+      "width": 465,
+      "height": 154,
+      "color": "2"
+    },
+    {
+      "id": "d7a617e7499fe0ec",
+      "type": "text",
+      "text": "All this really does is creating a \"promise\", that any object that extends this one will have a method called set_rpm that takes an int rpm as its input and returns nothing.\n\nIt won't do anything but print, but it will exist and your program will run.\n\nThis method exists to be over-written.",
+      "x": 14340,
+      "y": -1100,
+      "width": 420,
+      "height": 300,
+      "color": "5"
+    },
+    {
+      "id": "5e4aebd20536f0cf",
+      "type": "text",
+      "text": "Import the usual:\n```python\n#!/usr/bin/python3\nimport sys\nimport rclpy\nfrom rclpy.node import Node\n    \nfrom smarc_msgs.msg import ThrusterRPM\nfrom sam_msgs.msg import Topics as SamTopics\n\ntry:\n    from .IThrustView import IThrustView\nexcept:\n    from IThrustView import IThrustView\n\ndef test_view():\n    pass\n\nif __name__ == \"__main__\":\n    test_view()\n```",
+      "x": 13700,
+      "y": -400,
+      "width": 570,
+      "height": 564,
+      "color": "2"
+    },
+    {
+      "id": "96aaea74f2c94ea7",
+      "type": "text",
+      "text": "- `rclpy`: the new rospy, this will create all of our ROS objects\n- `sys`: ROS node creation now takes command line arguments straight, so we need to pass them on\n- `rclpy.node::Node`: The main object that interacts with ROS\n- `ThrusterRPM`: Message type we'll publish from this view, we won't create one, but we will use type hinting of py3\n- `Topics as SamTopics`: List of topic names in a tidy ROS message, so we won't hardcode any strings anywhere \n- `try-except`: Annoying side-effect. Ignore if you don't intend to run this file as-is without ROS and use just the dotted version.",
+      "x": 14280,
+      "y": -353,
+      "width": 544,
+      "height": 470,
+      "color": "5"
+    },
+    {
+      "id": "37615c7617911f38",
+      "type": "text",
+      "text": "from sam_msgs.msg import Topics as SamTopics\n",
+      "x": 13948,
+      "y": -152,
+      "width": 260,
+      "height": 60
+    },
+    {
+      "id": "fb5d8f2121fd6fc0",
+      "type": "text",
+      "text": "Now, to get ROS to run this node for us, we gotta tell it how, remember `setup.py`? ",
+      "x": 13680,
+      "y": 1780,
+      "width": 780,
+      "height": 60,
+      "color": "2"
+    },
+    {
+      "id": "084e6c1e3a18fc57",
+      "type": "text",
+      "text": "```python\nentry_points={\n        'console_scripts': [\n            'view_test = workshopfun.SAMThrustView:test_view'\n        ],\n    },\n```",
+      "x": 13710,
+      "y": 1960,
+      "width": 720,
+      "height": 178,
+      "color": "2"
+    },
+    {
+      "id": "fb93923c14d69676",
+      "type": "text",
+      "text": "`EXEC_NAME = FOLDER.FILE:FUNCTION`",
+      "x": 14460,
+      "y": 2022,
+      "width": 380,
+      "height": 55,
+      "color": "5"
+    },
+    {
+      "id": "0fdd1246901f8c3c",
+      "type": "text",
+      "text": "'view_test = workshopfun.SAMThrustView:test_view'",
+      "x": 13846,
+      "y": 2025,
+      "width": 260,
+      "height": 60
+    },
+    {
+      "id": "d673562948f978f7",
+      "type": "text",
+      "text": "And then go ahead and build your workspace. `colcon build`.\nDo this in a folder where you see `src`! \n(There is a way to make this more convenient, later.)",
+      "x": 13690,
+      "y": 2260,
+      "width": 760,
+      "height": 100,
+      "color": "2"
+    },
+    {
+      "id": "7be3a9b71cc4886f",
+      "type": "text",
+      "text": "Create the simple class that will extend our interface now and add some publishers to it.\n```python\nclass SAMThrustView(IThrustView):\n    def __init__(self, node: Node) -> None:\n        self._rpm1_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, 10)\n        self._rpm2_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, 10)\n        self._t1_msg = ThrusterRPM()\n        self._t2_msg = ThrusterRPM()\n\n    def set_rpm(self, rpm: int) -> None:\n         self._t1_msg.rpm = rpm\n         self._t2_msg.rpm = rpm\n\n    def update(self) -> None:\n        self._rpm1_pub.publish(self._t1_msg)\n        self._rpm2_pub.publish(self._t2_msg)\n```",
+      "x": 13680,
+      "y": 320,
+      "width": 1000,
+      "height": 460,
+      "color": "2"
+    },
+    {
+      "id": "3490b99d542b48b4",
+      "type": "text",
+      "text": "Going forward, let's use the python \"private\" variable conventions.",
+      "x": 14420,
+      "y": 840,
+      "width": 400,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "2ed463ff158ea5c3",
+      "type": "text",
+      "text": "```python\ndef test_view():\n    rclpy.init(args=sys.argv)\n    node = rclpy.create_node(\"SAMThrustView_test\")\n    view = SAMThrustView(node)\n\n    rpm = 500\n\n    def loop():\n        nonlocal rpm\n        rpm *= -1\n        view.set_rpm(rpm)\n        view.update()\n\n    loop_period = 1\n    node.create_timer(loop_period, loop)\n    try:\n        rclpy.spin(node)\n    except KeyboardInterrupt:\n        pass\n```",
+      "x": 13680,
+      "y": 1090,
+      "width": 600,
+      "height": 540,
+      "color": "2"
+    },
+    {
+      "id": "c073de918a91b920",
+      "type": "text",
+      "text": "- Create a node\n- Create a function to loop\n- Create a timer, give the function to it\n- Spin",
+      "x": 14360,
+      "y": 1287,
+      "width": 440,
+      "height": 146,
+      "color": "5"
+    },
+    {
+      "id": "134bd763bd075cd6",
+      "type": "text",
+      "text": "Acquire your chosen sim from here: \n[Release SMaRCUnity 0.0.1 · smarc-project/smarc2 · GitHub](https://github.com/smarc-project/smarc2/releases/tag/v0.0.1-sim)\n\nUnzip it, run it.\n\nThen run `ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1` (You can find this in `smarc2/scripts/unity_ros_bridge.sh`)\n\nKeep both running in the background. ",
+      "x": 13680,
+      "y": 2500,
+      "width": 920,
+      "height": 260,
+      "color": "2"
+    },
+    {
+      "id": "4f4401720282cd0c",
+      "type": "text",
+      "text": "Then run the file itself and check the sim!\n`ros2 run PACKAGE_NAME EXEC_NAME --ros-args --remap __ns:=/sam0`",
+      "x": 13680,
+      "y": 2831,
+      "width": 780,
+      "height": 80,
+      "color": "2"
+    },
+    {
+      "id": "9476d9bfe32ea0cf",
+      "type": "text",
+      "text": "`--ros-args` is required now, since ROS no longer has a \"special\" argument parser. Any argument you pass to `run` is passed into `sys`, so you can actually pass non-ros-related args to your nodes mixed in with ros-args.\n\n`__ns` is how we namespace a node. Since the sim-sam is under `sam0`, we put this node there too.",
+      "x": 14140,
+      "y": 2941,
+      "width": 700,
+      "height": 199,
+      "color": "5"
+    },
+    {
+      "id": "76c1853827b946b9",
+      "type": "text",
+      "text": "# Congrats! \n\n## You have written your first running ROS2 Node\n\nWe will \n- Write a \"Model\"\n- Write a \"Controller\"\n- Add some params\n- Add a service\n- Write a launch file\n- Write a yaml config",
+      "x": 13710,
+      "y": 3360,
+      "width": 720,
+      "height": 380,
+      "color": "4"
+    },
+    {
+      "id": "cbcb6d204c3879f7",
+      "type": "text",
+      "text": "```python\nclass IThrustView:\n    def set_rpm(self, rpm: int) -> None:\n        print(\"UNIMPLEMENTED\")\n```",
+      "x": 13681,
+      "y": -1020,
+      "width": 570,
+      "height": 140,
+      "color": "2"
+    },
+    {
+      "id": "f761c2821cc7b302",
+      "type": "text",
+      "text": "",
+      "x": 13520,
+      "y": -975,
+      "width": 50,
+      "height": 50,
+      "color": "2"
+    },
+    {
+      "id": "cf4164e957c265c3",
+      "type": "text",
+      "text": "",
+      "x": 11960,
+      "y": 4495,
+      "width": 50,
+      "height": 50,
+      "color": "2"
+    },
+    {
+      "id": "bc255307c8804ec8",
+      "type": "text",
+      "text": "",
+      "x": 11985,
+      "y": 2073,
+      "width": 50,
+      "height": 50,
+      "color": "2"
+    },
+    {
+      "id": "ca263e804ff4cea9",
+      "type": "text",
+      "text": "",
+      "x": 13510,
+      "y": 2073,
+      "width": 50,
+      "height": 50,
+      "color": "2"
+    },
+    {
+      "id": "382ff534d15b60bb",
+      "type": "link",
+      "url": "https://github.com/smarc-project/smarc2/blob/humble/docker/README.md#connecting-your-host-ros2-and-dockerized-ros2",
+      "x": 12220,
+      "y": 2518,
+      "width": 660,
+      "height": 600
+    },
+    {
+      "id": "68d2d0cd07d4de78",
+      "type": "text",
+      "text": "Dockerized people should run the sim inside the container in no-graphics mode like so:\n`./smarc_unity_standard_linux.x86_64 -nographics -batchmode`\nYou won't see anything, obviously, but there is a way to get rviz on your host machine to talk to the dockerized sim.\n\nIf you don't have rviz2 on your host either, then you'd need to do some X forwarding of docker, which is beyond the scope of this WS.",
+      "x": 12928,
+      "y": 2578,
+      "width": 420,
+      "height": 480,
+      "color": "3"
+    },
+    {
+      "id": "5e2af16e6bdf985b",
+      "type": "text",
+      "text": "\"RPM Limit: {r}\")",
+      "x": 15879,
+      "y": 4189,
+      "width": 260,
+      "height": 60
+    },
+    {
+      "id": "b0d64202ee5fa0cc",
+      "type": "text",
+      "text": "```python\nentry_points={\n        'console_scripts': [\n            'view_test = workshopfun.SAMThrustView:test_view',\n            'science_node = workshopfun.ThrustyControllerNode:main'\n        ],\n    },\n```\n\nLet's not forget the setup.py file. Add in our new controller node to it.",
+      "x": 15300,
+      "y": 2580,
+      "width": 1160,
+      "height": 260,
+      "color": "2"
+    },
+    {
+      "id": "d5f47730201b6bfb",
+      "type": "text",
+      "text": "`colcon build`\nand \n`ros2 run workshopfun science_node --ros-args -r __ns=/sam0`",
+      "x": 15300,
+      "y": 2880,
+      "width": 1160,
+      "height": 100,
+      "color": "2"
+    },
+    {
+      "id": "267b9ad87f7a5469",
+      "type": "text",
+      "text": "This should do nothing different than the `test_view` one we ran before, except the RPMs are set randomly every time by the model object.",
+      "x": 15543,
+      "y": 3060,
+      "width": 675,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "d6a53e28374c58bf",
+      "type": "text",
+      "text": "Let's check that parameter we declared!",
+      "x": 15325,
+      "y": 3340,
+      "width": 415,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "7f79eb62842b96a1",
+      "type": "text",
+      "text": "- `ros2 param ...`\n\t- `list` -> find your node in here, you should see the parameter's name you declared, in addition to \"use_sim_time\".\n\t- `describe` -> This should show you the description, type and constraints of the parameter.\n\t- `get` -> The current value\n\t- `set` -> Sets the value. Or should. But we didn't really _read_ the parameter after the init at any point.\n\nLet's actually read the parameter live!",
+      "x": 15628,
+      "y": 3500,
+      "width": 672,
+      "height": 340,
+      "color": "5"
+    },
+    {
+      "id": "f59f5ae4393a9fc4",
+      "type": "text",
+      "text": "Same idea with the view. Swapping models can be useful too.\n\nLet's put these two files in a sub-dir too, to clearly show that this part can be expanded massively going forward!",
+      "x": 15325,
+      "y": -720,
+      "width": 430,
+      "height": 200,
+      "color": "5"
+    },
+    {
+      "id": "5f5bd61f6aba3b8d",
+      "type": "text",
+      "text": "Controller time to tie the model and view!",
+      "x": 15300,
+      "y": -400,
+      "width": 430,
+      "height": 60,
+      "color": "5"
+    },
+    {
+      "id": "46343f8fda9b3d8d",
+      "type": "text",
+      "text": "```python\n#!/usr/bin/python3\n\nimport sys\nimport rclpy\nfrom rclpy.node import Node\nfrom rcl_interfaces.msg import ParameterDescriptor, IntegerRange\n\nfrom .IThrustView import IThrustView\nfrom .advanced_science.IRPMModel import IRPMModel\n```\n\nStandard imports.\n\n`rcl_interface`: This is how we can now define ROS params. Very similar to how `dynamic_reconfigure` used to work, but now its the default for all params!\n\nSince we put the RPMModel in its own sub-directory, we import it from there.",
+      "x": 15300,
+      "y": -260,
+      "width": 1160,
+      "height": 460,
+      "color": "2"
+    },
+    {
+      "id": "17a01522484165ac",
+      "type": "text",
+      "text": "```python\nclass ThrustyControllerNode:\n    def __init__(self,\n                 node: Node,\n                 view: IThrustView,\n                 model: IRPMModel):\n\n        self._node = node\n        self._view = view\n        self._model = model\n\n        rpm_range = IntegerRange(from_value=0, to_value=1000, step=100)\n        rpm_limit_descriptor = ParameterDescriptor(\n            name = \"rpm_limit\",\n            description = \"The upper and lower limits given to the Advanced Science model\",\n            integer_range = [rpm_range])\n        self._rpm_limit_param = node.declare_parameter(\n            name = \"rpm_limit\",\n            value = 500,\n            descriptor = rpm_limit_descriptor)\n        self._model.set_range(self._rpm_limit_param.value)\n```\nThe controller takes in _the interfaces_ we defined before! Not the _concrete classes_. \nThis is where the flexibility of MVC starts to be apparent.\n\nWe define a simple ROS param with min/max/step, a name, and a description. All of this will be available to ROS commands.\n",
+      "x": 15300,
+      "y": 340,
+      "width": 1160,
+      "height": 660,
+      "color": "2"
+    },
+    {
+      "id": "c100db35af605784",
+      "type": "text",
+      "text": "```python\n    def update(self):\n        rpm = self._model.computeRPM()\n\n        self._node.get_logger().info(f\"Setting RPM to {rpm}\")\n        self._view.set_rpm(rpm)\n        self._view.update()\n\n    def run(self):\n        loop_period = 1\n        self._node.create_timer(loop_period, self.update)\n        try:\n            rclpy.spin(self._node)\n        except KeyboardInterrupt:\n            pass\n```\nSimple timer-callback and spinning like before, but now as a method instead.",
+      "x": 15300,
+      "y": 1140,
+      "width": 1160,
+      "height": 460,
+      "color": "2"
+    },
+    {
+      "id": "10ada0b6a75bdbdc",
+      "type": "text",
+      "text": "```python\ndef main():\n    from .advanced_science.SuperAdvancedScienceModel import SuperAdvancedScienceModel\n    from .SAMThrustView import SAMThrustView\n\n    rclpy.init(args=sys.argv)\n    node = rclpy.create_node(\"AdvancedScienceNode\")\n\n    view = SAMThrustView(node)\n    model = SuperAdvancedScienceModel(range=500)\n\n    controller = ThrustyControllerNode(node, view, model)\n\n    controller.run()\n\n\n\nif __name__ == \"__main__\":\n    main()\n\n```\nOutside the controller, we can instantiate _concrete implementations_ of the interfaces that the controller expects.",
+      "x": 15301,
+      "y": 1840,
+      "width": 1160,
+      "height": 580,
+      "color": "2"
+    },
+    {
+      "id": "e8d5e0dc4a8b3a70",
+      "type": "text",
+      "text": "```python\n#!/usr/bin/python3\n\nclass IRPMModel:\n    def set_range(self, range: int) -> None:\n        print(\"UNIMPLEMENTED\")\n\n    def computeRPM(self) -> int:\n        return 0\n```",
+      "x": 15320,
+      "y": -1120,
+      "width": 440,
+      "height": 300,
+      "color": "2"
+    },
+    {
+      "id": "1803ac7370748627",
+      "type": "text",
+      "text": "```python\n#!/usr/bin/python3\n\nimport random\n\nclass SuperAdvancedScienceModel:\n    def __init__(self, range: int):\n        self._range = range\n\n    def set_range(self, range: int):\n        self._range = range\n\n    def computeRPM(self) -> int:\n        return random.randint(-self._range, self._range)\n    \n\nif __name__ == \"__main__\":\n    model = SuperAdvancedScienceModel(range=500)\n    for i in range(10):\n        print(model.computeRPM())\n```",
+      "x": 15820,
+      "y": -1120,
+      "width": 630,
+      "height": 540,
+      "color": "2"
+    },
+    {
+      "id": "7ead96217de6bb71",
+      "type": "text",
+      "text": "Let's get on with it~",
+      "x": 14540,
+      "y": 3810,
+      "width": 260,
+      "height": 60,
+      "color": "2"
+    },
+    {
+      "id": "46e248364227c557",
+      "type": "text",
+      "text": "```python\nfrom example_interfaces.srv import SetBool \nclass ThrustyControllerNode:\n\tdef __init__(self\n\t...\n\tself._log_rpm_info_service = self._node.create_service(SetBool, \"log_rpm_info\", self._log_rpm_info_service_cb)\n\tself._log_rpm_info = True\n\ndef _log_rpm_info_service_cb(self, request, response):\n        self._log_rpm_info = request.data\n        response.success = True\n        response.message = f\"Toggled logging the RPM changes to {request.data}!\"\n        return response\n\ndef update(self):\n\t...\n\tif(self._log_rpm_info):\n\t\tself._node.get_logger().info(f\"RPM Limit: {r}\")\n\t...\n\tif(self._log_rpm_info):\n\t\tself._node.get_logger().info(f\"Setting RPM to {rpm}\")\n...\n```",
+      "x": 16900,
+      "y": -1120,
+      "width": 1160,
+      "height": 600,
+      "color": "2"
+    },
+    {
+      "id": "85ce985743d0eec8",
+      "type": "text",
+      "text": "Build, run.\nTry calling the service with:\n`ros2 service call /sam0/log_rpm_info example_interfaces/srv/SetBool \"data: false\"`\nand you'll get a nice response~\n\nThis is almost the same as ROS1, but the way the service is called from the CLI is slightly different.\n\nYou can discover services with  `ros2 interface list` and interact with them with `ros2 service <tab>` \n",
+      "x": 16900,
+      "y": -400,
+      "width": 1160,
+      "height": 240,
+      "color": "5"
+    },
+    {
+      "id": "efc3f78d48ddff03",
+      "type": "text",
+      "text": "The definition of services, messages and actions have not changed much (if at all..), so we will not go into them here.",
+      "x": 17500,
+      "y": -140,
+      "width": 440,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "6bb243aef61f1ed3",
+      "type": "text",
+      "text": "Now, lets write a launch file for our little node so we can stop doing the namespace remapping dance and read our hard-coded default parameter value from a yaml file.",
+      "x": 16938,
+      "y": 20,
+      "width": 562,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "c698f095808590bb",
+      "type": "text",
+      "text": "Make a yaml file in `PACKAGE/config/FILENAME.yaml` and dump into it:\n```yaml\n/sam0/science_node:\n  ros__parameters:\n    rpm_limit: 400\n```\nKey points:\n- The yaml file can specify _for which exact node_ these parameters are for. You can have as many as you want in the same file. In this case, just one `sam0/science_node`.\n- You can use wildcards `/*` in the node selection line. This works as you expect it to.\n- You can use double-wildcards `/**` to say \"as many levels as you want\"\n- You can use \"just\" wildcards to say \"I dont care about the nodes at all\"\n\nSo, to make this yaml useful for _any_ science node (sam1, sam2...) replace that first line with `/*/science_node:`\n```yaml\n/*/science_node:\n  ros__parameters:\n    rpm_limit: 400\n```",
+      "x": 16900,
+      "y": 1800,
+      "width": 1160,
+      "height": 560,
+      "color": "2"
+    },
+    {
+      "id": "69abbd6df9fc6f87",
+      "type": "text",
+      "text": "Modify the launch file like so to use the new yaml file:\n```xml\n<launch>\n\n    <arg name=\"namespace\" default=\"sam0\"/>\n    <arg name=\"science_yaml\" default=\"$(find-pkg-share workshopfun)/config/scientific_configuration.yaml\"/>\n    \n    <group>\n    <push-ros-namespace namespace=\"$(var namespace)\"/>\n            <node name=\"science_node\" pkg=\"workshopfun\" exec=\"science_node\" output=\"screen\">\n                <param name=\"rpm_limit\" value=\"300\"/>\n                <param from=\"$(var science_yaml)\"/>\n            </node>\n    </group>\n\n</launch>\n```\n\nWe find the yaml file under the config folder in pkg-share. \n\nRemember the setup.py file where we said \"please install all files in launch and config under package share\"? ",
+      "x": 16900,
+      "y": 2580,
+      "width": 1160,
+      "height": 540,
+      "color": "2"
+    },
+    {
+      "id": "8665e13433a3a03d",
+      "type": "text",
+      "text": "Build and launch.\n\nYou will see that the limit we set in the yaml file (400) over-wrote the one we set in the launch file (300).\n\nYou can use the `ros2 param load` command from the CLI to dynamically load up yamls as well. \n\nSo if there are some common sets of params that you find yourself manually setting, put'em in a yaml file!",
+      "x": 16990,
+      "y": 3500,
+      "width": 980,
+      "height": 200,
+      "color": "5"
+    },
+    {
+      "id": "eb150b32022c536d",
+      "type": "text",
+      "text": "# Congrats!\n## This is it.\n### We are done.\n#### We have skipped a few things\n- Tests\n- Action server/clients\n##### Time to discuss things.\nQuestions?\nNotes?\nExpletives?\nPraises?\nSuggestions?",
+      "x": 17245,
+      "y": 4060,
+      "width": 470,
+      "height": 540,
+      "color": "6"
+    },
+    {
+      "id": "606c8471d1dd080c",
+      "type": "text",
+      "text": "Create your launch file as usual:\n`PACKAGENAME/launch/LAUNCHFILE.launch`\n\nWe will use XML, like we used to in ROS1, because that still works and has the smaller barrier to entry for most people here.\n\n```xml\n<launch>\n\n    <arg name=\"namespace\" default=\"sam0\"/>\n    \n    <group>\n    <push-ros-namespace namespace=\"$(var namespace)\"/>\n            <node name=\"science_node\" pkg=\"workshopfun\" exec=\"science_node\" output=\"screen\">\n                <param name=\"rpm_limit\" value=\"350\"/>\n            </node>\n    </group>\n\n</launch>\n```\n\nNotice how the `<group>` tag does not have a namespace field, instead `<push-ros-namespace>` is used to put every node within a group in a namespace.\n\nWe could've given the `<node>` tag a namespace as well, but why repeat that for a buncha nodes?",
+      "x": 16900,
+      "y": 320,
+      "width": 1160,
+      "height": 620,
+      "color": "2"
+    },
+    {
+      "id": "98f00caf3cfc4025",
+      "type": "text",
+      "text": "Build and launch:\n`ros2 launch workshopfun do_science.launch`\n\nOh noes! It does not run?\n\nCheck the error message:\n`rclpy.exceptions.InvalidParameterValueException: ('Invalid parameter value (350) for parameter. Reason: The parameter value for rpm_limit is not a valid step. Min: 0, max: 1000, value: 350, step: 100', 'rpm_limit')`\n\nRememer when we defined the \"step\" of the `rpm_limit` param as 100? And we set the launch-time param to be 350? Yeah.\nGo back and fix that 350 to obey the parameter description!\n\nWhen you rebuild and relaunch, you will see that the limit is printed correctly.\n",
+      "x": 16900,
+      "y": 1060,
+      "width": 1160,
+      "height": 360,
+      "color": "5"
+    },
+    {
+      "id": "e732a6f6da9e53a7",
+      "type": "text",
+      "text": "Putting args into launch files is fine and all, but for some nodes there are just too many that rarely change.\n\nOr you might need multiple different _sets_ of params availble and easily changable.\n\nOr maybe the launch file structure changes rarely, but the params change a lot and you'd like to track that in git.\n\nThen it's a good idea to put those params into yaml and load them in the launch.\n\nLet's do that.",
+      "x": 16900,
+      "y": 1460,
+      "width": 1160,
+      "height": 240,
+      "color": "5"
+    },
+    {
+      "id": "eb84ce2b4cca0447",
+      "type": "text",
+      "text": "Simply add\n```python\nr = self._node.get_parameter('rpm_limit').get_parameter_value().integer_value\nself._model.set_range(r)\nself._node.get_logger().info(f\"RPM Limit: {r}\")\n```\nright before  `computeRPM()` , re-build and run.",
+      "x": 15300,
+      "y": 4069,
+      "width": 840,
+      "height": 240,
+      "color": "2"
+    },
+    {
+      "id": "53dac50617556a4b",
+      "type": "text",
+      "text": "Params like this give a lot of flexibility to change the behaviour of a node at any point. However, they do not respond beyond \"success/fail\". Sometimes we need a meaningful response to our requests. Usually from other nodes. Service time!",
+      "x": 15700,
+      "y": 4600,
+      "width": 770,
+      "height": 100,
+      "color": "5"
+    },
+    {
+      "id": "1222e88f9557114b",
+      "type": "text",
+      "text": "Now you can see that running `ros2 param set /sam0/AdvancedScienceNode rpm_limit 100` will change the range of the random RPMs we get from the model. You can do this with _every parameter you define_.\n\nThere are some other ways of getting parameter updates: You can define two different kinds of callbacks, but that is left as an exercise to the reader ;)",
+      "x": 15300,
+      "y": 4360,
+      "width": 720,
+      "height": 200,
+      "color": "5"
+    }
+  ],
+  "edges": [
+    {
+      "id": "b5d3affa13afd82f",
+      "fromNode": "e9550f4018d4afec",
+      "fromSide": "right",
+      "toNode": "c21ac82143e97bc0",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "8ac6b6046dfa9e4b",
+      "fromNode": "e9550f4018d4afec",
+      "fromSide": "bottom",
+      "toNode": "cb9e524884738fa0",
+      "toSide": "top"
+    },
+    {
+      "id": "b442c57195fbc407",
+      "fromNode": "c21ac82143e97bc0",
+      "fromSide": "bottom",
+      "toNode": "00b6738800ddbea5",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "d8a9eb5fdf996ca2",
+      "fromNode": "cb9e524884738fa0",
+      "fromSide": "bottom",
+      "toNode": "a4ba1bba38b5fa27",
+      "toSide": "top"
+    },
+    {
+      "id": "354b6b8cf69c2d1b",
+      "fromNode": "3899cdd87c74e9a1",
+      "fromSide": "bottom",
+      "toNode": "e8338f41c61edadc",
+      "toSide": "top"
+    },
+    {
+      "id": "66ac1893a17c58e0",
+      "fromNode": "00b6738800ddbea5",
+      "fromSide": "bottom",
+      "toNode": "ef72c984e3cbce37",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "d5f4aad7471c42c1",
+      "fromNode": "a4ba1bba38b5fa27",
+      "fromSide": "right",
+      "toNode": "ef72c984e3cbce37",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "e3e5d5553a06c8c1",
+      "fromNode": "e8338f41c61edadc",
+      "fromSide": "right",
+      "toNode": "612545e5e2732398",
+      "toSide": "left"
+    },
+    {
+      "id": "a5b3a6d8e0b77c27",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "e03390bddf5f7565",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "8795bce7fb151786",
+      "fromNode": "e03390bddf5f7565",
+      "fromSide": "right",
+      "toNode": "64fb9606174a31a0",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "1a61a560023cf666",
+      "edgePathRoute": "a-star",
+      "fromNode": "f773cb7a49800f17",
+      "fromSide": "right",
+      "toNode": "c7d597f84269f1cf",
+      "toSide": "left",
+      "color": "1"
+    },
+    {
+      "id": "0a1c3fce9477c1f1",
+      "edgePathRoute": "a-star",
+      "fromNode": "c7d597f84269f1cf",
+      "fromSide": "right",
+      "toNode": "08422feb1deb5ad5",
+      "toSide": "left",
+      "color": "1"
+    },
+    {
+      "id": "327877158072b442",
+      "edgePathRoute": "a-star",
+      "fromNode": "c7d597f84269f1cf",
+      "fromSide": "right",
+      "toNode": "f09ea018ae71a495",
+      "toSide": "right",
+      "color": "1"
+    },
+    {
+      "id": "6c7f5d7f43d2056f",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "194605c2cfcf2b1c",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "29c7a23b62bd89d9",
+      "fromNode": "194605c2cfcf2b1c",
+      "fromSide": "right",
+      "toNode": "4bfe71aa6f7e447a",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "03da794be57a67bb",
+      "fromNode": "38099ca9d2adf5c0",
+      "fromSide": "bottom",
+      "toNode": "c2c757fab8a7b5f2",
+      "toSide": "top",
+      "fromEnd": "arrow",
+      "label": "huge difference"
+    },
+    {
+      "id": "37bf5d7df64e0193",
+      "fromNode": "194605c2cfcf2b1c",
+      "fromSide": "bottom",
+      "toNode": "38099ca9d2adf5c0",
+      "toSide": "top"
+    },
+    {
+      "id": "c623722accb7ce86",
+      "fromNode": "c5f5f9b9cf0112a3",
+      "fromSide": "bottom",
+      "toNode": "70143b7035bb4bb2",
+      "toSide": "top"
+    },
+    {
+      "id": "1ca452e6ab7b52e1",
+      "edgePathRoute": "a-star",
+      "fromNode": "e03390bddf5f7565",
+      "fromSide": "bottom",
+      "toNode": "bd93e7a68a2e64ff",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "ad48f11936a6422a",
+      "edgePathRoute": "a-star",
+      "fromNode": "194605c2cfcf2b1c",
+      "fromSide": "right",
+      "toNode": "20b638cb8dd9ba1e",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "03038bfa3e6237df",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "4582712f7bf85904",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "47ee825cc0f94e92",
+      "fromNode": "092230b8304eff7b",
+      "fromSide": "bottom",
+      "toNode": "1a7f27a22d3cb400",
+      "toSide": "top"
+    },
+    {
+      "id": "f319775a31ddc717",
+      "fromNode": "4582712f7bf85904",
+      "fromSide": "right",
+      "toNode": "8affda8e76b3c2b0",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "e0326e5dd78ffe96",
+      "fromNode": "4582712f7bf85904",
+      "fromSide": "right",
+      "toNode": "00fddc33b0d6a77c",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "481a23fae5dd7039",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "b40a4dcc8d851124",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "0503fba45c2b91bf",
+      "edgePathRoute": "a-star",
+      "fromNode": "ebe171dfafa05cfe",
+      "fromSide": "bottom",
+      "toNode": "1f43c1aa7177faa0",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "07ce3c75db5244f8",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "ebe171dfafa05cfe",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "cb3f86eedf770404",
+      "fromNode": "1a7f27a22d3cb400",
+      "fromSide": "bottom",
+      "toNode": "27ca343f9698980d",
+      "toSide": "top"
+    },
+    {
+      "id": "5c8954618c220759",
+      "fromNode": "4bdae7522d443d31",
+      "fromSide": "right",
+      "toNode": "4cc997636fee1f6c",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "d0b7bf9d27aeadc4",
+      "fromNode": "90e20d2e3a9710dc",
+      "fromSide": "right",
+      "toNode": "4cc997636fee1f6c",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "1ca13622f369bcd6",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "4bdae7522d443d31",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "7667419b33381a06",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "90e20d2e3a9710dc",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "2e3509f5e04ee14c",
+      "fromNode": "1f43c1aa7177faa0",
+      "fromSide": "right",
+      "toNode": "5c2ba0404e338c71",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "a8416c83c73c72b0",
+      "fromNode": "70143b7035bb4bb2",
+      "fromSide": "bottom",
+      "toNode": "092230b8304eff7b",
+      "toSide": "top"
+    },
+    {
+      "id": "3d68293321f34a1e",
+      "edgePathRoute": "a-star",
+      "fromNode": "e03390bddf5f7565",
+      "fromSide": "bottom",
+      "toNode": "32c880319697f589",
+      "toSide": "left",
+      "color": "1"
+    },
+    {
+      "id": "7b8b6c50088ca4cd",
+      "fromNode": "b40a4dcc8d851124",
+      "fromSide": "bottom",
+      "toNode": "bc40e326ce30307e",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "0112880930755e35",
+      "edgePathRoute": "a-star",
+      "fromNode": "e03390bddf5f7565",
+      "fromSide": "bottom",
+      "toNode": "1df7d024bd5afff7",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "368f8a5e0c3b554f",
+      "fromNode": "1df7d024bd5afff7",
+      "fromSide": "right",
+      "toNode": "55b345ae2417790d",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "aba8d3d140bffdd1",
+      "fromNode": "612545e5e2732398",
+      "fromSide": "bottom",
+      "toNode": "c5f5f9b9cf0112a3",
+      "toSide": "top"
+    },
+    {
+      "id": "b2745a4a006b687e",
+      "edgePathRoute": "a-star",
+      "fromNode": "e03390bddf5f7565",
+      "fromSide": "bottom",
+      "toNode": "b37715c70bfa25f6",
+      "toSide": "left",
+      "color": "4"
+    },
+    {
+      "id": "f79f46eed0475fe5",
+      "fromNode": "b37715c70bfa25f6",
+      "fromSide": "right",
+      "toNode": "b113cc7b6310ca0a",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "f4f53874be88d9a7",
+      "fromNode": "27ca343f9698980d",
+      "fromSide": "bottom",
+      "toNode": "6f8d730493206bcd",
+      "toSide": "top"
+    },
+    {
+      "id": "20acc8561b110466",
+      "fromNode": "6f8d730493206bcd",
+      "fromSide": "bottom",
+      "toNode": "fdedf76b603103c1",
+      "toSide": "top"
+    },
+    {
+      "id": "a47bdc93b8210be7",
+      "edgePathRoute": "a-star",
+      "fromNode": "e2fdd803d5326834",
+      "fromSide": "right",
+      "toNode": "4df1a485f1c28ed1",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "bf124cc1c6a5d63d",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "e2fdd803d5326834",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "e963363b4a692ce9",
+      "edgePathRoute": "a-star",
+      "fromNode": "ebe171dfafa05cfe",
+      "fromSide": "bottom",
+      "toNode": "4084ae3f7fb4a7bf",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "51141ba4e8ddee63",
+      "edgePathRoute": "a-star",
+      "fromNode": "1f43c1aa7177faa0",
+      "fromSide": "bottom",
+      "toNode": "a944437f8cba8fd5",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "aaf1d7f40d09165d",
+      "edgePathRoute": "a-star",
+      "fromNode": "1f43c1aa7177faa0",
+      "fromSide": "bottom",
+      "toNode": "d42b73754e6a287f",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "c5ca139ee026ada9",
+      "fromNode": "4084ae3f7fb4a7bf",
+      "fromSide": "right",
+      "toNode": "229da749f457dc13",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "d0cca31ee3fd60cb",
+      "fromNode": "229da749f457dc13",
+      "fromSide": "bottom",
+      "toNode": "5d50221761553f77",
+      "toSide": "top",
+      "color": "4"
+    },
+    {
+      "id": "5419ec9e99f8279c",
+      "fromNode": "5d50221761553f77",
+      "fromSide": "bottom",
+      "toNode": "6586be89a1a2942f",
+      "toSide": "top",
+      "color": "4"
+    },
+    {
+      "id": "2ed29ffc0e5d37b2",
+      "fromNode": "32c880319697f589",
+      "fromSide": "right",
+      "toNode": "1e6c262f57d17bd4",
+      "toSide": "left",
+      "color": "4"
+    },
+    {
+      "id": "e699a181005a3b3a",
+      "fromNode": "fdedf76b603103c1",
+      "fromSide": "right",
+      "toNode": "b5286427131f58cc",
+      "toSide": "left"
+    },
+    {
+      "id": "c3f6c4ec555587a0",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "812c8251adfcb54d",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "14d3c98a850c249f",
+      "fromNode": "1f445bd932890b81",
+      "fromSide": "bottom",
+      "toNode": "6add645d00235ac9",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "4b2658742b9337e1",
+      "fromNode": "3df831e3b0534559",
+      "fromSide": "right",
+      "toNode": "3899cdd87c74e9a1",
+      "toSide": "left"
+    },
+    {
+      "id": "0057d03329067cb8",
+      "fromNode": "6add645d00235ac9",
+      "fromSide": "bottom",
+      "toNode": "756b069e436a5849",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "7ec6bc2cacb7c578",
+      "fromNode": "756b069e436a5849",
+      "fromSide": "bottom",
+      "toNode": "4e9ec776e509dfd1",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "65db679a821e5d76",
+      "fromNode": "b3295fa36ddca8d8",
+      "fromSide": "bottom",
+      "toNode": "f931d945bb65cdd4",
+      "toSide": "top"
+    },
+    {
+      "id": "fc95b021134fa6b7",
+      "fromNode": "4e9ec776e509dfd1",
+      "fromSide": "bottom",
+      "toNode": "547236235dddb7af",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "7acfb7d39aba7ff5",
+      "fromNode": "547236235dddb7af",
+      "fromSide": "bottom",
+      "toNode": "1b83e3d8ca3e3c6b",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "2a78b4982e97b562",
+      "fromNode": "1b83e3d8ca3e3c6b",
+      "fromSide": "right",
+      "toNode": "8c8e457b0323c6bb",
+      "toSide": "bottom",
+      "color": "5"
+    },
+    {
+      "id": "abe8987f31998ebe",
+      "fromNode": "8c8e457b0323c6bb",
+      "fromSide": "left",
+      "toNode": "547236235dddb7af",
+      "toSide": "right",
+      "color": "5"
+    },
+    {
+      "id": "bb912489aaeaa1af",
+      "fromNode": "547236235dddb7af",
+      "fromSide": "bottom",
+      "toNode": "f98b134d21b38ee3",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "222790e5beb73510",
+      "fromNode": "1b83e3d8ca3e3c6b",
+      "fromSide": "bottom",
+      "toNode": "998eae8bdff6eae0",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "a9208b115773e0b4",
+      "fromNode": "8c8e457b0323c6bb",
+      "fromSide": "bottom",
+      "toNode": "b8f82880a8029972",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "966da38b064c9626",
+      "fromNode": "f98b134d21b38ee3",
+      "fromSide": "bottom",
+      "toNode": "ce625193f9de66fa",
+      "toSide": "left",
+      "color": "1"
+    },
+    {
+      "id": "1ea12d68a5519672",
+      "fromNode": "998eae8bdff6eae0",
+      "fromSide": "bottom",
+      "toNode": "ce625193f9de66fa",
+      "toSide": "top",
+      "color": "1"
+    },
+    {
+      "id": "7b32c5a876fd6279",
+      "fromNode": "b8f82880a8029972",
+      "fromSide": "bottom",
+      "toNode": "ce625193f9de66fa",
+      "toSide": "right",
+      "color": "1"
+    },
+    {
+      "id": "d8a631344f5967a9",
+      "fromNode": "f931d945bb65cdd4",
+      "fromSide": "right",
+      "toNode": "ff0fcf8739310b0f",
+      "toSide": "left"
+    },
+    {
+      "id": "753419c40d7e3429",
+      "edgePathRoute": "a-star",
+      "fromNode": "16006af1a0d66a4a",
+      "fromSide": "left",
+      "toNode": "cf9715e700e0d656",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "aa3b7ffcea0a085e",
+      "fromNode": "cf9715e700e0d656",
+      "fromSide": "right",
+      "toNode": "3101485e6edd2dcf",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "e62f814af26019ab",
+      "fromNode": "3101485e6edd2dcf",
+      "fromSide": "bottom",
+      "toNode": "35cad3a759551036",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "87b551113c416b4a",
+      "fromNode": "35cad3a759551036",
+      "fromSide": "left",
+      "toNode": "45c675aa72aa45b4",
+      "toSide": "right",
+      "color": "6"
+    },
+    {
+      "id": "c4fc7c5cedeab516",
+      "fromNode": "ff0fcf8739310b0f",
+      "fromSide": "bottom",
+      "toNode": "def6fd732e7831e9",
+      "toSide": "top"
+    },
+    {
+      "id": "2449671ff7c0a8bf",
+      "edgePathRoute": "a-star",
+      "fromNode": "16006af1a0d66a4a",
+      "fromSide": "left",
+      "toNode": "114cf97277370dbb",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "5b51f85773156fe3",
+      "fromNode": "114cf97277370dbb",
+      "fromSide": "bottom",
+      "toNode": "4591163bc5e36062",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "81ccd0501657d96e",
+      "fromNode": "4591163bc5e36062",
+      "fromSide": "bottom",
+      "toNode": "dec135414fd01506",
+      "toSide": "right",
+      "color": "5"
+    },
+    {
+      "id": "6a1ee2f48872bbf2",
+      "edgePathRoute": "a-star",
+      "fromNode": "16006af1a0d66a4a",
+      "fromSide": "left",
+      "toNode": "319c34bf27082073",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "8cd14b4c6af30e3c",
+      "fromNode": "dec135414fd01506",
+      "fromSide": "right",
+      "toNode": "c841b27fb20c3dad",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "ea71337f7c845414",
+      "fromNode": "319c34bf27082073",
+      "fromSide": "right",
+      "toNode": "c21869271faa6ade",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "0b54a5bf60af2d39",
+      "edgePathRoute": "a-star",
+      "fromNode": "c21869271faa6ade",
+      "fromSide": "left",
+      "toNode": "6b0ac92c44910eac",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "2a105f571bf0f9ee",
+      "fromNode": "6b0ac92c44910eac",
+      "fromSide": "right",
+      "toNode": "528c68ea29587fe9",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "a8933df1ccb23365",
+      "edgePathRoute": "a-star",
+      "fromNode": "c21869271faa6ade",
+      "fromSide": "left",
+      "toNode": "79b17631a3633005",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "6c33c8c8af8b46c4",
+      "fromNode": "39d0bf29bce0f661",
+      "fromSide": "bottom",
+      "toNode": "0976022e64fd7b74",
+      "toSide": "top"
+    },
+    {
+      "id": "bfbb60d37a1442b4",
+      "fromNode": "0976022e64fd7b74",
+      "fromSide": "bottom",
+      "toNode": "a73913dea7c4f3c0",
+      "toSide": "top"
+    },
+    {
+      "id": "09f9ee7df47d92e8",
+      "edgePathRoute": "a-star",
+      "fromNode": "16006af1a0d66a4a",
+      "fromSide": "left",
+      "toNode": "65c81dd367f9e4dc",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "c83ff08c6b9da26f",
+      "fromNode": "65c81dd367f9e4dc",
+      "fromSide": "bottom",
+      "toNode": "74bfa064ffd5f6ed",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "1349386bcf26d8de",
+      "fromNode": "74bfa064ffd5f6ed",
+      "fromSide": "right",
+      "toNode": "73918b3f1ae304df",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "8a9769298121b677",
+      "fromNode": "79b17631a3633005",
+      "fromSide": "bottom",
+      "toNode": "19b60e527c2fba11",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "6d519979ad389bf9",
+      "edgePathRoute": "a-star",
+      "fromNode": "16006af1a0d66a4a",
+      "fromSide": "left",
+      "toNode": "49ba5502084d3244",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "df7f00eb04198382",
+      "fromNode": "49ba5502084d3244",
+      "fromSide": "bottom",
+      "toNode": "4b4ad3f3de3d0480",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "81657470b4aef89c",
+      "fromNode": "4b4ad3f3de3d0480",
+      "fromSide": "bottom",
+      "toNode": "149e5bb643eacb1b",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "5be8bb2a9f3c0751",
+      "fromNode": "149e5bb643eacb1b",
+      "fromSide": "bottom",
+      "toNode": "87a50d7858c7cded",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "2b47baa2a165dd15",
+      "fromNode": "149e5bb643eacb1b",
+      "fromSide": "bottom",
+      "toNode": "4e0b57b96c02310b",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "ebe8cc7f567d3ee2",
+      "fromNode": "87a50d7858c7cded",
+      "fromSide": "bottom",
+      "toNode": "37e0ed583947a7a9",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "320cf9e0a21a5fc7",
+      "fromNode": "4e0b57b96c02310b",
+      "fromSide": "bottom",
+      "toNode": "fae70a996f4c8ab1",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "00d5207c4d06d078",
+      "fromNode": "37e0ed583947a7a9",
+      "fromSide": "bottom",
+      "toNode": "0de9f24e26647dfd",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "d407d33b7ee6708e",
+      "fromNode": "0f0a906e4d6e6314",
+      "fromSide": "bottom",
+      "toNode": "d991a57dd2911a5f",
+      "toSide": "top"
+    },
+    {
+      "id": "dbc56a0bf850aef1",
+      "fromNode": "d32e4f09484ed31b",
+      "fromSide": "bottom",
+      "toNode": "0f0a906e4d6e6314",
+      "toSide": "top"
+    },
+    {
+      "id": "1035e1f013bafbb1",
+      "fromNode": "a73913dea7c4f3c0",
+      "fromSide": "bottom",
+      "toNode": "d32e4f09484ed31b",
+      "toSide": "top"
+    },
+    {
+      "id": "364bc688f5cfb963",
+      "fromNode": "0de9f24e26647dfd",
+      "fromSide": "bottom",
+      "toNode": "95fae34c4fcbc204",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "3dfa5428c04f9cff",
+      "edgePathRoute": "a-star",
+      "fromNode": "95fae34c4fcbc204",
+      "fromSide": "left",
+      "toNode": "05df69a9543287a7",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "7f62493f2498fd18",
+      "fromNode": "05df69a9543287a7",
+      "fromSide": "right",
+      "toNode": "f9fe29891dadc05a",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "581a26fb4e8f3c2b",
+      "edgePathRoute": "a-star",
+      "fromNode": "95fae34c4fcbc204",
+      "fromSide": "left",
+      "toNode": "09b8d392af8a71a5",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "9d26023411386212",
+      "fromNode": "f9fe29891dadc05a",
+      "fromSide": "bottom",
+      "toNode": "0ee0e8251eb88af0",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "69af9691e8a9b2cd",
+      "fromNode": "09b8d392af8a71a5",
+      "fromSide": "right",
+      "toNode": "eaccf83beb3f1498",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "a469df15d1c8064f",
+      "fromNode": "95fae34c4fcbc204",
+      "fromSide": "right",
+      "toNode": "233e800c69b569b4",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "fb1b3d3f572d105c",
+      "fromNode": "d991a57dd2911a5f",
+      "fromSide": "bottom",
+      "toNode": "c55118cd43268f89",
+      "toSide": "top"
+    },
+    {
+      "id": "c826be8646f814f7",
+      "fromNode": "c55118cd43268f89",
+      "fromSide": "bottom",
+      "toNode": "1bcfc5ce2dbc76fa",
+      "toSide": "top"
+    },
+    {
+      "id": "8aa8d0a680821b5e",
+      "edgePathRoute": "a-star",
+      "fromNode": "95fae34c4fcbc204",
+      "fromSide": "left",
+      "toNode": "04a50a148d6b1836",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "cfbd03dada3c7c8c",
+      "fromNode": "04a50a148d6b1836",
+      "fromSide": "right",
+      "toNode": "a3a5a79b330e66d6",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "b6a96069ef05325f",
+      "fromNode": "def6fd732e7831e9",
+      "fromSide": "bottom",
+      "toNode": "39d0bf29bce0f661",
+      "toSide": "top"
+    },
+    {
+      "id": "3ea1d7a8884a2fee",
+      "edgePathRoute": "a-star",
+      "fromNode": "815e4d264c3149a9",
+      "fromSide": "left",
+      "toNode": "722ee45698ac8ce1",
+      "toSide": "left",
+      "color": "6"
+    },
+    {
+      "id": "cf6aad7f9af4925a",
+      "fromNode": "b5286427131f58cc",
+      "fromSide": "bottom",
+      "toNode": "b3295fa36ddca8d8",
+      "toSide": "top"
+    },
+    {
+      "id": "fd56c236f9f47303",
+      "fromNode": "1bcfc5ce2dbc76fa",
+      "fromSide": "right",
+      "toNode": "6a139e0fb7ae5f1a",
+      "toSide": "left"
+    },
+    {
+      "id": "26974f760525ca33",
+      "fromNode": "6a139e0fb7ae5f1a",
+      "fromSide": "bottom",
+      "toNode": "4a8a1371627ab8b2",
+      "toSide": "top"
+    },
+    {
+      "id": "b41e26ff30673aa9",
+      "fromNode": "ac44cebc1ebc03b3",
+      "fromSide": "left",
+      "toNode": "fd07f53d943b3990",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "32cecf2acf0cda68",
+      "fromNode": "fd07f53d943b3990",
+      "fromSide": "right",
+      "toNode": "bf244ae0069de39d",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "751967b9d62d0c09",
+      "fromNode": "4a8a1371627ab8b2",
+      "fromSide": "bottom",
+      "toNode": "e0cce810208b7b04",
+      "toSide": "top"
+    },
+    {
+      "id": "ef845d73ca106c17",
+      "fromNode": "fd07f53d943b3990",
+      "fromSide": "bottom",
+      "toNode": "a3eed6eafc89c9c8",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "3d88b2fe30a3af86",
+      "fromNode": "a3eed6eafc89c9c8",
+      "fromSide": "right",
+      "toNode": "77f957a11dac3519",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "aeebb4d77e5a2530",
+      "fromNode": "77f957a11dac3519",
+      "fromSide": "right",
+      "toNode": "fbce3b87c593a415",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "fff7545e49662405",
+      "fromNode": "bf244ae0069de39d",
+      "fromSide": "bottom",
+      "toNode": "0f670db2bc8c3231",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "32e8579a519e2b0c",
+      "fromNode": "0f670db2bc8c3231",
+      "fromSide": "bottom",
+      "toNode": "087e8f230159f869",
+      "toSide": "right",
+      "color": "2"
+    },
+    {
+      "id": "cfced2b5c303e83e",
+      "edgePathRoute": "a-star",
+      "fromNode": "77f957a11dac3519",
+      "fromSide": "bottom",
+      "toNode": "b78c3a57700ec49a",
+      "toSide": "top",
+      "color": "3"
+    },
+    {
+      "id": "6bf8aaab1ecf2252",
+      "fromNode": "a7a5e47707779f21",
+      "fromSide": "bottom",
+      "toNode": "587d3d786486746b",
+      "toSide": "top"
+    },
+    {
+      "id": "e21f28a3b7717a34",
+      "fromNode": "b78c3a57700ec49a",
+      "fromSide": "bottom",
+      "toNode": "ac5893e76c36159a",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "b0eedf55f88ecde4",
+      "fromNode": "087e8f230159f869",
+      "fromSide": "right",
+      "toNode": "86530f5a05693d90",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "ed3661941ab5658a",
+      "fromNode": "86530f5a05693d90",
+      "fromSide": "bottom",
+      "toNode": "81210f264ae5fc90",
+      "toSide": "right",
+      "color": "2"
+    },
+    {
+      "id": "7c8ce1afe160b981",
+      "fromNode": "587d3d786486746b",
+      "fromSide": "bottom",
+      "toNode": "b9c0ff402716f437",
+      "toSide": "top"
+    },
+    {
+      "id": "de4bf29bfecd4ad5",
+      "fromNode": "ac5893e76c36159a",
+      "fromSide": "left",
+      "toNode": "be550dee14966829",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "e5278c9064862ce1",
+      "fromNode": "be550dee14966829",
+      "fromSide": "bottom",
+      "toNode": "e564fb02d4481483",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "faced2b8bf5c2094",
+      "fromNode": "81210f264ae5fc90",
+      "fromSide": "right",
+      "toNode": "a2401b1e1728ca15",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "2fe31bc8aef0f4ac",
+      "fromNode": "e967adc15658d961",
+      "fromSide": "bottom",
+      "toNode": "cab16075fc045bf0",
+      "toSide": "top"
+    },
+    {
+      "id": "99b1d6f36dfa6436",
+      "fromNode": "e0cce810208b7b04",
+      "fromSide": "bottom",
+      "toNode": "e967adc15658d961",
+      "toSide": "top"
+    },
+    {
+      "id": "219c4d2edfc4b5b3",
+      "fromNode": "e564fb02d4481483",
+      "fromSide": "left",
+      "toNode": "86530f5a05693d90",
+      "toSide": "right",
+      "color": "2"
+    },
+    {
+      "id": "3e34d6c5cb181bdf",
+      "fromNode": "a2401b1e1728ca15",
+      "fromSide": "bottom",
+      "toNode": "3361079991c306fa",
+      "toSide": "right",
+      "color": "2"
+    },
+    {
+      "id": "b7551bd722fdffb5",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "8ea9bff86496cff1",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "039d7548922123c4",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "de863f1e6f2e9261",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "da122f43b648b374",
+      "fromNode": "de863f1e6f2e9261",
+      "fromSide": "right",
+      "toNode": "66cdb414a67f2dc0",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "a782178955d90058",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "8fb233fe21158a6c",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "10982b0d34ce2b55",
+      "fromNode": "cab16075fc045bf0",
+      "fromSide": "bottom",
+      "toNode": "90e46e923ab3bff0",
+      "toSide": "top"
+    },
+    {
+      "id": "c7f56708b1f820e0",
+      "fromNode": "8fb233fe21158a6c",
+      "fromSide": "right",
+      "toNode": "70bbc37f9f5b16a8",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "d0fdd4aff00830aa",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "67365e783663c190",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "1f3559a5cc78b7f4",
+      "fromNode": "90e46e923ab3bff0",
+      "fromSide": "bottom",
+      "toNode": "bb4c1ba19ca5c925",
+      "toSide": "top"
+    },
+    {
+      "id": "f7b6512cbfd9a529",
+      "edgePathRoute": "a-star",
+      "fromNode": "67365e783663c190",
+      "fromSide": "bottom",
+      "toNode": "e70fabc81d871db9",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "974ca357dcffdb50",
+      "edgePathRoute": "a-star",
+      "fromNode": "67365e783663c190",
+      "fromSide": "bottom",
+      "toNode": "6754bcb37c57cf19",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "0470316f48c6442f",
+      "fromNode": "bb4c1ba19ca5c925",
+      "fromSide": "bottom",
+      "toNode": "94126f3d23e8daaa",
+      "toSide": "top"
+    },
+    {
+      "id": "03e30ed3258df80a",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "c69e226ccfd038c1",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "da6980379c65c82b",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "a30eb23238342c9d",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "e1079d70c7cb5bf1",
+      "edgePathRoute": "a-star",
+      "fromNode": "94126f3d23e8daaa",
+      "fromSide": "right",
+      "toNode": "95d2b8b453e0d372",
+      "toSide": "left"
+    },
+    {
+      "id": "579f3d428670c054",
+      "edgePathRoute": "a-star",
+      "fromNode": "3361079991c306fa",
+      "fromSide": "left",
+      "toNode": "5d85e974cfdb2d66",
+      "toSide": "left",
+      "color": "3"
+    },
+    {
+      "id": "374b417b57a66d6a",
+      "fromNode": "5d85e974cfdb2d66",
+      "fromSide": "bottom",
+      "toNode": "9dd4fd5af7241177",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "d2946ff6852fa330",
+      "fromNode": "ca263e804ff4cea9",
+      "fromSide": "top",
+      "toNode": "f761c2821cc7b302",
+      "toSide": "bottom",
+      "color": "2"
+    },
+    {
+      "id": "d44a7d069a704d82",
+      "fromNode": "5e4aebd20536f0cf",
+      "fromSide": "right",
+      "toNode": "96aaea74f2c94ea7",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "a9c8ae6e93fbe00e",
+      "fromNode": "95d2b8b453e0d372",
+      "fromSide": "bottom",
+      "toNode": "4d486337c9dedef1",
+      "toSide": "top"
+    },
+    {
+      "id": "c824f959134fcc02",
+      "fromNode": "cbcb6d204c3879f7",
+      "fromSide": "right",
+      "toNode": "d7a617e7499fe0ec",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "774bf4f5b1ba61a8",
+      "fromNode": "cbcb6d204c3879f7",
+      "fromSide": "bottom",
+      "toNode": "47552ee97ee34be0",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "b0a178c3f6bd1414",
+      "fromNode": "47552ee97ee34be0",
+      "fromSide": "bottom",
+      "toNode": "5e4aebd20536f0cf",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "1c308e87049325d7",
+      "fromNode": "4d486337c9dedef1",
+      "fromSide": "bottom",
+      "toNode": "fa4f0e6c58d60443",
+      "toSide": "top"
+    },
+    {
+      "id": "3a3acdca5caf004c",
+      "fromNode": "5e4aebd20536f0cf",
+      "fromSide": "bottom",
+      "toNode": "7be3a9b71cc4886f",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "aa83241f5ffc1955",
+      "fromNode": "7be3a9b71cc4886f",
+      "fromSide": "bottom",
+      "toNode": "3490b99d542b48b4",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "3212522cbdaecd98",
+      "fromNode": "fa4f0e6c58d60443",
+      "fromSide": "bottom",
+      "toNode": "cbad42f3551c85dc",
+      "toSide": "top"
+    },
+    {
+      "id": "c781ab53578a25b8",
+      "fromNode": "7be3a9b71cc4886f",
+      "fromSide": "bottom",
+      "toNode": "2ed463ff158ea5c3",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "2c96bbaecc938c51",
+      "fromNode": "2ed463ff158ea5c3",
+      "fromSide": "right",
+      "toNode": "c073de918a91b920",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "90de25a204c01538",
+      "fromNode": "134bd763bd075cd6",
+      "fromSide": "left",
+      "toNode": "68d2d0cd07d4de78",
+      "toSide": "right",
+      "color": "3"
+    },
+    {
+      "id": "4a4c4811ebc8abb2",
+      "fromNode": "134bd763bd075cd6",
+      "fromSide": "bottom",
+      "toNode": "4f4401720282cd0c",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "1e6bb417e1621a9e",
+      "fromNode": "68d2d0cd07d4de78",
+      "fromSide": "right",
+      "toNode": "4f4401720282cd0c",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "111e867fedcf5cee",
+      "fromNode": "cbad42f3551c85dc",
+      "fromSide": "bottom",
+      "toNode": "4c1ec7f6fab74c6d",
+      "toSide": "top"
+    },
+    {
+      "id": "7c689ed404578a9b",
+      "fromNode": "2ed463ff158ea5c3",
+      "fromSide": "bottom",
+      "toNode": "fb5d8f2121fd6fc0",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "2ab27dfbb2f35a1e",
+      "fromNode": "d673562948f978f7",
+      "fromSide": "bottom",
+      "toNode": "134bd763bd075cd6",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "ad8037bb5ff3a205",
+      "fromNode": "68d2d0cd07d4de78",
+      "fromSide": "left",
+      "toNode": "382ff534d15b60bb",
+      "toSide": "right",
+      "color": "3"
+    },
+    {
+      "id": "e98d54e9e13b7e20",
+      "fromNode": "fb5d8f2121fd6fc0",
+      "fromSide": "bottom",
+      "toNode": "084e6c1e3a18fc57",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "b658960119d5a04b",
+      "fromNode": "084e6c1e3a18fc57",
+      "fromSide": "bottom",
+      "toNode": "d673562948f978f7",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "19ade5b488c6a62d",
+      "fromNode": "4f4401720282cd0c",
+      "fromSide": "bottom",
+      "toNode": "9476d9bfe32ea0cf",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "77a100e6a7101171",
+      "fromNode": "084e6c1e3a18fc57",
+      "fromSide": "right",
+      "toNode": "fb93923c14d69676",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "e976c5892e0e7044",
+      "fromNode": "d548cc0c29633c08",
+      "fromSide": "bottom",
+      "toNode": "8fb1c12920dea8f7",
+      "toSide": "top"
+    },
+    {
+      "id": "9ec7aded3c25da3c",
+      "fromNode": "4f4401720282cd0c",
+      "fromSide": "bottom",
+      "toNode": "76c1853827b946b9",
+      "toSide": "top",
+      "color": "4"
+    },
+    {
+      "id": "4fa5cf16a451601f",
+      "fromNode": "8fb1c12920dea8f7",
+      "fromSide": "right",
+      "toNode": "d70df20aa7f03703",
+      "toSide": "left"
+    },
+    {
+      "id": "48aeaac953f99392",
+      "fromNode": "76c1853827b946b9",
+      "fromSide": "bottom",
+      "toNode": "7ead96217de6bb71",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "2906725867d34f51",
+      "fromNode": "7ead96217de6bb71",
+      "fromSide": "right",
+      "toNode": "e8d5e0dc4a8b3a70",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "49d806d7648bba8e",
+      "fromNode": "e8d5e0dc4a8b3a70",
+      "fromSide": "right",
+      "toNode": "1803ac7370748627",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "c6b58e2d2c503cb3",
+      "edgePathRoute": "a-star",
+      "fromNode": "1803ac7370748627",
+      "fromSide": "left",
+      "toNode": "f59f5ae4393a9fc4",
+      "toSide": "right",
+      "color": "5"
+    },
+    {
+      "id": "a80f148d54d71d9a",
+      "fromNode": "d70df20aa7f03703",
+      "fromSide": "bottom",
+      "toNode": "15a7c65f9c756fde",
+      "toSide": "top"
+    },
+    {
+      "id": "b11e68a02a2aeb56",
+      "fromNode": "f59f5ae4393a9fc4",
+      "fromSide": "bottom",
+      "toNode": "5f5bd61f6aba3b8d",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "6c6b386a45135721",
+      "fromNode": "5f5bd61f6aba3b8d",
+      "fromSide": "bottom",
+      "toNode": "46343f8fda9b3d8d",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "d67aead0b5f6ad53",
+      "fromNode": "15a7c65f9c756fde",
+      "fromSide": "bottom",
+      "toNode": "721b2dad9c2db651",
+      "toSide": "top"
+    },
+    {
+      "id": "ff9adc20a8dd6ff9",
+      "fromNode": "46343f8fda9b3d8d",
+      "fromSide": "bottom",
+      "toNode": "17a01522484165ac",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "f0c5abd2151d047f",
+      "fromNode": "17a01522484165ac",
+      "fromSide": "bottom",
+      "toNode": "c100db35af605784",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "277bee8f79b6f737",
+      "fromNode": "721b2dad9c2db651",
+      "fromSide": "bottom",
+      "toNode": "958c961c98b10fd0",
+      "toSide": "top"
+    },
+    {
+      "id": "413e9ec30f3a123e",
+      "fromNode": "c100db35af605784",
+      "fromSide": "bottom",
+      "toNode": "10ada0b6a75bdbdc",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "b5cece8062e466dd",
+      "fromNode": "958c961c98b10fd0",
+      "fromSide": "bottom",
+      "toNode": "1ce48c4c58c66650",
+      "toSide": "top"
+    },
+    {
+      "id": "12c70280a5a716ce",
+      "fromNode": "1ce48c4c58c66650",
+      "fromSide": "bottom",
+      "toNode": "d7c56b0b7fb37dd5",
+      "toSide": "top"
+    },
+    {
+      "id": "d8e10eb5032fa6e5",
+      "fromNode": "10ada0b6a75bdbdc",
+      "fromSide": "bottom",
+      "toNode": "b0d64202ee5fa0cc",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "68475954f92cc60a",
+      "fromNode": "b0d64202ee5fa0cc",
+      "fromSide": "bottom",
+      "toNode": "d5f47730201b6bfb",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "252cf94a18c2d692",
+      "fromNode": "d5f47730201b6bfb",
+      "fromSide": "bottom",
+      "toNode": "267b9ad87f7a5469",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "00d679aebc9a0792",
+      "fromNode": "267b9ad87f7a5469",
+      "fromSide": "left",
+      "toNode": "d6a53e28374c58bf",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "96ebf948576a7202",
+      "fromNode": "d7c56b0b7fb37dd5",
+      "fromSide": "bottom",
+      "toNode": "f0a551ad8a4d1965",
+      "toSide": "top"
+    },
+    {
+      "id": "f8e8caf21b0a4402",
+      "fromNode": "d6a53e28374c58bf",
+      "fromSide": "bottom",
+      "toNode": "7f79eb62842b96a1",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "e8c58fa83d2989d6",
+      "fromNode": "f0a551ad8a4d1965",
+      "fromSide": "bottom",
+      "toNode": "21ce9a816c7b34cb",
+      "toSide": "top"
+    },
+    {
+      "id": "a458ab6c1aa49697",
+      "fromNode": "7f79eb62842b96a1",
+      "fromSide": "bottom",
+      "toNode": "eb84ce2b4cca0447",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "5ec4e0d8ec25056c",
+      "fromNode": "eb84ce2b4cca0447",
+      "fromSide": "bottom",
+      "toNode": "1222e88f9557114b",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "31b41ce1b71dfe36",
+      "fromNode": "21ce9a816c7b34cb",
+      "fromSide": "right",
+      "toNode": "bfbb4fa5aeeff78c",
+      "toSide": "left"
+    },
+    {
+      "id": "db9bf798e619d8d8",
+      "fromNode": "1222e88f9557114b",
+      "fromSide": "bottom",
+      "toNode": "53dac50617556a4b",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "578034ffe70c31f4",
+      "fromNode": "53dac50617556a4b",
+      "fromSide": "right",
+      "toNode": "46e248364227c557",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "4a5a146ba858e377",
+      "fromNode": "bfbb4fa5aeeff78c",
+      "fromSide": "bottom",
+      "toNode": "87f490516e9a24b4",
+      "toSide": "top"
+    },
+    {
+      "id": "a573ef094922031f",
+      "fromNode": "46e248364227c557",
+      "fromSide": "bottom",
+      "toNode": "85ce985743d0eec8",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "13c1b1f70b182474",
+      "fromNode": "efc3f78d48ddff03",
+      "fromSide": "bottom",
+      "toNode": "6bb243aef61f1ed3",
+      "toSide": "right",
+      "color": "5"
+    },
+    {
+      "id": "6067c3cc90ffc411",
+      "fromNode": "87f490516e9a24b4",
+      "fromSide": "bottom",
+      "toNode": "0ce4451c0d9d73bb",
+      "toSide": "top"
+    },
+    {
+      "id": "22930207c8355e9b",
+      "fromNode": "85ce985743d0eec8",
+      "fromSide": "bottom",
+      "toNode": "efc3f78d48ddff03",
+      "toSide": "left",
+      "color": "5"
+    },
+    {
+      "id": "9d063336db57f1d7",
+      "fromNode": "6bb243aef61f1ed3",
+      "fromSide": "bottom",
+      "toNode": "606c8471d1dd080c",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "f3e6f9adff4aed3a",
+      "fromNode": "606c8471d1dd080c",
+      "fromSide": "bottom",
+      "toNode": "98f00caf3cfc4025",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "d45d402111784df9",
+      "fromNode": "0ce4451c0d9d73bb",
+      "fromSide": "bottom",
+      "toNode": "8dff3ef94f330d69",
+      "toSide": "top"
+    },
+    {
+      "id": "2579c8517cd0a1a7",
+      "fromNode": "98f00caf3cfc4025",
+      "fromSide": "bottom",
+      "toNode": "e732a6f6da9e53a7",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "4048e42a8d2e5c46",
+      "fromNode": "8dff3ef94f330d69",
+      "fromSide": "bottom",
+      "toNode": "94742dc2946e1435",
+      "toSide": "top"
+    },
+    {
+      "id": "bdd9250c69fd9c23",
+      "fromNode": "e732a6f6da9e53a7",
+      "fromSide": "bottom",
+      "toNode": "c698f095808590bb",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "48abc28d8c695493",
+      "fromNode": "94742dc2946e1435",
+      "fromSide": "bottom",
+      "toNode": "1ff84fdc36344b19",
+      "toSide": "top"
+    },
+    {
+      "id": "f4f7d1ee960f4241",
+      "fromNode": "c698f095808590bb",
+      "fromSide": "bottom",
+      "toNode": "69abbd6df9fc6f87",
+      "toSide": "top",
+      "color": "2"
+    },
+    {
+      "id": "76e74567e9f00c35",
+      "fromNode": "1ff84fdc36344b19",
+      "fromSide": "bottom",
+      "toNode": "e676944701861bd0",
+      "toSide": "top"
+    },
+    {
+      "id": "592d3e787f1af669",
+      "fromNode": "69abbd6df9fc6f87",
+      "fromSide": "bottom",
+      "toNode": "8665e13433a3a03d",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "b5a2cffbd6fe07ca",
+      "fromNode": "8665e13433a3a03d",
+      "fromSide": "bottom",
+      "toNode": "eb150b32022c536d",
+      "toSide": "top",
+      "color": "6"
+    },
+    {
+      "id": "2224839e1e6491f3",
+      "fromNode": "e676944701861bd0",
+      "fromSide": "bottom",
+      "toNode": "5ea3dc66eee31571",
+      "toSide": "top"
+    },
+    {
+      "id": "8e747c13a522e7d6",
+      "fromNode": "4c1ec7f6fab74c6d",
+      "fromSide": "bottom",
+      "toNode": "d548cc0c29633c08",
+      "toSide": "top"
+    },
+    {
+      "id": "e65698e02d4040e2",
+      "fromNode": "86530f5a05693d90",
+      "fromSide": "bottom",
+      "toNode": "8af4ad47bdc68adf",
+      "toSide": "top",
+      "color": "5"
+    },
+    {
+      "id": "724f7f5150a75593",
+      "fromNode": "f761c2821cc7b302",
+      "fromSide": "right",
+      "toNode": "cbcb6d204c3879f7",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "32788f8aaa6cd980",
+      "fromNode": "bc255307c8804ec8",
+      "fromSide": "right",
+      "toNode": "ca263e804ff4cea9",
+      "toSide": "left",
+      "color": "2"
+    },
+    {
+      "id": "3b2390b6038a0727",
+      "fromNode": "cf4164e957c265c3",
+      "fromSide": "top",
+      "toNode": "bc255307c8804ec8",
+      "toSide": "bottom",
+      "color": "2"
+    },
+    {
+      "id": "61c567a41a62c0c7",
+      "fromNode": "9dd4fd5af7241177",
+      "fromSide": "right",
+      "toNode": "cf4164e957c265c3",
+      "toSide": "left",
+      "color": "2"
+    }
+  ]
+}
