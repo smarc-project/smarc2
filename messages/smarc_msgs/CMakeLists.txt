@@ -44,7 +44,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ThrusterDC.msg"
   "msg/ThrusterFeedback.msg"
   "msg/ThrusterRPM.msg"
-  "action/Empty.action"
   DEPENDENCIES geometry_msgs geographic_msgs nav_msgs sensor_msgs std_msgs builtin_interfaces
 )
 
