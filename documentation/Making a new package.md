@@ -28,7 +28,7 @@ You can check out packages in [the messages directory](../messages/) for example
 If your package is _pure_ python, then use `ament_python`.
 Pure python packages do not have `CMakeLists.txt`, instead they use `setup.py` to define where files should be installed. 
 If something is not found, always start checking if that something is told where to go when building in `setup.py`.
-Check out the [ros2_python_examples](../examples/ros2_python_examples/) package.
+Check out the [ros2_python_examples](../examples/ros2_python_examples/) package as well as [this workshop](./ROS2%20Workshop.md).
 Also check [the python imports guide](./Python%20imports.md) if you're coming from ROS1.
 
 

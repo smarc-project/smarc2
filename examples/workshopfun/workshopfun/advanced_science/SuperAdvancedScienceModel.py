@@ -7,6 +7,10 @@ except:
     from IRPMModel import IRPMModel
 
 class SuperAdvancedScienceModel(IRPMModel):
+    """
+    A mock class that implements the RPM-computing scientific controller model interface.
+    We don't do much here but simply return a random RPM.
+    """
     def __init__(self, range: int):
         self._range = range
 
