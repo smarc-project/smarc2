@@ -51,7 +51,52 @@ Examples:
 
 
 ### End to end example
-You can find an example of using docker with the sim with all the commands [here](../simulation/README.md).
+
+Note that what we do here is not exactly best practice, since we'll be running multiple things in one container. 
+However, this is easier to understand.
+Normally, you should run one program per container, and possibly use docker-compose to arrange them, network them etc.
+
+> Notice that the example here uses `build-me-smarc2.sh` which uses linux-y commands!
+> This script by default exposes the container network to the host entirely. For most of us, this is fine. If you are concerned about security, do not use this :)
+
+
+#### Terminal 1
+```bash
+# get the repo, get in it
+git clone <this repo>
+cd smarc2
+# build an image out of the dockerfile named "smarc2/base"
+# the long build command is in a script
+./docker/build-me-smarc2.sh
+# check out the image
+docker images
+# make a container out of the image that runs bash interactively by default
+docker run -it smarc2/base
+# you are now inside the container, which by default is in colcon_ws
+cd src/smarc2/simulation/binaries/SMaRCUnityStandard
+./smarc_unity_standard_linux.x86_64 -nographics -batchmode
+# now the sim is running in this terminal
+# you can Ctrl-C to kill it
+# you can Ctrl-D to detach from it
+```
+
+#### Terminal 2
+```bash
+docker ps
+# find the name of the running container
+docker exec -it <container_name> /bin/bash
+source install/setup.bash
+cd src/smarc2/scripts
+./unity_ros_bridge.sh
+```
+
+#### Terminal 3
+```bash
+docker exec -it <container_name> /bin/bash
+source install/setup.bash
+ros2 topic list
+# you should see the list of topics from the sim here
+```
 
 ## Connecting your host ros2 and dockerized ros2
 (This assumes you are on a linux system)
@@ -59,3 +104,4 @@ You can find an example of using docker with the sim with all the commands [here
 The Dockerfile we use sets `ROS_DOMAIN_ID=42` (so the containers do not by default mess with your system) so you need to tell your host system the same:
 - `export ROS_DOMAIN_ID=42`  on the host, on each terminal you want connected to the dockerized ros2 setup.
 - When building the container, use build-args like so: `docker build - -t smarc2/base --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$(whoami)  < Dockerfile`. This makes it so that the container has the same user name, id, and group ids, which makes dockerized-ros2 use the same memory as the host user, which means nodes speak using shared memory = fast and 0 config required. [This script](./build-me-smarc2.sh) has this in it for repeated use~.
+
