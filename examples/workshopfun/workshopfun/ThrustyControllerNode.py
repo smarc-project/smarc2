@@ -9,7 +9,7 @@ from example_interfaces.srv import SetBool
 from .IThrustView import IThrustView
 from .advanced_science.IRPMModel import IRPMModel
 
-class ThrustyControllerNode:
+class ThrustyController:
     def __init__(self,
                  node: Node,
                  view: IThrustView,
@@ -108,7 +108,7 @@ def main():
     view = SAMThrustView(node)
     model = SuperAdvancedScienceModel(range=500)
 
-    controller = ThrustyControllerNode(node, view, model)
+    controller = ThrustyController(node, view, model)
 
     controller.run()
 

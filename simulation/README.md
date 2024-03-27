@@ -44,43 +44,6 @@ Since this runs wihtout graphics, the only practical way to interact with the si
 To do so, run the [unity bridge node](../scripts/unity_ros_bridge.sh) in the same container/machine and check the topics as you would normally (probably in a third terminal).
 
 ### End to end docker example
-Note that what we do here is not exactly best practice, since we'll be running multiple things in one container. 
-However, this is easier to understand.
-Normally, you should run one program per container, and possibly use docker-compose to arrange them, network them etc.
 
-#### Terminal 1
-```bash
-# get the repo, get in it
-git clone <this repo>
-cd smarc2/docker 
-# build an image out of the dockerfile named "smarc2/base"
-docker build - -t smarc2/base < dockerfile 
-# check out the image
-docker images
-# make a container out of the image that runs bash interactively by default
-docker run -it smarc2/base /bin/bash
-# you are now inside the container, which by default is in colcon_ws
-cd src/smarc2/simulation/binaries/SMaRCUnityStandard
-./smarc_unity_standard_linux.x86_64 -nographics -batchmode
-# now the sim is running in this terminal
-# you can Ctrl-C to kill it
-# you can Ctrl-D to detach from it
-```
+See [the docker readme!](../docker/README.md)
 
-#### Terminal 2
-```bash
-docker ps
-# find the name of the running container
-docker exec -it <container_name> /bin/bash
-source install/setup.bash
-cd src/smarc2/scripts
-./unity_ros_bridge.sh
-```
-
-#### Terminal 3
-```bash
-docker exec -it <container_name> /bin/bash
-source install/setup.bash
-ros2 topic list
-# you should see the list of topics from the sim here
-```
