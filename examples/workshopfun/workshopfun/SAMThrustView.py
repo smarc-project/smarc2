@@ -27,8 +27,9 @@ class SAMThrustView(IThrustView):
          """
          This is the only thing that we have promised with the interface before
          """
-         self._t1_msg.rpm = rpm
-         self._t2_msg.rpm = rpm
+         # great place to ensure types in messages!
+         self._t1_msg.rpm = int(rpm)
+         self._t2_msg.rpm = int(rpm)
 
     def update(self) -> None:
         self._rpm1_pub.publish(self._t1_msg)
