@@ -81,3 +81,6 @@ From the perspective of ROS, simulation is just another robot.
 Packages related to localization and mapping. 
 Probably could be split further within this folder.
 
+
+### [Utilities](/utilities/)
+Packages that by themselves aren't very useful, but contain commonly used things like LATLON <-> UTM conversion services, simple motion planners like a dubins vehicle and similar.

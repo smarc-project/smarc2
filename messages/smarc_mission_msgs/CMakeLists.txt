@@ -17,11 +17,13 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Topics.msg"
   "msg/BTCommand.msg"
   "msg/GotoWaypoint.msg"
   "msg/MissionControl.msg"
   "action/Empty.action"
   "action/GotoWaypoint.action"
+  "srv/DubinsPlan.srv"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs builtin_interfaces
  )
 
