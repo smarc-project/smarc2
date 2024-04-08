@@ -4,7 +4,7 @@ This package provides a service under `smarc_mission_msgs.msg::Topics.DUBINS_SER
 
 Run with `ros2 run dubins_planner dubins_planner_service`.
 
-You can see a sample plotted with `ros2 run dubins_planner dubins_planner_service_tester`.
+You can see a sample plotted with `ros2 run dubins_planner test_dubins_planner_service`.
 
 It takes as input three things:
 - A list of Pose2D for waypoints. X,Y in meters and Theta in angles, CCW from +x to +y.
