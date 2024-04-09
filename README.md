@@ -40,7 +40,10 @@ Individual packages should have their own documentation in their readme files.
 Where example nodes and code go. These are not meant to be ran on a robot, and usually their performance is not the point.
 If you had to give a piece of code out more than once, it should live here.
 
-### [External](/external/)
+### [External equipment](/external_equipment/)
+Packages/repos to use equipment not directly linked to one vehicles (i.e UW GPS, Mocap)
+
+### [External packages](/external_packages/)
 Packages that we have not developed ourlseves entirely, but rely on.
 Maybe with edits from us that are not available upstream.
 **Always check the license of the package you put here!**
@@ -57,15 +60,8 @@ Splitting messages into multiple packages depending on their use context is very
 If some messages are basically used only "internally", that set of messages should be in their own package here.
 An example would be "BT messages" that only the behaviour tree interacts with. Or "SLAM messages" used for communication between some slam-related nodes and nowhere else.
 
-### [Robot descriptions](/robot_descriptions/)
-URDF files and the accompanying models of individual robots.
-These are depended on by many packages and should require no dependencies.
-
-
-### [Sam](/sam/)
-SAM's hardware-specific packages. 
-It is likely that these packages will not compile or run on anything but the real SAM hardware.
-**These should be set up as submodules.**
+### [Navigation](/navigation/)
+Packages related to DR localization and mapping. 
 
 ### [Scripts](/scripts/)
 Where scripts for ease-of-use are stored.
@@ -76,11 +72,19 @@ If something is required ONLY for the sim and not anywhere else, that thing shou
 Similar to Sam, **these are submodules.**
 From the perspective of ROS, simulation is just another robot.
 
-
-### [Slam](/slam/)
-Packages related to localization and mapping. 
-Probably could be split further within this folder.
-
-
 ### [Utilities](/utilities/)
 Packages that by themselves aren't very useful, but contain commonly used things like LATLON <-> UTM conversion services, simple motion planners like a dubins vehicle and similar.
+
+### [Vehicles](/vehicles/)
+#### [Bringups](/vehicles/bringups/)
+Scripts and launches to get the vehicles up
+
+#### [Descriptions](/vehicles/descriptions/)
+URDF files and the accompanying models of individual robots.
+These are depended on by many packages and should require no dependencies.
+
+#### [Hardware](/vehicles/hardware/)
+Vehicles's hardware-specific packages. 
+It is likely that these packages will not compile or run on anything but the real SAM hardware.
+**These should be set up as submodules.**
+
