@@ -49,7 +49,7 @@ mkdir colcon_ws/src
 cd colcon_ws/src
 git clone git@github.com:smarc-project/smarc2.git
 cd smarc2
-./scripts/get-submodules.sh external
+./scripts/get-submodules.sh external_packages
 ```
 
 ### Colcon, rosdep, pip
