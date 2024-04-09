@@ -47,3 +47,29 @@ To do so, run the [unity bridge node](../scripts/unity_ros_bridge.sh) in the sam
 
 See [the docker readme!](../docker/README.md)
 
+## Running on Macs
+> Intel-based macs should just use a VM of Ubuntu 22.04 and be done with it.
+
+Apple silicon macs can do the following to get the sim + ros working.
+This is due to a lack of apple-silicon-compiled Ubuntu version of Unity (you can see how that is a horrible combination).
+
+Do these to get stuff running:
+- Either [use docker](../docker/README.md) or a VM to get Ubunbtu 22.04 and all the ROS stuff.
+  - This part will work fine because you will be compiling things on the apple silicon.
+  - If you followed the docker example, the sim in docker WONT run. Because the binaries are for x86 systems and you are on apple.
+- Install Unity Hub on mac.
+  - Get personal license.
+  - No need to install an editor at this point.
+- Clone HDRP/Standard
+  - Open as project.
+    - If Unity complains about not being able to download Assets, that means you don't have ssh-keys set up with github. There will be multiple complaints because of this, click the option that means "don't care, keep going" on each. To fix this:
+      - Clone Assets repository.
+      - In the Unity editor, Window -> Package Manager.
+      - Check SMARCUnityAssets: should have a red exclamation mark.
+      - Click the + button, top left -> Add from disk.
+      - Locate `package.json` of SMARCUnityAssets, select it.
+      - Done
+  - Robotics -> ROS Settings
+    - Change ROS IP and Port to whatever your docker/VM is using.
+    - This part is system-dependent and MIGHT change, good luck.
+- You should now be able to follow the other readmes.
