@@ -12,6 +12,7 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
+find_package(geographic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -24,7 +25,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Empty.action"
   "action/GotoWaypoint.action"
   "srv/DubinsPlan.srv"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs builtin_interfaces
+  "srv/UTMLatLon.srv"
+  DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
  )
 
 if(BUILD_TESTING)

@@ -1,3 +1,0 @@
-geographic_msgs/GeoPoint lat_lon_point
----
-geometry_msgs/Point utm_point

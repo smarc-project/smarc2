@@ -1,0 +1,8 @@
+# Use PointStamped for UTM coordinates
+# x,y,z for easting, northing. z is ignored
+# header.frame_id for utm zone/band like so: "utm_34_T"
+geometry_msgs/PointStamped[] utm_points
+geographic_msgs/GeoPoint[] lat_lon_points
+---
+geographic_msgs/GeoPoint[] lat_lon_points
+geometry_msgs/PointStamped[] utm_points
