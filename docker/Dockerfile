@@ -64,7 +64,7 @@ RUN mkdir .colcon/ \
 WORKDIR /home/${USERNAME}/colcon_ws/src/smarc2
 
 # get the submodules needed for core
-RUN scripts/get-submodules.sh external \
+RUN scripts/get-submodules.sh external_packages \
 # get the latest compiled binary of the unity sim
 &&  mkdir simulation/binaries \
 &&  cd simulation/binaries \

@@ -4,3 +4,6 @@ Stuff like MQTT settings and nodes, web-connections and such.
 
 ## smarc_nodered
 Uses MQTT to connect to the SMaRC Web GUI.
+
+## Roswasm GUI here
+Shall we put it here as well?
