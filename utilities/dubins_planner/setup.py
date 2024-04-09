@@ -24,7 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             "dubins_planner_service = dubins_planner.dubins_planner_node:main",
-            "dubins_planner_service_tester = dubins_planner.dubins_planner_node:test_service"
+            "test_dubins_planner_service = dubins_planner.dubins_planner_node:test_service"
         ],
     },
 )
