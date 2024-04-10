@@ -9,6 +9,8 @@ Use `Topics.msg` in context-specific (vehicle, package, repo...) message package
 Use these strings when creating subs/pubs instead of defining all of the topics in every node as parameters that rarely (if ever) change.
 If a topic is actually intended to be changed on launch, you can still define that as a parameter, with the defaul value coming from the Topics message.
 
+> For string constants, use single quotes. Like so: `string THING = 'some words'`.
+
 
 ### Why?
 No more "I thought it was `rpm_1`, so it is `rpm1`?" kind of problems!
@@ -26,5 +28,8 @@ This also makes it very easy for IDEs to auto-suggest you the topics~
 ## sam_msgs
 Message definitions specific to SAM AUV.
 
+## smarc_mission_msgs
+Messages that concern planning, global things like lat/lon/utm, behaviour tree-related functions...
 
 ## smarc_msgs
+Message definitions that don't belong anywhere else.
