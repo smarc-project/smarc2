@@ -30,6 +30,13 @@ This version can also be very easily ran without graphics. See the following sec
 Common package that contains all the sensors, prefabs, vehicles, etc.
 Should be imported from the package manager in Unity.
 
+### ROS Messages
+These are generated from within the editor:
+- Robotics -> Generate ROS Messages...
+- Fill in the fields in the pop-up
+  - Usually you can not generate these INTO the SMARCUnityAssets package, so place the RosMessages folder anywhere for now
+- Cut/Paste the generated RosMessages folder into `SMARCUnityAssets/Runtime/Scripts/ROS/`
+
 ## Running headless
 > This was only tested with the Standard setup.
 
