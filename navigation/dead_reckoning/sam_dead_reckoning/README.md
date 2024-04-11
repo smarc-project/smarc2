@@ -22,3 +22,6 @@ Work on porting smarc-project/smarc_navigation/sam_dead_reckoning to smarc-proje
 - setup.py
 - launch files
 - config files
+
+# Install
+gps_node.py requires geodesy which must be installed through pip: pip install geodesy

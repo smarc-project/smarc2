@@ -4,8 +4,10 @@
   <name>sam_dead_reckoning</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="r.julianvaldez@gmail.com">julian</maintainer>
+  <maintainer email="jvaldez@kth.se">julian</maintainer>
   <license>TODO: License declaration</license>
+
+  <exec_depend>geodesy</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
