@@ -20,8 +20,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CellOccupied.srv"
   "srv/AddTask.srv"
   "srv/AddTasks.srv"
-  "srv/LatLonToUTM.srv"
-  "srv/UTMToLatLon.srv"
   "srv/NEDENURotation.srv"
   "srv/LatLonToUTMOdometry.srv"
   "msg/CommsMessage.msg"

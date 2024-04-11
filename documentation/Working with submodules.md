@@ -44,8 +44,8 @@ git submodule status
 ```
 will show a list of submodules on your local device with their HEAD, could look like this:
 ```
--6d1a439dce9fbad14ffa779abf633acb4d3b5e02 external/ROS-TCP-Endpoint
- 37433070bb7a6232eed84b586813939dffce7519 external/mqtt_bridge (0.1.0-73-g3743307)
+-6d1a439dce9fbad14ffa779abf633acb4d3b5e02 external_packages/ROS-TCP-Endpoint
+ 37433070bb7a6232eed84b586813939dffce7519 external_packages/mqtt_bridge (0.1.0-73-g3743307)
  64bb5999e5cf15cfa4ff67ca24321d46460a1369 simulation/SMARCUnityAssets (heads/master)
  c7f9cafdfa4bf4dfc59c6fd111abf9f4855aaf49 simulation/SMARCUnityHDRP (heads/master)
  af22c7bbc08baad040c56e09b4051e9aae664004 simulation/SMARCUnityStandard (heads/master)
@@ -67,7 +67,7 @@ Example:
 cd colcon_ws/smarc2
 ls
 > ... .gitmodules
-git submodule update external/ROS-TCP-Endpoint
+git submodule update external_packages/ROS-TCP-Endpoint
 ```
 
 ### Update submodules from their remote
@@ -86,7 +86,7 @@ Or just modify `.gitmodules` directly.
 
 Example:
 ```bash
-git submodule add https://github.com/KKalem/ROS-TCP-Endpoint external/ROS-TCP-Endpoint
+git submodule add https://github.com/KKalem/ROS-TCP-Endpoint external_packages/ROS-TCP-Endpoint
 ```
 
 

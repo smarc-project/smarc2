@@ -7,9 +7,9 @@
 ####################
 # Actuator commands
 ####################
-string VBS_CMD_TOPIC = "core/vbs_cmd"
-string LCG_CMD_TOPIC = "core/lcg_cmd"
-string THRUSTER1_CMD_TOPIC = "core/thruster1_cmd"
-string THRUSTER2_CMD_TOPIC = "core/thruster2_cmd"
-string THRUST_VECTOR_CMD_TOPIC = "core/thrust_vector_cmd"
+string VBS_CMD_TOPIC = 'core/vbs_cmd'
+string LCG_CMD_TOPIC = 'core/lcg_cmd'
+string THRUSTER1_CMD_TOPIC = 'core/thruster1_cmd'
+string THRUSTER2_CMD_TOPIC = 'core/thruster2_cmd'
+string THRUST_VECTOR_CMD_TOPIC = 'core/thrust_vector_cmd'
 

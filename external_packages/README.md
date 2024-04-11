@@ -1,4 +1,4 @@
-# External
+# External Packages
 Place any packages that a smarc-package requires, but for reasons it can not be acquired from `apt` or `pip` here. 
 **They should be git submodules.**
 
