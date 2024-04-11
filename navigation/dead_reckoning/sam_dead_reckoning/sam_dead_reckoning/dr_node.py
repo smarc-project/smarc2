@@ -223,8 +223,8 @@ class VehicleDR(Node):
             # goal_point_local = self.listener.transformPoint("map", goal_point)
             # ROS1
             # (world_trans, world_rot) = self.listener.lookupTransform(self.map_frame, self.odom_frame, rospy.Time(0))
-            (world_trans, world_rot) = self.tf_buffer.lookup_transform(target_frame= self.map_frame,
-                                                                       source_frame= self.odom_frame,
+            (world_trans, world_rot) = self.tf_buffer.lookup_transform(target_frame= self.odom_frame,
+                                                                       source_frame= self.map_frame,
                                                                        time=rclpy.time.Time())
 
         except (LookupException, ConnectivityException):
@@ -274,8 +274,8 @@ class VehicleDR(Node):
         try:
             # TODO: test this on SAM. If needed, add wait()
             # ROS1: self.listener.lookupTransform(self.base_frame, self.press_frame, rclpy.time.Time())
-            (self.b2p_trans, b2p_rot) = self.tf_buffer.lookup_transform(target_frame=self.base_frame,
-                                                                        source_frame=self.press_frame,
+            (self.b2p_trans, b2p_rot) = self.tf_buffer.lookup_transform(target_frame=self.press_frame,
+                                                                        source_frame=self.base_frame,
                                                                         time= rclpy.time.Time())
             self.depth_meas = True
             self.get_logger().info(f"DR node: got transform {self.base_frame} to {self.press_frame}")
