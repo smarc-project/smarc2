@@ -35,6 +35,11 @@ except ImportError:
 
 
 class VehicleDR(Node):
+    """
+    This node is responsible for dead reckoning of SAM anf floatSAM
+
+    NOTE: When using in the simulation ... Things are a bit different since the frame transforms are known.
+    """
 
     def __init__(self):
         super().__init__("dr_node")
@@ -43,28 +48,30 @@ class VehicleDR(Node):
         self.declare_node_parameters()
 
         # ===== Get parameters =====
-        # === Topics ===
-        self.dvl_topic = self.get_parameter('dvl_topic').value
-        self.odom_topic = self.get_parameter('odom_topic').value  # topic used in the launch file for the DVL sensor
-        self.stim_topic = self.get_parameter('imu').value
-        self.sbg_topic = self.get_parameter('sbg_topic').value
-        self.depth_top = self.get_parameter('depth_topic').value
-        self.rpm1_topic = self.get_parameter('thrust1_fb').value
-        self.rpm2_topic = self.get_parameter('thrust2_fb').value
-        self.thrust_topic = self.get_parameter('thrust_vec_cmd').value
-        self.gps_topic = self.get_parameter('gps_odom_topic').value
+        # === Subscription topics ===
+        self.gps_topic = self.get_parameter("gps_odom_topic").value
+        self.dvl_topic = self.get_parameter("dvl_topic").value
+        self.stim_topic = self.get_parameter("stim_topic").value
+        self.sbg_topic = self.get_parameter("sbg_topic").value
+        self.depth_top = self.get_parameter("depth_topic").value
+        self.rpm1_topic = self.get_parameter("thrust1_fb").value
+        self.rpm2_topic = self.get_parameter("thrust2_fb").value
+        self.thrust_topic = self.get_parameter("thrust_vec_cmd").value
+        # === Publisher topics ===
+        self.odom_topic = self.get_parameter("odom_topic").value  # topic used in the launch file for the DVL sensor
         # === Frames ===
-        self.base_frame = self.get_parameter('base_frame').value
-        self.base_frame_2d = self.get_parameter('base_frame_2d').value
-        self.odom_frame = self.get_parameter('odom_frame').value
-        self.map_frame = self.get_parameter('map_frame').value
-        self.utm_frame = self.get_parameter('utm_frame').value
-        self.dvl_frame = self.get_parameter('dvl_frame').value
-        self.press_frame = self.get_parameter('pressure_frame').value
+        self.base_frame = self.get_parameter("base_frame").value
+        self.base_frame_2d = self.get_parameter("base_frame_2d").value
+        self.odom_frame = self.get_parameter("odom_frame").value
+        self.map_frame = self.get_parameter("map_frame").value
+        self.utm_frame = self.get_parameter("utm_frame").value
+        self.dvl_frame = self.get_parameter("dvl_frame").value
+        self.press_frame = self.get_parameter("pressure_frame").value
         # === other ===
-        self.dvl_period = self.get_parameter('dvl_period').value
-        self.dr_period = self.get_parameter('dr_period').value
-        # self.dr_pub_period = rospy.get_param('~dr_pub_period', 0.1)
+        self.dvl_period = self.get_parameter("dvl_period").value
+        self.dr_period = self.get_parameter("dr_period").value
+        # self.dr_pub_period = rospy.get_param("~dr_pub_period", 0.1)
+        self.simulation = self.get_parameter("simulation").value
 
         self.tf_buffer = Buffer()
         self.listener = TransformListener(self.tf_buffer, self)
@@ -122,13 +129,9 @@ class VehicleDR(Node):
         # self.thrust1_sub = message_filters.Subscriber(self.rpm1_topic, ThrusterFeedback)
         # self.thrust2_sub = message_filters.Subscriber(self.rpm2_topic, ThrusterFeedback)
 
-        # === Publishers ===
-        odom_qos_profile = QoSProfile(depth=100)
-        self.pub_odom = self.create_publisher(msg_type=Odometry, topic=self.odom_topic, qos_profile=odom_qos_profile)
-
         # === Subscriptions ===
         self.sbg_sub = self.create_subscription(msg_type=Imu, topic=self.sbg_topic,
-                                                callback=self. sbg_cb, qos_profile=10, )
+                                                callback=self.sbg_cb, qos_profile=10, )
         self.dvl_sub = self.create_subscription(msg_type=DVL, topic=self.dvl_topic,
                                                 callback=self.dvl_cb, qos_profile=10)
         self.stim_sub = self.create_subscription(msg_type=Imu, topic=self.stim_topic,
@@ -137,8 +140,8 @@ class VehicleDR(Node):
                                                   callback=self.depth_cb, qos_profile=10)
         self.gps_sub = self.create_subscription(msg_type=Odometry, topic=self.gps_topic,
                                                 callback=self.gps_cb, qos_profile=10)
-        self.thrust_cmd_sub = self.create_subscription(msg_type=ThrusterAngles, topic=self.thrust_topic ,
-                                                       callback=self.thrust_cmd_cb , qos_profile=10)
+        self.thrust_cmd_sub = self.create_subscription(msg_type=ThrusterAngles, topic=self.thrust_topic,
+                                                       callback=self.thrust_cmd_cb, qos_profile=10)
         # TODO will this work in ROS2
         # ROS1
         # self.thrust1_sub = message_filters.Subscriber(self.rpm1_topic, ThrusterFeedback)
@@ -152,14 +155,15 @@ class VehicleDR(Node):
         # Synchronizer
         self.ts = message_filters.ApproximateTimeSynchronizer([self.thrust1_sub, self.thrust2_sub],
                                                               20, slop=20.0, allow_headerless=False)
-        self.ts.registerCallback(self.thrust_cb)
+        self.ts.registerCallback(cb=self.thrust_cb)
 
-        # Time
-        #rospy.Timer(rospy.Duration(self.dr_period), self.dr_timer)
+        # === Publishers ===
+        odom_qos_profile = QoSProfile(depth=100)
+        self.pub_odom = self.create_publisher(msg_type=Odometry, topic=self.odom_topic, qos_profile=odom_qos_profile)
+
+        # === Timers ===
+        # rospy.Timer(rospy.Duration(self.dr_period), self.dr_timer)
         self.timer = self.create_timer(timer_period_sec=self.dr_period, callback=self.dr_timer)
-
-
-        #rospy.spin()
 
     def declare_node_parameters(self):
         """
@@ -167,67 +171,59 @@ class VehicleDR(Node):
 
         :return:
         """
-
-        """
-        self.dvl_topic = rospy.get_param('~dvl_topic', '/sam/core/dvl')
-        self.odom_top = rospy.get_param('~odom_topic',
-                                        '/sam/dr/dvl_dr')  # topic used in the launch file for the DVL sensor
-        self.stim_topic = rospy.get_param('~imu', '/sam/core/imu')
-        self.sbg_topic = rospy.get_param('~sbg_topic', '/sam/core/imu')
-        self.base_frame = rospy.get_param('~base_frame', 'sam/base_link')
-        self.base_frame_2d = rospy.get_param('~base_frame_2d', 'sam/base_link')
-        self.odom_frame = rospy.get_param('~odom_frame', 'sam/odom')
-        self.map_frame = rospy.get_param('~map_frame', 'map')
-        self.utm_frame = rospy.get_param('~utm_frame', 'utm')
-        self.dvl_frame = rospy.get_param('~dvl_frame', 'dvl_link')
-        self.dvl_period = rospy.get_param('~dvl_period', 0.2)
-        self.dr_period = rospy.get_param('~dr_period', 0.02)
-        self.depth_top = rospy.get_param('~depth_topic', '/depth')
-        self.press_frame = rospy.get_param('~pressure_frame', 'pressure_link')
-        self.rpm1_topic = rospy.get_param('~thrust1_fb', '/sam/core/rpm_fb1')
-        self.rpm2_topic = rospy.get_param('~thrust2_fb', '/sam/core/rpm_fb2')
-        self.thrust_topic = rospy.get_param('~thrust_vec_cmd', '/sam/core/thrust')
-        self.gps_topic = rospy.get_param('~gps_odom_topic', '/sam/core/gps')
-        # self.dr_pub_period = rospy.get_param('~dr_pub_period', 0.1)
-        """
-        default_robot_name = 'sam0'
-        # === Topics ===
-        self.declare_parameter('dvl_topic', f'/{default_robot_name}/core/dvl')
-        self.declare_parameter('odom_topic',f'/{default_robot_name}/dr/dvl_dr')  # topic used in the launch file for the DVL sensor
-        self.declare_parameter('imu', f'/{default_robot_name}/core/imu')
-        self.declare_parameter('sbg_topic', f'/{default_robot_name}/core/imu')
-        self.declare_parameter('depth_topic', '/depth')
-        self.declare_parameter('thrust1_fb', f'/{default_robot_name}/core/rpm_fb1')
-        self.declare_parameter('thrust2_fb', f'/{default_robot_name}/core/rpm_fb2')
-        self.declare_parameter('thrust_vec_cmd', f'/{default_robot_name}/core/thrust')
-        self.declare_parameter('gps_odom_topic', f'/{default_robot_name}/core/gps')
+        # TODO
+        default_robot_name = "sam0"
+        # === Subscription topics ===
+        self.declare_parameter("gps_odom_topic", f"/{default_robot_name}/dr/gps_odom")
+        self.declare_parameter("dvl_topic", f"/{default_robot_name}/core/dvl")
+        self.declare_parameter("stim_topic", f"/{default_robot_name}/core/imu")
+        self.declare_parameter("sbg_topic", f"/{default_robot_name}/core/sbg_imu")
+        self.declare_parameter("depth_topic", f"/{default_robot_name}/dr/depth")
+        self.declare_parameter("thrust1_fb", f"/{default_robot_name}/core/thruster1_fb")
+        self.declare_parameter("thrust2_fb", f"/{default_robot_name}/core/thruster2_fb")
+        self.declare_parameter("thrust_vec_cmd", f"/{default_robot_name}/core/thrust_vector_cmd")
+        # === Publisher topics ===
+        self.declare_parameter("odom_topic",
+                               f"/{default_robot_name}/dr/odom")  # topic used in the launch file for the DVL sensor
         # === Frames ===
-        self.declare_parameter('base_frame', f'{default_robot_name}/base_link')
-        self.declare_parameter('base_frame_2d', f'{default_robot_name}/base_link')
-        self.declare_parameter('odom_frame', f'{default_robot_name}/odom')
-        self.declare_parameter('map_frame', 'map')
-        self.declare_parameter('utm_frame', 'utm')
-        self.declare_parameter('dvl_frame', 'dvl_link')
-        self.declare_parameter('pressure_frame', 'pressure_link')
+        self.declare_parameter("base_frame", f"{default_robot_name}_base_link")
+        self.declare_parameter("base_frame_2d", f"{default_robot_name}_base_link_2d")
+        self.declare_parameter("odom_frame", f"odom")  # changed
+        self.declare_parameter("map_frame", "map")
+        self.declare_parameter("utm_frame", "utm")
+        self.declare_parameter("dvl_frame", f"{default_robot_name}_dvl_link")
+        self.declare_parameter("pressure_frame", f"{default_robot_name}_pressure_link")
         # === Other ===
-        self.declare_parameter('dvl_period', 0.2)
-        self.declare_parameter('dr_period', 0.02)
-
-
+        self.declare_parameter("dvl_period", 0.1)
+        self.declare_parameter("dr_period", 0.02)
+        self.declare_parameter("simulation", True)
 
     def thrust_cmd_cb(self, thrust_cmd_msg):
         self.thrust_cmd = thrust_cmd_msg
 
     def gps_cb(self, gps_msg):
+        self.get_logger().info("GPS received")
         try:
-            # goal_point_local = self.listener.transformPoint("map", goal_point)
             # ROS1
+            # goal_point_local = self.listener.transformPoint("map", goal_point)
             # (world_trans, world_rot) = self.listener.lookupTransform(self.map_frame, self.odom_frame, rospy.Time(0))
-            (world_trans, world_rot) = self.tf_buffer.lookup_transform(target_frame= self.odom_frame,
-                                                                       source_frame= self.map_frame,
-                                                                       time=rclpy.time.Time())
+
+            world_transform = self.tf_buffer.lookup_transform(target_frame=self.odom_frame,
+                                                              source_frame=self.map_frame,
+                                                              time=rclpy.time.Time())
+
+            world_trans = world_transform.transform.translation
+            world_rot = world_transform.transform.rotation
+
+            if self.simulation:
+                self.get_logger().info(f"Simulation: known transform from {self.map_frame} to {self.odom_frame}")
+                self.init_m2o = True
+                self.destroy_subscription(self.gps_sub)
+
 
         except (LookupException, ConnectivityException):
+
+            self.get_logger().info("Setting goal point")
 
             goal_point = PointStamped()
             goal_point.header.frame_id = self.utm_frame
@@ -239,7 +235,8 @@ class VehicleDR(Node):
 
             try:
                 # gps_map = self.listener.transformPoint(self.map_frame, goal_point)
-                gps_map = self.tf_buffer.transform(goal_point, self.map_frame)
+                gps_map = self.tf_buffer.transform(object_stamped=goal_point,
+                                                   target_frame=self.map_frame)
 
                 if self.init_heading:
                     self.get_logger().info(f"DR node: broadcasting transform {self.map_frame} to {self.odom_frame}")
@@ -253,30 +250,33 @@ class VehicleDR(Node):
                     self.transformStamped.transform.translation.x = gps_map.point.x
                     self.transformStamped.transform.translation.y = gps_map.point.y
                     self.transformStamped.transform.translation.z = 0.
-                    # self.transformStamped.transform.rotation = Quaternion(*quat)
-                    self.transformStamped.transform.rotation.x = quat[0] # I've had problems unpacking
+                    self.transformStamped.transform.rotation.x = quat[0]
                     self.transformStamped.transform.rotation.y = quat[1]
                     self.transformStamped.transform.rotation.z = quat[2]
                     self.transformStamped.transform.rotation.w = quat[3]
                     self.transformStamped.header.frame_id = self.map_frame
                     self.transformStamped.child_frame_id = self.odom_frame
-                    self.transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())  # rospy.Time.now()
+                    self.transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())
                     self.static_tf_bc.sendTransform(self.transformStamped)
                     self.init_m2o = True
                     # self.gps_sub.unregister()
                     self.destroy_subscription(self.gps_sub)
 
             except (LookupException, ConnectivityException, ExtrapolationException):
-                self.get_logger().warn("DR: Transform to utm-->map not available yet")
+                self.get_logger().info("DR: Transform to utm-->map not available yet")
             pass
 
         # Is there a depth sensor? If so, AUV.
         try:
             # TODO: test this on SAM. If needed, add wait()
             # ROS1: self.listener.lookupTransform(self.base_frame, self.press_frame, rclpy.time.Time())
-            (self.b2p_trans, b2p_rot) = self.tf_buffer.lookup_transform(target_frame=self.press_frame,
-                                                                        source_frame=self.base_frame,
-                                                                        time= rclpy.time.Time())
+            b2p_transform = self.tf_buffer.lookup_transform(target_frame=self.press_frame,
+                                                            source_frame=self.base_frame,
+                                                            time=rclpy.time.Time())
+
+            self.b2p_trans = b2p_transform.transform.translation
+            b2p_rot = b2p_transform.transform.rotation
+
             self.depth_meas = True
             self.get_logger().info(f"DR node: got transform {self.base_frame} to {self.press_frame}")
 
@@ -286,7 +286,7 @@ class VehicleDR(Node):
             self.get_logger().warn("Assuming surface vehicle")
 
     def dr_timer(self):
-        self.get_logger().info(f"DR_timer - m2o: {self.init_m2o}  stim:{self.init_stim}")
+        # self.get_logger().info(f"DR_timer - m2o: {self.init_m2o}  stim:{self.init_stim}  heading:{self.init_heading}")
         if self.init_m2o and self.init_stim:
 
             pose_t = np.concatenate([self.pos_t, self.rot_t])  # Catch latest estimate from IMU
@@ -294,7 +294,7 @@ class VehicleDR(Node):
             lin_vel_t = np.zeros(3)
 
             # DVL data coming in
-            self.get_logger().info(f"DVL Status: {self.dvl_on}")
+            # self.get_logger().info(f"DVL Status: {self.dvl_on}")
             if self.dvl_on:
                 rot_mat_t = self.fullRotation(pose_t[3], pose_t[4], pose_t[5])
 
@@ -357,18 +357,18 @@ class VehicleDR(Node):
 
             rcl_now = self.get_clock().now()
 
-            # TODO check that frame ids are swapped
+            # TODO check to see if the frame ids are swapped
             base_transform = construct_stamped_transform(transform_trans=[pose_t[0], pose_t[1], pose_t[2]],
                                                          transform_rot=quat_t,
-                                                         frame_id=self.base_frame,
-                                                         child_frame_id=self.odom_frame,
+                                                         frame_id=self.odom_frame,  # self.base_frame,
+                                                         child_frame_id=self.base_frame,  # self.odom_frame,
                                                          rcl_time=rcl_now)
 
             base_2d_transform = construct_stamped_transform(transform_trans=[pose_t[0], pose_t[1], pose_t[2]],
-                                                         transform_rot=quat_t,
-                                                         frame_id=self.base_frame_2d,
-                                                         child_frame_id=self.odom_frame,
-                                                         rcl_time=rcl_now)
+                                                            transform_rot=quat_t,
+                                                            frame_id=self.odom_frame,  # self.base_frame_2d,
+                                                            child_frame_id=self.base_frame_2d,  # self.odom_frame,
+                                                            rcl_time=rcl_now)
 
             self.br.sendTransform(base_transform)
             self.br.sendTransform(base_2d_transform)
@@ -403,7 +403,7 @@ class VehicleDR(Node):
 
         # TODO: test with SAM data
         if self.depth_meas:
-            self.base_depth = depth_msg.pose.pose.position.z + self.b2p_trans[0] * np.sin(self.rot_t[1])
+            self.base_depth = depth_msg.pose.pose.position.z + self.b2p_trans.x * np.sin(self.rot_t[1])
 
     def sbg_cb(self, sbg_msg):
         self.init_quat = sbg_msg.orientation
@@ -450,7 +450,7 @@ class VehicleDR(Node):
 
         else:
             # rospy.loginfo("Stim data coming in")
-            self.t_stim_prev = imu_msg.header.stamp
+            self.t_stim_prev = ros_time_to_secs(imu_msg.header.stamp)
             self.init_stim = True
 
     def dvl_cb(self, dvl_msg):
@@ -485,13 +485,6 @@ class VehicleDR(Node):
             self.dvl_on = True
 
 
-# if __name__ == "__main__":
-#     rospy.init_node('dr_node')
-#     try:
-#         VehicleDR()
-#     except rospy.ROSInterruptException:
-#         pass
-
 def main(args=None):
     rclpy.init(args=args)
     dr_node = VehicleDR()
@@ -500,5 +493,6 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -57,33 +57,33 @@ def generate_launch_description():
                 "gps_frame": f"{robot_name}/gps_link"
             }]
         ),
-        Node(
-            package="sam_dead_reckoning",
-            executable="dr_node",
-            name="dr_node",
-            output="screen",
-            parameters=[{
-                "gps_odom_topic": f"/{robot_name}/dr/gps_odom",
-                "dvl_topic": f"/{robot_name}/core/dvl",
-                "stim_topic": f"/{robot_name}/core/imu",
-                "sbg_topic": f"/{robot_name}/core/sbg_imu",
-                "depth_topic": f"/{robot_name}/dr/depth",
-                "thrust1_fb": f"/{robot_name}/core/thruster1_fb",
-                "thrust2_fb": f"/{robot_name}/core/thruster2_fb",
-                "thrust_vec_cmd": f"/{robot_name}/core/thrust_vector_cmd",
-                "odom_topic": f"/{robot_name}/dr/odom",
-                "base_frame": f"{robot_name}_base_link",
-                "base_frame_2d": f"{robot_name}_base_link_2d",
-                "odom_frame": "odom",  # changed
-                "map_frame": "map",
-                "utm_frame": "utm",
-                "dvl_frame": f"{robot_name}_dvl_link",
-                "pressure_frame": f"{robot_name}_pressure_link",
-                "dvl_period": 0.1,
-                "dr_period": 0.02,
-                "simulation": True
-            }]
-        )
+        # Node(
+        #     package="sam_dead_reckoning",
+        #     executable="dr_node",
+        #     name="dr_node",
+        #     output="screen",
+        #     parameters=[{
+        #         "gps_odom_topic": f"/{robot_name}/dr/gps_odom",
+        #         "dvl_topic": f"/{robot_name}/core/dvl",
+        #         "stim_topic": f"/{robot_name}/core/imu",
+        #         "sbg_topic": f"/{robot_name}/core/sbg_imu",
+        #         "depth_topic": f"/{robot_name}/dr/depth",
+        #         "thrust1_fb": f"/{robot_name}/core/thruster1_fb",
+        #         "thrust2_fb": f"/{robot_name}/core/thruster2_fb",
+        #         "thrust_vec_cmd": f"/{robot_name}/core/thrust_vector_cmd",
+        #         "odom_topic": f"/{robot_name}/dr/odom",
+        #         "base_frame": f"{robot_name}_base_link",
+        #         "base_frame_2d": f"{robot_name}_base_link_2d",
+        #         "odom_frame": "odom",  # changed
+        #         "map_frame": "map",
+        #         "utm_frame": "utm",
+        #         "dvl_frame": f"{robot_name}_dvl_link",
+        #         "pressure_frame": f"{robot_name}_pressure_link",
+        #         "dvl_period": 0.1,
+        #         "dr_period": 0.02,
+        #         "simulation": True
+        #     }]
+        # )
 
 
     ])
