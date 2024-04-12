@@ -16,10 +16,12 @@ def generate_launch_description():
     # TODO this is not the correct way to set the name
     # I think we should talk about how launch files should be set up
     robot_name = "sam0"
+    odom_topic = f"/{robot_name}/dr/odom"
+    gps_odom_topic = f"/{robot_name}/dr/gps_odom"
+
     print("Launching sam_dr_launch.py")
 
     return launch.LaunchDescription([
-
         # Example: ExecuteProcess
         # ExecuteProcess(
         #     cmd=['ros2', 'bag', 'play', '/home/julian/bag_files/pipeline_sim'],
@@ -40,7 +42,22 @@ def generate_launch_description():
                 "simulation": True
 
             }]
+        ),
+        Node(
+            package="sam_dead_reckoning",
+            executable="gps_node",
+            name="gps_node",
+            respawn=True,
+            output="screen",
+            parameters=[{
+                "gps_topic": f"/{robot_name}/core/gps",
+                "gps_odom_topic": gps_odom_topic,
+                "map_frame": "map",
+                "utm_frame": "utm",
+                "gps_frame": f"{robot_name}/gps_link"
+            }]
         )
+
 
     ])
 
