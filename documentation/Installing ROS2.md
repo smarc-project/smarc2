@@ -45,9 +45,9 @@ Do the following steps in order on a clean ubuntu 22.04 system.
 
 ### This repo and some of its submodules
 ```bash
-mkdir colcon_ws/src
+mkdir -p colcon_ws/src
 cd colcon_ws/src
-git clone git@github.com:smarc-project/smarc2.git
+git clone https://github.com/smarc-project/smarc2.git
 cd smarc2
 ./scripts/get-submodules.sh external_packages
 ```
