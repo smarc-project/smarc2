@@ -16,19 +16,22 @@ class Press2Depth(Node):
 
     def __init__(self):
         super().__init__("press_to_depth_node")
+        self.get_logger().info("Starting node defined in press_to_depth.py")
 
         # ===== Declare parameters =====
         self.declare_node_parameters()
 
-        # TODO check naming
-        node_name = self.get_name()
+        self.odom_frame = self.get_parameter('odom_frame').value
+        self.base_frame = self.get_parameter('base_frame').value
+        self.depth_frame = self.get_parameter('depth_frame').value
+        self.press_topic = self.get_parameter('pressure_topic').value
+        self.press_frame = self.get_parameter('pressure_frame').value
+        self.depth_topic = self.get_parameter('depth_topic').value
 
-        self.odom_frame = self.get_parameter(f'{node_name}/odom_frame').value
-        self.base_frame = self.get_parameter(f'{node_name}/base_frame').value
-        self.depth_frame = self.get_parameter(f'{node_name}/depth_frame').value
-        self.press_topic = self.get_parameter(f'{node_name}/pressure_topic').value
-        self.press_frame = self.get_parameter(f'{node_name}/pressure_frame').value
-        self.depth_topic = self.get_parameter(f'{node_name}/depth_topic').value
+        # Specifies which pressure to depth calculation should be used
+        self.simulation = self.get_parameter('simulation').value
+
+        self.get_logger().info(f"Simulated pressure: {self.simulation}")
 
         self.subs = self.create_subscription(msg_type=FluidPressure, topic=self.press_topic,
                                              callback=self.depthCB, qos_profile=10)
@@ -37,8 +40,11 @@ class Press2Depth(Node):
 
         self.depth_msg = PoseWithCovarianceStamped()
         self.depth_msg.header.frame_id = self.odom_frame
-        self.depth_msg.pose.covariance = [100, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1,
-                                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0,
+        self.depth_msg.pose.covariance = [100., 0.0, 0.0, 0.0, 0.0, 0.0,
+                                          0.0, 100., 0.0, 0.0, 0.0, 0.0,
+                                          0.0, 0.0, 0.1, 0.0, 0.0, 0.0,
+                                          0.0, 0.0, 0.0, 0.01, 0.0, 0.0,
+                                          0.0, 0.0, 0.0, 0.0, 0.01, 0.0,
                                           0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
 
         self.depth_msg.pose.pose.orientation.w = 1.
@@ -59,16 +65,20 @@ class Press2Depth(Node):
         """
         Declare the parameters for the node
         """
-        # TODO these parameters are named wrt the node name, maybe change.
 
-        node_name = self.get_name()
+        # TODO This might be a bad way to set defaults
+        # allows for me to run from the terminal directly for test
+        default_robot = 'sam0'
 
-        self.odom_frame = self.declare_parameter(f'{node_name}/odom_frame', '/odom')
-        self.base_frame = self.declare_parameter(f'{node_name}/base_frame', '/base_link')
-        self.depth_frame = self.declare_parameter(f'{node_name}/depth_frame', '/depth_link')
-        self.press_topic = self.declare_parameter(f'{node_name}/pressure_topic', '/pressure')
-        self.press_frame = self.declare_parameter(f'{node_name}/pressure_frame', '/pressure_link')
-        self.depth_topic = self.declare_parameter(f'{node_name}/depth_topic', '/depth')
+        self.declare_parameter('odom_frame', f'{default_robot}/odom')
+        self.declare_parameter('base_frame', f'{default_robot}/base_link')
+        self.declare_parameter('depth_frame', f'{default_robot}/depth_link')
+        self.declare_parameter('pressure_frame', f'{default_robot}/pressure_link')
+        self.declare_parameter('pressure_topic', f'/{default_robot}/core/depth20_pressure')
+        self.declare_parameter('depth_topic', f'{default_robot}/dr/depth')
+
+        # TODO default should be False
+        self.declare_parameter('simulation', True)
 
     # def depthCB_old(self, press_msg):
     #     try:
@@ -90,15 +100,28 @@ class Press2Depth(Node):
         """
         callback for converting pressure message into a depth.
         """
-        # # depth_abs is positive, must be manually negated
-        depth_abs = - self.pascal_pressure_to_depth(press_msg.fluid_pressure)
-        # rospy.loginfo("Depth abs %s", depth_abs)
-        # rospy.loginfo("Fluid press %s", press_msg.fluid_pressure)
+        # Simulated pressure sensor
+        if self.simulation:
+            depth_abs = - self.simulated_pressure_to_depth(press_msg.fluid_pressure)
 
-        if press_msg.fluid_pressure > 90000. and press_msg.fluid_pressure < 500000.:
             self.depth_msg.header.stamp = rcl_time_to_stamp(self.get_clock().now())
             self.depth_msg.pose.pose.position.z = depth_abs  # = [0., 0., 2.]
             self.pub.publish(self.depth_msg)
+
+            self.get_logger().info(f"Depth, m: {depth_abs}")
+            self.get_logger().info(f"Fluid pressure, Pa: {press_msg.fluid_pressure}")
+
+        # Real pressure sensor
+        else:
+            # depth_abs is positive, must be manually negated
+            depth_abs = - self.pascal_pressure_to_depth(press_msg.fluid_pressure)
+            # rospy.loginfo("Depth abs %s", depth_abs)
+            # rospy.loginfo("Fluid press %s", press_msg.fluid_pressure)
+
+            if press_msg.fluid_pressure > 90000. and press_msg.fluid_pressure < 500000.:
+                self.depth_msg.header.stamp = rcl_time_to_stamp(self.get_clock().now())
+                self.depth_msg.pose.pose.position.z = depth_abs  # = [0., 0., 2.]
+                self.pub.publish(self.depth_msg)
 
     def pascal_pressure_to_depth(self, pressure):
         """
@@ -118,6 +141,20 @@ class Press2Depth(Node):
         """
         # TODO check this
         return 10. * ((pressure / 100000.) - 1.)  # 117000 -> 1.7
+
+    def simulated_pressure_to_depth(self, pressure: float) -> float:
+        """
+        Convert pressure from simulator in pascals to depth in meters.
+
+        General:
+        pressure = density * gravity * depth
+
+        Unity:
+        Unity uses a value of 9806.65 to convert from depth to pressure
+        pressure = 9806.65 * depth
+        """
+        depth_to_pressure = 9806.65
+        return pressure / depth_to_pressure
 
 
 def main(args=None):
