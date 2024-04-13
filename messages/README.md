@@ -28,8 +28,13 @@ This also makes it very easy for IDEs to auto-suggest you the topics~
 ## sam_msgs
 Message definitions specific to SAM AUV.
 
+Contains sam-specic topics.
+
 ## smarc_mission_msgs
 Messages that concern planning, global things like lat/lon/utm, behaviour tree-related functions...
 
+
 ## smarc_msgs
 Message definitions that don't belong anywhere else.
+
+Contains vehicle-agnostic topics.
