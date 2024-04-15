@@ -11,7 +11,7 @@ from smarc_msgs.msg import Topics, FloatStamped
 from typing import Type
 
 from .vehicle import IVehicleState, IVehicleStateContainer
-from .sensor import Sensor
+from .sensor import Sensor, SensorNames
 
 
 class ROSVehicle(IVehicleStateContainer):
@@ -54,19 +54,19 @@ class ROSVehicle(IVehicleStateContainer):
     
         seconds = tf_stamped.header.stamp.sec
         translation = tf_stamped.transform.translation
-        self._vehicle_state.update_sensor("position", [translation.x, translation.y, translation.z], seconds)
+        self._vehicle_state.update_sensor(SensorNames.POSITION, [translation.x, translation.y, translation.z], seconds)
         quat = tf_stamped.transform.rotation
         rpy = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
-        self._vehicle_state.update_sensor("orientation_euler", rpy, seconds)
+        self._vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, rpy, seconds)
 
     def _gps_cb(self, data: NavSatFix):
-        self._vehicle_state.update_sensor("global_position", [data.latitude, data.longitude], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)
 
     def _heading_cb(self, data: FloatStamped):
-        self._vehicle_state.update_sensor("global_heading_deg", [data.data], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data], data.header.stamp.sec)
 
     def _battery_cb(self, data: BatteryState):
-        self._vehicle_state.update_sensor("battery", [data.voltage, data.percentage], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], data.header.stamp.sec)
         
 
     def _log_info(self, s:str):

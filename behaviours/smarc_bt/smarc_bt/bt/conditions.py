@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import enum
+from typing import Callable
 
 from py_trees.behaviour import Behaviour
 # https://py-trees.readthedocs.io/en/devel/behaviours.html
@@ -46,3 +47,49 @@ class C_VehicleSensorsWorking(VehicleBehavour):
         
 
         
+class C_CheckBooleanState(VehicleBehavour):
+    def __init__(self,
+                 bt: HasVehicleContainer,
+                 sensor_name: str,
+                 sensor_key = 0):
+        """
+        Returns S if vehicle[sensor_name][sensor_key] == True, F otherwise
+        """
+        name = f"C_CheckBool({sensor_name})"
+        self._sensor_name = sensor_name
+        self._sensor_key = sensor_key
+        super().__init__(bt, name)
+
+    def update(self) -> Status:
+        sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
+        return bool_to_status(sensor[self._sensor_key])
+    
+
+class C_BlackboardOperatorSensor(VehicleBehavour):
+    def __init__(self,
+                 bt: HasVehicleContainer,
+                 bb_key: enum.Enum,
+                 operator: Callable,
+                 sensor_name: str,
+                 sensor_key = 0):
+        """
+        Returns S if operator(vehicle[sensor_name][sensor_key], bb[bb_key]) == True
+        """
+        name = f"C_{bb_key} {operator.__name__} {sensor_name}[{sensor_key}]"
+        self._sensor_name = sensor_name
+        self._sensor_key = sensor_key
+        self._bb_key = bb_key
+        self._operator = operator
+        super().__init__(bt, name)
+
+    def update(self) -> Status:
+        sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
+        value = sensor[self._sensor_key]
+        bb = Blackboard()
+        if bb.exists(self._bb_key):
+            self.feedback_message = None
+            bb_value = bb.get(self._bb_key)
+            return bool_to_status(self._operator(value, bb_value))
+        
+        self.feedback_message = f"Key {self._bb_key} not in BB!"  
+        return Status.FAILURE

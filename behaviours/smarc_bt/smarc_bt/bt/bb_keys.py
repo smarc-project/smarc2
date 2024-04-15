@@ -2,10 +2,12 @@
 
 import enum
 
-class BBKeys(enum.Enum):
-    VEHICLE_STATE = 'vehicle_state'
+class BBKeys(str, enum.Enum):
+    MIN_ALTITUDE = 'min_alt'
+    MAX_DEPTH = 'max_depth'
 
-
+    def __str__(self):
+        return self.name
 
 # copied from old version
 # ABORT = 'abort'

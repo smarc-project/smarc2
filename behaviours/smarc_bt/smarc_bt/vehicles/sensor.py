@@ -1,7 +1,23 @@
 #!/usr/bin/python3
 import numpy as np
 import time
+import enum
 
+class SensorNames(str, enum.Enum):
+    POSITION = "position"
+    ORIENTATION_EULER = "orientation_euler"
+    GLOBAL_POSITION = "global_position"
+    GLOBAL_HEADING_DEG = "global_heading_deg"
+    BATTERY = "battery"
+    ALTITUDE = "altitude"
+    LEAK = "leak"
+    VBS = "VBS"
+    LCG = "LCG"
+    TCG = "TCG"
+    THRUSTERS = "thrusters"
+
+    def __str__(self):
+        return self.name
 
 class Sensor:
     def __init__(self,
@@ -18,7 +34,6 @@ class Sensor:
         """
         assert size > 0, f"Sensor values must have positive number of values! Given: {size}"
         assert len(reference_frame) > 0, f"Reference frame must not be empty!"
-        assert len(name) > 0, f"Name of the sensor must not be empty!"
 
         self._name = name
         self._reference_frame = reference_frame

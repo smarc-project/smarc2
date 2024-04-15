@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 try:
-    from sensor import Sensor
+    from sensor import Sensor, SensorNames
 except:
-    from .sensor import Sensor
+    from .sensor import Sensor, SensorNames
 
     
 from typing import Type
@@ -23,8 +23,8 @@ class IVehicleStateContainer():
 
 
 class MockVehicleStateContainer(IVehicleStateContainer):
-    def __init__(self) -> None:
-        self._vehicle_state = VehicleState("Mock", "Nowhere")
+    def __init__(self, state_type: Type[IVehicleState]) -> None:
+        self._vehicle_state = state_type("Mock", "Nowhere")
     
     @property
     def vehicle_state(self) -> Type[IVehicleState]:
@@ -52,12 +52,12 @@ class VehicleState(IVehicleState):
         
         # x,y,height
         # where height is above sea --> negative when under water
-        self._position = Sensor("position",
+        self._position = Sensor(SensorNames.POSITION,
                                 self._reference_frame,
                                 3)
 
         # yaw pitch roll
-        self._orientation_euler = Sensor("orientation_euler",
+        self._orientation_euler = Sensor(SensorNames.ORIENTATION_EULER,
                                          self._reference_frame,
                                          3,
                                          ["roll", "pitch", "yaw"])
@@ -65,16 +65,19 @@ class VehicleState(IVehicleState):
         # global position, lat lon heading
         # separate from the above because this'll likely come
         # from gps fixes and not DR
-        self._global_position = Sensor("global_position",
+        self._global_position = Sensor(SensorNames.GLOBAL_POSITION,
                                        VehicleState.LATLON,
                                        2,
                                        ["lat", "lon"])
         
-        self._global_heading_deg = Sensor("global_heading_deg",
+        self._global_heading_deg = Sensor(SensorNames.GLOBAL_HEADING_DEG,
                                           VehicleState.LATLON,
                                           1)
         
-        self._battery = Sensor("battery", VehicleState.ABSOLUTE, 2, ["V", "%"])
+        self._battery = Sensor(SensorNames.BATTERY,
+                               VehicleState.ABSOLUTE,
+                               2,
+                               ["V", "%"])
 
         self.sensors = {}
         for k,v in vars(self).items():
@@ -120,11 +123,11 @@ class UnderwaterVehicleState(VehicleState):
         Extends the base vehicle to include underwater-related basics
         """
 
-        self._altitude = Sensor("altitude", VehicleState.ABSOLUTE, 1)
-        self._leak = Sensor("leak", VehicleState.ABSOLUTE, 1)
-        self._vbs = Sensor("vbs", VehicleState.PERCENT, 1)
-        self._lcg = Sensor("lcg", VehicleState.PERCENT, 1)
-        self._thrusters = Sensor("thrusters", VehicleState.ABSOLUTE, 2)
+        self._altitude = Sensor(SensorNames.ALTITUDE, VehicleState.ABSOLUTE, 1)
+        self._leak = Sensor(SensorNames.LEAK, VehicleState.ABSOLUTE, 1)
+        self._vbs = Sensor(SensorNames.VBS, VehicleState.PERCENT, 1)
+        self._lcg = Sensor(SensorNames.LCG, VehicleState.PERCENT, 1)
+        self._thrusters = Sensor(SensorNames.THRUSTERS, VehicleState.ABSOLUTE, 2)
         
         super().__init__(name, reference_frame)
 
@@ -132,23 +135,23 @@ class UnderwaterVehicleState(VehicleState):
 
 if __name__ == "__main__":
     v = UnderwaterVehicleState("test vehicle", "utm123")
-    print(v["position"].working)
-    v.update_sensor("position", [1,2,3], 0)
-    print(v["position"].working)
-    v.update_sensor("lcg", [10], 0)
+    print(v[SensorNames.POSITION].working)
+    v.update_sensor(SensorNames.POSITION, [1,2,3], 0)
+    print(v[SensorNames.POSITION].working)
+    v.update_sensor(SensorNames.LCG, [10], 0)
     print(v)
-    v.update_sensor("position", [2,3,4], 1)
+    v.update_sensor(SensorNames.POSITION, [2,3,4], 1)
     print(v)
 
     print(v.all_sensors_working)
-    v.update_sensor("orientation_euler", [1,2,3], 0)
-    v.update_sensor("global_position", [1,2], 0)
-    v.update_sensor("global_heading_deg", [1], 0)
-    v.update_sensor("battery", [1,2], 0)
-    v.update_sensor("altitude", [1], 0)
-    v.update_sensor("leak", [False], 0)
-    v.update_sensor("vbs", [1], 0)
-    v.update_sensor("thrusters", [1,2], 0)
+    v.update_sensor(SensorNames.ORIENTATION_EULER, [1,2,3], 0)
+    v.update_sensor(SensorNames.GLOBAL_POSITION, [1,2], 0)
+    v.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
+    v.update_sensor(SensorNames.BATTERY, [1,2], 0)
+    v.update_sensor(SensorNames.ALTITUDE, [1], 0)
+    v.update_sensor(SensorNames.LEAK, [False], 0)
+    v.update_sensor(SensorNames.VBS, [1], 0)
+    v.update_sensor(SensorNames.THRUSTERS, [1,2], 0)
     print(v.all_sensors_working)
 
     print([(s._name, s.working) for _,s in v.sensors.items()])

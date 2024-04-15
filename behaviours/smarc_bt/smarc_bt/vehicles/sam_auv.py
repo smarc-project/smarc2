@@ -8,7 +8,7 @@ from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Leak, PercentStamped
 
 from .ros_vehicle import ROSVehicle
-from .vehicle import UnderwaterVehicleState
+from .vehicle import UnderwaterVehicleState, SensorNames
 
 
 class SAMAuv(ROSVehicle):
@@ -29,25 +29,25 @@ class SAMAuv(ROSVehicle):
         self._t2 = None
 
     def _dvl_cb(self, data:DVL):
-        self._vehicle_state.update_sensor("altitude", [data.altitude], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)
 
     def _leak_cb(self, data:Leak):
         sec,_ = time.Time().seconds_nanoseconds()
-        self._vehicle_state.update_sensor("leak", [data.value], sec)
+        self._vehicle_state.update_sensor(SensorNames.LEAK, [data.value], sec)
 
     def _vbs_cb(self, data:PercentStamped):
-        self._vehicle_state.update_sensor("vbs", [data.value], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.VBS, [data.value], data.header.stamp.sec)
 
     def _lcg_cb(self, data:PercentStamped):
-        self._vehicle_state.update_sensor("lcg", [data.value], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.LCG, [data.value], data.header.stamp.sec)
 
     def _t1_cb(self, data:ThrusterFeedback):
         self._t1 = data.rpm.rpm
-        self._vehicle_state.update_sensor("thrusters", [self._t1, self._t2], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
     
     def _t2_cb(self, data:ThrusterFeedback):
         self._t2 = data.rpm.rpm
-        self._vehicle_state.update_sensor("thrusters", [self._t1, self._t2], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
 
 
 def test_sam_auv():
