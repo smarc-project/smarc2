@@ -30,7 +30,10 @@ class Sensor:
         self._status_str = ""
 
 
-
+    @property
+    def working(self):
+        return all([v is not None for v in self._values])
+    
 
     # Some convenience functions to
     # make it possible to access the sensor values

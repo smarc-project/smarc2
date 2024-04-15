@@ -5,10 +5,31 @@ try:
 except:
     from .sensor import Sensor
 
+    
+from typing import Type
+
 class IVehicleState():
     def update_sensor(self, sensor_name:str, values, time:float): pass
     def update_sensor_status_str(self, sensor_name:str, status:str): pass
     def __getitem__(self, key:str): pass
+    @property
+    def all_sensors_working(self) -> bool: pass
+
+
+class IVehicleStateContainer():
+    @property
+    def vehicle_state(self) -> Type[IVehicleState]: pass
+    
+
+
+class MockVehicleStateContainer(IVehicleStateContainer):
+    def __init__(self) -> None:
+        self._vehicle_state = VehicleState("Mock", "Nowhere")
+    
+    @property
+    def vehicle_state(self) -> Type[IVehicleState]:
+        return self._vehicle_state
+
 
 
 class VehicleState(IVehicleState):
@@ -59,16 +80,20 @@ class VehicleState(IVehicleState):
         for k,v in vars(self).items():
             if type(v) == Sensor:
                 self.sensors[v._name] = v
+
+    @property
+    def all_sensors_working(self):
+        return all([v.working for k,v in self.sensors.items()])
     
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = f"Vehicle:{self._name}\n"
         for sensor_name, sensor in self.sensors.items():
             s += "- " + sensor.__str__() + "\n"
         return s
     
     
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Sensor:
         return self.sensors[key]
 
 
@@ -105,8 +130,23 @@ class UnderwaterVehicleState(VehicleState):
 
 if __name__ == "__main__":
     v = UnderwaterVehicleState("test vehicle", "utm123")
-    v.update_sensor("position", [1,2,3,4], 0)
+    print(v["position"].working)
+    v.update_sensor("position", [1,2,3], 0)
+    print(v["position"].working)
     v.update_sensor("lcg", [10], 0)
     print(v)
-    v.update_sensor("position", [2,3,4,4], 1)
+    v.update_sensor("position", [2,3,4], 1)
     print(v)
+
+    print(v.all_sensors_working)
+    v.update_sensor("orientation_euler", [1,2,3], 0)
+    v.update_sensor("global_position", [1,2], 0)
+    v.update_sensor("global_heading_deg", [1], 0)
+    v.update_sensor("battery", [1,2], 0)
+    v.update_sensor("altitude", [1], 0)
+    v.update_sensor("leak", [False], 0)
+    v.update_sensor("vbs", [1], 0)
+    v.update_sensor("thrusters", [1,2], 0)
+    print(v.all_sensors_working)
+
+    print([(s._name, s.working) for _,s in v.sensors.items()])

@@ -21,7 +21,9 @@ setup(
     entry_points={
         'console_scripts': [
             "test_ros_vehicle = smarc_bt.vehicles.ros_vehicle:test_ros_vehicle",
-            "test_sam_auv = smarc_bt.vehicles.sam_auv:test_sam_auv"
+            "test_sam_auv = smarc_bt.vehicles.sam_auv:test_sam_auv",
+            "test_ros_vehicle_in_bb = smarc_bt.bt.trunk:test_ros_vehicle_in_bb",
+            "test_bt_setup = smarc_bt.bt.trunk:test_bt_setup"
         ],
     },
 )

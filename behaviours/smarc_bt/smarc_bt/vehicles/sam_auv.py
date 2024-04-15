@@ -3,16 +3,12 @@
 from rclpy.node import Node
 import rclpy.time as time
 
-try:
-    from ros_vehicle import ROSVehicle
-    from vehicle import UnderwaterVehicleState
-except:
-    from .ros_vehicle import ROSVehicle
-    from .vehicle import UnderwaterVehicleState
-
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Leak, PercentStamped
+
+from .ros_vehicle import ROSVehicle
+from .vehicle import UnderwaterVehicleState
 
 
 class SAMAuv(ROSVehicle):

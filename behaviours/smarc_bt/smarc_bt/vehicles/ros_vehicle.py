@@ -8,15 +8,13 @@ from tf_transformations import euler_from_quaternion
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics, FloatStamped
 
-try:
-    from vehicle import IVehicleState
-except:
-    from .vehicle import IVehicleState
-    
 from typing import Type
 
+from .vehicle import IVehicleState, IVehicleStateContainer
+from .sensor import Sensor
 
-class ROSVehicle():
+
+class ROSVehicle(IVehicleStateContainer):
     def __init__(self,
                  node: Node,
                  vehicle_state_type: Type[IVehicleState]):
@@ -75,10 +73,14 @@ class ROSVehicle():
         self._node.get_logger().info(s)
 
 
-    def __str__(self):
+    @property
+    def vehicle_state(self) -> Type[IVehicleState]:
+        return self._vehicle_state
+
+    def __str__(self) -> str:
         return self._vehicle_state.__str__()
     
-    def __getitem__(self, key:str):
+    def __getitem__(self, key:str) -> Sensor:
         return self._vehicle_state[key]
 
 
