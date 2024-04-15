@@ -74,8 +74,12 @@ class ROSVehicle():
     def _log_info(self, s:str):
         self._node.get_logger().info(s)
 
+
     def __str__(self):
         return self._vehicle_state.__str__()
+    
+    def __getitem__(self, key:str):
+        return self._vehicle_state[key]
 
 
 

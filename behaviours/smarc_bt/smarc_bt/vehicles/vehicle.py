@@ -6,11 +6,9 @@ except:
     from .sensor import Sensor
 
 class IVehicleState():
-    def update_sensor(self, sensor_name:str, values, time:float):
-        pass
-
-    def update_sensor_status_str(self, sensor_name:str, status:str):
-        pass
+    def update_sensor(self, sensor_name:str, values, time:float): pass
+    def update_sensor_status_str(self, sensor_name:str, status:str): pass
+    def __getitem__(self, key:str): pass
 
 
 class VehicleState(IVehicleState):
@@ -68,6 +66,10 @@ class VehicleState(IVehicleState):
         for sensor_name, sensor in self.sensors.items():
             s += "- " + sensor.__str__() + "\n"
         return s
+    
+    
+    def __getitem__(self, key: str):
+        return self.sensors[key]
 
 
     # These could be convenient to write some generic "update" functions for ROS
