@@ -31,6 +31,10 @@ class Sensor:
 
 
     @property
+    def name(self):
+        return self._name
+
+    @property
     def working(self):
         return all([v is not None for v in self._values])
     

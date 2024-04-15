@@ -13,7 +13,7 @@ from .i_has_vehicle_container import HasVehicleContainer
 
 
 def bool_to_status(b: bool) -> enum.Enum:
-    if b: return Status.SUCCESS
+    if b == True: return Status.SUCCESS
     else: return Status.FAILURE
 
 
@@ -36,8 +36,13 @@ class C_VehicleSensorsWorking(VehicleBehavour):
         super().__init__(bt)
 
     def update(self) -> Status:
+        self.feedback_message = None
         state = self._bt.vehicle_container.vehicle_state
-        return bool_to_status(state.all_sensors_working)
+        all_working, not_working = state.all_sensors_working
+        if not all_working:
+            self.feedback_message = f"Broken?: {not_working}"
+            
+        return bool_to_status(all_working)
         
 
         

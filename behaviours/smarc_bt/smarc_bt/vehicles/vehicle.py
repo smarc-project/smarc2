@@ -13,7 +13,7 @@ class IVehicleState():
     def update_sensor_status_str(self, sensor_name:str, status:str): pass
     def __getitem__(self, key:str): pass
     @property
-    def all_sensors_working(self) -> bool: pass
+    def all_sensors_working(self) -> tuple[bool, list]: pass
 
 
 class IVehicleStateContainer():
@@ -82,8 +82,10 @@ class VehicleState(IVehicleState):
                 self.sensors[v._name] = v
 
     @property
-    def all_sensors_working(self):
-        return all([v.working for k,v in self.sensors.items()])
+    def all_sensors_working(self) -> tuple[bool, list]:
+        not_working = [v.name for k,v in self.sensors.items() if not v.working]
+        all_working = len(not_working) == 0
+        return (all_working, not_working)
     
 
     def __str__(self) -> str:
