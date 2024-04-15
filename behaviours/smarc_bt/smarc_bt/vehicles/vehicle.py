@@ -122,12 +122,14 @@ class UnderwaterVehicleState(VehicleState):
         """
         Extends the base vehicle to include underwater-related basics
         """
-
+        
+        self._depth = Sensor(SensorNames.DEPTH, VehicleState.ABSOLUTE, 1)
         self._altitude = Sensor(SensorNames.ALTITUDE, VehicleState.ABSOLUTE, 1)
         self._leak = Sensor(SensorNames.LEAK, VehicleState.ABSOLUTE, 1)
         self._vbs = Sensor(SensorNames.VBS, VehicleState.PERCENT, 1)
         self._lcg = Sensor(SensorNames.LCG, VehicleState.PERCENT, 1)
         self._thrusters = Sensor(SensorNames.THRUSTERS, VehicleState.ABSOLUTE, 2)
+        
         
         super().__init__(name, reference_frame)
 

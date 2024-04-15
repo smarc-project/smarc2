@@ -11,8 +11,6 @@ class BBKeys(str, enum.Enum):
 
 # copied from old version
 # ABORT = 'abort'
-# MAX_DEPTH = 'max_depth'
-# MIN_ALTITUDE = 'min_altitude'
 
 # MISSION_PLAN_OBJ = 'misison_plan'
 # MANEUVER_ACTIONS = 'maneuver_actions'

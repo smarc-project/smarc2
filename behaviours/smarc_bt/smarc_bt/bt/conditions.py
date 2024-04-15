@@ -87,9 +87,9 @@ class C_BlackboardOperatorSensor(VehicleBehavour):
         value = sensor[self._sensor_key]
         bb = Blackboard()
         if bb.exists(self._bb_key):
-            self.feedback_message = None
             bb_value = bb.get(self._bb_key)
-            return bool_to_status(self._operator(value, bb_value))
+            self.feedback_message = f"{self._operator.__name__}({bb_value}, {value})"
+            return bool_to_status(self._operator(bb_value, value))
         
         self.feedback_message = f"Key {self._bb_key} not in BB!"  
         return Status.FAILURE

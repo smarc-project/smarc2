@@ -38,7 +38,8 @@ class SMaRCBT(HasVehicleContainer):
                         children=[
             C_VehicleSensorsWorking(self),
             Inverter("Not leaking", C_CheckBooleanState(self, SensorNames.LEAK)),
-            C_BlackboardOperatorSensor(self, BBKeys.MIN_ALTITUDE, operator.lt, SensorNames.ALTITUDE)
+            C_BlackboardOperatorSensor(self, BBKeys.MIN_ALTITUDE, operator.gt, SensorNames.ALTITUDE),
+            C_BlackboardOperatorSensor(self, BBKeys.MAX_DEPTH, operator.lt, SensorNames.DEPTH)
         ])
 
         self._bt = pt.trees.BehaviourTree(root)
@@ -68,6 +69,7 @@ def test_bt_setup():
     v.vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [1,2], 0)
     v.vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
     v.vehicle_state.update_sensor(SensorNames.BATTERY, [1,2], 0)
+    v.vehicle_state.update_sensor(SensorNames.DEPTH, [1], 0)
 
     print('='*10)
     bt.tick()
@@ -80,6 +82,7 @@ def test_bt_conditions():
     from ..vehicles.vehicle import MockVehicleStateContainer, UnderwaterVehicleState
     bb = Blackboard()
     bb.set(BBKeys.MIN_ALTITUDE, 20)
+    bb.set(BBKeys.MAX_DEPTH, 20)
 
     v = MockVehicleStateContainer(UnderwaterVehicleState)
 
@@ -97,6 +100,7 @@ def test_bt_conditions():
     v.vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
     v.vehicle_state.update_sensor(SensorNames.BATTERY, [1,2], 0)
     v.vehicle_state.update_sensor(SensorNames.ALTITUDE, [1], 0)
+    v.vehicle_state.update_sensor(SensorNames.DEPTH, [1], 0)
     v.vehicle_state.update_sensor(SensorNames.LEAK, [False], 0)
     v.vehicle_state.update_sensor(SensorNames.VBS, [1], 0)
     v.vehicle_state.update_sensor(SensorNames.LCG, [10], 0)

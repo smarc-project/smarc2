@@ -6,6 +6,7 @@ import rclpy.time as time
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Leak, PercentStamped
+from sensor_msgs.msg import FluidPressure
 
 from .ros_vehicle import ROSVehicle
 from .vehicle import UnderwaterVehicleState, SensorNames
@@ -19,6 +20,7 @@ class SAMAuv(ROSVehicle):
 
         # so we sub to sam-specific stuff
         self._dvl_sub = node.create_subscription(DVL, SamTopics.DVL_TOPIC, self._dvl_cb, 10)
+        self._depth_sub = node.create_subscription(FluidPressure, SamTopics.DEPTH_TOPIC, self._depth_cb, 10)
         self._leak_sub = node.create_subscription(Leak, SamTopics.LEAK_TOPIC, self._leak_cb, 10)
         self._vbs_sub = node.create_subscription(PercentStamped, SamTopics.VBS_FB_TOPIC, self._vbs_cb, 10)
         self._lcg_sub = node.create_subscription(PercentStamped, SamTopics.LCG_FB_TOPIC, self._lcg_cb, 10)
@@ -30,6 +32,10 @@ class SAMAuv(ROSVehicle):
 
     def _dvl_cb(self, data:DVL):
         self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)
+
+    def _depth_cb(self, data:DVL):
+        # 9806.65 Pa ~= 1m water
+        self._vehicle_state.update_sensor(SensorNames.DEPTH, [data.fluid_pressure/9806.65], data.header.stamp.sec)
 
     def _leak_cb(self, data:Leak):
         sec,_ = time.Time().seconds_nanoseconds()

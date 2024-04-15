@@ -10,6 +10,7 @@ class SensorNames(str, enum.Enum):
     GLOBAL_HEADING_DEG = "global_heading_deg"
     BATTERY = "battery"
     ALTITUDE = "altitude"
+    DEPTH = "depth"
     LEAK = "leak"
     VBS = "VBS"
     LCG = "LCG"
