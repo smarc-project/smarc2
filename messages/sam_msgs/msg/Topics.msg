@@ -21,3 +21,7 @@ string LCG_FB_TOPIC = 'core/lcg_fb'
 string THRUSTER1_FB_TOPIC = 'core/thruster1_fb'
 string THRUSTER2_FB_TOPIC = 'core/thruster2_fb'
 
+string STIM_IMU_TOPIC = 'core/imu'
+string SBG_IMU_TOPIC = 'core/sbg_imu'
+
+string PRESS_DEPTH20_TOPIC = 'core/depth20_pressure'
