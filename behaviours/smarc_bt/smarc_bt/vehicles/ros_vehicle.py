@@ -28,10 +28,13 @@ class ROSVehicle(IVehicleStateContainer):
         name = node.declare_parameter("robot_name", "sam0").value
         reference_frame = node.declare_parameter("reference_frame", "odom").value
         tf_update_period = node.declare_parameter("tf_update_period", 0.1).value
+
+        link_separator = node.declare_parameter("tf_link_separator_char", "_").value
         
         self._vehicle_state = vehicle_state_type(name, reference_frame)
 
-        self._robot_base_link = name + "_base_link"
+        # TODO link names from messages too
+        self._robot_base_link = f"{name}{link_separator}base_link"
 
         self._tf_buffer = tf2_ros.buffer.Buffer()
         self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, node)

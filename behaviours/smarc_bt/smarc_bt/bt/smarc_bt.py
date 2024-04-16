@@ -9,6 +9,7 @@ from py_trees.decorators import Inverter
 from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
+from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 
 from .conditions import *
@@ -18,7 +19,8 @@ import operator
 
 class SMaRCBT(HasVehicleContainer):
     def __init__(self,
-                 vehicle_container:IVehicleStateContainer):
+                 vehicle_container:IVehicleStateContainer,
+                 bb_updater: IBBUpdater = None):
         """
         vehicle_container: An object that has a field "vehicle_state" which
             returns a vehicles.vehicle.IVehicleState type of object.
@@ -26,6 +28,7 @@ class SMaRCBT(HasVehicleContainer):
         """
         self._vehicle_container = vehicle_container
         self._bt = None
+        self._bb_updater = bb_updater
 
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
@@ -38,21 +41,52 @@ class SMaRCBT(HasVehicleContainer):
                         children=[
             C_VehicleSensorsWorking(self),
             Inverter("Not leaking", C_CheckBooleanState(self, SensorNames.LEAK)),
-            C_BlackboardOperatorSensor(self, BBKeys.MIN_ALTITUDE, operator.gt, SensorNames.ALTITUDE),
-            C_BlackboardOperatorSensor(self, BBKeys.MAX_DEPTH, operator.lt, SensorNames.DEPTH)
+            C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
+            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH)
         ])
 
         self._bt = pt.trees.BehaviourTree(root)
+        self._update_bb()
         return self._bt.setup()
 
 
+    def _update_bb(self):
+        if self._bb_updater:
+            self._bb_updater.update_bb()
+
+
     def tick(self):
+        self._update_bb()
         self._bt.tick()
+
+
+def test_sam_bt():
+    from ..vehicles.sam_auv import SAMAuv
+    from .sam_bb_updater import SAMBBUpdater
+    import rclpy, sys
+
+    rclpy.init(args=sys.argv)
+    node = rclpy.create_node("test_sam_bt")
+
+    sam = SAMAuv(node)
+    sam_bbu = SAMBBUpdater(node, initialize_bb=True)
+    bt = SMaRCBT(sam, sam_bbu)
+    bt.setup()
+
+    def update():
+        nonlocal bt
+        print(pt.display.ascii_tree(bt._bt.root, show_status=True))
+        bt.tick()
+
+    node.create_timer(0.2, update)
+    rclpy.spin(node)
+
 
 
 
 def test_bt_setup():
     from ..vehicles.vehicle import MockVehicleStateContainer, VehicleState, UnderwaterVehicleState
+
 
 
     v = MockVehicleStateContainer(VehicleState)

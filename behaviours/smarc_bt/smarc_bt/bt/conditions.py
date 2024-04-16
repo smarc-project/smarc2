@@ -9,7 +9,7 @@ from py_trees.common import Status
 from py_trees.blackboard import Blackboard
 
 from .bb_keys import BBKeys
-from .trunk import HasVehicleContainer
+from .smarc_bt import HasVehicleContainer
 from .i_has_vehicle_container import HasVehicleContainer
 
 
@@ -41,7 +41,7 @@ class C_VehicleSensorsWorking(VehicleBehavour):
         state = self._bt.vehicle_container.vehicle_state
         all_working, not_working = state.all_sensors_working
         if not all_working:
-            self.feedback_message = f"Broken?: {not_working}"
+            self.feedback_message = f"Broken?: {[str(s) for s in not_working]}"
             
         return bool_to_status(all_working)
         
@@ -65,17 +65,18 @@ class C_CheckBooleanState(VehicleBehavour):
         return bool_to_status(sensor[self._sensor_key])
     
 
-class C_BlackboardOperatorSensor(VehicleBehavour):
+
+class C_SensorOperatorBlackboard(VehicleBehavour):
     def __init__(self,
                  bt: HasVehicleContainer,
-                 bb_key: enum.Enum,
-                 operator: Callable,
                  sensor_name: str,
+                 operator: Callable,
+                 bb_key: enum.Enum,
                  sensor_key = 0):
         """
         Returns S if operator(vehicle[sensor_name][sensor_key], bb[bb_key]) == True
         """
-        name = f"C_{bb_key} {operator.__name__} {sensor_name}[{sensor_key}]"
+        name = f"C_{sensor_name}[{sensor_key}] {operator.__name__} {bb_key}"
         self._sensor_name = sensor_name
         self._sensor_key = sensor_key
         self._bb_key = bb_key
@@ -86,10 +87,13 @@ class C_BlackboardOperatorSensor(VehicleBehavour):
         sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
         value = sensor[self._sensor_key]
         bb = Blackboard()
-        if bb.exists(self._bb_key):
-            bb_value = bb.get(self._bb_key)
-            self.feedback_message = f"{self._operator.__name__}({bb_value}, {value})"
-            return bool_to_status(self._operator(bb_value, value))
         
-        self.feedback_message = f"Key {self._bb_key} not in BB!"  
-        return Status.FAILURE
+        if not bb.exists(self._bb_key):
+            self.feedback_message = f"Key {self._bb_key} not in BB!"  
+            return Status.FAILURE
+        
+        bb_value = bb.get(self._bb_key)
+        self.feedback_message = f"{self._operator.__name__}({value}, {bb_value})"
+        return bool_to_status(self._operator(value, bb_value))
+        
+        

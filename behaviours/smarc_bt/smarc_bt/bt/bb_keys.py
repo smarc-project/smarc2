@@ -3,8 +3,8 @@
 import enum
 
 class BBKeys(str, enum.Enum):
-    MIN_ALTITUDE = 'min_alt'
-    MAX_DEPTH = 'max_depth'
+    MIN_ALTITUDE = 'MIN_ALTITUDE'
+    MAX_DEPTH = 'MAX_DEPTH'
 
     def __str__(self):
         return self.name
