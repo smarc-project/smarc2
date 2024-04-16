@@ -17,12 +17,16 @@ from tf2_ros import LookupException, ConnectivityException, ExtrapolationExcepti
 from tf_transformations import euler_from_quaternion, quaternion_from_euler, quaternion_multiply
 
 # from std_srvs.srv import SetBool  # SetBoolRequest, SetBoolRequest
-from builtin_interfaces.msg import Time
+# from builtin_interfaces.msg import Time
 from geometry_msgs.msg import PointStamped, TransformStamped, Quaternion, PoseWithCovarianceStamped
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import ThrusterAngles
+
+# Topics
+from smarc_msgs.msg import Topics as SmarcTopics
+from sam_msgs.msg import Topics as SamTopics
 
 # from sbg_driver.msg import SbgEkfEuler
 
@@ -41,23 +45,20 @@ class VehicleDR(Node):
     NOTE: When using in the simulation ... Things are a bit different since the frame transforms are known.
     """
 
-    def __init__(self):
-        super().__init__("dr_node")
+    def __init__(self, namespace=None):
+        super().__init__("dr_node", namespace=namespace)
 
         # ===== Declare parameters =====
         self.declare_node_parameters()
 
         # ===== Get parameters =====
         # === Subscription topics ===
+        # Topics used by the nodes of sam_dead_reckoning
         self.gps_topic = self.get_parameter("gps_odom_topic").value
-        self.dvl_topic = self.get_parameter("dvl_topic").value
-        self.stim_topic = self.get_parameter("stim_topic").value
-        self.sbg_topic = self.get_parameter("sbg_topic").value
         self.depth_top = self.get_parameter("depth_topic").value
-        self.rpm1_topic = self.get_parameter("thrust1_fb").value
-        self.rpm2_topic = self.get_parameter("thrust2_fb").value
-        self.thrust_topic = self.get_parameter("thrust_vec_cmd").value
+
         # === Publisher topics ===
+        # Topic specific to sam_dead_reckoning
         self.odom_topic = self.get_parameter("odom_topic").value  # topic used in the launch file for the DVL sensor
         # === Frames ===
         self.base_frame = self.get_parameter("base_frame").value
@@ -119,40 +120,29 @@ class VehicleDR(Node):
 
         # ===== Connections =====
         # self.pub_odom = rospy.Publisher(self.odom_topic, Odometry, queue_size=100)
-        # self.sbg_sub = rospy.Subscriber(self.sbg_topic, Imu, self.sbg_cb)
-        # self.dvl_sub = rospy.Subscriber(self.dvl_topic, DVL, self.dvl_cb)
-        # self.stim_sub = rospy.Subscriber(self.stim_topic, Imu, self.stim_cb)
         # self.depth_sub = rospy.Subscriber(self.depth_top, PoseWithCovarianceStamped, self.depth_cb)
         # self.gps_sub = rospy.Subscriber(self.gps_topic, Odometry, self.gps_cb)
 
-        # self.thrust_cmd_sub = rospy.Subscriber(self.thrust_topic, ThrusterAngles, self.thrust_cmd_cb)
-        # self.thrust1_sub = message_filters.Subscriber(self.rpm1_topic, ThrusterFeedback)
-        # self.thrust2_sub = message_filters.Subscriber(self.rpm2_topic, ThrusterFeedback)
 
         # === Subscriptions ===
-        self.sbg_sub = self.create_subscription(msg_type=Imu, topic=self.sbg_topic,
-                                                callback=self.sbg_cb, qos_profile=10, )
-        self.dvl_sub = self.create_subscription(msg_type=DVL, topic=self.dvl_topic,
-                                                callback=self.dvl_cb, qos_profile=10)
-        self.stim_sub = self.create_subscription(msg_type=Imu, topic=self.stim_topic,
-                                                 callback=self.stim_cb, qos_profile=10)
         self.depth_sub = self.create_subscription(msg_type=PoseWithCovarianceStamped, topic=self.depth_top,
                                                   callback=self.depth_cb, qos_profile=10)
         self.gps_sub = self.create_subscription(msg_type=Odometry, topic=self.gps_topic,
                                                 callback=self.gps_cb, qos_profile=10)
-        self.thrust_cmd_sub = self.create_subscription(msg_type=ThrusterAngles, topic=self.thrust_topic,
-                                                       callback=self.thrust_cmd_cb, qos_profile=10)
-        # TODO will this work in ROS2
-        # ROS1
-        # self.thrust1_sub = message_filters.Subscriber(self.rpm1_topic, ThrusterFeedback)
-        # self.thrust2_sub = message_filters.Subscriber(self.rpm2_topic, ThrusterFeedback)
 
-        # ROS2
-        # TODO hope this works
-        self.thrust1_sub = message_filters.Subscriber(self, ThrusterFeedback, self.rpm1_topic)
-        self.thrust2_sub = message_filters.Subscriber(self, ThrusterFeedback, self.rpm2_topic)
+        self.dvl_sub = self.create_subscription(msg_type=DVL, topic=SamTopics.DVL_TOPIC,
+                                                callback=self.dvl_cb, qos_profile=10)
+        self.stim_sub = self.create_subscription(msg_type=Imu, topic=SamTopics.STIM_IMU_TOPIC,
+                                                 callback=self.stim_cb, qos_profile=10)
+        self.sbg_sub = self.create_subscription(msg_type=Imu, topic=SamTopics.SBG_IMU_TOPIC,
+                                                callback=self.sbg_cb, qos_profile=10, )
+        self.thrust_cmd_sub = self.create_subscription(msg_type=ThrusterAngles, topic=SamTopics.THRUST_VECTOR_CMD_TOPIC,
+                                                       callback=self.thrust_cmd_cb, qos_profile=10)
 
         # Synchronizer
+        self.thrust1_sub = message_filters.Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC)
+        self.thrust2_sub = message_filters.Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC)
+
         self.ts = message_filters.ApproximateTimeSynchronizer([self.thrust1_sub, self.thrust2_sub],
                                                               20, slop=20.0, allow_headerless=False)
         self.ts.registerCallback(cb=self.thrust_cb)
@@ -174,14 +164,11 @@ class VehicleDR(Node):
         # TODO
         default_robot_name = "sam0"
         # === Subscription topics ===
+        # Topic is published by the gps_node
         self.declare_parameter("gps_odom_topic", f"/{default_robot_name}/dr/gps_odom")
-        self.declare_parameter("dvl_topic", f"/{default_robot_name}/core/dvl")
-        self.declare_parameter("stim_topic", f"/{default_robot_name}/core/imu")
-        self.declare_parameter("sbg_topic", f"/{default_robot_name}/core/sbg_imu")
+        # Topic published by depth_node
         self.declare_parameter("depth_topic", f"/{default_robot_name}/dr/depth")
-        self.declare_parameter("thrust1_fb", f"/{default_robot_name}/core/thruster1_fb")
-        self.declare_parameter("thrust2_fb", f"/{default_robot_name}/core/thruster2_fb")
-        self.declare_parameter("thrust_vec_cmd", f"/{default_robot_name}/core/thrust_vector_cmd")
+
         # === Publisher topics ===
         self.declare_parameter("odom_topic",
                                f"/{default_robot_name}/dr/odom")  # topic used in the launch file for the DVL sensor
@@ -485,9 +472,9 @@ class VehicleDR(Node):
             self.dvl_on = True
 
 
-def main(args=None):
+def main(args=None, namespace=None):
     rclpy.init(args=args)
-    dr_node = VehicleDR()
+    dr_node = VehicleDR(namespace=namespace)
     try:
         rclpy.spin(dr_node)
     except KeyboardInterrupt:
@@ -495,4 +482,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(namespace="sam0")

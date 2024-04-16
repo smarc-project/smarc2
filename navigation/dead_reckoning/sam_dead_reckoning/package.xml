@@ -3,9 +3,9 @@
 <package format="3">
   <name>sam_dead_reckoning</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Package contains the nodes required to consume IMU, GPS, and depth data to produce dead reckoning for the SAM AUV</description>
   <maintainer email="jvaldez@kth.se">julian</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
 
   <exec_depend>geodesy</exec_depend>
 

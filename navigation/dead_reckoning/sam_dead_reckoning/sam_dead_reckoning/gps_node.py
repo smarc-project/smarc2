@@ -17,6 +17,8 @@ from geometry_msgs.msg import Quaternion, TransformStamped
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 
+from smarc_msgs.msg import Topics as SmarcTopics
+
 try:
     from .helpers.ros_helpers import rcl_time_to_secs, rcl_time_to_stamp, ros_time_to_secs
 except ImportError:
@@ -25,16 +27,14 @@ except ImportError:
 
 class PublishGPSPose(Node):
 
-    def __init__(self):
-        super().__init__("gps_node")
+    def __init__(self, namespace=None):
+        super().__init__("gps_node", namespace=namespace)
         self.get_logger().info("Starting node defined in gps_node.py")
 
         # ===== Declare parameters =====
         self.declare_node_parameters()
 
         # ===== Get parameters =====
-        # Subscription topics
-        self.gps_topic = self.get_parameter('gps_topic').value
         # Publisher topics
         self.gps_odom_top = self.get_parameter('gps_odom_topic').value
         # Frames
@@ -48,7 +48,7 @@ class PublishGPSPose(Node):
         self.static_tf_bc = tf2_ros.StaticTransformBroadcaster(self)
 
         # Subscriptions
-        self.gps_sam_sub = self.create_subscription(msg_type=NavSatFix, topic=self.gps_topic,
+        self.gps_sam_sub = self.create_subscription(msg_type=NavSatFix, topic=SmarcTopics.GPS_TOPIC,
                                                     callback=self.sam_gps_cb, qos_profile=10)
 
         # Auxiliar subs and pubs for floatsam
@@ -71,15 +71,13 @@ class PublishGPSPose(Node):
         """
         Declare the parameters of the node
         """
-        default_robot_name = 'sam0'
-        # Subscription topics
-        self.declare_parameter('gps_topic', f'/{default_robot_name}/core/gps')
+        namespace = self.get_namespace()
         # Publisher topics
         self.declare_parameter('gps_odom_topic', 'gps_odom_sam')
         # Frames
         self.declare_parameter('map_frame', 'map')
         self.declare_parameter('utm_frame', 'utm')
-        self.declare_parameter('gps_frame', f'{default_robot_name}/gps_link')
+        self.declare_parameter('gps_frame', f'{namespace}/gps_link')
 
     def sam_gps_cb(self, sam_gps):
 
@@ -198,9 +196,9 @@ class PublishGPSPose(Node):
         self.gps_stb_pub.publish(odom_msg)
 
 
-def main(args=None):
+def main(args=None, namespace=None):
     rclpy.init(args=args)
-    gps_node = PublishGPSPose()
+    gps_node = PublishGPSPose(namespace=namespace)
     try:
         rclpy.spin(gps_node)
     except KeyboardInterrupt:
@@ -208,4 +206,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(namespace="sam0")

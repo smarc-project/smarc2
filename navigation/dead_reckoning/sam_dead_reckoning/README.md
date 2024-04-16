@@ -25,8 +25,11 @@ Work on porting smarc-project/smarc_navigation/sam_dead_reckoning to smarc-proje
   - gps_node
   - depth_node
   - dr_node
-- launch files: sam_dr_launch.py will launch depth, gps, and dr nodes
-- config files: No config files are used yet, all parameters are set in the launch
+- launch files: 
+  - sam_dr_launch.py will launch depth, gps, and dr nodes
+  - [ ] TODO: xml based launch file
+- config files: 
+  - No config files are used yet, all parameters are set in the launch
 
 # Install
 gps_node.py requires geodesy -> added to package.xml
