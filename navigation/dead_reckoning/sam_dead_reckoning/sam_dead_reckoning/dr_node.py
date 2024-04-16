@@ -27,6 +27,10 @@ from sam_msgs.msg import ThrusterAngles
 # Topics
 from smarc_msgs.msg import Topics as SmarcTopics
 from sam_msgs.msg import Topics as SamTopics
+from dead_reckoning_msgs.msg import Topics as DRTopics
+
+# links
+from sam_msgs.msg import Links as SamLinks
 
 # from sbg_driver.msg import SbgEkfEuler
 
@@ -52,22 +56,15 @@ class VehicleDR(Node):
         self.declare_node_parameters()
 
         # ===== Get parameters =====
-        # === Subscription topics ===
-        # Topics used by the nodes of sam_dead_reckoning
-        self.gps_topic = self.get_parameter("gps_odom_topic").value
-        self.depth_top = self.get_parameter("depth_topic").value
-
-        # === Publisher topics ===
-        # Topic specific to sam_dead_reckoning
-        self.odom_topic = self.get_parameter("odom_topic").value  # topic used in the launch file for the DVL sensor
+        self.robot_name = self.get_parameter("robot_name").value
         # === Frames ===
-        self.base_frame = self.get_parameter("base_frame").value
-        self.base_frame_2d = self.get_parameter("base_frame_2d").value
-        self.odom_frame = self.get_parameter("odom_frame").value
         self.map_frame = self.get_parameter("map_frame").value
         self.utm_frame = self.get_parameter("utm_frame").value
-        self.dvl_frame = self.get_parameter("dvl_frame").value
-        self.press_frame = self.get_parameter("pressure_frame").value
+        self.odom_frame = self.get_parameter("odom_frame").value
+        self.base_frame = f"{self.robot_name}_{SamLinks.BASE_LINK}"
+        self.base_frame_2d = f"{self.robot_name}_{SamLinks.BASE_LINK_2D}"
+        self.dvl_frame = f"{self.robot_name}_{SamLinks.DVL_LINK}"
+        self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"
         # === other ===
         self.dvl_period = self.get_parameter("dvl_period").value
         self.dr_period = self.get_parameter("dr_period").value
@@ -125,11 +122,13 @@ class VehicleDR(Node):
 
 
         # === Subscriptions ===
-        self.depth_sub = self.create_subscription(msg_type=PoseWithCovarianceStamped, topic=self.depth_top,
+        # DR subscriptions
+        self.depth_sub = self.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_TOPIC,
                                                   callback=self.depth_cb, qos_profile=10)
-        self.gps_sub = self.create_subscription(msg_type=Odometry, topic=self.gps_topic,
+        self.gps_sub = self.create_subscription(msg_type=Odometry, topic=DRTopics.DR_GPS_ODOM_TOPIC,
                                                 callback=self.gps_cb, qos_profile=10)
 
+        # General subscriptions
         self.dvl_sub = self.create_subscription(msg_type=DVL, topic=SamTopics.DVL_TOPIC,
                                                 callback=self.dvl_cb, qos_profile=10)
         self.stim_sub = self.create_subscription(msg_type=Imu, topic=SamTopics.STIM_IMU_TOPIC,
@@ -149,7 +148,8 @@ class VehicleDR(Node):
 
         # === Publishers ===
         odom_qos_profile = QoSProfile(depth=100)
-        self.pub_odom = self.create_publisher(msg_type=Odometry, topic=self.odom_topic, qos_profile=odom_qos_profile)
+        self.pub_odom = self.create_publisher(msg_type=Odometry, topic=DRTopics.DR_ODOM_TOPIC,
+                                              qos_profile=odom_qos_profile)
 
         # === Timers ===
         # rospy.Timer(rospy.Duration(self.dr_period), self.dr_timer)
@@ -163,23 +163,15 @@ class VehicleDR(Node):
         """
         # TODO
         default_robot_name = "sam0"
-        # === Subscription topics ===
-        # Topic is published by the gps_node
-        self.declare_parameter("gps_odom_topic", f"/{default_robot_name}/dr/gps_odom")
-        # Topic published by depth_node
-        self.declare_parameter("depth_topic", f"/{default_robot_name}/dr/depth")
-
-        # === Publisher topics ===
-        self.declare_parameter("odom_topic",
-                               f"/{default_robot_name}/dr/odom")  # topic used in the launch file for the DVL sensor
+        self.declare_parameter("robot_name", default_robot_name)
         # === Frames ===
-        self.declare_parameter("base_frame", f"{default_robot_name}_base_link")
-        self.declare_parameter("base_frame_2d", f"{default_robot_name}_base_link_2d")
-        self.declare_parameter("odom_frame", f"odom")  # changed
+        self.declare_parameter("odom_frame", "odom")  # changed
         self.declare_parameter("map_frame", "map")
         self.declare_parameter("utm_frame", "utm")
-        self.declare_parameter("dvl_frame", f"{default_robot_name}_dvl_link")
-        self.declare_parameter("pressure_frame", f"{default_robot_name}_pressure_link")
+
+        # self.declare_parameter("base_frame_2d", f"{default_robot_name}_base_link_2d")
+        # self.declare_parameter("dvl_frame", f"{default_robot_name}_dvl_link")
+        # self.declare_parameter("pressure_frame", f"{default_robot_name}_pressure_link")
         # === Other ===
         self.declare_parameter("dvl_period", 0.1)
         self.declare_parameter("dr_period", 0.02)
@@ -206,7 +198,6 @@ class VehicleDR(Node):
                 self.get_logger().info(f"Simulation: known transform from {self.map_frame} to {self.odom_frame}")
                 self.init_m2o = True
                 self.destroy_subscription(self.gps_sub)
-
 
         except (LookupException, ConnectivityException):
 

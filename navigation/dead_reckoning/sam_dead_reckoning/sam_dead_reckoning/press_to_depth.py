@@ -6,6 +6,13 @@ from rclpy.node import Node
 from sensor_msgs.msg import FluidPressure
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+# Topics
+from sam_msgs.msg import Topics as SamTopics
+from dead_reckoning_msgs.msg import Topics as DRTopics
+
+# Frames/Links
+from sam_msgs.msg import Links as SamLinks
+
 try:
     from .helpers.ros_helpers import rcl_time_to_stamp
 except ImportError:
@@ -21,22 +28,24 @@ class Press2Depth(Node):
         # ===== Declare parameters =====
         self.declare_node_parameters()
 
+        self.robot_name = self.get_parameter("robot_name").value
+
         self.odom_frame = self.get_parameter('odom_frame').value
-        self.base_frame = self.get_parameter('base_frame').value
-        self.depth_frame = self.get_parameter('depth_frame').value
-        self.press_topic = self.get_parameter('pressure_topic').value
-        self.press_frame = self.get_parameter('pressure_frame').value
-        self.depth_topic = self.get_parameter('depth_topic').value
+
+        self.base_frame = f"{self.robot_name}_{SamLinks.BASE_LINK}"
+        self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"  # Unused
+        # Removed depth frame
 
         # Specifies which pressure to depth calculation should be used
         self.simulation = self.get_parameter('simulation').value
 
         self.get_logger().info(f"Simulated pressure: {self.simulation}")
 
-        self.subs = self.create_subscription(msg_type=FluidPressure, topic=self.press_topic,
+        self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH20_TOPIC,
                                              callback=self.depthCB, qos_profile=10)
 
-        self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=self.depth_topic, qos_profile=10)
+        self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_TOPIC,
+                                         qos_profile=10)
 
         self.depth_msg = PoseWithCovarianceStamped()
         self.depth_msg.header.frame_id = self.odom_frame
@@ -68,14 +77,10 @@ class Press2Depth(Node):
 
         # TODO This might be a bad way to set defaults
         # allows for me to run from the terminal directly for test
-        default_robot = 'sam0'
+        default_robot_name = 'sam0'
+        self.declare_parameter("robot_name", default_robot_name)
 
-        self.declare_parameter('odom_frame', f'{default_robot}/odom')
-        self.declare_parameter('base_frame', f'{default_robot}/base_link')
-        self.declare_parameter('depth_frame', f'{default_robot}/depth_link')
-        self.declare_parameter('pressure_frame', f'{default_robot}/pressure_link')
-        self.declare_parameter('pressure_topic', f'/{default_robot}/core/depth20_pressure')
-        self.declare_parameter('depth_topic', f'{default_robot}/dr/depth')
+        self.declare_parameter('odom_frame', 'odom')
 
         # TODO default should be False
         self.declare_parameter('simulation', True)
@@ -108,8 +113,8 @@ class Press2Depth(Node):
             self.depth_msg.pose.pose.position.z = depth_abs  # = [0., 0., 2.]
             self.pub.publish(self.depth_msg)
 
-            self.get_logger().info(f"Depth, m: {depth_abs}")
-            self.get_logger().info(f"Fluid pressure, Pa: {press_msg.fluid_pressure}")
+            # self.get_logger().info(f"Depth, m: {depth_abs}")
+            # self.get_logger().info(f"Fluid pressure, Pa: {press_msg.fluid_pressure}")
 
         # Real pressure sensor
         else:

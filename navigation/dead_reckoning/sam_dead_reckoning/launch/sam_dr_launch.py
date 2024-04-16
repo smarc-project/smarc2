@@ -8,10 +8,6 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     namespace = "sam0"
-    # These topics are specific to sam dr
-    depth_topic = f"{namespace}/dr/depth"
-    odom_topic = f"/{namespace}/dr/odom"
-    gps_odom_topic = f"/{namespace}/dr/gps_odom"
 
     print("Launching sam_dr_launch.py")
 
@@ -24,11 +20,7 @@ def generate_launch_description():
             name="depth_node",
             output="screen",
             parameters=[{
-                "odom_frame":  f"{namespace}/odom",
-                "base_frame": f"{namespace}/base_link",
-                "pressure_frame": f"{namespace}/pressure_link",
-                "pressure_topic": f"/{namespace}/core/depth20_pressure",
-                "depth_topic": depth_topic,
+                "robot_name": namespace,
                 "simulation": True
 
             }]
@@ -41,10 +33,9 @@ def generate_launch_description():
             respawn=True,
             output="screen",
             parameters=[{
-                "gps_odom_topic": gps_odom_topic,
+                "robot_name": namespace,
                 "map_frame": "map",
-                "utm_frame": "utm",
-                "gps_frame": f"{namespace}/gps_link"
+                "utm_frame": "utm"
             }]
         ),
         Node(
@@ -54,16 +45,10 @@ def generate_launch_description():
             name="dr_node",
             output="screen",
             parameters=[{
-                "gps_odom_topic": gps_odom_topic,
-                "depth_topic": depth_topic,
-                "odom_topic": odom_topic,
-                "base_frame": f"{namespace}_base_link",
-                "base_frame_2d": f"{namespace}_base_link_2d",
+                "robot_name": namespace,
                 "odom_frame": "odom",  # changed
                 "map_frame": "map",
                 "utm_frame": "utm",
-                "dvl_frame": f"{namespace}_dvl_link",
-                "pressure_frame": f"{namespace}_pressure_link",
                 "dvl_period": 0.1,
                 "dr_period": 0.02,
                 "simulation": True

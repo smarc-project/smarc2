@@ -18,6 +18,8 @@ from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 
 from smarc_msgs.msg import Topics as SmarcTopics
+from dead_reckoning_msgs.msg import Topics as DRTopics
+from sam_msgs.msg import Links as SamLinks
 
 try:
     from .helpers.ros_helpers import rcl_time_to_secs, rcl_time_to_stamp, ros_time_to_secs
@@ -35,12 +37,11 @@ class PublishGPSPose(Node):
         self.declare_node_parameters()
 
         # ===== Get parameters =====
-        # Publisher topics
-        self.gps_odom_top = self.get_parameter('gps_odom_topic').value
+        self.robot_name = self.get_parameter("robot_name").value
         # Frames
         self.map_frame = self.get_parameter('map_frame').value
         self.utm_frame = self.get_parameter('utm_frame').value
-        self.gps_frame = self.get_parameter('gps_frame').value
+        self.gps_frame = f"{self.robot_name}_{SamLinks.GPS_LINK}"
 
         # Broadcast UTM to map frame
         self.tf_buffer = Buffer()
@@ -60,7 +61,7 @@ class PublishGPSPose(Node):
 
         # Publishers
         # GPS odom in UTM frame
-        self.gps_sam_pub = self.create_publisher(msg_type=Odometry, topic=self.gps_odom_top,
+        self.gps_sam_pub = self.create_publisher(msg_type=Odometry, topic=DRTopics.DR_GPS_ODOM_TOPIC,
                                                  qos_profile=10)
 
         self.odom_pub = self.create_publisher(msg_type=Odometry, topic='gps_odom', qos_profile=10)
@@ -71,13 +72,13 @@ class PublishGPSPose(Node):
         """
         Declare the parameters of the node
         """
-        namespace = self.get_namespace()
-        # Publisher topics
-        self.declare_parameter('gps_odom_topic', 'gps_odom_sam')
+        default_robot_name = "sam0"
+        self.declare_parameter("robot_name", default_robot_name)
+
         # Frames
         self.declare_parameter('map_frame', 'map')
         self.declare_parameter('utm_frame', 'utm')
-        self.declare_parameter('gps_frame', f'{namespace}/gps_link')
+
 
     def sam_gps_cb(self, sam_gps):
 
