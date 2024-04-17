@@ -14,11 +14,16 @@ class IVehicleState():
     def __getitem__(self, key:str): pass
     @property
     def all_sensors_working(self) -> tuple[bool, list]: pass
+    def abort(self) -> None: pass
+    @property
+    def aborted(self) -> bool: pass
 
 
 class IVehicleStateContainer():
     @property
     def vehicle_state(self) -> Type[IVehicleState]: pass
+    def abort(self) -> bool: pass
+    def heartbeat(self) -> bool: pass
     
 
 
@@ -29,6 +34,12 @@ class MockVehicleStateContainer(IVehicleStateContainer):
     @property
     def vehicle_state(self) -> Type[IVehicleState]:
         return self._vehicle_state
+    
+    def abort(self) -> bool:
+        return True
+    
+    def heartbeat(self) -> bool:
+        return True
 
 
 
@@ -84,15 +95,27 @@ class VehicleState(IVehicleState):
             if type(v) == Sensor:
                 self.sensors[v._name] = v
 
+        self._aborted = False
+
+
     @property
     def all_sensors_working(self) -> tuple[bool, list]:
         not_working = [v.name for k,v in self.sensors.items() if not v.working]
         all_working = len(not_working) == 0
         return (all_working, not_working)
     
+    @property
+    def aborted(self):
+        return self._aborted
+    
 
     def __str__(self) -> str:
         s = f"Vehicle:{self._name}\n"
+        
+        if self.aborted:
+            s += "ABORTED"
+            return s
+        
         for sensor_name, sensor in self.sensors.items():
             s += "- " + sensor.__str__() + "\n"
         return s
@@ -100,6 +123,10 @@ class VehicleState(IVehicleState):
     
     def __getitem__(self, key: str) -> Sensor:
         return self.sensors[key]
+
+
+    def abort(self):
+        self._aborted = True
 
 
     # These could be convenient to write some generic "update" functions for ROS

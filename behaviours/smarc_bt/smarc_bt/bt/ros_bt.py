@@ -5,6 +5,7 @@ from py_trees.composites import Selector as Fallback
 from py_trees.composites import Sequence, Parallel
 from py_trees.blackboard import Blackboard
 from py_trees.decorators import Inverter
+from py_trees.common import Status, ParallelPolicy
 
 from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
@@ -13,11 +14,12 @@ from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 
 from .conditions import *
+from .actions import *
 
 import operator
 
 
-class SMaRCBT(HasVehicleContainer):
+class ROSBT(HasVehicleContainer):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  bb_updater: IBBUpdater = None):
@@ -35,14 +37,50 @@ class SMaRCBT(HasVehicleContainer):
         return self._vehicle_container
 
 
-    def setup(self) -> bool:
-        root = Sequence("S_Root",
-                        memory=False,
-                        children=[
-            C_VehicleSensorsWorking(self),
-            Inverter("Not leaking", C_CheckBooleanState(self, SensorNames.LEAK)),
+    def _safety_tree(self):
+        safety_checks = Parallel("P_Safety_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
+            C_NotAborted(self),
             C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
-            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH)
+            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
+            Inverter("Not leaking", C_CheckBooleanState(self, SensorNames.LEAK)),
+            # TODO: Mission Timeout not reached
+            # https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/bt_conditions.py#L19
+        ])
+
+        safety_tree = Fallback("F_Safety", memory=False, children=[
+            safety_checks,
+            A_Abort(self)
+        ])
+
+        return safety_tree
+    
+    def _run_tree(self):
+        # TODO:
+        # FB- Run
+		# 	- C- Plan state == STOPPED
+		# 	- S- Finalize mission
+		# 		- Plan state == COMPLETED
+		# 		- A- Publish finalize
+		# 	- FB- Mission
+		# 		- (ignore) A- gui_wp, live_wp, algae_farm
+		# 		- S- follow_plan
+		# 			- C- PlanState == RUNNING
+		# 			- A- unfinalize
+		# 			- A- Goto Action
+		# 			- A- Set next plan action
+        run = Fallback("F_Run", memory=False, children=[
+            pt.behaviours.Success()
+        ])
+        return run
+    
+
+    def setup(self) -> bool:
+        
+        root = Sequence("S_Root", memory=False, children=[
+            C_VehicleSensorsWorking(self),
+            A_Heartbeat(self),
+            self._safety_tree(),
+            self._run_tree()
         ])
 
         self._bt = pt.trees.BehaviourTree(root)
@@ -70,7 +108,9 @@ def test_sam_bt():
 
     sam = SAMAuv(node)
     sam_bbu = SAMBBUpdater(node, initialize_bb=True)
-    bt = SMaRCBT(sam, sam_bbu)
+    bb = Blackboard()
+    bb.set(BBKeys.VEHICLE_STATE_CONTAINER, sam)
+    bt = ROSBT(sam, sam_bbu)
     bt.setup()
 
     def update():
@@ -91,7 +131,7 @@ def test_bt_setup():
 
     v = MockVehicleStateContainer(VehicleState)
 
-    bt = SMaRCBT(v)
+    bt = ROSBT(v)
     bt.setup()
 
     bt.tick()
@@ -120,7 +160,7 @@ def test_bt_conditions():
 
     v = MockVehicleStateContainer(UnderwaterVehicleState)
 
-    bt = SMaRCBT(v)
+    bt = ROSBT(v)
     bt.setup()
 
     print("No update tick")

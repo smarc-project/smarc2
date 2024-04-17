@@ -5,6 +5,7 @@ import rclpy.time as time
 
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
+from sam_msgs.msg import Links as SamLinks
 from sam_msgs.msg import Leak, PercentStamped
 from sensor_msgs.msg import FluidPressure
 
@@ -15,8 +16,9 @@ from .vehicle import UnderwaterVehicleState, SensorNames
 class SAMAuv(ROSVehicle):
     def __init__(self,
                  node: Node):
-        super().__init__(node, UnderwaterVehicleState)
+        super().__init__(node, UnderwaterVehicleState, SamLinks)
         # The super-class handles everything except the sam-specific subscriptions :D
+
 
         # so we sub to sam-specific stuff
         self._dvl_sub = node.create_subscription(DVL, SamTopics.DVL_TOPIC, self._dvl_cb, 10)
