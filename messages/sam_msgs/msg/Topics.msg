@@ -24,3 +24,5 @@ string STIM_IMU_TOPIC = 'core/imu'
 string SBG_IMU_TOPIC = 'core/sbg_imu'
 
 string PRESS_DEPTH20_TOPIC = 'core/depth20_pressure'
+
+string SIDESCAN_TOPIC = 'payload/sidescan'
