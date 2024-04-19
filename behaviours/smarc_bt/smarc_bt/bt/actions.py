@@ -10,7 +10,7 @@ from .i_has_vehicle_container import HasVehicleContainer
 from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
 
 from .bb_keys import BBKeys
-from ..mission_handling.mission_plan import MissionPlanStates
+from ..mission.mission_plan import MissionPlanStates
 
 
 class A_Abort(VehicleBehaviour):

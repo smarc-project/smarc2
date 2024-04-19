@@ -6,6 +6,7 @@ from .waypoint import IWaypoint
 from .mission_plan import MissionPlan, MissionPlanStates
 
 from smarc_mission_msgs.msg import Topics as MissionTopics
+
 from std_msgs.msg import Empty
 
 class ROSMissionPlan(MissionPlan):
@@ -13,10 +14,15 @@ class ROSMissionPlan(MissionPlan):
                  node: Node,
                  plan_id: str,
                  waypoints: list[IWaypoint]) -> None:
+        """
+        Same mission plan, but this one logs into ros
+        and publishes into a topic its state when needed.
+        """
         super().__init__(plan_id, waypoints)
         self._node = node
 
         self._complete_pub = self._node.create_publisher(Empty, MissionTopics.MISSION_COMPLETE_TOPIC, 10)
+        
 
     def _log(self, s):
         self._node.get_logger().info(s)
@@ -27,3 +33,4 @@ class ROSMissionPlan(MissionPlan):
 
     
         
+

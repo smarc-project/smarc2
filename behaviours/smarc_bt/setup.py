@@ -23,7 +23,8 @@ setup(
             "test_ros_vehicle = smarc_bt.vehicles.ros_vehicle:test_ros_vehicle",
             "test_sam_auv = smarc_bt.vehicles.sam_auv:test_sam_auv",
             "test_bt_conditions = smarc_bt.bt.ros_bt:test_bt_conditions",
-            "test_sam_bt = smarc_bt.bt.ros_bt:test_sam_bt"
+            "test_sam_bt = smarc_bt.bt.ros_bt:test_sam_bt",
+            "send_test_mission = smarc_bt.mission.ros_mission_updater:send_test_mission"
         ],
     },
 )

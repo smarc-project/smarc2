@@ -23,8 +23,12 @@ class MissionPlan():
     def __init__(self,
                  plan_id: str,
                  waypoints: list[IWaypoint]) -> None:
-        
-        self._state = MissionPlanStates.STOPPED
+        """
+        A mission plan object that keeps track of mission state
+        and waypoints. Use with an Updater object to create and manage
+        it depending on how you interact with mission plans.
+        """
+        self._state = MissionPlanStates.RECEIVED
         self._plan_id = plan_id
         self._hash = ""
         self._current_wp_index = -1

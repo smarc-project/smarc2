@@ -12,7 +12,8 @@ from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
-from ..mission_handling.mission_plan import MissionPlanStates, MissionPlan
+from ..mission.mission_plan import MissionPlanStates, MissionPlan
+from ..mission.i_bb_mission_updater import IBBMissionUpdater
 
 from .conditions import C_CheckMissionPlanState,\
                         C_CheckVehicleSensorState,\
@@ -30,7 +31,8 @@ import operator
 class ROSBT(HasVehicleContainer):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
-                 bb_updater: IBBUpdater = None):
+                 bb_updater: IBBUpdater = None,
+                 mission_updater: IBBMissionUpdater = None):
         """
         vehicle_container: An object that has a field "vehicle_state" which
             returns a vehicles.vehicle.IVehicleState type of object.
@@ -39,6 +41,8 @@ class ROSBT(HasVehicleContainer):
         self._vehicle_container = vehicle_container
         self._bt = None
         self._bb_updater = bb_updater
+        self._mission_updater = mission_updater
+
 
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
@@ -116,6 +120,7 @@ class ROSBT(HasVehicleContainer):
 def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
     from .sam_bb_updater import SAMBBUpdater
+    from ..mission.ros_mission_updater import ROSMissionUpdater
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
@@ -123,9 +128,8 @@ def test_sam_bt():
 
     sam = SAMAuv(node)
     sam_bbu = SAMBBUpdater(node, initialize_bb=True)
-    bb = Blackboard()
-    bb.set(BBKeys.VEHICLE_STATE_CONTAINER, sam)
-    bt = ROSBT(sam, sam_bbu)
+    ros_mission_updater = ROSMissionUpdater(node)
+    bt = ROSBT(sam, sam_bbu, ros_mission_updater)
     bt.setup()
 
     def update():
@@ -135,6 +139,7 @@ def test_sam_bt():
 
     node.create_timer(0.2, update)
     rclpy.spin(node)
+
 
 
 
