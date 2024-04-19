@@ -12,9 +12,17 @@ from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
+from ..mission_handling.mission_plan import MissionPlanStates, MissionPlan
 
-from .conditions import *
-from .actions import *
+from .conditions import C_CheckMissionPlanState,\
+                        C_CheckVehicleSensorState,\
+                        C_NotAborted,\
+                        C_SensorOperatorBlackboard,\
+                        C_VehicleSensorsWorking
+
+from .actions import A_Abort,\
+                     A_Heartbeat,\
+                     A_UpdateMissionPlan
 
 import operator
 
@@ -42,34 +50,41 @@ class ROSBT(HasVehicleContainer):
             C_NotAborted(self),
             C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
             C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
-            Inverter("Not leaking", C_CheckBooleanState(self, SensorNames.LEAK)),
-            # TODO: Mission Timeout not reached
+            Inverter("Not leaking", C_CheckVehicleSensorState(self, SensorNames.LEAK)),
+            pt.behaviours.Success(name="TODO mission timeout not reached")
             # https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/bt_conditions.py#L19
         ])
 
         safety_tree = Fallback("F_Safety", memory=False, children=[
             safety_checks,
+            # modify mission?
             A_Abort(self)
         ])
 
         return safety_tree
     
     def _run_tree(self):
-        # TODO:
-        # FB- Run
-		# 	- C- Plan state == STOPPED
-		# 	- S- Finalize mission
-		# 		- Plan state == COMPLETED
-		# 		- A- Publish finalize
-		# 	- FB- Mission
-		# 		- (ignore) A- gui_wp, live_wp, algae_farm
-		# 		- S- follow_plan
-		# 			- C- PlanState == RUNNING
-		# 			- A- unfinalize
-		# 			- A- Goto Action
-		# 			- A- Set next plan action
+    
+        finalize_mission = Sequence("S_FinalizeMission", memory=False, children=[
+            C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
+            A_UpdateMissionPlan(MissionPlan.complete)
+        ])
+
+        follow_wp_plan = Sequence("S_Follow_WP_Plan", memory=False, children=[
+            C_CheckMissionPlanState(MissionPlanStates.RUNNING),
+            pt.behaviours.Running(name="TODO Goto action"),
+            A_UpdateMissionPlan(MissionPlan.complete_current_wp)
+        ])
+
+        mission = Fallback("F_Mission", memory=False, children=[
+            # Other types of plans go here
+            follow_wp_plan
+        ])
+
         run = Fallback("F_Run", memory=False, children=[
-            pt.behaviours.Success()
+            C_CheckMissionPlanState(MissionPlanStates.STOPPED),
+            finalize_mission,
+            mission
         ])
         return run
     

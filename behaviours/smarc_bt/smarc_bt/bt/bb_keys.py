@@ -6,6 +6,7 @@ class BBKeys(str, enum.Enum):
     MIN_ALTITUDE = 'MIN_ALTITUDE'
     MAX_DEPTH = 'MAX_DEPTH'
     VEHICLE_STATE_CONTAINER = 'VEHICLE_STATE_CONTAINER'
+    MISSION_PLAN = "MISSION_PLAN"
 
     def __str__(self):
         return self.name

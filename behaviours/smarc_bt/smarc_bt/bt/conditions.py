@@ -5,14 +5,17 @@ from typing import Callable
 
 from py_trees.common import Status
 from py_trees.blackboard import Blackboard
+from py_trees.behaviour import Behaviour
 
 from .i_has_vehicle_container import HasVehicleContainer
-from .common import VehicleBehavour, bool_to_status
+from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
+from .bb_keys import BBKeys
+from ..mission_handling.mission_plan import MissionPlanStates
 from ..vehicles.sensor import SensorNames
 
 
 
-class C_VehicleSensorsWorking(VehicleBehavour):
+class C_VehicleSensorsWorking(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):
         super().__init__(bt)
 
@@ -27,7 +30,7 @@ class C_VehicleSensorsWorking(VehicleBehavour):
         
 
         
-class C_CheckBooleanState(VehicleBehavour):
+class C_CheckVehicleSensorState(VehicleBehaviour):
     def __init__(self,
                  bt: HasVehicleContainer,
                  sensor_name: str,
@@ -35,7 +38,7 @@ class C_CheckBooleanState(VehicleBehavour):
         """
         Returns S if vehicle[sensor_name][sensor_key] == True, F otherwise
         """
-        name = f"C_CheckBool({sensor_name})"
+        name = name = f"{self.__class__.__name__}({sensor_name}[{sensor_key}])"
         self._sensor_name = sensor_name
         self._sensor_key = sensor_key
         super().__init__(bt, name)
@@ -46,7 +49,7 @@ class C_CheckBooleanState(VehicleBehavour):
     
 
 
-class C_SensorOperatorBlackboard(VehicleBehavour):
+class C_SensorOperatorBlackboard(VehicleBehaviour):
     def __init__(self,
                  bt: HasVehicleContainer,
                  sensor_name: str,
@@ -77,7 +80,7 @@ class C_SensorOperatorBlackboard(VehicleBehavour):
         return bool_to_status(self._operator(value, bb_value))
         
         
-class C_NotAborted(VehicleBehavour):
+class C_NotAborted(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):
         super().__init__(bt)
 
@@ -85,3 +88,21 @@ class C_NotAborted(VehicleBehavour):
         return bool_to_status(self._bt.vehicle_container.vehicle_state.aborted)
 
 
+class C_CheckMissionPlanState(MissionPlanBehaviour):
+    def __init__(self, expected_state: MissionPlanStates):
+        self._expected_state = expected_state
+        name = f"{self.__class__.__name__}({self._expected_state})"
+        super().__init__(name)
+        self._bb = Blackboard()
+        
+
+    def update(self) -> Status:
+        self.feedback_message = ""
+        plan = self._get_plan()
+        if plan is None: return Status.FAILURE
+
+        if plan.state != self._expected_state:
+            self.feedback_message = f"Expected:{self._expected_state} found:{plan.state}"
+            return Status.FAILURE
+
+        return Status.SUCCESS
