@@ -20,6 +20,63 @@ from .ros_waypoint import SMaRCWP
 from ..bt.bb_keys import BBKeys
 
 
+class LatLonUTMConverter:
+    def __init__(self, node: Node) -> None:
+        self._node = node
+        self._ll_utm_converter = self._node.create_client(UTMLatLon,
+                                                          MissionTopics.UTM_LATLON_CONVERSION_SERVICE)
+        
+        self.reset()
+
+    def _log(self, s:str):
+        self._node.get_logger().info(s)
+        
+    def call(self, msg: MissionControl) -> None:
+        self._converted = False
+        self._mission_control_msg = msg
+
+        converter_msg = UTMLatLon.Request()
+        converter_msg.lat_lon_points = []
+        for wp in msg.waypoints:
+            gp = GeoPoint()
+            gp.latitude = wp.lat
+            gp.longitude = wp.lon
+            converter_msg.lat_lon_points.append(gp)
+
+        self._log("Calling service")
+        self._future = self._ll_utm_converter.call_async(converter_msg)
+        self._future.add_done_callback(self._done_cb)
+
+    def _done_cb(self, future) -> None:
+        self._log("Done cb")
+        result = future.result()
+        self._log("Got result")
+
+        for wp, utm_point in zip(self._mission_control_msg.waypoints, result.utm_points):
+            wp.pose.pose.position.x = utm_point.point.x
+            wp.pose.pose.position.y = utm_point.point.y
+
+        self._converted = True
+
+
+    def reset(self):
+        self._mission_control_msg = None
+        self._future = None
+        self._converted = False
+
+
+    @property
+    def done(self) -> bool:
+        return self._converted
+    
+
+    def get_result(self) -> MissionControl:
+        if self.done:
+            return self._mission_control_msg
+        
+        return None
+
+
 
 class ROSMissionUpdater(IBBMissionUpdater):
     def __init__(self,
@@ -33,6 +90,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         self._node = node
         self._bb = Blackboard()
 
+        self._latest_mission_control_msg = None
         self._mission_control_sub = node.create_subscription(MissionControl,
                                                             MissionTopics.MISSION_CONTROL_TOPIC,
                                                             self._mission_control_cb,
@@ -43,15 +101,34 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                           10)
         
         self._mission_storage_folder = self._node.declare_parameter("mission_storage_folder", "~/MissionPlans/").value
-
-        self._ll_utm_converter = self._node.create_client(UTMLatLon,
-                                                          MissionTopics.UTM_LATLON_CONVERSION_SERVICE)
+        
+        self._ll_converter = LatLonUTMConverter(node)
         
 
     def _mission_control_cb(self, msg:MissionControl):
+        self._latest_mission_control_msg = msg
+
+
+    def tick(self):
+        # see if there is a plan to set from before
+        self._try_set_plan()
+
+        # Process the last mission control msg we got
+        # and then set it to None
+        msg = self._latest_mission_control_msg
+        if msg is None: return
+
+
         # TODO https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/nodered_handler.py#L251
         if msg.command == MissionControl.CMD_SET_PLAN:
-            self._set_plan(msg)
+            self._log("Got a SET PLAN")
+            msg = self._save_load_plan(msg)
+            if msg is None:
+                self._log("SET PLAN failed")
+            else:
+                self._ll_converter.call(msg)
+        
+        self._latest_mission_control_msg = None
 
 
     def _log(self, s:str):
@@ -87,26 +164,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         return mc
 
 
-    def _mission_control_to_waypoints(self, msg: MissionControl) -> list[SMaRCWP]:
-        converter_msg = UTMLatLon.Request()
-        converter_msg.lat_lon_points = []
-        for wp in msg.waypoints:
-            gp = GeoPoint()
-            gp.latitude = wp.lat
-            gp.longitude = wp.lon
-            converter_msg.lat_lon_points.append(gp)
-
-        result = self._ll_utm_converter.call(converter_msg)
-        mission_wps = []
-        for wp, utm_point in zip(msg.waypoints, result.utm_points):
-            wp.pose.pose.position.x = utm_point.point.x
-            wp.pose.pose.position.y = utm_point.point.y
-            mission_wps.append(SMaRCWP(wp))
-
-        return mission_wps
-
-
-    def _set_plan(self, msg: MissionControl):
+    def _save_load_plan(self, msg: MissionControl) -> MissionControl:
         """
         The message might contain a proper complete plan
         or just the hash of a plan.
@@ -126,7 +184,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                 loaded_msg = self._load_mission(msg)
             except:
                 self._log(f"Could not load mission with name: {msg.name}")
-                return
+                return None
 
             # okay, got a mission message, but does it have the same hash
             # as the request?
@@ -134,17 +192,26 @@ class ROSMissionUpdater(IBBMissionUpdater):
                 msg = loaded_msg
             else:
                 self._log(f"A plan with this name exists, but has a different hash: {msg.name}")
-                return
+                return None
 
         # we either got a proper full mission message
         # or the loaded mission message is good to use
         self._save_mission(msg)
 
-        waypoints = self._mission_control_to_waypoints(msg)
-        new_plan = ROSMissionPlan(self._node, msg.name, waypoints)
+        return msg
+    
+    def _try_set_plan(self):
+        if not self._ll_converter.done: 
+            return
 
-        self._bb.set(BBKeys.MISSION_PLAN, new_plan)
-        self._log(f"New mission {msg.name} set!")
+        msg = self._ll_converter.get_result()
+        if msg is not None:
+            self._ll_converter.reset()
+            waypoints = [SMaRCWP(wp) for wp in msg.waypoints]
+            new_plan = ROSMissionPlan(self._node, msg.name, waypoints)
+
+            self._bb.set(BBKeys.MISSION_PLAN, new_plan)
+            self._log(f"New mission {msg.name} set!")
 
 
 

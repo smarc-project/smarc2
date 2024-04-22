@@ -114,6 +114,7 @@ class ROSBT(HasVehicleContainer):
 
     def tick(self):
         self._update_bb()
+        self._mission_updater.tick()
         self._bt.tick()
 
 
