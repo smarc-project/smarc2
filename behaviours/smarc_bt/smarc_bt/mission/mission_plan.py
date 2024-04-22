@@ -93,3 +93,8 @@ class MissionPlan():
     @property
     def state(self):
         return self._state
+    
+    @property
+    def planar_wps(self):
+        wps = [(wp.position[0], wp.position[1], wp.arrival_heading) for wp in self._waypoints]
+        return wps

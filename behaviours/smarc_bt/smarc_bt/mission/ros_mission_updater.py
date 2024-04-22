@@ -48,9 +48,7 @@ class LatLonUTMConverter:
         self._future.add_done_callback(self._done_cb)
 
     def _done_cb(self, future) -> None:
-        self._log("Done cb")
         result = future.result()
-        self._log("Got result")
 
         for wp, utm_point in zip(self._mission_control_msg.waypoints, result.utm_points):
             wp.pose.pose.position.x = utm_point.point.x
@@ -111,7 +109,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
     def tick(self):
         """
-        # TODO https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/nodered_handler.py#L251
         Handle the mission control message synchronously with a BT so that the input the the BT
         can not change _during_ its tick.
         """

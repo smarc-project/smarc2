@@ -12,7 +12,8 @@ class IWaypoint():
     @property
     def reference_frame(self) -> str: pass
     def __str__(self) -> str: pass
-
+    @property
+    def arrival_heading(self) -> float: pass
 
 class IUnderwaterWaypoint(IWaypoint):
     @property

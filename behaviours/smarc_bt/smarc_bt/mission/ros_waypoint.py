@@ -41,4 +41,6 @@ class SMaRCWP(UnderwaterWaypoint):
     def altitude(self) -> float:
         return self._goto_wp.travel_altitude
     
-    
+    @property
+    def arrival_heading(self) -> float:
+        return self._goto_wp.arrival_heading
