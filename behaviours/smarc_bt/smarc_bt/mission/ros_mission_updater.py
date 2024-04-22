@@ -110,6 +110,11 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
 
     def tick(self):
+        """
+        # TODO https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/nodered_handler.py#L251
+        Handle the mission control message synchronously with a BT so that the input the the BT
+        can not change _during_ its tick.
+        """
         # see if there is a plan to set from before
         self._try_set_plan()
 
@@ -118,22 +123,47 @@ class ROSMissionUpdater(IBBMissionUpdater):
         msg = self._latest_mission_control_msg
         if msg is None: return
 
+        if msg.command == MissionControl.CMD_IS_FEEDBACK: return
 
-        # TODO https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/nodered_handler.py#L251
         if msg.command == MissionControl.CMD_SET_PLAN:
-            self._log("Got a SET PLAN")
+            self._log("SET PLAN")
             msg = self._save_load_plan(msg)
             if msg is None:
                 self._log("SET PLAN failed")
             else:
                 self._ll_converter.call(msg)
+            
+
+        if msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
+            self._log("REQUEST FEEDBACK not implemented")
+        
+
+        # following commands all rely on there being a mission plan
+        mission_plan = self._bb.get(BBKeys.MISSION_PLAN)
+        if mission_plan is None:
+            self._log("No mission plan to change the state of.")
+            self._latest_mission_control_msg = None
+            return
+        
+
+        if msg.command == MissionControl.CMD_EMERGENCY:
+            mission_plan.emergency()
+
+        if msg.command == MissionControl.CMD_START:
+            mission_plan.start()
+
+        if msg.command == MissionControl.CMD_PAUSE:
+            mission_plan.pause()
+
+        if msg.command == MissionControl.CMD_STOP:
+            mission_plan.stop()
         
         self._latest_mission_control_msg = None
 
 
+
     def _log(self, s:str):
         self._node.get_logger().info(s)
-
 
     def _save_mission(self, msg):
         if "TEST--" in msg.name:
@@ -151,7 +181,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
             f.write(j)
             self._log(f"Wrote mission {filename}")
 
-
     def _load_mission(self, msg):
         path = os.path.expanduser(self._mission_storage_folder)
         filename = os.path.join(path, f"{msg.name}.json")
@@ -162,7 +191,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
         self._log("Loaded mission {msg.name} from file!")
         return mc
-
 
     def _save_load_plan(self, msg: MissionControl) -> MissionControl:
         """
@@ -214,9 +242,8 @@ class ROSMissionUpdater(IBBMissionUpdater):
             self._log(f"New mission {msg.name} set!")
 
 
-
-def send_test_mission():
-    import rclpy, sys
+def send_test_mission_control():
+    import rclpy, sys, time
 
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("send_test_mission")
@@ -225,25 +252,41 @@ def send_test_mission():
     pub = node.create_publisher(MissionControl,
                                 MissionTopics.MISSION_CONTROL_TOPIC,
                                 10)
-    
-    mc = MissionControl()
-    mc.command = MissionControl.CMD_SET_PLAN
-    mc.hash = "testhash"
-    mc.name = "testplan"
-    
-    wp1 = GotoWaypoint()
-    wp1.name = "wp1"
-    wp1.lat = 58.821496
-    wp1.lon = 17.619285
 
-    wp2 = GotoWaypoint()
-    wp1.name = "wp2"
-    wp1.lat = 58.820936
-    wp1.lon = 17.618728
+    def interact():    
+        nonlocal pub
+        mc = MissionControl()
+        mc.hash = "testhash"
+        mc.name = "testplan"
 
-    mc.waypoints = [wp1, wp2]
+        choice = input("Choose: new, start, pause, stop, emergency:\n")
+        if choice == "new":
+            mc.command = MissionControl.CMD_SET_PLAN
+            
+            wp1 = GotoWaypoint()
+            wp1.name = "wp1"
+            wp1.lat = 58.821496
+            wp1.lon = 17.619285
 
-    pub.publish(mc)
+            wp2 = GotoWaypoint()
+            wp1.name = "wp2"
+            wp1.lat = 58.820936
+            wp1.lon = 17.618728
 
-    print(f"Published plan\n{mc}")
+            mc.waypoints = [wp1, wp2]
+        
+        if choice == "start":
+            mc.command = MissionControl.CMD_START
+        if choice == "pause":
+            mc.command = MissionControl.CMD_PAUSE
+        if choice == "stop":
+            mc.command = MissionControl.CMD_STOP
+        if choice == "emergency":
+            mc.command = MissionControl.CMD_EMERGENCY
+                   
+
+        pub.publish(mc)
+        print(f"Published plan\n{mc}")
+
+    node.create_timer(1, interact)
     rclpy.spin(node)

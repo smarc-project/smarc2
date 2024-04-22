@@ -43,6 +43,8 @@ class ROSBT(HasVehicleContainer):
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
 
+        self._last_state_str = ""
+
 
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
@@ -68,7 +70,6 @@ class ROSBT(HasVehicleContainer):
         return safety_tree
     
     def _run_tree(self):
-    
         finalize_mission = Sequence("S_FinalizeMission", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
             A_UpdateMissionPlan(MissionPlan.complete)
@@ -118,6 +119,7 @@ class ROSBT(HasVehicleContainer):
         self._bt.tick()
 
 
+
 def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
     from .sam_bb_updater import SAMBBUpdater
@@ -133,9 +135,13 @@ def test_sam_bt():
     bt = ROSBT(sam, sam_bbu, ros_mission_updater)
     bt.setup()
 
+    bt_str = ""
     def update():
-        nonlocal bt
-        print(pt.display.ascii_tree(bt._bt.root, show_status=True))
+        nonlocal bt, bt_str, node
+        new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
+        if new_str != bt_str:
+            node.get_logger().info(f"\n{new_str}")
+            bt_str = new_str
         bt.tick()
 
     node.create_timer(0.2, update)

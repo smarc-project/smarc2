@@ -76,7 +76,7 @@ class C_SensorOperatorBlackboard(VehicleBehaviour):
             return Status.FAILURE
         
         bb_value = bb.get(self._bb_key)
-        self.feedback_message = f"{self._operator.__name__}({value}, {bb_value})"
+        self.feedback_message = f"{self._operator.__name__}({value:.2f}, {bb_value:.2f})"
         return bool_to_status(self._operator(value, bb_value))
         
         
