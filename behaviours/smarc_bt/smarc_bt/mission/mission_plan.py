@@ -54,6 +54,7 @@ class MissionPlan():
         s = f"[Mission {self._plan_id}]\n"
         for wp in self._waypoints:
             s += f"\t{wp}"
+        return s
 
     def start(self) -> bool:
         self._current_wp_index = 0

@@ -19,8 +19,8 @@ class SMaRCWP(UnderwaterWaypoint):
         Check that the WP is not all 0s...
         """
         x,y,z = self.position
-        d = self.depth
-        a = self.altitude
+        d = self.travel_depth
+        a = self.travel_altitude
         if all([x==0, y==0, z==0, d==0, a==0]): return False
         return True
     
@@ -34,13 +34,16 @@ class SMaRCWP(UnderwaterWaypoint):
         return self._goto_wp.pose.header.frame_id
     
     @property
-    def depth(self) -> float:
+    def travel_depth(self) -> float:
         return self._goto_wp.travel_depth
     
     @property
-    def altitude(self) -> float:
+    def travel_altitude(self) -> float:
         return self._goto_wp.travel_altitude
     
     @property
     def arrival_heading(self) -> float:
-        return self._goto_wp.arrival_heading
+        if self._goto_wp.use_heading:
+            return self._goto_wp.arrival_heading
+        else: 
+            return None

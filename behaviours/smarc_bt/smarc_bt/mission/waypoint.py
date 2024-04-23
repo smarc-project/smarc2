@@ -17,9 +17,9 @@ class IWaypoint():
 
 class IUnderwaterWaypoint(IWaypoint):
     @property
-    def depth(self) -> float: pass
+    def travel_depth(self) -> float: pass
     @property
-    def altitude(self) -> float: pass
+    def travel_altitude(self) -> float: pass
 
 
 
@@ -30,7 +30,7 @@ class Waypoint(IWaypoint):
 
 class UnderwaterWaypoint(IUnderwaterWaypoint):
     def __str__(self) -> str:
-        return f"[WP {self.name}] Posi:{self.position} D:{self.depth} A:{self.altitude}"
+        return f"[WP {self.name}] Posi:{self.position} D:{self.travel_depth} A:{self.travel_altitude}"
 
 
     

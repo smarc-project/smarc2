@@ -8,7 +8,7 @@ from rosidl_runtime_py.convert import message_to_ordereddict
 from rclpy.node import Node
 from py_trees.blackboard import Blackboard
 
-from smarc_mission_msgs.msg import BTCommand, GotoWaypoint, MissionControl
+from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
 from smarc_mission_msgs.srv import UTMLatLon
 from geographic_msgs.msg import GeoPoint
@@ -20,7 +20,7 @@ from .ros_waypoint import SMaRCWP
 from ..bt.bb_keys import BBKeys
 
 
-class LatLonUTMConverter:
+class LatLonUTMConverterCaller:
     def __init__(self, node: Node) -> None:
         self._node = node
         self._ll_utm_converter = self._node.create_client(UTMLatLon,
@@ -35,16 +35,16 @@ class LatLonUTMConverter:
         self._converted = False
         self._mission_control_msg = msg
 
-        converter_msg = UTMLatLon.Request()
-        converter_msg.lat_lon_points = []
+        request = UTMLatLon.Request()
+        request.lat_lon_points = []
         for wp in msg.waypoints:
             gp = GeoPoint()
             gp.latitude = wp.lat
             gp.longitude = wp.lon
-            converter_msg.lat_lon_points.append(gp)
+            request.lat_lon_points.append(gp)
 
-        self._log("Calling service")
-        self._future = self._ll_utm_converter.call_async(converter_msg)
+        self._log("Calling ll-utm-converter service")
+        self._future = self._ll_utm_converter.call_async(request)
         self._future.add_done_callback(self._done_cb)
 
     def _done_cb(self, future) -> None:
@@ -100,7 +100,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         
         self._mission_storage_folder = self._node.declare_parameter("mission_storage_folder", "~/MissionPlans/").value
         
-        self._ll_converter = LatLonUTMConverter(node)
+        self._ll_converter = LatLonUTMConverterCaller(node)
         
 
     def _mission_control_cb(self, msg:MissionControl):
