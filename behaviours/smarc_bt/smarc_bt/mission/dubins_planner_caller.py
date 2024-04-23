@@ -12,7 +12,7 @@ from smarc_mission_msgs.srv import DubinsPlan
 from geometry_msgs.msg import Pose2D
 
 from .ros_waypoint import SMaRCWP
-from .mission_plan import MissionPlan
+from .ros_mission_plan import ROSMissionPlan
 
 
 # Because the dubins planner uses X=right, Y=up, CCW angles
@@ -48,7 +48,7 @@ class DubinsPlannerCaller:
 
     
 
-    def call(self, mplan: MissionPlan, turning_rad: float, step: float) -> None:
+    def call(self, mplan: ROSMissionPlan, turning_rad: float, step: float) -> None:
         if not type(mplan._waypoints[0]) == SMaRCWP:
             self._log("Dubins planning requires a mission with SMaRCWP waypoints!")
             return
@@ -144,8 +144,9 @@ class DubinsPlannerCaller:
 
         # since we went backwards when filling this...
         wp_list.reverse()
-        new_plan = MissionPlan(self._mission_plan._plan_id,
-                               wp_list)
+        new_plan = ROSMissionPlan(self._mission_plan._node,
+                                  self._mission_plan._plan_id,
+                                  wp_list)
         self._mission_plan = new_plan
 
         self._converted = True
@@ -162,7 +163,7 @@ class DubinsPlannerCaller:
         return self._converted
     
 
-    def get_result(self) -> MissionPlan:
+    def get_result(self) -> ROSMissionPlan:
         if self.done:
             return self._mission_plan
         
@@ -228,7 +229,7 @@ def test_dubins_planner_caller():
         SMaRCWP(wp2),
         SMaRCWP(wp3)
     ]
-    mplan = MissionPlan("test_mission", wps)
+    mplan = ROSMissionPlan(node, "test_mission", wps)
 
     caller.call(mplan, turning_rad, step)
 

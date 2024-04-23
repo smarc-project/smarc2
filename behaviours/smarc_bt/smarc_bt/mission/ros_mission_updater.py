@@ -8,72 +8,17 @@ from rosidl_runtime_py.convert import message_to_ordereddict
 from rclpy.node import Node
 from py_trees.blackboard import Blackboard
 
-from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
+from smarc_mission_msgs.msg import BTCommand, GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
-from smarc_mission_msgs.srv import UTMLatLon
-from geographic_msgs.msg import GeoPoint
 
+
+from .utm_lat_lon_converter_caller import UTMLatLonConverterCaller
+from .dubins_planner_caller import DubinsPlannerCaller
 
 from .i_bb_mission_updater import IBBMissionUpdater
 from .ros_mission_plan import ROSMissionPlan
 from .ros_waypoint import SMaRCWP
 from ..bt.bb_keys import BBKeys
-
-
-class LatLonUTMConverterCaller:
-    def __init__(self, node: Node) -> None:
-        self._node = node
-        self._ll_utm_converter = self._node.create_client(UTMLatLon,
-                                                          MissionTopics.UTM_LATLON_CONVERSION_SERVICE)
-        
-        self.reset()
-
-    def _log(self, s:str):
-        self._node.get_logger().info(s)
-        
-    def call(self, msg: MissionControl) -> None:
-        self._converted = False
-        self._mission_control_msg = msg
-
-        request = UTMLatLon.Request()
-        request.lat_lon_points = []
-        for wp in msg.waypoints:
-            gp = GeoPoint()
-            gp.latitude = wp.lat
-            gp.longitude = wp.lon
-            request.lat_lon_points.append(gp)
-
-        self._log("Calling ll-utm-converter service")
-        self._future = self._ll_utm_converter.call_async(request)
-        self._future.add_done_callback(self._done_cb)
-
-    def _done_cb(self, future) -> None:
-        result = future.result()
-
-        for wp, utm_point in zip(self._mission_control_msg.waypoints, result.utm_points):
-            wp.pose.pose.position.x = utm_point.point.x
-            wp.pose.pose.position.y = utm_point.point.y
-
-        self._converted = True
-
-
-    def reset(self):
-        self._mission_control_msg = None
-        self._future = None
-        self._converted = False
-
-
-    @property
-    def done(self) -> bool:
-        return self._converted
-    
-
-    def get_result(self) -> MissionControl:
-        if self.done:
-            return self._mission_control_msg
-        
-        return None
-
 
 
 class ROSMissionUpdater(IBBMissionUpdater):
@@ -98,13 +43,23 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                           MissionTopics.MISSION_CONTROL_TOPIC,
                                                           10)
         
-        self._mission_storage_folder = self._node.declare_parameter("mission_storage_folder", "~/MissionPlans/").value
-        
-        self._ll_converter = LatLonUTMConverterCaller(node)
+                
+        self._ll_converter = UTMLatLonConverterCaller(node)
+        self._dubins_planner = DubinsPlannerCaller(node)
         
 
     def _mission_control_cb(self, msg:MissionControl):
         self._latest_mission_control_msg = msg
+
+
+    def _get_mission_plan(self) -> ROSMissionPlan:
+        mission_plan = self._bb.get(BBKeys.MISSION_PLAN)
+        if mission_plan is None:
+            self._log("No mission plan to modify!")
+            self._latest_mission_control_msg = None
+            return None
+
+        return mission_plan
 
 
     def tick(self):
@@ -114,6 +69,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         """
         # see if there is a plan to set from before
         self._try_set_plan()
+        self._try_set_dubins_plan()
 
         # Process the last mission control msg we got
         # and then set it to None
@@ -136,12 +92,9 @@ class ROSMissionUpdater(IBBMissionUpdater):
         
 
         # following commands all rely on there being a mission plan
-        mission_plan = self._bb.get(BBKeys.MISSION_PLAN)
-        if mission_plan is None:
-            self._log("No mission plan to change the state of.")
-            self._latest_mission_control_msg = None
-            return
-        
+        mission_plan = self._get_mission_plan()
+        if mission_plan is None: return
+
 
         if msg.command == MissionControl.CMD_EMERGENCY:
             mission_plan.emergency()
@@ -158,7 +111,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
         self._latest_mission_control_msg = None
 
 
-
     def _log(self, s:str):
         self._node.get_logger().info(s)
 
@@ -167,7 +119,8 @@ class ROSMissionUpdater(IBBMissionUpdater):
             self._log("Test mission, not saving")
             return
 
-        path = os.path.expanduser(self._mission_storage_folder)
+        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
+        path = os.path.expanduser(folder)
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -179,7 +132,8 @@ class ROSMissionUpdater(IBBMissionUpdater):
             self._log(f"Wrote mission {filename}")
 
     def _load_mission(self, msg):
-        path = os.path.expanduser(self._mission_storage_folder)
+        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
+        path = os.path.expanduser(folder)
         filename = os.path.join(path, f"{msg.name}.json")
         with open(filename, 'r') as f:
             j = f.read()
@@ -226,17 +180,39 @@ class ROSMissionUpdater(IBBMissionUpdater):
         return msg
     
     def _try_set_plan(self):
-        if not self._ll_converter.done: 
-            return
+        if not self._ll_converter.done: return
 
         msg = self._ll_converter.get_result()
-        if msg is not None:
-            self._ll_converter.reset()
-            waypoints = [SMaRCWP(wp) for wp in msg.waypoints]
-            new_plan = ROSMissionPlan(self._node, msg.name, waypoints)
+        if msg is None: return
 
-            self._bb.set(BBKeys.MISSION_PLAN, new_plan)
-            self._log(f"New mission {msg.name} set!")
+        self._ll_converter.reset()
+        waypoints = [SMaRCWP(wp) for wp in msg.waypoints]
+        new_plan = ROSMissionPlan(self._node, msg.name, waypoints)
+
+        self._bb.set(BBKeys.MISSION_PLAN, new_plan)
+        self._log(f"New mission {msg.name} set!")
+
+
+    def _try_set_dubins_plan(self):
+        if not self._dubins_planner.done: return
+        
+        new_plan = self._dubins_planner.get_result()
+        if new_plan is None: return
+
+        self._bb.set(BBKeys.MISSION_PLAN, new_plan)
+        self._log(f"Mission {new_plan.name} has been dubinifed!")
+
+
+
+    def plan_dubins(self):
+        mplan = self._get_mission_plan()
+        if mplan is None: return
+
+        turning_radius = self._bb.get(BBKeys.DUBINS_TURNING_RADIUS)
+        step_size = self._bb.get(BBKeys.DUBINS_STEP_SIZE)
+        self._dubins_planner.call(mplan, turning_radius, step_size)
+
+
 
 
 def send_test_mission_control():
