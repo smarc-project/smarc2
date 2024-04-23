@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import json
+
 from py_trees.blackboard import Blackboard
 from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
@@ -7,7 +9,9 @@ from .bb_keys import BBKeys
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange
 
-class SAMBBUpdater(IBBUpdater):
+from smarc_mission_msgs.msg import BTCommand, Topics as MissionTopics
+
+class ROSBBUpdater(IBBUpdater):
     def __init__(self,
                  node: Node,
                  initialize_bb = True):
@@ -15,6 +19,11 @@ class SAMBBUpdater(IBBUpdater):
 
         self._bb = Blackboard()
         self._node = node
+
+        self._bt_cmd_sub = node.create_subscription(BTCommand,
+                                                    MissionTopics.BT_COMMAND_TOPIC,
+                                                    self._bt_cmd_cb,
+                                                    10)
 
         for key in BBKeys._member_names_:
             if initialize_bb:
@@ -74,6 +83,31 @@ class SAMBBUpdater(IBBUpdater):
                 )
             ]
         ))
+
+
+    def _bt_cmd_cb(self, msg: BTCommand):
+        if msg.msg_type == BTCommand.TYPE_FB: return
+        try:
+            q = self._bb.get(BBKeys.BT_CMD_QUEUE)
+            if q is None: q = []
+        except:
+            q = []
+
+        try:
+            cmd_json = json.loads(msg.cmd_json)
+            print(f"cmdjson:{cmd_json}")
+        except:
+            return
+        
+        cmd = cmd_json['cmd']
+        try:
+            arg = cmd_json['arg']
+        except:
+            arg = None
+        
+        q.append((cmd, arg))
+        self._bb.set(BBKeys.BT_CMD_QUEUE, q)
+
 
 
 

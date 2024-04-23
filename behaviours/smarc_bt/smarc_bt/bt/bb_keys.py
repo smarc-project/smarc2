@@ -9,6 +9,7 @@ class BBKeys(str, enum.Enum):
     MISSION_PLAN_STORAGE = "MISSION_PLAN_STORAGE"
     DUBINS_TURNING_RADIUS = "DUBINS_TURNING_RADIUS"
     DUBINS_STEP_SIZE = "DUBINS_STEP_SIZE"
+    BT_CMD_QUEUE = "BT_CMD_QUEUE"
 
     def __str__(self):
         return self.name

@@ -23,7 +23,8 @@ from .conditions import C_CheckMissionPlanState,\
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
-                     A_UpdateMissionPlan
+                     A_UpdateMissionPlan,\
+                     A_ProcessBTCommand
 
 import operator
 
@@ -99,6 +100,7 @@ class ROSBT(HasVehicleContainer):
         root = Sequence("S_Root", memory=False, children=[
             C_VehicleSensorsWorking(self),
             A_Heartbeat(self),
+            A_ProcessBTCommand(self._mission_updater),
             self._safety_tree(),
             self._run_tree()
         ])
@@ -122,7 +124,7 @@ class ROSBT(HasVehicleContainer):
 
 def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
-    from .sam_bb_updater import SAMBBUpdater
+    from .ros_bb_updater import ROSBBUpdater
     from ..mission.ros_mission_updater import ROSMissionUpdater
     import rclpy, sys
 
@@ -130,7 +132,7 @@ def test_sam_bt():
     node = rclpy.create_node("test_sam_bt")
 
     sam = SAMAuv(node)
-    sam_bbu = SAMBBUpdater(node, initialize_bb=True)
+    sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
     bt = ROSBT(sam, sam_bbu, ros_mission_updater)
     bt.setup()
