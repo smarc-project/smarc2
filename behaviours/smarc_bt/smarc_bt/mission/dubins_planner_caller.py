@@ -181,31 +181,32 @@ def test_dubins_planner_caller():
 
     step = 0.5
     turning_rad = 5.0
+    # x,y,heading
     points = [
         (0.0,  0.0, 0.0 ),
         (10.0, 0.0, 0.0 ),
         (20.0, 0.0, 90.0)
     ]
 
-    def plot_path(ax, points, marker='bo'):
+    def plot_path(ax, points, marker='bo', arrow_color='k'):
         # Plot each point and draw an arrow according to the angle
         for x, y, angle in points:
             ax.plot(x, y, marker)  # 'bo' creates a blue circle marker
             # Calculate the arrow's dx and dy using the angle
-            dx = np.cos(np.radians(angle))
-            dy = np.sin(np.radians(angle))
-            ax.arrow(x, y, dx, dy, head_width=0.1, head_length=0.1, fc='k', ec='k')
+            dx = np.cos(np.deg2rad(_heading_to_yaw(angle)))
+            dy = np.sin(np.deg2rad(_heading_to_yaw(angle)))
+            ax.arrow(x, y, dx, dy, head_width=0.1, head_length=0.1, fc=arrow_color, ec=arrow_color)
 
     # Create the plot
     fig, ax = plt.subplots()
-    plot_path(ax, points, marker='rx')
+    plot_path(ax, points, marker='rx', arrow_color='r')
 
     wp1 = GotoWaypoint()
     wp1.name = "one"
     wp1.pose.pose.position.x = points[0][0]
     wp1.pose.pose.position.y = points[0][1]
     wp1.arrival_heading = points[0][2]
-    wp1.use_heading = True
+    wp1.use_heading = False
 
     wp2 = GotoWaypoint()
     wp2.name = "two"
@@ -219,7 +220,7 @@ def test_dubins_planner_caller():
     wp3.pose.pose.position.x = points[2][0]
     wp3.pose.pose.position.y = points[2][1]
     wp3.arrival_heading = points[2][2]
-    wp3.use_heading = True
+    wp3.use_heading = False
 
 
     wps = [
@@ -239,12 +240,13 @@ def test_dubins_planner_caller():
         new_plan = caller.get_result()
         if new_plan is not None:
             caller.reset()
-            plot_path(ax, [(p[0], p[1], _heading_to_yaw(p[2])) for p in  new_plan.planar_wps])
+            plot_path(ax, [(p[0], p[1], p[2]) for p in  new_plan.planar_wps])
 
 
 
     node.create_timer(1, wait)
-    for i in range(10):
+    for i in range(5):
+        print(i)
         rclpy.spin_once(node)
 
     plt.show()
