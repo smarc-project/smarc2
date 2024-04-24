@@ -13,12 +13,13 @@ class ROSMissionPlan(MissionPlan):
     def __init__(self,
                  node: Node,
                  plan_id: str,
+                 hash: str,
                  waypoints: list[IWaypoint]) -> None:
         """
         Same mission plan, but this one logs into ros
         and publishes into a topic its state when needed.
         """
-        super().__init__(plan_id, waypoints)
+        super().__init__(plan_id, hash, waypoints)
         self._node = node
 
         self._complete_pub = self._node.create_publisher(Empty, MissionTopics.MISSION_COMPLETE_TOPIC, 10)

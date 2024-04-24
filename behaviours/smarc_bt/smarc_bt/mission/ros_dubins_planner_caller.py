@@ -146,6 +146,7 @@ class ROSDubinsPlannerCaller:
         wp_list.reverse()
         new_plan = ROSMissionPlan(self._mission_plan._node,
                                   self._mission_plan._plan_id,
+                                  self._mission_plan._hash,
                                   wp_list)
         self._mission_plan = new_plan
 

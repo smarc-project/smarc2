@@ -22,6 +22,7 @@ class MissionPlanStates(enum.Enum):
 class MissionPlan():
     def __init__(self,
                  plan_id: str,
+                 hash: str,
                  waypoints: list[IWaypoint]) -> None:
         """
         A mission plan object that keeps track of mission state

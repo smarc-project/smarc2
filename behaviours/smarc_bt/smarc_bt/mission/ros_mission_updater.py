@@ -192,7 +192,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
         self._ll_converter.reset()
         waypoints = [SMaRCWP(wp) for wp in msg.waypoints]
-        new_plan = ROSMissionPlan(self._node, msg.name, waypoints)
+        new_plan = ROSMissionPlan(self._node, msg.name, msg.hash, waypoints)
 
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
         self._log(f"New mission {msg.name} set!")
