@@ -76,9 +76,11 @@ class ROSMissionUpdater(IBBMissionUpdater):
         msg = self._latest_mission_control_msg
         if msg is None: return
 
-        if msg.command == MissionControl.CMD_IS_FEEDBACK: return
+        elif msg.command == MissionControl.CMD_IS_FEEDBACK:
+            self._latest_mission_control_msg = None
+            return
 
-        if msg.command == MissionControl.CMD_SET_PLAN:
+        elif msg.command == MissionControl.CMD_SET_PLAN:
             self._log("SET PLAN")
             msg = self._save_load_plan(msg)
             if msg is None:
@@ -86,27 +88,34 @@ class ROSMissionUpdater(IBBMissionUpdater):
             else:
                 self._ll_converter.call(msg)
             
-
-        if msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
+        elif msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
             self._log("REQUEST FEEDBACK not implemented")
-        
+            self._latest_mission_control_msg = None
+            return
 
-        # following commands all rely on there being a mission plan
-        mission_plan = self._get_mission_plan()
-        if mission_plan is None: return
+        else:
+            # following commands all rely on there being a mission plan
+            mission_plan = self._get_mission_plan()
+            if mission_plan is None:
+                self._latest_mission_control_msg = None
+                return
 
+            if msg.command == MissionControl.CMD_EMERGENCY:
+                mission_plan.emergency()
 
-        if msg.command == MissionControl.CMD_EMERGENCY:
-            mission_plan.emergency()
+            elif msg.command == MissionControl.CMD_START:
+                mission_plan.start()
 
-        if msg.command == MissionControl.CMD_START:
-            mission_plan.start()
+            elif msg.command == MissionControl.CMD_PAUSE:
+                mission_plan.pause()
 
-        if msg.command == MissionControl.CMD_PAUSE:
-            mission_plan.pause()
+            elif msg.command == MissionControl.CMD_STOP:
+                mission_plan.stop() 
 
-        if msg.command == MissionControl.CMD_STOP:
-            mission_plan.stop()
+            else:
+                self._log(f"Unknown mission control command: {msg.command}")
+                self._latest_mission_control_msg = None
+                return
         
         self._latest_mission_control_msg = None
 

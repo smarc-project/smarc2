@@ -84,6 +84,8 @@ class ROSBBUpdater(IBBUpdater):
             ]
         ))
 
+    def _log(self, s):
+        self._node.get_logger().info(s)
 
     def _bt_cmd_cb(self, msg: BTCommand):
         if msg.msg_type == BTCommand.TYPE_FB: return
@@ -95,8 +97,9 @@ class ROSBBUpdater(IBBUpdater):
 
         try:
             cmd_json = json.loads(msg.cmd_json)
-            print(f"cmdjson:{cmd_json}")
+            self._log(f"cmdjson:{cmd_json}")
         except:
+            self._log(f"Could not parse string as json, ignoring. String:\n{cmd_json}")
             return
         
         cmd = cmd_json['cmd']
