@@ -12,8 +12,8 @@ from smarc_mission_msgs.msg import BTCommand, GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
 
-from .utm_lat_lon_converter_caller import UTMLatLonConverterCaller
-from .dubins_planner_caller import DubinsPlannerCaller
+from .ros_utm_lat_lon_converter_caller import ROSUTMLatLonConverterCaller
+from .ros_dubins_planner_caller import ROSDubinsPlannerCaller
 
 from .i_bb_mission_updater import IBBMissionUpdater
 from .ros_mission_plan import ROSMissionPlan
@@ -44,8 +44,8 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                           10)
         
                 
-        self._ll_converter = UTMLatLonConverterCaller(node)
-        self._dubins_planner = DubinsPlannerCaller(node)
+        self._ll_converter = ROSUTMLatLonConverterCaller(node)
+        self._dubins_planner = ROSDubinsPlannerCaller(node)
         
 
     def _mission_control_cb(self, msg:MissionControl):

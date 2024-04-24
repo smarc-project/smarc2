@@ -36,7 +36,7 @@ def _directed_angle(v1,v2):
     return angle_diff
 
 
-class DubinsPlannerCaller:
+class ROSDubinsPlannerCaller:
     def __init__(self, node: Node) -> None:
         self._node = node
         self._dubins_planner = self._node.create_client(DubinsPlan,
@@ -178,11 +178,12 @@ def test_dubins_planner_caller():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("dubins_planner_caller_tester")
 
-    caller = DubinsPlannerCaller(node)
+    caller = ROSDubinsPlannerCaller(node)
 
     step = 0.5
     turning_rad = 5.0
     # x,y,heading
+    # heading is compass heading, so 0=north, 90=east
     points = [
         (0.0,  0.0, 0.0 ),
         (10.0, 0.0, 0.0 ),
@@ -207,7 +208,7 @@ def test_dubins_planner_caller():
     wp1.pose.pose.position.x = points[0][0]
     wp1.pose.pose.position.y = points[0][1]
     wp1.arrival_heading = points[0][2]
-    wp1.use_heading = False
+    wp1.use_heading = True
 
     wp2 = GotoWaypoint()
     wp2.name = "two"
@@ -221,7 +222,7 @@ def test_dubins_planner_caller():
     wp3.pose.pose.position.x = points[2][0]
     wp3.pose.pose.position.y = points[2][1]
     wp3.arrival_heading = points[2][2]
-    wp3.use_heading = False
+    wp3.use_heading = True
 
 
     wps = [

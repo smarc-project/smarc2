@@ -4,7 +4,7 @@ from smarc_mission_msgs.msg import MissionControl, Topics as MissionTopics
 from smarc_mission_msgs.srv import UTMLatLon
 
 
-class UTMLatLonConverterCaller:
+class ROSUTMLatLonConverterCaller:
     def __init__(self, node: Node) -> None:
         self._node = node
         self._ll_utm_converter = self._node.create_client(UTMLatLon,
