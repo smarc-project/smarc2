@@ -13,6 +13,7 @@ from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
+from ..mission.i_mission_publisher import IMissionPublisher
 
 
 class A_Abort(VehicleBehaviour):
@@ -86,3 +87,14 @@ class A_ProcessBTCommand(Behaviour):
         self.feedback_message = "Invalid state of action?"
         return Status.FAILURE
 
+
+class A_PublishCurrentMission(Behaviour):
+    def __init__(self, mission_publisher: IMissionPublisher):
+        super().__init__(self.__class__.__name__)
+        self._mission_pub = mission_publisher
+
+
+    def update(self) -> Status:
+        r = self._mission_pub.publish()
+        self.feedback_message = self._mission_pub._feedback_message
+        return bool_to_status(r)

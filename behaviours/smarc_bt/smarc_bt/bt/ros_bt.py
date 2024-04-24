@@ -14,6 +14,7 @@ from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
+from ..mission.i_mission_publisher import IMissionPublisher
 
 from .conditions import C_CheckMissionPlanState,\
                         C_CheckVehicleSensorState,\
@@ -24,7 +25,8 @@ from .conditions import C_CheckMissionPlanState,\
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
-                     A_ProcessBTCommand
+                     A_ProcessBTCommand,\
+                     A_PublishCurrentMission
 
 import operator
 
@@ -32,8 +34,10 @@ import operator
 class ROSBT(HasVehicleContainer):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
-                 bb_updater: IBBUpdater = None,
-                 mission_updater: IBBMissionUpdater = None):
+                 mission_publisher: IMissionPublisher,
+                 bb_updater: IBBUpdater,
+                 mission_updater: IBBMissionUpdater,
+                 ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
             returns a vehicles.vehicle.IVehicleState type of object.
@@ -43,6 +47,7 @@ class ROSBT(HasVehicleContainer):
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
+        self._mission_publisher = mission_publisher
 
         self._last_state_str = ""
 
@@ -71,7 +76,7 @@ class ROSBT(HasVehicleContainer):
         return safety_tree
     
     def _run_tree(self):
-        finalize_mission = Sequence("S_FinalizeMission", memory=False, children=[
+        finalize_mission = Sequence("S_Finalize_Mission", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
             A_UpdateMissionPlan(MissionPlan.complete)
         ])
@@ -87,8 +92,16 @@ class ROSBT(HasVehicleContainer):
             follow_wp_plan
         ])
 
+        publish_mission = Sequence("S_Publish_Mission_Plan",
+                                   memory=False,
+                                   children=[
+                                       C_CheckMissionPlanState(MissionPlanStates.RECEIVED),
+                                       A_PublishCurrentMission(self._mission_publisher)
+                                   ])
+
         run = Fallback("F_Run", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.STOPPED),
+            publish_mission,
             finalize_mission,
             mission
         ])
@@ -106,17 +119,13 @@ class ROSBT(HasVehicleContainer):
         ])
 
         self._bt = pt.trees.BehaviourTree(root)
-        self._update_bb()
+        self._bb_updater.update_bb()
         return self._bt.setup()
 
 
-    def _update_bb(self):
-        if self._bb_updater:
-            self._bb_updater.update_bb()
-
 
     def tick(self):
-        self._update_bb()
+        self._bb_updater.update_bb()
         self._mission_updater.tick()
         self._bt.tick()
 
@@ -126,6 +135,7 @@ def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
     from .ros_bb_updater import ROSBBUpdater
     from ..mission.ros_mission_updater import ROSMissionUpdater
+    from ..mission.ros_mission_publisher import ROSMissionPublisher
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
@@ -134,7 +144,11 @@ def test_sam_bt():
     sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
-    bt = ROSBT(sam, sam_bbu, ros_mission_updater)
+    ros_mission_publisher = ROSMissionPublisher(node)
+    bt = ROSBT(vehicle_container = sam,
+               bb_updater = sam_bbu,
+               mission_updater = ros_mission_updater,
+               mission_publisher = ros_mission_publisher)
     bt.setup()
 
     bt_str = ""

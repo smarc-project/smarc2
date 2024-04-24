@@ -39,10 +39,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                             self._mission_control_cb,
                                                             10)
         
-        self._mission_control_pub = node.create_publisher(MissionControl,
-                                                          MissionTopics.MISSION_CONTROL_TOPIC,
-                                                          10)
-        
                 
         self._ll_converter = ROSUTMLatLonConverterCaller(node)
         self._dubins_planner = ROSDubinsPlannerCaller(node)
@@ -64,7 +60,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
     def tick(self):
         """
-        Handle the mission control message synchronously with a BT so that the input the the BT
+        Handle the mission control message synchronously with a BT so that the input to the BT
         can not change _during_ its tick.
         """
         # see if there is a plan to set from before
