@@ -9,4 +9,4 @@ class IBBMissionUpdater():
     def _log(self, s:str): pass
 
     def tick(self): pass
-    def plan_dubins(self, turning_radius:float = None): pass
+    def plan_dubins(self, turning_radius:float = None, step_size:float = None): pass

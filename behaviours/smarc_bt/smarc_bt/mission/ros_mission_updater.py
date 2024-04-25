@@ -188,7 +188,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
     
     def _try_set_plan(self):
         if not self._ll_utm_converter.done: return
-        if self._filling_latlon: return
 
         new_wps = self._ll_utm_converter.get_result()
         if new_wps is None: return
@@ -214,7 +213,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
 
 
-    def plan_dubins(self):
+    def plan_dubins(self, turning_radius:float = None, step_size:float = None):
         mplan = self._get_mission_plan()
         if mplan is None: return
 
@@ -224,7 +223,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         if step_size is None:
             step_size = self._bb.get(BBKeys.DUBINS_STEP_SIZE)
 
-        self._dubins_planner.call(mplan, turning_radius, step_size, self._ll_utm_converter)
+        self._dubins_planner.call(mplan, turning_radius, step_size)
 
 
 

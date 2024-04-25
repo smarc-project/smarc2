@@ -79,7 +79,7 @@ class A_ProcessBTCommand(Behaviour):
         if cmd == "plan_dubins":
             # the arg should be a float coming from the interacter, if any
             if(arg): arg = float(arg)
-            self._mission_updater.plan_dubins(arg)
+            self._mission_updater.plan_dubins(turning_radius=arg)
             self.feedback_message = "Plan dubins called"
             return Status.SUCCESS
 
