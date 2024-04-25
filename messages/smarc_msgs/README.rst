@@ -59,8 +59,9 @@ The following rules of thumbs holds for all interfaces:
 
 * Always SI units unless otherwise specified
 * All distances and positions are in meters (m) unless otherwise specified
-* All angles except lat/lon are reported in radians (rad).
+* All angles except lat/lon and compass heading are reported in radians (rad).
 * Latitude/longitude coordinates are in degrees (deg)
+* compass heading is reported in degrees (deg)
 * All speeds are in meters per second (m/s)
 * All temperatures are in degrees celsius (deg C)
 * Conductivity is reported as milli-Siemens per centimeter (mS/cm)
@@ -253,14 +254,17 @@ Note that the odometry topic may be used to construct the TF transformations.
 In general, the TF tree will be used to construct the convenience topics:
 latitude, longitude, depth, yaw, pitch and roll.
 
+SEE dead_reckoning_msgs package
+
 **Topics**
 
 * Dead reckoning odometry (poses, velocities and uncertainties) - ``nav_msgs/Odometry`` on topic ``/vehicle/dr/odom``
 * Latitude longitude position - ``geographic_msgs/GeoPoint`` on ``/vehicle/dr/lat_lon``
 * Estimated depth - ``std_msgs/Float64`` on ``/vehicle/dr/depth``
-* Estimated yaw - ``std_msgs/Float64`` on ``/vehicle/dr/yaw``
+* Estimated yaw (ENU) - ``std_msgs/Float64`` on ``/vehicle/dr/yaw``
 * Estimated pitch - ``std_msgs/Float64`` on ``/vehicle/dr/pitch``
 * Estimated roll - ``std_msgs/Float64`` on ``/vehicle/dr/roll``
+* Estimated heading (NED) - ``std_msgs/Float64`` on ``/vehicle/dr/heading``
 
 TF
 --
