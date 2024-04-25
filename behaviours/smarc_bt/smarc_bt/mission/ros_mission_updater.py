@@ -219,6 +219,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         for wp, utm_point in zip(mc.waypoints, response.utm_points):
             wp.pose.pose.position.x = utm_point.point.x
             wp.pose.pose.position.y = utm_point.point.y
+            wp.pose.header.frame_id = utm_point.header.frame_id
             
         wps = [ROSWP(wp) for wp in mc.waypoints]
         new_plan = ROSMissionPlan(self._node, mc.name, mc.hash, wps)
@@ -313,15 +314,33 @@ class ROSMissionUpdater(IBBMissionUpdater):
             new_goto_wp.pose.pose.position.y = dubins_wps[i].y
             new_goto_wp.arrival_heading = _yaw_to_heading(dubins_wps[i].theta)
             new_goto_wp.name = f"({i})_{new_goto_wp.name}"
-            new_wp = ROSWP(new_goto_wp)
-            wp_list.append(new_wp)
+            wp_list.append(new_goto_wp)
 
         # since we went backwards when filling this...
         wp_list.reverse()
+
+        # and now, for the final act, we want latlon in each and every WP in the plan!
+        request = UTMLatLon.Request()
+        request.utm_points = []
+        for goto_wp in wp_list:
+            ps = PointStamped()
+            ps.point.x = goto_wp.pose.pose.position.x
+            ps.point.y = goto_wp.pose.pose.position.y
+            ps.header.frame_id = goto_wp.pose.header.frame_id
+            request.utm_points.append(ps)
+
+        response = GeoConverterService.convert(request, UTMLatLon.Response())
+        for goto_wp, latlon_point in zip(wp_list, response.lat_lon_points):
+            goto_wp.lat = latlon_point.latitude
+            goto_wp.lon = latlon_point.longitude
+
+        # and FINALLY, we can make a  mission out of these
+        wp_list = [ROSWP(wp) for wp in wp_list]
         new_plan = ROSMissionPlan(self._node,
                                   mplan._plan_id,
                                   mplan._hash,
                                   wp_list)
+        
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
         self._log(f"Mission {new_plan._plan_id}({new_plan._hash}) dubinsified!")
 
