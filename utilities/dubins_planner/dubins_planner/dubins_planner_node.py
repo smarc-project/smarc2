@@ -15,11 +15,11 @@ class DubinsPlannerService:
         self._node = node
         self._dubins_service = self._node.create_service(DubinsPlan,
                                                           MissionTopics.DUBINS_SERVICE,
-                                                          self._dubins_cb)
+                                                          DubinsPlannerService.dubins_cb)
         
         self._node.get_logger().info(f"Dubins planner service available on:{MissionTopics.DUBINS_SERVICE}")
         
-    def _dubins_cb(self, request, response):
+    def dubins_cb(request:DubinsPlan.Request, response:DubinsPlan.Response):
         # the request has a field .waypoints that contains a buch of pose2D objects
         # we convert that to the waypoint object of the dubins planner
         # and pass that on

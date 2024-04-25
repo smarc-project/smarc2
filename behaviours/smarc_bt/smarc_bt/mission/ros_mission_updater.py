@@ -20,6 +20,7 @@ from .ros_mission_plan import ROSMissionPlan
 from .ros_waypoint import SMaRCWP
 from ..bt.bb_keys import BBKeys
 
+from dubins_planner.dubins_planner_node import DubinsPlannerService
 
 class ROSMissionUpdater(IBBMissionUpdater):
     def __init__(self,
