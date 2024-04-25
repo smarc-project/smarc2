@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os, json
+import numpy as np
 
 from rosidl_runtime_py.set_message import set_message_fields
 from rosidl_runtime_py.convert import message_to_ordereddict
@@ -8,19 +9,45 @@ from rosidl_runtime_py.convert import message_to_ordereddict
 from rclpy.node import Node
 from py_trees.blackboard import Blackboard
 
-from smarc_mission_msgs.msg import BTCommand, GotoWaypoint, MissionControl
+from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
 
-from .ros_utm_lat_lon_converter_caller import ROSLatLonUTMConverterCaller
-from .ros_dubins_planner_caller import ROSDubinsPlannerCaller
-
 from .i_bb_mission_updater import IBBMissionUpdater
 from .ros_mission_plan import ROSMissionPlan
-from .ros_waypoint import SMaRCWP
+from .ros_waypoint import ROSWP
 from ..bt.bb_keys import BBKeys
 
+from smarc_mission_msgs.srv import DubinsPlan
+from geometry_msgs.msg import Pose2D
 from dubins_planner.dubins_planner_node import DubinsPlannerService
+
+from geographic_msgs.msg import GeoPoint
+from geometry_msgs.msg import PointStamped
+from smarc_mission_msgs.srv import UTMLatLon
+from utm_latlon_converter.converter_service_node import GeoConverterService
+
+
+# Because the dubins planner uses X=right, Y=up, CCW angles
+# while mission plans have X=East, Y=North, and compass heading where 0=north 90=east
+def _heading_to_yaw(a):
+    return (90-a)%360
+def _yaw_to_heading(b):
+    return (-(b-90))%360
+def _directed_angle(v1,v2):
+    """
+    returns angle in a directed fashion, from v1 to v2, v1+angle = v2
+    negative value means v2 is closer if v1 rotates cw
+    """
+    x1,x2 = v1[0],v2[0]
+    y1,y2 = v1[1],v2[1]
+
+    dot = x1*x2 + y1*y2      # dot product
+    det = x1*y2 - y1*x2      # determinant
+    angle_diff = np.arctan2(det, dot)  # atan2(y, x) or atan2(sin, cos)
+
+    return angle_diff
+
 
 class ROSMissionUpdater(IBBMissionUpdater):
     def __init__(self,
@@ -39,17 +66,13 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                             MissionTopics.MISSION_CONTROL_TOPIC,
                                                             self._mission_control_cb,
                                                             10)
-        
-                
-        self._ll_utm_converter = ROSLatLonUTMConverterCaller(node)
-        self._dubins_planner = ROSDubinsPlannerCaller(node)
+    
         
 
     def _mission_control_cb(self, msg:MissionControl):
         self._latest_mission_control_msg = msg
 
-
-    def _get_mission_plan(self) -> ROSMissionPlan:
+    def __get_mission_plan(self) -> ROSMissionPlan:
         mission_plan = self._bb.get(BBKeys.MISSION_PLAN)
         if mission_plan is None:
             self._log("No mission plan to modify!")
@@ -58,17 +81,41 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
         return mission_plan
 
+    def __save_mission(self, msg):
+        if "TEST--" in msg.name:
+            self._log("Test mission, not saving")
+            return
+
+        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
+        path = os.path.expanduser(folder)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        filename = os.path.join(path, f"{msg.name}.json")
+        with open(filename, 'w') as f:
+            oredered_dict = message_to_ordereddict(msg)
+            j = json.dumps(oredered_dict)
+            f.write(j)
+            self._log(f"Wrote mission {filename}")
+
+    def __load_mission(self, msg):
+        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
+        path = os.path.expanduser(folder)
+        filename = os.path.join(path, f"{msg.name}.json")
+        with open(filename, 'r') as f:
+            j = f.read()
+            mc = MissionControl()
+            set_message_fields(mc, j)
+
+        self._log("Loaded mission {msg.name} from file!")
+        return mc
+
 
     def tick(self):
         """
         Handle the mission control message synchronously with a BT so that the input to the BT
         can not change _during_ its tick.
         """
-        # see if there is a plan to set from before
-        self._try_set_plan()
-        # or are we waiting for dubins service?
-        self._try_set_dubins_plan()
-
         # Process the last mission control msg we got
         # and then set it to None
         msg = self._latest_mission_control_msg
@@ -84,8 +131,8 @@ class ROSMissionUpdater(IBBMissionUpdater):
             if msg is None:
                 self._log("SET PLAN failed due to save/load function.")
             else:
-                self._ll_utm_converter.call_latlon_to_utm(msg.waypoints)
-                self._ll_converting_msg = msg
+                self._set_plan(msg)
+    
             
         elif msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
             self._log("REQUEST FEEDBACK not implemented")
@@ -94,7 +141,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
         else:
             # following commands all rely on there being a mission plan
-            mission_plan = self._get_mission_plan()
+            mission_plan = self.__get_mission_plan()
             if mission_plan is None:
                 self._latest_mission_control_msg = None
                 return
@@ -122,34 +169,6 @@ class ROSMissionUpdater(IBBMissionUpdater):
     def _log(self, s:str):
         self._node.get_logger().info(s)
 
-    def _save_mission(self, msg):
-        if "TEST--" in msg.name:
-            self._log("Test mission, not saving")
-            return
-
-        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
-        path = os.path.expanduser(folder)
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        filename = os.path.join(path, f"{msg.name}.json")
-        with open(filename, 'w') as f:
-            oredered_dict = message_to_ordereddict(msg)
-            j = json.dumps(oredered_dict)
-            f.write(j)
-            self._log(f"Wrote mission {filename}")
-
-    def _load_mission(self, msg):
-        folder = self._bb.get(BBKeys.MISSION_PLAN_STORAGE)
-        path = os.path.expanduser(folder)
-        filename = os.path.join(path, f"{msg.name}.json")
-        with open(filename, 'r') as f:
-            j = f.read()
-            mc = MissionControl()
-            set_message_fields(mc, j)
-
-        self._log("Loaded mission {msg.name} from file!")
-        return mc
 
     def _save_load_plan(self, msg: MissionControl) -> MissionControl:
         """
@@ -168,7 +187,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         if(msg.name != "" and msg.hash != "" and len(msg.waypoints) == 0):
             # try to load a mission from file
             try:
-                loaded_msg = self._load_mission(msg)
+                loaded_msg = self.__load_mission(msg)
             except:
                 self._log(f"Could not load mission with name: {msg.name}")
                 return None
@@ -183,39 +202,31 @@ class ROSMissionUpdater(IBBMissionUpdater):
 
         # we either got a proper full mission message
         # or the loaded mission message is good to use
-        self._save_mission(msg)
-
+        self.__save_mission(msg)
         return msg
-    
-    def _try_set_plan(self):
-        if not self._ll_utm_converter.done: return
 
-        new_wps = self._ll_utm_converter.get_result()
-        if new_wps is None: return
+    def _set_plan(self, mc: MissionControl):
+        request = UTMLatLon.Request()
+        request.lat_lon_points = []
+        for wp in mc.waypoints:
+            gp = GeoPoint()
+            gp.latitude = wp.lat
+            gp.longitude = wp.lon
+            request.lat_lon_points.append(gp)
 
-        self._ll_utm_converter.reset()
-        waypoints = [SMaRCWP(wp) for wp in new_wps]
-        new_plan = ROSMissionPlan(self._node, self._ll_converting_msg.name, self._ll_converting_msg.hash, waypoints)
+        response = GeoConverterService.convert(request, UTMLatLon.Response())
 
+        for wp, utm_point in zip(mc.waypoints, response.utm_points):
+            wp.pose.pose.position.x = utm_point.point.x
+            wp.pose.pose.position.y = utm_point.point.y
+            
+        wps = [ROSWP(wp) for wp in mc.waypoints]
+        new_plan = ROSMissionPlan(self._node, mc.name, mc.hash, wps)
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
         self._log(f"New mission {new_plan._plan_id}({new_plan._hash}) set!")
-        self._ll_converting_msg = None
-
-
-    def _try_set_dubins_plan(self):
-        if not self._dubins_planner.done: return
-        
-        new_plan = self._dubins_planner.get_result()
-        if new_plan is None: return
-
-        self._dubins_planner.reset()
-        self._bb.set(BBKeys.MISSION_PLAN, new_plan)
-        self._log(f"Mission {new_plan._plan_id} has been dubinifed!")
-
-
 
     def plan_dubins(self, turning_radius:float = None, step_size:float = None):
-        mplan = self._get_mission_plan()
+        mplan = self.__get_mission_plan()
         if mplan is None: return
 
         if turning_radius is None:
@@ -224,7 +235,95 @@ class ROSMissionUpdater(IBBMissionUpdater):
         if step_size is None:
             step_size = self._bb.get(BBKeys.DUBINS_STEP_SIZE)
 
-        self._dubins_planner.call(mplan, turning_radius, step_size)
+        request = DubinsPlan.Request()
+        request.step = float(step_size)
+        request.turning_radius = float(turning_radius)
+        request.waypoints = []
+
+        planar_wps = mplan.planar_wps
+        for i,wp in enumerate(planar_wps):
+            # planar wps is [x,y,heading]
+            # we want [x,y,yaw]
+            p2d = Pose2D()
+            p2d.x = wp[0]
+            p2d.y = wp[1]
+            # The WP might not have a heading defined
+            # in this case we want the heading to be towards
+            # the next WP in the plan for it.
+            # for a plan: A B C. if none of them have a specificed
+            # arrival heading, A should head towards B, B to C and C from B
+            if wp[2] is not None:
+                p2d.theta = _heading_to_yaw(wp[2])
+            else:
+                # if this is the last WP, heading should be
+                # "from the previous WP"
+                if i == len(planar_wps)-1:
+                    prev_wp = planar_wps[i-1]
+                    a = _directed_angle((1,0), (wp[0]-prev_wp[0], wp[1]-prev_wp[1]))
+                    p2d.theta = np.rad2deg(a)
+                else:
+                    next_wp = planar_wps[i+1]
+                    a = _directed_angle((1,0), (next_wp[0]-wp[0], next_wp[1]-wp[1]))
+                    p2d.theta = np.rad2deg(a)
+            request.waypoints.append(p2d)
+
+        response = DubinsPlannerService.dubins_cb(request, DubinsPlan.Response())
+
+        # the interpolated waypoints
+        # these include the original wps
+        dubins_wps = response.waypoints
+        # which of the waypoints are "original"
+        # we can do index-mapping from these
+        # to the original mission plan object
+        # to recover all the details of the originals
+        # that the dubins planner didnt want
+        og_indices = response.original_wp_indices
+
+        # we want to create SMaRCWPs using
+        # GotoWaypoint objects.
+        # The interpolated WPs need depth/alti etc. fields
+        # as well. So we copy them from the original wps of the mission.
+        # Each interpolated WP should have the properties of the
+        # original WP that it is going TOWARDS.
+        # if A 1 2 3 B 4 5 6 C and ABC are original WPs and 123.. are interpolated
+        # then 1,2,3 should have B's properties, 4,5,6 should have C's.
+        # we have a list for ABC in the original mplan
+        # and we have a list for A123B456C in the dubins plan
+        # and we have a list for [0, 4, 8] to identify ABC' in A123B456C
+        # this is all easier going backwards, then we simply pop from the 
+        # OG wps as we see their index in the index list and assign wps its values
+        # until we see the next og index
+        og_wp_dict = None
+        wp_list = []
+        for i in reversed(range(len(dubins_wps))):
+            if i == og_indices[-1]:
+                og_indices.pop()
+                og_wp = mplan._waypoints.pop().goto_wp
+                og_wp_dict = message_to_ordereddict(og_wp)
+                
+            # first, create a clone of the original wp
+            # planning only changes the x,y,heading fields
+            # so we can over-write those afterwards
+            new_goto_wp = GotoWaypoint()
+            set_message_fields(new_goto_wp, og_wp_dict)
+            # now we can over-write the x,y,heading of this
+            # new interpolated wp from its own
+            new_goto_wp.use_heading = True
+            new_goto_wp.pose.pose.position.x = dubins_wps[i].x
+            new_goto_wp.pose.pose.position.y = dubins_wps[i].y
+            new_goto_wp.arrival_heading = _yaw_to_heading(dubins_wps[i].theta)
+            new_goto_wp.name = f"({i})_{new_goto_wp.name}"
+            new_wp = ROSWP(new_goto_wp)
+            wp_list.append(new_wp)
+
+        # since we went backwards when filling this...
+        wp_list.reverse()
+        new_plan = ROSMissionPlan(self._node,
+                                  mplan._plan_id,
+                                  mplan._hash,
+                                  wp_list)
+        self._bb.set(BBKeys.MISSION_PLAN, new_plan)
+        self._log(f"Mission {new_plan._plan_id}({new_plan._hash}) dubinsified!")
 
 
 

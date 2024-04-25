@@ -8,7 +8,7 @@ from smarc_mission_msgs.msg import Topics as MissionTopics
 
 from ..bt.bb_keys import BBKeys
 from .i_mission_publisher import IMissionPublisher
-from .ros_waypoint import SMaRCWP
+from .ros_waypoint import ROSWP
 
 class ROSMissionPublisher(IMissionPublisher):
     def __init__(self,
@@ -51,10 +51,10 @@ class ROSMissionPublisher(IMissionPublisher):
             return True
         
         for wp in mplan._waypoints:
-            if type(wp) != SMaRCWP:
+            if type(wp) != ROSWP:
                 self._feedback_message = f"Plan {mc.name} had a non-ros WP in it."
                 return False
-            mc.waypoints.append(wp._goto_wp)
+            mc.waypoints.append(wp.goto_wp)
 
         self._mission_control_pub.publish(mc)
         self._feedback_message = f"Published plan:{mc.name} with {len(mc.waypoints)} wps"
