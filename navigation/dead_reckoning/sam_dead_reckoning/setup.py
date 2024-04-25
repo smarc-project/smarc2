@@ -27,7 +27,8 @@ setup(
         'console_scripts': [
             'dr_node = sam_dead_reckoning.dr_node:main',
             'gps_node = sam_dead_reckoning.gps_node:main',
-            'depth_node = sam_dead_reckoning.press_to_depth:main'
+            'depth_node = sam_dead_reckoning.press_to_depth:main',
+            'heading_node = sam_dead_reckoning.sbg_imu_2_heading:main'
         ],
     },
 )

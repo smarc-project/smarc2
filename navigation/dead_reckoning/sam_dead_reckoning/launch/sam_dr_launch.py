@@ -53,7 +53,15 @@ def generate_launch_description():
                 "dr_period": 0.02,
                 "simulation": True
             }]
+        ),
+        Node(
+            package="sam_dead_reckoning",
+            executable="heading_node",
+            namespace=namespace,
+            name="heading_node",
+            output="screen"
         )
+
     ])
 
 
