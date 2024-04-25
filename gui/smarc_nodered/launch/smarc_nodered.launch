@@ -1,5 +1,5 @@
 <launch>
-  <arg name="robot_name" default="sam"/>
+  <arg name="robot_name" default="sam0"/>
   <arg name="broker_addr" default="20.240.40.232"/>
   <arg name="broker_port" default="1884"/>
   <!-- If you want to use the local node-red and mqtt brokers: -->
