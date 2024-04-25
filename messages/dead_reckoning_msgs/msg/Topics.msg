@@ -12,8 +12,13 @@ string DR_ODOM_TOPIC = 'dr/odom'  # Type: Odometry
 string DR_DEPTH_POSE_TOPIC = 'dr/depth_pose'  # Type: PoseWithCovarianceStamped
 string DR_GPS_ODOM_TOPIC = 'dr/gps_odom'  # Type: Odometry
 
+# IMU
 string DR_ROLL_TOPIC = 'dr/roll'  # Type: Float64
 string DR_PITCH_TOPIC = 'dr/pitch'  # Type: Float64
+string DR_YAW_TOPIC = 'dr/yaw'  # Type: Float64
+
+# DEPTH
 string DR_DEPTH_TOPIC = 'dr/depth'  # Type: Float64
 
-string DR_HEADING_TOPIC = 'dr/heading'  # Type: Float64
+# Other
+string DR_COMPASS_HEADING_TOPIC = 'dr/compass_heading'  # Type: Float64

@@ -28,7 +28,8 @@ setup(
             'dr_node = sam_dead_reckoning.dr_node:main',
             'gps_node = sam_dead_reckoning.gps_node:main',
             'depth_node = sam_dead_reckoning.press_to_depth:main',
-            'heading_node = sam_dead_reckoning.sbg_imu_2_heading:main'
+            'rpy_node = sam_dead_reckoning.sbg_imu_2_rpy_enu:main',
+            'compass_heading_node = sam_dead_reckoning.yaw_enu_2_compass_heading:main'
         ],
     },
 )
