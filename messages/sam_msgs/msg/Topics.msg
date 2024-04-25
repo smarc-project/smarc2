@@ -13,6 +13,7 @@ string THRUSTER1_CMD_TOPIC = 'core/thruster1_cmd'
 string THRUSTER2_CMD_TOPIC = 'core/thruster2_cmd'
 string THRUST_VECTOR_CMD_TOPIC = 'core/thrust_vector_cmd'
 
+string DEPTH_TOPIC = 'core/depth20_pressure'
 string DVL_TOPIC = 'core/dvl'
 string LEAK_TOPIC = 'core/leak'
 string VBS_FB_TOPIC = 'core/vbs_fb'
