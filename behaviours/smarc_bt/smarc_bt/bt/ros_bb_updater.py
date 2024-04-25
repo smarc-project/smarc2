@@ -72,7 +72,7 @@ class ROSBBUpdater(IBBUpdater):
             ]
         ))
 
-        node.declare_parameter(BBKeys.DUBINS_STEP_SIZE.name, 1.0, ParameterDescriptor(
+        node.declare_parameter(BBKeys.DUBINS_STEP_SIZE.name, 5.0, ParameterDescriptor(
             name = BBKeys.DUBINS_STEP_SIZE.name,
             description = "How far apart points on a dubins plan should be.",
             floating_point_range = [

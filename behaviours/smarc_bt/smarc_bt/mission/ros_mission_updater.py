@@ -12,7 +12,7 @@ from smarc_mission_msgs.msg import BTCommand, GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
 
-from .ros_utm_lat_lon_converter_caller import ROSUTMLatLonConverterCaller
+from .ros_utm_lat_lon_converter_caller import ROSLatLonUTMConverterCaller
 from .ros_dubins_planner_caller import ROSDubinsPlannerCaller
 
 from .i_bb_mission_updater import IBBMissionUpdater
@@ -40,7 +40,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                             10)
         
                 
-        self._ll_converter = ROSUTMLatLonConverterCaller(node)
+        self._ll_utm_converter = ROSLatLonUTMConverterCaller(node)
         self._dubins_planner = ROSDubinsPlannerCaller(node)
         
 
@@ -65,6 +65,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         """
         # see if there is a plan to set from before
         self._try_set_plan()
+        # or are we waiting for dubins service?
         self._try_set_dubins_plan()
 
         # Process the last mission control msg we got
@@ -80,9 +81,10 @@ class ROSMissionUpdater(IBBMissionUpdater):
             self._log("SET PLAN")
             msg = self._save_load_plan(msg)
             if msg is None:
-                self._log("SET PLAN failed")
+                self._log("SET PLAN failed due to save/load function.")
             else:
-                self._ll_converter.call(msg)
+                self._ll_utm_converter.call_latlon_to_utm(msg.waypoints)
+                self._ll_converting_msg = msg
             
         elif msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
             self._log("REQUEST FEEDBACK not implemented")
@@ -185,17 +187,19 @@ class ROSMissionUpdater(IBBMissionUpdater):
         return msg
     
     def _try_set_plan(self):
-        if not self._ll_converter.done: return
+        if not self._ll_utm_converter.done: return
+        if self._filling_latlon: return
 
-        msg = self._ll_converter.get_result()
-        if msg is None: return
+        new_wps = self._ll_utm_converter.get_result()
+        if new_wps is None: return
 
-        self._ll_converter.reset()
-        waypoints = [SMaRCWP(wp) for wp in msg.waypoints]
-        new_plan = ROSMissionPlan(self._node, msg.name, msg.hash, waypoints)
+        self._ll_utm_converter.reset()
+        waypoints = [SMaRCWP(wp) for wp in new_wps]
+        new_plan = ROSMissionPlan(self._node, self._ll_converting_msg.name, self._ll_converting_msg.hash, waypoints)
 
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
-        self._log(f"New mission {msg.name} set!")
+        self._log(f"New mission {new_plan._plan_id}({new_plan._hash}) set!")
+        self._ll_converting_msg = None
 
 
     def _try_set_dubins_plan(self):
@@ -204,8 +208,9 @@ class ROSMissionUpdater(IBBMissionUpdater):
         new_plan = self._dubins_planner.get_result()
         if new_plan is None: return
 
+        self._dubins_planner.reset()
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
-        self._log(f"Mission {new_plan.name} has been dubinifed!")
+        self._log(f"Mission {new_plan._plan_id} has been dubinifed!")
 
 
 
@@ -213,9 +218,13 @@ class ROSMissionUpdater(IBBMissionUpdater):
         mplan = self._get_mission_plan()
         if mplan is None: return
 
-        turning_radius = self._bb.get(BBKeys.DUBINS_TURNING_RADIUS)
-        step_size = self._bb.get(BBKeys.DUBINS_STEP_SIZE)
-        self._dubins_planner.call(mplan, turning_radius, step_size)
+        if turning_radius is None:
+            turning_radius = self._bb.get(BBKeys.DUBINS_TURNING_RADIUS)
+
+        if step_size is None:
+            step_size = self._bb.get(BBKeys.DUBINS_STEP_SIZE)
+
+        self._dubins_planner.call(mplan, turning_radius, step_size, self._ll_utm_converter)
 
 
 

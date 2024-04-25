@@ -31,7 +31,7 @@ class MissionPlan():
         """
         self._state = MissionPlanStates.RECEIVED
         self._plan_id = plan_id
-        self._hash = ""
+        self._hash = hash
         self._current_wp_index = -1
         self._waypoints = waypoints
 
@@ -100,3 +100,8 @@ class MissionPlan():
     def planar_wps(self):
         wps = [(wp.position[0], wp.position[1], wp.arrival_heading) for wp in self._waypoints]
         return wps
+    
+    def update_waypoints(self, waypoints: list[IWaypoint]):
+        self._state = MissionPlanStates.RECEIVED
+        self._current_wp_index = -1
+        self._waypoints = waypoints

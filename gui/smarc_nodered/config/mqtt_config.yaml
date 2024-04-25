@@ -35,14 +35,14 @@
             # missing: depth, roll, pitch, yaw, altitude, dr/lat_lon
             # bt stuff
             bridge9:  ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:MissionControl", "mission/mission_control", "~/bt/mission_control"]
-            bridge10: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_command"]
+            bridge10: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_cmd"]
             bridge11: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/heartbeat", "~/bt/heartbeat"]
             # missing: last_wp, bt_tip, 
             ###
             # MQTT -> ROS
             ###
             bridge12: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
-            bridge13: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_command", "mission/bt_command"]
+            bridge13: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
 
 
         

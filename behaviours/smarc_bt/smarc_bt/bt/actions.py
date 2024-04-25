@@ -77,9 +77,9 @@ class A_ProcessBTCommand(Behaviour):
             return Status.SUCCESS
         
         if cmd == "plan_dubins":
-            # Nodered also sends a turning rad. I'm gonna ignore that arg
-            # because that really should be set as a param.
-            self._mission_updater.plan_dubins()
+            # the arg should be a float coming from the interacter, if any
+            if(arg): arg = float(arg)
+            self._mission_updater.plan_dubins(arg)
             self.feedback_message = "Plan dubins called"
             return Status.SUCCESS
 

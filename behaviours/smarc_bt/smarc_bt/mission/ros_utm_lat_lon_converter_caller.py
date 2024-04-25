@@ -1,10 +1,13 @@
 from geographic_msgs.msg import GeoPoint
+from geometry_msgs.msg import PointStamped
+
 from rclpy.node import Node
-from smarc_mission_msgs.msg import MissionControl, Topics as MissionTopics
+
+from smarc_mission_msgs.msg import Topics as MissionTopics, GotoWaypoint
 from smarc_mission_msgs.srv import UTMLatLon
 
 
-class ROSUTMLatLonConverterCaller:
+class ROSLatLonUTMConverterCaller:
     def __init__(self, node: Node) -> None:
         self._node = node
         self._ll_utm_converter = self._node.create_client(UTMLatLon,
@@ -15,13 +18,13 @@ class ROSUTMLatLonConverterCaller:
     def _log(self, s:str):
         self._node.get_logger().info(s)
 
-    def call(self, msg: MissionControl) -> None:
+    def call_latlon_to_utm(self, goto_wps: list[GotoWaypoint]) -> None:
         self._converted = False
-        self._mission_control_msg = msg
+        self._goto_wps = goto_wps
 
         request = UTMLatLon.Request()
         request.lat_lon_points = []
-        for wp in msg.waypoints:
+        for wp in self._goto_wps:
             gp = GeoPoint()
             gp.latitude = wp.lat
             gp.longitude = wp.lon
@@ -29,12 +32,12 @@ class ROSUTMLatLonConverterCaller:
 
         self._log("Calling ll-utm-converter service")
         self._future = self._ll_utm_converter.call_async(request)
-        self._future.add_done_callback(self._done_cb)
+        self._future.add_done_callback(self._latlon_to_utm_done_cb)
 
-    def _done_cb(self, future) -> None:
+    def _latlon_to_utm_done_cb(self, future) -> None:
         result = future.result()
 
-        for wp, utm_point in zip(self._mission_control_msg.waypoints, result.utm_points):
+        for wp, utm_point in zip(self._goto_wps, result.utm_points):
             wp.pose.pose.position.x = utm_point.point.x
             wp.pose.pose.position.y = utm_point.point.y
 
@@ -42,7 +45,7 @@ class ROSUTMLatLonConverterCaller:
 
 
     def reset(self):
-        self._mission_control_msg = None
+        self._goto_wps = None
         self._future = None
         self._converted = False
 
@@ -52,8 +55,8 @@ class ROSUTMLatLonConverterCaller:
         return self._converted
 
 
-    def get_result(self) -> MissionControl:
+    def get_result(self) -> list[GotoWaypoint]:
         if self.done:
-            return self._mission_control_msg
+            return self._goto_wps
 
         return None
