@@ -44,7 +44,7 @@ class Press2Depth(Node):
         self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH20_TOPIC,
                                              callback=self.depthCB, qos_profile=10)
 
-        self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_TOPIC,
+        self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC,
                                          qos_profile=10)
 
         self.depth_msg = PoseWithCovarianceStamped()

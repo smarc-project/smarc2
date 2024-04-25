@@ -123,7 +123,7 @@ class VehicleDR(Node):
 
         # === Subscriptions ===
         # DR subscriptions
-        self.depth_sub = self.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_TOPIC,
+        self.depth_sub = self.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC,
                                                   callback=self.depth_cb, qos_profile=10)
         self.gps_sub = self.create_subscription(msg_type=Odometry, topic=DRTopics.DR_GPS_ODOM_TOPIC,
                                                 callback=self.gps_cb, qos_profile=10)
@@ -287,7 +287,7 @@ class VehicleDR(Node):
                                           self.dvl_latest.velocity.y,
                                           self.dvl_latest.velocity.z])
 
-                    print("DVL vel ", lin_vel_t)
+                    # print("DVL vel ", lin_vel_t)
 
                 # # Otherwise, integrate motion model estimate
                 else:
@@ -300,7 +300,7 @@ class VehicleDR(Node):
                         [self.lin_acc_t[0], -self.lin_acc_t[1], 0.])
 
                     lin_vel_t = self.lin_acc_t * self.dr_period
-                    print("MM vel ", lin_vel_t)
+                    # print("MM vel ", lin_vel_t)
 
                 # Integrate linear vels                    
                 step_t = np.matmul(rot_mat_t, lin_vel_t * self.dr_period)
