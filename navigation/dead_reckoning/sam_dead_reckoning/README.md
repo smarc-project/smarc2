@@ -27,7 +27,6 @@ Work on porting smarc-project/smarc_navigation/sam_dead_reckoning to smarc-proje
   - dr_node
 - launch files: 
   - sam_dr_launch.py will launch depth, gps, and dr nodes
-  - [ ] TODO: xml based launch file
 - config files: 
   - No config files are used yet, all parameters are set in the launch
 
@@ -51,4 +50,7 @@ To install manually: apt install ros-humble-geodesy
 - The Depth calculation looked off to me, un explained offset. Maybe the publisher of the depth should apply any offset so that pressure is reported in 'true' Pascals.
 
 ## Launch file
-- The current launch file is written in python, which is kind of a pain for some things... but it works for now.
+- The launch file is now xml, and sime time is enabled
+
+## Visual tools
+- plots the error of the gps and dr, pf not ported yet
