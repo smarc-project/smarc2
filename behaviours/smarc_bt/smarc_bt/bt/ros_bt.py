@@ -14,19 +14,19 @@ from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
-from ..mission.i_mission_publisher import IMissionPublisher
+
 
 from .conditions import C_CheckMissionPlanState,\
                         C_CheckVehicleSensorState,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_VehicleSensorsWorking
+                        C_VehicleSensorsWorking,\
+                        C_MissionTimeoutOK
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
-                     A_ProcessBTCommand,\
-                     A_PublishCurrentMission
+                     A_ProcessBTCommand
 
 import operator
 
@@ -34,7 +34,6 @@ import operator
 class ROSBT(HasVehicleContainer):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
-                 mission_publisher: IMissionPublisher,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
                  ):
@@ -47,7 +46,6 @@ class ROSBT(HasVehicleContainer):
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
-        self._mission_publisher = mission_publisher
 
         self._last_state_str = ""
 
@@ -63,8 +61,7 @@ class ROSBT(HasVehicleContainer):
             C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
             C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
             Inverter("Not leaking", C_CheckVehicleSensorState(self, SensorNames.LEAK)),
-            pt.behaviours.Success(name="TODO mission timeout not reached")
-            # https://github.com/smarc-project/smarc_missions/blob/b1bf53cea3855c28f9a2c004ef2d250f02885afe/smarc_bt/src/bt_conditions.py#L19
+            C_MissionTimeoutOK()
         ])
 
         safety_tree = Fallback("F_Safety", memory=False, children=[
@@ -92,16 +89,8 @@ class ROSBT(HasVehicleContainer):
             follow_wp_plan
         ])
 
-        publish_mission = Sequence("S_Publish_Mission_Plan",
-                                   memory=False,
-                                   children=[
-                                       C_CheckMissionPlanState(MissionPlanStates.RECEIVED),
-                                       A_PublishCurrentMission(self._mission_publisher)
-                                   ])
-
         run = Fallback("F_Run", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.STOPPED),
-            publish_mission,
             finalize_mission,
             mission
         ])
@@ -135,7 +124,6 @@ def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
     from .ros_bb_updater import ROSBBUpdater
     from ..mission.ros_mission_updater import ROSMissionUpdater
-    from ..mission.ros_mission_publisher import ROSMissionPublisher
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
@@ -144,11 +132,9 @@ def test_sam_bt():
     sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
-    ros_mission_publisher = ROSMissionPublisher(node)
     bt = ROSBT(vehicle_container = sam,
                bb_updater = sam_bbu,
-               mission_updater = ros_mission_updater,
-               mission_publisher = ros_mission_publisher)
+               mission_updater = ros_mission_updater)
     bt.setup()
 
     bt_str = ""

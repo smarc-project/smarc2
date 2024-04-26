@@ -3,29 +3,27 @@
 import os, json
 import numpy as np
 
+from rclpy.node import Node
 from rosidl_runtime_py.set_message import set_message_fields
 from rosidl_runtime_py.convert import message_to_ordereddict
 
-from rclpy.node import Node
 from py_trees.blackboard import Blackboard
+
+from geometry_msgs.msg import Pose2D, PointStamped
+from geographic_msgs.msg import GeoPoint
 
 from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
+from smarc_mission_msgs.srv import DubinsPlan, UTMLatLon
 
+
+from dubins_planner.dubins_planner_node import DubinsPlannerService
+from utm_latlon_converter.converter_service_node import GeoConverterService
 
 from .i_bb_mission_updater import IBBMissionUpdater
 from .ros_mission_plan import ROSMissionPlan
 from .ros_waypoint import ROSWP
 from ..bt.bb_keys import BBKeys
-
-from smarc_mission_msgs.srv import DubinsPlan
-from geometry_msgs.msg import Pose2D
-from dubins_planner.dubins_planner_node import DubinsPlannerService
-
-from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import PointStamped
-from smarc_mission_msgs.srv import UTMLatLon
-from utm_latlon_converter.converter_service_node import GeoConverterService
 
 
 # Because the dubins planner uses X=right, Y=up, CCW angles
@@ -66,7 +64,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                             MissionTopics.MISSION_CONTROL_TOPIC,
                                                             self._mission_control_cb,
                                                             10)
-    
+ 
         
 
     def _mission_control_cb(self, msg:MissionControl):
@@ -222,7 +220,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
             wp.pose.header.frame_id = utm_point.header.frame_id
             
         wps = [ROSWP(wp) for wp in mc.waypoints]
-        new_plan = ROSMissionPlan(self._node, mc.name, mc.hash, wps)
+        new_plan = ROSMissionPlan(self._node, mc.name, mc.hash, mc.timeout, wps)
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
         self._log(f"New mission {new_plan._plan_id}({new_plan._hash}) set!")
 
@@ -339,6 +337,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         new_plan = ROSMissionPlan(self._node,
                                   mplan._plan_id,
                                   mplan._hash,
+                                  mplan._timeout,
                                   wp_list)
         
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)

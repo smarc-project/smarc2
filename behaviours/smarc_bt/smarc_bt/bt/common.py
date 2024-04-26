@@ -5,6 +5,7 @@ import enum
 from py_trees.behaviour import Behaviour
 from .i_has_vehicle_container import HasVehicleContainer    
 from .bb_keys import BBKeys
+from ..mission.mission_plan import MissionPlan
 
 
 def bool_to_status(b: bool) -> enum.Enum:
@@ -26,14 +27,14 @@ class VehicleBehaviour(Behaviour):
 
 
 class MissionPlanBehaviour(Behaviour):
-    def _get_plan(self) -> bool:
+    def _get_plan(self) -> MissionPlan:
         try:
             plan = self._bb.get(BBKeys.MISSION_PLAN)
         except KeyError:
-            self.feedback_message = "No mission plan set in BB"
+            self.feedback_message = "No mission key"
             return None
         if plan is None:
-            self.feedback_message = "Mission plan is None in BB"
+            self.feedback_message = "Mission==None"
             return None
         
         return plan

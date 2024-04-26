@@ -85,7 +85,11 @@ class C_NotAborted(VehicleBehaviour):
         super().__init__(bt)
 
     def update(self) -> Status:
-        return bool_to_status(self._bt.vehicle_container.vehicle_state.aborted)
+        if self._bt.vehicle_container.vehicle_state.aborted:
+            self.feedback_message = "!! ABORTED !!"
+            return Status.FAILURE
+        
+        return Status.SUCCESS
 
 
 class C_CheckMissionPlanState(MissionPlanBehaviour):
@@ -105,4 +109,21 @@ class C_CheckMissionPlanState(MissionPlanBehaviour):
             self.feedback_message = f"Expected:{self._expected_state} found:{plan.state}"
             return Status.FAILURE
 
+        return Status.SUCCESS
+    
+
+class C_MissionTimeoutOK(MissionPlanBehaviour):
+    def __init__(self):
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+        self._bb = Blackboard()
+
+    def update(self) -> Status:
+        self.feedback_message = ""
+        plan = self._get_plan()
+        if plan is None: return Status.SUCCESS
+        
+        self.feedback_message = f"({plan.seconds_to_timeout}) to timeout"
+        if plan.timeout_reached: 
+            return Status.FAILURE
         return Status.SUCCESS
