@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
 import json
+from rclpy.node import Node
 
 from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+
+from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange
+from smarc_mission_msgs.msg import BTCommand, Topics as MissionTopics
+from py_trees_ros_interfaces.msg import Behaviour
+
 from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
-
-from rclpy.node import Node
-from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange
-
-from smarc_mission_msgs.msg import BTCommand, Topics as MissionTopics
 
 class ROSBBUpdater(IBBUpdater):
     def __init__(self,
@@ -24,6 +26,11 @@ class ROSBBUpdater(IBBUpdater):
                                                     MissionTopics.BT_COMMAND_TOPIC,
                                                     self._bt_cmd_cb,
                                                     10)
+        
+        self._tip_msg = Behaviour()
+        self._bt_tip_pub = node.create_publisher(Behaviour,
+                                                 MissionTopics.BT_TIP_TOPIC,
+                                                 10)
 
         for key in BBKeys._member_names_:
             if initialize_bb:
@@ -126,4 +133,23 @@ class ROSBBUpdater(IBBUpdater):
         self._bb.set(BBKeys.DUBINS_STEP_SIZE,
                      self._node.get_parameter(BBKeys.DUBINS_STEP_SIZE.name).get_parameter_value().double_value)
 
+        tip = self._bb.get(BBKeys.TREE_TIP)
+        if tip is None: return
+        
+        self._tip_msg.name = tip.name
+        self._tip_msg.message = tip.feedback_message
+
+        if tip.status == Status.SUCCESS:
+            self._tip_msg.status = Behaviour.SUCCESS
+        elif tip.status == Status.FAILURE:
+            self._tip_msg.status = Behaviour.FAILURE
+        elif tip.status == Status.RUNNING:
+            self._tip_msg.status = Behaviour.RUNNING
+        elif tip.status == Status.INVALID:
+            self._tip_msg.status = Behaviour.INVALID
+        else:
+            self._tip_msg.status = 0
+
+
+        self._bt_tip_pub.publish(self._tip_msg)
 

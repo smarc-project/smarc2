@@ -12,7 +12,7 @@
         deserializer: json:loads
         # this needs to be set accordingly 
         # TODO maybe modify the mqtt_brdige to acquire these from the yaml directly?
-        n_bridges: 13
+        n_bridges: 14
         bridge:
             # dont forget to add the ".msg" part!
             #  the ~ in front will fill with smarc/<robot_name>/ for mqtt
@@ -37,12 +37,13 @@
             bridge9:  ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:MissionControl", "mission/mission_control", "~/bt/mission_control"]
             bridge10: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_cmd"]
             bridge11: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/heartbeat", "~/bt/heartbeat"]
-            # missing: last_wp, bt_tip, 
+            bridge12: ["mqtt_bridge.bridge:RosToMqttBridge", "py_trees_ros_interfaces.msg:Behaviour", "mission/bt_tip", "~/bt/tip"]
+            # missing: last_wp
             ###
             # MQTT -> ROS
             ###
-            bridge12: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
-            bridge13: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
+            bridge13: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
+            bridge14: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
 
 
         

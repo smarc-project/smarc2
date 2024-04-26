@@ -10,6 +10,7 @@ class BBKeys(str, enum.Enum):
     DUBINS_TURNING_RADIUS = "DUBINS_TURNING_RADIUS"
     DUBINS_STEP_SIZE = "DUBINS_STEP_SIZE"
     BT_CMD_QUEUE = "BT_CMD_QUEUE"
+    TREE_TIP = "TREE_TIP"
 
     def __str__(self):
         return self.name

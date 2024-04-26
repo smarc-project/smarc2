@@ -46,6 +46,7 @@ class ROSBT(HasVehicleContainer):
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
+        self._bb = Blackboard()
 
         self._last_state_str = ""
 
@@ -117,7 +118,7 @@ class ROSBT(HasVehicleContainer):
         self._bb_updater.update_bb()
         self._mission_updater.tick()
         self._bt.tick()
-
+        self._bb.set(BBKeys.TREE_TIP, self._bt.tip())
 
 
 def test_sam_bt():
