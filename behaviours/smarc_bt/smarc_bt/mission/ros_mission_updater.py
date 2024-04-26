@@ -362,6 +362,7 @@ def send_test_mission_control():
         mc = MissionControl()
         mc.hash = "testhash"
         mc.name = "testplan"
+        mc.timeout = 99999999
 
         choice = input("Choose: new, start, pause, stop, emergency:\n")
         if choice == "new":

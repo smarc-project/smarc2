@@ -6,6 +6,7 @@ from rclpy.action import ActionClient
 
 from action_msgs.msg import GoalStatus
 from smarc_mission_msgs.action import GotoWaypoint
+from smarc_mission_msgs.msg import Topics as MissionTopics
 
 
 class ActionClientExample():
@@ -24,7 +25,7 @@ class ActionClientExample():
         # I am skipping that now.
         self._ac = ActionClient(node=self._node,
                                 action_type=GotoWaypoint,
-                                action_name="thrusting_action")
+                                action_name=MissionTopics.GOTO_WP_ACTION)
         
         # to check if we even have a running server later
         self._goal_handle = None
