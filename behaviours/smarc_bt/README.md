@@ -62,13 +62,13 @@ A good example of this would be `vehicle.py`.
 > Notice a lack of some non-ros version of things, like the `bt`, `bb_updater`, `mission_updater` and so on. Due to our need being ROS-specific, non-ros versions of these are not needed. Yet. But the structure of the package is such that it is possible.
 
 ### bt
+- **ros_bt**: A concrete BT defined for an AUV such as SAM or LoLo. Takes as input generic objects such as an `IBBUpdater`, `IBBMissionUpdater` and `IActionClient` to allow a user to modify the data i/o without modifying the BT structure.
 - **actions**:
 All the action nodes used in the BT. Usually written as generically as possible to avoid repetition. For example `A_UpdateMissionPlan` takes as argument a function to call when ticked. `A_ActionClient` takes a generic `IActionClient` object to call its methods on when ticked etc.
 - **conditions**: Same deal as actions, but for condition nodes.
 - **common**: Some common base classes for actions and conditions to extend. Mostly for convenience.
 - **bb_keys**: An enum to use when accessing blackboard variables across this package.
 - **ros_bb_updater**: Implements the `IBBUpdater` interface as an object that creates ros parameters and continously updates the BB with their up to date values. Effectively allows parameters to be changed live in a generic way.
-- **ros_bt**: A concrete BT defined for an AUV such as SAM or LoLo. Takes as input generic objects such as an `IBBUpdater`, `IBBMissionUpdater` and `IActionClient` to allow a user to modify the data i/o without modifying the BT structure.
 
 
 ### mission
