@@ -26,4 +26,7 @@ setup(
         'console_scripts': [
         ],
     },
+    scripts=[
+        "scripts/sam_bringup.sh"
+    ]
 )

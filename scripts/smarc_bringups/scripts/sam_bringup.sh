@@ -1,3 +1,4 @@
+#! /bin/bash
 ROBOT_NAME=sam0
 SESSION=${ROBOT_NAME}_bringup
 

@@ -21,5 +21,6 @@ If a large number of args are needed, maybe use a `config.yaml` filename to pass
 - Attach to a session: `tmux attach -t <SESSION_NAME>`. Can be shortened to `tmux att -t sam` for example for a session named `sam0_bringup`
 - Detach from a session: `C-b, d`
 - Change between windows(tabs): `C-b, <NUM>`
+- Scroll in a window: `C-b [` and then arrows/pg up etc. `q` to quit scroll mode.
 - Kill tmux server (and all the programs running in all sessions): `tmux kill-server`. This is the ultimate "cleanup". Beware of using this on the real robot!
 
