@@ -14,6 +14,7 @@ from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
+from ..mission.i_action_client import IActionClient
 
 
 from .conditions import C_CheckMissionPlanState,\
@@ -26,7 +27,8 @@ from .conditions import C_CheckMissionPlanState,\
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
-                     A_ProcessBTCommand
+                     A_ProcessBTCommand,\
+                     A_ActionClient
 
 import operator
 
@@ -36,6 +38,7 @@ class ROSBT(HasVehicleContainer):
                  vehicle_container:IVehicleStateContainer,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
+                 goto_wp_action: IActionClient
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -46,6 +49,7 @@ class ROSBT(HasVehicleContainer):
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
+        self._goto_wp_action = goto_wp_action
         self._bb = Blackboard()
 
         self._last_state_str = ""
@@ -81,7 +85,7 @@ class ROSBT(HasVehicleContainer):
 
         follow_wp_plan = Sequence("S_Follow_WP_Plan", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.RUNNING),
-            pt.behaviours.Running(name="TODO Goto action"),
+            A_ActionClient(client=self._goto_wp_action),
             A_UpdateMissionPlan(MissionPlan.complete_current_wp)
         ])
 
@@ -125,29 +129,39 @@ def test_sam_bt():
     from ..vehicles.sam_auv import SAMAuv
     from .ros_bb_updater import ROSBBUpdater
     from ..mission.ros_mission_updater import ROSMissionUpdater
+    from ..mission.ros_goto_waypoint import ROSGotoWaypoint
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("test_sam_bt")
 
+    
     sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
+    ros_goto_wp = ROSGotoWaypoint(node)
     bt = ROSBT(vehicle_container = sam,
-               bb_updater = sam_bbu,
-               mission_updater = ros_mission_updater)
+               bb_updater        = sam_bbu,
+               mission_updater   = ros_mission_updater,
+               goto_wp_action    = ros_goto_wp)
     bt.setup()
 
+
     bt_str = ""
-    def update():
+    def print_bt():
         nonlocal bt, bt_str, node
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             node.get_logger().info(f"\n{new_str}")
             bt_str = new_str
+
+
+    def update():
+        nonlocal bt
         bt.tick()
 
     node.create_timer(0.2, update)
+    node.create_timer(0.5, print_bt)
     rclpy.spin(node)
 
 

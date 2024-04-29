@@ -7,6 +7,7 @@
             <node name="test_sam_bt" pkg="smarc_bt" exec="test_sam_bt" output="screen"/>
             <node name="utm_latlon_service" pkg="utm_latlon_converter" exec="converter" output="screen"/>
             <node name="dubins_service" pkg="dubins_planner" exec="dubins_planner_service" output="screen"/>
+            <node name="action_server_node" pkg="workshopfun" exec="action_server_node" output="screen"/>
     </group>
 
 </launch>
