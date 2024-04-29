@@ -2,7 +2,7 @@
 
 A pile of launch files and bash scripts.
 
-This package should contain no executables!
+> Example use: `ros2 run smarc_bringups sam_bringup.sh`
 
 The general structure and naming of launchfiles should resemble the folder structure of the `smarc2` repository.
 
