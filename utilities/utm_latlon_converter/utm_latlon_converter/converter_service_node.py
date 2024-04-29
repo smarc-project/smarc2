@@ -17,18 +17,18 @@ class GeoConverterService:
         self._node = node
         self._converter_service = self._node.create_service(UTMLatLon,
                                                             MissionTopics.UTM_LATLON_CONVERSION_SERVICE,
-                                                            self._conversion_cb)
+                                                            GeoConverterService.convert)
         
         self._log(f"UTM <-> LAT/LON Converter running on {MissionTopics.UTM_LATLON_CONVERSION_SERVICE}")
         
     def _log(self, s):
         self._node.get_logger().info(s)
         
-    def _conversion_cb(self, request, response):
+    def convert(request:UTMLatLon.Request, response:UTMLatLon.Response):
         response.utm_points = []
         response.lat_lon_points = []
 
-        self._log(f"Got {len(request.lat_lon_points)} latlon->utm and {len(request.utm_points)} utm->latlon points")
+        print(f"Got {len(request.lat_lon_points)} latlon->utm and {len(request.utm_points)} utm->latlon points")
 
         # convert all the latlons to utm
         for ll in request.lat_lon_points:

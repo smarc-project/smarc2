@@ -4,8 +4,8 @@
 	branch = main-ros2
 [submodule "external_packages/mqtt_bridge"]
 	path = external_packages/mqtt_bridge
-	url = https://github.com/groove-x/mqtt_bridge
-	branch = ros2
+	url = https://github.com/KKalem/mqtt_bridge
+	branch = humble
 [submodule "simulation/SMARCUnityHDRP"]
 	path = simulation/SMARCUnityHDRP
 	url = https://github.com/smarc-project/SMARCUnityHDRP
