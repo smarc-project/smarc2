@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+import glob, os
 
 package_name = 'smarc_bt'
 
@@ -10,6 +11,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
+        (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,7 +27,8 @@ setup(
             "test_sam_auv = smarc_bt.vehicles.sam_auv:test_sam_auv",
             "test_bt_conditions = smarc_bt.bt.ros_bt:test_bt_conditions",
             "test_sam_bt = smarc_bt.bt.ros_bt:test_sam_bt",
-            "send_test_mission = smarc_bt.mission.ros_mission_updater:send_test_mission"
+            "send_test_mission = smarc_bt.mission.ros_mission_updater:send_test_mission_control",
+            "test_dubins_planner_caller = smarc_bt.mission.ros_dubins_planner_caller:test_dubins_planner_caller"
         ],
     },
 )
