@@ -84,3 +84,8 @@ All the action nodes used in the BT. Usually written as generically as possible 
 - **vehicle**: Defines a generic vehicle state with a position, orientation, global position, global orientation, a battery and a list of sensors. The `IVehicleState` and `IVehicleStateContainer` interfaces are defined here too.
   - **ros_vehicle**: Wraps an `IVehicleState` object in ROS connections. 
     - **sam_auv**: Extends the `ROSVehicle` SAM-AUV specific topics and sensors.
+
+
+# TODO
+- [ ] Service to enable/disable specific sensor-liveliness checks
+- [ ] Service to enable/disable specific conditions in the BT
