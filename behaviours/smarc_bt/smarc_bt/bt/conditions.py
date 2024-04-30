@@ -77,7 +77,7 @@ class C_SensorOperatorBlackboard(VehicleBehaviour):
         self.feedback_message = f"{self._operator.__name__}({value_str}, {bb_value_str})"
 
         if value is None or bb_value is None:
-            return Status.FAILURE
+            return Status.SUCCESS
 
         self.feedback_message = f"{self._operator.__name__}({value_str}, {bb_value_str})"
         return bool_to_status(self._operator(value, bb_value))

@@ -79,21 +79,17 @@ class BT(HasVehicleContainer, HasClock):
 
  
     def _safety_tree(self):
-        critical_checks = Parallel("P_Critical_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
+        safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
             C_NotAborted(self),
             C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY),
             Inverter("Not leaking", C_CheckSensorBool(self, SensorNames.LEAK)),
+            C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
+            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
             C_MissionTimeoutOK()
         ])
 
-        sensor_checks = Parallel("P_Sensor_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
-            C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
-            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
-        ])
-
         safety_tree = Fallback("F_Safety", memory=False, children=[
-            critical_checks,
-            sensor_checks,
+            safety_checks,
             # modify mission?
             Parallel("P_EMERGENCY", policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
                 A_Abort(self),
