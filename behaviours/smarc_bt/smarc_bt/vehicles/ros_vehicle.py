@@ -51,7 +51,7 @@ class ROSVehicle(IVehicleStateContainer):
         self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
         self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
         self._heartbeat_pub = node.create_publisher(Empty, Topics.HEARTBEAT_TOPIC, 10)
-        self._vehicle_ready_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_ready_cb, 10)
+        self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_healthy_cb, 10)
 
 
     def update_tf(self):
@@ -82,8 +82,9 @@ class ROSVehicle(IVehicleStateContainer):
     def _abort_cb(self, data: Empty):
         self._vehicle_state.abort()
 
-    def _vehicle_ready_cb(self, data: Bool):
-        self._vehicle_state.set_ready(data.data)
+    def _vehicle_healthy_cb(self, data: Bool):
+        sec, _ = self._node.get_clock().now().seconds_nanoseconds()
+        self._vehicle_state.update_sensor(SensorNames.VEHICLE_HEALTHY, [data.data], sec)
 
     def _gps_cb(self, data: NavSatFix):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)

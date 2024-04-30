@@ -11,15 +11,12 @@ from typing import Type
 class IVehicleState():
     def update_sensor(self, sensor_name:str, values, time:float): pass
     def update_sensor_status_str(self, sensor_name:str, status:str): pass
-    def set_ready(self, ready:bool): pass
-    @property
-    def forced_ready(self) -> bool: pass
     def __getitem__(self, key:str): pass
-    @property
-    def all_sensors_working(self) -> tuple[bool, list]: pass
     def abort(self) -> None: pass
     @property
     def aborted(self) -> bool: pass
+    @property
+    def vehicle_healthy(self) -> bool: pass
 
 
 class IVehicleStateContainer():
@@ -92,6 +89,10 @@ class VehicleState(IVehicleState):
                                VehicleState.ABSOLUTE,
                                2,
                                ["V", "%"])
+        
+        self._vehicle_healthy = Sensor(SensorNames.VEHICLE_HEALTHY,
+                                       VehicleState.ABSOLUTE,
+                                       1)
 
         self.sensors = {}
         for k,v in vars(self).items():
@@ -99,26 +100,15 @@ class VehicleState(IVehicleState):
                 self.sensors[v._name] = v
 
         self._aborted = False
-        self._force_ready = False
 
-    def set_ready(self, ready:bool):
-        self._force_ready = ready
-        for _,sensor in self.sensors.items():
-            sensor.set_ready(ready)
-
-    @property
-    def forced_ready(self) -> bool:
-        return self._force_ready
-
-    @property
-    def all_sensors_working(self) -> tuple[bool, list]:
-        not_working = [v.name for k,v in self.sensors.items() if not v.working]
-        all_working = len(not_working) == 0
-        return (all_working, not_working)
     
     @property
     def aborted(self):
         return self._aborted
+    
+    @property
+    def vehicle_healthy(self) -> bool:
+        return self._vehicle_healthy[0]
     
 
     def __str__(self) -> str:

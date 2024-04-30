@@ -16,6 +16,7 @@ class SensorNames(str, enum.Enum):
     LCG = "LCG"
     TCG = "TCG"
     THRUSTERS = "thrusters"
+    VEHICLE_HEALTHY = "vehicle_healthy"
 
     def __str__(self):
         return self.name
@@ -45,8 +46,6 @@ class Sensor:
         self._last_update_seconds = None
         self._status_str = ""
 
-        self._forced_ready = False
-
 
     @property
     def name(self):
@@ -55,13 +54,10 @@ class Sensor:
     @property
     def working(self):
         return all([v is not None for v in self._values])
-    
+
     @property
-    def forced_ready(self):
-        return self._forced_ready
-    
-    def set_ready(self, ready: bool):
-        self._forced_ready = ready
+    def last_update_seconds(self) -> int:
+        return self._last_update_seconds
 
 
     # Some convenience functions to

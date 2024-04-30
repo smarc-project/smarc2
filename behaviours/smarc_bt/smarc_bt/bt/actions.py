@@ -20,7 +20,7 @@ class A_Abort(VehicleBehaviour):
     def update(self) -> Status:
         self._bt.vehicle_container.abort()
         self.feedback_message = "!! ABORTED !!"
-        return Status.FAILURE
+        return Status.SUCCESS
 
     
 
