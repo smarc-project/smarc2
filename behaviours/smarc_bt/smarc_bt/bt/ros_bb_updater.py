@@ -91,6 +91,30 @@ class ROSBBUpdater(IBBUpdater):
             ]
         ))
 
+        node.declare_parameter(BBKeys.SENSOR_INITIAL_GRACE_PERIOD.name, 10.0, ParameterDescriptor(
+            name = BBKeys.SENSOR_INITIAL_GRACE_PERIOD.name,
+            description = "How long to wait for a sensor to publish SOMEthing before we get suspicious. In seconds.",
+            floating_point_range = [
+                FloatingPointRange(
+                    from_value = -1.0,
+                    to_value = 5 * 60.0,
+                    step = 0.1
+                )
+            ]
+        ))
+
+        node.declare_parameter(BBKeys.SENSOR_SILENCE_PERIOD.name, 5.0, ParameterDescriptor(
+            name = BBKeys.SENSOR_SILENCE_PERIOD.name,
+            description = "How long to allow silence between sensor readings. In seconds.",
+            floating_point_range = [
+                FloatingPointRange(
+                    from_value = -1.0,
+                    to_value = 5 * 60.0,
+                    step = 0.1
+                )
+            ]
+        ))
+
     def _log(self, s):
         self._node.get_logger().info(s)
 
@@ -119,9 +143,7 @@ class ROSBBUpdater(IBBUpdater):
         self._bb.set(BBKeys.BT_CMD_QUEUE, q)
 
 
-
-
-    def update_bb(self) -> None:
+    def set_params(self):
         self._bb.set(BBKeys.MIN_ALTITUDE,
                      self._node.get_parameter(BBKeys.MIN_ALTITUDE.name).get_parameter_value().double_value)
         self._bb.set(BBKeys.MAX_DEPTH,
@@ -132,6 +154,15 @@ class ROSBBUpdater(IBBUpdater):
                      self._node.get_parameter(BBKeys.DUBINS_TURNING_RADIUS.name).get_parameter_value().double_value)
         self._bb.set(BBKeys.DUBINS_STEP_SIZE,
                      self._node.get_parameter(BBKeys.DUBINS_STEP_SIZE.name).get_parameter_value().double_value)
+        self._bb.set(BBKeys.SENSOR_SILENCE_PERIOD,
+                     self._node.get_parameter(BBKeys.SENSOR_SILENCE_PERIOD.name).get_parameter_value().double_value)
+        self._bb.set(BBKeys.SENSOR_INITIAL_GRACE_PERIOD,
+                self._node.get_parameter(BBKeys.SENSOR_INITIAL_GRACE_PERIOD.name).get_parameter_value().double_value)
+        
+
+
+    def update_bb(self) -> None:
+        self.set_params()
 
         tip = self._bb.get(BBKeys.TREE_TIP)
         if tip is None: return

@@ -8,6 +8,7 @@ from py_trees.blackboard import Blackboard
 from py_trees.behaviour import Behaviour
 
 from .i_has_vehicle_container import HasVehicleContainer
+from .i_has_clock import HasClock
 from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates
@@ -15,22 +16,10 @@ from ..vehicles.sensor import SensorNames
 
 
 
-class C_VehicleSensorsWorking(VehicleBehaviour):
-    def __init__(self, bt: HasVehicleContainer):
-        super().__init__(bt)
-
-    def update(self) -> Status:
-        self.feedback_message = None
-        state = self._bt.vehicle_container.vehicle_state
-        all_working, not_working = state.all_sensors_working
-        if not all_working:
-            self.feedback_message = f"Broken?: {[str(s) for s in not_working]}"
-            
-        return bool_to_status(all_working)
         
 
         
-class C_CheckVehicleSensorState(VehicleBehaviour):
+class C_CheckSensorBool(VehicleBehaviour):
     def __init__(self,
                  bt: HasVehicleContainer,
                  sensor_name: str,
@@ -47,6 +36,7 @@ class C_CheckVehicleSensorState(VehicleBehaviour):
         sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
         return bool_to_status(sensor[self._sensor_key])
     
+
 
 
 class C_SensorOperatorBlackboard(VehicleBehaviour):
@@ -76,7 +66,20 @@ class C_SensorOperatorBlackboard(VehicleBehaviour):
             return Status.FAILURE
         
         bb_value = bb.get(self._bb_key)
-        self.feedback_message = f"{self._operator.__name__}({value:.2f}, {bb_value:.2f})"
+        bb_value_str = "None"
+        if bb_value is not None:
+            bb_value_str = f"{bb_value:.2f}"
+            
+        value_str = "None"
+        if value is not None:
+            value_str = f"{value:.2f}"
+
+        self.feedback_message = f"{self._operator.__name__}({value_str}, {bb_value_str})"
+
+        if value is None or bb_value is None:
+            return Status.FAILURE
+
+        self.feedback_message = f"{self._operator.__name__}({value_str}, {bb_value_str})"
         return bool_to_status(self._operator(value, bb_value))
         
         
