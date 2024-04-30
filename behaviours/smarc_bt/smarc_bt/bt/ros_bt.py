@@ -26,14 +26,14 @@ from .conditions import C_CheckMissionPlanState,\
                         C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK,\
-                        C_SensorAllowedSilence
+                        C_MissionTimeoutOK
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
-                     A_ActionClient
+                     A_ActionClient,\
+                     A_WaitForData
 
 
 
@@ -71,15 +71,13 @@ class BT(HasVehicleContainer, HasClock):
     
     def _liveliness_tree(self):
         liveliness_tree = Parallel("P_Liveliness", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
-            C_SensorAllowedSilence(self,
-                                   SensorNames.VEHICLE_HEALTHY,
-                                   allowed_silence_seconds=5,
-                                   initial_silence_seconds=10)
+            A_WaitForData(self, SensorNames.VEHICLE_HEALTHY)
+            # Maybe add other sensors too, depth, altitude?
         ])
 
         return liveliness_tree
 
-
+ 
     def _safety_tree(self):
         critical_checks = Parallel("P_Critical_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
             C_NotAborted(self),

@@ -15,47 +15,7 @@ from ..mission.mission_plan import MissionPlanStates
 from ..vehicles.sensor import SensorNames
 
 
-class C_SensorAllowedSilence(VehicleBehaviour):
-    def __init__(self,
-                 bt: HasClock,
-                 sensor_name: str,
-                 allowed_silence_seconds: int,
-                 initial_silence_seconds:int = 5):
-        name = name = f"{self.__class__.__name__}({sensor_name} (allow {allowed_silence_seconds}s))"
-        super().__init__(bt, name)
-        self._sensor_name = sensor_name
-        self._allowed_silence_seconds = allowed_silence_seconds
 
-        self._first_tick_seconds = None
-        self._initial_silence_seconds = initial_silence_seconds
-
-    @property
-    def _now(self):
-        return self._bt.now_seconds
-
-    def update(self) -> Status:
-        if self._first_tick_seconds is None:
-            self._first_tick_seconds = self._now
-    
-        dt_since_first = self._now - self._first_tick_seconds
-        if dt_since_first < self._initial_silence_seconds:
-            self.feedback_message = f"{dt_since_first:.0f}/{self._initial_silence_seconds} of initial silence."
-            return Status.SUCCESS
-
-        sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
-        
-        if sensor.last_update_seconds is None:
-            self.feedback_message = f"Sensor has never published!"
-            return Status.FAILURE
-
-        
-        dt = self._now - sensor.last_update_seconds 
-        if dt > self._allowed_silence_seconds:
-            self.feedback_message = f"{dt} > {self._allowed_silence_seconds}!"
-            return Status.FAILURE
-        
-        self.feedback_message = f"{dt:.1f}s since last update"
-        return Status.SUCCESS
         
 
         

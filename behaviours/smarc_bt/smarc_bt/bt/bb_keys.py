@@ -12,6 +12,9 @@ class BBKeys(str, enum.Enum):
     BT_CMD_QUEUE = "BT_CMD_QUEUE"
     TREE_TIP = "TREE_TIP"
 
+    SENSOR_INITIAL_GRACE_PERIOD = "SENSOR_INITIAL_GRACE_PERIOD"
+    SENSOR_SILENCE_PERIOD = "SENSOR_SILENCE_PERIOD"
+
     def __str__(self):
         return self.name
 
