@@ -125,15 +125,15 @@ class ROSBT(HasVehicleContainer):
         self._bb.set(BBKeys.TREE_TIP, self._bt.tip())
 
 
-def test_sam_bt():
-    from ..vehicles.sam_auv import SAMAuv
+def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
+    from ..vehicles.sam_auv import SAMAuv
     from ..mission.ros_mission_updater import ROSMissionUpdater
     from ..mission.ros_goto_waypoint import ROSGotoWaypoint
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("test_sam_bt")
+    node = rclpy.create_node("smarc_bt")
 
     
     sam = SAMAuv(node)
