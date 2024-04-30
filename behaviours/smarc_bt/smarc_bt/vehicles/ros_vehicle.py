@@ -5,7 +5,7 @@ from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
 
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, Bool
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics, FloatStamped
 
@@ -51,6 +51,7 @@ class ROSVehicle(IVehicleStateContainer):
         self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
         self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
         self._heartbeat_pub = node.create_publisher(Empty, Topics.HEARTBEAT_TOPIC, 10)
+        self._vehicle_ready_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_ready_cb, 10)
 
 
     def update_tf(self):
@@ -59,7 +60,7 @@ class ROSVehicle(IVehicleStateContainer):
                                                           self._vehicle_state._reference_frame,
                                                           time.Time())
         except Exception as ex:
-            self._log_info(f"Vehicle state could not update position, exception:\n{ex}")
+            self._log(f"Vehicle state could not update position, exception:\n{ex}")
             return
     
         seconds = tf_stamped.header.stamp.sec
@@ -81,6 +82,9 @@ class ROSVehicle(IVehicleStateContainer):
     def _abort_cb(self, data: Empty):
         self._vehicle_state.abort()
 
+    def _vehicle_ready_cb(self, data: Bool):
+        self._vehicle_state.set_ready(data.data)
+
     def _gps_cb(self, data: NavSatFix):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)
 
@@ -90,7 +94,7 @@ class ROSVehicle(IVehicleStateContainer):
     def _battery_cb(self, data: BatteryState):
         self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], data.header.stamp.sec)
         
-    def _log_info(self, s:str):
+    def _log(self, s:str):
         self._node.get_logger().info(s)
 
 

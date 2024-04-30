@@ -11,6 +11,9 @@ from typing import Type
 class IVehicleState():
     def update_sensor(self, sensor_name:str, values, time:float): pass
     def update_sensor_status_str(self, sensor_name:str, status:str): pass
+    def set_ready(self, ready:bool): pass
+    @property
+    def forced_ready(self) -> bool: pass
     def __getitem__(self, key:str): pass
     @property
     def all_sensors_working(self) -> tuple[bool, list]: pass
@@ -96,7 +99,16 @@ class VehicleState(IVehicleState):
                 self.sensors[v._name] = v
 
         self._aborted = False
+        self._force_ready = False
 
+    def set_ready(self, ready:bool):
+        self._force_ready = ready
+        for _,sensor in self.sensors.items():
+            sensor.set_ready(ready)
+
+    @property
+    def forced_ready(self) -> bool:
+        return self._force_ready
 
     @property
     def all_sensors_working(self) -> tuple[bool, list]:

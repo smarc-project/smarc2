@@ -15,7 +15,7 @@ from ..vehicles.sensor import SensorNames
 
 
 
-class C_VehicleSensorsWorking(VehicleBehaviour):
+class C_VehicleReady(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):
         super().__init__(bt)
 
@@ -23,10 +23,20 @@ class C_VehicleSensorsWorking(VehicleBehaviour):
         self.feedback_message = None
         state = self._bt.vehicle_container.vehicle_state
         all_working, not_working = state.all_sensors_working
-        if not all_working:
-            self.feedback_message = f"Broken?: {[str(s) for s in not_working]}"
-            
-        return bool_to_status(all_working)
+
+        if state.forced_ready:
+            s = f"Vehicle forced ready"
+            if len(not_working) > 0:
+                s += f" with {len(not_working)} no-data sensors"
+            self.feedback_message = s
+            return Status.SUCCESS
+        if all_working:
+            self.feedback_message = "All sensors OK"
+            return Status.SUCCESS
+        
+
+        self.feedback_message = f"No data from:{[str(s) for s in not_working]}"
+        return Status.FAILURE
         
 
         
@@ -76,7 +86,19 @@ class C_SensorOperatorBlackboard(VehicleBehaviour):
             return Status.FAILURE
         
         bb_value = bb.get(self._bb_key)
-        self.feedback_message = f"{self._operator.__name__}({value:.2f}, {bb_value:.2f})"
+        bb_value_str = "None"
+        if bb_value is not None:
+            bb_value_str = f"{bb_value:.2f}"
+            
+        value_str = "None"
+        if value is not None:
+            value_str = f"{value:.2f}"
+
+        if (value is None or bb_value is None) and sensor.forced_ready:
+            self.feedback_message = f"NO DATA, but forced ready"
+            return Status.SUCCESS
+
+        self.feedback_message = f"{self._operator.__name__}({value_str}, {bb_value_str})"
         return bool_to_status(self._operator(value, bb_value))
         
         

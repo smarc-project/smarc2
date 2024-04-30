@@ -21,7 +21,7 @@ from .conditions import C_CheckMissionPlanState,\
                         C_CheckVehicleSensorState,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_VehicleSensorsWorking,\
+                        C_VehicleReady,\
                         C_MissionTimeoutOK
 
 from .actions import A_Abort,\
@@ -105,7 +105,7 @@ class ROSBT(HasVehicleContainer):
     def setup(self) -> bool:
         
         root = Sequence("S_Root", memory=False, children=[
-            C_VehicleSensorsWorking(self),
+            C_VehicleReady(self),
             A_Heartbeat(self),
             A_ProcessBTCommand(self._mission_updater),
             self._safety_tree(),

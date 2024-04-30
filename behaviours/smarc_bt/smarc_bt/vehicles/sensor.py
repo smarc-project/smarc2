@@ -45,6 +45,8 @@ class Sensor:
         self._last_update_seconds = None
         self._status_str = ""
 
+        self._forced_ready = False
+
 
     @property
     def name(self):
@@ -54,6 +56,13 @@ class Sensor:
     def working(self):
         return all([v is not None for v in self._values])
     
+    @property
+    def forced_ready(self):
+        return self._forced_ready
+    
+    def set_ready(self, ready: bool):
+        self._forced_ready = ready
+
 
     # Some convenience functions to
     # make it possible to access the sensor values
