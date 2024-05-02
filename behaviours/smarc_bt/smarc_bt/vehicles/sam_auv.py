@@ -37,7 +37,10 @@ class SAMAuv(ROSVehicle):
 
     def _depth_cb(self, data:DVL):
         # 9806.65 Pa ~= 1m water
-        self._vehicle_state.update_sensor(SensorNames.DEPTH, [data.fluid_pressure/9806.65], data.header.stamp.sec)
+        # 101325 Pa = 1 atmo
+        water_pressure = (data.fluid_pressure - 101325)
+        water_depth = water_pressure / 9806.65
+        self._vehicle_state.update_sensor(SensorNames.DEPTH, [water_depth], data.header.stamp.sec)
 
     def _leak_cb(self, data:Leak):
         sec,_ = time.Time().seconds_nanoseconds()

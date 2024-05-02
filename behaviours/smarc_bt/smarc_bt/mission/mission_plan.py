@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import enum
+import enum, time
 
 from .waypoint import IWaypoint
 
@@ -22,6 +22,8 @@ class MissionPlanStates(enum.Enum):
 class MissionPlan():
     def __init__(self,
                  plan_id: str,
+                 hash: str,
+                 timeout: int,
                  waypoints: list[IWaypoint]) -> None:
         """
         A mission plan object that keeps track of mission state
@@ -30,9 +32,11 @@ class MissionPlan():
         """
         self._state = MissionPlanStates.RECEIVED
         self._plan_id = plan_id
-        self._hash = ""
+        self._hash = hash
+        self._timeout = timeout
         self._current_wp_index = -1
         self._waypoints = waypoints
+        self._start_time_seconds = None
 
 
     def _log(self, s):
@@ -54,9 +58,36 @@ class MissionPlan():
         s = f"[Mission {self._plan_id}]\n"
         for wp in self._waypoints:
             s += f"\t{wp}"
+        return s
+    
+    def _get_time(self):
+        return int(time.time())
+
+    def _start_timeout(self):
+        self._start_time_seconds = self._get_time()
+
+    def _stop_timeout(self):
+        self._start_time_seconds = None
+
+    @property
+    def seconds_to_timeout(self) -> int:
+        if self._start_time_seconds is None: return 999999
+        elapsed = self._get_time() - self._start_time_seconds
+        return self._timeout - elapsed
+
+    @property
+    def timeout_reached(self) -> bool:
+        # never started
+        if self._start_time_seconds is None: return False
+
+        if self.seconds_to_timeout <= 0:
+            return True
+        return False
+    
 
     def start(self) -> bool:
         self._current_wp_index = 0
+        self._start_timeout()
         return self._change_state(MissionPlanStates.RUNNING)
 
     def pause(self) -> bool:
@@ -67,15 +98,18 @@ class MissionPlan():
     
     def stop(self) -> bool:
         self._current_wp_index = -1
+        self._stop_timeout()
         return self._change_state(MissionPlanStates.STOPPED)
     
     def complete(self) -> bool:
         self._current_wp_index = len(self._waypoints)
+        self._stop_timeout()
         return self._change_state(MissionPlanStates.COMPLETED)
     
     def emergency(self) -> bool:
         self._current_wp_index = -1
         self._log("EMERGENCY TRIGGERED")
+        self._stop_timeout()
         return self._change_state(MissionPlanStates.EMERGENCY)
 
     def complete_current_wp(self):
@@ -93,3 +127,9 @@ class MissionPlan():
     @property
     def state(self):
         return self._state
+    
+    @property
+    def planar_wps(self):
+        wps = [(wp.position[0], wp.position[1], wp.arrival_heading) for wp in self._waypoints]
+        return wps
+    

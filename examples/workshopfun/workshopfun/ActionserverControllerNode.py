@@ -3,9 +3,11 @@
 import rclpy, sys, time
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from rclpy.action.server import ServerGoalHandle
 from rclpy.executors import MultiThreadedExecutor
 
 from smarc_mission_msgs.action import GotoWaypoint
+from smarc_mission_msgs.msg import Topics as MissionTopics
 
 from .IThrustView import IThrustView
 
@@ -34,7 +36,7 @@ class ActionserverController():
         self._as = ActionServer(
             node = self._node,
             action_type = GotoWaypoint, 
-            action_name = "thrusting_action",
+            action_name = MissionTopics.GOTO_WP_ACTION,
             goal_callback = self._goal_cb,
             execute_callback = self._execute_cb,
             cancel_callback = self._cancel_cb)
@@ -54,7 +56,7 @@ class ActionserverController():
         return GoalResponse.ACCEPT
 
 
-    def _cancel_cb(self, goal_handle):
+    def _cancel_cb(self, goal_handle:ServerGoalHandle):
         self._node.get_logger().info("Cancelled")
         # When could this be useful? 
         # For example for a one-time-only action like "drop weight"
@@ -63,7 +65,7 @@ class ActionserverController():
         return CancelResponse.ACCEPT
 
 
-    async def _execute_cb(self, goal_handle) -> GotoWaypoint.Result:
+    async def _execute_cb(self, goal_handle:ServerGoalHandle) -> GotoWaypoint.Result:
         self._node.get_logger().info("Executing...")
 
         # the goal_handle object carries the request from the client

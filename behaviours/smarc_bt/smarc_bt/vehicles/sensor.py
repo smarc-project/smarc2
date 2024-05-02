@@ -16,6 +16,7 @@ class SensorNames(str, enum.Enum):
     LCG = "LCG"
     TCG = "TCG"
     THRUSTERS = "thrusters"
+    VEHICLE_HEALTHY = "vehicle_healthy"
 
     def __str__(self):
         return self.name
@@ -53,7 +54,11 @@ class Sensor:
     @property
     def working(self):
         return all([v is not None for v in self._values])
-    
+
+    @property
+    def last_update_seconds(self) -> int:
+        return self._last_update_seconds
+
 
     # Some convenience functions to
     # make it possible to access the sensor values

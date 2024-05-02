@@ -12,194 +12,43 @@
         deserializer: json:loads
         # this needs to be set accordingly 
         # TODO maybe modify the mqtt_brdige to acquire these from the yaml directly?
-        n_bridges: 1
+        n_bridges: 19
         bridge:
-            # each one needs to be named "bridgeN" in ros2 version...
-            # abort: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Bool", "abort", "~/abort"]
-            # leak : ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:Leak", "core/leak", "~/core/leak"]
-            # battery: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:BatteryState", "core/battery", "~/core/battery"]
-            # latlon: ["mqtt_bridge.bridge:RosToMqttBridge", "geographic_msgs.msg:GeoPoint", "dr/lat_lon", "~/dr/lat_lon"]
-            bridge1: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:NavSatFix", "core/gps", "~/core/gps"]
             # dont forget to add the ".msg" part!
             #  the ~ in front will fill with smarc/<robot_name>/ for mqtt
             #  and this node is run under /<robot_name>/ in ROS, relative topics etc.
 
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Bool
-        #     topic_from: abort
-        #     topic_to: ~/abort
-        #     frequency: 3
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_msgs.msg:Leak
-        #     topic_from: core/leak
-        #     topic_to: ~/core/leak
-        #     frequency: 5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sensor_msgs.msg:BatteryState
-        #     topic_from: core/battery
-        #     topic_to: ~/core/battery
-        #     frequency: 0.05
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sensor_msgs.msg:FluidPressure
-        #     topic_from: core/motor_oil_pressure
-        #     topic_to: ~/core/motor_oil_pressure
-        #     frequency: 0.05
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sensor_msgs.msg:Temperature
-        #     topic_from: core/motor_temp
-        #     topic_to: ~/core/motor_temp
-        #     frequency: 0.05
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: geographic_msgs.msg:GeoPoint
-        #     topic_from: dr/lat_lon
-        #     topic_to: ~/dr/lat_lon
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Float64
-        #     topic_from: dr/depth
-        #     topic_to: ~/dr/depth
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Float64
-        #     topic_from: dr/roll
-        #     topic_to: ~/dr/roll
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Float64
-        #     topic_from: dr/pitch
-        #     topic_to: ~/dr/pitch
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Float64
-        #     topic_from: dr/yaw
-        #     topic_to: ~/dr/yaw
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sam_msgs.msg:PercentStamped
-        #     topic_from: core/vbs_fb
-        #     topic_to: ~/core/vbs_fb
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sam_msgs.msg:PercentStamped
-        #     topic_from: core/lcg_fb
-        #     topic_to: ~/core/lcg_fb
-        #     frequency: 0.5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_msgs.msg:ThrusterFeedback
-        #     topic_from: core/thruster1_fb
-        #     topic_to: ~/core/thruster1_fb
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_msgs.msg:ThrusterFeedback
-        #     topic_from: core/thruster2_fb
-        #     topic_to: ~/core/thruster2_fb
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sam_msgs.msg:ThrusterAngles
-        #     topic_from: core/thrust_vector_cmd
-        #     topic_to: ~/core/thrust_vector_cmd
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: sensor_msgs.msg:NavSatFix
-        #     topic_from: core/gps
-        #     topic_to: ~/core/gps
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Float64
-        #     topic_from: dr/altitude
-        #     topic_to: ~/dr/altitude
-        #     frequency: 2
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_bt.msg:GotoWaypoint
-        #     topic_from: smarc_bt/last_wp
-        #     topic_to: ~/bt/last_wp
-        #     frequency: 0.5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Bool
-        #     topic_from: smarc_bt/algae_farm/enable
-        #     topic_to: ~/bt/algae_farm/enable
-        #     frequency: 0.5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Bool
-        #     topic_from: smarc_bt/live_wp/enable
-        #     topic_to: ~/bt/live_wp/enable
-        #     frequency: 0.5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Bool
-        #     topic_from: smarc_bt/gui_wp/enable
-        #     topic_to: ~/bt/gui_wp/enable
-        #     frequency: 0.5
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: py_trees_msgs.msg:Behaviour
-        #     topic_from: smarc_bt/tip
-        #     topic_to: ~/bt/tip
-        #     frequency: 1
-
-        # # no freq, we want all of these
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_bt.msg:MissionControl
-        #     topic_from: smarc_bt/mission_control
-        #     topic_to: ~/bt/mission_control
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: smarc_bt.msg:BTCommand
-        #     topic_from: smarc_bt/bt_command
-        #     topic_to: ~/bt/bt_cmd
-
-        #   - factory: mqtt_bridge.bridge:RosToMqttBridge
-        #     msg_type: std_msgs.msg:Empty
-        #     topic_from: core/heartbeat
-        #     topic_to: ~/bt/heartbeat
-
-
-
-        # MQTT to ROS
-        # - factory: mqtt_bridge.bridge:MqttToRosBridge
-        #   msg_type: sam_msgs.msg:PercentStamped
-        #   topic_from: ~/core/vbs_cmd
-        #   topic_to: core/vbs_cmd
-
-        # - factory: mqtt_bridge.bridge:MqttToRosBridge
-        #   msg_type: std_msgs.msg:Bool
-        #   topic_from: ~/bt_cmd/gui_wp/enable
-        #   topic_to: smarc_bt/gui_wp/enable
-
-        # - factory: mqtt_bridge.bridge:MqttToRosBridge
-        #   msg_type: smarc_bt.msg:GotoWaypoint
-        #   topic_from: ~/bt_cmd/gui_wp/wp
-        #   topic_to: smarc_bt/gui_wp/wp
-
-        # - factory: mqtt_bridge.bridge:MqttToRosBridge
-        #   msg_type: smarc_bt.msg:MissionControl
-        #   topic_from: ~/bt_cmd/mission_control
-        #   topic_to: smarc_bt/mission_control
-
-        # - factory: mqtt_bridge.bridge:MqttToRosBridge
-        #   msg_type: smarc_bt.msg:BTCommand
-        #   topic_from: ~/bt_cmd/bt_cmd
-        #   topic_to: smarc_bt/bt_command
-
+            # each one needs to be named "bridgeN" in ros2 version...
+            ###
+            # ROS -> MQTT
+            ###
+            # core stuff
+            bridge1: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/abort", "~/abort"]
+            bridge2: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:Leak", "core/leak", "~/core/leak"]
+            bridge3: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:BatteryState", "core/battery", "~/core/battery"]
+            bridge4: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:NavSatFix", "core/gps", "~/core/gps"]
+            bridge5: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:PercentStamped", "core/vbs_fb", "~/core/vbs_fb"]
+            bridge6: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:PercentStamped", "core/lcg_fb", "~/core/lcg_fb"]
+            bridge7: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:ThrusterFeedback", "core/thruster1_fb", "~/core/thruster1_fb"]
+            bridge8: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:ThrusterFeedback", "core/thruster2_fb", "~/core/thruster2_fb"]
+            # dr stuff
+            bridge9:  ["mqtt_bridge.bridge:RosToMqttBridge", "geographic_msgs.msg:GeoPoint", "dr/lat_lon", "~/dr/lat_lon"]
+            bridge10: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/roll", "~/dr/roll"]
+            bridge11: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/pitch", "~/dr/pitch"]
+            bridge12: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/yaw", "~/dr/yaw"]
+            bridge13: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/altitude", "~/dr/altitude"]
+            bridge14: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/depth", "~/dr/depth"]
+            # bt stuff
+            bridge15: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:MissionControl", "mission/mission_control", "~/bt/mission_control"]
+            bridge16: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_cmd"]
+            bridge17: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/heartbeat", "~/bt/heartbeat"]
+            bridge18: ["mqtt_bridge.bridge:RosToMqttBridge", "py_trees_ros_interfaces.msg:Behaviour", "mission/bt_tip", "~/bt/tip"]
+            bridge19: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:GotoWaypoint", "mission/last_wp", "~/bt/last_wp"]
+            ###
+            # MQTT -> ROS
+            ###
+            bridge19: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
+            bridge20: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
 
 
 

@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 import glob, os
 
-package_name = 'smarc_bt'
+package_name = 'smarc_bringups'
 
 setup(
     name=package_name,
@@ -13,22 +13,20 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
         (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
+        (os.path.join('share', package_name, 'scripts'), glob.glob('scripts/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Ozer Ozkahraman',
     maintainer_email='ozero@kth.se',
-    description='The Behaviour Tree for varius SMaRC vehicles. Usually wet.',
+    description='Bringup scripts to launch a bunch of stuff for vehicles',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "smarc_bt = smarc_bt.bt.ros_bt:smarc_bt",
-            "test_ros_vehicle = smarc_bt.vehicles.ros_vehicle:test_ros_vehicle",
-            "test_sam_auv = smarc_bt.vehicles.sam_auv:test_sam_auv",
-            "test_bt_conditions = smarc_bt.bt.ros_bt:test_bt_conditions",
-            "send_test_mission = smarc_bt.mission.ros_mission_updater:send_test_mission_control",
-            "test_dubins_planner_caller = smarc_bt.mission.ros_dubins_planner_caller:test_dubins_planner_caller"
         ],
     },
+    scripts=[
+        "scripts/sam_bringup.sh"
+    ]
 )

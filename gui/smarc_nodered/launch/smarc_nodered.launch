@@ -16,12 +16,12 @@
     <param name="mqtt.private_path" value="smarc/$(env USER nouser)_$(var robot_name)"/>
   </node>
 
-  <node name="mqtt_bridge_local" pkg="mqtt_bridge" exec="mqtt_bridge_node" output="screen" namespace="$(var robot_name)">
+  <!-- <node name="mqtt_bridge_local" pkg="mqtt_bridge" exec="mqtt_bridge_node" output="screen" namespace="$(var robot_name)">
     <param from="$(var mqtt_params_file)"/>
     <param name="mqtt.connection.port" value="$(var local_broker_port)"/>
     <param name="mqtt.connection.host" value="$(var local_broker_addr)"/>
     <param name="mqtt.private_path" value="smarc/$(env USER nouser)_$(var robot_name)"/>
-  </node>
+  </node> -->
 
   <!-- <node name="local_smarc_mqtt_bridge_node" pkg="mqtt_bridge" type="mqtt_bridge_node.py" output="screen">
 	<rosparam subst_value="true"> mqtt/private_path: "smarc/$(optenv USER nouser)_$(arg robot_name)" </rosparam>
