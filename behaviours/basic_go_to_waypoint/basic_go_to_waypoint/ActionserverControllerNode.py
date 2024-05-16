@@ -54,12 +54,9 @@ class GoToWaypointActionServerController():
 
         self._states = None
 
+        self._waypoint = None
         self._goal_handle = None
-
-#        self._found_tf = False
-#
-#        tf_update_period = 0.1
-#        self._tf_update_timer = node.create_timer(tf_update_period, self.update_tf)
+        self._distance_to_target = None
 
 
     def _loginfo(self, s):
@@ -98,13 +95,6 @@ class GoToWaypointActionServerController():
             return
 
 
-#        seconds = tf_stamped.header.stamp.sec
-#        translation = tf_stamped.transform.translation
-#        self._vehicle_state.update_sensor(SensorNames.POSITION, [translation.x, translation.y, translation.z], seconds)
-#        quat = tf_stamped.transform.rotation
-#        rpy = euler_from_quaternion([quat.x, quat.y, quat.z, quat.w])
-#        self._vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, rpy, seconds)
-
 #    def _update_states(self):
 
 
@@ -116,19 +106,9 @@ class GoToWaypointActionServerController():
         # the goal_handle object carries the request from the client
         # this request object is whatever is defined in the .action file
         # and can be examined with `ros2 interface` commands
-#        request = self._goal_handle.request
-        requested_rpm = 100000 #request.waypoint.travel_rpm
+        if self._waypoint is None:
+            return None
 
-#        requested_goal = PoseStamped()
-#        requested_goal.header.stamp = request.waypoint.pose.header.stamp
-#        requested_goal.header.frame_id = request.waypoint.pose.header.frame_id
-#        requested_goal.pose.position.x = request.waypoint.pose.pose.position.x
-#        requested_goal.pose.position.y = request.waypoint.pose.pose.position.y
-#        requested_goal.pose.position.z = request.waypoint.pose.pose.position.z
-#        requested_goal.pose.orientation.x = request.waypoint.pose.pose.orientation.x
-#        requested_goal.pose.orientation.y = request.waypoint.pose.pose.orientation.y
-#        requested_goal.pose.orientation.z = request.waypoint.pose.pose.orientation.z
-#        requested_goal.pose.orientation.w = request.waypoint.pose.pose.orientation.w
         requested_goal = PoseStamped()
         requested_goal.header.stamp = self._waypoint.pose.header.stamp
         requested_goal.header.frame_id = self._waypoint.pose.header.frame_id
@@ -142,6 +122,23 @@ class GoToWaypointActionServerController():
 
         return requested_goal
 
+
+    def get_requested_rpm(self):
+
+        if self._waypoint is None:
+            return 0
+
+        return self._waypoint.travel_rpm
+
+    def set_distance_to_target(self,distance):
+        self._loginfo("set distance")
+        self._distance_to_target = distance
+
+
+    def set_feedback_msg(self,msg):
+        return msg
+
+
     def get_states(self):
         return self._states
 
@@ -154,8 +151,6 @@ class GoToWaypointActionServerController():
         #self._update_states()
 
 
-
-
     def _cancel_cb(self, goal_handle:ServerGoalHandle):
         self._loginfo("Cancelled")
         # When could this be useful? 
@@ -166,46 +161,33 @@ class GoToWaypointActionServerController():
 
 
     async def _execute_cb(self, goal_handle:ServerGoalHandle) -> GotoWaypoint.Result:
-        # TODO: That's where you put the heading control and all things related to it.
+        # FIXME: Use this to tell the action client that stuff is happening and when you're done
+        # Probably needs some connection to the waypoint following model, set some states in the
+        # controller or so to do things.
+        #
+        # The important part is the .succeed() and ther result message.
+
         self._loginfo("Executing...")
 
-#        if not self._found_tf:
-#            self._loginfo("No TF yet")
-#            return
-
-        # The follwoing is a boiler plate until all calculations are in place.
-
-        seconds = 1
-        horizontal_tv = 0.1
-        vertical_tv = 0.0
-        requested_rpm = 1000
-        for i in range(seconds):
-            # skip the model here, no computation needed
-            # for this example.
-            self._view.set_rpm(requested_rpm)
-            self._view.set_thrust_vector(horizontal_tv, vertical_tv)
-            self._view.update()
-
-            # give some feedback to the client
-            fb_msg = GotoWaypoint.Feedback()
-            fb_msg.feedback_message = f"{seconds-i} seconds left of {requested_rpm}RPMs"
-            fb_msg.distance_remaining = 1.0
-            goal_handle.publish_feedback(fb_msg)
-
-            # just a normal sleep is OK here, since this action is _the_ thing
-            # running on this thread, and this function is defined async, meaning
-            # the caller of this function knows that we will take a while...
-            time.sleep(1)
-
-        self._view.set_rpm(0)
-        self._view.update()
-
-        # must set the success state otherwise ros will assume "aborted"
-        goal_handle.succeed()
-        # this callback must return a result
         result = GotoWaypoint.Result()
+        fb_msg = GotoWaypoint.Feedback()
+
+        while True:
+            if self._distance_to_target is not None:
+                if self._distance_to_target <= 1: # FIXME: That value is goal_tolerance in the waypoint
+                    break
+                fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
+                fb_msg.distance_remaining = self._distance_to_target
+                goal_handle.publish_feedback(fb_msg)
+
+                time.sleep(0.5)
+
+        goal_handle.succeed()
         result.reached_waypoint = True
+        self._waypoint.travel_rpm = 0.0
+
         return result
+
 
 
 def main():

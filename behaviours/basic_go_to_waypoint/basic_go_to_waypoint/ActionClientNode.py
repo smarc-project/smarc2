@@ -104,7 +104,7 @@ class GoToWaypointActionClient():
         # FIXME: Eventually, we want to get this from a topic or another service.
         waypoint = PoseStamped()
         waypoint.header.frame_id = 'odom'
-        waypoint.pose.position.x = 10.0
+        waypoint.pose.position.x = 5.0
         waypoint.pose.position.y = 0.0
         waypoint.pose.position.z = 0.0
         waypoint.pose.orientation.x = 0.0

@@ -49,13 +49,12 @@ class PIDControl:
 
 class WaypointFollowing:
 
-    def __init__(self, node, view, controller, rate=10):
+    def __init__(self, node, view, controller, rate=1/10):
 
         self._node = node
         self._controller = controller
         self._view = view
-        self._rate = rate
-        self._dt = 1/self._rate
+        self._dt = rate
 
         # FIXME: Are they defined in the view or somewhere s.t. we don't have to hardcode them here?
         self._u_tv_hor_min = -np.deg2rad(7)
@@ -64,7 +63,7 @@ class WaypointFollowing:
         self._wp = None
         self._tf_base_link = None
 
-        self._yaw_pid = PIDControl(Kp = 1.0, Ki = 0.1, Kd = 0.0, Kaw = 0.0)
+        self._yaw_pid = PIDControl(Kp = 1.0, Ki = 0.0, Kd = 0.0, Kaw = 0.0)
 
 
     def _loginfo(self, s):
@@ -97,13 +96,26 @@ class WaypointFollowing:
         heading = self.get_heading(x_ref)
         heading_ref = 0.0
 
-        u_thrust_vector_horizontal, heading_error = self._yaw_pid.get_control(heading, heading_ref, self._dt)
+        distance = self.get_distance(x_ref)
+
+        # NOTE: The - in the heading is due to the fact that the heading we calculate is already the error 
+        # for a reference with 0. Usually we don't want this, here it's a special case.
+        u_thrust_vector_horizontal, heading_error = self._yaw_pid.get_control(-heading, heading_ref, self._dt)
 
         u_tv_hor_lim = self.limit_control_action(u_thrust_vector_horizontal, self._u_tv_hor_min, self._u_tv_hor_max)
 
+        u_rpm = self._controller.get_requested_rpm()
+
         # TODO: Compute anti windup here
 
-        self._view.set_thrust_vector(u_tv_hor_lim, 0.0)
+        self._view.set_thrust_vector(-u_tv_hor_lim, 0.0) # FIXME: remove the - from u once the sim is updated. This is due to the old NED convention
+        self._view.set_rpm(u_rpm)
+
+        # FIXME: Is this called?
+        self._controller.set_distance_to_target(distance)
+
+        info_str = f"heading: {heading:.3f} distance: {distance:.3f} Thrust Vector: {-u_tv_hor_lim:.3f} RPM: {u_rpm:.3f}"
+        self._loginfo(info_str)
 
         return
 
@@ -120,6 +132,13 @@ class WaypointFollowing:
         heading = math.atan2(x_ref.position.y, x_ref.position.x)
 
         return heading
+
+
+    def get_distance(self, x_ref):
+
+        distance = math.sqrt(x_ref.position.x**2 + x_ref.position.y**2)
+
+        return distance
 
 
     def limit_control_action(self, u, u_min, u_max):
