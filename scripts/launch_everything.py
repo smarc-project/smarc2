@@ -8,6 +8,8 @@ import os, subprocess, sys, time, signal, json
 # Also the info of each node.
 ####
 
+robot_name = "test_robot"
+
 def rosnodelist():
     res = subprocess.run(["ros2", "node", "list"], stdout=subprocess.PIPE)
     node_list = res.stdout.decode().split("\n")
@@ -87,7 +89,7 @@ for p_name, launchfiles in packages_launches:
 
         print(f">> Launching launchfile {launchfile}")
         # we want these in the BG and killable
-        launched = subprocess.Popen(["ros2", "launch", launchfile, "namespace:=test_robot"], stdout=subprocess.DEVNULL)
+        launched = subprocess.Popen(["ros2", "launch", launchfile, f"robot_name:={robot_name}"], stdout=subprocess.DEVNULL)
         # wait a little for all the stuff to run...
         wait_seconds = 1
         print(f">> Waiting for launch to launch for {wait_seconds}s\n")
@@ -172,5 +174,6 @@ with open("smarc2_structure.json", "w") as f:
     commit_hash = res.stdout.decode().split("\n")[0].split(" ")[1]
     file = {"hash":commit_hash,
             "created":int(time.time()),
+            "robot_name":robot_name,
             "structure":structure}
     json.dump(file, f)
