@@ -22,3 +22,14 @@ string DR_DEPTH_TOPIC = 'dr/depth'  # Type: Float64
 
 # Other
 string DR_COMPASS_HEADING_TOPIC = 'dr/compass_heading'  # Type: Float64
+
+string DR_ODOM_X_TOPIC = 'dr/x'  # Type: Float64
+string DR_ODOM_Y_TOPIC = 'dr/y'  # Type: Float64
+string DR_ODOM_Z_TOPIC = 'dr/z'  # Type: Float64
+string DR_ODOM_U_TOPIC = 'dr/u'  # Type: Float64
+string DR_ODOM_V_TOPIC = 'dr/v'  # Type: Float64
+string DR_ODOM_W_TOPIC = 'dr/w'  # Type: Float64
+string DR_ODOM_P_TOPIC = 'dr/p'  # Type: Float64
+string DR_ODOM_Q_TOPIC = 'dr/q'  # Type: Float64
+string DR_ODOM_R_TOPIC = 'dr/r'  # Type: Float64
+string DR_ODOM_ALT_TOPIC = 'dr/alt'  # Type: Float64

@@ -1,15 +1,20 @@
 #!/usr/bin/python3
 
+import operator
+import typing
+
 import py_trees as pt
 from py_trees.composites import Selector as Fallback
 from py_trees.composites import Sequence, Parallel
 from py_trees.blackboard import Blackboard
 from py_trees.decorators import Inverter
 from py_trees.common import Status, ParallelPolicy
+from py_trees.behaviours import Running, Success, Failure
 
 from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
+from .i_has_clock import HasClock
 from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates, MissionPlan
@@ -18,27 +23,27 @@ from ..mission.i_action_client import IActionClient
 
 
 from .conditions import C_CheckMissionPlanState,\
-                        C_CheckVehicleSensorState,\
+                        C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_VehicleSensorsWorking,\
                         C_MissionTimeoutOK
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
-                     A_ActionClient
+                     A_ActionClient,\
+                     A_WaitForData
 
-import operator
 
 
-class ROSBT(HasVehicleContainer):
+class BT(HasVehicleContainer, HasClock):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
-                 goto_wp_action: IActionClient
+                 goto_wp_action: IActionClient,
+                 now_seconds_func: typing.Callable
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -51,6 +56,7 @@ class ROSBT(HasVehicleContainer):
         self._mission_updater = mission_updater
         self._goto_wp_action = goto_wp_action
         self._bb = Blackboard()
+        self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
 
@@ -58,21 +64,37 @@ class ROSBT(HasVehicleContainer):
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
         return self._vehicle_container
+    
+    @property
+    def now_seconds(self) -> int:
+        return self._now_seconds_func()
+    
+    def _liveliness_tree(self):
+        liveliness_tree = Parallel("P_Liveliness", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
+            A_WaitForData(self, SensorNames.VEHICLE_HEALTHY)
+            # Maybe add other sensors too, depth, altitude?
+        ])
 
+        return liveliness_tree
 
+ 
     def _safety_tree(self):
-        safety_checks = Parallel("P_Safety_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
+        safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
             C_NotAborted(self),
+            C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY),
+            Inverter("Not leaking", C_CheckSensorBool(self, SensorNames.LEAK)),
             C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
             C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
-            Inverter("Not leaking", C_CheckVehicleSensorState(self, SensorNames.LEAK)),
             C_MissionTimeoutOK()
         ])
 
         safety_tree = Fallback("F_Safety", memory=False, children=[
             safety_checks,
             # modify mission?
-            A_Abort(self)
+            Parallel("P_EMERGENCY", policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
+                A_Abort(self),
+                Running("TODO: A_EmergencyAction")
+            ])
         ])
 
         return safety_tree
@@ -105,9 +127,9 @@ class ROSBT(HasVehicleContainer):
     def setup(self) -> bool:
         
         root = Sequence("S_Root", memory=False, children=[
-            C_VehicleSensorsWorking(self),
             A_Heartbeat(self),
             A_ProcessBTCommand(self._mission_updater),
+            self._liveliness_tree(),
             self._safety_tree(),
             self._run_tree()
         ])
@@ -135,15 +157,21 @@ def smarc_bt():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("smarc_bt")
 
+    def ros_seconds() -> int:
+        nonlocal node
+        secs, _ = node.get_clock().now().seconds_nanoseconds()
+        return int(secs)
+
     
     sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
     ros_goto_wp = ROSGotoWaypoint(node)
-    bt = ROSBT(vehicle_container = sam,
-               bb_updater        = sam_bbu,
-               mission_updater   = ros_mission_updater,
-               goto_wp_action    = ros_goto_wp)
+    bt = BT(vehicle_container = sam,
+            bb_updater        = sam_bbu,
+            mission_updater   = ros_mission_updater,
+            goto_wp_action    = ros_goto_wp,
+            now_seconds_func  = ros_seconds)
     bt.setup()
 
 
@@ -175,7 +203,7 @@ def test_bt_setup():
 
     v = MockVehicleStateContainer(VehicleState)
 
-    bt = ROSBT(v)
+    bt = BT(v)
     bt.setup()
 
     bt.tick()
@@ -204,7 +232,7 @@ def test_bt_conditions():
 
     v = MockVehicleStateContainer(UnderwaterVehicleState)
 
-    bt = ROSBT(v)
+    bt = BT(v)
     bt.setup()
 
     print("No update tick")
