@@ -130,39 +130,6 @@ class GoToWaypointActionClient():
         # we want the future to call our callback when its ready to do so
         self._send_goal_future.add_done_callback(self._goal_response_cb)
 
-#        # Timer checks every 2 sec if the goal is reached or not. 
-#        # FIXME: This should be done by the BT
-#        self._cancel_timer = self._node.create_timer(2, self._cancel_goal_maybe)
-#
-#    def _cancel_goal_maybe(self):
-#        if(not self._goal_handle):
-#            self._loginfo("No goal handle, can't cancel what doesn't exist!")
-#            return
-#
-#        # TODO: This doesn't work. Check above how the get result callback does this.
-#        #       You can also add something w.r.t. the distance remaining.
-#        # TODO: Maybe the get_result callback is already enough and we don't need this.
-#        if(not self._goal_handle.reached_waypoint):
-#            self._loginfo("Goal not yet reached, continue")
-#            return
-#
-#        cancel_future = self._goal_handle.cancel_goal_async()
-#        cancel_future.add_done_callback(self._cancel_goal_cb)
-#
-#        # stop that timer that calls this method, it worked, dont repeat.
-#        self._cancel_timer.cancel()
-#
-#
-#    def _cancel_goal_cb(self, future):
-#        cancel_response = future.result()
-#        if len(cancel_response.goals_canceling) > 0:
-#            self._loginfo("Goal cancelled")
-#        else:
-#            self._loginfo("Cancel failed, PANIC")
-#
-#        # again, maybe dont shutdown if this client is supposed to be used multiple times
-#        rclpy.shutdown()
-
 
 def main():
     # create a node and our objects in the usual manner.

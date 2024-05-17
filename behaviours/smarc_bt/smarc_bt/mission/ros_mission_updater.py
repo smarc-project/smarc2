@@ -9,7 +9,7 @@ from rosidl_runtime_py.convert import message_to_ordereddict
 
 from py_trees.blackboard import Blackboard
 
-from geometry_msgs.msg import Pose2D, PointStamped
+from geometry_msgs.msg import Pose2D, PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
 
 from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
@@ -130,8 +130,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                 self._log("SET PLAN failed due to save/load function.")
             else:
                 self._set_plan(msg)
-    
-            
+
         elif msg.command == MissionControl.CMD_REQUEST_FEEDBACK:
             self._log("REQUEST FEEDBACK not implemented")
             self._latest_mission_control_msg = None
@@ -154,13 +153,13 @@ class ROSMissionUpdater(IBBMissionUpdater):
                 mission_plan.pause()
 
             elif msg.command == MissionControl.CMD_STOP:
-                mission_plan.stop() 
+                mission_plan.stop()
 
             else:
                 self._log(f"Unknown mission control command: {msg.command}")
                 self._latest_mission_control_msg = None
                 return
-        
+
         self._latest_mission_control_msg = None
 
 
@@ -218,7 +217,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
             wp.pose.pose.position.x = utm_point.point.x
             wp.pose.pose.position.y = utm_point.point.y
             wp.pose.header.frame_id = utm_point.header.frame_id
-            
+
         wps = [ROSWP(wp) for wp in mc.waypoints]
         new_plan = ROSMissionPlan(self._node, mc.name, mc.hash, mc.timeout, wps)
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
@@ -299,7 +298,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                 og_indices.pop()
                 og_wp = mplan._waypoints.pop().goto_wp
                 og_wp_dict = message_to_ordereddict(og_wp)
-                
+
             # first, create a clone of the original wp
             # planning only changes the x,y,heading fields
             # so we can over-write those afterwards
@@ -339,7 +338,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                   mplan._hash,
                                   mplan._timeout,
                                   wp_list)
-        
+
         self._bb.set(BBKeys.MISSION_PLAN, new_plan)
         self._log(f"Mission {new_plan._plan_id}({new_plan._hash}) dubinsified!")
 
@@ -352,12 +351,12 @@ def send_test_mission_control():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("send_test_mission")
 
-    
+
     pub = node.create_publisher(MissionControl,
                                 MissionTopics.MISSION_CONTROL_TOPIC,
                                 10)
 
-    def interact():    
+    def interact():
         nonlocal pub
         mc = MissionControl()
         mc.hash = "testhash"
@@ -367,19 +366,32 @@ def send_test_mission_control():
         choice = input("Choose: new, start, pause, stop, emergency:\n")
         if choice == "new":
             mc.command = MissionControl.CMD_SET_PLAN
-            
+
             wp1 = GotoWaypoint()
             wp1.name = "wp1"
             wp1.lat = 58.821496
             wp1.lon = 17.619285
 
-            wp2 = GotoWaypoint()
-            wp1.name = "wp2"
-            wp1.lat = 58.820936
-            wp1.lon = 17.618728
+            waypoint = PoseStamped()
+            waypoint.header.frame_id = 'odom'
+            waypoint.pose.position.x = 5.0
+            waypoint.pose.position.y = 0.0
+            waypoint.pose.position.z = 0.0
+            waypoint.pose.orientation.x = 0.0
+            waypoint.pose.orientation.y = 0.0
+            waypoint.pose.orientation.z = 0.0
+            waypoint.pose.orientation.w = 1.0
 
-            mc.waypoints = [wp1, wp2]
-        
+            wp1.pose = waypoint
+
+
+#            wp2 = GotoWaypoint()
+#            wp1.name = "wp2"
+#            wp1.lat = 58.820936
+#            wp1.lon = 17.618728
+#
+            mc.waypoints = [wp1]
+
         if choice == "start":
             mc.command = MissionControl.CMD_START
         if choice == "pause":
@@ -388,7 +400,6 @@ def send_test_mission_control():
             mc.command = MissionControl.CMD_STOP
         if choice == "emergency":
             mc.command = MissionControl.CMD_EMERGENCY
-                   
 
         pub.publish(mc)
         print(f"Published plan\n{mc}")
