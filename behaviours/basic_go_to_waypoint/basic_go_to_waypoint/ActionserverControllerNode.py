@@ -48,7 +48,7 @@ class GoToWaypointActionServerController():
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
         self._robot_base_link = 'sam0/base_link'
-        self._goal_frame = 'odom'
+        self._goal_frame = 'utm'
 
         self._tf_goal_to_body = None
 
@@ -80,6 +80,12 @@ class GoToWaypointActionServerController():
 
         self._goal_handle = goal_handle
         self._waypoint = goal_handle.waypoint
+
+        goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
+                         pos x: {self._waypoint.pose.pose.position.x}\
+                         pos y: {self._waypoint.pose.pose.position.y}'
+
+        self._loginfo(goal_msg_str)
 
         return GoalResponse.ACCEPT
 
@@ -131,7 +137,7 @@ class GoToWaypointActionServerController():
         return self._waypoint.travel_rpm
 
     def set_distance_to_target(self,distance):
-        self._loginfo("set distance")
+        #self._loginfo("set distance")
         self._distance_to_target = distance
 
 
