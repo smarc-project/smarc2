@@ -47,7 +47,7 @@ class GoToWaypointActionServerController():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
-        self._robot_base_link = 'sam0_base_link'
+        self._robot_base_link = 'sam0/base_link'
         self._goal_frame = 'odom'
 
         self._tf_goal_to_body = None
