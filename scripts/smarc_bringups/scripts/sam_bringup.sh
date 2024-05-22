@@ -33,11 +33,8 @@ tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=
 tmux select-window -t $SESSION:1
 tmux send-keys "ros2 launch smarc_bringups mission.launch robot_name:=$ROBOT_NAME" C-m
 
-
 tmux select-window -t $SESSION:2
-echo "Controllers not here yet..."
-# tmux send-keys "ros2 launch .launch robot_name:=$ROBOT_NAME" C-m
-
+tmux send-keys "ros2 launch basic_go_to_waypoint actionserver.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m

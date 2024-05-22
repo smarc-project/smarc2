@@ -32,7 +32,7 @@ class ROSVehicle(IVehicleStateContainer):
         reference_frame = node.declare_parameter("reference_frame", "odom").value
         tf_update_period = node.declare_parameter("tf_update_period", 0.1).value
 
-        self._link_separator = node.declare_parameter("tf_link_separator_char", "_").value
+        self._link_separator = node.declare_parameter("tf_link_separator_char", "/").value
         
         self._vehicle_state = vehicle_state_type(self._robot_name, reference_frame)
 

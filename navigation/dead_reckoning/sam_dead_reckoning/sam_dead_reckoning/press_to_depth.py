@@ -36,11 +36,6 @@ class Press2Depth(Node):
         self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"  # Unused
         # Removed depth frame
 
-        # Specifies which pressure to depth calculation should be used
-        self.simulation = self.get_parameter('simulation').value
-
-        self.get_logger().info(f"Simulated pressure: {self.simulation}")
-
         self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH20_TOPIC,
                                              callback=self.depthCB, qos_profile=10)
 
