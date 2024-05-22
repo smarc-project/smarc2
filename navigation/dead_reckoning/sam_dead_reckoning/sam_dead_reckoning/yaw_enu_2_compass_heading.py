@@ -69,7 +69,7 @@ class YawEnu2CompassHeading(Node):
         # Convert to
         compass_heading = yaw_enu_2_compass_heading(yaw_enu)
 
-        self.get_logger().info(f"Compass heading (deg): {compass_heading}")
+        #self.get_logger().info(f"Compass heading (deg): {compass_heading}")
 
         # Construct messages and publish
         compass_heading_msg = Float64()

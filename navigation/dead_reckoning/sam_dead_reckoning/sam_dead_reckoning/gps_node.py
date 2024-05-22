@@ -135,7 +135,7 @@ class PublishGPSPose(Node):
             odom_msg.pose.pose.orientation.w = rot[3]
             self.gps_sam_pub.publish(odom_msg)
 
-            self.get_logger().info(f"Easting: {utm_sam.easting}, Northing: {utm_sam.northing}")
+            #self.get_logger().info(f"Easting: {utm_sam.easting}, Northing: {utm_sam.northing}")
 
     def gps_callback(self, prt_msg, stb_msg):
 
