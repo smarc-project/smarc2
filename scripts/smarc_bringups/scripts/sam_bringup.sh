@@ -22,6 +22,8 @@ tmux new-window -t $SESSION:3 -n 'gui'
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
 tmux new-window -t $SESSION:4 -n 'utils'
 
+# for robot description launch. so we get base_link -> everything else
+tmux new-window -t $SESSION:8 -n 'description'
 # dummy stuff to temporarily let other stuff work
 tmux new-window -t $SESSION:9 -n 'dummies'
 
@@ -41,6 +43,11 @@ tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBO
 
 tmux select-window -t $SESSION:4
 tmux send-keys "ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME" C-m
+
+
+# Mostly static stuff that wont be giving much feedback
+tmux select-window -t $SESSION:8
+tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
