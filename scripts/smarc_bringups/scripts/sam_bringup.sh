@@ -14,7 +14,7 @@ tmux -2 new-session -d -s $SESSION
 # state estimation stuff like pressure->depth, imu->tf etc
 tmux rename-window "dr"
 # BT, action servers etc.
-tmux new-window -t $SESSION:1 -n 'mission'
+tmux new-window -t $SESSION:1 -n 'bt'
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'control'
 # connection to different GUIs
@@ -31,7 +31,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch smarc_bringups mission.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch basic_go_to_waypoint actionserver.launch robot_name:=$ROBOT_NAME" C-m
