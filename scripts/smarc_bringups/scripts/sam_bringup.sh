@@ -54,13 +54,13 @@ tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAM
 # So we can switch on that.
 
 USERNAME=$(whoami)
-if [ $USERNAME != "sam" ]
-then
-    echo "You are not the real sam!"
-    ROS_IP=127.0.0.1
-    # Maybe launch ros-tcp-bridge here?
-fi
-
+#if [ $USERNAME != "sam" ]
+#then
+#    echo "You are not the real sam!"
+#    ROS_IP=127.0.0.1
+#    # Maybe launch ros-tcp-bridge here?
+#fi
+#
 # Set default window
 tmux select-window -t $SESSION:0
 # attach to the new session
