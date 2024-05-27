@@ -36,11 +36,6 @@ class Press2Depth(Node):
         self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"  # Unused
         # Removed depth frame
 
-        # Specifies which pressure to depth calculation should be used
-        self.simulation = self.get_parameter('simulation').value
-
-        self.get_logger().info(f"Simulated pressure: {self.simulation}")
-
         self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH20_TOPIC,
                                              callback=self.depthCB, qos_profile=10)
 
@@ -82,9 +77,6 @@ class Press2Depth(Node):
 
         self.declare_parameter('odom_frame', 'odom')
 
-        # TODO default should be False
-        self.declare_parameter('simulation', True)
-
     # def depthCB_old(self, press_msg):
     #     try:
     #
@@ -105,28 +97,15 @@ class Press2Depth(Node):
         """
         callback for converting pressure message into a depth.
         """
-        # Simulated pressure sensor
-        if self.simulation:
-            depth_abs = - self.simulated_pressure_to_depth(press_msg.fluid_pressure)
+        # depth_abs is positive, must be manually negated
+        depth_abs = - self.pascal_pressure_to_depth(press_msg.fluid_pressure)
+        # rospy.loginfo("Depth abs %s", depth_abs)
+        # rospy.loginfo("Fluid press %s", press_msg.fluid_pressure)
 
+        if press_msg.fluid_pressure > 90000. and press_msg.fluid_pressure < 500000.:
             self.depth_msg.header.stamp = rcl_time_to_stamp(self.get_clock().now())
             self.depth_msg.pose.pose.position.z = depth_abs  # = [0., 0., 2.]
             self.pub.publish(self.depth_msg)
-
-            # self.get_logger().info(f"Depth, m: {depth_abs}")
-            # self.get_logger().info(f"Fluid pressure, Pa: {press_msg.fluid_pressure}")
-
-        # Real pressure sensor
-        else:
-            # depth_abs is positive, must be manually negated
-            depth_abs = - self.pascal_pressure_to_depth(press_msg.fluid_pressure)
-            # rospy.loginfo("Depth abs %s", depth_abs)
-            # rospy.loginfo("Fluid press %s", press_msg.fluid_pressure)
-
-            if press_msg.fluid_pressure > 90000. and press_msg.fluid_pressure < 500000.:
-                self.depth_msg.header.stamp = rcl_time_to_stamp(self.get_clock().now())
-                self.depth_msg.pose.pose.position.z = depth_abs  # = [0., 0., 2.]
-                self.pub.publish(self.depth_msg)
 
     def pascal_pressure_to_depth(self, pressure):
         """

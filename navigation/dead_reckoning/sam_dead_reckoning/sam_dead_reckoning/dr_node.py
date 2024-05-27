@@ -18,6 +18,7 @@ from tf_transformations import euler_from_quaternion, quaternion_from_euler, qua
 
 # from std_srvs.srv import SetBool  # SetBoolRequest, SetBoolRequest
 # from builtin_interfaces.msg import Time
+from tf2_geometry_msgs import PointStamped
 from geometry_msgs.msg import PointStamped, TransformStamped, Quaternion, PoseWithCovarianceStamped
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
@@ -61,10 +62,10 @@ class VehicleDR(Node):
         self.map_frame = self.get_parameter("map_frame").value
         self.utm_frame = self.get_parameter("utm_frame").value
         self.odom_frame = self.get_parameter("odom_frame").value
-        self.base_frame = f"{self.robot_name}_{SamLinks.BASE_LINK}"
-        self.base_frame_2d = f"{self.robot_name}_{SamLinks.BASE_LINK_2D}"
-        self.dvl_frame = f"{self.robot_name}_{SamLinks.DVL_LINK}"
-        self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"
+        self.base_frame = f"{self.robot_name}/{SamLinks.BASE_LINK}"
+        self.base_frame_2d = f"{self.robot_name}/{SamLinks.BASE_LINK_2D}"
+        self.dvl_frame = f"{self.robot_name}/{SamLinks.DVL_LINK}"
+        self.press_frame = f"{self.robot_name}/{SamLinks.PRESS_LINK}"
         # === other ===
         self.dvl_period = self.get_parameter("dvl_period").value
         self.dr_period = self.get_parameter("dr_period").value
