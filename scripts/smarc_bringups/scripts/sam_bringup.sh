@@ -14,7 +14,7 @@ tmux -2 new-session -d -s $SESSION
 # state estimation stuff like pressure->depth, imu->tf etc
 tmux rename-window "dr"
 # BT, action servers etc.
-tmux new-window -t $SESSION:1 -n 'mission'
+tmux new-window -t $SESSION:1 -n 'bt'
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'control'
 # connection to different GUIs
@@ -22,6 +22,8 @@ tmux new-window -t $SESSION:3 -n 'gui'
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
 tmux new-window -t $SESSION:4 -n 'utils'
 
+# for robot description launch. so we get base_link -> everything else
+tmux new-window -t $SESSION:8 -n 'description'
 # dummy stuff to temporarily let other stuff work
 tmux new-window -t $SESSION:9 -n 'dummies'
 
@@ -31,19 +33,21 @@ tmux select-window -t $SESSION:0
 tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch smarc_bringups mission.launch robot_name:=$ROBOT_NAME" C-m
-
+tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:2
-echo "Controllers not here yet..."
-# tmux send-keys "ros2 launch .launch robot_name:=$ROBOT_NAME" C-m
-
+tmux send-keys "ros2 launch basic_go_to_waypoint actionserver.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:4
 tmux send-keys "ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME" C-m
+
+
+# Mostly static stuff that wont be giving much feedback
+tmux select-window -t $SESSION:8
+tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
