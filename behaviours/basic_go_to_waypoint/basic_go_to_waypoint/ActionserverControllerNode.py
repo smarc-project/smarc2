@@ -47,8 +47,8 @@ class GoToWaypointActionServerController():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
-        self._robot_base_link = 'sam0/base_link'
-        self._goal_frame = 'utm'
+        self._robot_base_link = 'sam0/base_link_gt'
+        self._goal_frame = None
 
         self._tf_goal_to_body = None
 
@@ -80,6 +80,7 @@ class GoToWaypointActionServerController():
 
         self._goal_handle = goal_handle
         self._waypoint = goal_handle.waypoint
+        self._goal_frame = self._waypoint.pose.header.frame_id
 
         goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
                          pos x: {self._waypoint.pose.pose.position.x}\
@@ -91,6 +92,9 @@ class GoToWaypointActionServerController():
 
 
     def _update_tf(self):
+        if self._goal_frame is None:
+            return
+
         try:
             self._tf_goal_to_body = self._tf_buffer.lookup_transform(self._robot_base_link,
                                                           self._goal_frame,
