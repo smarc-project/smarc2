@@ -6,7 +6,6 @@ from .ros_waypoint import ROSWP
 from .mission_plan import MissionPlan, MissionPlanStates
 
 from smarc_mission_msgs.msg import Topics as MissionTopics, MissionControl
-from smarc_mission_msgs.msg import GotoWaypoint
 
 from std_msgs.msg import Empty
 
@@ -28,7 +27,7 @@ class ROSMissionPlan(MissionPlan):
         self._mission_control_pub = node.create_publisher(MissionControl,
                                                           MissionTopics.MISSION_CONTROL_TOPIC,
                                                           10)
-        self._last_wp_pub = node.create_publisher(GotoWaypoint, MissionTopics.BT_LAST_WP_TOPIC, 10)
+        
         self._publish_mission()
         
 
@@ -66,13 +65,8 @@ class ROSMissionPlan(MissionPlan):
         self._feedback_message = f"Published plan:{mc.name} with {len(mc.waypoints)} wps"
         return True
 
-    def publish_current_wp(self):
-        current_wp = self._waypoints[self._current_wp_index]
-        if(type(current_wp) != ROSWP):
-            self._feedback_message = f"Plan {self._plan_id} had a non-ros WP in it when trying to publish it"
-            return
+
         
-        self._last_wp_pub.publish(current_wp.goto_wp)
 
     def _change_state(self, new_state: MissionPlanStates) -> bool:
         self._publish_mission()

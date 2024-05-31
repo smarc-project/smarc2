@@ -119,8 +119,6 @@ class MissionPlan():
         if self._current_wp_index >= len(self._waypoints):
             self.complete()
 
-    def publish_current_wp(self):
-        self._log(self._waypoints[self._current_wp_index])
 
     @property
     def current_wp(self):
