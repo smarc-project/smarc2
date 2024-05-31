@@ -60,7 +60,7 @@ class ROSVehicle(IVehicleStateContainer):
                                                           self._vehicle_state._reference_frame,
                                                           time.Time())
         except Exception as ex:
-            self._log(f"Vehicle state could not update position, exception:\n{ex}")
+            #self._log(f"Vehicle state could not update position, exception:\n{ex}")
             return
     
         seconds = tf_stamped.header.stamp.sec
