@@ -108,6 +108,7 @@ class BT(HasVehicleContainer, HasClock):
 
         follow_wp_plan = Sequence("S_Follow_WP_Plan", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.RUNNING),
+            A_UpdateMissionPlan(MissionPlan.publish_current_wp),
             A_ActionClient(client=self._goto_wp_action),
             A_UpdateMissionPlan(MissionPlan.complete_current_wp)
         ])
