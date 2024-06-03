@@ -9,6 +9,7 @@ from .i_action_client import IActionClient, ActionClientState
 
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
+from smarc_mission_msgs.msg import GotoWaypoint as GotoWaypointMsg
 
 
 class ROSGotoWaypoint(IActionClient):
@@ -25,6 +26,8 @@ class ROSGotoWaypoint(IActionClient):
         self._goal_handle = None
         self._get_result_future = None
         self._feedback_message = "Only initialized"
+
+        self._last_wp_pub = node.create_publisher(GotoWaypointMsg, MissionTopics.BT_LAST_WP_TOPIC, 10)
 
     
     @property
@@ -112,6 +115,8 @@ class ROSGotoWaypoint(IActionClient):
                                                           feedback_callback=self._server_feedback_cb)
         self._send_goal_future.add_done_callback(self._goal_response_cb)
         self._change_state(ActionClientState.SENT)
+
+        self._last_wp_pub.publish(wp.goto_wp)
 
 
     def cancel_goal(self):

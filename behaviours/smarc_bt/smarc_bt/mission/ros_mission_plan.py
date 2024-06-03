@@ -23,10 +23,11 @@ class ROSMissionPlan(MissionPlan):
         super().__init__(plan_id, hash, timeout, waypoints)
         self._node = node
 
-        self._complete_pub = self._node.create_publisher(Empty, MissionTopics.MISSION_COMPLETE_TOPIC, 10)
+        self._complete_pub = node.create_publisher(Empty, MissionTopics.MISSION_COMPLETE_TOPIC, 10)
         self._mission_control_pub = node.create_publisher(MissionControl,
                                                           MissionTopics.MISSION_CONTROL_TOPIC,
                                                           10)
+        
         self._publish_mission()
         
 
@@ -64,6 +65,8 @@ class ROSMissionPlan(MissionPlan):
         self._feedback_message = f"Published plan:{mc.name} with {len(mc.waypoints)} wps"
         return True
 
+
+        
 
     def _change_state(self, new_state: MissionPlanStates) -> bool:
         self._publish_mission()

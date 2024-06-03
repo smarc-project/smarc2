@@ -12,7 +12,7 @@
         deserializer: json:loads
         # this needs to be set accordingly 
         # TODO maybe modify the mqtt_brdige to acquire these from the yaml directly?
-        n_bridges: 19
+        n_bridges: 22
         bridge:
             # dont forget to add the ".msg" part!
             #  the ~ in front will fill with smarc/<robot_name>/ for mqtt
@@ -38,17 +38,18 @@
             bridge12: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/yaw", "~/dr/yaw"]
             bridge13: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/altitude", "~/dr/altitude"]
             bridge14: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/depth", "~/dr/depth"]
+            bridge15: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Float64", "dr/compass_heading", "~/dr/compass_heading"]
             # bt stuff
-            bridge15: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:MissionControl", "mission/mission_control", "~/bt/mission_control"]
-            bridge16: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_cmd"]
-            bridge17: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/heartbeat", "~/bt/heartbeat"]
-            bridge18: ["mqtt_bridge.bridge:RosToMqttBridge", "py_trees_ros_interfaces.msg:Behaviour", "mission/bt_tip", "~/bt/tip"]
-            bridge19: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:GotoWaypoint", "mission/last_wp", "~/bt/last_wp"]
+            bridge16: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:MissionControl", "mission/mission_control", "~/bt/mission_control"]
+            bridge17: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:BTCommand", "mission/bt_command", "~/bt/bt_cmd"]
+            bridge18: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/heartbeat", "~/bt/heartbeat"]
+            bridge19: ["mqtt_bridge.bridge:RosToMqttBridge", "py_trees_ros_interfaces.msg:Behaviour", "mission/bt_tip", "~/bt/tip"]
+            bridge20: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_mission_msgs.msg:GotoWaypoint", "mission/last_wp", "~/bt/last_wp"]
             ###
             # MQTT -> ROS
             ###
-            bridge19: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
-            bridge20: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
+            bridge21: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
+            bridge22: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
 
 
 
