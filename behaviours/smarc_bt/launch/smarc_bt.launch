@@ -1,6 +1,7 @@
 <launch>
     <arg name="robot_name" default="sam0"/>
     <arg name="use_sim_time" default="true"/>
+    <!-- Set to _gt if you want to use the ground truth from the sim -->
     <arg name="link_suffix" default=""/>
     
     <group>
