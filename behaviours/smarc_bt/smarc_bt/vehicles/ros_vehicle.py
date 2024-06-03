@@ -29,10 +29,12 @@ class ROSVehicle(IVehicleStateContainer):
 
         # self explanatory...
         self._robot_name = node.declare_parameter("robot_name", "sam0").value
-        reference_frame = node.declare_parameter("reference_frame", "odom").value
+        self._link_separator = node.declare_parameter("tf_link_separator_char", "/").value
         tf_update_period = node.declare_parameter("tf_update_period", 0.1).value
 
-        self._link_separator = node.declare_parameter("tf_link_separator_char", "/").value
+        default_reference_frame = f"{self._robot_name}{self._link_separator}{links_message.ODOM_LINK}"
+        reference_frame = node.declare_parameter("reference_frame", default_reference_frame).value
+
         
         self._vehicle_state = vehicle_state_type(self._robot_name, reference_frame)
 
@@ -40,6 +42,7 @@ class ROSVehicle(IVehicleStateContainer):
         # but we shall have it here too as a sane default
         default_base_link = f"{self._robot_name}{self._link_separator}{links_message.BASE_LINK}"
         self._robot_base_link = node.declare_parameter("base_link", default_base_link).value
+        
         self._log(f"Using base_link:{self._robot_base_link} under reference frame:{reference_frame}")
 
         self._tf_buffer = tf2_ros.buffer.Buffer()
