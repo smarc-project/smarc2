@@ -71,7 +71,8 @@ class BT(HasVehicleContainer, HasClock):
     
     def _liveliness_tree(self):
         liveliness_tree = Parallel("P_Liveliness", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
-            A_WaitForData(self, SensorNames.VEHICLE_HEALTHY)
+            A_WaitForData(self, SensorNames.VEHICLE_HEALTHY),
+            A_WaitForData(self, SensorNames.POSITION)
             # Maybe add other sensors too, depth, altitude?
         ])
 

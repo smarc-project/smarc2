@@ -119,6 +119,7 @@ class MissionPlan():
         if self._current_wp_index >= len(self._waypoints):
             self.complete()
 
+
     @property
     def current_wp(self):
         if self._state != MissionPlanStates.RUNNING: return None
