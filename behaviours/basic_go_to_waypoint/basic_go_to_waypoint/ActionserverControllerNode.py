@@ -55,6 +55,7 @@ class GoToWaypointActionServerController():
         self._states = None
 
         self._waypoint = None
+        self._mission_state = None
         self._goal_handle = None
         self._distance_to_target = None
 
@@ -88,6 +89,8 @@ class GoToWaypointActionServerController():
 
         self._loginfo(goal_msg_str)
 
+        self._mission_state = "RUNNING"
+
         return GoalResponse.ACCEPT
 
 
@@ -106,6 +109,9 @@ class GoToWaypointActionServerController():
 
 
 #    def _update_states(self):
+
+    def get_mission_state(self):
+        return self._mission_state
 
 
     def get_tf_base_link(self):
@@ -140,6 +146,7 @@ class GoToWaypointActionServerController():
 
         return self._waypoint.travel_rpm
 
+
     def set_distance_to_target(self,distance):
         #self._loginfo("set distance")
         self._distance_to_target = distance
@@ -167,6 +174,9 @@ class GoToWaypointActionServerController():
         # For example for a one-time-only action like "drop weight"
         # that can not be cancelled. 
         # Whatever tries to cancel it should be notified of this.
+
+        self._mission_state = "CANCELLED"
+
         return CancelResponse.ACCEPT
 
 
@@ -184,7 +194,7 @@ class GoToWaypointActionServerController():
 
         while True:
             if self._distance_to_target is not None:
-                if self._distance_to_target <= 1: # FIXME: That value is goal_tolerance in the waypoint
+                if self._distance_to_target <= self._waypoint.goal_tolerance:
                     break
                 fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
                 fb_msg.distance_remaining = self._distance_to_target
@@ -195,6 +205,7 @@ class GoToWaypointActionServerController():
         goal_handle.succeed()
         result.reached_waypoint = True
         self._waypoint.travel_rpm = 0.0
+        self._mission_state = "COMPLETED"
 
         return result
 

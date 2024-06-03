@@ -88,6 +88,21 @@ class WaypointFollowing:
             self._loginfo("TF to base_link not yet available")
             return
 
+        mission_state_str = f"{self._controller.get_mission_state()}"
+        self._loginfo(mission_state_str)
+
+        if self._controller.get_mission_state() is None:
+            return
+        elif self._controller.get_mission_state() == "COMPLETED":
+            self._view.set_rpm(0)
+            self._view.set_thrust_vector(0.0, 0.0)
+            return
+        elif self._controller.get_mission_state() == "CANCELLED":
+            self._view.set_rpm(0)
+            self._view.set_thrust_vector(0.0, 0.0)
+            return
+
+
         # TODO: Refactor the names
         # For heading, we don't need the state. 
         #x = self._controller.get_state()
