@@ -1,20 +1,13 @@
 <launch>
     <arg name="robot_name" default="sam0"/>
     <arg name="use_sim_time" default="true"/>
-    <arg name="use_gt_frames" default="false"/>
-    
-    <let name="reference_frame" value="$(var robot_name)/odom_gt" if="$(var use_gt_frames)"/>
-    <let name="reference_frame" value="$(var robot_name)/odom" unless="$(var use_gt_frames)"/>
-
-    <let name="base_link" value="$(var robot_name)/base_link_gt" if="$(var use_gt_frames)"/>
-    <let name="base_link" value="$(var robot_name)/base_link" unless="$(var use_gt_frames)"/>
+    <arg name="link_suffix" default=""/>
     
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
             <node name="smarc_bt" pkg="smarc_bt" exec="smarc_bt" output="screen">
                 <param name="use_sim_time" value="$(var use_sim_time)" />
-                <param name="reference_frame" value="$(var reference_frame)"/>
-                <param name="base_link" value="$(var base_link)"/>
+                <param name="link_suffix" value="$(var link_suffix)"/>
             </node>
     </group>
 
