@@ -1,7 +1,7 @@
 # Simulation
 This directory contains the SMaRC simulation environment submodules.
-These might not be ROS packages.
-**These should be [submodules](../documentation/Working%20with%20submodules.md)**
+- These are not ROS packages.
+- **These are [submodules](../documentation/Working%20with%20submodules.md)**
 
 
 
@@ -10,34 +10,41 @@ The three submodules that start with SMARCUnity are meant to be opened or import
 Depending on your goals, either the HDRP or the Standard project, with the Assets module on top is used.
 Check their individual READMEs for details.
 
-Both the Standard and HDRP versions use the [ROS-TCP-Endpoint](https://github.com/KKalem/ROS-TCP-Endpoint) package to speak to ROS2. 
-You can use [this simple script](../scripts/unity_ros_bridge.sh) to run the bridge and then use `rviz2` and `rqt` to check what things look like in ROS.
-The ROS connection is especially useful when you are running headless.
+### First time installation
+- Clone SMARCUnityHDRP and/or SMARCUnityStandard (referred to as "**the project**" going forward) and SMARCUnityAssets repositories into the the *same folder*.
+- Open Unity Hub
+  - Add -> Project from disk.
+  - Locate **the project**.
+  - If it tells you "you do not have the right editor version" choose "download".
+  - It will take a bit of time to compile everything for the first time, let it be.
+  - **The project** should now appear in the hub going forward.
 
-You can also acquire the latest released binaries from the releases section of github.
+> You can also acquire the latest released binaries from the [releases section of github](https://github.com/smarc-project/smarc2/releases). These are usually outdated, but likely more stable. If you encounter bugs here, try a cloned version first.
 
-### HDRP
-Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
+#### ROS connection
+- Both the Standard and HDRP versions use the [ROS-TCP-Endpoint](https://github.com/KKalem/ROS-TCP-Endpoint) package to speak to ROS2. 
+  - You can use [this simple script](../scripts/unity_ros_bridge.sh) to run the bridge and then use `rviz2` and `rqt` to check what things look like in ROS.
+- The ROS connection is especially useful when you are running headless.
+
+#### The packages
+**Assets**: Common package that contains all the sensors, prefabs, vehicles, etc.
+Should be imported from the package manager in Unity. This is where MOST of the useful things are.
+
+**HDRP**: Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
 Runs fast enough for realtime usage while looking pretty.
 
-### Standard
-Uses the "Unity Standard" trading graphical fidelity for _speed_.
-If you need to do some reinforcement learning or similar "try a million times" approaches, this is the way to go.
+**Standard**: Uses the "Unity Standard" trading graphical fidelity for _speed_.
+If you need to do some reinforcement learning or similar "try a million times" approaches, this is the way to go. This version can also be very easily ran without graphics. See the following section.
 
-This version can also be very easily ran without graphics. See the following section.
-
-### Assets
-Common package that contains all the sensors, prefabs, vehicles, etc.
-Should be imported from the package manager in Unity.
 
 ### ROS Messages
 These are generated from within the editor:
 - Robotics -> Generate ROS Messages...
 - Fill in the fields in the pop-up
   - Usually you can not generate these INTO the SMARCUnityAssets package, so place the RosMessages folder anywhere for now
-- Cut/Paste the generated RosMessages folder into `SMARCUnityAssets/Runtime/Scripts/ROS/`
+- Cut/Paste the generated RosMessages folder into `SMARCUnityAssets/Runtime/Scripts/VehicleComponents/ROS/Core/RosMessages`
 
-## Running headless
+### Running headless
 > This was only tested with the Standard setup.
 
 In general, this will run the sim in the command line:
