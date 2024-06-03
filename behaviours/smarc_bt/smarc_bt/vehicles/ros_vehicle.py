@@ -38,7 +38,9 @@ class ROSVehicle(IVehicleStateContainer):
 
         # over-ride this in specific vehicles as needed.
         # but we shall have it here too as a sane default
-        self._robot_base_link = f"{self._robot_name}{self._link_separator}{links_message.BASE_LINK}"
+        default_base_link = f"{self._robot_name}{self._link_separator}{links_message.BASE_LINK}"
+        self._robot_base_link = node.declare_parameter("base_link", default_base_link).value
+        self._log(f"Using base_link:{self._robot_base_link} under reference frame:{reference_frame}")
 
         self._tf_buffer = tf2_ros.buffer.Buffer()
         self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, node)
