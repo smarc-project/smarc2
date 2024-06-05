@@ -59,6 +59,8 @@ class GoToWaypointActionServerController():
         self._goal_handle = None
         self._distance_to_target = None
 
+        self._loginfo("AS started")
+
 
     def _loginfo(self, s):
         self._node.get_logger().info(s)
@@ -89,7 +91,7 @@ class GoToWaypointActionServerController():
 
         self._loginfo(goal_msg_str)
 
-        self._mission_state = "RUNNING"
+        self._mission_state = "GOAL ACCEPTED"
 
         return GoalResponse.ACCEPT
 
@@ -147,9 +149,20 @@ class GoToWaypointActionServerController():
         return self._waypoint.travel_rpm
 
 
+    def get_goal_tolerance(self):
+
+        if self._waypoint is None:
+            return 0
+
+        return self._waypoint.goal_tolerance
+
+
     def set_distance_to_target(self,distance):
         #self._loginfo("set distance")
         self._distance_to_target = distance
+
+    def set_mission_state(self,state):
+        self._mission_state = state
 
 
     def set_feedback_msg(self,msg):
@@ -192,10 +205,14 @@ class GoToWaypointActionServerController():
         result = GotoWaypoint.Result()
         fb_msg = GotoWaypoint.Feedback()
 
+
         while True:
             if self._distance_to_target is not None:
-                if self._distance_to_target <= self._waypoint.goal_tolerance:
+                if self._distance_to_target <= self._waypoint.goal_tolerance\
+                        and self._mission_state == "RUNNING":
+                    self._loginfo("breaking")
                     break
+
                 fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
                 fb_msg.distance_remaining = self._distance_to_target
                 goal_handle.publish_feedback(fb_msg)
