@@ -12,6 +12,8 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 
 from control_msgs.msg import Topics as ControlTopics
 
+from tf_transformations import euler_from_quaternion
+
 from .IDiveView import IDiveView
 
 class DiveController():
@@ -31,7 +33,8 @@ class DiveController():
 
         self._states = Odometry()
 
-        self.depth_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.DEPTH_SETPOINT, callback=self._setpoint_cb, qos_profile=10)
+        self.depth_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.DEPTH_SETPOINT, callback=self._depth_cb, qos_profile=10)
+        self.pitch_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.PITCH_SETPOINT, callback=self._pitch_cb, qos_profile=10)
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
 
         self._loginfo("DCN started")
@@ -41,11 +44,11 @@ class DiveController():
         self._node.get_logger().info(s)
 
 
-    def _setpoint_cb(self, depth):
-        # TODO: Adjust to the depth setpoint
-        # This cb listens to a depth setpoint topic
-
+    def _depth_cb(self, depth):
         self._depth_setpoint = depth.data
+
+    def _pitch_cb(self, pitch):
+        self._pitch_setpoint = pitch.data
 
 
     def _states_cb(self, msg):
@@ -58,6 +61,9 @@ class DiveController():
     def get_depth_setpoint(self):
         return self._depth_setpoint
 
+    def get_pitch_setpoint(self):
+        return self._pitch_setpoint
+
 
     def get_states(self):
         # TODO: Might be better to split this by what 
@@ -67,6 +73,16 @@ class DiveController():
 
     def get_depth(self):
         return self._states.pose.pose.position.z
+
+    def get_pitch(self):
+
+        rpy = euler_from_quaternion([
+            self._states.pose.pose.orientation.x,
+            self._states.pose.pose.orientation.y,
+            self._states.pose.pose.orientation.z,
+            self._states.pose.pose.orientation.w])
+
+        return rpy[1]
 
 
     def update(self):

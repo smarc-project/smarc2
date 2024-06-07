@@ -58,6 +58,7 @@ class DepthPitchControl:
         self._dt = rate
 
         self._depth_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 0.0, u_neutral = 50.0)
+        self._pitch_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 0.0, u_neutral = 50.0)
 
         self._loginfo("Depth Controller created")
 
@@ -70,11 +71,20 @@ class DepthPitchControl:
         """
         This is where all the magic happens.
         """
+        # Get setpoints
         depth_setpoint = self._controller.get_depth_setpoint()
+        pitch_setpoint = self._controller.get_pitch_setpoint()
+
+        # Get current states
         current_depth = self._controller.get_depth()
+        current_pitch = self._controller.get_pitch()
 
         if depth_setpoint is None:
-            self._loginfo("No waypoint received")
+            self._loginfo("No depth setpoint received")
+            return
+
+        if pitch_setpoint is None:
+            self._loginfo("No pitch setpint received")
             return
 
         # Sketchy minus signs...
@@ -83,9 +93,13 @@ class DepthPitchControl:
 
 
         u_vbs, depth_error = self._depth_pid.get_control(current_depth, depth_setpoint, self._dt)
+        u_lcg, pitch_error = self._pitch_pid.get_control(current_pitch, pitch_setpoint, self._dt)
 
         self._view.set_vbs(u_vbs)
+        self._view.set_lcg(u_lcg)
+
         self._loginfo(f"Depth: {current_depth:.3f}, setpoint: {depth_setpoint:.3f}, error: {depth_error:.3f}, VBS: {u_vbs:.3f}")
+        self._loginfo(f"Pitch: {current_pitch:.3f}, setpoint: {pitch_setpoint:.3f}, error: {pitch_error:.3f}, LCG: {u_lcg:.3f}")
 
         return
 
