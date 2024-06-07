@@ -3,9 +3,10 @@ import sys
 import rclpy
 from rclpy.node import Node
 
+from std_msgs.msg import Float64
 from smarc_msgs.msg import ThrusterRPM
 from sam_msgs.msg import Topics as SamTopics
-from sam_msgs.msg import ThrusterAngles
+from sam_msgs.msg import ThrusterAngles, PercentStamped
 
 try:
     from .IDiveView import IDiveView
@@ -18,15 +19,15 @@ class SAMDiveView(IDiveView):
     """
     def __init__(self, node: Node) -> None:
         # Publishers
-        self._vbs_pub = node.create_publisher(float, SamTopics.VBS_CMD_TOPIC, 10)
-        self._lcg_pub = node.create_publisher(float, SamTopics.LCG_CMD_TOPIC, 10)
+        self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
+        self._lcg_pub = node.create_publisher(PercentStamped, SamTopics.LCG_CMD_TOPIC, 10)
         self._rpm1_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, 10)
         self._rpm2_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, 10)
         self._thrust_vector_pub = node.create_publisher(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, 10)
 
         # Messages
-        self._vbs_msg = Float()
-        self._lcg_msg = Float()
+        self._vbs_msg = PercentStamped()
+        self._lcg_msg = PercentStamped()
         self._t1_msg = ThrusterRPM()
         self._t2_msg = ThrusterRPM()
         self._thrust_vector_msg = ThrusterAngles()
@@ -36,14 +37,14 @@ class SAMDiveView(IDiveView):
         """
         Set vbs
         """
-        self._vbs_msg = float(vbs)
+        self._vbs_msg.value = float(vbs)
 
 
     def set_lcg(self, lcg: float) -> None:
         """
         Set LCG
         """
-        self._lcg_msg = float(lcg)
+        self._lcg_msg.value = float(lcg)
 
 
     def set_rpm(self, rpm: int) -> None:

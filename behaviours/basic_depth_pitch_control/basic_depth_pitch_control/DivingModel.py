@@ -14,11 +14,12 @@ class PIDControl:
     To simplify the PIDModel by using this.
     """
     # TODO: Add anti-windup + saturations
-    def __init__(self, Kp=1.0, Ki=0.1, Kd=2.0, Kaw=0.0):
+    def __init__(self, Kp=1.0, Ki=0.1, Kd=2.0, Kaw=0.0, u_neutral = 0.0):
         self._Kp = Kp
         self._Ki = Ki
         self._Kd = Kd
         self._Kaw = Kaw
+        self._u_neutral = u_neutral
 
         # This also initializes all control variables
         self.reset()
@@ -35,7 +36,7 @@ class PIDControl:
         self._integral = self._integral + self._error*dt
         self._derivative = (self._error - self._error_prev)/dt
 
-        u = self._Kp*self._error + self._Ki*(self._integral - self._anti_windup) + self._Kd*self._derivative
+        u = self._Kp*self._error + self._Ki*(self._integral - self._anti_windup) + self._Kd*self._derivative + self._u_neutral
 
         return u, self._error
 
@@ -56,16 +57,9 @@ class DepthPitchControl:
         self._view = view
         self._dt = rate
 
-        # FIXME: Are they defined in the view or somewhere s.t. we don't have to hardcode them here?
-        self._u_tv_hor_min = -np.deg2rad(7)
-        self._u_tv_hor_max = np.deg2rad(7)
+        self._depth_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 0.0, u_neutral = 50.0)
 
-        self._wp = None
-        self._tf_base_link = None
-
-        self._yaw_pid = PIDControl(Kp = 1.0, Ki = 0.0, Kd = 0.0, Kaw = 0.0)
-
-        self._loginfo("WPF Controller created")
+        self._loginfo("Depth Controller created")
 
 
     def _loginfo(self, s):
@@ -76,93 +70,24 @@ class DepthPitchControl:
         """
         This is where all the magic happens.
         """
-        # TODO: Add depth keeping controller as well.
-        # TODO: Upgrade to dynamic diving
-        self._wp = self._controller.get_waypoint()
+        depth_setpoint = self._controller.get_depth_setpoint()
+        current_depth = self._controller.get_depth()
 
-        if self._wp is None:
-            #self._loginfo("No waypoint received")
+        if depth_setpoint is None:
+            self._loginfo("No waypoint received")
             return
 
-        self._tf_base_link = self._controller.get_tf_base_link()
-
-        if self._tf_base_link is None:
-            self._loginfo("TF to base_link not yet available")
-            return
+        # Sketchy minus signs...
+        depth_setpoint *= -1
+        current_depth *= -1
 
 
-#        if self._controller.get_mission_state() is None:
-#            return
-#        elif self._controller.get_mission_state() == "COMPLETED":
-#            self._view.set_rpm(0)
-#            self._view.set_thrust_vector(0.0, 0.0)
-#            return
-#        elif self._controller.get_mission_state() == "CANCELLED":
-#            self._view.set_rpm(0)
-#            self._view.set_thrust_vector(0.0, 0.0)
-#            return
+        u_vbs, depth_error = self._depth_pid.get_control(current_depth, depth_setpoint, self._dt)
 
-        mission_state = self._controller.get_mission_state()
-
-        mission_state_str = f"WPF: {mission_state}"
-        self._loginfo(mission_state_str)
-
-
-        # TODO: Refactor the names
-        # For heading, we don't need the state. 
-        #x = self._controller.get_state()
-        x_ref = self.transform_waypoint(self._wp)
-
-        heading = self.get_heading(x_ref)
-        heading_ref = 0.0
-
-        distance = self.get_distance(x_ref)
-
-        # NOTE: The - in the heading is due to the fact that the heading we calculate is already the error 
-        # for a reference with 0. Usually we don't want this, here it's a special case.
-        u_thrust_vector_horizontal, heading_error = self._yaw_pid.get_control(-heading, heading_ref, self._dt)
-
-        u_tv_hor_lim = self.limit_control_action(u_thrust_vector_horizontal, self._u_tv_hor_min, self._u_tv_hor_max)
-
-        u_rpm = self._controller.get_requested_rpm()
-
-        # TODO: Compute anti windup here
-
-        self._view.set_thrust_vector(-u_tv_hor_lim, 0.0) # FIXME: remove the - from u once the sim is updated. This is due to the old NED convention
-        self._view.set_rpm(u_rpm)
-
-        self._controller.set_distance_to_target(distance)
-
-        if mission_state == "GOAL ACCEPTED"\
-                and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state = "RUNNING"
-            self._loginfo("WPF: mission state check")
-
-        info_str = f"heading: {heading:.3f} distance: {distance:.3f} Thrust Vector: {-u_tv_hor_lim:.3f} RPM: {u_rpm:.3f}"
-        self._loginfo(info_str)
+        self._view.set_vbs(u_vbs)
+        self._loginfo(f"Depth: {current_depth:.3f}, setpoint: {depth_setpoint:.3f}, error: {depth_error:.3f}, VBS: {u_vbs:.3f}")
 
         return
-
-
-    def transform_waypoint(self, waypoint):
-
-        goal_body = tf2_geometry_msgs.do_transform_pose(waypoint.pose, self._tf_base_link)
-
-        return goal_body
-
-
-    def get_heading(self, x_ref):
-
-        heading = math.atan2(x_ref.position.y, x_ref.position.x)
-
-        return heading
-
-
-    def get_distance(self, x_ref):
-
-        distance = math.sqrt(x_ref.position.x**2 + x_ref.position.y**2)
-
-        return distance
 
 
     def limit_control_action(self, u, u_min, u_max):

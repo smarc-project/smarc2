@@ -14,7 +14,7 @@ try:
 except:
     from IThrustView import IThrustView
 
-class ConvenienceView(IThrustView):
+class ConvenienceView(IDiveView):
     """
     Implements convenience topic publishers for debugging
     """
