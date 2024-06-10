@@ -1,5 +1,5 @@
 <launch>
-  <arg name="robot_name" default="sam"/>
+  <arg name="robot_name" default="sam0"/>
   <arg name="robot_urdf" default="sam_auv.urdf"/>
   <arg name="prefix" default="$(var robot_name)/"/>
 
