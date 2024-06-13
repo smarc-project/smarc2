@@ -17,6 +17,11 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"
+  "msg/ControlError.msg"
+  "msg/ControlInput.msg"
+  "msg/ControlReference.msg"
+  "msg/ControlState.msg"
+  "msg/State.msg"
   DEPENDENCIES std_msgs
  )
 

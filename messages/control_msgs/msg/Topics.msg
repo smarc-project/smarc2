@@ -8,35 +8,14 @@
 # Control topics
 ########################
 # States
-string STATES = 'dr/odom' # Type: Odometry
+string STATES = 'core/odom_gt' # Type: Odometry
 
 # Setpoints
 string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
 string PITCH_SETPOINT = 'ctrl/pitch_setpoint' # Type: Float64
 
-# DR node
-#string DR_ODOM_TOPIC = 'dr/odom'  # Type: Odometry
-#string DR_DEPTH_POSE_TOPIC = 'dr/depth_pose'  # Type: PoseWithCovarianceStamped
-#string DR_GPS_ODOM_TOPIC = 'dr/gps_odom'  # Type: Odometry
-#
-## IMU
-#string DR_ROLL_TOPIC = 'dr/roll'  # Type: Float64
-#string DR_PITCH_TOPIC = 'dr/pitch'  # Type: Float64
-#string DR_YAW_TOPIC = 'dr/yaw'  # Type: Float64
-#
-## DEPTH
-#string DR_DEPTH_TOPIC = 'dr/depth'  # Type: Float64
-#
-## Other
-#string DR_COMPASS_HEADING_TOPIC = 'dr/compass_heading'  # Type: Float64
-#
-#string DR_ODOM_X_TOPIC = 'dr/x'  # Type: Float64
-#string DR_ODOM_Y_TOPIC = 'dr/y'  # Type: Float64
-#string DR_ODOM_Z_TOPIC = 'dr/z'  # Type: Float64
-#string DR_ODOM_U_TOPIC = 'dr/u'  # Type: Float64
-#string DR_ODOM_V_TOPIC = 'dr/v'  # Type: Float64
-#string DR_ODOM_W_TOPIC = 'dr/w'  # Type: Float64
-#string DR_ODOM_P_TOPIC = 'dr/p'  # Type: Float64
-#string DR_ODOM_Q_TOPIC = 'dr/q'  # Type: Float64
-#string DR_ODOM_R_TOPIC = 'dr/r'  # Type: Float64
-#string DR_ODOM_ALT_TOPIC = 'dr/alt'  # Type: Float64
+# Convenience Topics
+string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
+string REF_CONV = 'ctrl/conv/ref' # Type: ControlReference
+string CONTROL_ERROR_CONV = 'ctrl/conv/error' # Type: ControlError
+string CONTROL_INPUT_CONV = 'ctrl/conv/control_input' # Type: ControlInput
