@@ -52,9 +52,6 @@ class DiveController():
 
 
     def _states_cb(self, msg):
-        # TODO: This is a call back from whatever topic
-        # you subscribe to to get the states
-
         self._states = msg
 
 

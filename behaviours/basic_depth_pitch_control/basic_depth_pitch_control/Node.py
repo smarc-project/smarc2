@@ -7,7 +7,7 @@ from .SAMDiveView import SAMDiveView
 #from .ActionServerControllerNode import DiveActionServerController
 from .DiveControllerNode import DiveController
 from .DivingModel import DepthPitchControl
-#from .ConvenienceView import ConvenienceView
+from .ConvenienceView import ConvenienceView
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -28,14 +28,14 @@ def main():
     controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
     model = DepthPitchControl(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
-    #convenience_view = ConvenienceView(node, controller)
+    convenience_view = ConvenienceView(node, controller, model)
 
 
     node.create_timer(view_rate, view.update)
     node.create_timer(model_rate, model.update)
     node.create_timer(controller_rate, controller.update)
 
-    #node.create_timer(convenience_view_rate, convenience_view.update)
+    node.create_timer(convenience_view_rate, convenience_view.update)
 
     def _loginfo(node, s):
         node.get_logger().info(s)

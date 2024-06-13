@@ -7,32 +7,77 @@ from smarc_msgs.msg import ThrusterRPM
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 
+from control_msgs.msg import Topics as ControlTopics
+from control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
+
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
 try:
-    from .IThrustView import IThrustView
+    from .IDiveView import IDiveView
 except:
-    from IThrustView import IThrustView
+    from IIDiveView import IDiveView
 
 class ConvenienceView(IDiveView):
     """
     Implements convenience topic publishers for debugging
     """
-    def __init__(self, node: Node, controller) -> None:
-        # Just a bunch of publishers to send the given RPM to the vehicle.
-        # We get the topic strings from the Topics message object so there are no hard-coded strings here!
-        self._waypoint_pub = node.create_publisher(PoseStamped, "/conv/waypoint", 10)
-        self._waypoint_msg = None
+    def __init__(self, node: Node, controller, model) -> None:
+        self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
+        self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
+        self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
+        self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
+
+
+        self._state_msg = None
+        self._ref_msg = None
+        self._error_msg = None
+        self._input_msg = None
 
         self._controller = controller
+        self._model = model
+
+
+    def _loginfo(self, s):
+        self._node.get_logger().info(s)
 
     def update(self) -> None:
-        self._waypoint_msg = self._controller.get_waypoint()
+        self._update_state()
+        self._update_ref()
+        self._update_error()
+        self._update_input()
 
-        if self._waypoint_msg is None:
+
+    def _update_state(self) -> None:
+        self._state_msg = self._model.get_state()
+
+        if self._state_msg is None:
             return
 
-        self._waypoint_pub.publish(self._waypoint_msg)
+        self._state_pub.publish(self._state_msg)
+
+    def _update_ref(self) -> None:
+        self._ref_msg = self._model.get_ref()
+
+        if self._ref_msg is None:
+            return
+
+        self._ref_pub.publish(self._ref_msg)
+
+    def _update_error(self) -> None:
+        self._error_msg = self._model.get_error()
+
+        if self._error_msg is None:
+            return
+
+        self._error_pub.publish(self._error_msg)
+
+    def _update_input(self) -> None:
+        self._input_msg = self._model.get_input()
+
+        if self._input_msg is None:
+            return
+
+        self._input_pub.publish(self._input_msg)
 
 
 def test_view():

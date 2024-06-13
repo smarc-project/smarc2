@@ -4,8 +4,11 @@ import numpy as np
 import math
 
 import tf2_geometry_msgs.tf2_geometry_msgs
+from tf_transformations import euler_from_quaternion
 
 from geometry_msgs.msg import PoseStamped, TransformStamped
+
+from control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 
 class PIDControl:
@@ -57,6 +60,13 @@ class DepthPitchControl:
         self._view = view
         self._dt = rate
 
+        # Convenience Topics
+        self._current_state = None
+        self._ref = None
+        self._error = None
+        self._input = None
+
+
         self._depth_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 0.0, u_neutral = 50.0)
         self._pitch_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 0.0, u_neutral = 50.0)
 
@@ -76,6 +86,7 @@ class DepthPitchControl:
         pitch_setpoint = self._controller.get_pitch_setpoint()
 
         # Get current states
+        self._current_state = self._controller.get_states()
         current_depth = self._controller.get_depth()
         current_pitch = self._controller.get_pitch()
 
@@ -87,6 +98,7 @@ class DepthPitchControl:
             self._loginfo("No pitch setpint received")
             return
 
+
         # Sketchy minus signs...
         depth_setpoint *= -1
         current_depth *= -1
@@ -95,11 +107,25 @@ class DepthPitchControl:
         u_vbs, depth_error = self._depth_pid.get_control(current_depth, depth_setpoint, self._dt)
         u_lcg, pitch_error = self._pitch_pid.get_control(current_pitch, pitch_setpoint, self._dt)
 
+
         self._view.set_vbs(u_vbs)
         self._view.set_lcg(u_lcg)
 
-        self._loginfo(f"Depth: {current_depth:.3f}, setpoint: {depth_setpoint:.3f}, error: {depth_error:.3f}, VBS: {u_vbs:.3f}")
-        self._loginfo(f"Pitch: {current_pitch:.3f}, setpoint: {pitch_setpoint:.3f}, error: {pitch_error:.3f}, LCG: {u_lcg:.3f}")
+#        self._loginfo(f"Depth: {current_depth:.3f}, setpoint: {depth_setpoint:.3f}, error: {depth_error:.3f}, VBS: {u_vbs:.3f}")
+#        self._loginfo(f"Pitch: {current_pitch:.3f}, setpoint: {pitch_setpoint:.3f}, error: {pitch_error:.3f}, LCG: {u_lcg:.3f}")
+
+        # TODO: Could be done nicer probably
+        self._ref = ControlReference()
+        self._ref.z = depth_setpoint
+        self._ref.pitch = pitch_setpoint
+
+        self._error = ControlError()
+        self._error.z = depth_error
+        self._error.pitch = pitch_error
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
 
         return
 
@@ -119,6 +145,38 @@ class DepthPitchControl:
 
         return u_lim
 
+
+    def get_state(self):
+        if self._current_state is None:
+            return None
+
+        state = ControlState()
+        state.pose.x = self._current_state.pose.pose.position.x
+        state.pose.y = self._current_state.pose.pose.position.y
+        state.pose.z = self._current_state.pose.pose.position.z
+
+        rpy = euler_from_quaternion([
+            self._current_state.pose.pose.orientation.x,
+            self._current_state.pose.pose.orientation.y,
+            self._current_state.pose.pose.orientation.z,
+            self._current_state.pose.pose.orientation.w])
+
+        state.pose.roll = rpy[0]
+        state.pose.pitch = rpy[1]
+        state.pose.yaw = rpy[2]
+
+        # TODO: Add the velocity
+
+        return state
+
+    def get_ref(self):
+        return self._ref
+
+    def get_error(self):
+        return self._error
+
+    def get_input(self):
+        return self._input
 
 # TODO: Write unit tests here that do one loop of everything
 
