@@ -315,7 +315,7 @@ class VehicleDR(Node):
                         abs(self.dvl_latest.velocity.y) < self.dvl_max_mag_y and \
                         abs(self.dvl_latest.velocity.x) < self.dvl_max_mag_x and \
                         self.dvl_latest.velocity.x > self.dvl_max_neg_x:
-
+                    self.get_logger().info("DR - DVL")
                     lin_vel_t = np.array([self.dvl_latest.velocity.x,
                                           self.dvl_latest.velocity.y,
                                           self.dvl_latest.velocity.z])
@@ -324,7 +324,7 @@ class VehicleDR(Node):
 
                 # # Otherwise, integrate motion model estimate
                 else:
-                    self.get_logger().info("Motion model linear velocities")
+                    self.get_logger().info("DR - Motion model")
 
                     # Input x, y, yaw, x_vel, y_vel, yaw_vel
                     # Output x_vel, y_vel, yaw_vel, x_acc, y_acc, yaw_acc

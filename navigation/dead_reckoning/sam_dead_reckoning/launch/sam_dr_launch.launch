@@ -30,6 +30,10 @@
     <param name="use_sim_time" value="true" />
   </node>
 
+  <node pkg="sam_dead_reckoning" exec="dr_lat_lon_node" name="dr_lat_lon_node" output="screen" namespace="$(var robot_name)">
+    <param name="use_sim_time" value="true" />
+  </node>
+
   <!-- <node pkg="sam_dead_reckoning" exec="visual_tools" name="visual_tools" output="screen" namespace="$(var robot_name)">
     <param name="robot_name" value="$(var robot_name)" />
     <param name="odom_frame" value="odom" />
