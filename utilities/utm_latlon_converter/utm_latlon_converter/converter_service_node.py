@@ -31,12 +31,10 @@ class GeoConverterService:
         self._log(f"Got {len(request.lat_lon_points)} latlon->utm and {len(request.utm_points)} utm->latlon points")
 
         # convert all the latlons to utm
-        count = 0
         for ll in request.lat_lon_points:
             # each is a GeoPoint already, so we can feed directly to geodesy
             # dont crash if 1 of 100 points is bad...
             try:
-                count += 1
                 pt = fromMsg(ll)
             except:
                 response.utm_points.append(None)
@@ -47,10 +45,7 @@ class GeoConverterService:
             ps.header.frame_id = f"utm_{zone}_{band}"
             response.utm_points.append(ps)
 
-        self._log(f"latlon->utm complete! Count: {count}")
-
         # do the same, in reverse for utm->latlon
-        count = 0
         for utm in request.utm_points:
             utm_pt = UTMPoint()
             utm_pt.easting = utm.point.x
@@ -60,17 +55,15 @@ class GeoConverterService:
             utm_pt.band = band
             # don't want to crash if 1 of 100 points was bad...
             try:
-                count += 1
                 msg = utm_pt.toMsg()
-                self._log(f"{utm.header.frame_id}: {utm.point.x:.5f}, {utm.point.y:.5f}")
-                self._log(f"{msg.latitude} - {msg.longitude}")
+                # self._log(f"{utm.header.frame_id}: {utm.point.x:.5f}, {utm.point.y:.5f}")
+                # self._log(f"{msg.latitude} - {msg.longitude}")
             except:
                 msg = None
 
             response.lat_lon_points.append(msg)
 
-        self._log(f"utm->latlon complete! Count: {count}")
-        self._log(f'Response details: {response}')
+        # self._log(f'Response details: {response}')
 
         return response
 
