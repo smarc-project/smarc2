@@ -123,7 +123,6 @@ class VehicleDR(Node):
         self.dvl_max_mag_y = 0.2
         self.dvl_max_neg_x = -math.inf  # What is this for? Why not trust the dvl when moving in reverse, -0.1
 
-
         # Problem: The actual timer period was not consistent with the requested period.
         # Solution: Measure and use the actual period
         self.dr_measured_period = 0
@@ -132,6 +131,7 @@ class VehicleDR(Node):
         # Status
         self.status_min_period = 1.0
         self.status_last_time = None
+        self.status_verbose = self.get_parameter("status_verbose").value
 
         # ===== Connections =====
         # self.pub_odom = rospy.Publisher(self.odom_topic, Odometry, queue_size=100)
@@ -202,6 +202,7 @@ class VehicleDR(Node):
         self.declare_parameter("dvl_period", 0.1)
         self.declare_parameter("dr_period", 0.1)  # 0.01,
         self.declare_parameter("simulation", True)
+        self.declare_parameter("status_verbose", False)
 
     def thrust_cmd_cb(self, thrust_cmd_msg):
         self.thrust_cmd = thrust_cmd_msg
@@ -315,7 +316,10 @@ class VehicleDR(Node):
                         abs(self.dvl_latest.velocity.y) < self.dvl_max_mag_y and \
                         abs(self.dvl_latest.velocity.x) < self.dvl_max_mag_x and \
                         self.dvl_latest.velocity.x > self.dvl_max_neg_x:
-                    self.get_logger().info("DR - DVL")
+
+                    if self.check_status_valid(dr_current_time) and self.status_verbose:
+                        self.get_logger().info(f"DR - DVL - {self.dr_measured_period}")
+
                     lin_vel_t = np.array([self.dvl_latest.velocity.x,
                                           self.dvl_latest.velocity.y,
                                           self.dvl_latest.velocity.z])
@@ -324,7 +328,8 @@ class VehicleDR(Node):
 
                 # # Otherwise, integrate motion model estimate
                 else:
-                    self.get_logger().info("DR - Motion model")
+                    if self.check_status_valid(dr_current_time) and self.status_verbose:
+                        self.get_logger().info(f"DR - Motion model - {self.dr_measured_period}")
 
                     # Input x, y, yaw, x_vel, y_vel, yaw_vel
                     # Output x_vel, y_vel, yaw_vel, x_acc, y_acc, yaw_acc
@@ -411,7 +416,7 @@ class VehicleDR(Node):
                 self.count_dbg = min(self.count_dbg + 1, self.times_n_dbg)
 
                 # Average
-                average_time = np.sum(self.times_dbg)/self.count_dbg
+                average_time = np.sum(self.times_dbg) / self.count_dbg
 
                 # self.get_logger().info(f'Last callback period: {last_callback_period:.4f} -- '
                 #                        f'Average callback period: {average_time} -- '
@@ -424,18 +429,25 @@ class VehicleDR(Node):
             # At this point the DR is not properly initialized
             # Status report at a limited rate
             status_current_time = rcl_time_to_secs(self.get_clock().now())
-            if self.status_last_time is None:
-                self.status_last_time = status_current_time
-                status_valid = True
-            elif status_current_time - self.status_last_time >= self.status_min_period:
-                self.status_last_time = status_current_time
-                status_valid = True
-            else:
-                status_valid = False
-            
-            if status_valid:
+
+            if self.check_status_valid(status_current_time):
                 self.get_logger().info(f"DR_timer - m2o: {self.map_2_odom_initialized}"
                                        f"  stim:{self.stim_initialized}  heading:{self.heading_initialized}")
+
+    def check_status_valid(self, current_time: float):
+        """
+        check if it is time to provide a status update
+        """
+        if self.status_last_time is None:
+            self.status_last_time = current_time
+            status_valid = True
+        elif current_time - self.status_last_time >= self.status_min_period:
+            self.status_last_time = current_time
+            status_valid = True
+        else:
+            status_valid = False
+
+        return status_valid
 
     def thrust_cb(self, thrust1_msg, thrust2_msg):
         # self.get_logger().info("Thrust callback")

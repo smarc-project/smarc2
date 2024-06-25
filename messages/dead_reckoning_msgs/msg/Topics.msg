@@ -22,6 +22,7 @@ string DR_DEPTH_TOPIC = 'dr/depth'  # Type: Float64
 
 # Other
 string DR_COMPASS_HEADING_TOPIC = 'dr/compass_heading'  # Type: Float64
+string DR_LAT_LON_TOPIC = 'dr/lat_lon'  # Type: GeoPoint
 
 string DR_ODOM_X_TOPIC = 'dr/x'  # Type: Float64
 string DR_ODOM_Y_TOPIC = 'dr/y'  # Type: Float64
