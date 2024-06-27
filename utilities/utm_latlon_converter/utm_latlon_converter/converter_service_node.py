@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # import geodesy.utm
-import rclpy, sys
+import rclpy, sys, math
 from rclpy.node import Node
 
 from geometry_msgs.msg import PointStamped
@@ -58,6 +58,8 @@ class GeoConverterService:
                 msg = utm_pt.toMsg()
                 # self._log(f"{utm.header.frame_id}: {utm.point.x:.5f}, {utm.point.y:.5f}")
                 # self._log(f"{msg.latitude} - {msg.longitude}")
+                if(math.isnan(msg.altitude)):
+                    msg.altitude = 0.0
             except:
                 msg = None
 
