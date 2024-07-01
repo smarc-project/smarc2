@@ -9,7 +9,7 @@ from rclpy.executors import MultiThreadedExecutor
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
-from .IThrustView import IThrustView
+from .IDiveView import IDiveView
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -20,7 +20,7 @@ import tf2_geometry_msgs.tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
 
-class GoToWaypointActionServerController():
+class DiveActionServerController():
     """
     A controller example that implements an action server to allow
     another node to control its execution, params, etc.
@@ -212,12 +212,12 @@ class GoToWaypointActionServerController():
                         and self._mission_state == "RUNNING":
                     self._loginfo("breaking")
                     break
-                
+
                 fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
                 fb_msg.distance_remaining = self._distance_to_target
                 goal_handle.publish_feedback(fb_msg)
 
-                time.sleep(0.1)
+                time.sleep(0.5)
 
         goal_handle.succeed()
         result.reached_waypoint = True

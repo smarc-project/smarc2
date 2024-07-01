@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-# import geodesy.utm
 import rclpy, sys, math
 from rclpy.node import Node
 
@@ -17,18 +16,20 @@ class GeoConverterService:
         self._node = node
         self._converter_service = self._node.create_service(UTMLatLon,
                                                             MissionTopics.UTM_LATLON_CONVERSION_SERVICE,
-                                                            self.convert)
+                                                            self._convert)
 
         self._log(f"UTM <-> LAT/LON Converter running on {MissionTopics.UTM_LATLON_CONVERSION_SERVICE}")
 
     def _log(self, s):
         self._node.get_logger().info(s)
 
-    def convert(self, request: UTMLatLon.Request, response: UTMLatLon.Response):
+    def _convert(self, request: UTMLatLon.Request, response: UTMLatLon.Response):
+        self._log(f"Got {len(request.lat_lon_points)} latlon->utm and {len(request.utm_points)} utm->latlon points")
+        return GeoConverterService.convert(request, response)
+
+    def convert(request: UTMLatLon.Request, response: UTMLatLon.Response):
         response.utm_points = []
         response.lat_lon_points = []
-
-        self._log(f"Got {len(request.lat_lon_points)} latlon->utm and {len(request.utm_points)} utm->latlon points")
 
         # convert all the latlons to utm
         for ll in request.lat_lon_points:
@@ -56,16 +57,12 @@ class GeoConverterService:
             # don't want to crash if 1 of 100 points was bad...
             try:
                 msg = utm_pt.toMsg()
-                # self._log(f"{utm.header.frame_id}: {utm.point.x:.5f}, {utm.point.y:.5f}")
-                # self._log(f"{msg.latitude} - {msg.longitude}")
                 if(math.isnan(msg.altitude)):
                     msg.altitude = 0.0
             except:
                 msg = None
 
             response.lat_lon_points.append(msg)
-
-        # self._log(f'Response details: {response}')
 
         return response
 
