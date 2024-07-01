@@ -14,13 +14,13 @@ tmux -2 new-session -d -s $SESSION
 # state estimation stuff like pressure->depth, imu->tf etc
 tmux rename-window "dr"
 # BT, action servers etc.
-tmux new-window -t $SESSION:2 -n 'bt'
+tmux new-window -t $SESSION:1 -n 'bt'
 # controllers that are "constantly running"
-tmux new-window -t $SESSION:3 -n 'control'
+tmux new-window -t $SESSION:2 -n 'control'
 # connection to different GUIs
-tmux new-window -t $SESSION:4 -n 'gui'
+tmux new-window -t $SESSION:3 -n 'gui'
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
-tmux new-window -t $SESSION:5 -n 'utils'
+tmux new-window -t $SESSION:4 -n 'utils'
 
 # for robot description launch. so we get base_link -> everything else
 tmux new-window -t $SESSION:8 -n 'description'
@@ -29,19 +29,19 @@ tmux new-window -t $SESSION:9 -n 'dummies'
 
 
 # Now we launch things in each window.
-tmux select-window -t $SESSION:1
+tmux select-window -t $SESSION:0
 tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=$ROBOT_NAME" C-m
 
-tmux select-window -t $SESSION:2
+tmux select-window -t $SESSION:1
 tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME" C-m
 
-tmux select-window -t $SESSION:3
+tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch basic_go_to_waypoint actionserver.launch robot_name:=$ROBOT_NAME" C-m
 
-tmux select-window -t $SESSION:4
+tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
 
-tmux select-window -t $SESSION:5
+tmux select-window -t $SESSION:4
 tmux send-keys "ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME" C-m
 
 
@@ -58,14 +58,14 @@ tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAM
 # So we can switch on that.
 
 USERNAME=$(whoami)
-#if [ $USERNAME != "sam" ]
-#then
-#    echo "You are not the real sam!"
-#    ROS_IP=127.0.0.1
-#    # Maybe launch ros-tcp-bridge here?
-#fi
-#
+if [ $USERNAME != "sam" ]
+then
+    echo "You are not the real sam!"
+    ROS_IP=127.0.0.1
+    # Maybe launch ros-tcp-bridge here?
+fi
+
 # Set default window
-tmux select-window -t $SESSION:1
+tmux select-window -t $SESSION:0
 # attach to the new session
 tmux -2 attach-session -t $SESSION
