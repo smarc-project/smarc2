@@ -12,6 +12,7 @@ tmux -2 new-session -d -s $SESSION
 # default window is 0
 
 # state estimation stuff like pressure->depth, imu->tf etc
+tmux new-window -t $SESSION:0 -n 'dr'
 tmux rename-window "dr"
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
