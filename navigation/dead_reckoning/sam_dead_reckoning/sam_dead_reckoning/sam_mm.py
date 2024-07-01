@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
 
+# Motion model for SAM
+# There is no reason to believe this is all that valid.
+# This motion model should be brought into alignment with the model used in the simulator.
 
 def abs_approx(value):
     # differentiable-approximation-of-the-absolute-value-function
