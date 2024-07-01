@@ -190,10 +190,16 @@ class DiveController():
         if self._waypoint_body is None:
             return None
 
-        depth_error = self._waypoint_global.pose.position.z - self._waypoint_body.position.z
-        dive_pitch = math.atan2(depth_error, self._waypoint_body.position.x)
+        # With the ata2, we automatically get the desired diving pitch angle that corresponds to 
+        # a ENU system, i.e. positive pitch for diving down, negative pitch for diving up
+        current_depth = self.get_depth()
+        depth_error = np.abs(self._waypoint_global.pose.position.z) - np.abs(current_depth)
+        distance = self.get_distance()
+        dive_pitch = math.atan2(depth_error, distance)
 
-        self._loginfo(f"x: {self._waypoint_body.position.x:.3f}, z: {depth_error:.3f}, pitch: {dive_pitch}")
+        self._loginfo(f"depth error: {depth_error:.3f}, pitch: {dive_pitch}, distance: {distance:.3f}")
+        #self._loginfo(f"depth: {current_depth}, z_global: {self._waypoint_global.pose.position.z}, z_body: {self._waypoint_body.position.z}")
+
 
         return dive_pitch
 
