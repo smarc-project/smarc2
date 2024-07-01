@@ -212,12 +212,12 @@ class GoToWaypointActionServerController():
                         and self._mission_state == "RUNNING":
                     self._loginfo("breaking")
                     break
-
+                
                 fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
                 fb_msg.distance_remaining = self._distance_to_target
                 goal_handle.publish_feedback(fb_msg)
 
-                time.sleep(0.5)
+                time.sleep(0.1)
 
         goal_handle.succeed()
         result.reached_waypoint = True

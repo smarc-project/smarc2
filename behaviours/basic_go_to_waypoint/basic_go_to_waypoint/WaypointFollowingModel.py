@@ -135,7 +135,7 @@ class WaypointFollowing:
 
         if mission_state == "GOAL ACCEPTED"\
                 and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state = "RUNNING"
+            self._controller.set_mission_state("RUNNING")
             self._loginfo("WPF: mission state check")
 
         info_str = f"heading: {heading:.3f} distance: {distance:.3f} Thrust Vector: {-u_tv_hor_lim:.3f} RPM: {u_rpm:.3f}"
