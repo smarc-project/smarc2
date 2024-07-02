@@ -24,9 +24,14 @@
     <param name="dr_period" value="0.02" />
     <param name="simulation" value="true" />
     <param name="use_sim_time" value="true" />
+    <param name="status_verbose" value="true" />
   </node>
 
   <node pkg="sam_dead_reckoning" exec="compass_heading_node" name="compass_heading_node" output="screen" namespace="$(var robot_name)">
+    <param name="use_sim_time" value="true" />
+  </node>
+
+  <node pkg="sam_dead_reckoning" exec="dr_lat_lon_node" name="dr_lat_lon_node" output="screen" namespace="$(var robot_name)">
     <param name="use_sim_time" value="true" />
   </node>
 
