@@ -3,12 +3,12 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 from geodesy import utm
-import time
 
 import rclpy.time
 from smarc_msgs.msg import ThrusterRPM, ThrusterFeedback
 from sensor_msgs.msg import NavSatFix, Imu
-from geometry_msgs.msg import Twist, Wrench
+from geometry_msgs.msg import Wrench
+from nav_msgs.msg import Odometry
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -23,15 +23,19 @@ class ControllerNode(Node):
         # _b : body frame (Taeyoung Lee, z down)
 
         # Measurements
-        self.x_w = np.zeros(3)
-        self.v_w = np.zeros(3)
-        self.R_wa = np.zeros((3, 3))
-        self.W_w = np.zeros(3)
+        self.x_w = None
+        self.v_w = None
+        self.R_wa = None
+        self.W_w = None
 
         # Saved values
-        self.t_prev = 0
+        self.t_prev = rclpy.time.Time()
         self.R_sb_d_prev = np.eye(3)
         self.W_d_b_prev = np.zeros(3)
+
+        self.x_w_prev = None
+        self.R_wa_prev = None
+
         self.hold_control = True
 
         # Publishers
@@ -51,9 +55,9 @@ class ControllerNode(Node):
         #self.create_subscription(ThrusterFeedback, '/prop3_fb', self.fb_cb, 10)
         #self.create_subscription(ThrusterFeedback, '/prop4_fb', self.fb_cb, 10)
 
-        self.create_subscription(NavSatFix, '/drone/gps', self.gps_cb, 10)
-        self.create_subscription(Imu, '/drone/imu', self.imu_cb, 10)
-        self.create_subscription(Twist, '/articulation_body/velocity', self.vel_cb, 10)
+        #self.create_subscription(NavSatFix, '/drone/gps', self.gps_cb, 10)
+        #self.create_subscription(Imu, '/drone/imu', self.imu_cb, 10)
+        self.create_subscription(Odometry, '/Quadrotor/odom_gt', self.odom_cb, 10)
 
         self.pub = self.create_publisher(Wrench, '/drone/wrench', 10)
 
@@ -72,7 +76,7 @@ class ControllerNode(Node):
         self.prop4_cmd_pub.publish(self.prop4_cmd)
     
     def fb_cb(self, msg: ThrusterFeedback) -> None:
-        pass#self.get_logger().info(f"{msg.rpm}")
+        self.get_logger().info(f"{msg.rpm}")
 
     def gps_cb(self, msg: NavSatFix) -> None:
         drone_utm = utm.fromLatLong(msg.latitude, msg.longitude)
@@ -98,36 +102,61 @@ class ControllerNode(Node):
         #self.get_logger().info(f"Tra t: {msg.header.stamp.sec + msg.header.stamp.nanosec*1e-9}")
 
     def imu_cb(self, msg: Imu) -> None:
-        #if self.t_prev_ns == 0:
-        #    self.t_prev_ns = msg.header.stamp.sec*1e9 + msg.header.stamp.nanosec
-        #else:
-        #    t_ns = msg.header.stamp.sec*1e9 + msg.header.stamp.nanosec
-        #    dt = (t_ns - self.t_prev_ns)*1e-9
-        #    self.t_prev_ns = t_ns
-        #    self.v[0] = round(self.v[0] + msg.linear_acceleration.x*dt, 3)
-        #    self.v[1] = round(self.v[1] + msg.linear_acceleration.y*dt, 3)
-        #    self.v[2] = round(self.v[2] + msg.linear_acceleration.z*dt, 3)
-        #self.get_logger().info(f"v: {self.v}")
-        
         trying = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
         self.R_wa = self._quat2mat((msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w))@trying.T
-        self.get_logger().info(f"R: {self.R_wa}")
+        #self.get_logger().info(f"R: {self.R_wa}")
         
         self.W_w[0] = -msg.angular_velocity.y
         self.W_w[1] = msg.angular_velocity.x
         self.W_w[2] = msg.angular_velocity.z
         #self.get_logger().info(f"W: {self.W_w}")
 
-        #self.get_logger().info(f"Rot t: {msg.header.stamp.sec + msg.header.stamp.nanosec*1e-9}")
+    def odom_cb(self, msg: Odometry) -> None:
+        self.x_w = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
+        #self.get_logger().info(f"x: {self.x_w}")
 
-    def vel_cb(self, msg: Twist) -> None:
-        self.v_w[0] = msg.linear.x
-        self.v_w[1] = msg.linear.z
-        self.v_w[2] = msg.linear.y
+        self.v_w = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z])
+        #self.get_logger().info(f"v: {self.v_w}")
+
+        trying = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+
+        self.R_wa = self._quat2mat((msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w))@trying.T
+        #self.get_logger().info(f"R: {self.R_wa}")
+
+        self.W_w = trying@np.array([msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z])
+        #self.get_logger().info(f"W: {self.W_w}")
+
+        self.t_prev = rclpy.time.Time(seconds=msg.header.stamp.sec, nanoseconds=msg.header.stamp.nanosec)
+
+        self.hold_control = False
 
     def control_step(self, t: float, dt: float) -> np.ndarray:
-        tf = self.tf_buffer.lookup_transform('sam0/base_link', 'utm', rclpy.time.Time(seconds=0)).transform
-        self.get_logger().info(f"TF: {tf}")
+        '''hold = True
+        
+        try:
+            tf = self.tf_buffer.lookup_transform('map_gt', 'Quadrotor/base_link_gt', self.t_prev)
+            t_curr = tf.header.stamp.sec + tf.header.stamp.nanosec*1e-9
+
+            if self.t_prev is not None:
+                #dt = t_curr - self.t_prev
+
+                self.x_w = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+                #self.v_w = (self.x_w - self.x_w_prev)/dt
+
+                self.R_wa = self._quat2mat((tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z, tf.transform.rotation.w))@np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]).T
+                #self.W_w = self._vee(self._logm3(self.R_wa_prev.T@self.R_wa)/dt)
+
+                self.get_logger().info(f"\nx: {self.x_w}\nv: {self.v_w}\nR: {self.R_wa}\nW: {self.W_w}\n--------------{1/dt}------------")
+                hold = False
+
+            #self.t_prev = t_curr
+            self.x_w_prev = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])#self.x_w
+            self.R_wa_prev = self._quat2mat((tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z, tf.transform.rotation.w))@np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]).T#self.R_wa
+
+            #self.get_logger().info(f"TF: {tf.translation}, {self._quat2mat((tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w))}")
+        except Exception as e:
+            self.get_logger().error(f"{e}")
+            return np.zeros(4)'''
         
         if self.hold_control:
             return np.zeros(4)
@@ -141,10 +170,10 @@ class ControllerNode(Node):
         e3 = np.array([0, 0, 1])
 
         # Gains
-        kx = 16*m/10
-        kv = 5.6*m/10
-        kR = 8.81/10
-        kW = 2.54/10
+        kx = 16*m
+        kv = 5.6*m
+        kR = 8.81
+        kW = 2.54
 
         # Rotation matrices
         R_ws = np.array([[0, 1, 0],
@@ -158,9 +187,11 @@ class ControllerNode(Node):
         v_s = R_ws.T@self.v_w
         W_b = R_sb.T@R_ws.T@self.W_w
 
+        #self.get_logger().info(f"x: {x_s}, v: {v_s}")
+
         # Desired (in the {s} frame)
         #tf = 20
-        x_d_s = lambda t: R_ws.T@np.array([0, 0, 1])#20*np.array([1 - np.cos(np.pi*t/self.tf), np.sin(np.pi*t/self.tf), 0]) + self.x0
+        x_d_s = lambda t: R_ws.T@np.array([0, 1000, 7])#20*np.array([1 - np.cos(np.pi*t/self.tf), np.sin(np.pi*t/self.tf), 0]) + self.x0
         v_d_s = lambda t: np.zeros(3)#20*np.array([np.pi/self.tf*np.sin(np.pi*t/self.tf), np.pi/self.tf*np.cos(np.pi*t/self.tf), 0])
         a_d_s = lambda t: np.zeros(3)#20*np.array([np.pi**2/self.tf**2*np.cos(np.pi*t/self.tf), -np.pi**2/self.tf**2*np.sin(np.pi*t/self.tf), 0])
         b1d = np.array([1, 0, 0])
@@ -174,16 +205,17 @@ class ControllerNode(Node):
         b2d = np.cross(b3d, b1d)/np.linalg.norm(np.cross(b3d, b1d))
         R_sb_d = np.array([np.cross(b2d, b3d), b2d, b3d]).T
 
-        W_d_b = self._vee(self._logm3(self.R_sb_d_prev.T@R_sb_d))/dt
+        W_d_b = self._vee(self._logm3(self.R_sb_d_prev.T@R_sb_d)/dt)
         #W_d_b = compact_axis_angle_from_matrix(self.R_sb_d_prev.T@R_sb_d)/dt
         #self.get_logger().info(f"W_d_b: {W_d_b}")
         W_d_dot_b = (W_d_b - self.W_d_b_prev)/dt
 
         eR = 0.5*self._vee(R_sb_d.T@R_sb - R_sb.T@R_sb_d)
         eW = W_b - R_sb.T@R_sb_d@W_d_b
+        self.get_logger().warn(f"{pid}")
 
         f = np.dot(-pid, R_sb@e3)
-        M = -kR*eR - kW*eW + np.cross(W_b, J@W_b) - J@(self._hat(W_b)@(R_sb.T@R_sb_d@W_d_b) - R_sb.T@R_sb_d@W_d_dot_b)
+        M = -kR*eR - kW*eW + np.cross(W_b, J@W_b) - J@(self._hat(W_b)@R_sb.T@R_sb_d@W_d_b - R_sb.T@R_sb_d@W_d_dot_b)
 
         self.R_sb_d_prev = R_sb_d
         self.W_d_b_prev = W_d_b
@@ -192,25 +224,23 @@ class ControllerNode(Node):
         wrench_a = self._adjoint(R_ab.T, np.zeros(3)).T@wrench_b
 
         T = np.array([[1, 1, 1, 1], [d, 0, -d, 0], [0, -d, 0, d], [c_tau_f, -c_tau_f, c_tau_f, -c_tau_f]])
-        F = np.linalg.inv(T)@np.array([wrench_a[5], wrench_a[0], wrench_a[1], wrench_a[2]])
+        F = np.linalg.inv(T)@np.array([wrench_a[5], 0,0,0])#wrench_a[0], wrench_a[1], wrench_a[2]])
 
-        #pub_msg = Wrench()
-        #pub_msg.torque.x = wrench_a[0]
-        #pub_msg.torque.y = wrench_a[1]
-        #pub_msg.torque.z = wrench_a[2]
-        #pub_msg.force.x = wrench_a[3]
-        #pub_msg.force.y = wrench_a[4]
-        #pub_msg.force.z = wrench_a[5]
-        #self.pub.publish(pub_msg)
-
-        #return np.zeros(4)
+        pub_msg = Wrench()
+        pub_msg.torque.x = 0.0#-wrench_a[0]
+        pub_msg.torque.y = 0.0#-wrench_a[1]
+        pub_msg.torque.z = 0.0#-wrench_a[2]
+        pub_msg.force.x = wrench_a[3]
+        pub_msg.force.y = wrench_a[4]
+        pub_msg.force.z = wrench_a[5]
+        self.pub.publish(pub_msg)
         
-        #self.get_logger().info(f"Errors: {np.round(ex, 3)}, {np.round(ev, 3)}, {np.round(eR, 3)}, {np.round(eW, 3)}")
-        #self.get_logger().info(f"Wrench: {np.round(np.array([wrench_a[5], wrench_a[0], wrench_a[1], wrench_a[2]]), 3)} | F: {np.round(F, 3)}")
+        self.get_logger().info(f"Errors: {np.round(ex, 3)}, {np.round(ev, 3)}, {np.round(eR, 3)}, {np.round(eW, 3)}")
+        self.get_logger().info(f"Wrench: {np.round(wrench_a, 3)}")
         #self.get_logger().info(f"{t}")
         #self.get_logger().info(f"{self.R_wa} {R_sb}")
 
-        return F
+        return np.ones(4)/200
     
     def _hat(self, v: np.ndarray) -> np.ndarray:
         return np.array([[0, -v[2], v[1]],
@@ -271,7 +301,7 @@ def controller():
     rclpy.init(args=sys.argv)
     node = ControllerNode()
     t0 = node.get_clock().now().nanoseconds*1e-9
-    dt = 1/20
+    dt = 1/50
 
     def control_loop():
         t = node.get_clock().now().nanoseconds*1e-9 - t0
@@ -296,11 +326,11 @@ def test():
     rclpy.init(args=sys.argv)
     node = ControllerNode()
 
-    rpm = 8000
+    rpm = 0
 
     def loop():
         nonlocal rpm
-        rpm = 10000 - rpm
+        #rpm = 0#10000 - rpm
         node.publish_rpms([rpm, rpm, rpm, rpm])
         #node.get_logger().info(f"Setting RPM to {rpm}")
 
