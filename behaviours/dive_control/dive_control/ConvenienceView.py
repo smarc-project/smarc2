@@ -35,6 +35,7 @@ class ConvenienceView(IDiveView):
         self._input_msg = None
         self._waypoint_msg = None
 
+        self._node = node
         self._controller = controller
         self._model = model
 
@@ -49,6 +50,7 @@ class ConvenienceView(IDiveView):
         self._update_error()
         self._update_input()
         self._update_waypoint()
+        self._print_state()
 
 
     def _update_state(self) -> None:
@@ -91,6 +93,37 @@ class ConvenienceView(IDiveView):
 
         self._waypoint_pub.publish(self._waypoint_msg)
 
+    def _print_state(self) -> None:
+        # Get all info and print it
+        if self._state_msg is None:
+            self._loginfo(f"No state msg yet.")
+        else:
+            self._loginfo("States:")
+            self._loginfo(f"   x: {self._state_msg.pose.x:.3f}, y: {self._state_msg.pose.y:.3f}, z: {self._state_msg.pose.z:.3f}, roll: {self._state_msg.pose.roll:.3f}, pitch: {self._state_msg.pose.pitch:.3f}, yaw: {self._state_msg.pose.yaw:.3f}")
+
+        if self._input_msg is None:
+            self._loginfo(f"No inputs yet")
+        else:
+            self._loginfo(f"Actuators:")
+            self._loginfo(f"   VBS: {self._input_msg.vbs:.3f}, LCG: {self._input_msg.lcg:.3f}, TV ver: {self._input_msg.thrustervertical:.3f}, TV hor: {self._input_msg.thrusterhorizontal:.3f}, RPM: {self._input_msg.thrusterrpm:.3f}")
+
+        if self._waypoint_msg is None:
+            self._loginfo("No Waypoint Yet")
+        else:
+            distance = self._controller.get_distance()
+            heading = self._controller.get_heading()
+            dive_pitch = self._controller.get_dive_pitch()
+
+            self._loginfo(f"Waypoint Following")
+            self._loginfo(f"   distance: {distance:.3f}, heading: {heading:.3f}, dive pitch: {dive_pitch:.3f}")
+
+        if self._error_msg is None:
+            self._loginfo("No control yet")
+        else:
+            self._loginfo(f"Control Error:")
+            self._loginfo(f"   depth: {self._error_msg.z:.3f}, pitch: {self._error_msg.pitch:.3f}, heading: {self._error_msg.heading:.3f}")
+
+        self._loginfo(f"[-----]")
 
 def test_view():
     """

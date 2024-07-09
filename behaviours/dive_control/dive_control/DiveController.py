@@ -197,10 +197,6 @@ class DiveController():
         distance = self.get_distance()
         dive_pitch = math.atan2(depth_error, distance)
 
-        self._loginfo(f"depth error: {depth_error:.3f}, pitch: {dive_pitch}, distance: {distance:.3f}")
-        #self._loginfo(f"depth: {current_depth}, z_global: {self._waypoint_global.pose.position.z}, z_body: {self._waypoint_body.position.z}")
-
-
         return dive_pitch
 
     def has_waypoint(self):
