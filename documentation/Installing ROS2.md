@@ -6,9 +6,9 @@
 We use ROS Humble, since it is the current LTS version.
 This requires Ubuntu 22.04 at least.
 
-[The official install guide is always the best start](https://docs.ros.org/en/humble/Installation.html)
+### [Start with the official install guide here](https://docs.ros.org/en/humble/Installation.html)
 
-`apt install ros-humble-desktop-full` should be good for most.
+`ros-humble-desktop-full` should be good for most.
 
 Like with ROS1, setup a workspace. Usually `colcon_ws`.
 Notice that ROS2 moved from catkin to colcon for its build process, and there are some minor differences from a user standpoint.
