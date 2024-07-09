@@ -97,9 +97,9 @@ class DiveControlModel:
         self._error = None
         self._input = None
 
-
-        self._depth_vbs_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
-        self._pitch_lcg_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 0.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
+        # TODO: Get the parameters from a config file
+        self._depth_vbs_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
+        self._pitch_lcg_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
         self._pitch_tv_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
         self._yaw_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
 
@@ -139,50 +139,46 @@ class DiveControlModel:
         # Sketchy minus signs...
         depth_setpoint *= -1
         current_depth *= -1
-        current_heading *= 1
-
-        # TODO: Add the logic when to use static or dynamic diving
-        _, depth_error, _ = self._depth_vbs_pid.get_control(current_depth, depth_setpoint, self._dt)
-        #u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
-        u_tv_hor, yaw_error, u_tv_hor_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
 
         if distance >= 1.0:
-            active_dive_pitch = self._controller.get_dive_pitch()
+            pitch_setpoint = self._controller.get_dive_pitch()
 
             u_rpm = rpm_setpoint
-            u_vbs = 50.0
-            u_lcg = 50.0
+            u_vbs_raw = 50.0
+            u_lcg_raw = 50.0
+            u_vbs = u_vbs_raw
+            u_lcg = u_lcg_raw
 
-            # TODO: Sketchy minus signs again.
-            u_tv_ver, active_pitch_error, u_tv_ver_raw = self._pitch_tv_pid.get_control(current_pitch, active_dive_pitch, self._dt)
-            #depth_error = 0.0
-            u_vbs_raw = 0.0
-            pitch_error = 0.0
-            u_lcg_raw = 0.0
+            u_tv_hor, yaw_error, u_tv_hor_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
+            u_tv_ver, pitch_error, u_tv_ver_raw = self._pitch_tv_pid.get_control(current_pitch, pitch_setpoint, self._dt)
+            depth_error = depth_setpoint - current_depth
 
         else:
             u_rpm = 0
-            u_tv_ver = 0.0
-            active_pitch_error = 0.0
             u_tv_ver_raw = 0.0
+            u_tv_hor_raw = 0.0
+            u_tv_ver = u_tv_ver_raw
+            u_tv_hor = u_tv_hor_raw
+
             u_vbs, depth_error, u_vbs_raw = self._depth_vbs_pid.get_control(current_depth, depth_setpoint, self._dt)
             u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
+
+            yaw_error = heading_setpoint - current_heading
 
 
         self._view.set_vbs(u_vbs)
         self._view.set_lcg(u_lcg)
-        self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) #TODO: Check if the thrust vectoring has the right sign. Sketchy minus signs on the vertical thrust vectoring
+        self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         self._view.set_rpm(u_rpm)
 
-
-        # TODO: Could be done nicer probably
+        # Convenience Topics
         self._ref = ControlReference()
         self._ref.z = depth_setpoint
         self._ref.pitch = pitch_setpoint
 
         self._error = ControlError()
         self._error.z = depth_error
-        self._error.pitch = active_pitch_error
+        self._error.pitch = pitch_error
         self._error.yaw = yaw_error
         self._error.heading = current_heading
 
