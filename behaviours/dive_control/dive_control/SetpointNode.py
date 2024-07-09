@@ -30,8 +30,8 @@ class SetpointPublisher():
         self._setpoint_msg = Odometry()
         self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         self._setpoint_msg.header.frame_id = 'sam0/odom_gt'
-        self._setpoint_msg.pose.pose.position.x = 50.0
-        self._setpoint_msg.pose.pose.position.y = 0.0
+        self._setpoint_msg.pose.pose.position.x = 40.0
+        self._setpoint_msg.pose.pose.position.y = 10.0
         self._setpoint_msg.pose.pose.position.z = -5.0
         self._setpoint_msg.pose.pose.orientation.x = 0.0
         self._setpoint_msg.pose.pose.orientation.y = 0.0
