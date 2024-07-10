@@ -125,7 +125,7 @@ class DiveControlModel:
         current_heading = self._controller.get_heading()
 
         if not self._controller.has_waypoint():
-            self._loginfo("No waypoint received")
+            #self._loginfo("No waypoint received")
             return
 
         if depth_setpoint is None:

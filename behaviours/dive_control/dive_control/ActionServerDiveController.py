@@ -77,6 +77,8 @@ class DiveActionServerController(DiveController):
         self._goal_frame = self._waypoint.pose.header.frame_id
         self._requested_rpm = self._waypoint.travel_rpm
 
+        self._waypoint.pose.pose.position.z = -self._waypoint.travel_depth
+
         self._save_wp(self._waypoint.pose) # get the proper pose
 
         goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
@@ -132,6 +134,7 @@ class DiveActionServerController(DiveController):
         goal_handle.succeed()
         result.reached_waypoint = True
         self._waypoint.travel_rpm = 0.0
+        self._requested_rpm = self._waypoint.travel_rpm
         self._mission_state = "COMPLETED"
 
         return result
