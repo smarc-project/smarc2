@@ -39,7 +39,6 @@ class DiveController():
         # TODO: Can we get this from a launch file or so?
         self._robot_base_link = 'sam0/base_link_gt'
 
-        # TODO: Update with waypoint following
         self._depth_setpoint = None
         self._pitch_setpoint = None
         self._requested_rpm = None
@@ -51,25 +50,15 @@ class DiveController():
 
         self._states = Odometry()
 
-        # TODO: waypoint topic
-        self.depth_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.DEPTH_SETPOINT, callback=self._depth_cb, qos_profile=10)
-        self.pitch_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.PITCH_SETPOINT, callback=self._pitch_cb, qos_profile=10)
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
 
 
+    # Internal methods
     def _loginfo(self, s):
         self._node.get_logger().info(s)
-
-
-    def _depth_cb(self, depth):
-        self._depth_setpoint = depth.data
-
-
-    def _pitch_cb(self, pitch):
-        self._pitch_setpoint = pitch.data
 
 
     def _states_cb(self, msg):
@@ -77,9 +66,6 @@ class DiveController():
 
 
     def _wp_cb(self, wp):
-        # TODO: This needs to be first transformed into the body frame!
-        # but not in the callback, but in the update function so that it's
-        # always up to date with the latest position of SAM!
         self._waypoint_global = PoseStamped()
         self._waypoint_global.header.stamp = wp.header.stamp
         self._waypoint_global.header.frame_id = wp.header.frame_id
@@ -105,7 +91,7 @@ class DiveController():
             self._tf_base_link = self._tf_buffer.lookup_transform(self._robot_base_link,
                                                                   self._waypoint_global.header.frame_id,
                                                                   rclpy.time.Time(seconds=0))
-        except Excepetion as ex:
+        except Exception as ex:
             self._loginfo(
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
@@ -121,6 +107,7 @@ class DiveController():
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
 
+    # Get methods
     def get_depth_setpoint(self):
         if self._waypoint_body is not None:
             self._depth_setpoint = self._waypoint_global.pose.position.z
@@ -178,11 +165,14 @@ class DiveController():
         return heading
 
     def get_distance(self):
+        """
+        Euclidean norm as distance from body, i.e. origin to waypoint
+        """
 
         if self._waypoint_body is None:
             return None
 
-        distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2)
+        distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2 + self._waypoint_body.position.z**2)
 
         return distance
 
@@ -199,11 +189,21 @@ class DiveController():
 
         return dive_pitch
 
+    def get_waypoint(self):
+        return self._waypoint_global
+
+    def get_mission_state(self):
+        """
+        This is needed when using an action server. Then it has the proper string.
+        Otherwise nothing happens and the condition in the DivingModel is ignored.
+        Could be fixed at one point...
+        """
+        return "NONE"
+    
+    # Has methods
     def has_waypoint(self):
         return self._received_waypoint
 
-    def get_waypoint(self):
-        return self._waypoint_global
 
 
     def update(self):

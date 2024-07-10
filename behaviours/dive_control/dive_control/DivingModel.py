@@ -80,8 +80,6 @@ class PIDControl:
         self._error_prev = 0.0
 
 
-
-# TODO: Add dynamic diving
 class DiveControlModel:
 
     def __init__(self, node, view, controller, rate=1/10):
@@ -170,6 +168,12 @@ class DiveControlModel:
         self._view.set_lcg(u_lcg)
         self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         self._view.set_rpm(u_rpm)
+
+        mission_state = self._controller.get_mission_state()
+        if mission_state == "GOAL ACCEPTED"\
+            and distance > self._controller.get_goal_tolerance():
+            self._controller.set_mission_state("RUNNING")
+            self._loginfo("DM: mission state check")
 
         # Convenience Topics
         self._ref = ControlReference()

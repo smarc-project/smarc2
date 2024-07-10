@@ -20,7 +20,8 @@ from rclpy.executors import MultiThreadedExecutor
 
 class SetpointPublisher():
     """
-    Implements the simple interface we defined in IDiveView for the SAM AUV.
+    Simple set point publisher for development and debuggin purposes.
+    Publishes setpoint pose to a topic the controller listens to.
     """
     def __init__(self, node: Node) -> None:
 
@@ -58,7 +59,7 @@ class SetpointPublisher():
 
     def update(self) -> None:
         """
-        Publish all actuator values
+        Publish setpoint message
         """
         self._setpoint_pub.publish(self._setpoint_msg)
 
