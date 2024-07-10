@@ -25,8 +25,8 @@ def main():
     convenience_view_rate = 1/10
 
     view = SAMDiveView(node)
-    #controller = DiveActionServerController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
+    controller = DiveActionServerController(node, view)   # Note, this is a MVC controller, not a control theory controller
+    #controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
     model = DiveControlModel(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
     convenience_view = ConvenienceView(node, controller, model)
