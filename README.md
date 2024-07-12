@@ -25,6 +25,7 @@ These usually rely on many other packages to function.
 
 ### [Docker](/docker/)
 Docker-related stuff. Like dockerfiles and other such artifacts.
+Github actions uses the Dockerfiles here.
 
 ### [Documentation](/documentation/)
 A good starting point if you would like to start writing some code to run on a robot.
