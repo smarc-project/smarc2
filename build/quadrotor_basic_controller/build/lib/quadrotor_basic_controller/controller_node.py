@@ -184,8 +184,8 @@ class ControllerNode(Node):
         # Gains
         kx = 0.75*m
         kv = 2.8*m
-        kR = 8.81*10
-        kW = 2.54*5
+        kR = 8.81*2
+        kW = 2.54
 
         # Rotation matrices
         R_ws = np.array([[0, 1, 0],
@@ -226,7 +226,7 @@ class ControllerNode(Node):
         eW = W_b - R_sb.T@R_sb_d@W_d_b
 
         f = np.dot(-pid, R_sb@e3)
-        M = -kR*eR - kW*eW + np.cross(W_b, J@W_b) - J@(self._hat(W_b)@R_sb.T@R_sb_d@W_d_b - R_sb.T@R_sb_d@W_d_dot_b)
+        M = -kR*eR - kW*eW + np.cross(W_b, J@W_b) - J@(self._hat(W_b)@R_sb.T@R_sb_d@W_d_b)# - R_sb.T@R_sb_d@W_d_dot_b)
 
         self.R_sb_d_prev = R_sb_d
         self.W_d_b_prev = W_d_b
@@ -238,7 +238,7 @@ class ControllerNode(Node):
         wrench_a = self._adjoint(R_ab.T, np.zeros(3)).T@wrench_b
 
         T = np.array([[1, 1, 1, 1], [d, 0, -d, 0], [0, -d, 0, d], [c_tau_f, -c_tau_f, c_tau_f, -c_tau_f]])
-        F = np.linalg.inv(T)@np.array([wrench_a[5], 0, wrench_a[1], wrench_a[2]])
+        F = np.linalg.inv(T)@np.array([wrench_a[5], wrench_a[0], wrench_a[1], wrench_a[2]])
 
         pub_msg = Wrench()
         pub_msg.torque.x = 0.0#-wrench_a[0]

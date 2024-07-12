@@ -1,0 +1,4 @@
+[console_scripts]
+controller = quadrotor_basic_controller.controller_node:controller
+test = quadrotor_basic_controller.controller_node:test
+

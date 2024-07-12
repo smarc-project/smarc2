@@ -1,0 +1,26 @@
+[1.092s] Invoking command in '/home/jonat/ros2_ws/src/smarc2/quadrotor/quadrotor_basic_controller': PYTHONPATH=/home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build install --record /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data
+[1.576s] running egg_info
+[1.577s] writing ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+[1.577s] writing dependency_links to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+[1.577s] writing entry points to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+[1.577s] writing requirements to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+[1.578s] writing top-level names to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+[1.581s] reading manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[1.581s] adding license file 'LICENSE'
+[1.582s] writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[1.583s] running build
+[1.584s] running build_py
+[1.584s] copying quadrotor_basic_controller/controller_node.py -> /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+[1.584s] running install
+[1.585s] running install_lib
+[1.587s] copying /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller/controller_node.py -> /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+[1.589s] byte-compiling /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller/controller_node.py to controller_node.cpython-310.pyc
+[1.596s] running install_data
+[1.597s] running install_egg_info
+[1.601s] removing '/home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info' (and everything under it)
+[1.601s] Copying ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info
+[1.602s] running install_scripts
+[1.631s] Installing controller script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[1.631s] Installing test script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[1.633s] writing list of installed files to '/home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/install.log'
+[1.685s] Invoked command in '/home/jonat/ros2_ws/src/smarc2/quadrotor/quadrotor_basic_controller' returned '0': PYTHONPATH=/home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build install --record /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data
