@@ -14,7 +14,7 @@
   <!-- <depend>visualization_msgs</depend> -->
   <!-- <depend>vision_msgs</depend> -->
     
-  <depend>mqtt_bridge</depend>
+  <!-- <depend>mqtt_bridge</depend> -->
   <!-- <depend>smarc_msgs</depend> -->
   <!-- <depend>lolo_msgs</depend> -->
    
