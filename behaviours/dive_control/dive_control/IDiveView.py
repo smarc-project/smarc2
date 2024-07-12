@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import enum
+
 class IDiveView:
     """
     An interface for some kind of "view" that can do _something_ with a given RPM value.
@@ -16,3 +18,17 @@ class IDiveView:
     def set_lcg(self, lcg: float) -> None:
         print("UNIMPLEMENTED")
 
+
+class MissionStates(enum.Enum):
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+    PAUSED = "PAUSED"
+    EMERGENCY = "EMERGENCY"
+    RECEIVED = "RECEIVED"
+    COMPLETED = "COMPLETED"
+    NONE = "NONE"
+    ACCEPTED = "ACCEPTED"
+    CANCELLED = "CANCELED"
+
+    def __str__(self):
+        return self.name

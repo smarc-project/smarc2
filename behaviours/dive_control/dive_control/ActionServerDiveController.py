@@ -27,7 +27,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 from control_msgs.msg import Topics as ControlTopics
 
 
-from .IDiveView import IDiveView
+from .IDiveView import IDiveView, MissionStates
 
 try:
     from .DiveController import DiveController
@@ -62,7 +62,6 @@ class DiveActionServerController(DiveController):
 
         self._waypoint = None
         self._goal_frame = None
-        self._mission_state = None
         self._goal_handle = None
 
         self._loginfo("Dive Action Server started")
@@ -87,7 +86,7 @@ class DiveActionServerController(DiveController):
 
         self._loginfo(goal_msg_str)
 
-        self._mission_state = "GOAL ACCEPTED"
+        self._mission_state = MissionStates.NONE
 
         return GoalResponse.ACCEPT
     
@@ -121,7 +120,7 @@ class DiveActionServerController(DiveController):
             if self.get_distance() is not None:
                 distance = self.get_distance()
                 if distance <= self._waypoint.goal_tolerance\
-                        and self._mission_state == "RUNNING":
+                    and self._mission_state == MissionStates.RUNNING:
                     self._loginfo("breaking")
                     break
                 
@@ -135,7 +134,7 @@ class DiveActionServerController(DiveController):
         result.reached_waypoint = True
         self._waypoint.travel_rpm = 0.0
         self._requested_rpm = self._waypoint.travel_rpm
-        self._mission_state = "COMPLETED"
+        self.set_mission_state(MissionStates.COMPLETED)
 
         return result
 
@@ -143,13 +142,15 @@ class DiveActionServerController(DiveController):
     def _cancel_cb(self, goal_handle:ServerGoalHandle):
         self._loginfo("Cancelled")
 
-        self._mission_state = "CANCELLED"
+        self.set_mission_state(MissionStates.CANCELLED)
+
+        self._view.set_vbs(0)
+        self._view.set_lcg(50)
+        self._view.set_thrust_vector(0.0, 0.0) 
+        self._view.set_rpm(0)
 
         return CancelResponse.ACCEPT
 
-
-    def get_mission_state(self):
-        return self._mission_state
 
 
     def get_goal_tolerance(self):
@@ -158,10 +159,6 @@ class DiveActionServerController(DiveController):
             return 0
 
         return self._waypoint.goal_tolerance
-
-
-    def set_mission_state(self,state):
-        self._mission_state = state
 
 
     def set_feedback_msg(self,msg):

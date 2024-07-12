@@ -19,7 +19,7 @@ from tf2_ros.transform_listener import TransformListener
 
 from tf_transformations import euler_from_quaternion
 
-from .IDiveView import IDiveView
+from .IDiveView import IDiveView, MissionStates
 
 class DiveController():
     """
@@ -45,6 +45,8 @@ class DiveController():
         self._waypoint_global = None
         self._waypoint_body = None
         self._received_waypoint = False
+
+        self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
 
@@ -198,13 +200,15 @@ class DiveController():
         Otherwise nothing happens and the condition in the DivingModel is ignored.
         Could be fixed at one point...
         """
-        return "NONE"
+        return self._mission_state
     
     # Has methods
     def has_waypoint(self):
         return self._received_waypoint
 
 
+    def set_mission_state(self, new_state):
+        self._mission_state = new_state
 
     def update(self):
         """

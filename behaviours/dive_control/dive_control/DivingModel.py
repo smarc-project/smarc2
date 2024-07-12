@@ -10,6 +10,8 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 
 from control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
+from .IDiveView import MissionStates
+
 
 class PIDControl:
     """
@@ -112,6 +114,16 @@ class DiveControlModel:
         """
         This is where all the magic happens.
         """
+        mission_state = self._controller.get_mission_state()
+
+        if mission_state == MissionStates.EMERGENCY:
+            self._loginfo("Emergency mode. No controller running")
+            return
+
+        if mission_state == MissionStates.CANCELLED:
+            self._loginfo("Misison Cancelled")
+            return
+
         # Get setpoints
         depth_setpoint = self._controller.get_depth_setpoint()
         pitch_setpoint = self._controller.get_pitch_setpoint()
@@ -169,10 +181,9 @@ class DiveControlModel:
         self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         self._view.set_rpm(u_rpm)
 
-        mission_state = self._controller.get_mission_state()
-        if mission_state == "GOAL ACCEPTED"\
+        if mission_state == MissionStates.ACCEPTED\
             and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state("RUNNING")
+            self._controller.set_mission_state(MissionStates.RUNNING)
             self._loginfo("DM: mission state check")
 
         # Convenience Topics
