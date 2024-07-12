@@ -149,6 +149,8 @@ class DiveActionServerController(DiveController):
         self._view.set_thrust_vector(0.0, 0.0) 
         self._view.set_rpm(0)
 
+        self._loginfo("Everything set to neutral")
+
         return CancelResponse.ACCEPT
 
 

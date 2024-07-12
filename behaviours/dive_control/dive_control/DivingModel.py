@@ -118,10 +118,48 @@ class DiveControlModel:
 
         if mission_state == MissionStates.EMERGENCY:
             self._loginfo("Emergency mode. No controller running")
+
+            u_vbs_neutral = 0.0
+            u_lcg_neutral = 50.0
+            u_tv_hor_neutral = 0.0
+            u_tv_ver_neutral = 0.0
+            u_rpm_neutral = 0.0
+
+
+            self._view.set_vbs(u_vbs_neutral)
+            self._view.set_lcg(u_lcg_neutral)
+            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._view.set_rpm(u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
             return
 
         if mission_state == MissionStates.CANCELLED:
-            self._loginfo("Misison Cancelled")
+            self._loginfo("Mission Cancelled")
+
+            u_vbs_neutral = 50.0
+            u_lcg_neutral = 50.0
+            u_tv_hor_neutral = 0.0
+            u_tv_ver_neutral = 0.0
+            u_rpm_neutral = 0.0
+
+
+            self._view.set_vbs(u_vbs_neutral)
+            self._view.set_lcg(u_lcg_neutral)
+            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._view.set_rpm(u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
             return
 
         # Get setpoints
