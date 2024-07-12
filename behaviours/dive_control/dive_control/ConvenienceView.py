@@ -35,6 +35,7 @@ class ConvenienceView(IDiveView):
         self._input_msg = None
         self._waypoint_msg = None
 
+        self._node = node
         self._controller = controller
         self._model = model
 
@@ -43,12 +44,12 @@ class ConvenienceView(IDiveView):
         self._node.get_logger().info(s)
 
     def update(self) -> None:
-        # TODO: Add the things from the waypoint following
         self._update_state()
         self._update_ref()
         self._update_error()
         self._update_input()
         self._update_waypoint()
+        self._print_state()
 
 
     def _update_state(self) -> None:
@@ -91,6 +92,53 @@ class ConvenienceView(IDiveView):
 
         self._waypoint_pub.publish(self._waypoint_msg)
 
+    def _print_state(self) -> None:
+        # Get all info and print it
+        s = "Dive Control States:\n"
+        if self._state_msg is None:
+            s += f"No state msg yet."
+        else:
+            s += "States:\n"
+            s += f"   x: {self._state_msg.pose.x:.3f}, "\
+                 f"y: {self._state_msg.pose.y:.3f}, "\
+                 f"z: {self._state_msg.pose.z:.3f}, "\
+                 f"roll: {self._state_msg.pose.roll:.3f}, "\
+                 f"pitch: {self._state_msg.pose.pitch:.3f}, "\
+                 f"yaw: {self._state_msg.pose.yaw:.3f}\n"
+
+        if self._input_msg is None:
+            s += f"No inputs yet\n"
+        else:
+            s += f"Actuators:\n"
+            s += f"   VBS: {self._input_msg.vbs:.3f}, "\
+                 f"LCG: {self._input_msg.lcg:.3f}, "\
+                 f"TV ver: {self._input_msg.thrustervertical:.3f}, "\
+                 f"TV hor: {self._input_msg.thrusterhorizontal:.3f}, "\
+                 f"RPM: {self._input_msg.thrusterrpm:.3f}\n"
+
+        if self._waypoint_msg is None:
+            s += "No Waypoint Yet\n"
+        else:
+            distance = self._controller.get_distance()
+            heading = self._controller.get_heading()
+            dive_pitch = self._controller.get_dive_pitch()
+
+            s += f"Waypoint Following\n"
+            s += f"   distance: {distance:.3f}, "\
+                 f"heading: {heading:.3f}, "\
+                 f"dive pitch: {dive_pitch:.3f}\n"
+
+        if self._error_msg is None:
+            s += "No control yet\n"
+        else:
+            s += f"Control Error:\n"
+            s += f"   depth: {self._error_msg.z:.3f}, "\
+                 f"pitch: {self._error_msg.pitch:.3f}, "\
+                 f"heading: {self._error_msg.heading:.3f}\n"
+
+        s += f"[-----]\n"
+
+        self._loginfo(s)
 
 def test_view():
     """

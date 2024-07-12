@@ -20,7 +20,8 @@ from rclpy.executors import MultiThreadedExecutor
 
 class SetpointPublisher():
     """
-    Implements the simple interface we defined in IDiveView for the SAM AUV.
+    Simple set point publisher for development and debuggin purposes.
+    Publishes setpoint pose to a topic the controller listens to.
     """
     def __init__(self, node: Node) -> None:
 
@@ -30,8 +31,8 @@ class SetpointPublisher():
         self._setpoint_msg = Odometry()
         self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         self._setpoint_msg.header.frame_id = 'sam0/odom_gt'
-        self._setpoint_msg.pose.pose.position.x = 50.0
-        self._setpoint_msg.pose.pose.position.y = 0.0
+        self._setpoint_msg.pose.pose.position.x = 40.0
+        self._setpoint_msg.pose.pose.position.y = 10.0
         self._setpoint_msg.pose.pose.position.z = -5.0
         self._setpoint_msg.pose.pose.orientation.x = 0.0
         self._setpoint_msg.pose.pose.orientation.y = 0.0
@@ -58,7 +59,7 @@ class SetpointPublisher():
 
     def update(self) -> None:
         """
-        Publish all actuator values
+        Publish setpoint message
         """
         self._setpoint_pub.publish(self._setpoint_msg)
 
