@@ -1,0 +1,39 @@
+running egg_info
+creating ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info
+writing ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+writing dependency_links to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+writing entry points to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+writing requirements to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+writing top-level names to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+reading manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build
+creating /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib
+creating /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+copying quadrotor_basic_controller/__init__.py -> /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+copying quadrotor_basic_controller/controller_node.py -> /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+running install
+running install_lib
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+copying /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller/__init__.py -> /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+copying /home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller/controller_node.py -> /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+byte-compiling /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller/controller_node.py to controller_node.cpython-310.pyc
+running install_data
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/ament_index
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/ament_index/resource_index
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/ament_index/resource_index/packages
+copying resource/quadrotor_basic_controller -> /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/ament_index/resource_index/packages
+copying package.xml -> /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/quadrotor_basic_controller
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/quadrotor_basic_controller/config
+creating /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/share/quadrotor_basic_controller/launch
+running install_egg_info
+Copying ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info
+running install_scripts
+Installing controller script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+Installing test script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+writing list of installed files to '/home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/install.log'

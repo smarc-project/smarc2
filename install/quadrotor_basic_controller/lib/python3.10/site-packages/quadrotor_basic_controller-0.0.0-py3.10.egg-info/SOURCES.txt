@@ -1,0 +1,14 @@
+LICENSE
+package.xml
+setup.cfg
+setup.py
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/zip-safe
+quadrotor_basic_controller/__init__.py
+quadrotor_basic_controller/controller_node.py
+resource/quadrotor_basic_controller

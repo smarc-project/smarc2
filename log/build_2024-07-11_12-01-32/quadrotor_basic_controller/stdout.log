@@ -1,0 +1,21 @@
+running egg_info
+writing ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+writing dependency_links to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+writing entry points to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+writing requirements to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+writing top-level names to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+reading manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info
+running install_scripts
+Installing controller script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+Installing test script to /home/jonat/ros2_ws/src/smarc2/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+writing list of installed files to '/home/jonat/ros2_ws/src/smarc2/build/quadrotor_basic_controller/install.log'
