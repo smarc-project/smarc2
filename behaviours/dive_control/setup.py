@@ -25,7 +25,8 @@ setup(
         'console_scripts': [
             'action_server_node = dive_control.ActionserverControllerNode:main',
             'action_client_node = dive_control.ActionClientNode:main',
-            'diving = dive_control.Node:main',
+            'manual_diving = dive_control.Node:main',
+            'action_server_diving = dive_control.Node:action_server',
             'test_view = dive_control.SAMDiveView:test_view',
             'setpoint = dive_control.SetpointNode:main'
         ],
