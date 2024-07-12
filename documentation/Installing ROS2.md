@@ -1,6 +1,5 @@
 # Installing ROS2
 
-`apt install ros2`, almost.
 
 ## Step 0: Install ROS-Humble
 We use ROS Humble, since it is the current LTS version.
@@ -54,10 +53,13 @@ cd smarc2
 
 ### Colcon, rosdep, pip
 ```bash
-apt install python3-colcon-ros python3-rosdep python3-pip
-sudo rosdep init
+apt update && apt upgrade # Optional but good
+apt install python3-colcon-ros python3-rosdep python3-pip apt-utils ros-dev-tools
+pip install --user setuptools==58.2.0 # Optional. Stops useless warnings when building
+rosdep init
 rosdep update
 ```
+
 
 ### Dependencies of this repo
 ```bash
@@ -68,14 +70,16 @@ cd colcon_ws
 ### Build
 ```bash
 cd colcon_ws
+source /opt/ros/humble/setup.bash # if you havent put this in your .bashrc
 colcon build
 ```
 
-### Add your workspace to bashrc
+### Add your workspace to bashrc (or equivalent)
 ```bash
 cd colcon_ws
-echo "source /home/USERNAME/colcon_ws/install/setup.sh" >> ~/.bashrc
+echo "source /home/YOUR_USERNAME/colcon_ws/install/setup.sh" >> ~/.bashrc
 ```
+Alternatively you can run the `source` command above in every terminal you want to use ros in.
 
 
 ## [Continue with porting](./Porting%20a%20package.md)
