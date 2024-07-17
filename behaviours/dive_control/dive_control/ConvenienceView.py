@@ -7,8 +7,8 @@ from smarc_msgs.msg import ThrusterRPM
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 
-from control_msgs.msg import Topics as ControlTopics
-from control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
+from smarc_control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
