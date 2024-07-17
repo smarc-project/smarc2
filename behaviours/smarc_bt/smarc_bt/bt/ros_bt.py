@@ -178,11 +178,12 @@ def smarc_bt():
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, ros_goto_wp, ros_mission_updater
+        nonlocal bt, bt_str, node, ros_goto_wp, ros_mission_updater, sam
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
-            s += f"GOTOWP Client::\n{ros_goto_wp.feedback_message}\n"
+            s += f"GOTOWP Client::\n{ros_goto_wp.feedback_message}\n\n"
+            s += f"Vehicle::\nAborted:{sam.vehicle_state.aborted}\nHealthy:{sam.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str
 
