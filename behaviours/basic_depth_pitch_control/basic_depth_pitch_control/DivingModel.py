@@ -8,7 +8,7 @@ from tf_transformations import euler_from_quaternion
 
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
-from control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
+from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 
 class PIDControl:

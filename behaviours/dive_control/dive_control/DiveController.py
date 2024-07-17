@@ -11,7 +11,7 @@ from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
-from control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer

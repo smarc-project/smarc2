@@ -24,7 +24,7 @@ from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
-from control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 
 from .IDiveView import IDiveView, MissionStates
@@ -148,6 +148,8 @@ class DiveActionServerController(DiveController):
         self._view.set_lcg(50)
         self._view.set_thrust_vector(0.0, 0.0) 
         self._view.set_rpm(0)
+
+        self._loginfo("Everything set to neutral")
 
         return CancelResponse.ACCEPT
 
