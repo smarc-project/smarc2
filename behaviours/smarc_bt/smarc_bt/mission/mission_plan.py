@@ -50,7 +50,7 @@ class MissionPlan():
         
         if new_state == self._state: return True
 
-        self._log(f"State change: {self._state} -> {new_state}")
+        self._log(f"Mission state change: {self._state} -> {new_state}")
         self._state = new_state
         return True
 
