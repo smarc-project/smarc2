@@ -90,7 +90,7 @@ class DiveToWaypointActionClient():
         waypoint = PoseStamped()
         waypoint.header.frame_id = 'sam0/odom_gt'
         waypoint.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
-        waypoint.pose.position.x = 15.0
+        waypoint.pose.position.x = 50.0
         waypoint.pose.position.y = 0.0
         waypoint.pose.position.z = 0.0
         waypoint.pose.orientation.x = 0.0
@@ -122,6 +122,24 @@ class DiveToWaypointActionClient():
         stamp.nanosec = int(time.nanoseconds % 1e9)
         return stamp
 
+    def cancel_goal(self):
+        self._loginfo("Cancel Goal")
+
+        self._loginfo(f"Goal Handle: {self._goal_handle}")
+
+        if self._goal_handle is not None:
+            self._loginfo('Sending cancel request...')
+            cancel_future = self._goal_handle.cancel_goal_async()
+            cancel_future.add_done_callback(self.cancel_response_callback)
+
+    def cancel_response_callback(self, future):
+        cancel_response = future.result()
+        if len(cancel_response.goals_canceling) > 0:
+            self._loginfo('Goal successfully cancelled')
+        else:
+            self._loginfo('Goal failed to cancel')
+
+
 def main():
     # create a node and our objects in the usual manner.
     rclpy.init(args=sys.argv)
@@ -131,7 +149,11 @@ def main():
 
     ac.send_goal()
 
+    # To test the cancel callback
+    node.create_timer(5.0, ac.cancel_goal)
+
     rclpy.spin(node)
+    ac._loginfo("spin")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
-from control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 from tf_transformations import euler_from_quaternion
 

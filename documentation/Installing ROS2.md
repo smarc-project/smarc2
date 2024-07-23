@@ -41,6 +41,9 @@ You can also find this file [here](../docker/defaults.yaml)
 
 ## Installing requirements
 Do the following steps in order on a clean ubuntu 22.04 system.
+Missing a step will likely produce errors.
+
+`cd` commands are given as inexact, do what they _intend_ to do :)
 
 ### This repo and some of its submodules
 ```bash
@@ -79,7 +82,12 @@ colcon build
 cd colcon_ws
 echo "source /home/YOUR_USERNAME/colcon_ws/install/setup.sh" >> ~/.bashrc
 ```
-Alternatively you can run the `source` command above in every terminal you want to use ros in.
+and/or
+```bash
+cd colcon_ws
+source install/setup.sh
+```
+In any terminal you want to use ros in.
 
 
 ## [Continue with porting](./Porting%20a%20package.md)

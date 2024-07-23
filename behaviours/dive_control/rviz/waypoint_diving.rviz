@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /Grid1
         - /TF1
+        - /TF1/Frames1
         - /Odometry1
         - /Pose1
       Splitter Ratio: 0.5
@@ -55,105 +56,141 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         map:
-          Value: true
+          Value: false
         map_gt:
-          Value: true
+          Value: false
         sam0/back_prop_link:
-          Value: true
+          Value: false
         sam0/back_prop_link_gt:
-          Value: true
+          Value: false
         sam0/base_link:
-          Value: true
+          Value: false
         sam0/base_link_2d:
-          Value: true
+          Value: false
         sam0/base_link_gt:
           Value: true
         sam0/battery_link:
-          Value: true
+          Value: false
         sam0/battery_link_gt:
-          Value: true
+          Value: false
         sam0/camera_down_link:
-          Value: true
+          Value: false
         sam0/camera_down_link_gt:
-          Value: true
+          Value: false
         sam0/camera_front_left_link:
-          Value: true
+          Value: false
         sam0/camera_front_left_link_gt:
-          Value: true
+          Value: false
         sam0/camera_front_link:
-          Value: true
+          Value: false
         sam0/camera_front_right_link:
-          Value: true
+          Value: false
         sam0/camera_front_right_link_gt:
-          Value: true
+          Value: false
         sam0/dvl_link:
-          Value: true
+          Value: false
         sam0/dvl_link_gt:
-          Value: true
+          Value: false
         sam0/front_prop_link:
-          Value: true
+          Value: false
         sam0/front_prop_link_gt:
-          Value: true
+          Value: false
         sam0/gps_link:
-          Value: true
+          Value: false
         sam0/gps_link_gt:
-          Value: true
+          Value: false
         sam0/imu_link:
-          Value: true
+          Value: false
         sam0/imu_link_gt:
-          Value: true
+          Value: false
         sam0/odom:
-          Value: true
+          Value: false
         sam0/odom_gt:
           Value: true
         sam0/pressure_link:
-          Value: true
+          Value: false
         sam0/pressure_link_gt:
-          Value: true
+          Value: false
         sam0/sbg_link:
-          Value: true
+          Value: false
         sam0/sbg_link_gt:
-          Value: true
+          Value: false
         sam0/sidescan_link:
-          Value: true
+          Value: false
         sam0/sidescan_link_gt:
-          Value: true
+          Value: false
         sam0/tcg1_link:
-          Value: true
+          Value: false
         sam0/tcg1_link_gt:
-          Value: true
+          Value: false
         sam0/tcg2_link:
-          Value: true
+          Value: false
         sam0/tcg2_link_gt:
-          Value: true
+          Value: false
         sam0/thruster_link:
-          Value: true
+          Value: false
         sam0/thruster_link_gt:
-          Value: true
+          Value: false
         sam0/thruster_yaw_link:
-          Value: true
+          Value: false
         sam0/thruster_yaw_link_gt:
-          Value: true
+          Value: false
         sam0/uw_gps_link:
-          Value: true
+          Value: false
         sam0/uw_gps_link_gt:
-          Value: true
+          Value: false
         sam0/vbs_link:
-          Value: true
+          Value: false
         sam0/vbs_link_gt:
-          Value: true
+          Value: false
         utm:
-          Value: true
+          Value: false
         utm_33_V:
-          Value: true
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
+        sam0/odom_gt:
+          sam0/base_link_gt:
+            sam0/battery_link_gt:
+              {}
+            sam0/camera_down_link_gt:
+              {}
+            sam0/camera_front_left_link_gt:
+              {}
+            sam0/camera_front_right_link_gt:
+              {}
+            sam0/dvl_link_gt:
+              {}
+            sam0/gps_link_gt:
+              {}
+            sam0/imu_link_gt:
+              {}
+            sam0/pressure_link_gt:
+              {}
+            sam0/sbg_link_gt:
+              {}
+            sam0/sidescan_link_gt:
+              {}
+            sam0/tcg1_link_gt:
+              {}
+            sam0/tcg2_link_gt:
+              {}
+            sam0/thruster_yaw_link_gt:
+              sam0/thruster_link_gt:
+                sam0/back_prop_link_gt:
+                  {}
+                sam0/front_prop_link_gt:
+                  {}
+            sam0/uw_gps_link_gt:
+              {}
+            sam0/vbs_link_gt:
+              {}
         utm_33_V:
           utm:
             map:
@@ -184,42 +221,7 @@ Visualization Manager:
                 sam0/base_link_2d:
                   {}
             map_gt:
-              sam0/odom_gt:
-                sam0/base_link_gt:
-                  sam0/battery_link_gt:
-                    {}
-                  sam0/camera_down_link_gt:
-                    {}
-                  sam0/camera_front_left_link_gt:
-                    {}
-                  sam0/camera_front_right_link_gt:
-                    {}
-                  sam0/dvl_link_gt:
-                    {}
-                  sam0/gps_link_gt:
-                    {}
-                  sam0/imu_link_gt:
-                    {}
-                  sam0/pressure_link_gt:
-                    {}
-                  sam0/sbg_link_gt:
-                    {}
-                  sam0/sidescan_link_gt:
-                    {}
-                  sam0/tcg1_link_gt:
-                    {}
-                  sam0/tcg2_link_gt:
-                    {}
-                  sam0/thruster_yaw_link_gt:
-                    sam0/thruster_link_gt:
-                      sam0/back_prop_link_gt:
-                        {}
-                      sam0/front_prop_link_gt:
-                        {}
-                  sam0/uw_gps_link_gt:
-                    {}
-                  sam0/vbs_link_gt:
-                    {}
+              {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -327,25 +329,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 39.315406799316406
+      Distance: 11.17419719696045
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 33.00442123413086
-        Y: 18.044076919555664
-        Z: 6.6856689453125
+        X: -0.05999032035470009
+        Y: 0.2336961179971695
+        Z: 0.3899107575416565
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3203984498977661
-      Target Frame: sam0/odom_gt
+      Pitch: 0.2953958809375763
+      Target Frame: sam0/base_link_gt
       Value: Orbit (rviz)
-      Yaw: 0.43039971590042114
+      Yaw: 6.242197036743164
     Saved: ~
 Window Geometry:
   Displays:
@@ -363,5 +365,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2272
-  X: 417
-  Y: 172
+  X: 245
+  Y: 214
