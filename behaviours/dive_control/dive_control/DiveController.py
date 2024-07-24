@@ -53,6 +53,7 @@ class DiveController():
         self._states = Odometry()
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+        # TODO: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
@@ -208,6 +209,7 @@ class DiveController():
 
 
     def set_mission_state(self, new_state):
+        self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}")
         self._mission_state = new_state
 
     def update(self):

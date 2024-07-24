@@ -17,7 +17,6 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
 import tf2_geometry_msgs.tf2_geometry_msgs
-
 from tf_transformations import euler_from_quaternion
 
 from std_msgs.msg import Float64
@@ -86,7 +85,7 @@ class DiveActionServerController(DiveController):
 
         self._loginfo(goal_msg_str)
 
-        self._mission_state = MissionStates.NONE
+        self.set_mission_state(MissionStates.RUNNING)
 
         return GoalResponse.ACCEPT
     
@@ -121,14 +120,16 @@ class DiveActionServerController(DiveController):
                 distance = self.get_distance()
                 if distance <= self._waypoint.goal_tolerance\
                     and self._mission_state == MissionStates.RUNNING:
-                    self._loginfo("breaking")
+                    self._loginfo(f"Mission complete. Distance:{distance} <= Tolerance:{self._waypoint.goal_tolerance}")
                     break
                 
-                fb_msg.feedback_message = f"Distance to waypoint: {distance}"
+                fb_msg.feedback_message = f"Distance to waypoint: {distance:.2f}"
                 fb_msg.distance_remaining = distance
                 goal_handle.publish_feedback(fb_msg)
 
                 time.sleep(0.1)
+            else:
+                self._loginfo("get distance is none?")
 
         goal_handle.succeed()
         result.reached_waypoint = True
