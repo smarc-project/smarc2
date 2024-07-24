@@ -209,8 +209,14 @@ class DiveController():
 
 
     def set_mission_state(self, new_state):
-        self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}")
         self._mission_state = new_state
+
+        s=""
+        if new_state in MissionStates.TERMINAL_STATES():
+            self._waypoint_global = None 
+            s = "(Terminal)"
+
+        self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}{s}")
 
     def update(self):
         """
