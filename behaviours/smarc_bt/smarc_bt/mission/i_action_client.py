@@ -12,6 +12,8 @@ class ActionClientState(enum.Enum):
     RUNNING = "RUNNING"
     DONE = "DONE"
     CANCELLED = "CANCELLED"
+    CANCELLING = "CANCELLING"
+    ERROR = "ERROR"
 
     def __str__(self):
         return self.name
@@ -23,9 +25,7 @@ class IActionClient():
     @property
     def feedback_message(self) -> str: pass
     @property
-    def status_str(self) -> str: pass
-    @property
-    def status(self) -> ActionClientState: pass
+    def state(self) -> ActionClientState: pass
     def setup(self, timeout:int=10) -> bool: pass
     def send_goal(self, wp) -> bool: pass
     def cancel_goal(self): pass

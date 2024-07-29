@@ -32,3 +32,9 @@ class MissionStates(enum.Enum):
 
     def __str__(self):
         return self.name
+
+    def TERMINAL_STATES():
+        return [MissionStates.COMPLETED,
+                MissionStates.CANCELLED,
+                MissionStates.STOPPED,
+                MissionStates.NONE]
