@@ -15,7 +15,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 try:
     from .IDiveView import IDiveView
 except:
-    from IIDiveView import IDiveView
+    from IDiveView import IDiveView
 
 class ConvenienceView(IDiveView):
     """
@@ -38,6 +38,8 @@ class ConvenienceView(IDiveView):
         self._node = node
         self._controller = controller
         self._model = model
+
+        self._previous_print = ""
 
 
     def _loginfo(self, s):
@@ -105,6 +107,7 @@ class ConvenienceView(IDiveView):
                  f"roll: {self._state_msg.pose.roll:.3f}, "\
                  f"pitch: {self._state_msg.pose.pitch:.3f}, "\
                  f"yaw: {self._state_msg.pose.yaw:.3f}\n"
+            s += f"   DiveController mission state: {self._controller.get_mission_state()}\n"
 
         if self._input_msg is None:
             s += f"No inputs yet\n"
@@ -138,7 +141,12 @@ class ConvenienceView(IDiveView):
 
         s += f"[-----]\n"
 
+        # so we dont spam the terminal with the same string forever
+        if s == self._previous_print:
+            return
+
         self._loginfo(s)
+        self._previous_print = s
 
 def test_view():
     """
