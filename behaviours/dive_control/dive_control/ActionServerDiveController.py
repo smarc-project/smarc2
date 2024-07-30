@@ -70,6 +70,8 @@ class DiveActionServerController(DiveController):
 
         self._loginfo("Goal received")
 
+        self.set_mission_state(MissionStates.RECEIVED, "AS")
+
         self._goal_handle = goal_handle
         self._waypoint = goal_handle.waypoint
         self._goal_frame = self._waypoint.pose.header.frame_id
@@ -85,7 +87,7 @@ class DiveActionServerController(DiveController):
 
         self._loginfo(goal_msg_str)
 
-        self.set_mission_state(MissionStates.RUNNING)
+        #self.set_mission_state(MissionStates.RECEIVED, "AS")
 
         return GoalResponse.ACCEPT
     
@@ -135,7 +137,7 @@ class DiveActionServerController(DiveController):
         result.reached_waypoint = True
         self._waypoint.travel_rpm = 0.0
         self._requested_rpm = self._waypoint.travel_rpm
-        self.set_mission_state(MissionStates.COMPLETED)
+        self.set_mission_state(MissionStates.COMPLETED, "AS")
 
         return result
 
@@ -143,7 +145,7 @@ class DiveActionServerController(DiveController):
     def _cancel_cb(self, goal_handle:ServerGoalHandle):
         self._loginfo("Cancelled")
 
-        self.set_mission_state(MissionStates.CANCELLED)
+        self.set_mission_state(MissionStates.CANCELLED, "AS")
 
         self._view.set_vbs(0)
         self._view.set_lcg(50)

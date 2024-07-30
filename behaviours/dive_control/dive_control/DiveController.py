@@ -175,6 +175,10 @@ class DiveController():
         if self._waypoint_body is None:
             return None
 
+        if self._mission_state == MissionStates.RECEIVED:
+            self.update()
+            self.set_mission_state(MissionStates.ACCEPTED, "DC")
+
         distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2 + self._waypoint_body.position.z**2)
 
         return distance
@@ -208,15 +212,19 @@ class DiveController():
         return self._received_waypoint
 
 
-    def set_mission_state(self, new_state):
+    def set_mission_state(self, new_state, node_name):
+        old_state = self._mission_state
         self._mission_state = new_state
 
         s=""
         if new_state in MissionStates.TERMINAL_STATES():
-            self._waypoint_global = None 
+            # TODO: Setting the waypoint to None kills the controller, bc it expects
+            # a pose.
+            #self._waypoint_global = None 
             s = "(Terminal)"
 
-        self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}{s}")
+        #self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}{s}")
+        self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
 
     def update(self):
         """
