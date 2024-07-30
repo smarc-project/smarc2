@@ -1,2 +1,6 @@
 simulation/SMARCUnity*
 documentation/
+external_packages/
+external_equipment/
+.vscode
+.github
