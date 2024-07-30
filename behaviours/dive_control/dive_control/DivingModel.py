@@ -116,6 +116,51 @@ class DiveControlModel:
         """
         mission_state = self._controller.get_mission_state()
 
+        if mission_state == MissionStates.RECEIVED:
+            self._loginfo("Mission Received")
+            u_vbs_neutral = 50.0
+            u_lcg_neutral = 50.0
+            u_tv_hor_neutral = 0.0
+            u_tv_ver_neutral = 0.0
+            u_rpm_neutral = 0.0
+
+
+            self._view.set_vbs(u_vbs_neutral)
+            self._view.set_lcg(u_lcg_neutral)
+            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._view.set_rpm(u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
+            return
+
+        if mission_state == MissionStates.COMPLETED:
+            self._loginfo("Mission Complete")
+
+            u_vbs_neutral = 50.0
+            u_lcg_neutral = 50.0
+            u_tv_hor_neutral = 0.0
+            u_tv_ver_neutral = 0.0
+            u_rpm_neutral = 0.0
+
+
+            self._view.set_vbs(u_vbs_neutral)
+            self._view.set_lcg(u_lcg_neutral)
+            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._view.set_rpm(u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
+            return
+
         if mission_state == MissionStates.EMERGENCY:
             self._loginfo("Emergency mode. No controller running")
 
@@ -221,7 +266,7 @@ class DiveControlModel:
 
         if mission_state == MissionStates.ACCEPTED\
             and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state(MissionStates.RUNNING)
+            self._controller.set_mission_state(MissionStates.RUNNING, "DM")
             self._loginfo("DM: mission state check")
 
         # Convenience Topics
@@ -246,6 +291,9 @@ class DiveControlModel:
 
 
     def get_state(self):
+        '''
+        For the ConvenienceView
+        '''
         if self._current_state is None:
             return None
 
