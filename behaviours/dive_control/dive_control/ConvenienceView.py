@@ -28,8 +28,7 @@ class ConvenienceView(IDiveView):
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
-        #TODO: Change to PoseWithCovarianceStamped and put the covariance as the tolerance for visualiation in RVIZ
-        self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, '/conv/waypoint', 10)
+        self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, ControlTopics.WAYPOINT_CONV, 10)
 
 
         self._state_msg = None

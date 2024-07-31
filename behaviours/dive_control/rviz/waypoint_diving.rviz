@@ -299,7 +299,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /conv/waypoint
+        Value: /sam0/ctrl/conv/waypoint
       Value: true
   Enabled: true
   Global Options:
@@ -347,25 +347,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 14.197919845581055
+      Distance: 11.73500919342041
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -4.8358588218688965
-        Y: 2.775752305984497
-        Z: 5.482024669647217
+        X: 5.428478717803955
+        Y: 18.048553466796875
+        Z: 2.2329859733581543
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8103954195976257
+      Pitch: 0.2997964024543762
       Target Frame: sam0/base_link_gt
       Value: Orbit (rviz)
-      Yaw: 2.261741876602173
+      Yaw: 1.7017395496368408
     Saved: ~
 Window Geometry:
   Displays:

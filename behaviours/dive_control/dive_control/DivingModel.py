@@ -235,7 +235,7 @@ class DiveControlModel:
         current_depth *= -1
 
         # Choose active vs. static diving based on dive pitch angle
-        if dive_pitch_setpoint <= np.abs(np.deg2rad(20)):
+        if np.abs(dive_pitch_setpoint) <= np.abs(np.deg2rad(20)):
             self._loginfo("Active Diving")
             pitch_setpoint = dive_pitch_setpoint
 
