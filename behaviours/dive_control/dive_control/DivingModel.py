@@ -210,6 +210,7 @@ class DiveControlModel:
         # Get setpoints
         depth_setpoint = self._controller.get_depth_setpoint()
         pitch_setpoint = self._controller.get_pitch_setpoint()
+        dive_pitch_setpoint = self._controller.get_dive_pitch()
         heading_setpoint = self._controller.get_heading_setpoint()
         rpm_setpoint = self._controller.get_rpm_setpoint()
 
@@ -233,8 +234,10 @@ class DiveControlModel:
         depth_setpoint *= -1
         current_depth *= -1
 
-        if distance >= goal_tolerance:
-            pitch_setpoint = self._controller.get_dive_pitch()
+        # Choose active vs. static diving based on dive pitch angle
+        if dive_pitch_setpoint <= np.abs(np.deg2rad(20)):
+            self._loginfo("Active Diving")
+            pitch_setpoint = dive_pitch_setpoint
 
             u_rpm = rpm_setpoint
             u_vbs_raw = 50.0
@@ -247,6 +250,7 @@ class DiveControlModel:
             depth_error = depth_setpoint - current_depth
 
         else:
+            self._loginfo("Static Diving")
             u_rpm = 0
             u_tv_ver_raw = 0.0
             u_tv_hor_raw = 0.0
