@@ -42,6 +42,7 @@ class DiveController():
         self._depth_setpoint = None
         self._pitch_setpoint = None
         self._requested_rpm = None
+        self._goal_tolerance = None
         self._waypoint_global = None
         self._waypoint_body = None
         self._received_waypoint = False
@@ -175,9 +176,9 @@ class DiveController():
         if self._waypoint_body is None:
             return None
 
-        if self._mission_state == MissionStates.RECEIVED:
-            self.update()
-            self.set_mission_state(MissionStates.ACCEPTED, "DC")
+#        if self._mission_state == MissionStates.RECEIVED:
+#            self.update()
+#            self.set_mission_state(MissionStates.ACCEPTED, "DC")
 
         distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2 + self._waypoint_body.position.z**2)
 
@@ -198,6 +199,13 @@ class DiveController():
 
     def get_waypoint(self):
         return self._waypoint_global
+
+    def get_goal_tolerance(self):
+
+        if self._goal_tolerance is None:
+            return 0
+
+        return self._goal_tolerance
 
     def get_mission_state(self):
         """
@@ -223,7 +231,6 @@ class DiveController():
             #self._waypoint_global = None 
             s = "(Terminal)"
 
-        #self._loginfo(f"DiveController state: {self._mission_state} --> {new_state}{s}")
         self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
 
     def update(self):

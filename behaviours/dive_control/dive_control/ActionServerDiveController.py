@@ -76,6 +76,7 @@ class DiveActionServerController(DiveController):
         self._waypoint = goal_handle.waypoint
         self._goal_frame = self._waypoint.pose.header.frame_id
         self._requested_rpm = self._waypoint.travel_rpm
+        self._goal_tolerance = self._waypoint.goal_tolerance
 
         self._waypoint.pose.pose.position.z = -self._waypoint.travel_depth
 
@@ -87,7 +88,6 @@ class DiveActionServerController(DiveController):
 
         self._loginfo(goal_msg_str)
 
-        #self.set_mission_state(MissionStates.RECEIVED, "AS")
 
         return GoalResponse.ACCEPT
     
@@ -118,8 +118,17 @@ class DiveActionServerController(DiveController):
 
 
         while True:
+            if self._mission_state == MissionStates.RECEIVED:
+                self.update()
+                self.set_mission_state(MissionStates.ACCEPTED, "AS")
+
             if self.get_distance() is not None:
                 distance = self.get_distance()
+
+                if self._mission_state == MissionStates.ACCEPTED\
+                    and distance > self._waypoint.goal_tolerance:
+                    self.set_mission_state(MissionStates.RUNNING, "AS")
+
                 if distance <= self._waypoint.goal_tolerance\
                     and self._mission_state == MissionStates.RUNNING:
                     self._loginfo(f"Mission complete. Distance:{distance} <= Tolerance:{self._waypoint.goal_tolerance}")
@@ -157,20 +166,8 @@ class DiveActionServerController(DiveController):
         return CancelResponse.ACCEPT
 
 
-
-    def get_goal_tolerance(self):
-
-        if self._waypoint is None:
-            return 0
-
-        return self._waypoint.goal_tolerance
-
-
     def set_feedback_msg(self,msg):
         return msg
-
-
-
 
 
 def main():

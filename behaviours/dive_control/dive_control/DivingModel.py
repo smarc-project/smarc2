@@ -220,7 +220,6 @@ class DiveControlModel:
         current_heading = self._controller.get_heading()
 
         if not self._controller.has_waypoint():
-            #self._loginfo("No waypoint received")
             return
 
         if depth_setpoint is None:
@@ -228,12 +227,13 @@ class DiveControlModel:
             return
 
         distance = self._controller.get_distance()
+        goal_tolerance = self._controller.get_goal_tolerance()
 
         # Sketchy minus signs...
         depth_setpoint *= -1
         current_depth *= -1
 
-        if distance >= 1.0:
+        if distance >= goal_tolerance:
             pitch_setpoint = self._controller.get_dive_pitch()
 
             u_rpm = rpm_setpoint
@@ -263,11 +263,6 @@ class DiveControlModel:
         self._view.set_lcg(u_lcg)
         self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         self._view.set_rpm(u_rpm)
-
-        if mission_state == MissionStates.ACCEPTED\
-            and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state(MissionStates.RUNNING, "DM")
-            self._loginfo("DM: mission state check")
 
         # Convenience Topics
         self._ref = ControlReference()
