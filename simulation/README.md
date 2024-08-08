@@ -86,4 +86,4 @@ Do these to get stuff running:
   - Robotics -> ROS Settings
     - Change ROS IP and Port to whatever your docker/VM is using.
     - This part is system-dependent and MIGHT change, good luck.
-- You should now be able to follow the other readmes.
+- You should now be able to follow the other readmes. Don't forget to change the ROS IP in `unity_ros2_bridge.sh` accordingly.
