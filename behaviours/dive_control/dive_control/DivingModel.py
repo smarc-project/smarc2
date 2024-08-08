@@ -210,6 +210,7 @@ class DiveControlModel:
         # Get setpoints
         depth_setpoint = self._controller.get_depth_setpoint()
         pitch_setpoint = self._controller.get_pitch_setpoint()
+        dive_pitch_setpoint = self._controller.get_dive_pitch()
         heading_setpoint = self._controller.get_heading_setpoint()
         rpm_setpoint = self._controller.get_rpm_setpoint()
 
@@ -220,7 +221,6 @@ class DiveControlModel:
         current_heading = self._controller.get_heading()
 
         if not self._controller.has_waypoint():
-            #self._loginfo("No waypoint received")
             return
 
         if depth_setpoint is None:
@@ -228,13 +228,16 @@ class DiveControlModel:
             return
 
         distance = self._controller.get_distance()
+        goal_tolerance = self._controller.get_goal_tolerance()
 
         # Sketchy minus signs...
         depth_setpoint *= -1
         current_depth *= -1
 
-        if distance >= 1.0:
-            pitch_setpoint = self._controller.get_dive_pitch()
+        # Choose active vs. static diving based on dive pitch angle
+        if np.abs(dive_pitch_setpoint) <= np.abs(np.deg2rad(20)):
+            self._loginfo("Active Diving")
+            pitch_setpoint = dive_pitch_setpoint
 
             u_rpm = rpm_setpoint
             u_vbs_raw = 50.0
@@ -247,6 +250,7 @@ class DiveControlModel:
             depth_error = depth_setpoint - current_depth
 
         else:
+            self._loginfo("Static Diving")
             u_rpm = 0
             u_tv_ver_raw = 0.0
             u_tv_hor_raw = 0.0
@@ -263,11 +267,6 @@ class DiveControlModel:
         self._view.set_lcg(u_lcg)
         self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         self._view.set_rpm(u_rpm)
-
-        if mission_state == MissionStates.ACCEPTED\
-            and distance > self._controller.get_goal_tolerance():
-            self._controller.set_mission_state(MissionStates.RUNNING, "DM")
-            self._loginfo("DM: mission state check")
 
         # Convenience Topics
         self._ref = ControlReference()

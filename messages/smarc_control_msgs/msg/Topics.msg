@@ -19,3 +19,4 @@ string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
 string REF_CONV = 'ctrl/conv/ref' # Type: ControlReference
 string CONTROL_ERROR_CONV = 'ctrl/conv/error' # Type: ControlError
 string CONTROL_INPUT_CONV = 'ctrl/conv/control_input' # Type: ControlInput
+string WAYPOINT_CONV = 'ctrl/conv/waypoint' # Type: PoseWithCovarianceStamped

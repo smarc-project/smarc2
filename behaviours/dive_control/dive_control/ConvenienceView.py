@@ -3,6 +3,8 @@ import sys
 import rclpy
 from rclpy.node import Node
 
+import numpy as np
+
 from smarc_msgs.msg import ThrusterRPM
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
@@ -10,7 +12,7 @@ from sam_msgs.msg import ThrusterAngles
 from smarc_control_msgs.msg import Topics as ControlTopics
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
-from geometry_msgs.msg import PoseStamped, TransformStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped, PoseWithCovarianceStamped
 
 try:
     from .IDiveView import IDiveView
@@ -26,14 +28,16 @@ class ConvenienceView(IDiveView):
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
-        self._waypoint_pub = node.create_publisher(PoseStamped, '/conv/waypoint', 10)
+        self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, ControlTopics.WAYPOINT_CONV, 10)
 
 
         self._state_msg = None
         self._ref_msg = None
         self._error_msg = None
         self._input_msg = None
+        self._waypoint = None
         self._waypoint_msg = None
+        self._goal_tolerance = None
 
         self._node = node
         self._controller = controller
@@ -87,10 +91,22 @@ class ConvenienceView(IDiveView):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        self._waypoint_msg = self._controller.get_waypoint()
+        self._waypoint = self._controller.get_waypoint()
+        self._goal_tolerance = self._controller.get_goal_tolerance()
 
-        if self._waypoint_msg is None:
+        if self._waypoint is None:
             return
+
+        self._waypoint_msg = PoseWithCovarianceStamped()
+        self._waypoint_msg.header = self._waypoint.header
+        self._waypoint_msg.pose.pose = self._waypoint.pose
+        self._waypoint_msg.pose.pose.orientation.w = 1.0
+        cov = np.zeros([6,6])
+        cov[0][0] = self._goal_tolerance
+        cov[1][1] = self._goal_tolerance
+        cov[2][2] = self._goal_tolerance
+        cov_vec = cov.reshape(36)
+        self._waypoint_msg.pose.covariance = cov_vec.tolist()
 
         self._waypoint_pub.publish(self._waypoint_msg)
 

@@ -10,7 +10,10 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /Odometry1
-        - /Pose1
+        - /PoseWithCovariance1
+        - /PoseWithCovariance1/Covariance1
+        - /PoseWithCovariance1/Covariance1/Position1
+        - /PoseWithCovariance1/Covariance1/Orientation1
       Splitter Ratio: 0.5
     Tree Height: 909
   - Class: rviz_common/Selection
@@ -155,6 +158,8 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
+        map_gt:
+          {}
         sam0/odom_gt:
           sam0/base_link_gt:
             sam0/battery_link_gt:
@@ -220,8 +225,6 @@ Visualization Manager:
                     {}
                 sam0/base_link_2d:
                   {}
-            map_gt:
-              {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -241,7 +244,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -262,18 +265,33 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /ctrl/waypoint
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
-      Class: rviz_default_plugins/Pose
+      Class: rviz_default_plugins/PoseWithCovariance
       Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
       Enabled: true
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
-      Name: Pose
-      Shaft Length: 0.5
-      Shaft Radius: 0.5
+      Name: PoseWithCovariance
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
       Shape: Arrow
       Topic:
         Depth: 5
@@ -281,7 +299,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /conv/waypoint
+        Value: /sam0/ctrl/conv/waypoint
       Value: true
   Enabled: true
   Global Options:
@@ -329,25 +347,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 11.17419719696045
+      Distance: 11.73500919342041
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.05999032035470009
-        Y: 0.2336961179971695
-        Z: 0.3899107575416565
+        X: 5.428478717803955
+        Y: 18.048553466796875
+        Z: 2.2329859733581543
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.2953958809375763
+      Pitch: 0.2997964024543762
       Target Frame: sam0/base_link_gt
       Value: Orbit (rviz)
-      Yaw: 6.242197036743164
+      Yaw: 1.7017395496368408
     Saved: ~
 Window Geometry:
   Displays:
