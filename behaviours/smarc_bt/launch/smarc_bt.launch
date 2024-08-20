@@ -9,6 +9,7 @@
             <node name="smarc_bt" pkg="smarc_bt" exec="smarc_bt" output="screen">
                 <param name="use_sim_time" value="$(var use_sim_time)" />
                 <param name="link_suffix" value="$(var link_suffix)"/>
+                <param name="robot_name" value="$(var robot_name)"/>
             </node>
     </group>
 
