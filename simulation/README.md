@@ -10,6 +10,8 @@ This directory contains the SMaRC simulation environment submodules.
 The three submodules that start with SMARCUnity are meant to be used as Unity projects (HDRP, Standard) or packages (Assets).
 Check their individual READMEs for details specific to each.
 
+**Documentation of the simulation components, methods, vehicles, systems etc. are inside the Assets submodule where the code for most of it lives.**
+
 ### The packages
 **Assets**: Common package that contains all the sensors, prefabs, vehicles, etc.
 Should be imported from the package manager in Unity. This is where MOST of the useful things are.
