@@ -7,7 +7,7 @@ This directory contains the SMaRC simulation environment submodules.
 
 
 ## SMARCUnity
-The three submodules that start with SMARCUnity are meant to be opened/imported as Unity packages/modules.
+The three submodules that start with SMARCUnity are meant to be used as Unity projects (HDRP, Standard) or packages (Assets).
 Check their individual READMEs for details specific to each.
 
 ### The packages
