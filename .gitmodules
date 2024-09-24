@@ -1,7 +1,7 @@
 [submodule "external_packages/ROS-TCP-Endpoint"]
 	path = external_packages/ROS-TCP-Endpoint
 	url = https://github.com/KKalem/ROS-TCP-Endpoint
-	branch = main-ros2
+	branch = humble
 [submodule "external_packages/mqtt_bridge"]
 	path = external_packages/mqtt_bridge
 	url = https://github.com/KKalem/mqtt_bridge

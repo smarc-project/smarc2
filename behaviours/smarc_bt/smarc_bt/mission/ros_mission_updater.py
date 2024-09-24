@@ -11,10 +11,13 @@ from py_trees.blackboard import Blackboard
 
 from geometry_msgs.msg import Pose2D, PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
+from std_msgs.msg import Empty
 
 from smarc_mission_msgs.msg import GotoWaypoint, MissionControl
 from smarc_mission_msgs.msg import Topics as MissionTopics
 from smarc_mission_msgs.srv import DubinsPlan, UTMLatLon
+
+from smarc_msgs.msg import Topics as SmarcTopics
 
 
 from dubins_planner.dubins_planner_node import DubinsPlannerService
@@ -59,6 +62,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
         self._node = node
         self._bb = Blackboard()
 
+        self._abort_pub = node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
         self._latest_mission_control_msg = None
         self._mission_control_sub = node.create_subscription(MissionControl,
                                                             MissionTopics.MISSION_CONTROL_TOPIC,
@@ -139,12 +143,15 @@ class ROSMissionUpdater(IBBMissionUpdater):
         else:
             # following commands all rely on there being a mission plan
             mission_plan = self.__get_mission_plan()
+            
+            if msg.command == MissionControl.CMD_EMERGENCY:
+                if mission_plan is not None: mission_plan.emergency()
+                self._abort_pub.publish(Empty())
+                self._log("Mission Updater: ABORTED")
+
             if mission_plan is None:
                 self._latest_mission_control_msg = None
                 return
-
-            if msg.command == MissionControl.CMD_EMERGENCY:
-                mission_plan.emergency()
 
             elif msg.command == MissionControl.CMD_START:
                 mission_plan.start()

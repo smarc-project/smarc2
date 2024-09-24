@@ -3,6 +3,7 @@
 
 from rclpy.node import Node
 from rclpy.action import ActionClient
+from action_msgs.srv import CancelGoal
 
 from .ros_waypoint import ROSWP
 from .i_action_client import IActionClient, ActionClientState
@@ -32,10 +33,10 @@ class ROSGotoWaypoint(IActionClient):
     
     @property
     def feedback_message(self) -> str:
-        return self._feedback_message
+        return f"{str(self._state)}:{self._feedback_message}"
     
     @property
-    def status(self) -> ActionClientState:
+    def state(self) -> ActionClientState:
         return self._state
     
 
@@ -59,8 +60,8 @@ class ROSGotoWaypoint(IActionClient):
 
 
     def _change_state(self, new_state:ActionClientState):
-        if new_state == self.status: return
-        self._log(f"GOTOWP: {self.status} -> {new_state}")
+        if new_state == self.state: return
+        self._log(f"GOTOWP: {self.state} -> {new_state}")
         self._state = new_state
 
     
@@ -79,6 +80,9 @@ class ROSGotoWaypoint(IActionClient):
         Goal is sent, it will respond with accept/reject.
         We catch that response here.
         """
+        # could have been cancelled...
+        if future is None: return
+
         self._goal_handle = future.result()
         if not self._goal_handle.accepted:
             self._feedback_message = "Goal rejected"
@@ -95,6 +99,10 @@ class ROSGotoWaypoint(IActionClient):
 
 
     def _goal_result_cb(self, future):
+        # could have been cancelled...
+        if future is None: return
+        if future.result() is None: return
+
         # The goal is complete. The server is done.
         # This is the final message from it.
         self._change_state(ActionClientState.DONE)
@@ -104,7 +112,7 @@ class ROSGotoWaypoint(IActionClient):
 
     
     def send_goal(self, wp:ROSWP) -> bool:
-        if self.status != ActionClientState.READY: return False
+        if self.state != ActionClientState.READY: return False
 
         goal_msg = GotoWaypoint.Goal()
         goal_msg.waypoint = wp.goto_wp
@@ -119,6 +127,31 @@ class ROSGotoWaypoint(IActionClient):
         self._last_wp_pub.publish(wp.goto_wp)
 
 
+    def cancel_response_cb(self, future):
+        # could have been cancelled...
+        if future is None: return
+
+        cancel_response = future.result()
+        code = cancel_response.return_code
+        if code == CancelGoal.Response.ERROR_REJECTED or \
+           code == CancelGoal.Response.ERROR_UNKNOWN_GOAL_ID:
+            # cancellation rejected, problem!
+            self._feedback_message = f"Server failed to cancel! {cancel_response}"
+            self._change_state(ActionClientState.ERROR) 
+            return
+
+        if code == CancelGoal.Response.ERROR_NONE or \
+           code == CancelGoal.Response.ERROR_GOAL_TERMINATED:
+            # accepted
+            self._feedback_message = "Server is cancelled"
+            self._change_state(ActionClientState.CANCELLED)
+            return
+            
+        # anything else is a problem we did not foresee happening
+        self._feedback_message = f"Unknown cancel response! {cancel_response}"
+        self._change_state(ActionClientState.ERROR)
+
+
     def cancel_goal(self):
         if self._send_goal_future is not None:
             self._send_goal_future.cancel()
@@ -128,6 +161,16 @@ class ROSGotoWaypoint(IActionClient):
             self._get_result_future.cancel()
             self._get_result_future = None
 
-        self._change_state(ActionClientState.CANCELLED)
+        if self._goal_handle is not None:
+            cancel_future = self._goal_handle.cancel_goal_async()
+            cancel_future.add_done_callback(self.cancel_response_cb)
+            self._change_state(ActionClientState.CANCELLING)
+            self._feedback_message = "Sent cancel goal request to server"
+        else:
+            self._feedback_message = "No goal to cancel?"
+
+
+
+        
 
 

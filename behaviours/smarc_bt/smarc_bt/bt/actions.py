@@ -145,16 +145,57 @@ class A_ActionClient(MissionPlanBehaviour):
         self._client = client
         self._bb = Blackboard()
 
+        self._failure_states = [
+            ActionClientState.DISCONNECTED,
+            ActionClientState.ERROR,
+            ActionClientState.REJECTED,
+            ActionClientState.CANCELLED
+        ]
+
+        self._success_states = [
+            ActionClientState.DONE
+        ]
+
+        self._running_states = [
+            ActionClientState.SENT,
+            ActionClientState.ACCEPTED,
+            ActionClientState.RUNNING,
+            ActionClientState.CANCELLING
+        ]
+
     def setup(self, timeout:int = 1) -> None:
         return self._client.setup(timeout)
         
 
+    def terminate(self, new_status: Status) -> None:
+        if new_status == Status.INVALID:
+            # pre-empted by a higher priority branch, cancel the goal!
+            self.feedback_message = "Preempted, cancelling goal"
+            self._client.cancel_goal()
+            return
+
+        self.feedback_message = f"Terminate::{self._client.feedback_message}"
+
+        if new_status == Status.SUCCESS:
+            # action is finished proper. get ready for a next run.
+            self._client.get_ready()
+
+        if new_status == Status.FAILURE:
+            # action did not finish proper.
+            # should be handled by the rest of the tree
+            return
+
+
+
     def update(self) -> Status:
-        s = self._client.status
-        if s == ActionClientState.DISCONNECTED:
-            self.feedback_message = "Action server not availble"
-            return Status.FAILURE
-        
+        s = self._client.state
+
+        # if it was cancelled, get the client ready for a new run for later
+        if self._client.state == ActionClientState.CANCELLED:
+            self._client.get_ready()    
+            return Status.RUNNING
+
+        # server is good to go
         if s == ActionClientState.READY:
             mplan = self._get_plan()
             if mplan is None:
@@ -163,33 +204,17 @@ class A_ActionClient(MissionPlanBehaviour):
             
             self._client.send_goal(mplan.current_wp)
             return Status.RUNNING
+        
+        if s in self._running_states:
+            self.feedback_message = self._client.feedback_message
+            return Status.RUNNING
 
-        if s == ActionClientState.SENT:
-            self.feedback_message = "Goal sent"
-            return Status.RUNNING
-        
-        if s == ActionClientState.REJECTED:
-            self.feedback_message = "Goal rejected!"
+        if s in self._failure_states:
             return Status.FAILURE
         
-        if s == ActionClientState.ACCEPTED:
-            self.feedback_message = "Goal accepted~"
-            return Status.RUNNING
-        
-        if s == ActionClientState.DONE:
-            self.feedback_message = "DONE :D"
-            self._client.get_ready()
+        if s in self._success_states:
             return Status.SUCCESS
-        
-        if s == ActionClientState.RUNNING:
-            self.feedback_message = f"{self._client.feedback_message}"
-            return Status.RUNNING
-        
-        if s == ActionClientState.CANCELLED:
-            self.feedback_message = "Cancelled"
-            self._client.get_ready()
-            return Status.FAILURE
-        
+    
 
         self.feedback_message = f"Unexpected status:{s}?!"
         return Status.FAILURE

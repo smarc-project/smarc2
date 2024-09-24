@@ -30,13 +30,6 @@ WORKDIR /home/${USERNAME}
 # clone the base smarc2 dir and make the colcon ws while at it
 RUN mkdir -p colcon_ws/src/smarc2
 
-# use an arg to force docker to build from here, even with cache enabled.
-# useful to git pull every build!
-#ARG DATE_STAMP
-# use --build-arg REPO=... to change where we'll pull from at build time.
-#ARG REPO=smarc-project
-#RUN cd colcon_ws/src && git clone https://github.com/${REPO}/smarc2
-
 # copy everything in the smarc2 folder, _except the unity sim projects_, into the container
 # the "except" part is defined in the .dockerignore file!
 COPY . colcon_ws/src/smarc2/
@@ -59,16 +52,16 @@ RUN mkdir .colcon/ \
         "base-paths": ["/home/${USERNAME}/colcon_ws/src"], \
     } \
 }" > .colcon/defaults.yaml
-# &&  cp colcon_ws/src/smarc2/docker/defaults.yaml .colcon/
 
 WORKDIR /home/${USERNAME}/colcon_ws/src/smarc2
 
 # get the submodules needed for core
-RUN scripts/get-submodules.sh external_packages \
+RUN scripts/get-submodules.sh external_packages
 # get the latest compiled binary of the unity sim
-&&  mkdir simulation/binaries \
-&&  cd simulation/binaries \
-&&  ../../scripts/get_latest_unity_standard.sh
+# RUN mkdir -p simulation/binaries \
+# &&  cd simulation/binaries \
+# &&  ../../scripts/get_latest_unity_standard.sh
+# Disabled until we actually have tests that use this stuff
 
 # install deps
 WORKDIR /home/${USERNAME}/colcon_ws

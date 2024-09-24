@@ -6,6 +6,7 @@ from .ros_waypoint import ROSWP
 from .mission_plan import MissionPlan, MissionPlanStates
 
 from smarc_mission_msgs.msg import Topics as MissionTopics, MissionControl
+from smarc_msgs.msg import Topics as SmarcTopics
 
 from std_msgs.msg import Empty
 
@@ -24,6 +25,7 @@ class ROSMissionPlan(MissionPlan):
         self._node = node
 
         self._complete_pub = node.create_publisher(Empty, MissionTopics.MISSION_COMPLETE_TOPIC, 10)
+        self._abort_pub = node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
         self._mission_control_pub = node.create_publisher(MissionControl,
                                                           MissionTopics.MISSION_CONTROL_TOPIC,
                                                           10)
@@ -42,6 +44,10 @@ class ROSMissionPlan(MissionPlan):
     def complete(self) -> bool:
         self._complete_pub.publish(Empty())
         return super().complete()
+    
+    def emergency(self) -> bool:
+        self._abort_pub.publish(Empty())
+        return super().emergency()
     
     def _publish_mission(self):
         mc = MissionControl()

@@ -152,7 +152,7 @@ def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
     from ..vehicles.sam_auv import SAMAuv
     from ..mission.ros_mission_updater import ROSMissionUpdater
-    from ..mission.ros_goto_waypoint import ROSGotoWaypoint
+    from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
     import rclpy, sys
 
     rclpy.init(args=sys.argv)
@@ -178,10 +178,13 @@ def smarc_bt():
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node
+        nonlocal bt, bt_str, node, ros_goto_wp, ros_mission_updater, sam
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
-            node.get_logger().info(f"\n{new_str}")
+            s = f"\nBT::\n{new_str}\n"
+            s += f"GOTOWP Client::\n{ros_goto_wp.feedback_message}\n\n"
+            s += f"Vehicle::\nAborted:{sam.vehicle_state.aborted}\nHealthy:{sam.vehicle_state.vehicle_healthy}\n"
+            node.get_logger().info(s)
             bt_str = new_str
 
 

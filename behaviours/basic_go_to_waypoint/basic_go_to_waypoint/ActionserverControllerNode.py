@@ -47,16 +47,19 @@ class GoToWaypointActionServerController():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
-        self._robot_base_link = 'sam0/base_link'
-        self._goal_frame = 'utm'
+        self._robot_base_link = 'sam0/base_link_gt'
+        self._goal_frame = None
 
         self._tf_goal_to_body = None
 
         self._states = None
 
         self._waypoint = None
+        self._mission_state = None
         self._goal_handle = None
         self._distance_to_target = None
+
+        self._loginfo("AS started")
 
 
     def _loginfo(self, s):
@@ -80,6 +83,7 @@ class GoToWaypointActionServerController():
 
         self._goal_handle = goal_handle
         self._waypoint = goal_handle.waypoint
+        self._goal_frame = self._waypoint.pose.header.frame_id
 
         goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
                          pos x: {self._waypoint.pose.pose.position.x}\
@@ -87,10 +91,15 @@ class GoToWaypointActionServerController():
 
         self._loginfo(goal_msg_str)
 
+        self._mission_state = "GOAL ACCEPTED"
+
         return GoalResponse.ACCEPT
 
 
     def _update_tf(self):
+        if self._goal_frame is None:
+            return
+
         try:
             self._tf_goal_to_body = self._tf_buffer.lookup_transform(self._robot_base_link,
                                                           self._goal_frame,
@@ -102,6 +111,9 @@ class GoToWaypointActionServerController():
 
 
 #    def _update_states(self):
+
+    def get_mission_state(self):
+        return self._mission_state
 
 
     def get_tf_base_link(self):
@@ -136,9 +148,21 @@ class GoToWaypointActionServerController():
 
         return self._waypoint.travel_rpm
 
+
+    def get_goal_tolerance(self):
+
+        if self._waypoint is None:
+            return 0
+
+        return self._waypoint.goal_tolerance
+
+
     def set_distance_to_target(self,distance):
         #self._loginfo("set distance")
         self._distance_to_target = distance
+
+    def set_mission_state(self,state):
+        self._mission_state = state
 
 
     def set_feedback_msg(self,msg):
@@ -163,6 +187,9 @@ class GoToWaypointActionServerController():
         # For example for a one-time-only action like "drop weight"
         # that can not be cancelled. 
         # Whatever tries to cancel it should be notified of this.
+
+        self._mission_state = "CANCELLED"
+
         return CancelResponse.ACCEPT
 
 
@@ -178,19 +205,24 @@ class GoToWaypointActionServerController():
         result = GotoWaypoint.Result()
         fb_msg = GotoWaypoint.Feedback()
 
+
         while True:
             if self._distance_to_target is not None:
-                if self._distance_to_target <= 1: # FIXME: That value is goal_tolerance in the waypoint
+                if self._distance_to_target <= self._waypoint.goal_tolerance\
+                        and self._mission_state == "RUNNING":
+                    self._loginfo("breaking")
                     break
+                
                 fb_msg.feedback_message = f"Distance to waypoint: {self._distance_to_target}"
                 fb_msg.distance_remaining = self._distance_to_target
                 goal_handle.publish_feedback(fb_msg)
 
-                time.sleep(0.5)
+                time.sleep(0.1)
 
         goal_handle.succeed()
         result.reached_waypoint = True
         self._waypoint.travel_rpm = 0.0
+        self._mission_state = "COMPLETED"
 
         return result
 

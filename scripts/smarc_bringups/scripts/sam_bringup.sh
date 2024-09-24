@@ -12,6 +12,7 @@ tmux -2 new-session -d -s $SESSION
 # default window is 0
 
 # state estimation stuff like pressure->depth, imu->tf etc
+tmux new-window -t $SESSION:0 -n 'dr'
 tmux rename-window "dr"
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
@@ -36,7 +37,7 @@ tmux select-window -t $SESSION:1
 tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:2
-tmux send-keys "ros2 launch basic_go_to_waypoint actionserver.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch dive_control actionserver.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m

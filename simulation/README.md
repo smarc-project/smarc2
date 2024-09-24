@@ -1,17 +1,32 @@
 # Simulation
 This directory contains the SMaRC simulation environment submodules.
 - These are not ROS packages.
-- **These are [submodules](../documentation/Working%20with%20submodules.md)**
+- **These are [submodules](../documentation/Working%20with%20submodules.md).**
+- They can be cloned and used independently of the rest of the smarc2 repository.
 
 
 
 ## SMARCUnity
-The three submodules that start with SMARCUnity are meant to be opened or imported as Unity packages.
-Depending on your goals, either the HDRP or the Standard project, with the Assets module on top is used.
-Check their individual READMEs for details.
+The three submodules that start with SMARCUnity are meant to be used as Unity projects (HDRP, Standard) or packages (Assets).
+Check their individual READMEs for details specific to each.
+
+**Documentation of the simulation components, methods, vehicles, systems etc. are inside the Assets submodule where the code for most of it lives.**
+
+### The packages
+**Assets**: Common package that contains all the sensors, prefabs, vehicles, etc.
+Should be imported from the package manager in Unity. This is where MOST of the useful things are.
+
+**HDRP**: Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
+Runs fast enough for realtime usage while looking pretty. Requires a decent GPU to run smoothly.
+
+**Standard**: Uses the "Unity Standard" rendering pipeline, trading graphical fidelity for _speed_.
+If you need to do some reinforcement learning or similar "try a million times" approaches, this is the way to go. This version can also be very easily ran without graphics.
 
 ### First time installation
-- Clone SMARCUnityHDRP and/or SMARCUnityStandard (referred to as "**the project**" going forward) and SMARCUnityAssets repositories into the the *same folder*.
+- Clone SMARCUnityHDRP and/or SMARCUnityStandard (referred to as "**the project**" going forward) and SMARCUnityAssets (**Assets**) repositories into the the *same folder*.
+  - **The project** is configured to access **Assets** as a sibling.
+  - If you want to arrange them differently, you will need to modify the `manifest.json` file in `TheProject/Packages` to point to wherever you placed **Assets**.
+  - Do not place **Assets** inside **the project**.
 - Open Unity Hub
   - Add -> Project from disk.
   - Locate **the project**.
@@ -26,15 +41,7 @@ Check their individual READMEs for details.
   - You can use [this simple script](../scripts/unity_ros_bridge.sh) to run the bridge and then use `rviz2` and `rqt` to check what things look like in ROS.
 - The ROS connection is especially useful when you are running headless.
 
-#### The packages
-**Assets**: Common package that contains all the sensors, prefabs, vehicles, etc.
-Should be imported from the package manager in Unity. This is where MOST of the useful things are.
 
-**HDRP**: Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
-Runs fast enough for realtime usage while looking pretty.
-
-**Standard**: Uses the "Unity Standard" trading graphical fidelity for _speed_.
-If you need to do some reinforcement learning or similar "try a million times" approaches, this is the way to go. This version can also be very easily ran without graphics. See the following section.
 
 
 ### ROS Messages
@@ -61,8 +68,8 @@ To do so, run the [unity bridge node](../scripts/unity_ros_bridge.sh) in the sam
 
 See [the docker readme!](../docker/README.md)
 
-## Running on Macs
-> Intel-based macs should just use a VM of Ubuntu 22.04 and be done with it.
+## Running on Macs with ROS
+> Intel-based macs should just use a VM of Ubuntu 22.04 if ROS is desired, otherwise all packages can be run within MacOS and the following part can be ignored.
 
 Apple silicon macs can do the following to get the sim + ros working.
 This is due to a lack of apple-silicon-compiled Ubuntu version of Unity (you can see how that is a horrible combination).
@@ -74,16 +81,8 @@ Do these to get stuff running:
 - Install Unity Hub on mac.
   - Get personal license.
   - No need to install an editor at this point.
-- Clone HDRP/Standard
-  - Open as project.
-    - If Unity complains about not being able to download Assets, that means you don't have ssh-keys set up with github. There will be multiple complaints because of this, click the option that means "don't care, keep going" on each. To fix this:
-      - Clone Assets repository.
-      - In the Unity editor, Window -> Package Manager.
-      - Check SMARCUnityAssets: should have a red exclamation mark.
-      - Click the + button, top left -> Add from disk.
-      - Locate `package.json` of SMARCUnityAssets, select it.
-      - Done
+- Clone **the project** and **assets** as described above
+  - Open **the project**.
   - Robotics -> ROS Settings
     - Change ROS IP and Port to whatever your docker/VM is using.
-    - This part is system-dependent and MIGHT change, good luck.
-- You should now be able to follow the other readmes.
+- You should now be able to follow the other readmes. Don't forget to change the ROS IP in `unity_ros2_bridge.sh` accordingly.

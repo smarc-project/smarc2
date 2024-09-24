@@ -1,0 +1,18 @@
+name: test-colcon-build
+
+on:
+  push:
+    branches:
+        - humble
+        - gh_workflow_testing
+  pull_request:
+    branches:
+        - humble
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build -t smarc2/base --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$(whoami)  -f docker/Dockerfile .

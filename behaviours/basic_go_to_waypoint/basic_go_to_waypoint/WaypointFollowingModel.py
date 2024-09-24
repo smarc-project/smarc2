@@ -65,6 +65,8 @@ class WaypointFollowing:
 
         self._yaw_pid = PIDControl(Kp = 1.0, Ki = 0.0, Kd = 0.0, Kaw = 0.0)
 
+        self._loginfo("WPF Controller created")
+
 
     def _loginfo(self, s):
         self._node.get_logger().info(s)
@@ -79,7 +81,7 @@ class WaypointFollowing:
         self._wp = self._controller.get_waypoint()
 
         if self._wp is None:
-            self._loginfo("No waypoint received")
+            #self._loginfo("No waypoint received")
             return
 
         self._tf_base_link = self._controller.get_tf_base_link()
@@ -87,6 +89,24 @@ class WaypointFollowing:
         if self._tf_base_link is None:
             self._loginfo("TF to base_link not yet available")
             return
+
+
+#        if self._controller.get_mission_state() is None:
+#            return
+#        elif self._controller.get_mission_state() == "COMPLETED":
+#            self._view.set_rpm(0)
+#            self._view.set_thrust_vector(0.0, 0.0)
+#            return
+#        elif self._controller.get_mission_state() == "CANCELLED":
+#            self._view.set_rpm(0)
+#            self._view.set_thrust_vector(0.0, 0.0)
+#            return
+
+        mission_state = self._controller.get_mission_state()
+
+        mission_state_str = f"WPF: {mission_state}"
+        self._loginfo(mission_state_str)
+
 
         # TODO: Refactor the names
         # For heading, we don't need the state. 
@@ -111,8 +131,12 @@ class WaypointFollowing:
         self._view.set_thrust_vector(-u_tv_hor_lim, 0.0) # FIXME: remove the - from u once the sim is updated. This is due to the old NED convention
         self._view.set_rpm(u_rpm)
 
-        # FIXME: Is this called?
         self._controller.set_distance_to_target(distance)
+
+        if mission_state == "GOAL ACCEPTED"\
+                and distance > self._controller.get_goal_tolerance():
+            self._controller.set_mission_state("RUNNING")
+            self._loginfo("WPF: mission state check")
 
         info_str = f"heading: {heading:.3f} distance: {distance:.3f} Thrust Vector: {-u_tv_hor_lim:.3f} RPM: {u_rpm:.3f}"
         self._loginfo(info_str)
