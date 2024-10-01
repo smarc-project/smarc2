@@ -35,6 +35,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/UavcanNodeStatusNamed.msg"
   "msg/Topics.msg"
   "msg/Links.msg"
+  "msg/JoyButtons.msg"
   "srv/UavcanUpdateBattery.srv"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
  )
