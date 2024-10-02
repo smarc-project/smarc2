@@ -25,3 +25,7 @@
 	path = vehicles/hardware/sam/sam_drivers
 	url = git@github.com:smarc-project/sam_drivers.git
 	branch = humble
+[submodule "drivers/nmea_navsat_driver"]
+	path = drivers/nmea_navsat_driver
+	url = git@github.com:smarc-project/nmea_navsat_driver.git
+	branch = ros2
