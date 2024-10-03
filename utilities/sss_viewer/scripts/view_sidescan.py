@@ -40,7 +40,7 @@ def main(args = None):
     cv2.namedWindow('Sidescan image', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('Sidescan image', 2 * 256, 1000)
 
-    sub = node.create_subscription(Sidescan,f"sam/{Topics.SIDESCAN_TOPIC}", partial(callback, img),qos_profile=10)
+    sub = node.create_subscription(Sidescan,Topics.SIDESCAN_TOPIC, partial(callback, img),qos_profile=10)
 
     # spin() simply keeps python from exiting until this node is stopped
     # r = rclpy.Rate(5)  # 10hz
