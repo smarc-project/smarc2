@@ -38,6 +38,7 @@ from evdev import ecodes
 from evdev import InputDevice
 from evdev import ff
 from evdev import util
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 import time
 
@@ -56,23 +57,22 @@ class xbox_joy(Node):
         self.teleop_enabled = False
         self.assisted_driving_enabled = False
 
-        self.declare_parameter("teleop_enable", "/enable")
-        teleop_enable_top=self.get_parameter("teleop_enable").value
-        self.declare_parameter("assist_enable", "/assist")
-        assist_enable_top = self.get_parameter("assist_enable").value
+        # self.declare_parameter("teleop_enable", "/enable")
+        # teleop_enable_top=self.get_parameter("teleop_enable").value
+        # self.declare_parameter("assist_enable", "/assist")
+        # assist_enable_top = self.get_parameter("assist_enable").value
 
-        self.declare_parameter("joy_buttons", "/joy_buttons")
-        joy_buttons_top=self.get_parameter("joy_buttons").value
+        # self.declare_parameter("joy_buttons", "/joy_buttons")
+        # joy_buttons_top=self.get_parameter("joy_buttons").value
 
-        self.declare_parameter("joy_top", "/joy")
-        joy_top = self.get_parameter("joy_top").value
-        self.teleop_enabled_pub = self.create_publisher(Bool,teleop_enable_top,  qos_profile=1)
-        self.teleop_enabled_pub = self.create_publisher(Bool, teleop_enable_top, QoSProfile(depth=1))
+        # self.declare_parameter("joy_top", "/joy")
+        # joy_top = self.get_parameter("joy_top").value
+        self.teleop_enabled_pub = self.create_publisher(Bool,ControlTopics.TELEOP_ENABLE,  qos_profile=1)
 
-        self.assisted_driving_enabled_pub = self.create_publisher(Bool,assist_enable_top, qos_profile=1)
-        self.joy_btn_pub = self.create_publisher(JoyButtons,joy_buttons_top,  qos_profile=1)
+        self.assisted_driving_enabled_pub = self.create_publisher(Bool,ControlTopics.ASSIST_ENABLE, qos_profile=1)
+        self.joy_btn_pub = self.create_publisher(JoyButtons,ControlTopics.JOY_BUTTONS_TOPIC,  qos_profile=1)
 
-        self.joy_sub = self.create_subscription(Joy,joy_top,  self.joy_callback,qos_profile=1)
+        self.joy_sub = self.create_subscription(Joy,ControlTopics.JOY_TOPIC,  self.joy_callback,qos_profile=1)
 
         self.get_logger().info("[XBOX CONTROLLER] Starting Xbox controller node")
 

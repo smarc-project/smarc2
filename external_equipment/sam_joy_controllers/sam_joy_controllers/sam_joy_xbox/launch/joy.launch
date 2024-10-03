@@ -23,7 +23,7 @@
             <param name="vector_deg_joystick_top" value="ctrl/vector_deg_joystick"/>
             <param name="teleop_enable" value="teleop/enable"/>
             <param name="assist_enable" value="teleop/drive_assist_enable"/>
-            <param name="elevator_pid_ctrl" value="elevator_pid/ctrl_effort"/>
+            <param name="elevator_pid_ctrl" value="ctrl/elevator_pid/ctrl_effort"/>
             <param name="elev_sp_top" value="ctrl/elevator_pid/setpoint"/>
         </node>
         
