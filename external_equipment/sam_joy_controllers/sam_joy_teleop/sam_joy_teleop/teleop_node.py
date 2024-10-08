@@ -93,7 +93,6 @@ class teleop(Node):
             rpm_msg.rpm = self.rpm_msg.thruster_2_rpm
             self.thrrust2_pub.publish(rpm_msg)    
             
-            self.thruster_pub.publish(self.rpm_msg)
             zero = self.rpm_msg.thruster_1_rpm == 0
             
             if zero:
@@ -177,7 +176,6 @@ class teleop(Node):
         self.rpm_joystick_pub =self.create_publisher( Twist,ControlTopics.RPM_JOYSTICK_TOPIC, qos_profile=1)
         self.vector_deg_joystick_pub = self.create_publisher(Twist,ControlTopics.VEC_DEG_JOY_TOPIC,  qos_profile=1)
         self.elev_sp_pub = self.create_publisher( Float64,ControlTopics.ELEV_SP_TOP, qos_profile=1)
-        self.thruster_pub = self.create_publisher(ThrusterRPMs,Topics.RPM_CMD_TOPIC,  qos_profile=1)
         self.thrrust1_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER1_CMD_TOPIC,  qos_profile=1)
         self.thrrust2_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER2_CMD_TOPIC,  qos_profile=1)
         self.vector_pub = self.create_publisher(ThrusterAngles,Topics.THRUST_VECTOR_CMD_TOPIC,  qos_profile=1)
