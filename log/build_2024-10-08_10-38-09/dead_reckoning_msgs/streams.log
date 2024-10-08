@@ -1,0 +1,153 @@
+[0.155s] Invoking command in '/home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs -- -j8 -l8
+[4.343s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_generator_c[0m
+[4.343s] [  3%] Built target dead_reckoning_msgs__cpp
+[4.343s] [ 12%] Built target dead_reckoning_msgs__rosidl_generator_c
+[4.344s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_fastrtps_cpp[0m
+[4.344s] [ 12%] Built target ament_cmake_python_copy_dead_reckoning_msgs
+[4.345s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_introspection_cpp[0m
+[4.346s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_cpp[0m
+[4.346s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_fastrtps_c[0m
+[4.347s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_introspection_c[0m
+[4.348s] [ 22%] Built target dead_reckoning_msgs__rosidl_typesupport_introspection_cpp
+[4.348s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_c[0m
+[4.348s] [ 32%] Built target dead_reckoning_msgs__rosidl_typesupport_fastrtps_cpp
+[4.348s] [ 41%] Built target dead_reckoning_msgs__rosidl_typesupport_cpp
+[4.348s] [ 51%] Built target dead_reckoning_msgs__rosidl_typesupport_fastrtps_c
+[4.348s] [ 61%] Built target dead_reckoning_msgs__rosidl_typesupport_introspection_c
+[4.349s] [ 70%] Built target dead_reckoning_msgs__rosidl_typesupport_c
+[4.349s] [ 70%] Built target dead_reckoning_msgs
+[4.349s] [ 74%] Built target dead_reckoning_msgs__py
+[4.349s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_generator_py[0m
+[4.349s] [ 80%] Built target dead_reckoning_msgs__rosidl_generator_py
+[4.350s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_fastrtps_c__pyext[0m
+[4.350s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_introspection_c__pyext[0m
+[4.350s] [35m[1mConsolidate compiler generated dependencies of target dead_reckoning_msgs__rosidl_typesupport_c__pyext[0m
+[4.350s] [ 87%] Built target dead_reckoning_msgs__rosidl_typesupport_fastrtps_c__pyext
+[4.350s] [ 93%] Built target dead_reckoning_msgs__rosidl_typesupport_introspection_c__pyext
+[4.351s] [100%] Built target dead_reckoning_msgs__rosidl_typesupport_c__pyext
+[4.351s] running egg_info
+[4.351s] writing dead_reckoning_msgs.egg-info/PKG-INFO
+[4.351s] writing dependency_links to dead_reckoning_msgs.egg-info/dependency_links.txt
+[4.351s] writing top-level names to dead_reckoning_msgs.egg-info/top_level.txt
+[4.351s] reading manifest file 'dead_reckoning_msgs.egg-info/SOURCES.txt'
+[4.352s] writing manifest file 'dead_reckoning_msgs.egg-info/SOURCES.txt'
+[4.352s] [100%] Built target ament_cmake_python_build_dead_reckoning_msgs_egg
+[4.359s] Invoked command in '/home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs -- -j8 -l8
+[5.372s] Invoking command in '/home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs
+[5.400s] -- Install configuration: ""
+[5.401s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/ament_index/resource_index/rosidl_interfaces/dead_reckoning_msgs
+[5.401s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/rosidl_generator_c__visibility_control.h
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__struct.h
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__type_support.h
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__functions.h
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__functions.c
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/topics.h
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/library_path.sh
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/library_path.dsv
+[5.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_generator_c.so
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[5.410s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.410s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+[5.410s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_fastrtps_c.so
+[5.410s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.410s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__type_support.c
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_introspection_c.so
+[5.411s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_c.so
+[5.415s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.417s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.417s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.417s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__struct.hpp
+[5.418s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__traits.hpp
+[5.418s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__builder.hpp
+[5.418s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/topics.hpp
+[5.418s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.419s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.419s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[5.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+[5.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/dds_fastrtps
+[5.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_fastrtps_cpp.so
+[5.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs
+[5.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg
+[5.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail
+[5.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__type_support.cpp
+[5.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/include/dead_reckoning_msgs/dead_reckoning_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+[5.423s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_introspection_cpp.so
+[5.423s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_typesupport_cpp.so
+[5.423s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/pythonpath.sh
+[5.426s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/pythonpath.dsv
+[5.426s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs-0.0.0-py3.10.egg-info
+[5.427s] -- Installing: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs-0.0.0-py3.10.egg-info/PKG-INFO
+[5.427s] -- Installing: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs-0.0.0-py3.10.egg-info/SOURCES.txt
+[5.427s] -- Installing: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs-0.0.0-py3.10.egg-info/top_level.txt
+[5.429s] -- Installing: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs-0.0.0-py3.10.egg-info/dependency_links.txt
+[5.430s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs
+[5.430s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/msg
+[5.430s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/msg/_topics_s.c
+[5.430s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/msg/_topics.py
+[5.430s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/msg/__init__.py
+[5.431s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/_dead_reckoning_msgs_s.ep.rosidl_typesupport_c.c
+[5.431s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/libdead_reckoning_msgs__rosidl_generator_py.so
+[5.431s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[5.431s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[5.431s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[5.432s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/_dead_reckoning_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+[5.435s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/__init__.py
+[5.435s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/_dead_reckoning_msgs_s.ep.rosidl_typesupport_introspection_c.c
+[5.655s] Listing '/home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs'...
+[5.655s] Listing '/home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/msg'...
+[5.676s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[5.676s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[5.678s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages/dead_reckoning_msgs/dead_reckoning_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[5.680s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/lib/libdead_reckoning_msgs__rosidl_generator_py.so
+[5.684s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/msg/Topics.idl
+[5.685s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/msg/Topics.msg
+[5.685s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/ament_index/resource_index/package_run_dependencies/dead_reckoning_msgs
+[5.685s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/ament_index/resource_index/parent_prefix_path/dead_reckoning_msgs
+[5.686s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/ament_prefix_path.sh
+[5.688s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/ament_prefix_path.dsv
+[5.688s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/path.sh
+[5.688s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/environment/path.dsv
+[5.690s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/local_setup.bash
+[5.690s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/local_setup.sh
+[5.690s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/local_setup.zsh
+[5.690s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/local_setup.dsv
+[5.691s] -- Installing: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/package.dsv
+[5.696s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/ament_index/resource_index/packages/dead_reckoning_msgs
+[5.696s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_generator_cExport.cmake
+[5.697s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_generator_cExport-noconfig.cmake
+[5.698s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+[5.698s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[5.699s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_introspection_cExport.cmake
+[5.700s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[5.701s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_cExport.cmake
+[5.701s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_cExport-noconfig.cmake
+[5.708s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_generator_cppExport.cmake
+[5.708s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+[5.708s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[5.709s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_introspection_cppExport.cmake
+[5.709s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[5.709s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_cppExport.cmake
+[5.709s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+[5.709s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_generator_pyExport.cmake
+[5.710s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/export_dead_reckoning_msgs__rosidl_generator_pyExport-noconfig.cmake
+[5.710s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/rosidl_cmake-extras.cmake
+[5.717s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+[5.717s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+[5.718s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+[5.718s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/ament_cmake_export_targets-extras.cmake
+[5.718s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[5.718s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[5.719s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgsConfig.cmake
+[5.719s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/cmake/dead_reckoning_msgsConfig-version.cmake
+[5.719s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/dead_reckoning_msgs/share/dead_reckoning_msgs/package.xml
+[5.729s] Invoked command in '/home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/dead_reckoning_msgs

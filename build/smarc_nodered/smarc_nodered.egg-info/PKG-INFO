@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: smarc-nodered
+Version: 0.1.0
+Summary: The smarc_nodered package that connects the smarc software stack to nodered over mqtt
+Home-page: UNKNOWN
+Maintainer: Ozer Ozkahraman
+Maintainer-email: ozero@kth.se
+License: BSD
+Platform: UNKNOWN
+License-File: LICENSE
+
+UNKNOWN
+

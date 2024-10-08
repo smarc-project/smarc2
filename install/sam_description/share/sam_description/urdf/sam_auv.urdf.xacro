@@ -1,0 +1,190 @@
+<?xml version="2.0"?>
+<robot name="sam" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Meshes. -->
+  <xacro:property name="visual_mesh_file" value="file://$(find sam_description)/mesh/SAM_HULL.dae"/>
+  <xacro:property name="prop_nozzle" value="file://$(find sam_description)/mesh/SAM_NOZZLE.dae"/>
+  <xacro:property name="front_prop" value="file://$(find sam_description)/mesh/SAM_FRONTPROP.dae"/>
+  <xacro:property name="back_prop" value="file://$(find sam_description)/mesh/SAM_BACKPROP.dae"/>
+
+
+  <xacro:macro name="sam_auv" params="debug">
+  <!-- Links. -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="-0.677 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${visual_mesh_file}" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="thruster_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${prop_nozzle}" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="front_prop_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${front_prop}" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="back_prop_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${back_prop}" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="thruster_yaw_link"/>
+  <link name="battery_link"/>
+  <link name="tcg1_link"/>
+  <link name="tcg2_link"/>
+  <link name="pressure_link"/>
+  <link name="dvl_link"/>
+  <link name="sidescan_link"/>
+  <link name="imu_link"/>
+  <link name="sbg_link"/>
+  <link name="gps_link"/>
+  <link name="uw_gps_link"/>
+  <link name="camera_down_link"/>
+  <link name="camera_front_right_link"/>
+  <link name="camera_front_left_link"/>
+  <link name="camera_front_link"/>
+
+  <joint name="thruster_yaw_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="thruster_yaw_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.677 0.0 0.0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.2" upper="0.2" velocity="0.2" effort="1.0"/>
+  </joint>
+
+  <joint name="thruster_pitch_joint" type="revolute">
+    <parent link="thruster_yaw_link"/>
+    <child link="thruster_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.2" upper="0.2" velocity="0.2" effort="1.0"/>
+  </joint>
+
+  <joint name="front_prop_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_prop_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.733 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+
+  <joint name="back_prop_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="back_prop_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.751 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+
+  <joint name="pressure_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="pressure_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.503 0.025 0.057"/>
+  </joint>
+
+  <joint name="dvl_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="dvl_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.573 0.0 -0.063"/>
+  </joint>
+
+  <!--Sidescan acoustic center, i.e. intersection between both sidescan centers.-->
+  <joint name="sidescan_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sidescan_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.043 0.0 0.0"/>
+  </joint>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.24 0.0 -0.036"/>
+  </joint>
+
+  <joint name="sbg_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sbg_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.46 0.0 0.002"/>
+  </joint>
+
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.528 0.0 0.071"/>
+  </joint>
+
+  <joint name="uw_gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="uw_gps_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.402 0.0 0.078"/>
+  </joint>
+
+  <!-- Waterlink Nosecone Camera Positions --> 
+  <joint name="camera_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_link"/>
+    <origin rpy="-1.5707 0.0 -1.5707" xyz="0.647 0.0 0.0"/>
+  </joint>
+	  
+  <joint name="camera_down_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_down_link"/>
+    <origin rpy="3.1416 0.0 -1.5707" xyz="0.5905 0.0 -0.058"/>
+  </joint>
+
+  <joint name="camera_front_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_left_link"/>
+    <!--origin rpy="1.3 3.1416 2.3416" xyz="0.636 0.050 -0.007"/-->
+    <origin rpy="1.3 3.1416 2.3416" xyz="0.636 0.050 -0.007"/>
+  </joint>
+
+  <joint name="camera_front_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_right_link"/>
+    <origin rpy="1.3 3.1416 0.8" xyz="0.636 -0.050 -0.007"/>
+  </joint>
+
+  <joint name="lcg_joint" type="prismatic">
+    <parent link="base_link"/>
+    <child link="battery_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.083 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.01" upper="0.01" velocity="0.2" effort="1.0"/>
+  </joint>
+
+  <joint name="tcg_joint1" type="revolute">
+    <parent link="base_link"/>
+    <child link="tcg1_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.095 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.6" upper="1.6" velocity="0.2" effort="1.0"/>
+  </joint>
+
+  <joint name="tcg_joint2" type="revolute">
+    <parent link="base_link"/>
+    <child link="tcg2_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.125 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.6" upper="1.6" velocity="0.2" effort="1.0"/>
+  </joint>
+
+  </xacro:macro>
+
+</robot>

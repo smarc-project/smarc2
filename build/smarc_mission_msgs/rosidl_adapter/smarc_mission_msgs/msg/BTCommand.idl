@@ -1,0 +1,27 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_mission_msgs/msg/BTCommand.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_mission_msgs {
+  module msg {
+    module BTCommand_Constants {
+      const uint8 TYPE_CMD = 0;
+      const uint8 TYPE_FB = 1;
+    };
+    @verbatim (language="comment", text=
+      "For now, we want max flexibility, so I'm just gonna" "\n"
+      "make nodered and BT talk in JSON" "\n"
+      "Still useful to split the CMD/FEEDBACK types clearly tho")
+    struct BTCommand {
+      uint8 msg_type;
+
+      @verbatim (language="comment", text=
+        "also might be nice to have both a cmd and a feedback" "\n"
+        "in the same message")
+      string cmd_json;
+
+      string fb_json;
+    };
+  };
+};

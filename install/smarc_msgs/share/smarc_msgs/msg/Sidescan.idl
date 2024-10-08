@@ -1,0 +1,48 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/Sidescan.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module smarc_msgs {
+  module msg {
+    struct Sidescan {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Packet Type, 0xE2 = Sonar 8 Bit")
+      uint8 type;
+
+      @verbatim (language="comment", text=
+        "Ping time")
+      @unit (value="100 us")
+      uint32 time;
+
+      @verbatim (language="comment", text=
+        "Freq Id, currently 0x00")
+      uint8 frequency_id;
+
+      int16 gain;
+
+      uint16 decimation;
+
+      @verbatim (language="comment", text=
+        "Max travel time of outermost bins (s)")
+      float max_duration;
+
+      sequence<uint8> port_channel;
+
+      sequence<uint8> starboard_channel;
+
+      sequence<uint8> port_channel_angle_high;
+
+      sequence<uint8> port_channel_angle_low;
+
+      sequence<uint8> starboard_channel_angle_high;
+
+      sequence<uint8> starboard_channel_angle_low;
+
+      sequence<uint8> extra_channel;
+    };
+  };
+};

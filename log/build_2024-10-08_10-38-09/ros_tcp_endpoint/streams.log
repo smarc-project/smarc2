@@ -1,0 +1,22 @@
+[5.146s] Invoking command in '/home/schni2zle/colcon_ws/src/external_packages/ROS-TCP-Endpoint': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/ros_tcp_endpoint build --build-base /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build install --record /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/install.log --single-version-externally-managed install_data
+[7.315s] running egg_info
+[7.317s] writing ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/PKG-INFO
+[7.319s] writing dependency_links to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/dependency_links.txt
+[7.319s] writing entry points to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/entry_points.txt
+[7.319s] writing requirements to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/requires.txt
+[7.320s] writing top-level names to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/top_level.txt
+[7.325s] reading manifest file '../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/SOURCES.txt'
+[7.327s] adding license file 'LICENSE'
+[7.328s] writing manifest file '../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/SOURCES.txt'
+[7.329s] running build
+[7.329s] running build_py
+[7.332s] running install
+[7.333s] running install_lib
+[7.340s] running install_data
+[7.340s] running install_egg_info
+[7.347s] removing '/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint-0.0.1-py3.10.egg-info' (and everything under it)
+[7.349s] Copying ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info to /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint-0.0.1-py3.10.egg-info
+[7.351s] running install_scripts
+[7.437s] Installing default_server_endpoint script to /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/ros_tcp_endpoint
+[7.440s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/install.log'
+[8.060s] Invoked command in '/home/schni2zle/colcon_ws/src/external_packages/ROS-TCP-Endpoint' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/ros_tcp_endpoint build --build-base /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build install --record /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/install.log --single-version-externally-managed install_data

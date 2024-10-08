@@ -1,0 +1,6 @@
+{
+  "package_name": "dead_reckoning_msgs",
+  "non_idl_tuples": [
+    "/home/schni2zle/colcon_ws/src/messages/dead_reckoning_msgs:msg/Topics.msg"
+  ]
+}

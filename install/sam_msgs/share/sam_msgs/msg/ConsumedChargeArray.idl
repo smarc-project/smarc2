@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/ConsumedChargeArray.msg
+// generated code does not contain a copyright notice
+
+#include "sam_msgs/msg/ConsumedCharge.idl"
+#include "std_msgs/msg/Header.idl"
+
+module sam_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Consumed charge array")
+    struct ConsumedChargeArray {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Consumed charge mAh")
+      sequence<sam_msgs::msg::ConsumedCharge> array;
+    };
+  };
+};

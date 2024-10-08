@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: dubins-planner
+Version: 0.0.0
+Summary: A simple dubins path planner made into a service node.
+Home-page: UNKNOWN
+Maintainer: Ozer
+Maintainer-email: ozero@kth.se
+License: MIT
+Platform: UNKNOWN
+License-File: LICENSE
+
+UNKNOWN
+

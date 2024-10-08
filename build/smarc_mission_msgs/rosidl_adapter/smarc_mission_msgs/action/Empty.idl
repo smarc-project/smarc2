@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from smarc_mission_msgs/action/Empty.action
+// generated code does not contain a copyright notice
+
+
+module smarc_mission_msgs {
+  module action {
+    struct Empty_Goal {
+      uint8 structure_needs_at_least_one_member;
+    };
+    struct Empty_Result {
+      uint8 structure_needs_at_least_one_member;
+    };
+    struct Empty_Feedback {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

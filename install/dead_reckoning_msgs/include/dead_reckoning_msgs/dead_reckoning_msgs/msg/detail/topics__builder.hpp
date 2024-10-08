@@ -1,0 +1,36 @@
+// generated from rosidl_generator_cpp/resource/idl__builder.hpp.em
+// with input from dead_reckoning_msgs:msg/Topics.idl
+// generated code does not contain a copyright notice
+
+#ifndef DEAD_RECKONING_MSGS__MSG__DETAIL__TOPICS__BUILDER_HPP_
+#define DEAD_RECKONING_MSGS__MSG__DETAIL__TOPICS__BUILDER_HPP_
+
+#include <algorithm>
+#include <utility>
+
+#include "dead_reckoning_msgs/msg/detail/topics__struct.hpp"
+#include "rosidl_runtime_cpp/message_initialization.hpp"
+
+
+namespace dead_reckoning_msgs
+{
+
+namespace msg
+{
+
+
+}  // namespace msg
+
+template<typename MessageType>
+auto build();
+
+template<>
+inline
+auto build<::dead_reckoning_msgs::msg::Topics>()
+{
+  return ::dead_reckoning_msgs::msg::Topics(rosidl_runtime_cpp::MessageInitialization::ZERO);
+}
+
+}  // namespace dead_reckoning_msgs
+
+#endif  // DEAD_RECKONING_MSGS__MSG__DETAIL__TOPICS__BUILDER_HPP_

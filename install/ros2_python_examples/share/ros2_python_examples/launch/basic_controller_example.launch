@@ -1,0 +1,13 @@
+<launch>
+
+    <arg name="robot_name" default="sam"/>
+    
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+            <!-- Notice that exec= part was defined in setup.py under entry_points!  -->
+            <node name="pid_controller_node" pkg="ros2_python_examples" exec="example_node" output="screen">
+                <!-- no params for this node-->
+            </node>
+    </group>
+
+</launch>

@@ -1,0 +1,25 @@
+[5.927s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/basic_go_to_waypoint': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_go_to_waypoint build --build-base /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build install --record /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log --single-version-externally-managed install_data
+[7.296s] running egg_info
+[7.301s] writing ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/PKG-INFO
+[7.301s] writing dependency_links to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/dependency_links.txt
+[7.301s] writing entry points to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/entry_points.txt
+[7.301s] writing requirements to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/requires.txt
+[7.301s] writing top-level names to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/top_level.txt
+[7.326s] reading manifest file '../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/SOURCES.txt'
+[7.327s] adding license file 'LICENSE'
+[7.328s] writing manifest file '../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/SOURCES.txt'
+[7.328s] running build
+[7.328s] running build_py
+[7.332s] running install
+[7.338s] running install_lib
+[7.339s] running install_data
+[7.339s] running install_egg_info
+[7.345s] removing '/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint-0.0.0-py3.10.egg-info' (and everything under it)
+[7.346s] Copying ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint-0.0.0-py3.10.egg-info
+[7.350s] running install_scripts
+[7.422s] Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[7.422s] Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[7.430s] Installing view_test script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[7.446s] Installing waypoint_following script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[7.447s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log'
+[8.498s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/basic_go_to_waypoint' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_go_to_waypoint build --build-base /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build install --record /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log --single-version-externally-managed install_data

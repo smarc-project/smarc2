@@ -1,0 +1,8 @@
+setup.py
+sam_basic_controllers/__init__.py
+sam_basic_controllers/depth_lookahead_node.py
+sam_basic_controllers/thruster_ctrl_node.py
+sam_basic_controllers.egg-info/PKG-INFO
+sam_basic_controllers.egg-info/SOURCES.txt
+sam_basic_controllers.egg-info/dependency_links.txt
+sam_basic_controllers.egg-info/top_level.txt

@@ -1,0 +1,15 @@
+LICENSE
+package.xml
+setup.cfg
+setup.py
+../../build/test_package/test_package.egg-info/PKG-INFO
+../../build/test_package/test_package.egg-info/SOURCES.txt
+../../build/test_package/test_package.egg-info/dependency_links.txt
+../../build/test_package/test_package.egg-info/entry_points.txt
+../../build/test_package/test_package.egg-info/requires.txt
+../../build/test_package/test_package.egg-info/top_level.txt
+../../build/test_package/test_package.egg-info/zip-safe
+resource/test_package
+test_package/IThrustView.py
+test_package/SAMThrustView.py
+test_package/__init__.py

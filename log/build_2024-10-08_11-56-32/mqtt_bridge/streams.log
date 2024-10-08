@@ -1,0 +1,22 @@
+[7.285s] Invoking command in '/home/schni2zle/colcon_ws/src/external_packages/mqtt_bridge': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/mqtt_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/mqtt_bridge build --build-base /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build install --record /home/schni2zle/colcon_ws/src/build/mqtt_bridge/install.log --single-version-externally-managed install_data
+[9.045s] running egg_info
+[9.049s] writing ../../build/mqtt_bridge/mqtt_bridge.egg-info/PKG-INFO
+[9.050s] writing dependency_links to ../../build/mqtt_bridge/mqtt_bridge.egg-info/dependency_links.txt
+[9.050s] writing entry points to ../../build/mqtt_bridge/mqtt_bridge.egg-info/entry_points.txt
+[9.050s] writing requirements to ../../build/mqtt_bridge/mqtt_bridge.egg-info/requires.txt
+[9.051s] writing top-level names to ../../build/mqtt_bridge/mqtt_bridge.egg-info/top_level.txt
+[9.058s] reading manifest file '../../build/mqtt_bridge/mqtt_bridge.egg-info/SOURCES.txt'
+[9.059s] adding license file 'LICENSE.txt'
+[9.059s] writing manifest file '../../build/mqtt_bridge/mqtt_bridge.egg-info/SOURCES.txt'
+[9.061s] running build
+[9.061s] running build_py
+[9.063s] running install
+[9.064s] running install_lib
+[9.073s] running install_data
+[9.075s] running install_egg_info
+[9.083s] removing '/home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge-0.1.1-py3.10.egg-info' (and everything under it)
+[9.085s] Copying ../../build/mqtt_bridge/mqtt_bridge.egg-info to /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge-0.1.1-py3.10.egg-info
+[9.090s] running install_scripts
+[9.186s] Installing mqtt_bridge_node script to /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/mqtt_bridge
+[9.186s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/mqtt_bridge/install.log'
+[11.333s] Invoked command in '/home/schni2zle/colcon_ws/src/external_packages/mqtt_bridge' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/mqtt_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/mqtt_bridge build --build-base /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build install --record /home/schni2zle/colcon_ws/src/build/mqtt_bridge/install.log --single-version-externally-managed install_data

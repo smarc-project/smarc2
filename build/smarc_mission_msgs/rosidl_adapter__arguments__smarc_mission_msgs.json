@@ -1,0 +1,13 @@
+{
+  "package_name": "smarc_mission_msgs",
+  "non_idl_tuples": [
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:msg/Topics.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:msg/BTCommand.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:msg/GotoWaypoint.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:msg/MissionControl.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:action/Empty.action",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:action/GotoWaypoint.action",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:srv/DubinsPlan.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_mission_msgs:srv/UTMLatLon.srv"
+  ]
+}

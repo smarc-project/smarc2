@@ -1,0 +1,6 @@
+[console_scripts]
+action_client_node = basic_go_to_waypoint.ActionClientNode:main
+action_server_node = basic_go_to_waypoint.ActionserverControllerNode:main
+view_test = basic_go_to_waypoint.SAMThrustView:test_view
+waypoint_following = basic_go_to_waypoint.Node:main
+

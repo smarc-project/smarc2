@@ -1,0 +1,12 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/StringArray.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module msg {
+    struct StringArray {
+      sequence<string> string_array;
+    };
+  };
+};

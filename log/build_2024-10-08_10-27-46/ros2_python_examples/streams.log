@@ -1,0 +1,58 @@
+[6.290s] Invoking command in '/home/schni2zle/colcon_ws/src/examples/ros2_python_examples': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/ros2_python_examples/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/ros2_python_examples build --build-base /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build install --record /home/schni2zle/colcon_ws/src/build/ros2_python_examples/install.log --single-version-externally-managed install_data
+[8.068s] running egg_info
+[8.086s] creating ../../build/ros2_python_examples/ros2_python_examples.egg-info
+[8.087s] writing ../../build/ros2_python_examples/ros2_python_examples.egg-info/PKG-INFO
+[8.087s] writing dependency_links to ../../build/ros2_python_examples/ros2_python_examples.egg-info/dependency_links.txt
+[8.087s] writing entry points to ../../build/ros2_python_examples/ros2_python_examples.egg-info/entry_points.txt
+[8.098s] writing requirements to ../../build/ros2_python_examples/ros2_python_examples.egg-info/requires.txt
+[8.098s] writing top-level names to ../../build/ros2_python_examples/ros2_python_examples.egg-info/top_level.txt
+[8.099s] writing manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+[8.114s] reading manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+[8.115s] adding license file 'LICENSE'
+[8.120s] writing manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+[8.121s] running build
+[8.121s] running build_py
+[8.130s] creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build
+[8.130s] creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib
+[8.130s] creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.130s] copying ros2_python_examples/sam_view.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.130s] copying ros2_python_examples/pid_controller_node.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.141s] copying ros2_python_examples/controller_controller.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.148s] copying ros2_python_examples/__init__.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.148s] copying ros2_python_examples/pid_model.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+[8.148s] creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+[8.149s] copying ros2_python_examples/geometry/__init__.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+[8.149s] copying ros2_python_examples/geometry/vector2.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+[8.149s] running install
+[8.149s] running install_lib
+[8.149s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.150s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/sam_view.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.151s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/pid_controller_node.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.151s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/controller_controller.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.151s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+[8.152s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry/__init__.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+[8.152s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry/vector2.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+[8.152s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/__init__.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.161s] copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/pid_model.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+[8.161s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/sam_view.py to sam_view.cpython-310.pyc
+[8.161s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/pid_controller_node.py to pid_controller_node.cpython-310.pyc
+[8.162s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/controller_controller.py to controller_controller.cpython-310.pyc
+[8.173s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry/__init__.py to __init__.cpython-310.pyc
+[8.174s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry/vector2.py to vector2.cpython-310.pyc
+[8.174s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/__init__.py to __init__.cpython-310.pyc
+[8.181s] byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/pid_model.py to pid_model.cpython-310.pyc
+[8.192s] running install_data
+[8.192s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index
+[8.192s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index
+[8.193s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index/packages
+[8.194s] copying resource/ros2_python_examples -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index/packages
+[8.194s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples
+[8.194s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/config
+[8.195s] creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/launch
+[8.199s] copying launch/basic_controller_example.launch -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/launch
+[8.207s] running install_egg_info
+[8.218s] Copying ../../build/ros2_python_examples/ros2_python_examples.egg-info to /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples-0.0.0-py3.10.egg-info
+[8.224s] running install_scripts
+[8.372s] Installing example_node script to /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/ros2_python_examples
+[8.375s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/ros2_python_examples/install.log'
+[8.557s] Invoked command in '/home/schni2zle/colcon_ws/src/examples/ros2_python_examples' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/ros2_python_examples/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/ros2_python_examples build --build-base /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build install --record /home/schni2zle/colcon_ws/src/build/ros2_python_examples/install.log --single-version-externally-managed install_data

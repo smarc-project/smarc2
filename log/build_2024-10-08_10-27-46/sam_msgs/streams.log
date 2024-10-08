@@ -1,0 +1,834 @@
+[0.112s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/messages/sam_msgs -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/sam_msgs
+[2.219s] -- The C compiler identification is GNU 11.4.0
+[2.220s] -- The CXX compiler identification is GNU 11.4.0
+[2.221s] -- Detecting C compiler ABI info
+[2.221s] -- Detecting C compiler ABI info - done
+[2.221s] -- Check for working C compiler: /usr/bin/cc - skipped
+[2.224s] -- Detecting C compile features
+[2.224s] -- Detecting C compile features - done
+[2.224s] -- Detecting CXX compiler ABI info
+[2.225s] -- Detecting CXX compiler ABI info - done
+[2.225s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[2.225s] -- Detecting CXX compile features
+[2.225s] -- Detecting CXX compile features - done
+[2.225s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[2.481s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[2.715s] -- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+[2.745s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.769s] -- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[2.942s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[3.069s] -- Found geometry_msgs: 4.2.4 (/opt/ros/humble/share/geometry_msgs/cmake)
+[3.221s] -- Found sensor_msgs: 4.2.4 (/opt/ros/humble/share/sensor_msgs/cmake)
+[5.082s] -- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+[6.340s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[7.468s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[7.563s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+[7.571s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[7.642s] -- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+[7.642s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[7.643s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[7.643s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[7.707s] -- Found PythonExtra: .so  
+[7.936s] -- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[8.015s] -- Added test 'lint_cmake' to check CMake code style
+[8.021s] -- Added test 'xmllint' to check XML markup files
+[8.028s] -- Configuring done
+[8.214s] -- Generating done
+[8.221s] -- Build files have been written to: /home/schni2zle/colcon_ws/src/build/sam_msgs
+[9.288s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/messages/sam_msgs -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/sam_msgs
+[9.292s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_msgs -- -j8 -l8
+[9.692s] [  0%] [34m[1mGenerating C code for ROS interfaces[0m
+[9.699s] [  0%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[9.718s] [  0%] Built target ament_cmake_python_copy_sam_msgs
+[12.165s] running egg_info
+[12.167s] creating sam_msgs.egg-info
+[12.168s] writing sam_msgs.egg-info/PKG-INFO
+[12.168s] writing dependency_links to sam_msgs.egg-info/dependency_links.txt
+[12.169s] writing top-level names to sam_msgs.egg-info/top_level.txt
+[12.170s] writing manifest file 'sam_msgs.egg-info/SOURCES.txt'
+[12.177s] reading manifest file 'sam_msgs.egg-info/SOURCES.txt'
+[12.178s] writing manifest file 'sam_msgs.egg-info/SOURCES.txt'
+[12.308s] [  0%] Built target ament_cmake_python_build_sam_msgs_egg
+[21.437s] [  0%] Built target sam_msgs__cpp
+[21.531s] [  1%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[21.531s] [  2%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[21.539s] [  3%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[23.860s] [  4%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/circuit_status__functions.c.o[0m
+[23.866s] [  4%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/ballast_angles__functions.c.o[0m
+[23.876s] [  5%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/array_command__functions.c.o[0m
+[23.889s] [  6%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/circuit_status_stamped__functions.c.o[0m
+[23.908s] [  6%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/circuit_status_stamped_array__functions.c.o[0m
+[24.207s] [  6%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/command__functions.c.o[0m
+[24.237s] [  7%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/consumed_charge_array__functions.c.o[0m
+[24.373s] [  7%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/consumed_charge_feedback__functions.c.o[0m
+[24.397s] [  8%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/consumed_charge__functions.c.o[0m
+[24.409s] [  8%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/ctp__functions.c.o[0m
+[24.691s] [  8%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/light_command_array__functions.c.o[0m
+[24.710s] [  9%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/leak__functions.c.o[0m
+[24.815s] [ 10%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/percent_stamped__functions.c.o[0m
+[24.817s] [ 11%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/thruster_angles__functions.c.o[0m
+[24.821s] [ 10%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/light_command__functions.c.o[0m
+[25.200s] [ 11%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/thruster_rp_ms__functions.c.o[0m
+[25.216s] [ 12%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/uavcan_node_status__functions.c.o[0m
+[25.288s] [ 12%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/uavcan_node_status_named_array__functions.c.o[0m
+[25.315s] [ 13%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/uavcan_node_status_named__functions.c.o[0m
+[25.328s] [ 13%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/topics__functions.c.o[0m
+[25.585s] [ 14%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/msg/detail/links__functions.c.o[0m
+[25.639s] [ 14%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_c.dir/rosidl_generator_c/sam_msgs/srv/detail/uavcan_update_battery__functions.c.o[0m
+[26.210s] [ 15%] [32m[1mLinking C shared library libsam_msgs__rosidl_generator_c.so[0m
+[26.553s] [ 15%] Built target sam_msgs__rosidl_generator_c
+[26.651s] [ 16%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[26.664s] [ 17%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[26.675s] [ 18%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[33.299s] [ 18%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/array_command__type_support.cpp.o[0m
+[36.215s] [ 18%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/circuit_status__type_support.cpp.o[0m
+[38.033s] [ 19%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/circuit_status_stamped_array__type_support.cpp.o[0m
+[39.817s] [ 19%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/circuit_status_stamped__type_support.cpp.o[0m
+[40.025s] [ 19%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/array_command__type_support.cpp.o[0m
+[40.334s] [ 19%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/array_command__type_support.cpp.o[0m
+[41.634s] [ 20%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/command__type_support.cpp.o[0m
+[41.732s] [ 20%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/array_command__type_support.cpp.o[0m
+[41.928s] [ 21%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/ballast_angles__type_support.cpp.o[0m
+[42.110s] [ 21%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/circuit_status__type_support.cpp.o[0m
+[42.391s] [ 22%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/circuit_status_stamped_array__type_support.cpp.o[0m
+[42.650s] [ 22%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/circuit_status_stamped__type_support.cpp.o[0m
+[42.872s] [ 23%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/command__type_support.cpp.o[0m
+[42.876s] [ 24%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/ballast_angles__type_support.cpp.o[0m
+[43.069s] [ 24%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/consumed_charge_array__type_support.cpp.o[0m
+[43.304s] [ 25%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/consumed_charge_feedback__type_support.cpp.o[0m
+[43.553s] [ 26%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/ballast_angles__type_support.cpp.o[0m
+[43.612s] [ 26%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/consumed_charge__type_support.cpp.o[0m
+[43.836s] [ 27%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/ctp__type_support.cpp.o[0m
+[44.034s] [ 27%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/leak__type_support.cpp.o[0m
+[44.245s] [ 27%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/consumed_charge_array__type_support.cpp.o[0m
+[44.281s] [ 28%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/light_command_array__type_support.cpp.o[0m
+[44.288s] [ 28%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/array_command__type_support.c.o[0m
+[44.441s] [ 28%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/light_command__type_support.cpp.o[0m
+[44.503s] [ 28%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/array_command__type_support_c.cpp.o[0m
+[44.527s] [ 29%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/ballast_angles__type_support.c.o[0m
+[44.615s] [ 30%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/percent_stamped__type_support.cpp.o[0m
+[44.804s] [ 30%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/circuit_status__type_support.c.o[0m
+[44.875s] [ 30%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/thruster_angles__type_support.cpp.o[0m
+[45.010s] [ 31%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/circuit_status_stamped_array__type_support.c.o[0m
+[45.206s] [ 32%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/thruster_rp_ms__type_support.cpp.o[0m
+[45.302s] [ 32%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/circuit_status_stamped__type_support.c.o[0m
+[45.548s] [ 33%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/command__type_support.c.o[0m
+[45.571s] [ 33%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/uavcan_node_status__type_support.cpp.o[0m
+[45.805s] [ 33%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/consumed_charge_array__type_support.c.o[0m
+[45.890s] [ 34%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/uavcan_node_status_named_array__type_support.cpp.o[0m
+[45.913s] [ 34%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/circuit_status__type_support.cpp.o[0m
+[45.949s] [ 34%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/circuit_status__type_support.cpp.o[0m
+[45.978s] [ 35%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/ballast_angles__type_support.cpp.o[0m
+[46.104s] [ 36%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/consumed_charge_feedback__type_support.c.o[0m
+[46.159s] [ 36%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/uavcan_node_status_named__type_support.cpp.o[0m
+[46.308s] [ 37%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/topics__type_support.cpp.o[0m
+[46.417s] [ 37%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/consumed_charge__type_support.c.o[0m
+[46.504s] [ 37%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/msg/links__type_support.cpp.o[0m
+[46.629s] [ 38%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/ctp__type_support.c.o[0m
+[46.673s] [ 39%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/sam_msgs/srv/uavcan_update_battery__type_support.cpp.o[0m
+[46.858s] [ 39%] [32m[1mLinking CXX shared library libsam_msgs__rosidl_typesupport_c.so[0m
+[46.924s] [ 39%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/leak__type_support.c.o[0m
+[46.950s] [ 39%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/circuit_status__type_support_c.cpp.o[0m
+[47.155s] [ 40%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/light_command_array__type_support.c.o[0m
+[47.289s] [ 40%] Built target sam_msgs__rosidl_typesupport_c
+[47.417s] [ 40%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/light_command__type_support.c.o[0m
+[47.684s] [ 41%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/percent_stamped__type_support.c.o[0m
+[47.911s] [ 41%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/thruster_angles__type_support.c.o[0m
+[47.949s] [ 42%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/circuit_status_stamped_array__type_support.cpp.o[0m
+[48.120s] [ 43%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/thruster_rp_ms__type_support.c.o[0m
+[48.259s] [ 44%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/consumed_charge_feedback__type_support.cpp.o[0m
+[48.396s] [ 44%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/uavcan_node_status__type_support.c.o[0m
+[48.466s] [ 45%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/circuit_status_stamped_array__type_support_c.cpp.o[0m
+[48.637s] [ 46%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support.c.o[0m
+[48.647s] [ 47%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/circuit_status_stamped_array__type_support.cpp.o[0m
+[48.886s] [ 47%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/uavcan_node_status_named__type_support.c.o[0m
+[49.141s] [ 48%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/topics__type_support.c.o[0m
+[49.429s] [ 48%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/msg/detail/links__type_support.c.o[0m
+[49.628s] [ 49%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/sam_msgs/srv/detail/uavcan_update_battery__type_support.c.o[0m
+[49.660s] [ 49%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/consumed_charge__type_support.cpp.o[0m
+[49.842s] [ 49%] [32m[1mLinking C shared library libsam_msgs__rosidl_typesupport_introspection_c.so[0m
+[50.033s] [ 49%] Built target sam_msgs__rosidl_typesupport_introspection_c
+[50.269s] [ 49%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/circuit_status_stamped__type_support_c.cpp.o[0m
+[50.309s] [ 50%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/command__type_support.cpp.o[0m
+[51.278s] [ 50%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/circuit_status_stamped__type_support.cpp.o[0m
+[51.366s] [ 50%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/leak__type_support.cpp.o[0m
+[52.255s] [ 51%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/ballast_angles__type_support_c.cpp.o[0m
+[52.406s] [ 51%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/circuit_status_stamped__type_support.cpp.o[0m
+[52.837s] [ 52%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/light_command_array__type_support.cpp.o[0m
+[53.361s] [ 52%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/consumed_charge_array__type_support.cpp.o[0m
+[53.638s] [ 52%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/consumed_charge_array__type_support_c.cpp.o[0m
+[54.193s] [ 52%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/consumed_charge_array__type_support.cpp.o[0m
+[54.215s] [ 52%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/light_command__type_support.cpp.o[0m
+[54.901s] [ 53%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/command__type_support.cpp.o[0m
+[55.110s] [ 54%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/command__type_support_c.cpp.o[0m
+[55.633s] [ 55%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/percent_stamped__type_support.cpp.o[0m
+[56.309s] [ 56%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/ctp__type_support.cpp.o[0m
+[56.644s] [ 57%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/consumed_charge_feedback__type_support.cpp.o[0m
+[56.844s] [ 58%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/consumed_charge_feedback__type_support_c.cpp.o[0m
+[57.146s] [ 59%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/ctp__type_support.cpp.o[0m
+[58.289s] [ 59%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/thruster_angles__type_support.cpp.o[0m
+[58.553s] [ 59%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/consumed_charge__type_support_c.cpp.o[0m
+[58.561s] [ 59%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/consumed_charge__type_support.cpp.o[0m
+[58.666s] [ 60%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/light_command_array__type_support.cpp.o[0m
+[59.551s] [ 61%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/thruster_rp_ms__type_support.cpp.o[0m
+[59.866s] [ 62%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/ctp__type_support_c.cpp.o[0m
+[60.271s] [ 63%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/ctp__type_support.cpp.o[0m
+[60.679s] [ 63%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/light_command__type_support.cpp.o[0m
+[60.866s] [ 63%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/uavcan_node_status__type_support.cpp.o[0m
+[61.328s] [ 63%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/leak__type_support_c.cpp.o[0m
+[61.773s] [ 63%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/leak__type_support.cpp.o[0m
+[62.245s] [ 64%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/percent_stamped__type_support.cpp.o[0m
+[62.370s] [ 65%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/uavcan_node_status_named_array__type_support.cpp.o[0m
+[62.702s] [ 66%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/light_command_array__type_support_c.cpp.o[0m
+[63.697s] [ 67%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/light_command_array__type_support.cpp.o[0m
+[63.741s] [ 67%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/uavcan_node_status_named__type_support.cpp.o[0m
+[64.032s] [ 67%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/leak__type_support.cpp.o[0m
+[64.461s] [ 67%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/light_command__type_support_c.cpp.o[0m
+[64.758s] [ 68%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/topics__type_support.cpp.o[0m
+[65.482s] [ 69%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/percent_stamped__type_support.cpp.o[0m
+[65.586s] [ 69%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/consumed_charge__type_support.cpp.o[0m
+[65.871s] [ 69%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/msg/links__type_support.cpp.o[0m
+[65.968s] [ 70%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/percent_stamped__type_support_c.cpp.o[0m
+[67.019s] [ 70%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/thruster_angles__type_support.cpp.o[0m
+[67.093s] [ 70%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/thruster_angles__type_support_c.cpp.o[0m
+[67.116s] [ 70%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/thruster_angles__type_support.cpp.o[0m
+[67.333s] [ 71%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/sam_msgs/srv/uavcan_update_battery__type_support.cpp.o[0m
+[68.365s] [ 72%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/thruster_rp_ms__type_support_c.cpp.o[0m
+[68.483s] [ 73%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/thruster_rp_ms__type_support.cpp.o[0m
+[68.748s] [ 73%] [32m[1mLinking CXX shared library libsam_msgs__rosidl_typesupport_cpp.so[0m
+[68.911s] [ 74%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/thruster_rp_ms__type_support.cpp.o[0m
+[69.001s] [ 74%] Built target sam_msgs__rosidl_typesupport_cpp
+[69.588s] [ 75%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support_c.cpp.o[0m
+[70.209s] [ 75%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/uavcan_node_status__type_support.cpp.o[0m
+[70.624s] [ 76%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/uavcan_node_status_named_array__type_support.cpp.o[0m
+[71.231s] [ 76%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/uavcan_node_status_named__type_support_c.cpp.o[0m
+[72.160s] [ 76%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/light_command__type_support.cpp.o[0m
+[72.788s] [ 77%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/topics__type_support_c.cpp.o[0m
+[73.149s] [ 77%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/uavcan_node_status_named__type_support.cpp.o[0m
+[73.907s] [ 78%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/srv/detail/uavcan_update_battery__type_support_c.cpp.o[0m
+[74.501s] [ 79%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support.cpp.o[0m
+[75.326s] [ 79%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/links__type_support_c.cpp.o[0m
+[75.395s] [ 80%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/topics__type_support.cpp.o[0m
+[76.390s] [ 81%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/topics__type_support.cpp.o[0m
+[76.607s] [ 81%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/sam_msgs/msg/detail/uavcan_node_status__type_support_c.cpp.o[0m
+[76.889s] [ 81%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/links__type_support.cpp.o[0m
+[77.785s] [ 82%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/srv/detail/uavcan_update_battery__type_support.cpp.o[0m
+[77.825s] [ 82%] [32m[1mLinking CXX shared library libsam_msgs__rosidl_typesupport_fastrtps_c.so[0m
+[78.142s] [ 82%] Built target sam_msgs__rosidl_typesupport_fastrtps_c
+[78.347s] [ 83%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/srv/detail/dds_fastrtps/uavcan_update_battery__type_support.cpp.o[0m
+[79.094s] [ 83%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/links__type_support.cpp.o[0m
+[79.819s] [ 83%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/uavcan_node_status__type_support.cpp.o[0m
+[80.553s] [ 83%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/sam_msgs/msg/detail/uavcan_node_status_named__type_support.cpp.o[0m
+[81.313s] [ 84%] [32mBuilding CXX object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/sam_msgs/msg/detail/dds_fastrtps/consumed_charge_feedback__type_support.cpp.o[0m
+[82.053s] [ 85%] [32m[1mLinking CXX shared library libsam_msgs__rosidl_typesupport_introspection_cpp.so[0m
+[82.443s] [ 85%] Built target sam_msgs__rosidl_typesupport_introspection_cpp
+[82.731s] [ 85%] [32m[1mLinking CXX shared library libsam_msgs__rosidl_typesupport_fastrtps_cpp.so[0m
+[83.079s] [ 85%] Built target sam_msgs__rosidl_typesupport_fastrtps_cpp
+[83.155s] [ 85%] Built target sam_msgs
+[83.240s] [ 86%] [34m[1mGenerating Python code for ROS interfaces[0m
+[93.877s] [ 86%] Built target sam_msgs__py
+[93.930s] [ 86%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_array_command_s.c.o[0m
+[94.177s] [ 87%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_consumed_charge_feedback_s.c.o[0m
+[94.421s] [ 87%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_consumed_charge_s.c.o[0m
+[94.665s] [ 88%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_ctp_s.c.o[0m
+[94.916s] [ 88%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_leak_s.c.o[0m
+[95.156s] [ 89%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_light_command_array_s.c.o[0m
+[95.395s] [ 89%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_light_command_s.c.o[0m
+[95.639s] [ 90%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_percent_stamped_s.c.o[0m
+[95.884s] [ 90%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_thruster_angles_s.c.o[0m
+[96.135s] [ 91%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_thruster_rp_ms_s.c.o[0m
+[96.372s] [ 91%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_uavcan_node_status_s.c.o[0m
+[96.611s] [ 92%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_uavcan_node_status_named_array_s.c.o[0m
+[96.879s] [ 92%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_uavcan_node_status_named_s.c.o[0m
+[97.126s] [ 93%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_topics_s.c.o[0m
+[97.388s] [ 93%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_links_s.c.o[0m
+[97.619s] [ 94%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/srv/_uavcan_update_battery_s.c.o[0m
+[97.880s] [ 94%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_consumed_charge_array_s.c.o[0m
+[98.150s] [ 95%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_command_s.c.o[0m
+[98.417s] [ 95%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_circuit_status_stamped_s.c.o[0m
+[98.654s] [ 96%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_circuit_status_stamped_array_s.c.o[0m
+[98.896s] [ 96%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_circuit_status_s.c.o[0m
+[99.135s] [ 97%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_generator_py.dir/rosidl_generator_py/sam_msgs/msg/_ballast_angles_s.c.o[0m
+[99.377s] [ 97%] [32m[1mLinking C shared library rosidl_generator_py/sam_msgs/libsam_msgs__rosidl_generator_py.so[0m
+[99.504s] [ 97%] Built target sam_msgs__rosidl_generator_py
+[99.559s] [ 98%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[99.981s] [ 98%] [32m[1mLinking C shared library rosidl_generator_py/sam_msgs/sam_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so[0m
+[100.097s] [ 98%] Built target sam_msgs__rosidl_typesupport_fastrtps_c__pyext
+[100.150s] [ 99%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_c.c.o[0m
+[100.583s] [ 99%] [32m[1mLinking C shared library rosidl_generator_py/sam_msgs/sam_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so[0m
+[100.733s] [ 99%] Built target sam_msgs__rosidl_typesupport_c__pyext
+[100.787s] [100%] [32mBuilding C object CMakeFiles/sam_msgs__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[101.179s] [100%] [32m[1mLinking C shared library rosidl_generator_py/sam_msgs/sam_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so[0m
+[101.296s] [100%] Built target sam_msgs__rosidl_typesupport_introspection_c__pyext
+[101.332s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_msgs -- -j8 -l8
+[102.693s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_msgs
+[102.713s] -- Install configuration: ""
+[102.713s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/ament_index/resource_index/rosidl_interfaces/sam_msgs
+[102.713s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.714s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.714s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status.h
+[102.714s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status_stamped_array.h
+[102.715s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/thruster_angles.h
+[102.715s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status_named.h
+[102.715s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status_named_array.h
+[102.715s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/ctp.h
+[102.716s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/light_command.h
+[102.716s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/rosidl_generator_c__visibility_control.h
+[102.716s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/thruster_rp_ms.h
+[102.717s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/links.h
+[102.717s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/percent_stamped.h
+[102.717s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge_array.h
+[102.718s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/leak.h
+[102.718s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.718s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__type_support.h
+[102.719s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__functions.h
+[102.719s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__functions.h
+[102.720s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__struct.h
+[102.720s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__type_support.h
+[102.720s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__functions.c
+[102.721s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__functions.c
+[102.721s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__type_support.h
+[102.722s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__struct.h
+[102.722s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__functions.c
+[102.722s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__functions.c
+[102.723s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__functions.c
+[102.723s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__struct.h
+[102.723s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__struct.h
+[102.723s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__functions.h
+[102.724s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__functions.h
+[102.724s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__functions.c
+[102.724s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__functions.c
+[102.725s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__functions.c
+[102.725s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__type_support.h
+[102.726s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__type_support.h
+[102.726s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__struct.h
+[102.726s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__functions.c
+[102.727s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__functions.c
+[102.727s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__functions.h
+[102.727s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__type_support.h
+[102.728s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__functions.h
+[102.729s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__functions.h
+[102.729s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__functions.h
+[102.729s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__struct.h
+[102.729s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__struct.h
+[102.730s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__functions.c
+[102.730s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__struct.h
+[102.731s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__type_support.h
+[102.731s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support.h
+[102.731s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__type_support.h
+[102.732s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__struct.h
+[102.732s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__struct.h
+[102.732s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__type_support.h
+[102.733s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__functions.h
+[102.733s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__functions.h
+[102.734s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__functions.h
+[102.734s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__functions.h
+[102.734s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__functions.h
+[102.734s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__functions.c
+[102.735s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__functions.c
+[102.735s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__functions.c
+[102.736s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__struct.h
+[102.736s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__functions.c
+[102.736s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__type_support.h
+[102.737s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__functions.c
+[102.737s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__struct.h
+[102.737s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__functions.c
+[102.738s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__type_support.h
+[102.738s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__functions.h
+[102.738s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__functions.h
+[102.739s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__struct.h
+[102.739s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__type_support.h
+[102.740s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__type_support.h
+[102.740s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__struct.h
+[102.740s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__functions.h
+[102.741s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__functions.h
+[102.741s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__functions.h
+[102.741s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__functions.c
+[102.742s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__functions.h
+[102.742s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__type_support.h
+[102.743s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__type_support.h
+[102.743s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__type_support.h
+[102.743s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__functions.c
+[102.743s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__struct.h
+[102.744s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__struct.h
+[102.744s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__struct.h
+[102.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__functions.h
+[102.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__functions.c
+[102.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__type_support.h
+[102.746s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__functions.h
+[102.747s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__struct.h
+[102.747s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__type_support.h
+[102.747s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__struct.h
+[102.748s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__struct.h
+[102.748s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__functions.c
+[102.748s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__type_support.h
+[102.749s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__type_support.h
+[102.749s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__struct.h
+[102.750s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status.h
+[102.750s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/command.h
+[102.751s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge_feedback.h
+[102.751s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/array_command.h
+[102.751s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/light_command_array.h
+[102.752s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/ballast_angles.h
+[102.752s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status_stamped.h
+[102.752s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge.h
+[102.753s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/topics.h
+[102.753s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.753s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.754s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__type_support.h
+[102.754s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__functions.c
+[102.754s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__struct.h
+[102.755s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__functions.h
+[102.755s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/uavcan_update_battery.h
+[102.756s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/library_path.sh
+[102.756s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/library_path.dsv
+[102.757s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_generator_c.so
+[102.759s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_generator_c.so" to ""
+[102.759s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.760s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.760s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[102.760s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.761s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__rosidl_typesupport_fastrtps_c.h
+[102.761s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__rosidl_typesupport_fastrtps_c.h
+[102.761s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__rosidl_typesupport_fastrtps_c.h
+[102.761s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__rosidl_typesupport_fastrtps_c.h
+[102.762s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__rosidl_typesupport_fastrtps_c.h
+[102.762s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+[102.763s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__rosidl_typesupport_fastrtps_c.h
+[102.763s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__rosidl_typesupport_fastrtps_c.h
+[102.764s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__rosidl_typesupport_fastrtps_c.h
+[102.764s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__rosidl_typesupport_fastrtps_c.h
+[102.765s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__rosidl_typesupport_fastrtps_c.h
+[102.765s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__rosidl_typesupport_fastrtps_c.h
+[102.765s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__rosidl_typesupport_fastrtps_c.h
+[102.766s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__rosidl_typesupport_fastrtps_c.h
+[102.766s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__rosidl_typesupport_fastrtps_c.h
+[102.767s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__rosidl_typesupport_fastrtps_c.h
+[102.767s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__rosidl_typesupport_fastrtps_c.h
+[102.768s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__rosidl_typesupport_fastrtps_c.h
+[102.768s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__rosidl_typesupport_fastrtps_c.h
+[102.768s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__rosidl_typesupport_fastrtps_c.h
+[102.769s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__rosidl_typesupport_fastrtps_c.h
+[102.769s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.769s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.770s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__rosidl_typesupport_fastrtps_c.h
+[102.770s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_fastrtps_c.so
+[102.772s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_fastrtps_c.so" to ""
+[102.772s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.772s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.772s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[102.773s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.773s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__rosidl_typesupport_introspection_c.h
+[102.773s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__rosidl_typesupport_introspection_c.h
+[102.774s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__rosidl_typesupport_introspection_c.h
+[102.774s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__rosidl_typesupport_introspection_c.h
+[102.775s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__type_support.c
+[102.775s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__rosidl_typesupport_introspection_c.h
+[102.776s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__rosidl_typesupport_introspection_c.h
+[102.777s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__type_support.c
+[102.777s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__rosidl_typesupport_introspection_c.h
+[102.779s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__type_support.c
+[102.779s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__type_support.c
+[102.779s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__type_support.c
+[102.779s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__rosidl_typesupport_introspection_c.h
+[102.779s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__type_support.c
+[102.780s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__rosidl_typesupport_introspection_c.h
+[102.780s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__rosidl_typesupport_introspection_c.h
+[102.780s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__type_support.c
+[102.780s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__type_support.c
+[102.781s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__type_support.c
+[102.781s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__type_support.c
+[102.782s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__type_support.c
+[102.782s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__type_support.c
+[102.782s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__rosidl_typesupport_introspection_c.h
+[102.783s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__type_support.c
+[102.783s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__rosidl_typesupport_introspection_c.h
+[102.784s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__type_support.c
+[102.784s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__type_support.c
+[102.784s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__type_support.c
+[102.785s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__rosidl_typesupport_introspection_c.h
+[102.785s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__type_support.c
+[102.786s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__rosidl_typesupport_introspection_c.h
+[102.786s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__rosidl_typesupport_introspection_c.h
+[102.786s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__type_support.c
+[102.787s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__rosidl_typesupport_introspection_c.h
+[102.787s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__type_support.c
+[102.788s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__type_support.c
+[102.788s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__rosidl_typesupport_introspection_c.h
+[102.789s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+[102.789s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__rosidl_typesupport_introspection_c.h
+[102.790s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__rosidl_typesupport_introspection_c.h
+[102.790s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__rosidl_typesupport_introspection_c.h
+[102.791s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support.c
+[102.791s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.791s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.791s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__rosidl_typesupport_introspection_c.h
+[102.792s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__type_support.c
+[102.792s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_introspection_c.so
+[102.794s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_introspection_c.so" to ""
+[102.794s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_c.so
+[102.795s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_c.so" to ""
+[102.795s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.796s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.797s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/leak.hpp
+[102.797s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/array_command.hpp
+[102.797s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge_array.hpp
+[102.797s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/percent_stamped.hpp
+[102.798s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/thruster_rp_ms.hpp
+[102.798s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/light_command_array.hpp
+[102.798s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/thruster_angles.hpp
+[102.798s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/ballast_angles.hpp
+[102.799s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status.hpp
+[102.799s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status_stamped_array.hpp
+[102.799s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge.hpp
+[102.799s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.800s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__builder.hpp
+[102.800s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__traits.hpp
+[102.800s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__builder.hpp
+[102.801s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__traits.hpp
+[102.801s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__struct.hpp
+[102.801s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__struct.hpp
+[102.802s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__struct.hpp
+[102.802s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__struct.hpp
+[102.802s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__struct.hpp
+[102.803s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__builder.hpp
+[102.803s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__builder.hpp
+[102.803s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__traits.hpp
+[102.804s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__builder.hpp
+[102.804s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__builder.hpp
+[102.805s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__traits.hpp
+[102.805s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__builder.hpp
+[102.805s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__traits.hpp
+[102.806s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__traits.hpp
+[102.806s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__traits.hpp
+[102.806s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__traits.hpp
+[102.807s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__struct.hpp
+[102.807s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__traits.hpp
+[102.808s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__builder.hpp
+[102.808s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__struct.hpp
+[102.808s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__builder.hpp
+[102.809s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__struct.hpp
+[102.809s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__struct.hpp
+[102.809s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__struct.hpp
+[102.810s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__struct.hpp
+[102.810s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__builder.hpp
+[102.810s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__traits.hpp
+[102.811s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__builder.hpp
+[102.811s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__builder.hpp
+[102.811s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__struct.hpp
+[102.812s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__builder.hpp
+[102.812s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__struct.hpp
+[102.812s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__struct.hpp
+[102.813s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__struct.hpp
+[102.813s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__traits.hpp
+[102.813s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__struct.hpp
+[102.814s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__traits.hpp
+[102.814s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__traits.hpp
+[102.815s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__builder.hpp
+[102.815s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__traits.hpp
+[102.815s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__struct.hpp
+[102.816s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__builder.hpp
+[102.816s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__struct.hpp
+[102.817s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__traits.hpp
+[102.817s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__struct.hpp
+[102.817s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__builder.hpp
+[102.818s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__struct.hpp
+[102.818s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__traits.hpp
+[102.819s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__builder.hpp
+[102.819s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__builder.hpp
+[102.820s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__builder.hpp
+[102.820s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__traits.hpp
+[102.820s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__traits.hpp
+[102.821s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__traits.hpp
+[102.821s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__traits.hpp
+[102.822s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__builder.hpp
+[102.822s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__builder.hpp
+[102.823s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__traits.hpp
+[102.823s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__struct.hpp
+[102.823s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/consumed_charge_feedback.hpp
+[102.824s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/command.hpp
+[102.824s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status.hpp
+[102.824s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status_named.hpp
+[102.825s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/uavcan_node_status_named_array.hpp
+[102.825s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/circuit_status_stamped.hpp
+[102.826s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/ctp.hpp
+[102.826s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/topics.hpp
+[102.826s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/light_command.hpp
+[102.827s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/links.hpp
+[102.827s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.827s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/uavcan_update_battery.hpp
+[102.828s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.828s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__builder.hpp
+[102.828s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__struct.hpp
+[102.829s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__traits.hpp
+[102.829s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.829s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.830s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[102.830s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.830s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__rosidl_typesupport_fastrtps_cpp.hpp
+[102.830s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__rosidl_typesupport_fastrtps_cpp.hpp
+[102.831s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__rosidl_typesupport_fastrtps_cpp.hpp
+[102.831s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+[102.832s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__rosidl_typesupport_fastrtps_cpp.hpp
+[102.832s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__rosidl_typesupport_fastrtps_cpp.hpp
+[102.832s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__rosidl_typesupport_fastrtps_cpp.hpp
+[102.833s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__rosidl_typesupport_fastrtps_cpp.hpp
+[102.833s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__rosidl_typesupport_fastrtps_cpp.hpp
+[102.834s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__rosidl_typesupport_fastrtps_cpp.hpp
+[102.834s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__rosidl_typesupport_fastrtps_cpp.hpp
+[102.834s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__rosidl_typesupport_fastrtps_cpp.hpp
+[102.835s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__rosidl_typesupport_fastrtps_cpp.hpp
+[102.835s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__rosidl_typesupport_fastrtps_cpp.hpp
+[102.836s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/dds_fastrtps
+[102.836s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__rosidl_typesupport_fastrtps_cpp.hpp
+[102.836s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__rosidl_typesupport_fastrtps_cpp.hpp
+[102.837s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__rosidl_typesupport_fastrtps_cpp.hpp
+[102.837s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__rosidl_typesupport_fastrtps_cpp.hpp
+[102.838s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__rosidl_typesupport_fastrtps_cpp.hpp
+[102.838s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__rosidl_typesupport_fastrtps_cpp.hpp
+[102.839s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__rosidl_typesupport_fastrtps_cpp.hpp
+[102.839s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.840s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.840s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/dds_fastrtps
+[102.840s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__rosidl_typesupport_fastrtps_cpp.hpp
+[102.841s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_fastrtps_cpp.so
+[102.842s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_fastrtps_cpp.so" to ""
+[102.843s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs
+[102.843s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg
+[102.843s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail
+[102.843s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__rosidl_typesupport_introspection_cpp.hpp
+[102.843s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__type_support.cpp
+[102.844s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__type_support.cpp
+[102.844s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__rosidl_typesupport_introspection_cpp.hpp
+[102.844s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__type_support.cpp
+[102.844s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__type_support.cpp
+[102.845s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__type_support.cpp
+[102.845s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__rosidl_typesupport_introspection_cpp.hpp
+[102.845s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__type_support.cpp
+[102.846s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__rosidl_typesupport_introspection_cpp.hpp
+[102.846s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__type_support.cpp
+[102.846s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__rosidl_typesupport_introspection_cpp.hpp
+[102.847s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__rosidl_typesupport_introspection_cpp.hpp
+[102.847s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__type_support.cpp
+[102.847s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/links__rosidl_typesupport_introspection_cpp.hpp
+[102.848s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status__rosidl_typesupport_introspection_cpp.hpp
+[102.848s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__type_support.cpp
+[102.848s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped_array__type_support.cpp
+[102.849s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__type_support.cpp
+[102.850s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ballast_angles__rosidl_typesupport_introspection_cpp.hpp
+[102.850s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge__rosidl_typesupport_introspection_cpp.hpp
+[102.850s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__type_support.cpp
+[102.850s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_array__rosidl_typesupport_introspection_cpp.hpp
+[102.851s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command__rosidl_typesupport_introspection_cpp.hpp
+[102.851s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__rosidl_typesupport_introspection_cpp.hpp
+[102.851s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/command__type_support.cpp
+[102.852s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__rosidl_typesupport_introspection_cpp.hpp
+[102.852s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_angles__type_support.cpp
+[102.852s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__rosidl_typesupport_introspection_cpp.hpp
+[102.853s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/circuit_status_stamped__type_support.cpp
+[102.853s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__rosidl_typesupport_introspection_cpp.hpp
+[102.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named_array__type_support.cpp
+[102.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/consumed_charge_feedback__type_support.cpp
+[102.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/ctp__rosidl_typesupport_introspection_cpp.hpp
+[102.855s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status_named__type_support.cpp
+[102.855s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+[102.855s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/percent_stamped__rosidl_typesupport_introspection_cpp.hpp
+[102.856s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/array_command__type_support.cpp
+[102.857s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/leak__type_support.cpp
+[102.857s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/light_command_array__rosidl_typesupport_introspection_cpp.hpp
+[102.857s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/thruster_rp_ms__rosidl_typesupport_introspection_cpp.hpp
+[102.858s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/msg/detail/uavcan_node_status__type_support.cpp
+[102.858s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv
+[102.859s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail
+[102.859s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__rosidl_typesupport_introspection_cpp.hpp
+[102.860s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/include/sam_msgs/sam_msgs/srv/detail/uavcan_update_battery__type_support.cpp
+[102.860s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_introspection_cpp.so
+[102.862s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_introspection_cpp.so" to ""
+[102.862s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_cpp.so
+[102.864s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_typesupport_cpp.so" to ""
+[102.864s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/pythonpath.sh
+[102.865s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/pythonpath.dsv
+[102.865s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs-0.1.0-py3.10.egg-info
+[102.866s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs-0.1.0-py3.10.egg-info/PKG-INFO
+[102.866s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs-0.1.0-py3.10.egg-info/SOURCES.txt
+[102.866s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs-0.1.0-py3.10.egg-info/top_level.txt
+[102.867s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs-0.1.0-py3.10.egg-info/dependency_links.txt
+[102.868s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs
+[102.868s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/libsam_msgs__rosidl_generator_py.so
+[102.868s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg
+[102.868s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_command.py
+[102.869s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_leak.py
+[102.869s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_s.c
+[102.869s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named_array_s.c
+[102.869s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_s.c
+[102.870s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_array_command.py
+[102.870s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped_array.py
+[102.870s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_array.py
+[102.871s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ballast_angles_s.c
+[102.871s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge.py
+[102.872s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status.py
+[102.873s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_rp_ms.py
+[102.873s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped_array_s.c
+[102.873s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_topics_s.c
+[102.874s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_feedback.py
+[102.874s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_s.c
+[102.874s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status.py
+[102.875s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_links_s.c
+[102.875s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command_array.py
+[102.876s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped_s.c
+[102.876s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_percent_stamped_s.c
+[102.876s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_leak_s.c
+[102.877s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ctp_s.c
+[102.877s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command_s.c
+[102.877s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_feedback_s.c
+[102.878s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ballast_angles.py
+[102.879s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_topics.py
+[102.879s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_angles_s.c
+[102.879s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_array_s.c
+[102.879s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/__init__.py
+[102.879s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_angles.py
+[102.880s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped.py
+[102.880s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_command_s.c
+[102.880s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command.py
+[102.881s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named_array.py
+[102.881s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named_s.c
+[102.882s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command_array_s.c
+[102.882s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_rp_ms_s.c
+[102.882s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named.py
+[102.883s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_array_command_s.c
+[102.883s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_links.py
+[102.883s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ctp.py
+[102.884s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_percent_stamped.py
+[102.884s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+[102.885s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv
+[102.885s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv/__init__.py
+[102.886s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv/_uavcan_update_battery.py
+[102.886s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv/_uavcan_update_battery_s.c
+[102.886s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_introspection_c.c
+[102.887s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/_sam_msgs_s.ep.rosidl_typesupport_c.c
+[102.887s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/__init__.py
+[102.888s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[102.889s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[102.889s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[103.046s] Listing '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs'...
+[103.046s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/__init__.py'...
+[103.047s] Listing '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg'...
+[103.047s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/__init__.py'...
+[103.047s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_array_command.py'...
+[103.047s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ballast_angles.py'...
+[103.047s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_circuit_status_stamped_array.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_command.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_array.py'...
+[103.048s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_consumed_charge_feedback.py'...
+[103.049s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_ctp.py'...
+[103.049s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_leak.py'...
+[103.049s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command.py'...
+[103.049s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_light_command_array.py'...
+[103.050s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_links.py'...
+[103.050s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_percent_stamped.py'...
+[103.050s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_angles.py'...
+[103.050s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_thruster_rp_ms.py'...
+[103.050s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_topics.py'...
+[103.051s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status.py'...
+[103.051s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named.py'...
+[103.051s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/msg/_uavcan_node_status_named_array.py'...
+[103.051s] Listing '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv'...
+[103.051s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv/__init__.py'...
+[103.051s] Compiling '/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/srv/_uavcan_update_battery.py'...
+[103.058s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[103.060s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+[103.061s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[103.062s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+[103.063s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[103.065s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/local/lib/python3.10/dist-packages/sam_msgs/sam_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+[103.065s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_generator_py.so
+[103.066s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/sam_msgs/lib/libsam_msgs__rosidl_generator_py.so" to ""
+[103.067s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ArrayCommand.idl
+[103.067s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/BallastAngles.idl
+[103.068s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatus.idl
+[103.068s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatusStampedArray.idl
+[103.069s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatusStamped.idl
+[103.069s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Command.idl
+[103.070s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedChargeArray.idl
+[103.071s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedChargeFeedback.idl
+[103.072s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedCharge.idl
+[103.072s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CTP.idl
+[103.073s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Leak.idl
+[103.073s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/LightCommandArray.idl
+[103.074s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/LightCommand.idl
+[103.075s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/PercentStamped.idl
+[103.075s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ThrusterAngles.idl
+[103.076s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ThrusterRPMs.idl
+[103.077s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatus.idl
+[103.077s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatusNamedArray.idl
+[103.078s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatusNamed.idl
+[103.079s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Topics.idl
+[103.079s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Links.idl
+[103.080s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/srv/UavcanUpdateBattery.idl
+[103.080s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ArrayCommand.msg
+[103.081s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/BallastAngles.msg
+[103.082s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatus.msg
+[103.082s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatusStampedArray.msg
+[103.083s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CircuitStatusStamped.msg
+[103.084s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Command.msg
+[103.084s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedChargeArray.msg
+[103.085s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedChargeFeedback.msg
+[103.085s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ConsumedCharge.msg
+[103.086s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/CTP.msg
+[103.087s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Leak.msg
+[103.087s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/LightCommandArray.msg
+[103.088s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/LightCommand.msg
+[103.089s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/PercentStamped.msg
+[103.089s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ThrusterAngles.msg
+[103.090s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/ThrusterRPMs.msg
+[103.090s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatus.msg
+[103.091s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatusNamedArray.msg
+[103.092s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/UavcanNodeStatusNamed.msg
+[103.092s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Topics.msg
+[103.093s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/msg/Links.msg
+[103.094s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/srv/UavcanUpdateBattery.srv
+[103.094s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/srv/UavcanUpdateBattery_Request.msg
+[103.095s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/srv/UavcanUpdateBattery_Response.msg
+[103.095s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/ament_index/resource_index/package_run_dependencies/sam_msgs
+[103.096s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/ament_index/resource_index/parent_prefix_path/sam_msgs
+[103.097s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/ament_prefix_path.sh
+[103.097s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/ament_prefix_path.dsv
+[103.098s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/path.sh
+[103.099s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/environment/path.dsv
+[103.099s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/local_setup.bash
+[103.100s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/local_setup.sh
+[103.100s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/local_setup.zsh
+[103.101s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/local_setup.dsv
+[103.102s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/package.dsv
+[103.102s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/ament_index/resource_index/packages/sam_msgs
+[103.103s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_generator_cExport.cmake
+[103.104s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_generator_cExport-noconfig.cmake
+[103.105s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+[103.105s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[103.106s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_introspection_cExport.cmake
+[103.106s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[103.107s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_cExport.cmake
+[103.108s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_cExport-noconfig.cmake
+[103.108s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_generator_cppExport.cmake
+[103.109s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+[103.109s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[103.110s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_introspection_cppExport.cmake
+[103.111s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[103.112s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_cppExport.cmake
+[103.112s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+[103.113s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_generator_pyExport.cmake
+[103.113s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/export_sam_msgs__rosidl_generator_pyExport-noconfig.cmake
+[103.114s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/rosidl_cmake-extras.cmake
+[103.115s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+[103.115s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+[103.116s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+[103.116s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/ament_cmake_export_targets-extras.cmake
+[103.117s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[103.117s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[103.118s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgsConfig.cmake
+[103.119s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/cmake/sam_msgsConfig-version.cmake
+[103.119s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_msgs/share/sam_msgs/package.xml
+[103.127s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_msgs

@@ -1,0 +1,3 @@
+[console_scripts]
+view_test = test_package.SAMThrustView:test_view
+

@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/ExecutionStatus.msg
+// generated code does not contain a copyright notice
+
+#include "smarc_msgs/msg/SMTask.idl"
+#include "std_msgs/msg/Header.idl"
+
+module smarc_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "if true then the head of the execution_queue is currently being executed.")
+    struct ExecutionStatus {
+      std_msgs::msg::Header header;
+
+      boolean currently_executing;
+
+      sequence<smarc_msgs::msg::SMTask> execution_queue;
+    };
+  };
+};

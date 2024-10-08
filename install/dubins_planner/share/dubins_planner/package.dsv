@@ -1,0 +1,6 @@
+source;share/dubins_planner/hook/pythonpath.ps1
+source;share/dubins_planner/hook/pythonpath.dsv
+source;share/dubins_planner/hook/pythonpath.sh
+source;share/dubins_planner/hook/ament_prefix_path.ps1
+source;share/dubins_planner/hook/ament_prefix_path.dsv
+source;share/dubins_planner/hook/ament_prefix_path.sh

@@ -1,0 +1,53 @@
+running egg_info
+creating ../../build/mqtt_bridge/mqtt_bridge.egg-info
+writing ../../build/mqtt_bridge/mqtt_bridge.egg-info/PKG-INFO
+writing dependency_links to ../../build/mqtt_bridge/mqtt_bridge.egg-info/dependency_links.txt
+writing entry points to ../../build/mqtt_bridge/mqtt_bridge.egg-info/entry_points.txt
+writing requirements to ../../build/mqtt_bridge/mqtt_bridge.egg-info/requires.txt
+writing top-level names to ../../build/mqtt_bridge/mqtt_bridge.egg-info/top_level.txt
+writing manifest file '../../build/mqtt_bridge/mqtt_bridge.egg-info/SOURCES.txt'
+reading manifest file '../../build/mqtt_bridge/mqtt_bridge.egg-info/SOURCES.txt'
+adding license file 'LICENSE.txt'
+writing manifest file '../../build/mqtt_bridge/mqtt_bridge.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build
+creating /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib
+creating /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/util.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/mqtt_bridge_node.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/bridge.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/app.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/__init__.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+copying mqtt_bridge/mqtt_client.py -> /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/util.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/mqtt_bridge_node.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/bridge.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/app.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/__init__.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+copying /home/schni2zle/colcon_ws/src/build/mqtt_bridge/build/lib/mqtt_bridge/mqtt_client.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/util.py to util.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/mqtt_bridge_node.py to mqtt_bridge_node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/bridge.py to bridge.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/app.py to app.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge/mqtt_client.py to mqtt_client.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/ament_index/resource_index/packages
+copying resource/mqtt_bridge -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge/launch
+copying launch/demo.launch.py -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge/launch
+creating /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge/config
+copying config/demo_params.yaml -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge/config
+copying config/tls_params.yaml -> /home/schni2zle/colcon_ws/src/install/mqtt_bridge/share/mqtt_bridge/config
+running install_egg_info
+Copying ../../build/mqtt_bridge/mqtt_bridge.egg-info to /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/python3.10/site-packages/mqtt_bridge-0.1.1-py3.10.egg-info
+running install_scripts
+Installing mqtt_bridge_node script to /home/schni2zle/colcon_ws/src/install/mqtt_bridge/lib/mqtt_bridge
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/mqtt_bridge/install.log'

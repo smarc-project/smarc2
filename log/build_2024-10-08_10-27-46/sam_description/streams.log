@@ -1,0 +1,52 @@
+[0.098s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/vehicles/descriptions/sam_description -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/sam_description
+[0.664s] -- The C compiler identification is GNU 11.4.0
+[0.986s] -- The CXX compiler identification is GNU 11.4.0
+[1.057s] -- Detecting C compiler ABI info
+[1.524s] -- Detecting C compiler ABI info - done
+[1.608s] -- Check for working C compiler: /usr/bin/cc - skipped
+[1.608s] -- Detecting C compile features
+[1.608s] -- Detecting C compile features - done
+[1.616s] -- Detecting CXX compiler ABI info
+[2.182s] -- Detecting CXX compiler ABI info - done
+[2.270s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[2.274s] -- Detecting CXX compile features
+[2.280s] -- Detecting CXX compile features - done
+[2.311s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[3.262s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[3.772s] -- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[4.304s] -- Configuring done
+[4.393s] -- Generating done
+[4.394s] -- Build files have been written to: /home/schni2zle/colcon_ws/src/build/sam_description
+[4.477s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/vehicles/descriptions/sam_description -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/sam_description
+[4.506s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_description -- -j8 -l8
+[7.315s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_description -- -j8 -l8
+[9.681s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_description
+[9.745s] -- Install configuration: ""
+[9.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/launch/
+[9.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/launch//sam_description.launch
+[9.745s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh/
+[9.746s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_FRONTPROP.dae
+[9.748s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_NOZZLE.dae
+[9.820s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_HULL.dae
+[9.849s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_BACKPROP.dae
+[9.852s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/robots/
+[9.852s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/robots//sam_auv_default.urdf.xacro
+[9.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf/
+[9.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf//sam_auv.urdf.xacro
+[9.854s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf//sam_auv.urdf
+[9.859s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/package_run_dependencies/sam_description
+[9.859s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/parent_prefix_path/sam_description
+[9.860s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/ament_prefix_path.sh
+[9.860s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/ament_prefix_path.dsv
+[9.864s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/path.sh
+[9.865s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/path.dsv
+[9.865s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.bash
+[9.866s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.sh
+[9.866s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.zsh
+[9.867s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.dsv
+[9.867s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/package.dsv
+[9.870s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/packages/sam_description
+[9.874s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/cmake/sam_descriptionConfig.cmake
+[9.874s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/cmake/sam_descriptionConfig-version.cmake
+[9.875s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/package.xml
+[9.898s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_description

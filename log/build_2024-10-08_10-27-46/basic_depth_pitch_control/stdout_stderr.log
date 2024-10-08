@@ -1,0 +1,63 @@
+running egg_info
+creating ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info
+writing ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/PKG-INFO
+writing dependency_links to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/dependency_links.txt
+writing entry points to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/entry_points.txt
+writing requirements to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/requires.txt
+writing top-level names to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/top_level.txt
+writing manifest file '../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/SOURCES.txt'
+reading manifest file '../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build
+creating /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib
+creating /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/ActionServerControllerNode.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/Node.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/DiveControllerNode.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/DivingModel.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/IDiveView.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/__init__.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+copying basic_depth_pitch_control/SAMDiveView.py -> /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/ActionServerControllerNode.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/Node.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/DiveControllerNode.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/DivingModel.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/IDiveView.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/__init__.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+copying /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build/lib/basic_depth_pitch_control/SAMDiveView.py -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/ActionServerControllerNode.py to ActionServerControllerNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/Node.py to Node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/DiveControllerNode.py to DiveControllerNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/DivingModel.py to DivingModel.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/ConvenienceView.py to ConvenienceView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/IDiveView.py to IDiveView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/ActionClientNode.py to ActionClientNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control/SAMDiveView.py to SAMDiveView.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/ament_index/resource_index/packages
+copying resource/basic_depth_pitch_control -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/basic_depth_pitch_control
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/basic_depth_pitch_control/config
+creating /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/basic_depth_pitch_control/launch
+copying launch/actionserver.launch -> /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/share/basic_depth_pitch_control/launch
+running install_egg_info
+Copying ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control-0.0.0-py3.10.egg-info
+running install_scripts
+Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+Installing diving script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+Installing test_view script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/install.log'

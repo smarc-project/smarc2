@@ -1,0 +1,41 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from sam_msgs/srv/UavcanUpdateBattery.srv
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module srv {
+    module UavcanUpdateBattery_Request_Constants {
+      @verbatim (language="comment", text=
+        "Battery is full right now")
+      const uint8 IS_FULL = 1;
+      @verbatim (language="comment", text=
+        "Battery was full when Sam started")
+      const uint8 WAS_FULL = 2;
+      @verbatim (language="comment", text=
+        "Add enclosed charge")
+      const uint8 ADD_CHARGE = 3;
+      @verbatim (language="comment", text=
+        "Powered externally")
+      const uint8 ON_MAINS = 4;
+    };
+    @verbatim (language="comment", text=
+      "Update battery")
+    struct UavcanUpdateBattery_Request {
+      uint8 node_id;
+
+      uint8 command;
+
+      @verbatim (language="comment", text=
+        "Ah (can be negative)")
+      float charge;
+    };
+    module UavcanUpdateBattery_Response_Constants {
+      const uint8 UPDATE_SUCCESSFULL = 1;
+      const uint8 UPDATE_FAILED = 0;
+    };
+    struct UavcanUpdateBattery_Response {
+      uint8 success;
+    };
+  };
+};

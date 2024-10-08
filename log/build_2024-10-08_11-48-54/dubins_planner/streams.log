@@ -1,0 +1,23 @@
+[5.897s] Invoking command in '/home/schni2zle/colcon_ws/src/utilities/dubins_planner': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/dubins_planner/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/dubins_planner build --build-base /home/schni2zle/colcon_ws/src/build/dubins_planner/build install --record /home/schni2zle/colcon_ws/src/build/dubins_planner/install.log --single-version-externally-managed install_data
+[7.192s] running egg_info
+[7.197s] writing ../../build/dubins_planner/dubins_planner.egg-info/PKG-INFO
+[7.199s] writing dependency_links to ../../build/dubins_planner/dubins_planner.egg-info/dependency_links.txt
+[7.199s] writing entry points to ../../build/dubins_planner/dubins_planner.egg-info/entry_points.txt
+[7.200s] writing requirements to ../../build/dubins_planner/dubins_planner.egg-info/requires.txt
+[7.200s] writing top-level names to ../../build/dubins_planner/dubins_planner.egg-info/top_level.txt
+[7.206s] reading manifest file '../../build/dubins_planner/dubins_planner.egg-info/SOURCES.txt'
+[7.206s] adding license file 'LICENSE'
+[7.209s] writing manifest file '../../build/dubins_planner/dubins_planner.egg-info/SOURCES.txt'
+[7.209s] running build
+[7.212s] running build_py
+[7.215s] running install
+[7.215s] running install_lib
+[7.217s] running install_data
+[7.217s] running install_egg_info
+[7.224s] removing '/home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages/dubins_planner-0.0.0-py3.10.egg-info' (and everything under it)
+[7.229s] Copying ../../build/dubins_planner/dubins_planner.egg-info to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages/dubins_planner-0.0.0-py3.10.egg-info
+[7.229s] running install_scripts
+[7.335s] Installing dubins_planner_service script to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/dubins_planner
+[7.335s] Installing test_dubins_planner_service script to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/dubins_planner
+[7.337s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/dubins_planner/install.log'
+[8.387s] Invoked command in '/home/schni2zle/colcon_ws/src/utilities/dubins_planner' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/dubins_planner/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/dubins_planner build --build-base /home/schni2zle/colcon_ws/src/build/dubins_planner/build install --record /home/schni2zle/colcon_ws/src/build/dubins_planner/install.log --single-version-externally-managed install_data

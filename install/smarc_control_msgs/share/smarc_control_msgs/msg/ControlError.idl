@@ -1,0 +1,26 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_control_msgs/msg/ControlError.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_control_msgs {
+  module msg {
+    struct ControlError {
+      double x;
+
+      double y;
+
+      double z;
+
+      double roll;
+
+      double pitch;
+
+      double yaw;
+
+      double heading;
+
+      double distance;
+    };
+  };
+};

@@ -1,0 +1,77 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from dead_reckoning_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module dead_reckoning_msgs {
+  module msg {
+    module Topics_Constants {
+      @verbatim (language="comment", text=
+        "Dead reckoning topics" "\n"        "" "\n"        "DR node" "\n"        "Type: Odometry")
+      const string DR_ODOM_TOPIC = "dr/odom";
+      @verbatim (language="comment", text=
+        "Type: PoseWithCovarianceStamped")
+      const string DR_DEPTH_POSE_TOPIC = "dr/depth_pose";
+      @verbatim (language="comment", text=
+        "Type: Odometry")
+      const string DR_GPS_ODOM_TOPIC = "dr/gps_odom";
+      @verbatim (language="comment", text=
+        "IMU" "\n"        "Type: Float64")
+      const string DR_ROLL_TOPIC = "dr/roll";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_PITCH_TOPIC = "dr/pitch";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_YAW_TOPIC = "dr/yaw";
+      @verbatim (language="comment", text=
+        "DEPTH" "\n"        "Type: Float64")
+      const string DR_DEPTH_TOPIC = "dr/depth";
+      @verbatim (language="comment", text=
+        "Other" "\n"        "Type: Float64")
+      const string DR_COMPASS_HEADING_TOPIC = "dr/compass_heading";
+      @verbatim (language="comment", text=
+        "Type: GeoPoint")
+      const string DR_LAT_LON_TOPIC = "dr/lat_lon";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_X_TOPIC = "dr/x";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_Y_TOPIC = "dr/y";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_Z_TOPIC = "dr/z";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_U_TOPIC = "dr/u";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_V_TOPIC = "dr/v";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_W_TOPIC = "dr/w";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_P_TOPIC = "dr/p";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_Q_TOPIC = "dr/q";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_R_TOPIC = "dr/r";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string DR_ODOM_ALT_TOPIC = "dr/alt";
+    };
+    @verbatim (language="comment", text=
+      "This is a file that defines all the topics of dead reckoning." "\n"
+      "The goal is to have one location that all cpp/py scripts" "\n"
+      "can easily access and thus avoid having 100 parameters for topics all" "\n"
+      "over the place, repeated for all subs/pubs..." "\n"
+      "It is assumed that the nodes will namespace as needed.")
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

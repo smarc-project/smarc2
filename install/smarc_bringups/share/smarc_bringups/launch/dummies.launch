@@ -1,0 +1,10 @@
+<launch>
+    <arg name="robot_name" default="sam0"/>
+    
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+            <!--node name="DUMMY_action_server" pkg="workshopfun" exec="action_server_node" output="screen"/-->
+            <executable cmd="ros2 topic pub -r 10 -n 'DUMMY_vehicle_ready' -p 20 $(var robot_name)/core/vehicle_ready std_msgs/msg/Bool 'data: true' " output="screen"/>
+    </group>
+
+</launch>

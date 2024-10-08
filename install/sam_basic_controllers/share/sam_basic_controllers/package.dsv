@@ -1,0 +1,8 @@
+source;share/sam_basic_controllers/hook/cmake_prefix_path.ps1
+source;share/sam_basic_controllers/hook/cmake_prefix_path.dsv
+source;share/sam_basic_controllers/hook/cmake_prefix_path.sh
+source;share/sam_basic_controllers/local_setup.bash
+source;share/sam_basic_controllers/local_setup.dsv
+source;share/sam_basic_controllers/local_setup.ps1
+source;share/sam_basic_controllers/local_setup.sh
+source;share/sam_basic_controllers/local_setup.zsh

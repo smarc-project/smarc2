@@ -1,0 +1,142 @@
+[1.061s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs -- -j8 -l8
+[1.892s] [  9%] Built target sam_graph_slam_2_msgs__rosidl_generator_c
+[1.893s] [ 12%] Built target sam_graph_slam_2_msgs__cpp
+[1.895s] [ 12%] Built target ament_cmake_python_copy_sam_graph_slam_2_msgs
+[1.895s] [ 25%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_c
+[1.895s] [ 32%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_introspection_c
+[1.895s] [ 41%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_c
+[1.896s] [ 51%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cpp
+[1.896s] [ 61%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_cpp
+[1.896s] [ 70%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_introspection_cpp
+[1.897s] [ 70%] Built target sam_graph_slam_2_msgs
+[1.899s] [ 74%] Built target sam_graph_slam_2_msgs__py
+[1.900s] [ 80%] Built target sam_graph_slam_2_msgs__rosidl_generator_py
+[1.900s] [ 87%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_c__pyext
+[1.901s] [ 93%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_introspection_c__pyext
+[1.901s] [100%] Built target sam_graph_slam_2_msgs__rosidl_typesupport_c__pyext
+[1.983s] running egg_info
+[1.985s] writing sam_graph_slam_2_msgs.egg-info/PKG-INFO
+[1.986s] writing dependency_links to sam_graph_slam_2_msgs.egg-info/dependency_links.txt
+[1.988s] writing top-level names to sam_graph_slam_2_msgs.egg-info/top_level.txt
+[1.992s] reading manifest file 'sam_graph_slam_2_msgs.egg-info/SOURCES.txt'
+[1.995s] writing manifest file 'sam_graph_slam_2_msgs.egg-info/SOURCES.txt'
+[2.063s] [100%] Built target ament_cmake_python_build_sam_graph_slam_2_msgs_egg
+[2.568s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs -- -j8 -l8
+[3.205s] Invoking command in '/home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs
+[3.296s] -- Install configuration: ""
+[3.302s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/ament_index/resource_index/rosidl_interfaces/sam_graph_slam_2_msgs
+[3.302s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.302s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.303s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/rosidl_generator_c__visibility_control.h
+[3.305s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.306s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__struct.h
+[3.308s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__type_support.h
+[3.319s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__functions.h
+[3.319s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__functions.c
+[3.320s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/topics.h
+[3.320s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/library_path.sh
+[3.320s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/library_path.dsv
+[3.321s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_generator_c.so
+[3.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.344s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.344s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[3.344s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.345s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+[3.345s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_c.so
+[3.367s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.367s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.368s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[3.368s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.368s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__type_support.c
+[3.368s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+[3.368s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_introspection_c.so
+[3.369s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_c.so
+[3.369s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.369s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.369s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.369s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__struct.hpp
+[3.370s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__traits.hpp
+[3.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__builder.hpp
+[3.382s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/topics.hpp
+[3.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[3.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+[3.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/dds_fastrtps
+[3.394s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cpp.so
+[3.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs
+[3.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg
+[3.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail
+[3.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__type_support.cpp
+[3.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/include/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+[3.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_introspection_cpp.so
+[3.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_typesupport_cpp.so
+[3.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/pythonpath.sh
+[3.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/pythonpath.dsv
+[3.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs-0.0.0-py3.10.egg-info
+[3.407s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs-0.0.0-py3.10.egg-info/PKG-INFO
+[3.407s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs-0.0.0-py3.10.egg-info/SOURCES.txt
+[3.407s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs-0.0.0-py3.10.egg-info/top_level.txt
+[3.408s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs-0.0.0-py3.10.egg-info/dependency_links.txt
+[3.414s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs
+[3.414s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/libsam_graph_slam_2_msgs__rosidl_generator_py.so
+[3.414s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/msg
+[3.414s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/msg/_topics_s.c
+[3.415s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/msg/_topics.py
+[3.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/msg/__init__.py
+[3.421s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[3.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/_sam_graph_slam_2_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+[3.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[3.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/_sam_graph_slam_2_msgs_s.ep.rosidl_typesupport_c.c
+[3.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/__init__.py
+[3.422s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/_sam_graph_slam_2_msgs_s.ep.rosidl_typesupport_introspection_c.c
+[3.423s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[3.739s] Listing '/home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs'...
+[3.741s] Listing '/home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/msg'...
+[3.767s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[3.771s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[3.772s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages/sam_graph_slam_2_msgs/sam_graph_slam_2_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[3.773s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/lib/libsam_graph_slam_2_msgs__rosidl_generator_py.so
+[3.775s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/msg/Topics.idl
+[3.775s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/msg/Topics.msg
+[3.776s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/ament_index/resource_index/package_run_dependencies/sam_graph_slam_2_msgs
+[3.777s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/ament_index/resource_index/parent_prefix_path/sam_graph_slam_2_msgs
+[3.778s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/ament_prefix_path.sh
+[3.779s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/ament_prefix_path.dsv
+[3.779s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/path.sh
+[3.780s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/environment/path.dsv
+[3.781s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/local_setup.bash
+[3.781s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/local_setup.sh
+[3.782s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/local_setup.zsh
+[3.782s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/local_setup.dsv
+[3.783s] -- Installing: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/package.dsv
+[3.783s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/ament_index/resource_index/packages/sam_graph_slam_2_msgs
+[3.784s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_generator_cExport.cmake
+[3.786s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_generator_cExport-noconfig.cmake
+[3.788s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+[3.788s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[3.789s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_introspection_cExport.cmake
+[3.790s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[3.790s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_cExport.cmake
+[3.791s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_cExport-noconfig.cmake
+[3.792s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_generator_cppExport.cmake
+[3.792s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+[3.795s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[3.797s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_introspection_cppExport.cmake
+[3.797s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[3.799s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_cppExport.cmake
+[3.799s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+[3.800s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_generator_pyExport.cmake
+[3.800s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/export_sam_graph_slam_2_msgs__rosidl_generator_pyExport-noconfig.cmake
+[3.801s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/rosidl_cmake-extras.cmake
+[3.801s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+[3.802s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+[3.803s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+[3.804s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/ament_cmake_export_targets-extras.cmake
+[3.804s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[3.805s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[3.805s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgsConfig.cmake
+[3.806s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/cmake/sam_graph_slam_2_msgsConfig-version.cmake
+[3.807s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/sam_graph_slam_2_msgs/share/sam_graph_slam_2_msgs/package.xml
+[3.821s] Invoked command in '/home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/sam_graph_slam_2_msgs

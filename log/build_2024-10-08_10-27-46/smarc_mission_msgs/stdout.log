@@ -1,0 +1,455 @@
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found geographic_msgs: 1.0.6 (/opt/ros/humble/share/geographic_msgs/cmake)
+-- Found sensor_msgs: 4.2.4 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/schni2zle/colcon_ws/src/build/smarc_mission_msgs
+[  1%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[  1%] Built target smarc_mission_msgs__cpp
+[  1%] Built target ament_cmake_python_copy_smarc_mission_msgs
+[  2%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[  3%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/msg/detail/topics__type_support.cpp.o[0m
+[  4%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/msg/detail/mission_control__type_support.cpp.o[0m
+[  5%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/action/detail/empty__type_support.cpp.o[0m
+[  6%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/action/detail/goto_waypoint__type_support.cpp.o[0m
+[  8%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/srv/detail/dubins_plan__type_support.cpp.o[0m
+[  9%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.cpp.o[0m
+[ 10%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.cpp.o[0m
+[ 11%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_mission_msgs/msg/detail/bt_command__type_support.cpp.o[0m
+[ 12%] [32m[1mLinking CXX shared library libsmarc_mission_msgs__rosidl_typesupport_introspection_cpp.so[0m
+[ 12%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_cpp
+running egg_info
+creating smarc_mission_msgs.egg-info
+writing smarc_mission_msgs.egg-info/PKG-INFO
+writing dependency_links to smarc_mission_msgs.egg-info/dependency_links.txt
+writing top-level names to smarc_mission_msgs.egg-info/top_level.txt
+writing manifest file 'smarc_mission_msgs.egg-info/SOURCES.txt'
+reading manifest file 'smarc_mission_msgs.egg-info/SOURCES.txt'
+writing manifest file 'smarc_mission_msgs.egg-info/SOURCES.txt'
+[ 12%] Built target ament_cmake_python_build_smarc_mission_msgs_egg
+[ 13%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[ 14%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/msg/detail/dds_fastrtps/topics__type_support.cpp.o[0m
+[ 16%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/action/detail/dds_fastrtps/goto_waypoint__type_support.cpp.o[0m
+[ 17%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/srv/detail/dds_fastrtps/dubins_plan__type_support.cpp.o[0m
+[ 18%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/srv/detail/dds_fastrtps/utm_lat_lon__type_support.cpp.o[0m
+[ 19%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/action/detail/dds_fastrtps/empty__type_support.cpp.o[0m
+[ 20%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/msg/detail/dds_fastrtps/mission_control__type_support.cpp.o[0m
+[ 21%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/msg/detail/dds_fastrtps/goto_waypoint__type_support.cpp.o[0m
+[ 22%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_mission_msgs/msg/detail/dds_fastrtps/bt_command__type_support.cpp.o[0m
+[ 24%] [32m[1mLinking CXX shared library libsmarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.so[0m
+[ 24%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp
+[ 25%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[ 26%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/msg/topics__type_support.cpp.o[0m
+[ 27%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/srv/dubins_plan__type_support.cpp.o[0m
+[ 28%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/srv/utm_lat_lon__type_support.cpp.o[0m
+[ 29%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/action/goto_waypoint__type_support.cpp.o[0m
+[ 31%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/action/empty__type_support.cpp.o[0m
+[ 32%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/msg/mission_control__type_support.cpp.o[0m
+[ 33%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/msg/goto_waypoint__type_support.cpp.o[0m
+[ 34%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_mission_msgs/msg/bt_command__type_support.cpp.o[0m
+[ 35%] [32m[1mLinking CXX shared library libsmarc_mission_msgs__rosidl_typesupport_cpp.so[0m
+[ 35%] Built target smarc_mission_msgs__rosidl_typesupport_cpp
+[ 36%] [34m[1mGenerating C code for ROS interfaces[0m
+[ 37%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/msg/detail/topics__functions.c.o[0m
+[ 39%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/srv/detail/utm_lat_lon__functions.c.o[0m
+[ 40%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/srv/detail/dubins_plan__functions.c.o[0m
+[ 41%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/action/detail/goto_waypoint__functions.c.o[0m
+[ 42%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/action/detail/empty__functions.c.o[0m
+[ 43%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/msg/detail/mission_control__functions.c.o[0m
+[ 44%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/msg/detail/goto_waypoint__functions.c.o[0m
+[ 45%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_mission_msgs/msg/detail/bt_command__functions.c.o[0m
+[ 47%] [32m[1mLinking C shared library libsmarc_mission_msgs__rosidl_generator_c.so[0m
+[ 47%] Built target smarc_mission_msgs__rosidl_generator_c
+[ 48%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[ 49%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/msg/detail/topics__type_support_c.cpp.o[0m
+[ 50%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/action/detail/goto_waypoint__type_support_c.cpp.o[0m
+[ 51%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/srv/detail/dubins_plan__type_support_c.cpp.o[0m
+[ 52%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support_c.cpp.o[0m
+[ 54%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/action/detail/empty__type_support_c.cpp.o[0m
+[ 55%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/msg/detail/mission_control__type_support_c.cpp.o[0m
+[ 56%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/msg/detail/goto_waypoint__type_support_c.cpp.o[0m
+[ 57%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_mission_msgs/msg/detail/bt_command__type_support_c.cpp.o[0m
+[ 58%] [32m[1mLinking CXX shared library libsmarc_mission_msgs__rosidl_typesupport_fastrtps_c.so[0m
+[ 58%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_c
+[ 59%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[ 60%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/msg/topics__type_support.cpp.o[0m
+[ 62%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/srv/dubins_plan__type_support.cpp.o[0m
+[ 63%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/srv/utm_lat_lon__type_support.cpp.o[0m
+[ 64%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/action/goto_waypoint__type_support.cpp.o[0m
+[ 65%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/action/empty__type_support.cpp.o[0m
+[ 66%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/msg/mission_control__type_support.cpp.o[0m
+[ 67%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/msg/goto_waypoint__type_support.cpp.o[0m
+[ 68%] [32mBuilding CXX object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_mission_msgs/msg/bt_command__type_support.cpp.o[0m
+[ 70%] [32m[1mLinking CXX shared library libsmarc_mission_msgs__rosidl_typesupport_c.so[0m
+[ 70%] Built target smarc_mission_msgs__rosidl_typesupport_c
+[ 71%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[ 72%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/msg/detail/topics__type_support.c.o[0m
+[ 73%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.c.o[0m
+[ 74%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/srv/detail/dubins_plan__type_support.c.o[0m
+[ 75%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/action/detail/goto_waypoint__type_support.c.o[0m
+[ 77%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/action/detail/empty__type_support.c.o[0m
+[ 78%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/msg/detail/mission_control__type_support.c.o[0m
+[ 79%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.c.o[0m
+[ 80%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_mission_msgs/msg/detail/bt_command__type_support.c.o[0m
+[ 81%] [32m[1mLinking C shared library libsmarc_mission_msgs__rosidl_typesupport_introspection_c.so[0m
+[ 81%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_c
+[ 81%] Built target smarc_mission_msgs
+[ 82%] [34m[1mGenerating Python code for ROS interfaces[0m
+[ 82%] Built target smarc_mission_msgs__py
+[ 83%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/msg/_topics_s.c.o[0m
+[ 85%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/srv/_utm_lat_lon_s.c.o[0m
+[ 86%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/srv/_dubins_plan_s.c.o[0m
+[ 87%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/action/_goto_waypoint_s.c.o[0m
+[ 88%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/action/_empty_s.c.o[0m
+[ 89%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/msg/_mission_control_s.c.o[0m
+[ 90%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/msg/_goto_waypoint_s.c.o[0m
+[ 91%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_mission_msgs/msg/_bt_command_s.c.o[0m
+[ 93%] [32m[1mLinking C shared library rosidl_generator_py/smarc_mission_msgs/libsmarc_mission_msgs__rosidl_generator_py.so[0m
+[ 93%] Built target smarc_mission_msgs__rosidl_generator_py
+[ 94%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[ 95%] [32m[1mLinking C shared library rosidl_generator_py/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so[0m
+[ 95%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_c__pyext
+[ 96%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_c.c.o[0m
+[ 97%] [32m[1mLinking C shared library rosidl_generator_py/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so[0m
+[ 97%] Built target smarc_mission_msgs__rosidl_typesupport_c__pyext
+[ 98%] [32mBuilding C object CMakeFiles/smarc_mission_msgs__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[100%] [32m[1mLinking C shared library rosidl_generator_py/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so[0m
+[100%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_c__pyext
+-- Install configuration: ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/rosidl_interfaces/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/mission_control.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/goto_waypoint.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_generator_c__visibility_control.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/bt_command.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/topics.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/utm_lat_lon.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/dubins_plan.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/goto_waypoint.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__struct.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__functions.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__functions.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/empty.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/library_path.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/library_path.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_c.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_c.so" to ""
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_c.so" to ""
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_introspection_c.h
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_c.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_c.so" to ""
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/mission_control.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/bt_command.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/goto_waypoint.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/topics.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/utm_lat_lon.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/dubins_plan.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/empty.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__builder.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__struct.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__traits.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/goto_waypoint.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/dds_fastrtps
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dds_fastrtps
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/dds_fastrtps
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+-- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.cpp
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_cpp.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_cpp.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/pythonpath.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/pythonpath.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/PKG-INFO
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/top_level.txt
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_goto_waypoint.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_bt_command_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_topics_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_mission_control_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_mission_control.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_goto_waypoint_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_topics.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/__init__.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_bt_command.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_introspection_c.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_c.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/libsmarc_mission_msgs__rosidl_generator_py.so
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_utm_lat_lon_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_dubins_plan.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/__init__.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_dubins_plan_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_utm_lat_lon.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/__init__.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_goto_waypoint.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_goto_waypoint_s.c
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/__init__.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_empty.py
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_empty_s.c
+Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/__init__.py'...
+Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/__init__.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_empty.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_goto_waypoint.py'...
+Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/__init__.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_bt_command.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_goto_waypoint.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_mission_control.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_topics.py'...
+Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/__init__.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_dubins_plan.py'...
+Compiling '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_utm_lat_lon.py'...
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_py.so
+-- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_py.so" to ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/Topics.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/BTCommand.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/GotoWaypoint.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/MissionControl.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/Empty.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/GotoWaypoint.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon.idl
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/Topics.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/BTCommand.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/GotoWaypoint.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/MissionControl.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/Empty.action
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/GotoWaypoint.action
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan.srv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan_Request.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan_Response.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon.srv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon_Request.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon_Response.msg
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/package_run_dependencies/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/parent_prefix_path/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/ament_prefix_path.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/ament_prefix_path.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/path.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/path.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.bash
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.zsh
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/package.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/packages/smarc_mission_msgs
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cppExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cppExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_pyExport.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_pyExport-noconfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgsConfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgsConfig-version.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/package.xml

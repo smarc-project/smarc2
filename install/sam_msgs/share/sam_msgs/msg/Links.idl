@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/Links.msg
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module msg {
+    module Links_Constants {
+      const string BASE_LINK = "base_link";
+      const string BASE_LINK_2D = "base_link_2d";
+      const string PRESS_LINK = "pressure_link";
+      const string GPS_LINK = "gps_link";
+      const string DVL_LINK = "dvl_link";
+      const string ODOM_LINK = "odom";
+    };
+    @verbatim (language="comment", text=
+      "SAM links")
+    struct Links {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

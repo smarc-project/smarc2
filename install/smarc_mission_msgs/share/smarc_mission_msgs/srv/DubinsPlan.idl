@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_mission_msgs/srv/DubinsPlan.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Pose2D.idl"
+
+module smarc_mission_msgs {
+  module srv {
+    struct DubinsPlan_Request {
+      sequence<geometry_msgs::msg::Pose2D> waypoints;
+
+      double step;
+
+      double turning_radius;
+    };
+    struct DubinsPlan_Response {
+      sequence<geometry_msgs::msg::Pose2D> waypoints;
+
+      sequence<uint16> original_wp_indices;
+    };
+  };
+};

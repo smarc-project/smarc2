@@ -1,0 +1,38 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module msg {
+    module Topics_Constants {
+      @verbatim (language="comment", text=
+        "Actuator commands")
+      const string VBS_CMD_TOPIC = "core/vbs_cmd";
+      const string LCG_CMD_TOPIC = "core/lcg_cmd";
+      const string THRUSTER1_CMD_TOPIC = "core/thruster1_cmd";
+      const string THRUSTER2_CMD_TOPIC = "core/thruster2_cmd";
+      const string THRUST_VECTOR_CMD_TOPIC = "core/thrust_vector_cmd";
+      const string DEPTH_TOPIC = "core/depth20_pressure";
+      const string DVL_TOPIC = "core/dvl";
+      const string LEAK_TOPIC = "core/leak";
+      const string VBS_FB_TOPIC = "core/vbs_fb";
+      const string LCG_FB_TOPIC = "core/lcg_fb";
+      const string THRUSTER1_FB_TOPIC = "core/thruster1_fb";
+      const string THRUSTER2_FB_TOPIC = "core/thruster2_fb";
+      const string STIM_IMU_TOPIC = "core/imu";
+      const string SBG_IMU_TOPIC = "core/sbg_imu";
+      const string PRESS_DEPTH20_TOPIC = "core/depth20_pressure";
+      const string SIDESCAN_TOPIC = "payload/sidescan";
+    };
+    @verbatim (language="comment", text=
+      "This is a file that defines all the topics of sam." "\n"
+      "The goal is to have one location that all cpp/py scripts" "\n"
+      "can easily access and thus avoid having 100 parameters for topics all" "\n"
+      "over the place, repeated for all subs/pubs..." "\n"
+      "It is assumed that the nodes will namespace as needed.")
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

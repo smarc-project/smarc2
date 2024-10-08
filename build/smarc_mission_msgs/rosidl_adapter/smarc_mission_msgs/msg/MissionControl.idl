@@ -1,0 +1,65 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_mission_msgs/msg/MissionControl.msg
+// generated code does not contain a copyright notice
+
+#include "smarc_mission_msgs/msg/GotoWaypoint.idl"
+
+module smarc_mission_msgs {
+  module msg {
+    module MissionControl_Constants {
+      @verbatim (language="comment", text=
+        "start or stop the current plan" "\n"        "stop will stop and delete the plan" "\n"        "pause will stop the execution, but not delete it" "\n"        "start either starts a new plan or continues a paused one")
+      const uint8 CMD_START = 0;
+      const uint8 CMD_STOP = 1;
+      const uint8 CMD_PAUSE = 2;
+      @verbatim (language="comment", text=
+        "one-way stop button. no plan should be started" "\n"        "after this is received")
+      const uint8 CMD_EMERGENCY = 3;
+      @verbatim (language="comment", text=
+        "re-set the plan with the given waypoints")
+      const uint8 CMD_SET_PLAN = 4;
+      @verbatim (language="comment", text=
+        "to indicate that this is just feedback")
+      const uint8 CMD_IS_FEEDBACK = 5;
+      @verbatim (language="comment", text=
+        "to specifically request a feedback message")
+      const uint8 CMD_REQUEST_FEEDBACK = 6;
+      @verbatim (language="comment", text=
+        "corresponding to each command")
+      const uint8 FB_RUNNING = 0;
+      const uint8 FB_STOPPED = 1;
+      const uint8 FB_PAUSED = 2;
+      const uint8 FB_EMERGENCY = 3;
+      const uint8 FB_RECEIVED = 4;
+      const uint8 FB_COMPLETED = 5;
+    };
+    @verbatim (language="comment", text=
+      "name of the plan")
+    struct MissionControl {
+      string name;
+
+      @verbatim (language="comment", text=
+        "a hash derived frm this entire message. optional.")
+      string hash;
+
+      @verbatim (language="comment", text=
+        "a timeout in seconds, in which the vehicle should stop" "\n"
+        "doing what this mission control message wants it to do" "\n"
+        "after trying for this many seconds")
+      uint64 timeout;
+
+      uint8 command;
+
+      uint8 plan_state;
+
+      @verbatim (language="comment", text=
+        "and some extra string, because why not")
+      string feedback_str;
+
+      @verbatim (language="comment", text=
+        "if the cmd is set plan, then this should contain the waypoints" "\n"
+        "to follow, otherwise ignored")
+      sequence<smarc_mission_msgs::msg::GotoWaypoint> waypoints;
+    };
+  };
+};

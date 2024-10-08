@@ -1,0 +1,27 @@
+[5.912s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/dive_control': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/dive_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/dive_control build --build-base /home/schni2zle/colcon_ws/src/build/dive_control/build install --record /home/schni2zle/colcon_ws/src/build/dive_control/install.log --single-version-externally-managed install_data
+[7.169s] running egg_info
+[7.172s] writing ../../build/dive_control/dive_control.egg-info/PKG-INFO
+[7.175s] writing dependency_links to ../../build/dive_control/dive_control.egg-info/dependency_links.txt
+[7.175s] writing entry points to ../../build/dive_control/dive_control.egg-info/entry_points.txt
+[7.176s] writing requirements to ../../build/dive_control/dive_control.egg-info/requires.txt
+[7.176s] writing top-level names to ../../build/dive_control/dive_control.egg-info/top_level.txt
+[7.179s] reading manifest file '../../build/dive_control/dive_control.egg-info/SOURCES.txt'
+[7.182s] adding license file 'LICENSE'
+[7.183s] writing manifest file '../../build/dive_control/dive_control.egg-info/SOURCES.txt'
+[7.183s] running build
+[7.183s] running build_py
+[7.186s] running install
+[7.187s] running install_lib
+[7.191s] running install_data
+[7.193s] running install_egg_info
+[7.201s] removing '/home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control-0.0.0-py3.10.egg-info' (and everything under it)
+[7.201s] Copying ../../build/dive_control/dive_control.egg-info to /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control-0.0.0-py3.10.egg-info
+[7.205s] running install_scripts
+[7.286s] Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.287s] Installing action_server_diving script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.287s] Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.287s] Installing manual_diving script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.287s] Installing setpoint script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.288s] Installing test_view script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+[7.288s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/dive_control/install.log'
+[7.422s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/dive_control' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/dive_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/dive_control build --build-base /home/schni2zle/colcon_ws/src/build/dive_control/build install --record /home/schni2zle/colcon_ws/src/build/dive_control/install.log --single-version-externally-managed install_data

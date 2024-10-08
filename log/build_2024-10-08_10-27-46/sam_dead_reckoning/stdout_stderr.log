@@ -1,0 +1,73 @@
+running egg_info
+creating ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info
+writing ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/PKG-INFO
+writing dependency_links to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/dependency_links.txt
+writing entry points to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/entry_points.txt
+writing requirements to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/requires.txt
+writing top-level names to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/top_level.txt
+writing manifest file '../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/SOURCES.txt'
+reading manifest file '../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/SOURCES.txt'
+writing manifest file '../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build
+creating /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib
+creating /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/dr_node.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/press_to_depth.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/sam_mm.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/visual_tools.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/yaw_enu_2_compass_heading.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/sbg_imu_2_rpy_enu.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/__init__.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/gps_node.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+copying sam_dead_reckoning/dr_odom_2_lat_lon.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning
+creating /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/helpers
+copying sam_dead_reckoning/helpers/ros_helpers.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/helpers
+copying sam_dead_reckoning/helpers/__init__.py -> /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/helpers
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/dr_node.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/press_to_depth.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/helpers
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/helpers/ros_helpers.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/helpers
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/helpers/__init__.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/helpers
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/sam_mm.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/visual_tools.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/yaw_enu_2_compass_heading.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/sbg_imu_2_rpy_enu.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/__init__.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/gps_node.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+copying /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build/lib/sam_dead_reckoning/dr_odom_2_lat_lon.py -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/dr_node.py to dr_node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/press_to_depth.py to press_to_depth.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/helpers/ros_helpers.py to ros_helpers.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/helpers/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/sam_mm.py to sam_mm.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/visual_tools.py to visual_tools.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/yaw_enu_2_compass_heading.py to yaw_enu_2_compass_heading.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/sbg_imu_2_rpy_enu.py to sbg_imu_2_rpy_enu.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/gps_node.py to gps_node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning/dr_odom_2_lat_lon.py to dr_odom_2_lat_lon.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/ament_index/resource_index/packages
+copying resource/sam_dead_reckoning -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/sam_dead_reckoning
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/sam_dead_reckoning/launch
+copying launch/sam_dr_launch.launch -> /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/sam_dead_reckoning/launch
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/sam_dead_reckoning/rviz
+creating /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/share/sam_dead_reckoning/config
+running install_egg_info
+Copying ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning-0.0.0-py3.10.egg-info
+running install_scripts
+Installing compass_heading_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+Installing depth_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+Installing dr_lat_lon_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+Installing dr_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+Installing gps_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+Installing rpy_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/install.log'

@@ -1,0 +1,42 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_graph_slam_2_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module sam_graph_slam_2_msgs {
+  module msg {
+    module Topics_Constants {
+      @verbatim (language="comment", text=
+        "MAP")
+      const string MAP_LINE_DEPTH_TOPIC = "map/line_depth";
+      const string MAP_POINT_FEATURE_TOPIC = "map/point_features";
+      const string MAP_LINE_FEATURE_TOPIC = "map/line_features";
+      const string MAP_MARKED_LINE_SPHERES_TOPIC = "map/marked_lines_spheres";
+      const string MAP_MARKED_LINE_LINES_TOPIC = "map/marked_lines_lines";
+      @verbatim (language="comment", text=
+        "Detector" "\n"        "" "\n"        "Msg type: Detection2DArray")
+      const string DETECTOR_HYPOTH_TOPIC = "payload/sidescan/detection_hypothesis";
+      @verbatim (language="comment", text=
+        "Msg type:MarkerArray")
+      const string DETECTOR_MARKER_TOPIC = "payload/sidescan/detection_markers";
+      @verbatim (language="comment", text=
+        "Msg type: Image")
+      const string DETECTOR_RAW_SSS_TOPIC = "payload/sidescan/image";
+      @verbatim (language="comment", text=
+        "Msg Type: Image")
+      const string DETECTOR_MARKED_SSS_TOPIC = "payload/sidescan/detection_hypothesis_image";
+      @verbatim (language="comment", text=
+        "Dead reckoning" "\n"        "" "\n"        "This is only intended for use with the temporary DR, defined in pipeline_slam_dr_gt_publisher")
+      const string DR_ODOM_TOPIC = "graph_dr/dr_odom";
+      const string GT_ODOM_TOPIC = "graph_dr/gt_odom";
+    };
+    @verbatim (language="comment", text=
+      "This is a file that defines all the topics of sam_graph_slam_2." "\n"
+      "This package is relevant to localization in semi-structured environments with detectable point or line features." "\n"
+      "Specifically involving the algae farm." "\n"
+      "It is assumed that the nodes will namespace as needed.")
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

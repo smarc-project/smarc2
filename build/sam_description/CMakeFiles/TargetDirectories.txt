@@ -1,0 +1,9 @@
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/uninstall.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/sam_description_uninstall.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/test.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/edit_cache.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/rebuild_cache.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/list_install_components.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/install.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/install/local.dir
+/home/schni2zle/colcon_ws/src/build/sam_description/CMakeFiles/install/strip.dir

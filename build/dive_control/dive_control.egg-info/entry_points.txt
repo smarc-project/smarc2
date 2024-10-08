@@ -1,0 +1,8 @@
+[console_scripts]
+action_client_node = dive_control.ActionClientNode:main
+action_server_diving = dive_control.Node:action_server
+action_server_node = dive_control.ActionserverControllerNode:main
+manual_diving = dive_control.Node:main
+setpoint = dive_control.SetpointNode:main
+test_view = dive_control.SAMDiveView:test_view
+

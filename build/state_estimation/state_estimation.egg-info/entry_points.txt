@@ -1,0 +1,4 @@
+[console_scripts]
+detector = state_estimation.KNN:main
+estimator = state_estimation.estimator:main
+

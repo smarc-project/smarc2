@@ -1,0 +1,13 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+   
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+    <!--<node name="action_server_node" pkg="basic_go_to_waypoint" exec="action_server_node" output="screen"/>-->
+       <node name="waypoint_following" pkg="basic_go_to_waypoint" exec="waypoint_following" output="screen"/>
+           
+        <!--<node name="action_client_node" pkg="basic_go_to_waypoint" exec="action_client_node" output="screen"/>-->
+    </group>
+
+</launch>

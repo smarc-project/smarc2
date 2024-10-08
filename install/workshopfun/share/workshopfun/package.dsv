@@ -1,0 +1,6 @@
+source;share/workshopfun/hook/pythonpath.ps1
+source;share/workshopfun/hook/pythonpath.dsv
+source;share/workshopfun/hook/pythonpath.sh
+source;share/workshopfun/hook/ament_prefix_path.ps1
+source;share/workshopfun/hook/ament_prefix_path.dsv
+source;share/workshopfun/hook/ament_prefix_path.sh

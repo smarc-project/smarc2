@@ -1,0 +1,26 @@
+[6.096s] Invoking command in '/home/schni2zle/colcon_ws/src/navigation/dead_reckoning/sam_dead_reckoning': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../../build/sam_dead_reckoning build --build-base /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build install --record /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/install.log --single-version-externally-managed install_data
+[7.189s] running egg_info
+[7.191s] writing ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/PKG-INFO
+[7.193s] writing dependency_links to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/dependency_links.txt
+[7.194s] writing entry points to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/entry_points.txt
+[7.194s] writing requirements to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/requires.txt
+[7.194s] writing top-level names to ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/top_level.txt
+[7.198s] reading manifest file '../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/SOURCES.txt'
+[7.201s] writing manifest file '../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info/SOURCES.txt'
+[7.202s] running build
+[7.203s] running build_py
+[7.205s] running install
+[7.205s] running install_lib
+[7.212s] running install_data
+[7.213s] running install_egg_info
+[7.219s] removing '/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning-0.0.0-py3.10.egg-info' (and everything under it)
+[7.219s] Copying ../../../build/sam_dead_reckoning/sam_dead_reckoning.egg-info to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages/sam_dead_reckoning-0.0.0-py3.10.egg-info
+[7.221s] running install_scripts
+[7.288s] Installing compass_heading_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.292s] Installing depth_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.292s] Installing dr_lat_lon_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.292s] Installing dr_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.293s] Installing gps_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.293s] Installing rpy_node script to /home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/sam_dead_reckoning
+[7.293s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/install.log'
+[8.260s] Invoked command in '/home/schni2zle/colcon_ws/src/navigation/dead_reckoning/sam_dead_reckoning' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../../build/sam_dead_reckoning build --build-base /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/build install --record /home/schni2zle/colcon_ws/src/build/sam_dead_reckoning/install.log --single-version-externally-managed install_data

@@ -1,0 +1,10 @@
+<launch>
+    <arg name="robot_name" default="sam0"/>
+    
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+            <node name="utm_latlon_service" pkg="utm_latlon_converter" exec="converter" output="screen"/>
+            <node name="dubins_service" pkg="dubins_planner" exec="dubins_planner_service" output="screen"/>
+    </group>
+
+</launch>

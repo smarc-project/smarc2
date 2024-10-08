@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module msg {
+    module Topics_Constants {
+      const string BATTERY_TOPIC = "core/battery";
+      const string GPS_TOPIC = "core/gps";
+      const string HEADING_TOPIC = "core/heading";
+      const string ABORT_TOPIC = "core/abort";
+      const string HEARTBEAT_TOPIC = "core/heartbeat";
+      const string VEHICLE_READY_TOPIC = "core/vehicle_ready";
+    };
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

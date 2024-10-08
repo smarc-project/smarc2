@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/CircuitStatusStampedArray.msg
+// generated code does not contain a copyright notice
+
+#include "sam_msgs/msg/CircuitStatusStamped.idl"
+
+module sam_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Uavcan CircuitStatus")
+    struct CircuitStatusStampedArray {
+      sequence<sam_msgs::msg::CircuitStatusStamped> array;
+    };
+  };
+};

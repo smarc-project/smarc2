@@ -1,0 +1,35 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/Command.msg
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module msg {
+    module Command_Constants {
+      @verbatim (language="comment", text=
+        "Whether the units are linear or angular depends on the actuator type." "\n"        "" "\n"        "[-1, 1]")
+      const uint8 COMMAND_TYPE_UNITLESS = 0;
+      @verbatim (language="comment", text=
+        "meter or radian")
+      const uint8 COMMAND_TYPE_POSITION = 1;
+      @verbatim (language="comment", text=
+        "Newton or Newton metre")
+      const uint8 COMMAND_TYPE_FORCE = 2;
+      @verbatim (language="comment", text=
+        "meter per second or radian per second")
+      const uint8 COMMAND_TYPE_SPEED = 3;
+    };
+    @verbatim (language="comment", text=
+      "Nested type." "\n"
+      "Single actuator command.")
+    struct Command {
+      uint8 actuator_id;
+
+      uint8 command_type;
+
+      @verbatim (language="comment", text=
+        "Value of the above type")
+      float command_value;
+    };
+  };
+};

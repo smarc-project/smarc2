@@ -1,0 +1,4 @@
+source;share/sam_basic_controllers/local_setup.bash
+source;share/sam_basic_controllers/local_setup.dsv
+source;share/sam_basic_controllers/local_setup.sh
+source;share/sam_basic_controllers/local_setup.zsh

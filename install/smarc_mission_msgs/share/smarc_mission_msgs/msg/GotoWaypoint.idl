@@ -1,0 +1,56 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_mission_msgs/msg/GotoWaypoint.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/PoseStamped.idl"
+
+module smarc_mission_msgs {
+  module msg {
+    module GotoWaypoint_Constants {
+      @verbatim (language="comment", text=
+        "Defines the type of z control used going there")
+      const uint8 Z_CONTROL_NONE = 0;
+      const uint8 Z_CONTROL_DEPTH = 1;
+      const uint8 Z_CONTROL_ALTITUDE = 2;
+      @verbatim (language="comment", text=
+        "Defines the type of speed control used going there")
+      const uint8 SPEED_CONTROL_NONE = 0;
+      const uint8 SPEED_CONTROL_RPM = 1;
+      const uint8 SPEED_CONTROL_SPEED = 2;
+    };
+    @verbatim (language="comment", text=
+      "target pose in local UTM zone ENU coordinates" "\n"
+      "UTM zone used defined by global" "\n"
+      "/utm_zone and /utm_band ROS params")
+    struct GotoWaypoint {
+      geometry_msgs::msg::PoseStamped pose;
+
+      @verbatim (language="comment", text=
+        "required proximity in meters to waypoint in" "\n"
+        "order to consider the waypoint as reached")
+      double goal_tolerance;
+
+      uint8 z_control_mode;
+
+      double travel_altitude;
+
+      double travel_depth;
+
+      uint8 speed_control_mode;
+
+      double travel_rpm;
+
+      double travel_speed;
+
+      double lat;
+
+      double lon;
+
+      double arrival_heading;
+
+      boolean use_heading;
+
+      string name;
+    };
+  };
+};

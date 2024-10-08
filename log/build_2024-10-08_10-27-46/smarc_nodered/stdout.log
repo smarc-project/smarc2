@@ -1,0 +1,36 @@
+running egg_info
+creating ../../build/smarc_nodered/smarc_nodered.egg-info
+writing ../../build/smarc_nodered/smarc_nodered.egg-info/PKG-INFO
+writing dependency_links to ../../build/smarc_nodered/smarc_nodered.egg-info/dependency_links.txt
+writing entry points to ../../build/smarc_nodered/smarc_nodered.egg-info/entry_points.txt
+writing requirements to ../../build/smarc_nodered/smarc_nodered.egg-info/requires.txt
+writing top-level names to ../../build/smarc_nodered/smarc_nodered.egg-info/top_level.txt
+writing manifest file '../../build/smarc_nodered/smarc_nodered.egg-info/SOURCES.txt'
+reading manifest file '../../build/smarc_nodered/smarc_nodered.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/smarc_nodered/smarc_nodered.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/smarc_nodered/build
+creating /home/schni2zle/colcon_ws/src/build/smarc_nodered/build/lib
+creating /home/schni2zle/colcon_ws/src/build/smarc_nodered/build/lib/smarc_nodered
+copying smarc_nodered/__init__.py -> /home/schni2zle/colcon_ws/src/build/smarc_nodered/build/lib/smarc_nodered
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered
+copying /home/schni2zle/colcon_ws/src/build/smarc_nodered/build/lib/smarc_nodered/__init__.py -> /home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered
+byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered/__init__.py to __init__.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/ament_index/resource_index/packages
+copying resource/smarc_nodered -> /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/smarc_nodered
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/smarc_nodered/config
+copying config/mqtt_config.yaml -> /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/smarc_nodered/config
+creating /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/smarc_nodered/launch
+copying launch/smarc_nodered.launch -> /home/schni2zle/colcon_ws/src/install/smarc_nodered/share/smarc_nodered/launch
+running install_egg_info
+Copying ../../build/smarc_nodered/smarc_nodered.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered-0.1.0-py3.10.egg-info
+running install_scripts
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_nodered/install.log'

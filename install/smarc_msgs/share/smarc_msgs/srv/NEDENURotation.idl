@@ -1,0 +1,16 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_msgs/srv/NEDENURotation.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module smarc_msgs {
+  module srv {
+    struct NEDENURotation_Request {
+      geometry_msgs::msg::Quaternion orientation;
+    };
+    struct NEDENURotation_Response {
+      geometry_msgs::msg::Quaternion orientation;
+    };
+  };
+};

@@ -1,0 +1,311 @@
+[0.071s] Invoking command in '/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/smarc_mission_msgs -- -j8 -l8
+[0.460s] [  1%] Built target smarc_mission_msgs__cpp
+[0.471s] [ 12%] Built target smarc_mission_msgs__rosidl_generator_c
+[0.571s] [ 12%] Built target ament_cmake_python_copy_smarc_mission_msgs
+[0.653s] [ 24%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_c
+[0.661s] [ 35%] Built target smarc_mission_msgs__rosidl_typesupport_c
+[0.674s] [ 47%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_cpp
+[0.680s] [ 58%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_c
+[0.687s] [ 70%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_cpp
+[0.741s] [ 81%] Built target smarc_mission_msgs__rosidl_typesupport_cpp
+[0.843s] [ 81%] Built target smarc_mission_msgs
+[0.936s] [ 82%] Built target smarc_mission_msgs__py
+[1.081s] [ 93%] Built target smarc_mission_msgs__rosidl_generator_py
+[1.197s] [ 95%] Built target smarc_mission_msgs__rosidl_typesupport_c__pyext
+[1.212s] [ 97%] Built target smarc_mission_msgs__rosidl_typesupport_fastrtps_c__pyext
+[1.233s] [100%] Built target smarc_mission_msgs__rosidl_typesupport_introspection_c__pyext
+[2.008s] running egg_info
+[2.009s] writing smarc_mission_msgs.egg-info/PKG-INFO
+[2.009s] writing dependency_links to smarc_mission_msgs.egg-info/dependency_links.txt
+[2.009s] writing top-level names to smarc_mission_msgs.egg-info/top_level.txt
+[2.021s] reading manifest file 'smarc_mission_msgs.egg-info/SOURCES.txt'
+[2.022s] writing manifest file 'smarc_mission_msgs.egg-info/SOURCES.txt'
+[2.109s] [100%] Built target ament_cmake_python_build_smarc_mission_msgs_egg
+[3.822s] Invoked command in '/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/smarc_mission_msgs -- -j8 -l8
+[5.219s] Invoking command in '/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/smarc_mission_msgs
+[5.336s] -- Install configuration: ""
+[5.340s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/rosidl_interfaces/smarc_mission_msgs
+[5.340s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.341s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.341s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/mission_control.h
+[5.341s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/goto_waypoint.h
+[5.341s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_generator_c__visibility_control.h
+[5.341s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__struct.h
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.h
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__struct.h
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__functions.h
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__functions.h
+[5.342s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__struct.h
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__functions.c
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.h
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__functions.h
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__functions.c
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__functions.c
+[5.343s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.h
+[5.344s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__struct.h
+[5.347s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__functions.c
+[5.347s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.h
+[5.347s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__functions.h
+[5.348s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/bt_command.h
+[5.348s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/topics.h
+[5.348s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.348s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.348s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__functions.h
+[5.349s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__struct.h
+[5.349s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__struct.h
+[5.352s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.h
+[5.353s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.h
+[5.353s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__functions.h
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__functions.c
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__functions.c
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/utm_lat_lon.h
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/dubins_plan.h
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.354s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/goto_waypoint.h
+[5.355s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.355s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__struct.h
+[5.355s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__functions.h
+[5.355s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.h
+[5.355s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__functions.c
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__struct.h
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__functions.c
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__functions.h
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.h
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/empty.h
+[5.356s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/library_path.sh
+[5.357s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/library_path.dsv
+[5.357s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_c.so
+[5.358s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.358s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.358s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[5.358s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_fastrtps_c.h
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_fastrtps_c.h
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_fastrtps_c.h
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.359s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.360s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_fastrtps_c.h
+[5.360s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_fastrtps_c.h
+[5.370s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.370s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.370s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_fastrtps_c.h
+[5.370s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_fastrtps_c.h
+[5.371s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_c.so
+[5.371s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.371s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.373s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[5.373s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.374s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.c
+[5.376s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_introspection_c.h
+[5.376s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_introspection_c.h
+[5.376s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.c
+[5.376s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_introspection_c.h
+[5.376s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.c
+[5.377s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.c
+[5.377s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+[5.378s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.379s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.379s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.c
+[5.379s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.c
+[5.379s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_introspection_c.h
+[5.380s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_introspection_c.h
+[5.380s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.380s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.380s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.c
+[5.380s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_introspection_c.h
+[5.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_introspection_c.h
+[5.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.c
+[5.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_c.so
+[5.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_c.so
+[5.381s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.382s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.382s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/mission_control.hpp
+[5.382s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/bt_command.hpp
+[5.382s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.383s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__struct.hpp
+[5.383s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__struct.hpp
+[5.383s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__builder.hpp
+[5.383s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__struct.hpp
+[5.384s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__traits.hpp
+[5.384s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__traits.hpp
+[5.384s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__builder.hpp
+[5.384s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__traits.hpp
+[5.384s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__builder.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__struct.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__traits.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__builder.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/goto_waypoint.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/topics.hpp
+[5.385s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.386s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.386s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__builder.hpp
+[5.386s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__struct.hpp
+[5.386s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__traits.hpp
+[5.386s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__builder.hpp
+[5.387s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__struct.hpp
+[5.387s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__traits.hpp
+[5.388s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/utm_lat_lon.hpp
+[5.388s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/dubins_plan.hpp
+[5.388s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.388s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/empty.hpp
+[5.388s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__builder.hpp
+[5.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__struct.hpp
+[5.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__builder.hpp
+[5.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__traits.hpp
+[5.389s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__struct.hpp
+[5.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__traits.hpp
+[5.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/goto_waypoint.hpp
+[5.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.390s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[5.391s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.391s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_fastrtps_cpp.hpp
+[5.391s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+[5.391s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_fastrtps_cpp.hpp
+[5.392s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_fastrtps_cpp.hpp
+[5.392s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/dds_fastrtps
+[5.392s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.392s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.392s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_fastrtps_cpp.hpp
+[5.393s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_fastrtps_cpp.hpp
+[5.393s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dds_fastrtps
+[5.393s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.393s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.394s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_fastrtps_cpp.hpp
+[5.394s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_fastrtps_cpp.hpp
+[5.394s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/dds_fastrtps
+[5.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_fastrtps_cpp.so
+[5.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs
+[5.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg
+[5.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail
+[5.395s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__type_support.cpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__rosidl_typesupport_introspection_cpp.hpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/mission_control__type_support.cpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__rosidl_typesupport_introspection_cpp.hpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/goto_waypoint__type_support.cpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__rosidl_typesupport_introspection_cpp.hpp
+[5.396s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/bt_command__type_support.cpp
+[5.397s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+[5.397s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv
+[5.397s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail
+[5.397s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__type_support.cpp
+[5.398s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__type_support.cpp
+[5.398s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/utm_lat_lon__rosidl_typesupport_introspection_cpp.hpp
+[5.398s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/srv/detail/dubins_plan__rosidl_typesupport_introspection_cpp.hpp
+[5.399s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action
+[5.399s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail
+[5.399s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__rosidl_typesupport_introspection_cpp.hpp
+[5.399s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__rosidl_typesupport_introspection_cpp.hpp
+[5.399s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/goto_waypoint__type_support.cpp
+[5.400s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/include/smarc_mission_msgs/smarc_mission_msgs/action/detail/empty__type_support.cpp
+[5.400s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_introspection_cpp.so
+[5.400s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_typesupport_cpp.so
+[5.400s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/pythonpath.sh
+[5.400s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/pythonpath.dsv
+[5.401s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info
+[5.401s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/PKG-INFO
+[5.401s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/SOURCES.txt
+[5.401s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/top_level.txt
+[5.401s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs-0.0.0-py3.10.egg-info/dependency_links.txt
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_goto_waypoint.py
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_bt_command_s.c
+[5.402s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_topics_s.c
+[5.403s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_mission_control_s.c
+[5.403s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_mission_control.py
+[5.403s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_goto_waypoint_s.c
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_topics.py
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/__init__.py
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg/_bt_command.py
+[5.404s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_introspection_c.c
+[5.405s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_c.c
+[5.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/libsmarc_mission_msgs__rosidl_generator_py.so
+[5.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv
+[5.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_utm_lat_lon_s.c
+[5.406s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_dubins_plan.py
+[5.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/__init__.py
+[5.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_dubins_plan_s.c
+[5.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv/_utm_lat_lon.py
+[5.407s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/_smarc_mission_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+[5.408s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[5.408s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/__init__.py
+[5.408s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action
+[5.408s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_goto_waypoint.py
+[5.408s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_goto_waypoint_s.c
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/__init__.py
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_empty.py
+[5.409s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action/_empty_s.c
+[5.527s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs'...
+[5.528s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/action'...
+[5.528s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/msg'...
+[5.528s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/srv'...
+[5.540s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[5.543s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[5.544s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/local/lib/python3.10/dist-packages/smarc_mission_msgs/smarc_mission_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[5.546s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/lib/libsmarc_mission_msgs__rosidl_generator_py.so
+[5.546s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/Topics.idl
+[5.547s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/BTCommand.idl
+[5.547s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/GotoWaypoint.idl
+[5.547s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/MissionControl.idl
+[5.548s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/Empty.idl
+[5.548s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/GotoWaypoint.idl
+[5.548s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan.idl
+[5.548s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon.idl
+[5.549s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/Topics.msg
+[5.549s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/BTCommand.msg
+[5.550s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/GotoWaypoint.msg
+[5.550s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/msg/MissionControl.msg
+[5.550s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/Empty.action
+[5.550s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/action/GotoWaypoint.action
+[5.550s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan.srv
+[5.551s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan_Request.msg
+[5.551s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/DubinsPlan_Response.msg
+[5.551s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon.srv
+[5.551s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon_Request.msg
+[5.551s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/srv/UTMLatLon_Response.msg
+[5.552s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/package_run_dependencies/smarc_mission_msgs
+[5.552s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/parent_prefix_path/smarc_mission_msgs
+[5.552s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/ament_prefix_path.sh
+[5.553s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/ament_prefix_path.dsv
+[5.553s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/path.sh
+[5.553s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/environment/path.dsv
+[5.554s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.bash
+[5.554s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.sh
+[5.554s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.zsh
+[5.554s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/local_setup.dsv
+[5.554s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/package.dsv
+[5.554s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/ament_index/resource_index/packages/smarc_mission_msgs
+[5.555s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cExport.cmake
+[5.555s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cExport-noconfig.cmake
+[5.555s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+[5.556s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[5.556s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cExport.cmake
+[5.556s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[5.556s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cExport.cmake
+[5.556s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cExport-noconfig.cmake
+[5.557s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_cppExport.cmake
+[5.557s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+[5.557s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[5.557s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cppExport.cmake
+[5.558s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[5.558s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cppExport.cmake
+[5.558s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+[5.558s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_pyExport.cmake
+[5.559s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/export_smarc_mission_msgs__rosidl_generator_pyExport-noconfig.cmake
+[5.560s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake-extras.cmake
+[5.560s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+[5.560s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+[5.561s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+[5.561s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/ament_cmake_export_targets-extras.cmake
+[5.561s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[5.562s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[5.562s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgsConfig.cmake
+[5.562s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/cmake/smarc_mission_msgsConfig-version.cmake
+[5.562s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_mission_msgs/share/smarc_mission_msgs/package.xml
+[6.428s] Invoked command in '/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/workshopfun:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter:/home/schni2zle/colcon_ws/src/install/test_package:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/smarc_nodered:/home/schni2zle/colcon_ws/src/install/smarc_bt:/home/schni2zle/colcon_ws/src/install/smarc_bringups:/home/schni2zle/colcon_ws/src/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/src/install/ros2_python_examples:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/src/install/mqtt_bridge:/home/schni2zle/colcon_ws/src/install/dubins_planner:/home/schni2zle/colcon_ws/src/install/dive_control:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/smarc_mission_msgs

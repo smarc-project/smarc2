@@ -1,0 +1,40 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/smarc_mission_msgs__cpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/empty__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/empty__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/empty__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/goto_waypoint__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/goto_waypoint__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/detail/goto_waypoint__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/empty.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/action/goto_waypoint.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/bt_command.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/bt_command__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/bt_command__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/bt_command__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/goto_waypoint__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/goto_waypoint__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/goto_waypoint__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/mission_control__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/mission_control__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/mission_control__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/topics__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/topics__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/detail/topics__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/goto_waypoint.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/mission_control.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/msg/topics.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/dubins_plan__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/dubins_plan__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/dubins_plan__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/utm_lat_lon__builder.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/utm_lat_lon__struct.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/detail/utm_lat_lon__traits.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/dubins_plan.hpp"
+  "rosidl_generator_cpp/smarc_mission_msgs/srv/utm_lat_lon.hpp"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang )
+  include(CMakeFiles/smarc_mission_msgs__cpp.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

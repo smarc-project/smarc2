@@ -1,0 +1,4 @@
+source;share/tf_convenience_topics/local_setup.bash
+source;share/tf_convenience_topics/local_setup.dsv
+source;share/tf_convenience_topics/local_setup.sh
+source;share/tf_convenience_topics/local_setup.zsh

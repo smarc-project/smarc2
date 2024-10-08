@@ -1,0 +1,11 @@
+{
+  "package_name": "smarc_control_msgs",
+  "non_idl_tuples": [
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/Topics.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/ControlError.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/ControlInput.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/ControlReference.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/ControlState.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_control_msgs:msg/State.msg"
+  ]
+}

@@ -1,0 +1,366 @@
+[2.262s] Invoking command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/messages/smarc_control_msgs -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/smarc_control_msgs
+[2.670s] -- The C compiler identification is GNU 11.4.0
+[2.941s] -- The CXX compiler identification is GNU 11.4.0
+[2.970s] -- Detecting C compiler ABI info
+[3.305s] -- Detecting C compiler ABI info - done
+[3.360s] -- Check for working C compiler: /usr/bin/cc - skipped
+[3.366s] -- Detecting C compile features
+[3.366s] -- Detecting C compile features - done
+[3.390s] -- Detecting CXX compiler ABI info
+[3.924s] -- Detecting CXX compiler ABI info - done
+[4.027s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[4.029s] -- Detecting CXX compile features
+[4.039s] -- Detecting CXX compile features - done
+[4.088s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[5.526s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[6.758s] -- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+[6.860s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[6.937s] -- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[7.323s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[7.558s] -- Found std_msgs: 4.2.4 (/opt/ros/humble/share/std_msgs/cmake)
+[10.298s] -- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+[13.370s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[16.628s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[16.790s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+[16.804s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[17.055s] -- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+[17.059s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[17.059s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[17.059s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[17.192s] -- Found PythonExtra: .so  
+[17.623s] -- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[17.795s] -- Added test 'lint_cmake' to check CMake code style
+[17.803s] -- Added test 'xmllint' to check XML markup files
+[17.830s] -- Configuring done
+[18.326s] -- Generating done
+[18.391s] -- Build files have been written to: /home/schni2zle/colcon_ws/src/build/smarc_control_msgs
+[18.420s] Invoked command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake /home/schni2zle/colcon_ws/src/messages/smarc_control_msgs -DCMAKE_INSTALL_PREFIX=/home/schni2zle/colcon_ws/src/install/smarc_control_msgs
+[18.425s] Invoking command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/smarc_control_msgs -- -j8 -l8
+[18.854s] [  1%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[26.155s] [  1%] Built target smarc_control_msgs__cpp
+[26.421s] [  1%] Built target ament_cmake_python_copy_smarc_control_msgs
+[26.491s] [  2%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[31.335s] [  4%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/topics__type_support.cpp.o[0m
+[33.999s] [  5%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/control_reference__type_support.cpp.o[0m
+[35.837s] [  7%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/control_state__type_support.cpp.o[0m
+[37.836s] [  8%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/state__type_support.cpp.o[0m
+[39.661s] [  9%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/control_input__type_support.cpp.o[0m
+[41.130s] [ 11%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/smarc_control_msgs/msg/detail/control_error__type_support.cpp.o[0m
+[42.624s] [ 12%] [32m[1mLinking CXX shared library libsmarc_control_msgs__rosidl_typesupport_introspection_cpp.so[0m
+[43.022s] [ 12%] Built target smarc_control_msgs__rosidl_typesupport_introspection_cpp
+[45.185s] running egg_info
+[45.189s] creating smarc_control_msgs.egg-info
+[45.198s] writing smarc_control_msgs.egg-info/PKG-INFO
+[45.198s] writing dependency_links to smarc_control_msgs.egg-info/dependency_links.txt
+[45.206s] writing top-level names to smarc_control_msgs.egg-info/top_level.txt
+[45.209s] writing manifest file 'smarc_control_msgs.egg-info/SOURCES.txt'
+[45.224s] reading manifest file 'smarc_control_msgs.egg-info/SOURCES.txt'
+[45.229s] writing manifest file 'smarc_control_msgs.egg-info/SOURCES.txt'
+[45.415s] [ 12%] Built target ament_cmake_python_build_smarc_control_msgs_egg
+[45.489s] [ 14%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[49.090s] [ 15%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/topics__type_support.cpp.o[0m
+[50.886s] [ 16%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/state__type_support.cpp.o[0m
+[52.416s] [ 18%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/control_state__type_support.cpp.o[0m
+[53.889s] [ 19%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/control_reference__type_support.cpp.o[0m
+[55.702s] [ 21%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/control_input__type_support.cpp.o[0m
+[57.633s] [ 22%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/smarc_control_msgs/msg/detail/dds_fastrtps/control_error__type_support.cpp.o[0m
+[59.315s] [ 23%] [32m[1mLinking CXX shared library libsmarc_control_msgs__rosidl_typesupport_fastrtps_cpp.so[0m
+[59.736s] [ 23%] Built target smarc_control_msgs__rosidl_typesupport_fastrtps_cpp
+[59.801s] [ 25%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[61.787s] [ 26%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/topics__type_support.cpp.o[0m
+[62.871s] [ 28%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/state__type_support.cpp.o[0m
+[63.682s] [ 29%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/control_state__type_support.cpp.o[0m
+[64.675s] [ 30%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/control_reference__type_support.cpp.o[0m
+[65.588s] [ 32%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/control_input__type_support.cpp.o[0m
+[66.432s] [ 33%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/smarc_control_msgs/msg/control_error__type_support.cpp.o[0m
+[67.244s] [ 35%] [32m[1mLinking CXX shared library libsmarc_control_msgs__rosidl_typesupport_cpp.so[0m
+[67.498s] [ 35%] Built target smarc_control_msgs__rosidl_typesupport_cpp
+[67.547s] [ 36%] [34m[1mGenerating C code for ROS interfaces[0m
+[70.789s] [ 38%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/topics__functions.c.o[0m
+[70.902s] [ 39%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/state__functions.c.o[0m
+[71.025s] [ 40%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/control_state__functions.c.o[0m
+[71.146s] [ 42%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/control_reference__functions.c.o[0m
+[71.260s] [ 43%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/control_input__functions.c.o[0m
+[71.380s] [ 45%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_c.dir/rosidl_generator_c/smarc_control_msgs/msg/detail/control_error__functions.c.o[0m
+[71.494s] [ 46%] [32m[1mLinking C shared library libsmarc_control_msgs__rosidl_generator_c.so[0m
+[71.620s] [ 46%] Built target smarc_control_msgs__rosidl_generator_c
+[71.658s] [ 47%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[73.608s] [ 49%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/topics__type_support_c.cpp.o[0m
+[74.343s] [ 50%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/state__type_support_c.cpp.o[0m
+[75.056s] [ 52%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/control_state__type_support_c.cpp.o[0m
+[75.777s] [ 53%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/control_reference__type_support_c.cpp.o[0m
+[76.494s] [ 54%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/control_input__type_support_c.cpp.o[0m
+[77.236s] [ 56%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/smarc_control_msgs/msg/detail/control_error__type_support_c.cpp.o[0m
+[77.952s] [ 57%] [32m[1mLinking CXX shared library libsmarc_control_msgs__rosidl_typesupport_fastrtps_c.so[0m
+[78.167s] [ 57%] Built target smarc_control_msgs__rosidl_typesupport_fastrtps_c
+[78.194s] [ 59%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[79.434s] [ 60%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/topics__type_support.cpp.o[0m
+[79.507s] [ 61%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/state__type_support.cpp.o[0m
+[79.580s] [ 63%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/control_state__type_support.cpp.o[0m
+[79.654s] [ 64%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/control_reference__type_support.cpp.o[0m
+[79.724s] [ 66%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/control_input__type_support.cpp.o[0m
+[79.799s] [ 67%] [32mBuilding CXX object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c.dir/rosidl_typesupport_c/smarc_control_msgs/msg/control_error__type_support.cpp.o[0m
+[79.872s] [ 69%] [32m[1mLinking CXX shared library libsmarc_control_msgs__rosidl_typesupport_c.so[0m
+[79.979s] [ 69%] Built target smarc_control_msgs__rosidl_typesupport_c
+[80.005s] [ 70%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[81.551s] [ 71%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/topics__type_support.c.o[0m
+[81.637s] [ 73%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/state__type_support.c.o[0m
+[81.718s] [ 74%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/control_state__type_support.c.o[0m
+[81.799s] [ 76%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/control_reference__type_support.c.o[0m
+[81.881s] [ 77%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/control_input__type_support.c.o[0m
+[81.965s] [ 78%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/smarc_control_msgs/msg/detail/control_error__type_support.c.o[0m
+[82.041s] [ 80%] [32m[1mLinking C shared library libsmarc_control_msgs__rosidl_typesupport_introspection_c.so[0m
+[82.125s] [ 80%] Built target smarc_control_msgs__rosidl_typesupport_introspection_c
+[82.180s] [ 80%] Built target smarc_control_msgs
+[82.231s] [ 81%] [34m[1mGenerating Python code for ROS interfaces[0m
+[84.990s] [ 81%] Built target smarc_control_msgs__py
+[85.043s] [ 83%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_topics_s.c.o[0m
+[85.282s] [ 84%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_state_s.c.o[0m
+[85.523s] [ 85%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_control_state_s.c.o[0m
+[85.754s] [ 87%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_control_reference_s.c.o[0m
+[86.000s] [ 88%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_control_input_s.c.o[0m
+[86.257s] [ 90%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_generator_py.dir/rosidl_generator_py/smarc_control_msgs/msg/_control_error_s.c.o[0m
+[86.525s] [ 91%] [32m[1mLinking C shared library rosidl_generator_py/smarc_control_msgs/libsmarc_control_msgs__rosidl_generator_py.so[0m
+[86.636s] [ 91%] Built target smarc_control_msgs__rosidl_generator_py
+[86.690s] [ 92%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[86.959s] [ 94%] [32m[1mLinking C shared library rosidl_generator_py/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so[0m
+[87.058s] [ 94%] Built target smarc_control_msgs__rosidl_typesupport_fastrtps_c__pyext
+[87.112s] [ 95%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_c.c.o[0m
+[87.383s] [ 97%] [32m[1mLinking C shared library rosidl_generator_py/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so[0m
+[87.481s] [ 97%] Built target smarc_control_msgs__rosidl_typesupport_c__pyext
+[87.533s] [ 98%] [32mBuilding C object CMakeFiles/smarc_control_msgs__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[87.801s] [100%] [32m[1mLinking C shared library rosidl_generator_py/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so[0m
+[87.922s] [100%] Built target smarc_control_msgs__rosidl_typesupport_introspection_c__pyext
+[87.955s] Invoked command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --build /home/schni2zle/colcon_ws/src/build/smarc_control_msgs -- -j8 -l8
+[88.439s] Invoking command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/smarc_control_msgs
+[88.457s] -- Install configuration: ""
+[88.458s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/ament_index/resource_index/rosidl_interfaces/smarc_control_msgs
+[88.458s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.459s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.459s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/rosidl_generator_c__visibility_control.h
+[88.459s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/state.h
+[88.459s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_reference.h
+[88.460s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.460s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__functions.h
+[88.460s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__type_support.h
+[88.461s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__functions.c
+[88.461s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__struct.h
+[88.461s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__struct.h
+[88.462s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__struct.h
+[88.462s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__functions.c
+[88.462s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__type_support.h
+[88.463s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__functions.h
+[88.463s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__functions.h
+[88.464s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__functions.h
+[88.464s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__struct.h
+[88.464s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__functions.c
+[88.465s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__functions.h
+[88.465s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__struct.h
+[88.466s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__struct.h
+[88.466s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__type_support.h
+[88.467s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__type_support.h
+[88.467s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__functions.c
+[88.468s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__functions.c
+[88.468s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__functions.h
+[88.469s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__type_support.h
+[88.470s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__functions.c
+[88.470s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__type_support.h
+[88.470s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_state.h
+[88.471s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_error.h
+[88.472s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_input.h
+[88.472s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/topics.h
+[88.472s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/library_path.sh
+[88.472s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/library_path.dsv
+[88.473s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_generator_c.so
+[88.474s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_generator_c.so" to ""
+[88.474s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.474s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.474s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[88.475s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.475s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__rosidl_typesupport_fastrtps_c.h
+[88.475s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_c.h
+[88.476s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__rosidl_typesupport_fastrtps_c.h
+[88.476s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__rosidl_typesupport_fastrtps_c.h
+[88.476s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__rosidl_typesupport_fastrtps_c.h
+[88.477s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__rosidl_typesupport_fastrtps_c.h
+[88.478s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_fastrtps_c.so
+[88.480s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_fastrtps_c.so" to ""
+[88.480s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.481s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.481s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[88.481s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.481s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__type_support.c
+[88.481s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__type_support.c
+[88.482s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__rosidl_typesupport_introspection_c.h
+[88.482s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__rosidl_typesupport_introspection_c.h
+[88.483s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__rosidl_typesupport_introspection_c.h
+[88.483s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__type_support.c
+[88.484s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__type_support.c
+[88.484s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__rosidl_typesupport_introspection_c.h
+[88.484s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__type_support.c
+[88.484s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__type_support.c
+[88.485s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__rosidl_typesupport_introspection_c.h
+[88.485s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__rosidl_typesupport_introspection_c.h
+[88.485s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_introspection_c.so
+[88.487s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_introspection_c.so" to ""
+[88.487s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_c.so
+[88.488s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_c.so" to ""
+[88.488s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.488s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.489s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/state.hpp
+[88.489s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_reference.hpp
+[88.489s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_error.hpp
+[88.489s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_input.hpp
+[88.490s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.490s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__traits.hpp
+[88.490s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__struct.hpp
+[88.491s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__builder.hpp
+[88.491s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__struct.hpp
+[88.491s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__builder.hpp
+[88.492s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__traits.hpp
+[88.492s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__traits.hpp
+[88.493s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__struct.hpp
+[88.493s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__builder.hpp
+[88.494s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__builder.hpp
+[88.494s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__struct.hpp
+[88.495s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__struct.hpp
+[88.495s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__struct.hpp
+[88.495s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__traits.hpp
+[88.496s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__traits.hpp
+[88.496s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__builder.hpp
+[88.496s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__builder.hpp
+[88.497s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__traits.hpp
+[88.497s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/control_state.hpp
+[88.497s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/topics.hpp
+[88.498s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.498s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.498s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[88.499s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.499s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__rosidl_typesupport_fastrtps_cpp.hpp
+[88.499s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__rosidl_typesupport_fastrtps_cpp.hpp
+[88.499s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__rosidl_typesupport_fastrtps_cpp.hpp
+[88.500s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__rosidl_typesupport_fastrtps_cpp.hpp
+[88.500s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/dds_fastrtps
+[88.501s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__rosidl_typesupport_fastrtps_cpp.hpp
+[88.501s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__rosidl_typesupport_fastrtps_cpp.hpp
+[88.502s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_fastrtps_cpp.so
+[88.503s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_fastrtps_cpp.so" to ""
+[88.503s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs
+[88.503s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg
+[88.503s] -- Up-to-date: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail
+[88.503s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__type_support.cpp
+[88.504s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__type_support.cpp
+[88.504s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__type_support.cpp
+[88.504s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_state__rosidl_typesupport_introspection_cpp.hpp
+[88.505s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__type_support.cpp
+[88.505s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__rosidl_typesupport_introspection_cpp.hpp
+[88.506s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_reference__type_support.cpp
+[88.506s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/topics__rosidl_typesupport_introspection_cpp.hpp
+[88.506s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_error__rosidl_typesupport_introspection_cpp.hpp
+[88.507s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__rosidl_typesupport_introspection_cpp.hpp
+[88.507s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/state__rosidl_typesupport_introspection_cpp.hpp
+[88.508s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/include/smarc_control_msgs/smarc_control_msgs/msg/detail/control_input__type_support.cpp
+[88.509s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_introspection_cpp.so
+[88.510s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_introspection_cpp.so" to ""
+[88.510s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_cpp.so
+[88.511s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_typesupport_cpp.so" to ""
+[88.511s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/pythonpath.sh
+[88.511s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/pythonpath.dsv
+[88.512s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs-0.0.0-py3.10.egg-info
+[88.513s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs-0.0.0-py3.10.egg-info/PKG-INFO
+[88.513s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs-0.0.0-py3.10.egg-info/SOURCES.txt
+[88.513s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs-0.0.0-py3.10.egg-info/top_level.txt
+[88.513s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs-0.0.0-py3.10.egg-info/dependency_links.txt
+[88.514s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs
+[88.514s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+[88.514s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg
+[88.515s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_reference.py
+[88.515s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_error.py
+[88.515s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_input.py
+[88.516s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_topics_s.c
+[88.516s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_reference_s.c
+[88.516s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_error_s.c
+[88.517s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_topics.py
+[88.517s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_state.py
+[88.518s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/__init__.py
+[88.518s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_state.py
+[88.518s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_input_s.c
+[88.519s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_state_s.c
+[88.519s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_state_s.c
+[88.519s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/libsmarc_control_msgs__rosidl_generator_py.so
+[88.520s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[88.520s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_introspection_c.c
+[88.521s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/__init__.py
+[88.521s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/_smarc_control_msgs_s.ep.rosidl_typesupport_c.c
+[88.521s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[88.522s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[88.651s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs'...
+[88.651s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/__init__.py'...
+[88.652s] Listing '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg'...
+[88.652s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/__init__.py'...
+[88.652s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_error.py'...
+[88.652s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_input.py'...
+[88.652s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_reference.py'...
+[88.652s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_control_state.py'...
+[88.653s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_state.py'...
+[88.653s] Compiling '/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/msg/_topics.py'...
+[88.662s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[88.663s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+[88.664s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[88.665s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+[88.665s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[88.667s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/local/lib/python3.10/dist-packages/smarc_control_msgs/smarc_control_msgs_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+[88.668s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_generator_py.so
+[88.670s] -- Set runtime path of "/home/schni2zle/colcon_ws/src/install/smarc_control_msgs/lib/libsmarc_control_msgs__rosidl_generator_py.so" to ""
+[88.670s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/Topics.idl
+[88.670s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlError.idl
+[88.671s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlInput.idl
+[88.671s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlReference.idl
+[88.672s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlState.idl
+[88.672s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/State.idl
+[88.672s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/Topics.msg
+[88.673s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlError.msg
+[88.673s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlInput.msg
+[88.673s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlReference.msg
+[88.674s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/ControlState.msg
+[88.674s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/msg/State.msg
+[88.675s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/ament_index/resource_index/package_run_dependencies/smarc_control_msgs
+[88.676s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/ament_index/resource_index/parent_prefix_path/smarc_control_msgs
+[88.676s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/ament_prefix_path.sh
+[88.677s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/ament_prefix_path.dsv
+[88.677s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/path.sh
+[88.678s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/environment/path.dsv
+[88.678s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/local_setup.bash
+[88.679s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/local_setup.sh
+[88.679s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/local_setup.zsh
+[88.680s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/local_setup.dsv
+[88.681s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/package.dsv
+[88.681s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/ament_index/resource_index/packages/smarc_control_msgs
+[88.683s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_generator_cExport.cmake
+[88.683s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_generator_cExport-noconfig.cmake
+[88.683s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+[88.684s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[88.684s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_introspection_cExport.cmake
+[88.684s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[88.685s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_cExport.cmake
+[88.685s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_cExport-noconfig.cmake
+[88.685s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_generator_cppExport.cmake
+[88.686s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+[88.686s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[88.687s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_introspection_cppExport.cmake
+[88.687s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[88.687s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_cppExport.cmake
+[88.688s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+[88.688s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_generator_pyExport.cmake
+[88.689s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/export_smarc_control_msgs__rosidl_generator_pyExport-noconfig.cmake
+[88.689s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/rosidl_cmake-extras.cmake
+[88.689s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+[88.690s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+[88.690s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+[88.691s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/ament_cmake_export_targets-extras.cmake
+[88.691s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[88.691s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[88.692s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgsConfig.cmake
+[88.692s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/cmake/smarc_control_msgsConfig-version.cmake
+[88.693s] -- Installing: /home/schni2zle/colcon_ws/src/install/smarc_control_msgs/share/smarc_control_msgs/package.xml
+[88.700s] Invoked command in '/home/schni2zle/colcon_ws/src/build/smarc_control_msgs' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/schni2zle/colcon_ws/src/install/state_estimation:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller:/home/schni2zle/colcon_ws/install/workshopfun:/home/schni2zle/colcon_ws/install/utm_latlon_converter:/home/schni2zle/colcon_ws/install/smarc_nodered:/home/schni2zle/colcon_ws/install/smarc_bt:/home/schni2zle/colcon_ws/install/smarc_bringups:/home/schni2zle/colcon_ws/install/sam_dead_reckoning:/home/schni2zle/colcon_ws/install/ros_tcp_endpoint:/home/schni2zle/colcon_ws/install/ros2_python_examples:/home/schni2zle/colcon_ws/install/mqtt_bridge:/home/schni2zle/colcon_ws/install/dubins_planner:/home/schni2zle/colcon_ws/install/basic_go_to_waypoint:/opt/ros/humble /usr/bin/cmake --install /home/schni2zle/colcon_ws/src/build/smarc_control_msgs

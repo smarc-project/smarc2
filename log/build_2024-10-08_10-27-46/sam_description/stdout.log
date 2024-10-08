@@ -1,0 +1,46 @@
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found ament_lint_auto: 0.12.11 (/opt/ros/humble/share/ament_lint_auto/cmake)
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/schni2zle/colcon_ws/src/build/sam_description
+-- Install configuration: ""
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/launch/
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/launch//sam_description.launch
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh/
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_FRONTPROP.dae
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_NOZZLE.dae
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_HULL.dae
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/mesh//SAM_BACKPROP.dae
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/robots/
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/robots//sam_auv_default.urdf.xacro
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf/
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf//sam_auv.urdf.xacro
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/urdf//sam_auv.urdf
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/package_run_dependencies/sam_description
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/parent_prefix_path/sam_description
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/ament_prefix_path.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/ament_prefix_path.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/path.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/environment/path.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.bash
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.sh
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.zsh
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/local_setup.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/package.dsv
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/ament_index/resource_index/packages/sam_description
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/cmake/sam_descriptionConfig.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/cmake/sam_descriptionConfig-version.cmake
+-- Installing: /home/schni2zle/colcon_ws/src/install/sam_description/share/sam_description/package.xml

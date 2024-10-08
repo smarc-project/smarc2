@@ -1,0 +1,6 @@
+string BATTERY_TOPIC = 'core/battery'
+string GPS_TOPIC = 'core/gps'
+string HEADING_TOPIC = 'core/heading'
+string ABORT_TOPIC = 'core/abort'
+string HEARTBEAT_TOPIC = 'core/heartbeat'
+string VEHICLE_READY_TOPIC = 'core/vehicle_ready'

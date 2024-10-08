@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_control_msgs/msg/ControlInput.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_control_msgs {
+  module msg {
+    struct ControlInput {
+      double thrusterrpm;
+
+      double thrustervertical;
+
+      double thrusterhorizontal;
+
+      double vbs;
+
+      double lcg;
+    };
+  };
+};

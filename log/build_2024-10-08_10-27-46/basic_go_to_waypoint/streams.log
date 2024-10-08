@@ -1,0 +1,65 @@
+[4.028s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/basic_go_to_waypoint': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_go_to_waypoint build --build-base /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build install --record /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log --single-version-externally-managed install_data
+[5.400s] running egg_info
+[5.400s] creating ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info
+[5.401s] writing ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/PKG-INFO
+[5.401s] writing dependency_links to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/dependency_links.txt
+[5.401s] writing entry points to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/entry_points.txt
+[5.401s] writing requirements to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/requires.txt
+[5.404s] writing top-level names to ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/top_level.txt
+[5.404s] writing manifest file '../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/SOURCES.txt'
+[5.404s] reading manifest file '../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/SOURCES.txt'
+[5.405s] adding license file 'LICENSE'
+[5.405s] writing manifest file '../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info/SOURCES.txt'
+[5.405s] running build
+[5.405s] running build_py
+[5.405s] creating /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build
+[5.406s] creating /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib
+[5.406s] creating /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.407s] copying basic_go_to_waypoint/Node.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.407s] copying basic_go_to_waypoint/ActionserverControllerNode.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.408s] copying basic_go_to_waypoint/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.408s] copying basic_go_to_waypoint/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.408s] copying basic_go_to_waypoint/__init__.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.408s] copying basic_go_to_waypoint/WaypointFollowingModel.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.408s] copying basic_go_to_waypoint/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.409s] copying basic_go_to_waypoint/ThrustyControllerNode.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.409s] copying basic_go_to_waypoint/IThrustView.py -> /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint
+[5.409s] running install
+[5.419s] running install_lib
+[5.420s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.420s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/Node.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.420s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/ActionserverControllerNode.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.421s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.421s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.421s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/__init__.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.421s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/WaypointFollowingModel.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.421s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.422s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/ThrustyControllerNode.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.422s] copying /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build/lib/basic_go_to_waypoint/IThrustView.py -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint
+[5.422s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/Node.py to Node.cpython-310.pyc
+[5.422s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/ActionserverControllerNode.py to ActionserverControllerNode.cpython-310.pyc
+[5.422s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/ConvenienceView.py to ConvenienceView.cpython-310.pyc
+[5.423s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/SAMThrustView.py to SAMThrustView.cpython-310.pyc
+[5.423s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/__init__.py to __init__.cpython-310.pyc
+[5.426s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/WaypointFollowingModel.py to WaypointFollowingModel.cpython-310.pyc
+[5.426s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/ActionClientNode.py to ActionClientNode.cpython-310.pyc
+[5.435s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/ThrustyControllerNode.py to ThrustyControllerNode.cpython-310.pyc
+[5.435s] byte-compiling /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint/IThrustView.py to IThrustView.cpython-310.pyc
+[5.435s] running install_data
+[5.436s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/ament_index
+[5.436s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/ament_index/resource_index
+[5.436s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/ament_index/resource_index/packages
+[5.437s] copying resource/basic_go_to_waypoint -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/ament_index/resource_index/packages
+[5.438s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/basic_go_to_waypoint
+[5.439s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/basic_go_to_waypoint/config
+[5.439s] creating /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/basic_go_to_waypoint/launch
+[5.440s] copying launch/actionserver.launch -> /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/share/basic_go_to_waypoint/launch
+[5.440s] running install_egg_info
+[5.440s] Copying ../../build/basic_go_to_waypoint/basic_go_to_waypoint.egg-info to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages/basic_go_to_waypoint-0.0.0-py3.10.egg-info
+[5.440s] running install_scripts
+[5.506s] Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[5.506s] Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[5.510s] Installing view_test script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[5.510s] Installing waypoint_following script to /home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/basic_go_to_waypoint
+[5.510s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log'
+[6.620s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/basic_go_to_waypoint' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_go_to_waypoint/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_go_to_waypoint build --build-base /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/build install --record /home/schni2zle/colcon_ws/src/build/basic_go_to_waypoint/install.log --single-version-externally-managed install_data

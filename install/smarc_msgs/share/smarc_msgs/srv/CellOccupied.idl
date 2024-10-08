@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_msgs/srv/CellOccupied.srv
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module srv {
+    struct CellOccupied_Request {
+      float x;
+
+      float y;
+    };
+    struct CellOccupied_Response {
+      uint8 cost;
+    };
+  };
+};

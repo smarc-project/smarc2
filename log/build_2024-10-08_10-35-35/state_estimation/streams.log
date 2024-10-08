@@ -1,0 +1,23 @@
+[1.160s] Invoking command in '/home/schni2zle/colcon_ws/src/state_estimation': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/state_estimation/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/state_estimation build --build-base /home/schni2zle/colcon_ws/src/build/state_estimation/build install --record /home/schni2zle/colcon_ws/src/build/state_estimation/install.log --single-version-externally-managed install_data
+[1.608s] running egg_info
+[1.609s] writing ../build/state_estimation/state_estimation.egg-info/PKG-INFO
+[1.610s] writing dependency_links to ../build/state_estimation/state_estimation.egg-info/dependency_links.txt
+[1.610s] writing entry points to ../build/state_estimation/state_estimation.egg-info/entry_points.txt
+[1.610s] writing requirements to ../build/state_estimation/state_estimation.egg-info/requires.txt
+[1.611s] writing top-level names to ../build/state_estimation/state_estimation.egg-info/top_level.txt
+[1.613s] reading manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+[1.614s] adding license file 'LICENSE'
+[1.615s] writing manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+[1.615s] running build
+[1.616s] running build_py
+[1.616s] running install
+[1.616s] running install_lib
+[1.619s] running install_data
+[1.620s] running install_egg_info
+[1.623s] removing '/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info' (and everything under it)
+[1.624s] Copying ../build/state_estimation/state_estimation.egg-info to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info
+[1.625s] running install_scripts
+[1.659s] Installing detector script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+[1.659s] Installing estimator script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+[1.659s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/state_estimation/install.log'
+[1.697s] Invoked command in '/home/schni2zle/colcon_ws/src/state_estimation' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/state_estimation/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/state_estimation build --build-base /home/schni2zle/colcon_ws/src/build/state_estimation/build install --record /home/schni2zle/colcon_ws/src/build/state_estimation/install.log --single-version-externally-managed install_data

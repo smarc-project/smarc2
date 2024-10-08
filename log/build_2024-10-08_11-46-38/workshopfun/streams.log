@@ -1,0 +1,25 @@
+[2.651s] Invoking command in '/home/schni2zle/colcon_ws/src/examples/workshopfun': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/workshopfun/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/workshopfun build --build-base /home/schni2zle/colcon_ws/src/build/workshopfun/build install --record /home/schni2zle/colcon_ws/src/build/workshopfun/install.log --single-version-externally-managed install_data
+[3.439s] running egg_info
+[3.440s] writing ../../build/workshopfun/workshopfun.egg-info/PKG-INFO
+[3.441s] writing dependency_links to ../../build/workshopfun/workshopfun.egg-info/dependency_links.txt
+[3.441s] writing entry points to ../../build/workshopfun/workshopfun.egg-info/entry_points.txt
+[3.441s] writing requirements to ../../build/workshopfun/workshopfun.egg-info/requires.txt
+[3.442s] writing top-level names to ../../build/workshopfun/workshopfun.egg-info/top_level.txt
+[3.446s] reading manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+[3.447s] adding license file 'LICENSE'
+[3.448s] writing manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+[3.449s] running build
+[3.449s] running build_py
+[3.451s] running install
+[3.451s] running install_lib
+[3.457s] running install_data
+[3.457s] running install_egg_info
+[3.462s] removing '/home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun-0.0.0-py3.10.egg-info' (and everything under it)
+[3.463s] Copying ../../build/workshopfun/workshopfun.egg-info to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun-0.0.0-py3.10.egg-info
+[3.466s] running install_scripts
+[3.522s] Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+[3.522s] Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+[3.522s] Installing science_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+[3.522s] Installing view_test script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+[3.524s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/workshopfun/install.log'
+[3.579s] Invoked command in '/home/schni2zle/colcon_ws/src/examples/workshopfun' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/workshopfun/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/workshopfun build --build-base /home/schni2zle/colcon_ws/src/build/workshopfun/build install --record /home/schni2zle/colcon_ws/src/build/workshopfun/install.log --single-version-externally-managed install_data

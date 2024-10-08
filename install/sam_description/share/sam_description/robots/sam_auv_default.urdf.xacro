@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<robot name="sam" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+  <xacro:arg name="debug" default="0"/>
+  <xacro:include filename="$(find sam_description)/urdf/sam_auv.urdf.xacro"/>
+  <xacro:sam_auv debug="$(arg debug)"/>
+</robot>

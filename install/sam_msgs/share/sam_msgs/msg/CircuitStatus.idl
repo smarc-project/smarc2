@@ -1,0 +1,26 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/CircuitStatus.msg
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module msg {
+    module CircuitStatus_Constants {
+      const uint8 ERROR_FLAG_OVERVOLTAGE = 1;
+      const uint8 ERROR_FLAG_UNDERVOLTAGE = 2;
+      const uint8 ERROR_FLAG_OVERCURRENT = 4;
+      const uint8 ERROR_FLAG_UNDERCURRENT = 8;
+    };
+    @verbatim (language="comment", text=
+      "From uavcan CiruitStatus msg: Generic electrical circuit info.")
+    struct CircuitStatus {
+      uint8 error_flags;
+
+      uint16 circuit_id;
+
+      float voltage;
+
+      float current;
+    };
+  };
+};

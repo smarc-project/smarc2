@@ -1,0 +1,67 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/UavcanNodeStatus.msg
+// generated code does not contain a copyright notice
+
+
+module sam_msgs {
+  module msg {
+    module UavcanNodeStatus_Constants {
+      @verbatim (language="comment", text=
+        "Publication period may vary within these limits." "\n"        "It is NOT recommended to change it at run time.")
+      const uint16 MAX_BROADCASTING_PERIOD_MS = 1000;
+      const uint16 MIN_BROADCASTING_PERIOD_MS = 2;
+      @verbatim (language="comment", text=
+        "If a node fails to publish this message in this amount of time, it should be considered offline.")
+      const uint16 OFFLINE_TIMEOUT_MS = 3000;
+      @verbatim (language="comment", text=
+        "Abstract node health." "\n"        "" "\n"        "The node is functioning properly.")
+      const uint8 HEALTH_OK = 0;
+      @verbatim (language="comment", text=
+        "A critical parameter went out of range or the node encountered a minor failure.")
+      const uint8 HEALTH_WARNING = 1;
+      @verbatim (language="comment", text=
+        "The node encountered a major failure.")
+      const uint8 HEALTH_ERROR = 2;
+      @verbatim (language="comment", text=
+        "The node suffered a fatal malfunction.")
+      const uint8 HEALTH_CRITICAL = 3;
+      @verbatim (language="comment", text=
+        "Current mode." "\n"        "" "\n"        "Mode OFFLINE can be actually reported by the node to explicitly inform other network" "\n"        "participants that the sending node is about to shutdown. In this case other nodes will not" "\n"        "have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available." "\n"        "" "\n"        "Reserved values can be used in future revisions of the specification." "\n"        "" "\n"        "Node is performing its main functions.")
+      const uint8 MODE_OPERATIONAL = 0;
+      @verbatim (language="comment", text=
+        "Node is initializing; this mode is entered immediately after startup.")
+      const uint8 MODE_INITIALIZATION = 1;
+      @verbatim (language="comment", text=
+        "Node is under maintenance.")
+      const uint8 MODE_MAINTENANCE = 2;
+      @verbatim (language="comment", text=
+        "Node is in the process of updating its software.")
+      const uint8 MODE_SOFTWARE_UPDATE = 3;
+      @verbatim (language="comment", text=
+        "Node is no longer available.")
+      const uint8 MODE_OFFLINE = 7;
+    };
+    @verbatim (language="comment", text=
+      "Abstract node status information." "\n"
+      "" "\n"
+      "Any UAVCAN node is required to publish this message periodically.")
+    struct UavcanNodeStatus {
+      @verbatim (language="comment", text=
+        "Uptime counter should never overflow." "\n"
+        "Other nodes may detect that a remote node has restarted when this value goes backwards.")
+      uint32 uptime_sec;
+
+      uint8 health;
+
+      uint8 mode;
+
+      @verbatim (language="comment", text=
+        "Not used currently, keep zero when publishing, ignore when receiving.")
+      uint8 sub_mode;
+
+      @verbatim (language="comment", text=
+        "Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.")
+      uint16 vendor_specific_status_code;
+    };
+  };
+};

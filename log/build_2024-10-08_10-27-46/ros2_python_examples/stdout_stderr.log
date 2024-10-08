@@ -1,0 +1,56 @@
+running egg_info
+creating ../../build/ros2_python_examples/ros2_python_examples.egg-info
+writing ../../build/ros2_python_examples/ros2_python_examples.egg-info/PKG-INFO
+writing dependency_links to ../../build/ros2_python_examples/ros2_python_examples.egg-info/dependency_links.txt
+writing entry points to ../../build/ros2_python_examples/ros2_python_examples.egg-info/entry_points.txt
+writing requirements to ../../build/ros2_python_examples/ros2_python_examples.egg-info/requires.txt
+writing top-level names to ../../build/ros2_python_examples/ros2_python_examples.egg-info/top_level.txt
+writing manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+reading manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/ros2_python_examples/ros2_python_examples.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build
+creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib
+creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+copying ros2_python_examples/sam_view.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+copying ros2_python_examples/pid_controller_node.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+copying ros2_python_examples/controller_controller.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+copying ros2_python_examples/__init__.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+copying ros2_python_examples/pid_model.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples
+creating /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+copying ros2_python_examples/geometry/__init__.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+copying ros2_python_examples/geometry/vector2.py -> /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/sam_view.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/pid_controller_node.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/controller_controller.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry/__init__.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/geometry/vector2.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/__init__.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+copying /home/schni2zle/colcon_ws/src/build/ros2_python_examples/build/lib/ros2_python_examples/pid_model.py -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/sam_view.py to sam_view.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/pid_controller_node.py to pid_controller_node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/controller_controller.py to controller_controller.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/geometry/vector2.py to vector2.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples/pid_model.py to pid_model.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index/packages
+copying resource/ros2_python_examples -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/config
+creating /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/launch
+copying launch/basic_controller_example.launch -> /home/schni2zle/colcon_ws/src/install/ros2_python_examples/share/ros2_python_examples/launch
+running install_egg_info
+Copying ../../build/ros2_python_examples/ros2_python_examples.egg-info to /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/python3.10/site-packages/ros2_python_examples-0.0.0-py3.10.egg-info
+running install_scripts
+Installing example_node script to /home/schni2zle/colcon_ws/src/install/ros2_python_examples/lib/ros2_python_examples
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/ros2_python_examples/install.log'

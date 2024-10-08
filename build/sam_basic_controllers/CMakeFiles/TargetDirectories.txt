@@ -1,0 +1,12 @@
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/uninstall.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/sam_basic_controllers_uninstall.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/pid_actuator_trim.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/ament_cmake_python_copy_sam_basic_controllers.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/ament_cmake_python_build_sam_basic_controllers_egg.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/test.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/edit_cache.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/rebuild_cache.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/list_install_components.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/install.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/install/local.dir
+/home/schni2zle/colcon_ws/src/build/sam_basic_controllers/CMakeFiles/install/strip.dir

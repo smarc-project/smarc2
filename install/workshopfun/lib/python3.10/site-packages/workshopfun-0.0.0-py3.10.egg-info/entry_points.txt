@@ -1,0 +1,6 @@
+[console_scripts]
+action_client_node = workshopfun.ActionClientNode:main
+action_server_node = workshopfun.ActionserverControllerNode:main
+science_node = workshopfun.ThrustyControllerNode:main
+view_test = workshopfun.SAMThrustView:test_view
+

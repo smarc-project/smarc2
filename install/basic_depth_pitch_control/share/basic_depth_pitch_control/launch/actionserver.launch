@@ -1,0 +1,13 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+   
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+        <!--<node name="action_server_node" pkg="basic_depth_pitch_control" exec="action_server_node" output="screen"/> -->
+        <!--<node name="action_client_node" pkg="basic_depth_pitch_control" exec="action_client_node" output="screen"/>-->
+       <node name="diving" pkg="basic_depth_pitch_control" exec="diving" output="screen"/>
+
+    </group>
+
+</launch>

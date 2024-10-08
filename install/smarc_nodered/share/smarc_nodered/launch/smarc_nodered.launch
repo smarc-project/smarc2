@@ -1,0 +1,42 @@
+<launch>
+  <arg name="robot_name" default="sam0"/>
+  <arg name="broker_addr" default="20.240.40.232"/>
+  <arg name="broker_port" default="1884"/>
+  <!-- If you want to use the local node-red and mqtt brokers: -->
+  <arg name="local_broker_addr" default="localhost"/>
+  <arg name="local_broker_port" default="1883"/>
+
+  <!-- This is a set of common configs given to both nodes.  -->
+  <arg name="mqtt_params_file" default="$(find-pkg-share smarc_nodered)/config/mqtt_config.yaml"/>
+
+  <node name="mqtt_bridge_cloud" pkg="mqtt_bridge" exec="mqtt_bridge_node" output="screen" namespace="$(var robot_name)">
+    <param from="$(var mqtt_params_file)"/>
+    <param name="mqtt.connection.port" value="$(var broker_port)"/>
+    <param name="mqtt.connection.host" value="$(var broker_addr)"/>
+    <param name="mqtt.private_path" value="smarc/$(env USER nouser)_$(var robot_name)"/>
+  </node>
+
+  <!-- <node name="mqtt_bridge_local" pkg="mqtt_bridge" exec="mqtt_bridge_node" output="screen" namespace="$(var robot_name)">
+    <param from="$(var mqtt_params_file)"/>
+    <param name="mqtt.connection.port" value="$(var local_broker_port)"/>
+    <param name="mqtt.connection.host" value="$(var local_broker_addr)"/>
+    <param name="mqtt.private_path" value="smarc/$(env USER nouser)_$(var robot_name)"/>
+  </node> -->
+
+  <!-- <node name="local_smarc_mqtt_bridge_node" pkg="mqtt_bridge" type="mqtt_bridge_node.py" output="screen">
+	<rosparam subst_value="true"> mqtt/private_path: "smarc/$(optenv USER nouser)_$(arg robot_name)" </rosparam>
+	<rosparam subst_value="true"> mqtt/connection/host: "$(arg local_broker_addr)" </rosparam>
+	<rosparam subst_value="true"> mqtt/connection/port: $(arg broker_port) </rosparam>
+    <rosparam file="$(find smarc_nodered)/launch/config.yaml" command="load" />
+  </node> -->
+
+<!--
+  <node name="waraps_mqtt_bridge_node" pkg="smarc_nodered" type="waraps_bridge.py" output="screen">
+	<rosparam subst_value="true"> robot_name: "$(optenv USER nouser)_$(arg robot_name)" </rosparam>
+	<rosparam subst_value="true"> mqtt/connection/host: "$(arg broker_addr)" </rosparam>
+	<rosparam subst_value="true"> mqtt/connection/port: $(arg broker_port) </rosparam>
+    <rosparam file="$(find smarc_nodered)/launch/config.yaml" command="load" />
+  </node>
+-->
+
+</launch>

@@ -1,0 +1,68 @@
+running egg_info
+creating ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info
+writing ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/PKG-INFO
+writing dependency_links to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/dependency_links.txt
+writing entry points to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/entry_points.txt
+writing requirements to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/requires.txt
+writing top-level names to ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/top_level.txt
+writing manifest file '../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/SOURCES.txt'
+reading manifest file '../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build
+creating /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib
+creating /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/thread_pauser.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/default_server_endpoint.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/server.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/communication.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/unity_service.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/subscriber.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/publisher.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/client.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/tcp_sender.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/__init__.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/exceptions.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+copying ros_tcp_endpoint/service.py -> /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/thread_pauser.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/default_server_endpoint.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/server.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/communication.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/unity_service.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/subscriber.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/publisher.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/client.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/tcp_sender.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/__init__.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/exceptions.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+copying /home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/build/lib/ros_tcp_endpoint/service.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/thread_pauser.py to thread_pauser.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/default_server_endpoint.py to default_server_endpoint.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/server.py to server.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/communication.py to communication.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/unity_service.py to unity_service.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/subscriber.py to subscriber.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/publisher.py to publisher.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/client.py to client.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/tcp_sender.py to tcp_sender.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/exceptions.py to exceptions.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint/service.py to service.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ament_index/resource_index/packages
+copying resource/ros_tcp_endpoint -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ros_tcp_endpoint
+creating /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ros_tcp_endpoint/launch
+copying launch/endpoint.py -> /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/share/ros_tcp_endpoint/launch
+running install_egg_info
+Copying ../../build/ros_tcp_endpoint/ros_tcp_endpoint.egg-info to /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/python3.10/site-packages/ros_tcp_endpoint-0.0.1-py3.10.egg-info
+running install_scripts
+Installing default_server_endpoint script to /home/schni2zle/colcon_ws/src/install/ros_tcp_endpoint/lib/ros_tcp_endpoint
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/ros_tcp_endpoint/install.log'

@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_mission_msgs/srv/UTMLatLon.srv
+// generated code does not contain a copyright notice
+
+#include "geographic_msgs/msg/GeoPoint.idl"
+#include "geometry_msgs/msg/PointStamped.idl"
+
+module smarc_mission_msgs {
+  module srv {
+    @verbatim (language="comment", text=
+      "Use PointStamped for UTM coordinates" "\n"
+      "x,y,z for easting, northing. z is ignored" "\n"
+      "header.frame_id for utm zone/band like so: \"utm_34_T\"")
+    struct UTMLatLon_Request {
+      sequence<geometry_msgs::msg::PointStamped> utm_points;
+
+      sequence<geographic_msgs::msg::GeoPoint> lat_lon_points;
+    };
+    struct UTMLatLon_Response {
+      sequence<geographic_msgs::msg::GeoPoint> lat_lon_points;
+
+      sequence<geometry_msgs::msg::PointStamped> utm_points;
+    };
+  };
+};

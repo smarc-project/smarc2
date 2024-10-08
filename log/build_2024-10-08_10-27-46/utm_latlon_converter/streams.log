@@ -1,0 +1,41 @@
+[9.694s] Invoking command in '/home/schni2zle/colcon_ws/src/utilities/utm_latlon_converter': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/utm_latlon_converter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/utm_latlon_converter build --build-base /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build install --record /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/install.log --single-version-externally-managed install_data
+[11.514s] running egg_info
+[11.514s] creating ../../build/utm_latlon_converter/utm_latlon_converter.egg-info
+[11.522s] writing ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/PKG-INFO
+[11.527s] writing dependency_links to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/dependency_links.txt
+[11.528s] writing entry points to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/entry_points.txt
+[11.528s] writing requirements to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/requires.txt
+[11.528s] writing top-level names to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/top_level.txt
+[11.528s] writing manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+[11.547s] reading manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+[11.548s] adding license file 'LICENSE'
+[11.551s] writing manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+[11.558s] running build
+[11.558s] running build_py
+[11.559s] creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build
+[11.559s] creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib
+[11.559s] creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+[11.560s] copying utm_latlon_converter/__init__.py -> /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+[11.560s] copying utm_latlon_converter/converter_service_node.py -> /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+[11.572s] running install
+[11.572s] running install_lib
+[11.581s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+[11.581s] copying /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter/__init__.py -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+[11.581s] copying /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter/converter_service_node.py -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+[11.584s] byte-compiling /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter/__init__.py to __init__.cpython-310.pyc
+[11.587s] byte-compiling /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter/converter_service_node.py to converter_service_node.cpython-310.pyc
+[11.600s] running install_data
+[11.601s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index
+[11.602s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index
+[11.602s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index/packages
+[11.602s] copying resource/utm_latlon_converter -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index/packages
+[11.603s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter
+[11.603s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter/config
+[11.603s] creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter/launch
+[11.603s] running install_egg_info
+[11.615s] Copying ../../build/utm_latlon_converter/utm_latlon_converter.egg-info to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter-0.0.0-py3.10.egg-info
+[11.621s] running install_scripts
+[11.792s] Installing converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+[11.792s] Installing test_converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+[11.792s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/utm_latlon_converter/install.log'
+[11.944s] Invoked command in '/home/schni2zle/colcon_ws/src/utilities/utm_latlon_converter' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/utm_latlon_converter/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/utm_latlon_converter build --build-base /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build install --record /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/install.log --single-version-externally-managed install_data

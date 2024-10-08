@@ -1,0 +1,4 @@
+[console_scripts]
+converter = utm_latlon_converter.converter_service_node:main
+test_converter = utm_latlon_converter.converter_service_node:test_converter
+

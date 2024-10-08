@@ -1,0 +1,43 @@
+[7.126s] Invoking command in '/home/schni2zle/colcon_ws/src/examples/test_package': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/test_package/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/test_package build --build-base /home/schni2zle/colcon_ws/src/build/test_package/build install --record /home/schni2zle/colcon_ws/src/build/test_package/install.log --single-version-externally-managed install_data
+[10.376s] running egg_info
+[10.387s] creating ../../build/test_package/test_package.egg-info
+[10.387s] writing ../../build/test_package/test_package.egg-info/PKG-INFO
+[10.388s] writing dependency_links to ../../build/test_package/test_package.egg-info/dependency_links.txt
+[10.388s] writing entry points to ../../build/test_package/test_package.egg-info/entry_points.txt
+[10.396s] writing requirements to ../../build/test_package/test_package.egg-info/requires.txt
+[10.397s] writing top-level names to ../../build/test_package/test_package.egg-info/top_level.txt
+[10.397s] writing manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+[10.414s] reading manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+[10.417s] adding license file 'LICENSE'
+[10.420s] writing manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+[10.426s] running build
+[10.426s] running build_py
+[10.426s] creating /home/schni2zle/colcon_ws/src/build/test_package/build
+[10.426s] creating /home/schni2zle/colcon_ws/src/build/test_package/build/lib
+[10.428s] creating /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+[10.428s] copying test_package/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+[10.436s] copying test_package/__init__.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+[10.436s] copying test_package/IThrustView.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+[10.439s] running install
+[10.440s] running install_lib
+[10.455s] creating /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+[10.455s] copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+[10.455s] copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/__init__.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+[10.458s] copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/IThrustView.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+[10.467s] byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/SAMThrustView.py to SAMThrustView.cpython-310.pyc
+[10.476s] byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/__init__.py to __init__.cpython-310.pyc
+[10.483s] byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/IThrustView.py to IThrustView.cpython-310.pyc
+[10.489s] running install_data
+[10.489s] creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index
+[10.489s] creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index
+[10.489s] creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index/packages
+[10.493s] copying resource/test_package -> /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index/packages
+[10.494s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/test_package/share/test_package
+[10.499s] creating /home/schni2zle/colcon_ws/src/install/test_package/share/test_package/config
+[10.499s] creating /home/schni2zle/colcon_ws/src/install/test_package/share/test_package/launch
+[10.500s] running install_egg_info
+[10.515s] Copying ../../build/test_package/test_package.egg-info to /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package-0.0.0-py3.10.egg-info
+[10.538s] running install_scripts
+[10.735s] Installing view_test script to /home/schni2zle/colcon_ws/src/install/test_package/lib/test_package
+[10.740s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/test_package/install.log'
+[10.973s] Invoked command in '/home/schni2zle/colcon_ws/src/examples/test_package' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/test_package/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/test_package build --build-base /home/schni2zle/colcon_ws/src/build/test_package/build install --record /home/schni2zle/colcon_ws/src/build/test_package/install.log --single-version-externally-managed install_data

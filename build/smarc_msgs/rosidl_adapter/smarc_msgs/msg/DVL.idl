@@ -1,0 +1,58 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/DVL.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Vector3.idl"
+#include "smarc_msgs/msg/DVLBeam.idl"
+#include "std_msgs/msg/Header.idl"
+
+module smarc_msgs {
+  module msg {
+    typedef double double__9[9];
+    @verbatim (language="comment", text=
+      "Copyright (c) 2016 The UUV Simulator Authors." "\n"
+      "All rights reserved." "\n"
+      "" "\n"
+      "Licensed under the Apache License, Version 2.0 (the \"License\");" "\n"
+      "you may not use this file except in compliance with the License." "\n"
+      "You may obtain a copy of the License at" "\n"
+      "" "\n"
+      "    http://www.apache.org/licenses/LICENSE-2.0" "\n"
+      "" "\n"
+      "Unless required by applicable law or agreed to in writing, software" "\n"
+      "distributed under the License is distributed on an \"AS IS\" BASIS," "\n"
+      "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied." "\n"
+      "See the License for the specific language governing permissions and" "\n"
+      "limitations under the License.")
+    struct DVL {
+      @verbatim (language="comment", text=
+        "This is a message to hold data from a DVL sensor (Doppler Velocity Log)." "\n"
+        "" "\n"
+        "Distances are in [m], velocities in [m/s]" "\n"
+        "" "\n"
+        "If the covariance is known, it should be filled." "\n"
+        "If it is unknown, it should be set to all zeros." "\n"
+        "If a measurement was invalid, its covariance should be set to -1 so it can be" "\n"
+        "disregarded." "\n"
+        "" "\n"
+        "DVLBeams are optional. If they are set they contain individual ranges and 1D" "\n"
+        "doppler velocity estimates orthogonal to the ray.")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Measured velocity")
+      @unit (value="m/s")
+      geometry_msgs::msg::Vector3 velocity;
+
+      @verbatim (language="comment", text=
+        "Row major, xyz axes")
+      double__9 velocity_covariance;
+
+      @verbatim (language="comment", text=
+        "Altitude of the vehicle")
+      double altitude;
+
+      sequence<smarc_msgs::msg::DVLBeam> beams;
+    };
+  };
+};

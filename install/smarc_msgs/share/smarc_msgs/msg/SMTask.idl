@@ -1,0 +1,47 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/SMTask.msg
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Duration.idl"
+
+module smarc_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This holds the id of the task")
+    struct SMTask {
+      uint64 task_id;
+
+      @verbatim (language="comment", text=
+        "Termination condition WP: X. Set to zero if not used")
+      double x;
+
+      @verbatim (language="comment", text=
+        "Termination condition WP: Y. Set to zero if not used")
+      double y;
+
+      @verbatim (language="comment", text=
+        "Termination condition WP: depth. Set to zero if not used")
+      double depth;
+
+      @verbatim (language="comment", text=
+        "Termination condition WP: altitude. Set to zero if not used")
+      double altitude;
+
+      @verbatim (language="comment", text=
+        "Termination condition WP: Yaw. Set to zero if not used")
+      double theta;
+
+      @verbatim (language="comment", text=
+        "Termination condition: maximum duration of the task. Set to zero if not used")
+      builtin_interfaces::msg::Duration max_duration;
+
+      @verbatim (language="comment", text=
+        "Action server topic")
+      string action_topic;
+
+      @verbatim (language="comment", text=
+        "Additional arguments to the action server call")
+      string action_arguments;
+    };
+  };
+};

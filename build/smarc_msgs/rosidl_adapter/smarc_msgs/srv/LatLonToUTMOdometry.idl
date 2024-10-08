@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_msgs/srv/LatLonToUTMOdometry.srv
+// generated code does not contain a copyright notice
+
+#include "nav_msgs/msg/Odometry.idl"
+#include "smarc_msgs/msg/LatLonOdometry.idl"
+
+module smarc_msgs {
+  module srv {
+    struct LatLonToUTMOdometry_Request {
+      smarc_msgs::msg::LatLonOdometry lat_lon_odom;
+    };
+    struct LatLonToUTMOdometry_Response {
+      nav_msgs::msg::Odometry odom;
+    };
+  };
+};

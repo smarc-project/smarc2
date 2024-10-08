@@ -1,0 +1,21 @@
+running egg_info
+writing ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/PKG-INFO
+writing dependency_links to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/dependency_links.txt
+writing entry points to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/entry_points.txt
+writing requirements to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/requires.txt
+writing top-level names to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/top_level.txt
+reading manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/utm_latlon_converter/utm_latlon_converter.egg-info to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter-0.0.0-py3.10.egg-info
+running install_scripts
+Installing converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+Installing test_converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/utm_latlon_converter/install.log'

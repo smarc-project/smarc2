@@ -1,0 +1,14 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/ThrusterRPM.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module msg {
+    struct ThrusterRPM {
+      @verbatim (language="comment", text=
+        "NOTE: can be negative also")
+      int32 rpm;
+    };
+  };
+};

@@ -1,0 +1,3 @@
+source;share/sam_basic_controllers/environment/ament_prefix_path.sh
+source;share/sam_basic_controllers/environment/path.sh
+source;share/sam_basic_controllers/environment/pythonpath.sh

@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/DualThrusterRPM.msg
+// generated code does not contain a copyright notice
+
+#include "smarc_msgs/msg/ThrusterRPM.idl"
+
+module smarc_msgs {
+  module msg {
+    struct DualThrusterRPM {
+      smarc_msgs::msg::ThrusterRPM thruster_front;
+
+      smarc_msgs::msg::ThrusterRPM thruster_back;
+    };
+  };
+};

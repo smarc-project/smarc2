@@ -1,0 +1,3 @@
+float32 thruster_vertical_radians
+float32 thruster_horizontal_radians
+std_msgs/Header header

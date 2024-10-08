@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_control_msgs/msg/ControlState.msg
+// generated code does not contain a copyright notice
+
+#include "smarc_control_msgs/msg/State.idl"
+
+module smarc_control_msgs {
+  module msg {
+    struct ControlState {
+      smarc_control_msgs::msg::State pose;
+
+      smarc_control_msgs::msg::State vel;
+    };
+  };
+};

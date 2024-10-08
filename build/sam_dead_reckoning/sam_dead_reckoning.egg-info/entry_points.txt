@@ -1,0 +1,8 @@
+[console_scripts]
+compass_heading_node = sam_dead_reckoning.yaw_enu_2_compass_heading:main
+depth_node = sam_dead_reckoning.press_to_depth:main
+dr_lat_lon_node = sam_dead_reckoning.dr_odom_2_lat_lon:main
+dr_node = sam_dead_reckoning.dr_node:main
+gps_node = sam_dead_reckoning.gps_node:main
+rpy_node = sam_dead_reckoning.sbg_imu_2_rpy_enu:main
+

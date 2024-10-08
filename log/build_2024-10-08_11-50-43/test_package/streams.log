@@ -1,0 +1,22 @@
+[4.416s] Invoking command in '/home/schni2zle/colcon_ws/src/examples/test_package': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/test_package/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/test_package build --build-base /home/schni2zle/colcon_ws/src/build/test_package/build install --record /home/schni2zle/colcon_ws/src/build/test_package/install.log --single-version-externally-managed install_data
+[5.555s] running egg_info
+[5.558s] writing ../../build/test_package/test_package.egg-info/PKG-INFO
+[5.559s] writing dependency_links to ../../build/test_package/test_package.egg-info/dependency_links.txt
+[5.560s] writing entry points to ../../build/test_package/test_package.egg-info/entry_points.txt
+[5.561s] writing requirements to ../../build/test_package/test_package.egg-info/requires.txt
+[5.562s] writing top-level names to ../../build/test_package/test_package.egg-info/top_level.txt
+[5.569s] reading manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+[5.572s] adding license file 'LICENSE'
+[5.575s] writing manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+[5.575s] running build
+[5.576s] running build_py
+[5.576s] running install
+[5.577s] running install_lib
+[5.581s] running install_data
+[5.582s] running install_egg_info
+[5.589s] removing '/home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package-0.0.0-py3.10.egg-info' (and everything under it)
+[5.591s] Copying ../../build/test_package/test_package.egg-info to /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package-0.0.0-py3.10.egg-info
+[5.597s] running install_scripts
+[5.672s] Installing view_test script to /home/schni2zle/colcon_ws/src/install/test_package/lib/test_package
+[5.673s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/test_package/install.log'
+[5.768s] Invoked command in '/home/schni2zle/colcon_ws/src/examples/test_package' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/test_package/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/test_package build --build-base /home/schni2zle/colcon_ws/src/build/test_package/build install --record /home/schni2zle/colcon_ws/src/build/test_package/install.log --single-version-externally-managed install_data

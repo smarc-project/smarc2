@@ -1,0 +1,1 @@
+smarc_msgs/LatLonOdometry lat_lon_odom

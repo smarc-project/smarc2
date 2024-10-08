@@ -1,0 +1,6 @@
+source;share/sam_dead_reckoning/hook/pythonpath.ps1
+source;share/sam_dead_reckoning/hook/pythonpath.dsv
+source;share/sam_dead_reckoning/hook/pythonpath.sh
+source;share/sam_dead_reckoning/hook/ament_prefix_path.ps1
+source;share/sam_dead_reckoning/hook/ament_prefix_path.dsv
+source;share/sam_dead_reckoning/hook/ament_prefix_path.sh

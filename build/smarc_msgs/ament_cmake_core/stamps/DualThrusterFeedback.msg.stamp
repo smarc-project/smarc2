@@ -1,0 +1,2 @@
+smarc_msgs/ThrusterFeedback thruster_front
+smarc_msgs/ThrusterFeedback thruster_back

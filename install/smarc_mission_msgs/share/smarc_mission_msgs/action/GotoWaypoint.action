@@ -1,0 +1,7 @@
+smarc_mission_msgs/GotoWaypoint waypoint
+---
+bool reached_waypoint
+---
+builtin_interfaces/Time time_remaining
+string feedback_message
+float32 distance_remaining

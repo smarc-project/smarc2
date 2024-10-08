@@ -1,0 +1,21 @@
+running egg_info
+writing ../../build/dubins_planner/dubins_planner.egg-info/PKG-INFO
+writing dependency_links to ../../build/dubins_planner/dubins_planner.egg-info/dependency_links.txt
+writing entry points to ../../build/dubins_planner/dubins_planner.egg-info/entry_points.txt
+writing requirements to ../../build/dubins_planner/dubins_planner.egg-info/requires.txt
+writing top-level names to ../../build/dubins_planner/dubins_planner.egg-info/top_level.txt
+reading manifest file '../../build/dubins_planner/dubins_planner.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/dubins_planner/dubins_planner.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages/dubins_planner-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/dubins_planner/dubins_planner.egg-info to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/python3.10/site-packages/dubins_planner-0.0.0-py3.10.egg-info
+running install_scripts
+Installing dubins_planner_service script to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/dubins_planner
+Installing test_dubins_planner_service script to /home/schni2zle/colcon_ws/src/install/dubins_planner/lib/dubins_planner
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/dubins_planner/install.log'

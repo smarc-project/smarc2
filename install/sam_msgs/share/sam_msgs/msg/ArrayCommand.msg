@@ -1,0 +1,5 @@
+#
+# Actuator commands.
+# The system supports up to 256 actuators; up to 15 of them can be commanded with one message.
+#
+Command[] commands

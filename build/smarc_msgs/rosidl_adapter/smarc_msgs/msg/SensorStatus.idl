@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/SensorStatus.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module msg {
+    module SensorStatus_Constants {
+      const uint8 SENSOR_STATUS_NOT_ACTIVE = 0;
+      const uint8 SENSOR_STATUS_ACTIVE = 1;
+      const uint8 SENSOR_STATUS_ERROR = 2;
+    };
+    struct SensorStatus {
+      uint8 sensor_status;
+
+      @verbatim (language="comment", text=
+        "name of service to turn on and off the sensor")
+      string service_name;
+
+      @verbatim (language="comment", text=
+        "optional diagnostics message")
+      string diagnostics_message;
+    };
+  };
+};

@@ -1,0 +1,51 @@
+[10.623s] Invoking command in '/home/schni2zle/colcon_ws/src/state_estimation': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/state_estimation/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/state_estimation build --build-base /home/schni2zle/colcon_ws/src/build/state_estimation/build install --record /home/schni2zle/colcon_ws/src/build/state_estimation/install.log --single-version-externally-managed install_data
+[14.302s] running egg_info
+[14.305s] creating ../build/state_estimation/state_estimation.egg-info
+[14.307s] writing ../build/state_estimation/state_estimation.egg-info/PKG-INFO
+[14.317s] writing dependency_links to ../build/state_estimation/state_estimation.egg-info/dependency_links.txt
+[14.317s] writing entry points to ../build/state_estimation/state_estimation.egg-info/entry_points.txt
+[14.317s] writing requirements to ../build/state_estimation/state_estimation.egg-info/requires.txt
+[14.317s] writing top-level names to ../build/state_estimation/state_estimation.egg-info/top_level.txt
+[14.320s] writing manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+[14.332s] reading manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+[14.333s] adding license file 'LICENSE'
+[14.340s] writing manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+[14.341s] running build
+[14.341s] running build_py
+[14.341s] creating /home/schni2zle/colcon_ws/src/build/state_estimation/build
+[14.341s] creating /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib
+[14.342s] copying estimator.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib
+[14.347s] copying KNN.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib
+[14.355s] copying model_kf.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib
+[14.356s] copying model_ekf.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib
+[14.360s] creating /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+[14.361s] copying state_estimation/__init__.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+[14.361s] running install
+[14.361s] running install_lib
+[14.374s] creating /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+[14.383s] copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation/__init__.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+[14.389s] copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/model_ekf.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages
+[14.389s] copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/model_kf.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages
+[14.389s] copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/estimator.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages
+[14.396s] copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/KNN.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages
+[14.397s] byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation/__init__.py to __init__.cpython-310.pyc
+[14.403s] byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/model_ekf.py to model_ekf.cpython-310.pyc
+[14.406s] byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/model_kf.py to model_kf.cpython-310.pyc
+[14.408s] byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/estimator.py to estimator.cpython-310.pyc
+[14.417s] byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/KNN.py to KNN.cpython-310.pyc
+[14.425s] running install_data
+[14.426s] creating /home/schni2zle/colcon_ws/src/install/state_estimation/share/ament_index
+[14.427s] creating /home/schni2zle/colcon_ws/src/install/state_estimation/share/ament_index/resource_index
+[14.431s] creating /home/schni2zle/colcon_ws/src/install/state_estimation/share/ament_index/resource_index/packages
+[14.431s] copying resource/state_estimation -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/ament_index/resource_index/packages
+[14.431s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation
+[14.433s] creating /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation/launch
+[14.433s] copying launch/estimator_detector.launch.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation/launch
+[14.434s] copying launch/detector_only.launch.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation/launch
+[14.442s] running install_egg_info
+[14.454s] Copying ../build/state_estimation/state_estimation.egg-info to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info
+[14.459s] running install_scripts
+[14.659s] Installing detector script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+[14.691s] Installing estimator script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+[14.691s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/state_estimation/install.log'
+[17.322s] Invoked command in '/home/schni2zle/colcon_ws/src/state_estimation' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/state_estimation/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/state_estimation build --build-base /home/schni2zle/colcon_ws/src/build/state_estimation/build install --record /home/schni2zle/colcon_ws/src/build/state_estimation/install.log --single-version-externally-managed install_data

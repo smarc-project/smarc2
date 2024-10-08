@@ -1,0 +1,27 @@
+{
+  "package_name": "sam_msgs",
+  "non_idl_tuples": [
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ArrayCommand.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/BallastAngles.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/CircuitStatus.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/CircuitStatusStampedArray.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/CircuitStatusStamped.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/Command.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ConsumedChargeArray.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ConsumedChargeFeedback.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ConsumedCharge.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/CTP.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/Leak.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/LightCommandArray.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/LightCommand.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/PercentStamped.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ThrusterAngles.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/ThrusterRPMs.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/UavcanNodeStatus.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/UavcanNodeStatusNamedArray.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/UavcanNodeStatusNamed.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/Topics.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:msg/Links.msg",
+    "/home/schni2zle/colcon_ws/src/messages/sam_msgs:srv/UavcanUpdateBattery.srv"
+  ]
+}

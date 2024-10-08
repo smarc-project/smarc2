@@ -1,0 +1,122 @@
+[6.409s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/smarc_bt': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bt/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bt build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bt/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bt/install.log --single-version-externally-managed install_data
+[10.931s] running egg_info
+[10.931s] creating ../../build/smarc_bt/smarc_bt.egg-info
+[10.931s] writing ../../build/smarc_bt/smarc_bt.egg-info/PKG-INFO
+[10.932s] writing dependency_links to ../../build/smarc_bt/smarc_bt.egg-info/dependency_links.txt
+[10.932s] writing entry points to ../../build/smarc_bt/smarc_bt.egg-info/entry_points.txt
+[10.932s] writing requirements to ../../build/smarc_bt/smarc_bt.egg-info/requires.txt
+[10.932s] writing top-level names to ../../build/smarc_bt/smarc_bt.egg-info/top_level.txt
+[10.932s] writing manifest file '../../build/smarc_bt/smarc_bt.egg-info/SOURCES.txt'
+[10.932s] reading manifest file '../../build/smarc_bt/smarc_bt.egg-info/SOURCES.txt'
+[10.933s] adding license file 'LICENSE'
+[10.933s] writing manifest file '../../build/smarc_bt/smarc_bt.egg-info/SOURCES.txt'
+[10.933s] running build
+[10.933s] running build_py
+[10.933s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build
+[10.933s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib
+[10.934s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt
+[10.934s] copying smarc_bt/__init__.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt
+[10.934s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/ros_waypoint.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/ros_mission_updater.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/ros_action_goto_waypoint.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/mission_plan.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/__init__.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.948s] copying smarc_bt/mission/ros_mission_plan.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.949s] copying smarc_bt/mission/i_action_client.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.949s] copying smarc_bt/mission/i_bb_mission_updater.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.949s] copying smarc_bt/mission/waypoint.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission
+[10.949s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.949s] copying smarc_bt/bt/i_bb_updater.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.949s] copying smarc_bt/bt/i_has_clock.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.949s] copying smarc_bt/bt/actions.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.950s] copying smarc_bt/bt/conditions.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.950s] copying smarc_bt/bt/ros_bb_updater.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.950s] copying smarc_bt/bt/bb_keys.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.954s] copying smarc_bt/bt/__init__.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.959s] copying smarc_bt/bt/ros_bt.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.959s] copying smarc_bt/bt/common.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.959s] copying smarc_bt/bt/i_has_vehicle_container.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt
+[10.960s] creating /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.960s] copying smarc_bt/vehicles/sensor.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.960s] copying smarc_bt/vehicles/vehicle.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.960s] copying smarc_bt/vehicles/__init__.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.960s] copying smarc_bt/vehicles/ros_vehicle.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.960s] copying smarc_bt/vehicles/sam_auv.py -> /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles
+[10.961s] running install
+[10.961s] running install_lib
+[10.961s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt
+[10.961s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.961s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/ros_waypoint.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.961s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/ros_mission_updater.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/ros_action_goto_waypoint.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/mission_plan.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/__init__.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/ros_mission_plan.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/i_action_client.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.968s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/i_bb_mission_updater.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.971s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/mission/waypoint.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission
+[10.971s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.971s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/i_bb_updater.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.971s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/i_has_clock.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.971s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/actions.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.972s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/conditions.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.972s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/ros_bb_updater.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.980s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/bb_keys.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.980s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/__init__.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.980s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/ros_bt.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.980s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/common.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.980s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/bt/i_has_vehicle_container.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt
+[10.981s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/__init__.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt
+[10.981s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.981s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles/sensor.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.981s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles/vehicle.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.981s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles/__init__.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.981s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles/ros_vehicle.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.982s] copying /home/schni2zle/colcon_ws/src/build/smarc_bt/build/lib/smarc_bt/vehicles/sam_auv.py -> /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles
+[10.982s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/ros_waypoint.py to ros_waypoint.cpython-310.pyc
+[10.982s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/ros_mission_updater.py to ros_mission_updater.cpython-310.pyc
+[10.982s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/ros_action_goto_waypoint.py to ros_action_goto_waypoint.cpython-310.pyc
+[10.982s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/mission_plan.py to mission_plan.cpython-310.pyc
+[10.982s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/__init__.py to __init__.cpython-310.pyc
+[10.983s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/ros_mission_plan.py to ros_mission_plan.cpython-310.pyc
+[10.983s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/i_action_client.py to i_action_client.cpython-310.pyc
+[10.987s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/i_bb_mission_updater.py to i_bb_mission_updater.cpython-310.pyc
+[10.987s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/mission/waypoint.py to waypoint.cpython-310.pyc
+[10.987s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/i_bb_updater.py to i_bb_updater.cpython-310.pyc
+[10.987s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/i_has_clock.py to i_has_clock.cpython-310.pyc
+[10.987s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/actions.py to actions.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/conditions.py to conditions.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/ros_bb_updater.py to ros_bb_updater.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/bb_keys.py to bb_keys.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/__init__.py to __init__.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/ros_bt.py to ros_bt.cpython-310.pyc
+[10.988s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/common.py to common.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/bt/i_has_vehicle_container.py to i_has_vehicle_container.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/__init__.py to __init__.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles/sensor.py to sensor.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles/vehicle.py to vehicle.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles/__init__.py to __init__.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles/ros_vehicle.py to ros_vehicle.cpython-310.pyc
+[10.989s] byte-compiling /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt/vehicles/sam_auv.py to sam_auv.cpython-310.pyc
+[10.990s] running install_data
+[10.990s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/share/ament_index
+[10.990s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/share/ament_index/resource_index
+[10.990s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/share/ament_index/resource_index/packages
+[10.990s] copying resource/smarc_bt -> /home/schni2zle/colcon_ws/src/install/smarc_bt/share/ament_index/resource_index/packages
+[10.990s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/smarc_bt/share/smarc_bt
+[11.006s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/share/smarc_bt/config
+[11.007s] creating /home/schni2zle/colcon_ws/src/install/smarc_bt/share/smarc_bt/launch
+[11.007s] copying launch/smarc_bt.launch -> /home/schni2zle/colcon_ws/src/install/smarc_bt/share/smarc_bt/launch
+[11.007s] copying launch/test_sam_bt.launch -> /home/schni2zle/colcon_ws/src/install/smarc_bt/share/smarc_bt/launch
+[11.007s] running install_egg_info
+[11.007s] Copying ../../build/smarc_bt/smarc_bt.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt-0.0.0-py3.10.egg-info
+[11.008s] running install_scripts
+[11.008s] Installing send_test_mission script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.008s] Installing smarc_bt script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.008s] Installing test_bt_conditions script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.008s] Installing test_dubins_planner_caller script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.008s] Installing test_ros_vehicle script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.008s] Installing test_sam_auv script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[11.009s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_bt/install.log'
+[11.041s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/smarc_bt' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bt/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bt build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bt/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bt/install.log --single-version-externally-managed install_data

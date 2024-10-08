@@ -1,0 +1,4 @@
+[console_scripts]
+dubins_planner_service = dubins_planner.dubins_planner_node:main
+test_dubins_planner_service = dubins_planner.dubins_planner_node:test_service
+

@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/CTP.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module sam_msgs {
+  module msg {
+    struct CTP {
+      std_msgs::msg::Header header;
+
+      @unit (value="mS/cm")
+      double conductivity;
+
+      @unit (value="deg C")
+      double temperature;
+
+      @unit (value="bar")
+      double pressure;
+    };
+  };
+};

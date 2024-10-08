@@ -1,0 +1,4 @@
+source;share/sam_graph_slam_2_msgs/local_setup.bash
+source;share/sam_graph_slam_2_msgs/local_setup.dsv
+source;share/sam_graph_slam_2_msgs/local_setup.sh
+source;share/sam_graph_slam_2_msgs/local_setup.zsh

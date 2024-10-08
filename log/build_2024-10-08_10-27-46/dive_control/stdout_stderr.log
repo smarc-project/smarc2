@@ -1,0 +1,69 @@
+running egg_info
+creating ../../build/dive_control/dive_control.egg-info
+writing ../../build/dive_control/dive_control.egg-info/PKG-INFO
+writing dependency_links to ../../build/dive_control/dive_control.egg-info/dependency_links.txt
+writing entry points to ../../build/dive_control/dive_control.egg-info/entry_points.txt
+writing requirements to ../../build/dive_control/dive_control.egg-info/requires.txt
+writing top-level names to ../../build/dive_control/dive_control.egg-info/top_level.txt
+writing manifest file '../../build/dive_control/dive_control.egg-info/SOURCES.txt'
+reading manifest file '../../build/dive_control/dive_control.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/dive_control/dive_control.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/dive_control/build
+creating /home/schni2zle/colcon_ws/src/build/dive_control/build/lib
+creating /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/Node.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/DivingModel.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/DiveController.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/IDiveView.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/ActionServerDiveController.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/__init__.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/SAMDiveView.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+copying dive_control/SetpointNode.py -> /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/Node.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/DivingModel.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/DiveController.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/ConvenienceView.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/IDiveView.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/ActionServerDiveController.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/__init__.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/SAMDiveView.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+copying /home/schni2zle/colcon_ws/src/build/dive_control/build/lib/dive_control/SetpointNode.py -> /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/Node.py to Node.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/DivingModel.py to DivingModel.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/DiveController.py to DiveController.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/ConvenienceView.py to ConvenienceView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/IDiveView.py to IDiveView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/ActionServerDiveController.py to ActionServerDiveController.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/ActionClientNode.py to ActionClientNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/SAMDiveView.py to SAMDiveView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control/SetpointNode.py to SetpointNode.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/dive_control/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/dive_control/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/dive_control/share/ament_index/resource_index/packages
+copying resource/dive_control -> /home/schni2zle/colcon_ws/src/install/dive_control/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/dive_control/share/dive_control
+creating /home/schni2zle/colcon_ws/src/install/dive_control/share/dive_control/config
+creating /home/schni2zle/colcon_ws/src/install/dive_control/share/dive_control/launch
+copying launch/setpoint_topic.launch -> /home/schni2zle/colcon_ws/src/install/dive_control/share/dive_control/launch
+copying launch/actionserver.launch -> /home/schni2zle/colcon_ws/src/install/dive_control/share/dive_control/launch
+running install_egg_info
+Copying ../../build/dive_control/dive_control.egg-info to /home/schni2zle/colcon_ws/src/install/dive_control/lib/python3.10/site-packages/dive_control-0.0.0-py3.10.egg-info
+running install_scripts
+Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+Installing action_server_diving script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+Installing manual_diving script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+Installing setpoint script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+Installing test_view script to /home/schni2zle/colcon_ws/src/install/dive_control/lib/dive_control
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/dive_control/install.log'

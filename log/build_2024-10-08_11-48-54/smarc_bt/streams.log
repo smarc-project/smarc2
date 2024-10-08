@@ -1,0 +1,27 @@
+[5.413s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/smarc_bt': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bt/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bt build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bt/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bt/install.log --single-version-externally-managed install_data
+[6.562s] running egg_info
+[6.564s] writing ../../build/smarc_bt/smarc_bt.egg-info/PKG-INFO
+[6.566s] writing dependency_links to ../../build/smarc_bt/smarc_bt.egg-info/dependency_links.txt
+[6.566s] writing entry points to ../../build/smarc_bt/smarc_bt.egg-info/entry_points.txt
+[6.566s] writing requirements to ../../build/smarc_bt/smarc_bt.egg-info/requires.txt
+[6.566s] writing top-level names to ../../build/smarc_bt/smarc_bt.egg-info/top_level.txt
+[6.572s] reading manifest file '../../build/smarc_bt/smarc_bt.egg-info/SOURCES.txt'
+[6.572s] adding license file 'LICENSE'
+[6.575s] writing manifest file '../../build/smarc_bt/smarc_bt.egg-info/SOURCES.txt'
+[6.575s] running build
+[6.575s] running build_py
+[6.581s] running install
+[6.581s] running install_lib
+[6.588s] running install_data
+[6.589s] running install_egg_info
+[6.593s] removing '/home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt-0.0.0-py3.10.egg-info' (and everything under it)
+[6.594s] Copying ../../build/smarc_bt/smarc_bt.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages/smarc_bt-0.0.0-py3.10.egg-info
+[6.596s] running install_scripts
+[6.655s] Installing send_test_mission script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.656s] Installing smarc_bt script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.656s] Installing test_bt_conditions script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.657s] Installing test_dubins_planner_caller script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.657s] Installing test_ros_vehicle script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.658s] Installing test_sam_auv script to /home/schni2zle/colcon_ws/src/install/smarc_bt/lib/smarc_bt
+[6.660s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_bt/install.log'
+[8.717s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/smarc_bt' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bt/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bt/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bt build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bt/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bt/install.log --single-version-externally-managed install_data

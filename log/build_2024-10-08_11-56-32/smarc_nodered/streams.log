@@ -1,0 +1,21 @@
+[4.267s] Invoking command in '/home/schni2zle/colcon_ws/src/gui/smarc_nodered': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_nodered/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_nodered build --build-base /home/schni2zle/colcon_ws/src/build/smarc_nodered/build install --record /home/schni2zle/colcon_ws/src/build/smarc_nodered/install.log --single-version-externally-managed install_data
+[5.223s] running egg_info
+[5.225s] writing ../../build/smarc_nodered/smarc_nodered.egg-info/PKG-INFO
+[5.225s] writing dependency_links to ../../build/smarc_nodered/smarc_nodered.egg-info/dependency_links.txt
+[5.226s] writing entry points to ../../build/smarc_nodered/smarc_nodered.egg-info/entry_points.txt
+[5.227s] writing requirements to ../../build/smarc_nodered/smarc_nodered.egg-info/requires.txt
+[5.228s] writing top-level names to ../../build/smarc_nodered/smarc_nodered.egg-info/top_level.txt
+[5.231s] reading manifest file '../../build/smarc_nodered/smarc_nodered.egg-info/SOURCES.txt'
+[5.231s] adding license file 'LICENSE'
+[5.233s] writing manifest file '../../build/smarc_nodered/smarc_nodered.egg-info/SOURCES.txt'
+[5.233s] running build
+[5.234s] running build_py
+[5.234s] running install
+[5.234s] running install_lib
+[5.238s] running install_data
+[5.238s] running install_egg_info
+[5.243s] removing '/home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered-0.1.0-py3.10.egg-info' (and everything under it)
+[5.244s] Copying ../../build/smarc_nodered/smarc_nodered.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages/smarc_nodered-0.1.0-py3.10.egg-info
+[5.247s] running install_scripts
+[5.297s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_nodered/install.log'
+[5.495s] Invoked command in '/home/schni2zle/colcon_ws/src/gui/smarc_nodered' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_nodered/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_nodered/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_nodered build --build-base /home/schni2zle/colcon_ws/src/build/smarc_nodered/build install --record /home/schni2zle/colcon_ws/src/build/smarc_nodered/install.log --single-version-externally-managed install_data

@@ -1,0 +1,25 @@
+[5.947s] Invoking command in '/home/schni2zle/colcon_ws/src/behaviours/basic_depth_pitch_control': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_depth_pitch_control build --build-base /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build install --record /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/install.log --single-version-externally-managed install_data
+[7.315s] running egg_info
+[7.318s] writing ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/PKG-INFO
+[7.319s] writing dependency_links to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/dependency_links.txt
+[7.319s] writing entry points to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/entry_points.txt
+[7.327s] writing requirements to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/requires.txt
+[7.327s] writing top-level names to ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/top_level.txt
+[7.328s] reading manifest file '../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/SOURCES.txt'
+[7.328s] adding license file 'LICENSE'
+[7.338s] writing manifest file '../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info/SOURCES.txt'
+[7.338s] running build
+[7.339s] running build_py
+[7.345s] running install
+[7.346s] running install_lib
+[7.354s] running install_data
+[7.354s] running install_egg_info
+[7.365s] removing '/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control-0.0.0-py3.10.egg-info' (and everything under it)
+[7.366s] Copying ../../build/basic_depth_pitch_control/basic_depth_pitch_control.egg-info to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages/basic_depth_pitch_control-0.0.0-py3.10.egg-info
+[7.372s] running install_scripts
+[7.465s] Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+[7.471s] Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+[7.472s] Installing diving script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+[7.472s] Installing test_view script to /home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/basic_depth_pitch_control
+[7.473s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/install.log'
+[8.504s] Invoked command in '/home/schni2zle/colcon_ws/src/behaviours/basic_depth_pitch_control' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/basic_depth_pitch_control/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/basic_depth_pitch_control build --build-base /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/build install --record /home/schni2zle/colcon_ws/src/build/basic_depth_pitch_control/install.log --single-version-externally-managed install_data

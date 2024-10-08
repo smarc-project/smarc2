@@ -1,0 +1,23 @@
+[5.298s] Invoking command in '/home/schni2zle/colcon_ws/src/quadrotor/quadrotor_basic_controller': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build install --record /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data
+[6.168s] running egg_info
+[6.170s] writing ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+[6.171s] writing dependency_links to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+[6.171s] writing entry points to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+[6.172s] writing requirements to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+[6.172s] writing top-level names to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+[6.178s] reading manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[6.178s] adding license file 'LICENSE'
+[6.180s] writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[6.180s] running build
+[6.180s] running build_py
+[6.181s] running install
+[6.182s] running install_lib
+[6.186s] running install_data
+[6.187s] running install_egg_info
+[6.192s] removing '/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info' (and everything under it)
+[6.192s] Copying ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info
+[6.195s] running install_scripts
+[6.245s] Installing controller script to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[6.246s] Installing test script to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[6.247s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log'
+[7.200s] Invoked command in '/home/schni2zle/colcon_ws/src/quadrotor/quadrotor_basic_controller' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build install --record /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data

@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sam_msgs/msg/LightCommandArray.msg
+// generated code does not contain a copyright notice
+
+#include "sam_msgs/msg/LightCommand.idl"
+
+module sam_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Light command")
+    struct LightCommandArray {
+      sequence<sam_msgs::msg::LightCommand> array;
+    };
+  };
+};

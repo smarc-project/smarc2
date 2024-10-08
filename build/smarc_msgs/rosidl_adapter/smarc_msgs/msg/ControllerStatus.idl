@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/ControllerStatus.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_msgs {
+  module msg {
+    module ControllerStatus_Constants {
+      const uint8 CONTROL_STATUS_NOT_CONTROLLING = 0;
+      const uint8 CONTROL_STATUS_CONTROLLING = 1;
+      const uint8 CONTROL_STATUS_ERROR = 2;
+    };
+    struct ControllerStatus {
+      uint8 control_status;
+
+      @verbatim (language="comment", text=
+        "name of service to turn on and off controller")
+      string service_name;
+
+      @verbatim (language="comment", text=
+        "optional diagnostics message")
+      string diagnostics_message;
+    };
+  };
+};

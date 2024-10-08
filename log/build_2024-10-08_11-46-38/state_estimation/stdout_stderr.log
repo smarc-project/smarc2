@@ -1,0 +1,23 @@
+running egg_info
+writing ../build/state_estimation/state_estimation.egg-info/PKG-INFO
+writing dependency_links to ../build/state_estimation/state_estimation.egg-info/dependency_links.txt
+writing entry points to ../build/state_estimation/state_estimation.egg-info/entry_points.txt
+writing requirements to ../build/state_estimation/state_estimation.egg-info/requires.txt
+writing top-level names to ../build/state_estimation/state_estimation.egg-info/top_level.txt
+reading manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+copying launch/detector_only.launch.xml -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation/launch
+copying launch/estimator_detector.launch.xml -> /home/schni2zle/colcon_ws/src/install/state_estimation/share/state_estimation/launch
+running install_egg_info
+removing '/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../build/state_estimation/state_estimation.egg-info to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info
+running install_scripts
+Installing detector script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+Installing estimator script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/state_estimation/install.log'

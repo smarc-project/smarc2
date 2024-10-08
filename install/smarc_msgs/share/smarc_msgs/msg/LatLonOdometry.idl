@@ -1,0 +1,29 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/LatLonOdometry.msg
+// generated code does not contain a copyright notice
+
+#include "geographic_msgs/msg/GeoPose.idl"
+#include "geometry_msgs/msg/TwistWithCovariance.idl"
+#include "std_msgs/msg/Header.idl"
+
+module smarc_msgs {
+  module msg {
+    typedef double double__36[36];
+    @verbatim (language="comment", text=
+      "This represents an estimate of a position and velocity in free space.  ")
+    struct LatLonOdometry {
+      std_msgs::msg::Header header;
+
+      geographic_msgs::msg::GeoPose lat_lon_pose;
+
+      @verbatim (language="comment", text=
+        "Row-major representation of the 6x6 covariance matrix" "\n"
+        "The orientation parameters use a fixed-axis representation." "\n"
+        "In order, the parameters are:" "\n"
+        "(x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis)")
+      double__36 covariance;
+
+      geometry_msgs::msg::TwistWithCovariance twist;
+    };
+  };
+};

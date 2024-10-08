@@ -1,0 +1,281 @@
+<?xml version="1.0" ?>
+<robot name="sam_auv">
+  <!-- Links. -->
+  <link name="base_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.677 0 0"/>
+      <geometry>
+        <mesh filename="mesh/SAM_HULL.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="-0.019 0 -0.03"/>
+      <mass value="12.29"/>
+      <inertia ixx="0.0293" ixy="0.0" ixz="0.0" iyy="1.6202" iyz="0.0" izz="1.6202"/>
+    </inertial>
+  </link>
+  <link name="thruster_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="mesh/SAM_NOZZLE.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+      <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>
+    </inertial>
+  </link>
+  <link name="front_prop_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="mesh/SAM_FRONTPROP.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+      <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>
+    </inertial>
+  </link>
+  <link name="back_prop_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="mesh/SAM_BACKPROP.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+       <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="thruster_yaw_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+       <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="battery_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        <mass value="2.7"/>
+      <inertia ixx="1" ixy="0.0" ixz="0.0" iyy="1" iyz="0.0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="tcg1_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="tcg2_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="pressure_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="dvl_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="sidescan_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="imu_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="vbs_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.300"/>
+    <inertia ixx="0.0293" ixy="0.0" ixz="0.0" iyy="1.6202" iyz="0.0" izz="1.6202"/>
+    </inertial>
+  </link>
+  <link name="sbg_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="gps_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="uw_gps_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="camera_down_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="camera_front_right_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="camera_front_left_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  <link name="camera_front_link">
+    <inertial>
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.00000001"/>
+    <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>    
+    </inertial>
+  </link>
+  
+  <joint name="thruster_yaw_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="thruster_yaw_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.677 0.0 0.0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100.0"  damping="500" lower="-0.2" upper="0.2" velocity="0.2"/>
+  </joint>
+  <joint name="thruster_pitch_joint" type="revolute">
+    <parent link="thruster_yaw_link"/>
+    <child link="thruster_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100.0" damping="500" lower="-0.2" upper="0.2" velocity="0.2"/>
+  </joint>
+  <joint name="front_prop_joint" type="continuous">
+    <parent link="thruster_link"/>
+    <child link="front_prop_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.05429989 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <joint name="back_prop_joint" type="continuous">
+    <parent link="thruster_link"/>
+    <child link="back_prop_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.07700002 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <joint name="pressure_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="pressure_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.503 0.025 0.057"/>
+  </joint>
+  <joint name="dvl_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="dvl_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.573 0.0 -0.063"/>
+  </joint>
+  <!--Sidescan acoustic center, i.e. intersection between both sidescan centers.-->
+  <joint name="sidescan_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sidescan_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.043 0.0 0.0"/>
+  </joint>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.24 0.0 -0.036"/>
+  </joint>
+  <joint name="sbg_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sbg_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.46 0.0 0.002"/>
+  </joint>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.528 0.0 0.071"/>
+  </joint>
+  <joint name="uw_gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="uw_gps_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.402 0.0 0.078"/>
+  </joint>
+  <!-- Waterlink Nosecone Camera Positions -->
+  <joint name="camera_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_link"/>
+    <origin rpy="-1.5707 0.0 -1.5707" xyz="0.647 0.0 0.0"/>
+  </joint>
+  <joint name="camera_down_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_down_link"/>
+    <origin rpy="3.1416 0.0 -1.5707" xyz="0.5905 0.0 -0.058"/>
+  </joint>
+  <joint name="camera_front_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_left_link"/>
+    <!--origin rpy="1.3 3.1416 2.3416" xyz="0.636 0.050 -0.007"/-->
+    <origin rpy="1.3 3.1416 2.3416" xyz="0.636 0.050 -0.007"/>
+  </joint>
+  <joint name="camera_front_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_right_link"/>
+    <origin rpy="1.3 3.1416 0.8" xyz="0.636 -0.050 -0.007"/>
+  </joint>
+  <joint name="lcg_joint" type="prismatic">
+    <parent link="base_link"/>
+    <child link="battery_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.083 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1.0" lower="-0.030" upper="0.030" velocity="0.2"/>
+  </joint>
+    <joint name="vbs_joint" type="prismatic">
+    <parent link="base_link"/>
+    <child link="vbs_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.245 0 -0.012"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1.0" lower="-0.058" upper="0" velocity="0.2"/>
+  </joint>
+  <joint name="tcg_joint1" type="revolute">
+    <parent link="base_link"/>
+    <child link="tcg1_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.095 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1.0" lower="-1.6" upper="1.6" velocity="0.2"/>
+  </joint>
+  <joint name="tcg_joint2" type="revolute">
+    <parent link="base_link"/>
+    <child link="tcg2_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="-0.125 0.0 0.0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1.0" lower="-1.6" upper="1.6" velocity="0.2"/>
+  </joint>
+</robot>

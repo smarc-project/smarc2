@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_mission_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_mission_msgs {
+  module msg {
+    module Topics_Constants {
+      const string DUBINS_SERVICE = "mission/dubins_service";
+      const string UTM_LATLON_CONVERSION_SERVICE = "mission/utm_latlon_conversion_service";
+      const string MISSION_COMPLETE_TOPIC = "mission/complete";
+      const string MISSION_CONTROL_TOPIC = "mission/mission_control";
+      const string BT_COMMAND_TOPIC = "mission/bt_command";
+      const string BT_TIP_TOPIC = "mission/bt_tip";
+      const string BT_LAST_WP_TOPIC = "mission/last_wp";
+      const string GOTO_WP_ACTION = "mission/goto_wp_action";
+    };
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

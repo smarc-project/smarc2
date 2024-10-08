@@ -1,0 +1,3 @@
+[console_scripts]
+example_node = ros2_python_examples.pid_controller_node:main
+

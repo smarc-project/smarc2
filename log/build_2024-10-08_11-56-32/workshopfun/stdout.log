@@ -1,0 +1,23 @@
+running egg_info
+writing ../../build/workshopfun/workshopfun.egg-info/PKG-INFO
+writing dependency_links to ../../build/workshopfun/workshopfun.egg-info/dependency_links.txt
+writing entry points to ../../build/workshopfun/workshopfun.egg-info/entry_points.txt
+writing requirements to ../../build/workshopfun/workshopfun.egg-info/requires.txt
+writing top-level names to ../../build/workshopfun/workshopfun.egg-info/top_level.txt
+reading manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/workshopfun/workshopfun.egg-info to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun-0.0.0-py3.10.egg-info
+running install_scripts
+Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing science_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing view_test script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/workshopfun/install.log'

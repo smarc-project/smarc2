@@ -1,0 +1,41 @@
+running egg_info
+creating ../../build/test_package/test_package.egg-info
+writing ../../build/test_package/test_package.egg-info/PKG-INFO
+writing dependency_links to ../../build/test_package/test_package.egg-info/dependency_links.txt
+writing entry points to ../../build/test_package/test_package.egg-info/entry_points.txt
+writing requirements to ../../build/test_package/test_package.egg-info/requires.txt
+writing top-level names to ../../build/test_package/test_package.egg-info/top_level.txt
+writing manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+reading manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/test_package/test_package.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/test_package/build
+creating /home/schni2zle/colcon_ws/src/build/test_package/build/lib
+creating /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+copying test_package/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+copying test_package/__init__.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+copying test_package/IThrustView.py -> /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/__init__.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+copying /home/schni2zle/colcon_ws/src/build/test_package/build/lib/test_package/IThrustView.py -> /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package
+byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/SAMThrustView.py to SAMThrustView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package/IThrustView.py to IThrustView.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index/packages
+copying resource/test_package -> /home/schni2zle/colcon_ws/src/install/test_package/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/test_package/share/test_package
+creating /home/schni2zle/colcon_ws/src/install/test_package/share/test_package/config
+creating /home/schni2zle/colcon_ws/src/install/test_package/share/test_package/launch
+running install_egg_info
+Copying ../../build/test_package/test_package.egg-info to /home/schni2zle/colcon_ws/src/install/test_package/lib/python3.10/site-packages/test_package-0.0.0-py3.10.egg-info
+running install_scripts
+Installing view_test script to /home/schni2zle/colcon_ws/src/install/test_package/lib/test_package
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/test_package/install.log'

@@ -1,0 +1,21 @@
+[5.944s] Invoking command in '/home/schni2zle/colcon_ws/src/scripts/smarc_bringups': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bringups/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bringups build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bringups/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bringups/install.log --single-version-externally-managed install_data
+[6.916s] running egg_info
+[6.918s] writing ../../build/smarc_bringups/smarc_bringups.egg-info/PKG-INFO
+[6.919s] writing dependency_links to ../../build/smarc_bringups/smarc_bringups.egg-info/dependency_links.txt
+[6.920s] writing entry points to ../../build/smarc_bringups/smarc_bringups.egg-info/entry_points.txt
+[6.920s] writing requirements to ../../build/smarc_bringups/smarc_bringups.egg-info/requires.txt
+[6.920s] writing top-level names to ../../build/smarc_bringups/smarc_bringups.egg-info/top_level.txt
+[6.924s] reading manifest file '../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt'
+[6.925s] adding license file 'LICENSE'
+[6.926s] writing manifest file '../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt'
+[6.927s] running build
+[6.927s] running build_scripts
+[6.927s] running install
+[6.928s] running install_data
+[6.928s] running install_egg_info
+[6.936s] removing '/home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/python3.10/site-packages/smarc_bringups-0.0.0-py3.10.egg-info' (and everything under it)
+[6.937s] Copying ../../build/smarc_bringups/smarc_bringups.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/python3.10/site-packages/smarc_bringups-0.0.0-py3.10.egg-info
+[6.939s] running install_scripts
+[6.990s] changing mode of /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/smarc_bringups/sam_bringup.sh to 775
+[6.993s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_bringups/install.log'
+[8.833s] Invoked command in '/home/schni2zle/colcon_ws/src/scripts/smarc_bringups' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/smarc_bringups/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/smarc_bringups build --build-base /home/schni2zle/colcon_ws/src/build/smarc_bringups/build install --record /home/schni2zle/colcon_ws/src/build/smarc_bringups/install.log --single-version-externally-managed install_data

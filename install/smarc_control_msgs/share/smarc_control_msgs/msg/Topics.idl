@@ -1,0 +1,44 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_control_msgs/msg/Topics.msg
+// generated code does not contain a copyright notice
+
+
+module smarc_control_msgs {
+  module msg {
+    module Topics_Constants {
+      @verbatim (language="comment", text=
+        "Control topics" "\n"        "" "\n"        "States" "\n"        "Type: Odometry")
+      const string STATES = "core/odom_gt";
+      @verbatim (language="comment", text=
+        "Setpoints" "\n"        "Type: Float64")
+      const string DEPTH_SETPOINT = "ctrl/depth_setpoint";
+      @verbatim (language="comment", text=
+        "Type: Float64")
+      const string PITCH_SETPOINT = "ctrl/pitch_setpoint";
+      @verbatim (language="comment", text=
+        "Convenience Topics" "\n"        "Type: ControlState")
+      const string STATES_CONV = "ctrl/conv/states";
+      @verbatim (language="comment", text=
+        "Type: ControlReference")
+      const string REF_CONV = "ctrl/conv/ref";
+      @verbatim (language="comment", text=
+        "Type: ControlError")
+      const string CONTROL_ERROR_CONV = "ctrl/conv/error";
+      @verbatim (language="comment", text=
+        "Type: ControlInput")
+      const string CONTROL_INPUT_CONV = "ctrl/conv/control_input";
+      @verbatim (language="comment", text=
+        "Type: PoseWithCovarianceStamped")
+      const string WAYPOINT_CONV = "ctrl/conv/waypoint";
+    };
+    @verbatim (language="comment", text=
+      "This is a file that defines all the topics for control." "\n"
+      "The goal is to have one location that all cpp/py scripts" "\n"
+      "can easily access and thus avoid having 100 parameters for topics all" "\n"
+      "over the place, repeated for all subs/pubs..." "\n"
+      "It is assumed that the nodes will namespace as needed.")
+    struct Topics {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

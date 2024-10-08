@@ -1,0 +1,32 @@
+{
+  "package_name": "smarc_msgs",
+  "non_idl_tuples": [
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:srv/CellOccupied.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:srv/AddTask.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:srv/AddTasks.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:srv/NEDENURotation.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:srv/LatLonToUTMOdometry.srv",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/CommsMessage.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/ControllerStatus.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/CTD.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/DualThrusterFeedback.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/DualThrusterRPM.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/DVLBeam.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/DVL.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/ExecutionStatus.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/FloatStamped.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/LatLonOdometry.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/LatLonStamped.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/Leak.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/SensorStatus.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/Sidescan.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/SMTask.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/StringArray.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/StringPair.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/ThrusterDC.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/ThrusterFeedback.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/ThrusterRPM.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/Topics.msg",
+    "/home/schni2zle/colcon_ws/src/messages/smarc_msgs:msg/StringStamped.msg"
+  ]
+}

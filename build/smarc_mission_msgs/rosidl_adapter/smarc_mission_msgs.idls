@@ -1,0 +1,8 @@
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:msg/Topics.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:msg/BTCommand.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:msg/GotoWaypoint.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:msg/MissionControl.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:action/Empty.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:action/GotoWaypoint.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:srv/DubinsPlan.idl
+/home/schni2zle/colcon_ws/src/build/smarc_mission_msgs/rosidl_adapter/smarc_mission_msgs:srv/UTMLatLon.idl

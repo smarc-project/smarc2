@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from smarc_msgs/msg/StringStamped.msg
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+
+module smarc_msgs {
+  module msg {
+    struct StringStamped {
+      builtin_interfaces::msg::Time time_sent;
+
+      builtin_interfaces::msg::Time time_received;
+
+      string data;
+    };
+  };
+};

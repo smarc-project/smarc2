@@ -1,0 +1,124 @@
+<launch>
+
+    <arg name="namespace" default="sam"/>
+    
+    <group>
+    <push-ros-namespace namespace="$(var namespace)"/>
+        <group>
+        <push-ros-namespace namespace="ctrl"/>
+
+            <node name="lookahead_depth_node" pkg="sam_basic_controllers" exec="depth_lookahead_node.py" output="screen">
+                <param name="depth_top" value="/$(var namespace)/dr/depth" />
+                <param name="pitch_top" value="/$(var namespace)/dr/pitch" />
+                <param name="lookahead_depth" value="/$(var namespace)/ctrl/lookahead_depth" />
+                <param name="lookahead_dist" value="3." />
+            </node>
+
+            <!-- Thrusters controllers -->
+            <node name="heading_pid" pkg="pid" exec="controller" output="screen">
+                <param name="Kp" value="1." />
+                <param name="Ki" value="0.0" />
+                <param name="Kd" value="0.0" />
+                <param name="upper_limit" value="0.1" />
+                <param name="lower_limit" value="-0.1" />
+                <param name="windup_limit" value="1" />
+                <param name="max_loop_frequency" value="100.0" />
+                <param name="min_loop_frequency" value="1.0" />
+                <param name="topic_from_plant" value="heading_pid/state" />  <!-- This must be always zero -->
+                <param name="topic_from_controller" value="heading_pid/ctrl_effort" />
+                <remap from="setpoint" to="heading_pid/setpoint" />
+                <remap from="pid_enable" to="heading_pid/pid_enable" />
+                <param name="setpoint_timeout" value="0.1" />
+            </node>
+
+            <node name="elevator_pid" pkg="pid" exec="controller" output="screen">
+                <param name="Kp" value="0.5" />
+                <param name="Ki" value="0.0" />
+                <param name="Kd" value="0.0" />
+                <param name="upper_limit" value="0.1" />
+                <param name="lower_limit" value="-0.1" />
+                <param name="windup_limit" value="1" />
+                <param name="max_loop_frequency" value="100.0" />
+                <param name="min_loop_frequency" value="1.0" />
+                <!-- <param name="topic_from_plant" value="/$(var namespace)/dr/depth" /> -->
+                <param name="topic_from_plant" value="/$(var namespace)/ctrl/lookahead_depth" />
+                <param name="topic_from_controller" value="elevator_pid/ctrl_effort" />
+                <remap from="setpoint" to="elevator_pid/setpoint" />
+                <remap from="pid_enable" to="elevator_pid/pid_enable" />
+                <param name="setpoint_timeout" value="0.1" />
+            </node>
+
+            <node name="thruster_ctrl_node" pkg="sam_basic_controllers" exec="thruster_ctrl_node.py"  output="screen">
+                <param name="rudder_pid_effort" value="heading_pid/ctrl_effort" />
+                <param name="elevator_pid_effort" value="elevator_pid/ctrl_effort" />
+                <param name="thrust_cmd_topic" value="/$(var namespace)/core/thrust_vector_cmd" />
+            </node>
+
+            <!-- VBS depth control -->
+            <group>
+            <push-ros-namespace namespace="vbs"/>
+                <node name="pid_actuator_vbs" pkg="sam_basic_controllers" exec="pid_actuator_trim" output="screen">
+                    <param name="topic_from_controller" value="control_action" />
+                    <param name="topic_to_actuator" value="/$(var namespace)/core/vbs_cmd" />
+                    <param name="topic_from_plant" value="/$(var namespace)/dr/depth" />
+                    <param name="setpoint_req" value="setpoint" />
+                    <param name="setpoint_res" value="setpoint_pid" />
+                    <param name="setpoint_reached" value="setpoint_reached" />
+                    <param name="setpoint_tolerance" value="0.05" />
+                    <param name="neutral_point" value="55" />
+                    <param name="ff_term" value="50" />
+                </node>
+
+                <node name="vbs_pid" pkg="pid" exec="controller" output="screen">
+                    <param name="Kp" value="50.0" />
+                    <param name="Ki" value="0." />
+                    <param name="Kd" value="0." />
+                    <param name="upper_limit" value="50.0" />
+                    <param name="lower_limit" value="-50.0" />
+                    <param name="windup_limit" value="1" />
+                    <param name="max_loop_frequency" value="100.0" />
+                    <param name="min_loop_frequency" value="1.0" />
+                    <param name="topic_from_plant" value="/$(var namespace)/dr/depth" />
+                    <param name="topic_from_controller" value="control_action" />
+                    <remap from="setpoint" to="setpoint_pid" />
+                    <remap from="pid_enable" to="pid_enable" />
+                    <param name="setpoint_timeout" value="0.1" />
+                </node>
+            </group>
+
+            <!-- LCG pitch control -->
+            <group>
+            <push-ros-namespace namespace="lcg"/>
+                <node name="pid_actuator_lcg" pkg="sam_basic_controllers" exec="pid_actuator_trim"  output="screen" >
+                    <param name="topic_from_controller" value="control_action" />
+                    <param name="topic_to_actuator" value="/$(var namespace)/core/lcg_cmd" />
+                    <param name="topic_from_plant" value="/$(var namespace)/dr/pitch" />
+                    <param name="setpoint_req" value="setpoint" />
+                    <param name="setpoint_res" value="setpoint_pid" />
+                    <param name="setpoint_reached" value="setpoint_reached" />
+                    <param name="setpoint_tolerance" value="0.05" />
+                    <param name="neutral_point" value="50" />
+                    <param name="ff_term" value="50." />
+                </node>
+
+                <node name="lcg_pid" pkg="pid" exec="controller" output="screen">
+                    <param name="Kp" value="100.0" />
+                    <param name="Ki" value="0.0" />
+                    <param name="Kd" value="0.0" />
+                    <param name="upper_limit" value="50.0" />
+                    <param name="lower_limit" value="-50.0" />
+                    <param name="windup_limit" value="1" />
+                    <param name="max_loop_frequency" value="100.0" />
+                    <param name="min_loop_frequency" value="1.0" />
+                    <param name="topic_from_plant" value="/$(var namespace)/dr/pitch" />
+                    <param name="topic_from_controller" value="control_action" />
+                    <remap from="setpoint" to="setpoint_pid" />
+                    <remap from="pid_enable" to="pid_enable" />
+                    <param name="setpoint_timeout" value="0.1" /> 
+                </node>
+            </group>
+        
+        </group>
+    </group>
+
+</launch>

@@ -1,0 +1,67 @@
+running egg_info
+creating ../../build/workshopfun/workshopfun.egg-info
+writing ../../build/workshopfun/workshopfun.egg-info/PKG-INFO
+writing dependency_links to ../../build/workshopfun/workshopfun.egg-info/dependency_links.txt
+writing entry points to ../../build/workshopfun/workshopfun.egg-info/entry_points.txt
+writing requirements to ../../build/workshopfun/workshopfun.egg-info/requires.txt
+writing top-level names to ../../build/workshopfun/workshopfun.egg-info/top_level.txt
+writing manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+reading manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/workshopfun/workshopfun.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/workshopfun/build
+creating /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib
+creating /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/ActionserverControllerNode.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/__init__.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/ThrustyControllerNode.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+copying workshopfun/IThrustView.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun
+creating /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science
+copying workshopfun/advanced_science/SuperAdvancedScienceModel.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science
+copying workshopfun/advanced_science/IRPMModel.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science
+copying workshopfun/advanced_science/__init__.py -> /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/ActionserverControllerNode.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science/SuperAdvancedScienceModel.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science/IRPMModel.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/advanced_science/__init__.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/SAMThrustView.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/__init__.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/ActionClientNode.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/ThrustyControllerNode.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+copying /home/schni2zle/colcon_ws/src/build/workshopfun/build/lib/workshopfun/IThrustView.py -> /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/ActionserverControllerNode.py to ActionserverControllerNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science/SuperAdvancedScienceModel.py to SuperAdvancedScienceModel.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science/IRPMModel.py to IRPMModel.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/advanced_science/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/SAMThrustView.py to SAMThrustView.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/ActionClientNode.py to ActionClientNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/ThrustyControllerNode.py to ThrustyControllerNode.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun/IThrustView.py to IThrustView.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/share/ament_index/resource_index/packages
+copying resource/workshopfun -> /home/schni2zle/colcon_ws/src/install/workshopfun/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun/config
+copying config/scientific_configuration.yaml -> /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun/config
+creating /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun/launch
+copying launch/actionserver.launch -> /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun/launch
+copying launch/do_science.launch -> /home/schni2zle/colcon_ws/src/install/workshopfun/share/workshopfun/launch
+running install_egg_info
+Copying ../../build/workshopfun/workshopfun.egg-info to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/python3.10/site-packages/workshopfun-0.0.0-py3.10.egg-info
+running install_scripts
+Installing action_client_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing action_server_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing science_node script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+Installing view_test script to /home/schni2zle/colcon_ws/src/install/workshopfun/lib/workshopfun
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/workshopfun/install.log'

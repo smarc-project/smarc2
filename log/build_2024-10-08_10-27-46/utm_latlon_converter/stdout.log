@@ -1,0 +1,39 @@
+running egg_info
+creating ../../build/utm_latlon_converter/utm_latlon_converter.egg-info
+writing ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/PKG-INFO
+writing dependency_links to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/dependency_links.txt
+writing entry points to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/entry_points.txt
+writing requirements to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/requires.txt
+writing top-level names to ../../build/utm_latlon_converter/utm_latlon_converter.egg-info/top_level.txt
+writing manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+reading manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/utm_latlon_converter/utm_latlon_converter.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build
+creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib
+creating /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+copying utm_latlon_converter/__init__.py -> /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+copying utm_latlon_converter/converter_service_node.py -> /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter
+running install
+running install_lib
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+copying /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter/__init__.py -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+copying /home/schni2zle/colcon_ws/src/build/utm_latlon_converter/build/lib/utm_latlon_converter/converter_service_node.py -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter
+byte-compiling /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter/converter_service_node.py to converter_service_node.cpython-310.pyc
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index/packages
+copying resource/utm_latlon_converter -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter/config
+creating /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/share/utm_latlon_converter/launch
+running install_egg_info
+Copying ../../build/utm_latlon_converter/utm_latlon_converter.egg-info to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/python3.10/site-packages/utm_latlon_converter-0.0.0-py3.10.egg-info
+running install_scripts
+Installing converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+Installing test_converter script to /home/schni2zle/colcon_ws/src/install/utm_latlon_converter/lib/utm_latlon_converter
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/utm_latlon_converter/install.log'

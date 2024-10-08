@@ -1,0 +1,33 @@
+running egg_info
+writing ../build/state_estimation/state_estimation.egg-info/PKG-INFO
+writing dependency_links to ../build/state_estimation/state_estimation.egg-info/dependency_links.txt
+writing entry points to ../build/state_estimation/state_estimation.egg-info/entry_points.txt
+writing requirements to ../build/state_estimation/state_estimation.egg-info/requires.txt
+writing top-level names to ../build/state_estimation/state_estimation.egg-info/top_level.txt
+reading manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../build/state_estimation/state_estimation.egg-info/SOURCES.txt'
+running build
+running build_py
+copying state_estimation/model_ekf.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+copying state_estimation/model_kf.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+copying state_estimation/estimator.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+copying state_estimation/KNN.py -> /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation
+running install
+running install_lib
+copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation/model_ekf.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation/model_kf.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation/estimator.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+copying /home/schni2zle/colcon_ws/src/build/state_estimation/build/lib/state_estimation/KNN.py -> /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation
+byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation/model_ekf.py to model_ekf.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation/model_kf.py to model_kf.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation/estimator.py to estimator.cpython-310.pyc
+byte-compiling /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation/KNN.py to KNN.cpython-310.pyc
+running install_data
+running install_egg_info
+removing '/home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../build/state_estimation/state_estimation.egg-info to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/python3.10/site-packages/state_estimation-0.0.0-py3.10.egg-info
+running install_scripts
+Installing detector script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+Installing estimator script to /home/schni2zle/colcon_ws/src/install/state_estimation/lib/state_estimation
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/state_estimation/install.log'

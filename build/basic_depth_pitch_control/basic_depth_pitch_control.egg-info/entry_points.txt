@@ -1,0 +1,6 @@
+[console_scripts]
+action_client_node = basic_depth_pitch_control.ActionClientNode:main
+action_server_node = basic_depth_pitch_control.ActionserverControllerNode:main
+diving = basic_depth_pitch_control.Node:main
+test_view = basic_depth_pitch_control.SAMDiveView:test_view
+

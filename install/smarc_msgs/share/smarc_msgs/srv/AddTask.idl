@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from smarc_msgs/srv/AddTask.srv
+// generated code does not contain a copyright notice
+
+#include "smarc_msgs/msg/SMTask.idl"
+
+module smarc_msgs {
+  module srv {
+    @verbatim (language="comment", text=
+      "The task to be added to the state machine")
+    struct AddTask_Request {
+      smarc_msgs::msg::SMTask task;
+    };
+    struct AddTask_Response {
+      uint64 task_id;
+    };
+  };
+};

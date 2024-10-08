@@ -1,0 +1,22 @@
+<launch>
+  <arg name="robot_name" default="sam0"/>
+  <arg name="robot_urdf" default="sam_auv.urdf"/>
+  <arg name="prefix" default="$(var robot_name)/"/>
+
+  <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" exec="joint_state_publisher">
+      <param name="rate" value="300"/>
+      <param name="source_list" value="['command_states']"/>
+    </node>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher" respawn="true" output="screen">
+      <param name="frame_prefix" value="$(var prefix)"/>
+      <param name="robot_description" 
+           value="$(command '$(find-exec cat) $(find-pkg-share sam_description)/urdf/$(var robot_urdf)')"/>
+    </node>
+
+  </group>
+
+</launch>

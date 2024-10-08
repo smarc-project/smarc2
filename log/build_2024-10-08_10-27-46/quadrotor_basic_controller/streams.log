@@ -1,0 +1,41 @@
+[7.217s] Invoking command in '/home/schni2zle/colcon_ws/src/quadrotor/quadrotor_basic_controller': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build install --record /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data
+[9.217s] running egg_info
+[9.218s] creating ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info
+[9.218s] writing ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/PKG-INFO
+[9.218s] writing dependency_links to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/dependency_links.txt
+[9.219s] writing entry points to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/entry_points.txt
+[9.219s] writing requirements to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/requires.txt
+[9.219s] writing top-level names to ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/top_level.txt
+[9.224s] writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[9.226s] reading manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[9.230s] adding license file 'LICENSE'
+[9.230s] writing manifest file '../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info/SOURCES.txt'
+[9.230s] running build
+[9.230s] running build_py
+[9.231s] creating /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build
+[9.231s] creating /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib
+[9.231s] creating /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+[9.231s] copying quadrotor_basic_controller/__init__.py -> /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+[9.231s] copying quadrotor_basic_controller/controller_node.py -> /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller
+[9.232s] running install
+[9.233s] running install_lib
+[9.236s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+[9.236s] copying /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller/__init__.py -> /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+[9.240s] copying /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build/lib/quadrotor_basic_controller/controller_node.py -> /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller
+[9.240s] byte-compiling /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller/__init__.py to __init__.cpython-310.pyc
+[9.240s] byte-compiling /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller/controller_node.py to controller_node.cpython-310.pyc
+[9.248s] running install_data
+[9.248s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/ament_index
+[9.249s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/ament_index/resource_index
+[9.249s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/ament_index/resource_index/packages
+[9.249s] copying resource/quadrotor_basic_controller -> /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/ament_index/resource_index/packages
+[9.250s] copying package.xml -> /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/quadrotor_basic_controller
+[9.250s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/quadrotor_basic_controller/config
+[9.251s] creating /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/share/quadrotor_basic_controller/launch
+[9.253s] running install_egg_info
+[9.257s] Copying ../../build/quadrotor_basic_controller/quadrotor_basic_controller.egg-info to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages/quadrotor_basic_controller-0.0.0-py3.10.egg-info
+[9.261s] running install_scripts
+[9.367s] Installing controller script to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[9.371s] Installing test script to /home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/quadrotor_basic_controller
+[9.374s] writing list of installed files to '/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log'
+[11.155s] Invoked command in '/home/schni2zle/colcon_ws/src/quadrotor/quadrotor_basic_controller' returned '0': PYTHONPATH=/home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/schni2zle/colcon_ws/src/install/quadrotor_basic_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/quadrotor_basic_controller build --build-base /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/build install --record /home/schni2zle/colcon_ws/src/build/quadrotor_basic_controller/install.log --single-version-externally-managed install_data

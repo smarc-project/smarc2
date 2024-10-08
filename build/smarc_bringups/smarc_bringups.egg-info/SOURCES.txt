@@ -1,0 +1,16 @@
+LICENSE
+README.md
+package.xml
+setup.cfg
+setup.py
+../../build/smarc_bringups/smarc_bringups.egg-info/PKG-INFO
+../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt
+../../build/smarc_bringups/smarc_bringups.egg-info/dependency_links.txt
+../../build/smarc_bringups/smarc_bringups.egg-info/entry_points.txt
+../../build/smarc_bringups/smarc_bringups.egg-info/requires.txt
+../../build/smarc_bringups/smarc_bringups.egg-info/top_level.txt
+../../build/smarc_bringups/smarc_bringups.egg-info/zip-safe
+launch/dummies.launch
+launch/utilities.launch
+resource/smarc_bringups
+scripts/sam_bringup.sh

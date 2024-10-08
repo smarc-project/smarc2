@@ -1,0 +1,24 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from smarc_mission_msgs/action/GotoWaypoint.action
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+#include "smarc_mission_msgs/msg/GotoWaypoint.idl"
+
+module smarc_mission_msgs {
+  module action {
+    struct GotoWaypoint_Goal {
+      smarc_mission_msgs::msg::GotoWaypoint waypoint;
+    };
+    struct GotoWaypoint_Result {
+      boolean reached_waypoint;
+    };
+    struct GotoWaypoint_Feedback {
+      builtin_interfaces::msg::Time time_remaining;
+
+      string feedback_message;
+
+      float distance_remaining;
+    };
+  };
+};

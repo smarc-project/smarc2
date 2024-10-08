@@ -1,0 +1,6 @@
+source;share/smarc_bringups/hook/pythonpath.ps1
+source;share/smarc_bringups/hook/pythonpath.dsv
+source;share/smarc_bringups/hook/pythonpath.sh
+source;share/smarc_bringups/hook/ament_prefix_path.ps1
+source;share/smarc_bringups/hook/ament_prefix_path.dsv
+source;share/smarc_bringups/hook/ament_prefix_path.sh

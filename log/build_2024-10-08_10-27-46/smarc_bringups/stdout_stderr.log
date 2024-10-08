@@ -1,0 +1,36 @@
+running egg_info
+creating ../../build/smarc_bringups/smarc_bringups.egg-info
+writing ../../build/smarc_bringups/smarc_bringups.egg-info/PKG-INFO
+writing dependency_links to ../../build/smarc_bringups/smarc_bringups.egg-info/dependency_links.txt
+writing entry points to ../../build/smarc_bringups/smarc_bringups.egg-info/entry_points.txt
+writing requirements to ../../build/smarc_bringups/smarc_bringups.egg-info/requires.txt
+writing top-level names to ../../build/smarc_bringups/smarc_bringups.egg-info/top_level.txt
+writing manifest file '../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt'
+reading manifest file '../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/smarc_bringups/smarc_bringups.egg-info/SOURCES.txt'
+running build
+running build_scripts
+creating /home/schni2zle/colcon_ws/src/build/smarc_bringups/build
+creating /home/schni2zle/colcon_ws/src/build/smarc_bringups/build/scripts-3.10
+copying scripts/sam_bringup.sh -> /home/schni2zle/colcon_ws/src/build/smarc_bringups/build/scripts-3.10
+running install
+running install_data
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/ament_index
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/ament_index/resource_index
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/ament_index/resource_index/packages
+copying resource/smarc_bringups -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/ament_index/resource_index/packages
+copying package.xml -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/config
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/launch
+copying launch/dummies.launch -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/launch
+copying launch/utilities.launch -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/launch
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/scripts
+copying scripts/sam_bringup.sh -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/share/smarc_bringups/scripts
+running install_egg_info
+Copying ../../build/smarc_bringups/smarc_bringups.egg-info to /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/python3.10/site-packages/smarc_bringups-0.0.0-py3.10.egg-info
+running install_scripts
+creating /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/smarc_bringups
+copying /home/schni2zle/colcon_ws/src/build/smarc_bringups/build/scripts-3.10/sam_bringup.sh -> /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/smarc_bringups
+changing mode of /home/schni2zle/colcon_ws/src/install/smarc_bringups/lib/smarc_bringups/sam_bringup.sh to 775
+writing list of installed files to '/home/schni2zle/colcon_ws/src/build/smarc_bringups/install.log'
