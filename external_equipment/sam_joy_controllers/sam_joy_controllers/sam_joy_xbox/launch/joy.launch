@@ -1,0 +1,34 @@
+<launch>
+
+    <arg name="robot_name" default="sam"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+    
+        <!-- JOY NODE-->
+        <node pkg="joy" exec="joy_node" name="joy_node" output="screen" namespace = "ctrl" > </node>
+
+        <!-- SAM XBOX CONTROLLER NODE -->
+        <node pkg="sam_joy_xbox" exec="sam_joy_xbox"  name="xbox_node" output="screen">
+            <param name="teleop_enable" value="teleop/enable"/>
+            <param name="assist_enable" value="teleop/drive_assist_enable"/>
+            <param name="joy_buttons" value="ctrl/joy_buttons"/>
+            <param name="joy_top" value="ctrl/joy"/>
+        </node>
+        
+        <!-- SMARC CONTROLLER NODE -->
+        <node pkg="sam_joy_teleop" exec="teleop_node" name="teleop_node" output="screen">
+            <param name="joy_buttons" value="ctrl/joy_buttons"/>
+            <param name="rpm_joystick_top" value="ctrl/rpm_joystick"/>
+            <param name="vector_deg_joystick_top" value="ctrl/vector_deg_joystick"/>
+            <param name="teleop_enable" value="teleop/enable"/>
+            <param name="assist_enable" value="teleop/drive_assist_enable"/>
+            <param name="elevator_pid_ctrl" value="ctrl/elevator_pid/ctrl_effort"/>
+            <param name="elev_sp_top" value="ctrl/elevator_pid/setpoint"/>
+        </node>
+        
+    </group>
+
+    
+
+</launch>
