@@ -36,8 +36,9 @@ class DiveController():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
-        # TODO: Can we get this from a launch file or so?
-        self._robot_base_link = 'sam0/base_link_gt'
+        # We need to declare the parameter we want to read out from the alunch file first.
+        self._node.declare_parameter('robot_name')
+        self._robot_base_link = self._node.get_parameter('robot_name').get_parameter_value().string_value + '/base_link_gt'
 
         self._depth_setpoint = None
         self._pitch_setpoint = None
