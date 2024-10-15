@@ -38,6 +38,7 @@ class DiveController():
 
         # We need to declare the parameter we want to read out from the alunch file first.
         self._node.declare_parameter('robot_name')
+        # TODO: add _gt as tf_suffix parameter. Then it's easier to change depending on whether we're using the sim or the real robot.
         self._robot_base_link = self._node.get_parameter('robot_name').get_parameter_value().string_value + '/base_link_gt'
 
         self._depth_setpoint = None
