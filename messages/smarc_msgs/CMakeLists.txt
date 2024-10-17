@@ -34,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LatLonOdometry.msg"
   "msg/LatLonStamped.msg"
   "msg/Leak.msg"
+  "msg/PercentStamped.msg"
   "msg/SensorStatus.msg"
   "msg/Sidescan.msg"
   "msg/SMTask.msg"

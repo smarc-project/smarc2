@@ -26,7 +26,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CTP.msg"
   "msg/LightCommandArray.msg"
   "msg/LightCommand.msg"
-  "msg/PercentStamped.msg"
   "msg/ThrusterAngles.msg"
   "msg/ThrusterRPMs.msg"
   "msg/UavcanNodeStatus.msg"

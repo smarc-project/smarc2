@@ -6,8 +6,7 @@ import rclpy.time as time
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Links as SamLinks
-from sam_msgs.msg import PercentStamped
-from smarc_msgs.msg import Leak
+from smarc_msgs.msg import Leak, PercentStamped
 from sensor_msgs.msg import FluidPressure
 
 from .ros_vehicle import ROSVehicle

@@ -3,7 +3,7 @@
 // #include <std_msgs/Float64.h>
 #include "std_msgs/msg/float64.hpp"
 // #include "sam_msgs/PercentStamped.h"
-#include "sam_msgs/msg/percent_stamped.hpp"
+#include "smarc_msgs/msg/percent_stamped.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 using std::placeholders::_1;
@@ -16,7 +16,8 @@ class PIDTrim{
     // Gotta well-define it all in ros2 now.
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr     pid_action_sub, sp_sub, state_sub;
 
-    rclcpp::Publisher<sam_msgs::msg::PercentStamped>::SharedPtr control_action_pub;
+    // rclcpp::Publisher<sam_msgs::msg::PercentStamped>::SharedPtr control_action_pub;
+    rclcpp::Publisher<smarc_msgs::msg::PercentStamped>::SharedPtr control_action_pub;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr        setpoint_pub;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr           sp_reached_pub_;
 
@@ -75,7 +76,7 @@ class PIDTrim{
 
       // initiate publishers
       // control_action_pub = nh_->advertise<sam_msgs::PercentStamped>(topic_to_actuator_, 10);
-      control_action_pub = nh_->create_publisher<sam_msgs::msg::PercentStamped>(
+      control_action_pub = nh_->create_publisher<smarc_msgs::msg::PercentStamped>(
         nh_->get_parameter("topic_to_actuator").as_string(),
         10
       );
@@ -99,8 +100,8 @@ class PIDTrim{
       sp_reached_.data = false;
       sp_reached_pub_->publish(sp_reached_);
     }
-    
-    // Checks current error in the controller: if over tolerance, publish setpoint to PID. Else, stop PID 
+
+    // Checks current error in the controller: if over tolerance, publish setpoint to PID. Else, stop PID
     // by not publishing setpoints anymore
     void PlantCallback(const std_msgs::msg::Float64 &plant_state)
     {
@@ -116,20 +117,20 @@ class PIDTrim{
           setpoint_rcv_ = false;
 
           // When the setpoint has been reached, set actuator to neutral to maintain position
-          sam_msgs::msg::PercentStamped control_action;
-          control_action.value = neutral_setpoint_; 
+          smarc_msgs::msg::PercentStamped control_action;
+          control_action.value = neutral_setpoint_;
           control_action_pub->publish(control_action);
-          
+
           sp_reached_.data = true;
           sp_reached_pub_->publish(sp_reached_);
         }
-      } 
+      }
     }
 
     // This one just republishes adding the feedforward term
     void PIDCallback(const std_msgs::msg::Float64 &control_msg)
     {
-      sam_msgs::msg::PercentStamped control_action;
+      smarc_msgs::msg::PercentStamped control_action;
       control_action.value = control_msg.data + ff_term_;
       control_action_pub->publish(control_action);
     }
