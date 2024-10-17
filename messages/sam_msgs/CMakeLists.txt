@@ -24,7 +24,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ConsumedChargeFeedback.msg"
   "msg/ConsumedCharge.msg"
   "msg/CTP.msg"
-  "msg/Leak.msg"
   "msg/LightCommandArray.msg"
   "msg/LightCommand.msg"
   "msg/PercentStamped.msg"
