@@ -23,9 +23,9 @@ string PROP2_FB_TOPIC = 'core/prop_2/feedback'
 string PROP3_FB_TOPIC = 'core/prop_3/feedback'
 string PROP4_FB_TOPIC = 'core/prop_4/feedback'
 
-string DRONE_IMU_TOPIC = 'core/imu'
-string DRONE_GPS_TOPIC = 'core/gps'
-string DRONE_RANGE_TOPIC = 'core/range'
-string DRONE_DEPTH_TOPIC = 'core/depth'
+string IMU_TOPIC = 'core/imu'
+string GPS_TOPIC = 'core/gps'
+string RANGE_TOPIC = 'core/range'
+string DEPTH_TOPIC = 'core/depth'
 
 
