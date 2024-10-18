@@ -23,6 +23,8 @@ See [sam_msgs.msg::Topics](./sam_msgs/msg/Topics.msg) and [this example node](..
 
 This also makes it very easy for IDEs to auto-suggest you the topics~
 
+## drone_msgs
+Message definitions specific to Drone.
 
 
 ## sam_msgs
