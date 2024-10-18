@@ -23,12 +23,15 @@ See [sam_msgs.msg::Topics](./sam_msgs/msg/Topics.msg) and [this example node](..
 
 This also makes it very easy for IDEs to auto-suggest you the topics~
 
+## drone_msgs
+Message definitions specific to Drone.
 
+Contains drone-specific topics.
 
 ## sam_msgs
 Message definitions specific to SAM AUV.
 
-Contains sam-specic topics.
+Contains sam-specific topics.
 
 ## smarc_mission_msgs
 Messages that concern planning, global things like lat/lon/utm, behaviour tree-related functions...
