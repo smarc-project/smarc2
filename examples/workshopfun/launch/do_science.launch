@@ -1,8 +1,8 @@
 <launch>
 
-    <arg name="robot_name" default="sam0"/>
+    <arg name="robot_name" default="sam_auv_v1"/>
     <arg name="science_yaml" default="$(find-pkg-share workshopfun)/config/scientific_configuration.yaml"/>
-    
+
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
             <node name="science_node" pkg="workshopfun" exec="science_node" output="screen">
