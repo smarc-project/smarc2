@@ -10,8 +10,8 @@
 
 string PROP1_CMD_TOPIC = 'core/prop_1/cmd'
 string PROP2_CMD_TOPIC = 'core/prop_2/cmd'
-string PROP1_CMD_TOPIC = 'core/prop_3/cmd'
-string PROP2_CMD_TOPIC = 'core/prop_4/cmd'
+string PROP3_CMD_TOPIC = 'core/prop_3/cmd'
+string PROP4_CMD_TOPIC = 'core/prop_4/cmd'
 
 string DRONE_ODOM_GT_TOPIC = 'odom_gt'
 string CAMERA_DATA_TOPIC = 'core/fpcamera/image'
