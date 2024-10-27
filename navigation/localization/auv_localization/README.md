@@ -1,8 +1,8 @@
-# State Estimation Package
+# AUV Localization Package
 
 ## Overview
 
-The `state_estimation` package is responsible for performing perception and estimation tasks in ROS 2, particularly designed for quadrotors or similar UAVs. It includes several estimation techniques, such as K-Nearest Neighbors (KNN) and Kalman Filters (KF and EKF), integrated into a ROS 2 environment to estimate the state of the drone and that of an AUV/ROV on water surface, relative to the drone in real time.
+The `auv_localization` package is responsible for performing perception and estimation tasks in ROS 2, particularly designed for quadrotors or similar UAVs. It includes several estimation techniques, such as K-Nearest Neighbors (KNN) and an extended Kalman Filter (EKF), integrated into a ROS 2 environment to estimate the state of the drone and that of an AUV/ROV on water surface, relative to the drone in real time.
 
 This package contains different modules for sensor fusion, state prediction, and data filtering. The estimators and detection methods can be launched separately or together based on the use case.
 
@@ -27,7 +27,7 @@ Ensure that the following ROS 2 packages are installed:
 - `tf2_ros` (for TF tree manipulation)
 
 ### External Tools/Hardware:
-- The drone needs to be set up to provide real-time data, such as GPS, camera and IMU data, published to the correct topics in ROS 2 for proper state estimation. The GPS and Camera can operate at a lower frequency but IMU callback is where the estimator is called which helps make an accurate motion model.
+- The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and an the data is fused to make a gloval georeferenced estimate of the AUV.
 
 ---
 
@@ -46,12 +46,12 @@ This script uses a K-Nearest Neighbors (KNN) algorithm to classify or detect obj
 
 ---
 
-### 2. **estimator.py**
-This script is responsible for estimating the current state of the drone using the provided data and state transition models. It is the core state estimation node.
+### 2. **auv_localization.py**
+This script is responsible for data fusion and goreferencing of the image space feedback. It is the core state estimation node.
 
 #### Purpose
-- To predict the drone's position, velocity, and orientation in real time.
-- Integrates measurements from multiple sources (e.g., odometry, IMU).
+
+- To estimate the position of AUV relative to the drone
 
 #### Dependencies
 - Needs access to TF frames for calculating transformations between the drone's body frame and world frame.
@@ -60,20 +60,8 @@ Certainly! Below is a more refined version of the descriptions for **model_kf.py
 
 ---
 
-### **3. model_kf.py (Kalman Filter)**
 
-#### **Purpose**
-This script implements a **Kalman Filter (KF)** for state estimation in scenarios where the system dynamics and measurements are linear. The primary goal is to predict and correct the state of the system (e.g., the position and velocity of a drone) based on sensor inputs.
-
-#### **Description**
-The Kalman Filter is a recursive algorithm that operates in two phases: **prediction** and **correction**. It uses:
-- **IMU data (acceleration)** as input to predict the next state of the system based on a **linear double integrator model**.
-- **GPS-based measurements** to correct the predicted state, minimizing the error between the predicted and observed data.
-
-
----
-
-### **4. model_ekf.py (Extended Kalman Filter)**
+### **3. model_ekf.py (Extended Kalman Filter)**
 
 #### **Purpose**
 The **Extended Kalman Filter (EKF)** is an extension of the standard Kalman Filter, designed to handle **non-linear system dynamics** and **non-linear measurement models**. It is used when the linearity assumptions of the standard KF do not hold, such as when the drone's movement and the measurement data are complex and non-linear.
@@ -112,7 +100,7 @@ This is suitable when you need simultaneous estimation and detection.
 
 - **KNN for Detection**: KNN is simple and effective when you have labeled sensor data. It's also non-parametric, meaning it doesn’t make strong assumptions about the data distribution, making it versatile in changing environments.
   
-- **Kalman Filters**: The Kalman Filter (KF) and Extended Kalman Filter (EKF) are standard tools in robotics for state estimation. They help to smooth noisy sensor data and predict future states by combining predictions from motion models with observations. The EKF extends this capability to non-linear systems, making it ideal for drones that operate in non-linear environments.
+- **Kalman Filters**: The Extended Kalman Filter (EKF) is a standard tool in robotics for state estimation. They help to smooth noisy sensor data and predict future states by combining predictions from motion models with observations. The EKF extends this capability to non-linear systems, making it ideal for drones that operate in non-linear environments.
 
 ---
 
@@ -131,7 +119,6 @@ This is suitable when you need simultaneous estimation and detection.
 ## Future Work
 
 - **Integration with Deep Learning**: Future versions may integrate deep learning-based models (e.g., CNN) for detection instead of KNN.
-- **SLAM Integration**: Incorporating simultaneous localization and mapping (SLAM) algorithms into the estimation pipeline.
 
 ---
 
