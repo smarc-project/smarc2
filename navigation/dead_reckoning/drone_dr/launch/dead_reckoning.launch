@@ -1,0 +1,19 @@
+<launch>
+    <arg name="robot_name" default="Quadrotor"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+
+        <node
+            name="estimator_node"
+            pkg="drone_dr"
+            exec="estimator"
+            output="screen">
+            <param name="robot_name" value="$(var robot_name)"/>
+            <param name="map_frame" value="map_gt" />
+        
+        </node>
+
+    </group>
+</launch>
+
