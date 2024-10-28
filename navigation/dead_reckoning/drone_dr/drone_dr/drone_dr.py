@@ -24,9 +24,9 @@ class DronePositionEstimator(Node):
         self.robot_name = self.get_parameter("robot_name").value
         # === Frames ===
         self.map_frame = self.get_parameter("map_frame").value
-        
-        self.odom_frame = f"{self.robot_name}/odom"
-        self.base_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}_gt"
+
+        self.odom_frame = f"{self.robot_name}/{DroneLinks.ODOM_LINK}"
+        self.base_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}"
         # self.get_logger().info(f"Robot Name: {self.robot_name}")
         # self.get_logger().info(f"Map Frame: {self.map_frame}")
         # self.get_logger().info(f"UTM Frame: {self.utm_frame}")
@@ -68,16 +68,18 @@ class DronePositionEstimator(Node):
 
         :return:
         """
-        # TODO
         default_robot_name = "Quadrotor"
         self.declare_parameter("robot_name", default_robot_name)
         # === Frames ===
-        # self.declare_parameter("odom_frame", default_robot_name+"/odom")  # changed
-        self.declare_parameter("map_frame", "map_gt")
-
+        self.declare_parameter("map_frame", "map")
         
     def gps_cb(self, msg: NavSatFix) -> None:
         drone_utm = utm.fromLatLong(msg.latitude, msg.longitude)
+        #FIXME magic numbers!
+        # It looks like this is a constant offset between the GPS and the map/odom frame
+        # if its utm->odom, then the offset should be set by the first GPS input and kept constant from there.
+        # if its utm->map, then it should either be given (because someone wants the map to start somewhere specific) or already 
+        # be present in the TF tree (because theres a SLAM system running)
         self.gps_coordinates = np.array([drone_utm.easting - 651301.133, drone_utm.northing - 6524094.583 + 1000, msg.altitude])
         self.gps_iter += 1
 
@@ -97,6 +99,7 @@ class DronePositionEstimator(Node):
         try:
             imu_accel = Vector3Stamped()
             imu_accel.header.stamp = msg.header.stamp
+            #FIXME self.base_frame no?
             imu_accel.header.frame_id = "drone_base_link"
             imu_accel.vector.x = self.drone_acc[0]
             imu_accel.vector.y = self.drone_acc[1]
@@ -150,6 +153,11 @@ class DronePositionEstimator(Node):
         
         # Set header information
         odom_msg.header.stamp = self.get_clock().now().to_msg()  # Add timestamp
+        #FIXME so the odom topic has the position of the drone in the odom frame
+        # but the TF publisher seems to publish the position of "drone_estimated_state" in the map frame
+        # yet they are publishing the same _numbers_ (position) so one of these need to change.
+        # given "drone_estimated_state" is an ad-hoc frame undefined anywhere else, i'd wager
+        # publish_tf needs to publish base_link in odom frame and not touch the map frame.
         odom_msg.header.frame_id = "odom"  # Typically, "odom" frame for localization
         
         # Set position
@@ -177,6 +185,7 @@ class DronePositionEstimator(Node):
 
         # Set the frame information
         t.header.stamp = self.get_clock().now().to_msg()
+        #FIXME map->drone_estimated_state?? wtf is this frame?
         t.header.frame_id = self.map_frame  # Parent frame
         t.child_frame_id = 'drone_estimated_state'  # Child frame for the estimated state
 

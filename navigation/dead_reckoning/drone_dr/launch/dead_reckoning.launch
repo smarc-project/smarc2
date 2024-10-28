@@ -1,5 +1,7 @@
 <launch>
     <arg name="robot_name" default="Quadrotor"/>
+    <arg name="map_frame" default="map"/>
+    <arg name="frame_suffix" default="_gt"/>
 
     <group>
         <push-ros-namespace namespace="$(var robot_name)"/>
@@ -10,7 +12,8 @@
             exec="estimator"
             output="screen">
             <param name="robot_name" value="$(var robot_name)"/>
-            <param name="map_frame" value="map_gt" />
+            <param name="map_frame" value="$(var map_frame)$(var frame_suffix)" />
+            <param name="frame_suffix" value="$(var frame_suffix)" />
         
         </node>
 
