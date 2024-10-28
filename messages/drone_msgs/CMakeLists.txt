@@ -16,6 +16,7 @@ find_package(std_msgs REQUIRED)
 # Generate drone-related message and service interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"         # Topics for the drone
+  "msg/Links.msg"          #links for drone
                 
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
 )
