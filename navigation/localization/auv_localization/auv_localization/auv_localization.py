@@ -172,7 +172,7 @@ class AUVPositionEstimator(Node):
         
         # Set header information
         odom_msg.header.stamp = self.get_clock().now().to_msg()  # Add timestamp
-        odom_msg.header.frame_id = "odom"  # Typically, "odom" frame for localization
+        odom_msg.header.frame_id = f"{self.robot_name}/auv/odom"  # Typically, "odom" frame for localization
         
         # Set position
         odom_msg.pose.pose.position.x = position[0]
