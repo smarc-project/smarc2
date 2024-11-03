@@ -7,7 +7,7 @@
         <push-ros-namespace namespace="$(var robot_name)"/>
 
         <node
-            name="estimator_node"
+            name="drone_state_estimator_node"
             pkg="drone_dr"
             exec="estimator"
             output="screen">
