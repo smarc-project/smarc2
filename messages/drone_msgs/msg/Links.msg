@@ -1,6 +1,9 @@
 #
-# Drone links
+# Drone links and relevant frames
 #
+
+string DR_MAP = 'map'
+string GLOBAL_ORIGIN = 'utm'
 
 string ODOM_LINK = 'odom'
 string BASE_LINK = 'base_link'
