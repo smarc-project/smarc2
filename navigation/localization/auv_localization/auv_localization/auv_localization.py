@@ -77,7 +77,7 @@ class AUVPositionEstimator(Node):
     def declare_node_parameters(self):
         """ Declare the parameters for the AUV position estimator node """
         self.declare_parameter("robot_name", "Quadrotor")
-        self.declare_parameter("dr_node_name", "drone_position_estimator")
+        self.declare_parameter("dr_node_name", "'drone_state_estimator_node'")
         self.declare_parameter("process_noise", [
             0.001, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.001, 0.0, 0.0, 0.0, 0.0,
