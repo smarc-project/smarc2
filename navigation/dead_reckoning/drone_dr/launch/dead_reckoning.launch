@@ -11,12 +11,33 @@
             pkg="drone_dr"
             exec="estimator"
             output="screen">
+            
             <param name="robot_name" value="$(var robot_name)"/>
-            <param name="map_frame" value="$(var map_frame)$(var frame_suffix)" />
-            <param name="frame_suffix" value="$(var frame_suffix)" />
-        
-        </node>
+            <!-- Pass your map origin as parameters here -->
+            <!--<param name="map_offset" value="[0.001, 0.0, 0.0]"/>-->
 
+            <!-- Process noise matrix as a string -->
+            <param name="process_noise" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+
+            <!-- Measurement noise matrix as a string -->
+            <param name="measurement_noise" value="[0.0001, 0.0, 0.0, 
+                                                    0.0, 0.0001, 0.0, 
+                                                    0.0, 0.0, 0.0001]"/>
+
+            <!-- State covariance matrix as a string -->
+            <param name="state_covariance" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+
+            
+        </node>
     </group>
 </launch>
-
