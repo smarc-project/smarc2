@@ -2,7 +2,7 @@
 # Drone links and relevant frames
 #
 
-string DR_MAP = 'Quadrotor/map'
+string DR_MAP = 'map'
 string GLOBAL_ORIGIN = 'utm'
 
 string ODOM_LINK = 'odom'

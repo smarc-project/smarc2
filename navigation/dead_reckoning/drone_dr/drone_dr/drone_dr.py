@@ -22,7 +22,7 @@ class DronePositionEstimator(Node):
         # ===== Get parameters =====
         self.robot_name = self.get_parameter("robot_name").value
         self.utm_frame =  f"{DroneLinks.GLOBAL_ORIGIN}"
-        self.map_frame =  f"{DroneLinks.DR_MAP}"
+        self.map_frame =  f"{self.robot_name}/{DroneLinks.DR_MAP}"
         self.odom_frame = f"{self.robot_name}/{DroneLinks.ODOM_LINK}"  # New odom frame for the drone
         self.base_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}"
 
