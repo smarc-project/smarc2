@@ -3,7 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix, Imu
 from std_msgs.msg import Float32MultiArray, Float32
 import numpy as np
-from state_estimation.model_kf import KFModel_DoubleIntegrator
+from drone_dr.model_kf import KFModel_DoubleIntegrator
 from geodesy import utm
 import tf2_ros
 import tf2_geometry_msgs
