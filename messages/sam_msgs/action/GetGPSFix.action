@@ -1,6 +1,0 @@
-float32 timeout
-uint32 required_gps_msgs
----
-string status
----
-string status

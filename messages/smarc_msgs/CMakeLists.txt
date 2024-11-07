@@ -17,18 +17,9 @@ find_package(std_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/CellOccupied.srv"
-  "srv/AddTask.srv"
-  "srv/AddTasks.srv"
-  "srv/NEDENURotation.srv"
-  "srv/LatLonToUTMOdometry.srv"
-  "msg/ControllerStatus.msg"
-  "msg/CTD.msg"
   "msg/DVLBeam.msg"
   "msg/DVL.msg"
   "msg/FloatStamped.msg"
-  "msg/LatLonOdometry.msg"
-  "msg/LatLonStamped.msg"
   "msg/Leak.msg"
   "msg/PercentStamped.msg"
   "msg/Sidescan.msg"

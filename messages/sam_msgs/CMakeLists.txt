@@ -14,13 +14,10 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/JoyButtons.msg"
   "msg/Links.msg"
   "msg/ThrusterAngles.msg"
   "msg/ThrusterRPMs.msg"
   "msg/Topics.msg"
-  "srv/UavcanUpdateBattery.srv"
-  "action/SystemsCheck.action"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
  )
 
