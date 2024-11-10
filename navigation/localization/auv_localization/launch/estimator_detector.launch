@@ -1,0 +1,56 @@
+<launch>
+    <arg name="robot_name" default="Quadrotor"/>
+    <arg name="map_frame" default="map_gt"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+
+        <node
+            name="auv_relative_estimator_node"
+            pkg="auv_localization"
+            exec="estimator"
+            output="screen">
+            <!-- Declare parameters with default values -->
+            <param name="robot_name" value="$(var robot_name)" />
+            <param name="dr_node_name" value="'drone_state_estimator_node'" />
+
+            <!-- Camera intrinsic parameters -->
+            <param name="f_x" value="368.993" />  <!-- Equivalent to 20.78461 * 640 / 36 -->
+            <param name="f_y" value="415.692" />  <!-- Equivalent to 20.78461 * 480 / 24 -->
+            <param name="c_x" value="320" />
+            <param name="c_y" value="240" />
+
+            <!-- Process noise matrix as a list -->
+            <param name="process_noise" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+
+            <!-- Measurement noise matrix as a list -->
+            <param name="measurement_noise" value="[0.0001, 0.0, 0.0, 
+                                                    0.0, 0.0001, 0.0, 
+                                                    0.0, 0.0, 0.0001]"/>
+
+            <!-- State covariance matrix as a list -->
+            <param name="state_covariance" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+         
+        </node>
+
+        <node
+            name="detector_node"
+            pkg="auv_localization"
+            exec="detector"
+            output="screen">
+            <!-- Declare parameters with default values -->
+            <param name="robot_name" value="$(var robot_name)" />
+        </node>
+    </group>
+</launch>
+
