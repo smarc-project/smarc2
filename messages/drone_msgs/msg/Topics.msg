@@ -16,6 +16,7 @@ string PROP4_CMD_TOPIC = 'core/prop_4/cmd'
 string DRONE_ODOM_GT_TOPIC = 'odom_gt'
 string CAMERA_DATA_TOPIC = 'core/fpcamera/image'
 string CAMERA_COMPRESSED_DATA_TOPIC = 'core/fpcamera/image_compressed'
+string CAMERA_INFO_TOPIC = 'core/fpcamera/cam_info'
 
 
 string PROP1_FB_TOPIC = 'core/prop_1/feedback'
