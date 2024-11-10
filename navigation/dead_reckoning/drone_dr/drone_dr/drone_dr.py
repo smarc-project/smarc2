@@ -177,15 +177,26 @@ class DronePositionEstimator(Node):
         self.tf_broadcaster.sendTransform(t_odom)
 
     def imu_cb(self, msg):
+        # Store the linear acceleration
         self.drone_acc[0] = msg.linear_acceleration.x
         self.drone_acc[1] = msg.linear_acceleration.y
         self.drone_acc[2] = msg.linear_acceleration.z
         current_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
+        # Store the orientation from IMU directly
+        self.orientation = [
+            msg.orientation.x,
+            msg.orientation.y,
+            msg.orientation.z,
+            msg.orientation.w
+        ]
+
+        # Calculate timestep
         if self.prev_time is not None:
             self.timestep = current_time - self.prev_time
         self.prev_time = current_time
 
+        # Call the position estimation function
         self.estimate_position()
 
     def estimate_position(self):
@@ -241,8 +252,14 @@ class DronePositionEstimator(Node):
         t.transform.translation.y = position[1]
         t.transform.translation.z = position[2]
 
-        # Identity quaternion if no orientation provided
-        t.transform.rotation.w = 1.0 if orientation is None else orientation[3]
+        # Apply the IMU orientation directly
+        if self.orientation is not None:
+            t.transform.rotation.x = self.orientation[0]
+            t.transform.rotation.y = self.orientation[1]
+            t.transform.rotation.z = self.orientation[2]
+            t.transform.rotation.w = self.orientation[3]
+        else:
+            t.transform.rotation.w = 1.0  # Default to identity if no orientation is set
         
         # Broadcast the transform
         self.tf_broadcaster.sendTransform(t)
