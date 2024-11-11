@@ -23,8 +23,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Leak.msg"
   "msg/PercentStamped.msg"
   "msg/Sidescan.msg"
-  "msg/SMTask.msg"
-  "msg/StringArray.msg"
   "msg/ThrusterDC.msg"
   "msg/ThrusterFeedback.msg"
   "msg/ThrusterRPM.msg"
