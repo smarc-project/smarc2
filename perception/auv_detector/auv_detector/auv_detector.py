@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, Float32
 import numpy as np
-from auv_localization.model_ekf import EKFModel_ImageFeedback
+from auv_detector.model_ekf import EKFModel_ImageFeedback
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from drone_msgs.msg import Links as DroneLinks

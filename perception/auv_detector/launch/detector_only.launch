@@ -6,7 +6,7 @@
 
         <node
             name="detector_node"
-            pkg="auv_localization"
+            pkg="auv_detector"
             exec="detector"
             output="screen">
             <!-- Declare parameters with default values -->

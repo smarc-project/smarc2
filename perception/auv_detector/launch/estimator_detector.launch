@@ -7,7 +7,7 @@
 
         <node
             name="auv_relative_estimator_node"
-            pkg="auv_localization"
+            pkg="auv_detector"
             exec="estimator"
             output="screen">
             <!-- Declare parameters with default values -->
@@ -45,7 +45,7 @@
 
         <node
             name="detector_node"
-            pkg="auv_localization"
+            pkg="auv_detector"
             exec="detector"
             output="screen">
             <!-- Declare parameters with default values -->

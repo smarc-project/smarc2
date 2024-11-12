@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 import glob, os
 
-package_name = 'auv_localization'
+package_name = 'auv_detector'
 
 setup(
     name=package_name,
@@ -23,8 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-	        'estimator = auv_localization.auv_localization:main', 
-            'detector = auv_localization.KNN:main',
+	        'estimator = auv_detector.auv_detector:main', 
+            'detector = auv_detector.KNN:main',
         ],
     },
 )

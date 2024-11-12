@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `auv_localization` package is responsible for performing perception and estimation tasks in ROS 2, particularly designed for quadrotors or similar UAVs. It includes several estimation techniques, such as K-Nearest Neighbors (KNN) and an extended Kalman Filter (EKF), integrated into a ROS 2 environment to estimate the state of the drone and that of an AUV/ROV on water surface, relative to the drone in real time.
+The `auv_detector` package is responsible for performing perception and estimation tasks in ROS 2, particularly designed for quadrotors or similar UAVs. It includes several estimation techniques, such as K-Nearest Neighbors (KNN) and an extended Kalman Filter (EKF), integrated into a ROS 2 environment to estimate the state of the drone and that of an AUV/ROV on water surface, relative to the drone in real time.
 
 This package contains different modules for sensor fusion, state prediction, and data filtering. The estimators and detection methods can be launched separately or together based on the use case.
 
@@ -46,7 +46,7 @@ This script uses a K-Nearest Neighbors (KNN) algorithm to classify or detect obj
 
 ---
 
-### 2. **auv_localization.py**
+### 2. **auv_detector.py**
 This script is responsible for data fusion and goreferencing of the image space feedback. It is the core state estimation node.
 
 #### Purpose
