@@ -31,10 +31,11 @@ tmux new-window -t $SESSION:9 -n 'dummies'
 
 # Now we launch things in each window.
 tmux select-window -t $SESSION:0
-tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=$ROBOT_NAME" C-m
+#tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "echo 'Not launching sam_dead_reckoning sam_dr_launch.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
 
 tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch dive_control actionserver.launch robot_name:=$ROBOT_NAME" C-m
@@ -67,6 +68,6 @@ then
 fi
 
 # Set default window
-tmux select-window -t $SESSION:0
+tmux select-window -t $SESSION:1
 # attach to the new session
 tmux -2 attach-session -t $SESSION
