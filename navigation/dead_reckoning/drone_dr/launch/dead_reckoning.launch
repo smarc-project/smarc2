@@ -1,0 +1,43 @@
+<launch>
+    <arg name="robot_name" default="Quadrotor"/>
+    <arg name="map_frame" default="map"/>
+    <arg name="frame_suffix" default="_gt"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+
+        <node
+            name="drone_state_estimator_node"
+            pkg="drone_dr"
+            exec="estimator"
+            output="screen">
+            
+            <param name="robot_name" value="$(var robot_name)"/>
+            <!-- Pass your map origin as parameters here -->
+            <!--<param name="map_offset" value="[0.001, 0.0, 0.0]"/>-->
+
+            <!-- Process noise matrix as a string -->
+            <param name="process_noise" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+
+            <!-- Measurement noise matrix as a string -->
+            <param name="measurement_noise" value="[0.0001, 0.0, 0.0, 
+                                                    0.0, 0.0001, 0.0, 
+                                                    0.0, 0.0, 0.0001]"/>
+
+            <!-- State covariance matrix as a string -->
+            <param name="state_covariance" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 
+                                                0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
+
+            
+        </node>
+    </group>
+</launch>
