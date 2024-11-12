@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import rclpy.time as time
 from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
@@ -64,7 +63,7 @@ class ROSVehicle(IVehicleStateContainer):
         try:
             tf_stamped = self._tf_buffer.lookup_transform(self._robot_base_link,
                                                           self._vehicle_state._reference_frame,
-                                                          time.Time())
+                                                          self._node.get_clock().now())
         except Exception as ex:
             #self._log(f"Vehicle state could not update position, exception:\n{ex}")
             return
