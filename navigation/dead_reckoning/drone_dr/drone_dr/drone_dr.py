@@ -1,17 +1,19 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import NavSatFix, Imu
 from std_msgs.msg import Float32MultiArray, Float32
 import numpy as np
-from drone_dr.model_kf import KFModel_DoubleIntegrator
 from geodesy import utm
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import Vector3Stamped, TransformStamped
 from nav_msgs.msg import Odometry
+from drone_dr.model_kf import KFModel_DoubleIntegrator
 # import links and topics as params for drone
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
+
 
 class DronePositionEstimator(Node):
     def __init__(self):
@@ -267,7 +269,8 @@ class DronePositionEstimator(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = DronePositionEstimator()
-    rclpy.spin(node)
+    executor = MultiThreadedExecutor()
+    rclpy.spin(node, executor=executor)
     node.destroy_node()
     rclpy.shutdown()
 
