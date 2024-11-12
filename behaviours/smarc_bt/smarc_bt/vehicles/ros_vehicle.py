@@ -35,7 +35,7 @@ class ROSVehicle(IVehicleStateContainer):
         default_reference_frame = f"{self._robot_name}{self._link_separator}{links_message.ODOM_LINK}{self._link_suffix}"
         reference_frame = node.declare_parameter("reference_frame", default_reference_frame).value
 
-        
+    
         self._vehicle_state = vehicle_state_type(self._robot_name, reference_frame)
 
         # over-ride this in specific vehicles as needed.
@@ -61,11 +61,13 @@ class ROSVehicle(IVehicleStateContainer):
 
     def update_tf(self):
         try:
+            latest = self._tf_buffer.get_latest_common_time(self._robot_base_link, self._vehicle_state._reference_frame)
             tf_stamped = self._tf_buffer.lookup_transform(self._robot_base_link,
                                                           self._vehicle_state._reference_frame,
-                                                          self._node.get_clock().now())
+                                                          latest)
+
         except Exception as ex:
-            #self._log(f"Vehicle state could not update position, exception:\n{ex}")
+            self._log(f"Vehicle state could not update position, exception:\n{ex}")
             return
     
         seconds = tf_stamped.header.stamp.sec
