@@ -1,3 +1,0 @@
-float32 weight_1_offset_radians
-float32 weight_2_offset_radians
-std_msgs/Header header

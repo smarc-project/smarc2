@@ -24,11 +24,11 @@
             ###
             # core stuff
             bridge1: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:Empty", "core/abort", "~/abort"]
-            bridge2: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:Leak", "core/leak", "~/core/leak"]
+            bridge2: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:Leak", "core/leak", "~/core/leak"]
             bridge3: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:BatteryState", "core/battery", "~/core/battery"]
             bridge4: ["mqtt_bridge.bridge:RosToMqttBridge", "sensor_msgs.msg:NavSatFix", "core/gps", "~/core/gps"]
-            bridge5: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:PercentStamped", "core/vbs_fb", "~/core/vbs_fb"]
-            bridge6: ["mqtt_bridge.bridge:RosToMqttBridge", "sam_msgs.msg:PercentStamped", "core/lcg_fb", "~/core/lcg_fb"]
+            bridge5: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:PercentStamped", "core/vbs_fb", "~/core/vbs_fb"]
+            bridge6: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:PercentStamped", "core/lcg_fb", "~/core/lcg_fb"]
             bridge7: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:ThrusterFeedback", "core/thruster1_fb", "~/core/thruster1_fb"]
             bridge8: ["mqtt_bridge.bridge:RosToMqttBridge", "smarc_msgs.msg:ThrusterFeedback", "core/thruster2_fb", "~/core/thruster2_fb"]
             # dr stuff

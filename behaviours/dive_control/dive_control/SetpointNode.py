@@ -10,10 +10,9 @@ from geometry_msgs.msg import TransformStamped
 from rclpy.time import Time as rcl_Time
 
 from std_msgs.msg import Float64
-from smarc_msgs.msg import ThrusterRPM
+from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from sam_msgs.msg import Topics as SamTopics
-from sam_msgs.msg import ThrusterAngles, PercentStamped
-
+from sam_msgs.msg import ThrusterAngles
 from nav_msgs.msg import Odometry
 
 from rclpy.executors import MultiThreadedExecutor

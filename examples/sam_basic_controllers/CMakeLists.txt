@@ -11,12 +11,13 @@ endif()
 # find_package(<dependency> REQUIRED)
 # use this for mixed cpp-py packages like this one...
 # or maybe just dont mix them lol
-find_package(ament_cmake_python REQUIRED) 
+find_package(ament_cmake_python REQUIRED)
 
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(sam_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(smarc_msgs REQUIRED)
 
 
 
@@ -27,7 +28,8 @@ add_executable(pid_actuator_trim src/pid_utils/pid_actuator_trim.cpp)
 ament_target_dependencies(pid_actuator_trim
   rclcpp
   std_msgs
-  sam_msgs)
+  sam_msgs
+  smarc_msgs)
 
 
 install(

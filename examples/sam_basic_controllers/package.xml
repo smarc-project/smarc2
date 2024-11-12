@@ -16,6 +16,7 @@
   since the entire parameter system has changed! -->
   <!-- <depend>dynamic_reconfigure</depend> -->
   <depend>sam_msgs</depend>
+  <depend>smarc_msgs</depend>
   <depend>std_msgs</depend>
 
 

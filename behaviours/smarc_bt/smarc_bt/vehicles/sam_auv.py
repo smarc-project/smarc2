@@ -6,7 +6,7 @@ import rclpy.time as time
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Links as SamLinks
-from sam_msgs.msg import Leak, PercentStamped
+from smarc_msgs.msg import Leak, PercentStamped
 from sensor_msgs.msg import FluidPressure
 
 from .ros_vehicle import ROSVehicle
@@ -55,7 +55,7 @@ class SAMAuv(ROSVehicle):
     def _t1_cb(self, data:ThrusterFeedback):
         self._t1 = data.rpm.rpm
         self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
-    
+
     def _t2_cb(self, data:ThrusterFeedback):
         self._t2 = data.rpm.rpm
         self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
@@ -73,5 +73,3 @@ def test_sam_auv():
 
     node.create_timer(0.5, update)
     rclpy.spin(node)
-
-
