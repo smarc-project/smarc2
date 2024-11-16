@@ -14,30 +14,10 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ArrayCommand.msg"
-  "msg/BallastAngles.msg"
-  "msg/CircuitStatus.msg"
-  "msg/CircuitStatusStampedArray.msg"
-  "msg/CircuitStatusStamped.msg"
-  "msg/Command.msg"
-  "msg/ConsumedChargeArray.msg"
-  "msg/ConsumedChargeFeedback.msg"
-  "msg/ConsumedCharge.msg"
-  "msg/CTP.msg"
-  "msg/Leak.msg"
-  "msg/LightCommandArray.msg"
-  "msg/LightCommand.msg"
-  "msg/PercentStamped.msg"
+  "msg/Links.msg"
   "msg/ThrusterAngles.msg"
   "msg/ThrusterRPMs.msg"
-  "msg/UavcanNodeStatus.msg"
-  "msg/UavcanNodeStatusNamedArray.msg"
-  "msg/UavcanNodeStatusNamed.msg"
   "msg/Topics.msg"
-  "msg/Links.msg"
-  "msg/JoyButtons.msg"
-  "srv/UavcanUpdateBattery.srv"
-  "action/SystemsCheck.action"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
  )
 

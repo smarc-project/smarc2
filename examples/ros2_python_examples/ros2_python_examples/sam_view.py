@@ -5,8 +5,8 @@ import sys
 
 from rclpy.node import Node
 
-from smarc_msgs.msg import ThrusterRPM
-from sam_msgs.msg import PercentStamped, ThrusterAngles
+from smarc_msgs.msg import ThrusterRPM, PercentStamped
+from sam_msgs.msg import ThrusterAngles
 from sam_msgs.msg import Topics as SamTopics
 
 
@@ -22,7 +22,7 @@ class SAMView:
     """
     def __init__(self, node: Node):
         # bunch of topics to publish to
-        
+
         # lets actually use private variable notations this time around eh?
         # ROS2 introduces a QoS setting to publishing and subsciribing(optional)
         # that might be of use later, but for this simple example, we just set
@@ -136,5 +136,4 @@ if __name__ == "__main__":
         i = i%len(us)
 
         rclpy.spin_once(node)
-        rate.sleep() 
-    
+        rate.sleep()

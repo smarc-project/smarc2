@@ -4,9 +4,9 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import Float64
-from smarc_msgs.msg import ThrusterRPM
+from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from sam_msgs.msg import Topics as SamTopics
-from sam_msgs.msg import ThrusterAngles, PercentStamped
+from sam_msgs.msg import ThrusterAngles
 
 try:
     from .IDiveView import IDiveView
