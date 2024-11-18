@@ -31,9 +31,9 @@
                                                 0.0, 0.0, 0.0, 0.0, 0.0, 0.001]"/>
 
             <!-- Measurement noise matrix as a list -->
-            <param name="measurement_noise" value="[0.0001, 0.0, 0.0, 
-                                                    0.0, 0.0001, 0.0, 
-                                                    0.0, 0.0, 0.0001]"/>
+            <param name="measurement_noise" value="[0.00001, 0.0, 0.0, 
+                                                    0.0, 0.00001, 0.0, 
+                                                    0.0, 0.0, 0.00001]"/>
 
             <!-- State covariance matrix as a list -->
             <param name="state_covariance" value="[0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 

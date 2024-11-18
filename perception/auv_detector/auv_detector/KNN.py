@@ -169,7 +169,7 @@ class KNN(Node):
         self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
 
         # Step 2: Proceed only if the yellow percentage is high enough
-        if yellow_percentage > 10:  # Liberal threshold, you can adjust this
+        if yellow_percentage > 5:  # Liberal threshold, you can adjust this
             
             # Apply the yellow mask to the contour
             yellow_mask = self.mask_yellow_regions(cv_image, lower_yellow1, upper_yellow1)
