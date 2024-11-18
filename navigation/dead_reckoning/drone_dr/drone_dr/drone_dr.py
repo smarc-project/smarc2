@@ -14,7 +14,6 @@ from drone_dr.model_kf import KFModel_DoubleIntegrator
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
 
-
 class DronePositionEstimator(Node):
     def __init__(self):
         super().__init__('drone_position_estimator')
@@ -27,6 +26,7 @@ class DronePositionEstimator(Node):
         self.map_frame =  f"{self.robot_name}/{DroneLinks.DR_MAP}"
         self.odom_frame = f"{self.robot_name}/{DroneLinks.ODOM_LINK}"  # New odom frame for the drone
         self.base_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}"
+        self.camera_frame = f"{self.robot_name}/{DroneLinks.CAMERA_LINK}"
 
         # Initialize a TF broadcaster
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -65,12 +65,19 @@ class DronePositionEstimator(Node):
         self.drone_acc = np.zeros(3)
         self.timestep = 0
         self.prev_time = None
+        self.frame_suffix = self.get_parameter("frame_suffix").value
+        #TIMER FOR MAP
+        self.map_frame_timer = self.create_timer(0.1, self.publish_map_transform) 
+        if self.frame_suffix == "_gt":
+            self.create_timer(0.1,self.publish_camera_tf)
+
 
     def declare_node_parameters(self):
         """
         Declare the node parameters for the node
         """
         default_robot_name = "Quadrotor"
+        self.declare_parameter("frame_suffix", "")
         self.declare_parameter("robot_name", default_robot_name)
         self.declare_parameter("use_provided_map_origin", False)
         # Initialize map_offset as a Vector3Stamped with all entries set to zero
@@ -131,6 +138,33 @@ class DronePositionEstimator(Node):
         self.publish_utm_to_map_to_odom_transforms()
         self.get_logger().info(f"Map to odom transform initialized with offset: {self.utm_offset}")
 
+    def publish_camera_tf(self):
+        """ Publish a TF transform from base_link to camera_link in the estimate frame"""
+        #TODO: THIS IS A HACK. FIX. to be published from urdf by a static frame broadcaster
+        t_base_to_cam = TransformStamped()
+        try:
+            self.get_logger().info(f"{self.base_frame}{self.frame_suffix} and {self.camera_frame}{self.frame_suffix} inputs to lookup")
+            
+            # Directly assign the entire TransformStamped returned by lookup_transform
+            t_base_to_cam = self.tf_buffer.lookup_transform(
+                f'{self.camera_frame}{self.frame_suffix}',
+                f'{self.base_frame}{self.frame_suffix}',
+                # self.get_clock().now()
+                self.tf_buffer.get_latest_common_time(
+                    f'{self.camera_frame}{self.frame_suffix}',
+                    f'{self.base_frame}{self.frame_suffix}')
+            )
+            # Update the timestamp for the new transform message
+            t_base_to_cam.header.stamp = self.get_clock().now().to_msg()
+            t_base_to_cam.header.frame_id = self.base_frame
+            t_base_to_cam.child_frame_id = self.camera_frame
+            # Publish the transform
+            self.tf_broadcaster.sendTransform(t_base_to_cam)
+        except Exception as e:
+            self.get_logger().warn(f"Transformation not found: {e}")
+            return
+        
+
     def publish_utm_to_map_to_odom_transforms(self):
         """
         Publish static transforms from 'utm' to 'map' and 'map' to 'odom' based on initial readings.
@@ -177,6 +211,10 @@ class DronePositionEstimator(Node):
 
         # Publish the "map" to "odom" transform
         self.tf_broadcaster.sendTransform(t_odom)
+    
+    def publish_map_transform(self):
+        if self.offset_initialized:
+            self.publish_utm_to_map_to_odom_transforms()
 
     def imu_cb(self, msg):
         # Store the linear acceleration
@@ -239,6 +277,7 @@ class DronePositionEstimator(Node):
 
         # Publish the Odometry message
         self.position_publisher.publish(odom_msg)
+        
 
     def publish_tf(self, position, orientation=None):
         """
