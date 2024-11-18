@@ -24,12 +24,13 @@ class EKFModel_ImageFeedback(Node):
         self.c_x = 320  # Principal point x-coordinate
         self.c_y = 240  # Principal point y-coordinate
         self.R_wa = np.eye(3)
+        
         self.K = np.array([[self.f_x, 0, self.c_x],
                            [0, self.f_y, self.c_y],
                            [0, 0, 1]])
         self.K_inv = np.linalg.inv(self.K)
 
-    def initialize_state(self, X, Q, R, P):
+    def initialize_state(self, X, Q, R, P,R_q):
         """
         Initialize the state, process noise, measurement noise, and covariance matrix.
         """
@@ -38,6 +39,10 @@ class EKFModel_ImageFeedback(Node):
         self.Q = Q
         self.R_1 = R
         self.P = P
+        self.R_wa = np.array([[0, 1, 0],
+                              [1, 0, 0],
+                              [0, 0, 1]])
+
         self.obs = False
         
 
@@ -51,12 +56,14 @@ class EKFModel_ImageFeedback(Node):
         """
         Observation model that predicts the measurement given the current state.
         """
-        x, y, z = self.X[0], self.X[1], -self.X[2]
+        # x, y, z = self.X[0], self.X[1], -self.X[2]
+        x, y, z = self.X[0], self.X[1], self.X[2]
         dir_world = [x/z,y/z,1]
         image_point = self.K@np.linalg.inv(self.R_wa)@(dir_world) #of the form [u,v,1]
-        image_point[2] = z
+        image_point[2] = -z   #self.X[2]
+        # self.get_logger().info(f"observation model : {image_point}")
         return image_point
-    
+
     def observation_model_no_image(self):
         """
         Observation model that predicts the measurement given the current state.
@@ -64,7 +71,8 @@ class EKFModel_ImageFeedback(Node):
         return self.M @ self.X
 
     def jacobian_image(self):
-        x, y, z = self.X[0], self.X[1], -self.X[2]  # Assuming X[2] is the depth
+        # x, y, z = self.X[0], self.X[1], -self.X[2]  # Assuming X[2] is the depth
+        x, y, z = self.X[0], self.X[1], self.X[2]  # Assuming X[2] is the depth
 
         # Avoid division by zero
         if z == 0:
@@ -75,7 +83,7 @@ class EKFModel_ImageFeedback(Node):
             [1/z, 0, -x/(z**2)],
             [0, 1/z, -y/(z**2)]
         ])
-        
+
         # Jacobian is the multiplication of K, R_wa_inv, and J_direction
         R_wa_inv = np.linalg.inv(self.R_wa)  # Inverse of the rotation matrix
         jacobian_matrix = self.K[:2, :2] @ R_wa_inv[:2, :2] @ J_direction  # 2x3 Jacobian
@@ -85,17 +93,19 @@ class EKFModel_ImageFeedback(Node):
 
         # Add the depth row: [0, 0, 1, 0, 0, 0]
         depth_jacobian = np.array([[0, 0, -1, 0, 0, 0]])
+        # depth_jacobian = np.array([[0, 0, 1, 0, 0, 0]])
 
         # Vstack the 2x6 jacobian with the 1x6 depth row
         jacobian_full = np.vstack((jacobian_extended, depth_jacobian))
         
         return jacobian_full
 
-    def estimate(self, obs, feedback_image = False):
+    def estimate(self, obs, R_q, feedback_image = False):
         """
         Perform the EKF estimation step: predict and update.
         """
         #predict
+        # self.R_wa = R_q
         X_pred, P_pred = self.prediction_model()
         # self.get_logger().info(f' first predicted state : {X_pred} ')
         # update
@@ -108,7 +118,9 @@ class EKFModel_ImageFeedback(Node):
             obs_model = self.observation_model_no_image()
             R = np.eye(1)*10**-3
         # self.get_logger().info(f' image obs : {obs} and modelled : {obs_model} ')
+        # self.get_logger().info(f' image obs : {obs}')
         S = self.C @ P_pred @ self.C.T + R
+        
         K = P_pred @ self.C.T @ np.linalg.inv(S)
         self.X = X_pred + K @ (obs - obs_model)
         # self.get_logger().info(f' Kalman gain: {K} ')
