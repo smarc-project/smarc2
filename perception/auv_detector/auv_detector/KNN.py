@@ -28,6 +28,8 @@ class KNN(Node):
         self.subscription
         self.bridge = CvBridge()
         self.mask_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_processed', 10)
+        # self.foreground_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_foreground', 10)
+        # self.detection_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_detection', 10)
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
         
         
@@ -46,7 +48,7 @@ class KNN(Node):
         foreground_mask = self.knn.apply(cv_image)
 
         # Apply the connected component filtering
-        filtered_mask = remove_small_blobs_connected_components(foreground_mask, min_area=700, max_area=4000)
+        filtered_mask = self.remove_small_blobs_connected_components(foreground_mask, min_area=700, max_area=4000)
 
         # Apply morphological operations to remove noise and fill gaps
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -149,7 +151,7 @@ class KNN(Node):
 
     def data_association(self, cnt, filtered_mask, cv_image):
         # Define the yellow range in HSV (adjust these as needed)
-        lower_yellow = np.array([25, 150, 150], dtype=np.uint8)
+        lower_yellow = np.array([23, 125, 125], dtype=np.uint8)
         upper_yellow = np.array([30, 255, 255], dtype=np.uint8)
 
         # lower_yellow1 = np.array([20, 100, 100], dtype=np.uint8)  # Even higher S & V to exclude dull colors
@@ -161,23 +163,23 @@ class KNN(Node):
         # Step 1: Calculate the yellow percentage in the contour
         contour_mask = np.zeros_like(filtered_mask)
         cv2.drawContours(contour_mask, [cnt], -1, 255, thickness=cv2.FILLED)
-        yellow_percentage = get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
+        yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
 
         # # Print the yellow percentage for tuning
-        # self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
+        self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
 
         # Step 2: Proceed only if the yellow percentage is high enough
-        if yellow_percentage > 6:  # Liberal threshold, you can adjust this
-
+        if yellow_percentage > 10:  # Liberal threshold, you can adjust this
+            
             # Apply the yellow mask to the contour
-            yellow_mask = mask_yellow_regions(cv_image, lower_yellow1, upper_yellow1)
+            yellow_mask = self.mask_yellow_regions(cv_image, lower_yellow1, upper_yellow1)
 
             # Combine the contour mask with the yellow mask (logical AND)
             contour_yellow_mask = cv2.bitwise_and(yellow_mask, contour_mask)
 
             # Check if there are any yellow pixels in the contour
             if np.sum(contour_yellow_mask) > 0:  # Ensure there are yellow pixels to proceed
-
+               
                 # Use minAreaRect to get the smallest bounding box around the contour
                 rect = cv2.minAreaRect(cnt)
                 box = cv2.boxPoints(rect)
@@ -197,69 +199,75 @@ class KNN(Node):
                     # Check the aspect ratio against the liberal threshold
                     if 0 < aspect_ratio < 0.3:  # Adjust as needed
                         # self.get_logger().info('Contour meets aspect ratio criteria')
-
                         # Visualize the contour and the minAreaRect box
                         cv2.drawContours(cv_image, [box], -1, (0, 255, 0), 2)
 
                         # Display the contour yellow mask REDUNDANT
-                        cv2.imshow('Yellow Contour Mask', contour_yellow_mask)
-                        cv2.waitKey(1)
+                        # cv2.imshow('Yellow Contour Mask', contour_yellow_mask)
+                        # cv2.waitKey(1)
                         return True
-            return False
+                    else :
+                        self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
+            else :
+                self.get_logger().info("yellow pixel test not satisfied")
+        else : 
+            self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
+        return False
 
     
-# Step 1: yellow regions percentage
-def get_yellow_percentage(mask, image, lower_yellow, upper_yellow):
-    # Apply mask to the image
-    masked_image = cv2.bitwise_and(image, image, mask=mask)
+    # Step 1: yellow regions percentage
+    def get_yellow_percentage(self, mask, image, lower_yellow, upper_yellow):
+        # Apply mask to the image
+        masked_image = cv2.bitwise_and(image, image, mask=mask)
 
-    # Convert the image to HSV color space
-    hsv_image = cv2.cvtColor(masked_image, cv2.COLOR_BGR2HSV)
+        # Convert the image to HSV color space
+        hsv_image = cv2.cvtColor(masked_image, cv2.COLOR_BGR2HSV)
 
-    # Create a mask for the yellow color
-    yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
+        # Create a mask for the yellow color
+        yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
 
-    # Calculate the number of yellow pixels
-    yellow_pixels = np.sum(yellow_mask == 255)
+        # Calculate the number of yellow pixels
+        yellow_pixels = np.sum(yellow_mask == 255)
 
-    # Calculate the total number of pixels in the contour
-    total_pixels = np.sum(mask == 255)
+        # Calculate the total number of pixels in the contour
+        total_pixels = np.sum(mask == 255)
 
-    # Calculate the percentage of yellow pixels
-    yellow_percentage = (yellow_pixels / total_pixels) * 100 if total_pixels > 0 else 0
+        # Calculate the percentage of yellow pixels
+        yellow_percentage = (yellow_pixels / total_pixels) * 100 if total_pixels > 0 else 0
 
-    return yellow_percentage
+        return yellow_percentage
 
-# Step 2: Mask the yellow regions
-def mask_yellow_regions(image, lower_yellow, upper_yellow):
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
-    return yellow_mask
+    # Step 2: Mask the yellow regions
+    def mask_yellow_regions(self, image, lower_yellow, upper_yellow):
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
+        return yellow_mask
 
-# Step 3: Check the aspect ratio of the contour
-def check_aspect_ratio(contour):
-    x, y, w, h = cv2.boundingRect(contour)
-    aspect_ratio = w / float(h)
-    return aspect_ratio        
-   
+    # Step 3: Check the aspect ratio of the contour
+    def check_aspect_ratio(contour):
+        x, y, w, h = cv2.boundingRect(contour)
+        aspect_ratio = w / float(h)
+        return aspect_ratio        
+    
 
-def remove_small_blobs_connected_components(foreground_mask, min_area=50, max_area=3000):
-        # Find all connected components in the mask
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(foreground_mask)
+    def remove_small_blobs_connected_components(self, foreground_mask, min_area=50, max_area=3000):
+            # Find all connected components in the mask
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(foreground_mask)
 
-        # Create a blank mask
-        filtered_mask = np.zeros_like(foreground_mask)
-        print("_____________________________________________")
-        # Loop over each connected component
-        for i in range(1, num_labels):  # Start from 1 to skip the background
-            area = stats[i, cv2.CC_STAT_AREA]
+            # Create a blank mask
+            filtered_mask = np.zeros_like(foreground_mask)
+            self.get_logger().info("_____________________________________________")
+            # Loop over each connected component
+            for i in range(1, num_labels):  # Start from 1 to skip the background
+                area = stats[i, cv2.CC_STAT_AREA]
 
-            # Filter based on the area
-            # print(area) ////////////////////////////////////////////////////////////////////////////
-            if min_area < area < max_area:
-                filtered_mask[labels == i] = 255
+                # Filter based on the area
+                # print(area) 
+                if min_area < area < max_area:
+                    self.get_logger().info(f"area :{area}") 
+                    filtered_mask[labels == i] = 255
 
-        return filtered_mask    
+            return filtered_mask    
 
 def main(args=None):
     rclpy.init(args=args)
