@@ -9,6 +9,7 @@ from std_msgs.msg import Float32MultiArray
 from sklearn.decomposition import PCA
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
+import params_detector as P
 
 class KNN(Node):
     def __init__(self):
@@ -61,7 +62,7 @@ class KNN(Node):
         for cnt in large_contours:
 
             # Data Association
-            if self.data_association(cnt, filtered_mask, cv_image) =='sam':
+            if self.data_association(cnt, filtered_mask, cv_image) == P.AUV_NAME:
                 # Extract points from the contour
                 points = cnt[:, 0, :]  # Extract (x, y) points
 
@@ -136,7 +137,7 @@ class KNN(Node):
                     pt2 = tuple(original_fitted_points[i + 1].astype(int))
                     cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)
 
-            elif self.data_association(cnt, filtered_mask, cv_image) =='buoy':
+            elif self.data_association(cnt, filtered_mask, cv_image) == P.BUOY_NAME:
                 # commented because centroid blowing up.
                 # # Compute moments of the contour
                 # M = cv2.moments(cnt)
@@ -182,32 +183,32 @@ class KNN(Node):
 
     def data_association(self, cnt, filtered_mask, cv_image):
         # Define the yellow range in HSV (adjust these as needed)
-        lower_yellow = np.array([23, 125, 125], dtype=np.uint8)
-        upper_yellow = np.array([30, 255, 255], dtype=np.uint8)
+        #TODO :  
+        lower_yellow = np.array(P.SAM_COLOR_LOWER_BOUND, dtype=np.uint8)
+        upper_yellow = np.array(P.SAM_COLOR_UPPER_BOUND, dtype=np.uint8)
 
         # lower_yellow1 = np.array([20, 100, 100], dtype=np.uint8)  # Even higher S & V to exclude dull colors
         # upper_yellow1 = np.array([27, 180, 180], dtype=np.uint8)
 
-        lower_yellow1 = np.array([25, 150, 150], dtype=np.uint8)  # Even higher S & V to exclude dull colors
-        upper_yellow1 = np.array([30, 255, 255], dtype=np.uint8)
-        min_area_sam = 300 #PASS AS PARAM LATER
+        lower_yellow1 = np.array(P.SAM_COLOR1_LOWER_BOUND, dtype=np.uint8)  # Even higher S & V to exclude dull colors
+        upper_yellow1 = np.array(P.SAM_COLOR1_UPPER_BOUND, dtype=np.uint8)
 
 
         # Step 1: Calculate the yellow percentage in the contour
         contour_mask = np.zeros_like(filtered_mask)
         cv2.drawContours(contour_mask, [cnt], -1, 255, thickness=cv2.FILLED)
-        orange_percentage = self.get_orange_percentage(contour_mask, cv_image, np.uint8([[[255, 107, 4]]]))
+        orange_percentage = self.get_orange_percentage(contour_mask, cv_image, np.uint8([[P.BUOY_COLOR]]))
         yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
 
         # # Print the yellow percentage for tuning
         self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
         self.get_logger().info(f'Orange percentage: {orange_percentage:.2f}%')
-        if orange_percentage > 15 :
+        if orange_percentage > P.BUOY_THRESHOLD :
             # cv2.drawContours(cv_image, [cnt], -1, (0, 255, 0), thickness=cv2.FILLED)
-            return 'buoy'
+            return P.BUOY_NAME
         # Step 2: Proceed only if the yellow percentage is high enough
-        if yellow_percentage > 5:  # Liberal threshold, you can adjust this
-            if cv2.contourArea(cnt) > min_area_sam :  
+        if yellow_percentage > P.SAM_THRESHOLD:  # Liberal threshold, you can adjust this
+            if cv2.contourArea(cnt) > P.MIN_AREA_SAM :  
 
                 # Apply the yellow mask to the contour
                 yellow_mask = self.mask_yellow_regions(cv_image, lower_yellow1, upper_yellow1)
@@ -235,7 +236,8 @@ class KNN(Node):
                         # self.get_logger().info(f'Aspect ratio: {aspect_ratio:.2f}')
 
                         # Check the aspect ratio against the liberal threshold
-                        if 0 < aspect_ratio < 0.4:  # Adjust as needed
+                        
+                        if 0 < aspect_ratio < P.ASPECT_UPPER_BOUND:  # Adjust as needed
                             # self.get_logger().info('Contour meets aspect ratio criteria')
                             # Visualize the contour and the minAreaRect box
                             # cv2.drawContours(cv_image, [box], -1, (0, 255, 0), 2)
@@ -244,7 +246,7 @@ class KNN(Node):
                             # cv2.imshow('Yellow Contour Mask', contour_yellow_mask)
                             # cv2.waitKey(1)
                             self.get_logger().info(f"all tests satisfied")
-                            return 'sam'
+                            return P.AUV_NAME
                         # else :
                             # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
                             # self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
@@ -328,7 +330,7 @@ class KNN(Node):
         return aspect_ratio        
     
 
-    def remove_small_blobs_connected_components(self, foreground_mask, min_area=50, max_area=3000):
+    def remove_small_blobs_connected_components(self, foreground_mask, min_area=P.MIN_AREA_FILTER, max_area=P.MAX_AREA_FILTER):
             # Find all connected components in the mask
             num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(foreground_mask)
 
