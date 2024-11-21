@@ -32,4 +32,4 @@ string DEPTH_TOPIC = 'core/depth'
 string DR_POSITION_TOPIC = 'est_position'
 string AUV_RELATIVE_POSITION_TOPIC = 'auv/estimated_relative_position'
 string BUOY_DETECTOR_ESTIMATE_TOPIC = 'auv/buoy_est'
-
+string SAM_LOWEST_POINT_ESTIMATE_TOPIC = 'auv/sam_lowest_est'
