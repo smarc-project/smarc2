@@ -24,6 +24,7 @@ class AUVPositionEstimator(Node):
         self.odom_frame = f"{self.robot_name}/{DroneLinks.ODOM_LINK}{self.frame_suffix}"
         self.camera_frame = f"{self.robot_name}/{DroneLinks.CAMERA_LINK}{self.frame_suffix}"
         self.K = np.zeros([3, 3])
+        self.check_distance_gt = False
 
         self.create_subscription(CameraInfo, f"/{self.robot_name}/{DroneTopics.CAMERA_INFO_TOPIC}", self.cam_param_cb, 10)
         self.odom_tf = True
@@ -100,16 +101,17 @@ class AUVPositionEstimator(Node):
             self.first_measurement = True
         else:
             self.X_auv_relative, self.P_auv_relative = self.kf_auv.estimate(observation, self.R_cam_to_link, feedback_image=True)
-            try:
-                transform = self.tf_buffer.lookup_transform(
-                    # 'sam_auv_v1/back_prop_link_gt',
-                    'sam_auv_v1/Buoy_gt',
-                    self.camera_frame,
-                    self.get_clock().now()
-                )
-                self.get_logger().info(f"error bet gt and estimate: {np.linalg.norm(np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]) - self.X_auv_relative[:3])}")
-            except Exception as e:
-                self.get_logger().warn(f"Transformation error: {e}")
+            if self.check_distance_gt:
+                try:
+                    transform = self.tf_buffer.lookup_transform(
+                        # 'sam_auv_v1/back_prop_link_gt',
+                        'sam_auv_v1/Buoy_gt',
+                        self.camera_frame,
+                        self.get_clock().now()
+                    )
+                    self.get_logger().info(f"error bet gt and estimate: {np.linalg.norm(np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]) - self.X_auv_relative[:3])}")
+                except Exception as e:
+                    self.get_logger().warn(f"Transformation error: {e}")
 
         if self.X_auv_relative is not None:
             auv_rel_position = self.X_auv_relative[:3]
@@ -123,18 +125,6 @@ class AUVPositionEstimator(Node):
         vector_auv_drone = direction_world * scale
         self.get_logger().info(f"georeferenced coordinates of buoy: {vector_auv_drone}")
         return np.hstack((vector_auv_drone, np.zeros(3)))
-
-    # def publish_tf(self, position, orientation=None):
-    #     t = TransformStamped()
-    #     t.header.stamp = self.get_clock().now().to_msg()
-    #     t.header.frame_id = self.camera_frame
-    #     t.child_frame_id = self.auv_rel_frame
-    #     t.transform.translation.x, t.transform.translation.y, t.transform.translation.z = position
-    #     if orientation:
-    #         t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w = orientation
-    #     else:
-    #         t.transform.rotation.w = 1.0
-    #     self.tf_broadcaster.sendTransform(t)
 
     def publish_tf(self, position, orientation=None):
         if not self.odom_tf: 
