@@ -137,7 +137,7 @@ class KNN(Node):
                     cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)
 
             elif self.data_association(cnt, filtered_mask, cv_image) =='buoy':
-                
+                # commented because centroid blowing up.
                 # # Compute moments of the contour
                 # M = cv2.moments(cnt)
 
@@ -245,14 +245,14 @@ class KNN(Node):
                             # cv2.waitKey(1)
                             self.get_logger().info(f"all tests satisfied")
                             return 'sam'
-                        else :
+                        # else :
                             # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
-                            self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
-                else :
+                            # self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
+                # else :
                     # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
-                    self.get_logger().info("yellow pixel test not satisfied")
-        else : 
-            self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
+                    # self.get_logger().info("yellow pixel test not satisfied")
+        # else : 
+            # self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
         return False
 
     
@@ -340,7 +340,7 @@ class KNN(Node):
                 area = stats[i, cv2.CC_STAT_AREA]
 
                 # Filter based on the area
-                # print(area) 
+ 
                 if min_area < area < max_area:
                     self.get_logger().info(f"area :{area}") 
                     filtered_mask[labels == i] = 255
