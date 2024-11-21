@@ -9,7 +9,7 @@ from std_msgs.msg import Float32MultiArray
 from sklearn.decomposition import PCA
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
-import params_detector as P
+import auv_detector.params_detector as P
 
 class KNN(Node):
     def __init__(self):
@@ -28,7 +28,7 @@ class KNN(Node):
             10)
         self.subscription
         self.bridge = CvBridge()
-        self.mask_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_processed', 10)
+        self.mask_publisher = self.create_publisher(Image, f"/{self.robot_name}/{DroneTopics.CAMERA_PROCESSED_TOPIC}", 10)
         # self.foreground_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_foreground', 10)
         # self.detection_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_detection', 10)
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
