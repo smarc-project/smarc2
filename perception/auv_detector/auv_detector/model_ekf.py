@@ -39,9 +39,7 @@ class EKFModel_ImageFeedback(Node):
         self.Q = Q
         self.R_1 = R
         self.P = P
-        self.R_wa = np.array([[0, 1, 0],
-                              [1, 0, 0],
-                              [0, 0, 1]])
+        self.R_wa = R_q
 
         self.obs = False
         
@@ -105,7 +103,7 @@ class EKFModel_ImageFeedback(Node):
         Perform the EKF estimation step: predict and update.
         """
         #predict
-        # self.R_wa = R_q
+        # self.R_wa = R_q   #not being set constantly rn but can be for a camera under some other conditions
         X_pred, P_pred = self.prediction_model()
         # self.get_logger().info(f' first predicted state : {X_pred} ')
         # update
