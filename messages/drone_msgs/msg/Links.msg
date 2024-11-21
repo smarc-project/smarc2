@@ -4,6 +4,7 @@
 
 string DR_MAP = 'map'
 string GLOBAL_ORIGIN = 'utm'
+string AUV_RELATIVE_FRAME = 'auv_estimate'
 
 string ODOM_LINK = 'odom'
 string BASE_LINK = 'base_link'
