@@ -56,10 +56,8 @@ This script is responsible for data fusion and goreferencing of the image space 
 #### Dependencies
 - Needs access to TF frames for calculating transformations between the drone's body frame and world frame.
 
-Certainly! Below is a more refined version of the descriptions for **model_kf.py** and **model_ekf.py** that clearly outlines the purpose, functionality, and context of each filter:
 
 ---
-
 
 ### **3. model_ekf.py (Extended Kalman Filter)**
 
