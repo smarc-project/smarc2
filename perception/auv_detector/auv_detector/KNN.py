@@ -78,58 +78,69 @@ class KNN(Node):
                 # Create a parameter t that goes from 0 to 1
                 t = np.linspace(0, 1, len(points))
 
-                best_deg = 1
-                min_error = float('inf')
-                best_p1 = None
-                best_p2 = None
-
-                for i in range(1, 10):
-                    # Fit ith degree polynomial to x(t) and y(t)
-                    p1 = np.poly1d(np.polyfit(t, x, i))
-                    p2 = np.poly1d(np.polyfit(t, y, i))
+                # best_deg = 1
+                # min_error = float('inf')
+                # best_p1 = None
+                # best_p2 = None
+                # Fit ith degree polynomial to x(t) and y(t)
+                p1 = np.poly1d(np.polyfit(t, x, P.BEST_FIT_DEGREE))
+                p2 = np.poly1d(np.polyfit(t, y, P.BEST_FIT_DEGREE))
+                # for i in range(1, 10):
+                #     # Fit ith degree polynomial to x(t) and y(t)
+                #     p1 = np.poly1d(np.polyfit(t, x, i))
+                #     p2 = np.poly1d(np.polyfit(t, y, i))
                     
-                    # Calculate the fit errors
-                    x_poly = p1(t)
-                    y_poly = p2(t)
-                    error = np.linalg.norm(x_poly - x) + np.linalg.norm(y_poly - y)
+                #     # Calculate the fit errors
+                #     x_poly = p1(t)
+                #     y_poly = p2(t)
+                #     error = np.linalg.norm(x_poly - x) + np.linalg.norm(y_poly - y)
                     
-                    # Update the best polynomial if error is smaller
-                    if error < min_error:
-                        min_error = error
-                        best_deg = i
-                        best_p1 = p1
-                        best_p2 = p2
-
+                #     # Update the best polynomial if error is smaller
+                #     if error < min_error:
+                #         min_error = error
+                #         best_deg = i
+                #         best_p1 = p1
+                #         best_p2 = p2
+                # self.get_logger().info(f"the best fit degree is {i}")
                 # Generate fitted points
                 t_fit = np.linspace(0, 1, 100)
-                x_fit = best_p1(t_fit)
-                y_fit = best_p2(t_fit)
+                # x_fit = best_p1(t_fit)
+                # y_fit = best_p2(t_fit)
 
+                x_fit = p1(t_fit)
+                y_fit = p2(t_fit)
+
+                # # First derivatives
+                # dx_dt = best_p1.deriv()(t_fit)
+                # dy_dt = best_p2.deriv()(t_fit)
                 # First derivatives
-                dx_dt = best_p1.deriv()(t_fit)
-                dy_dt = best_p2.deriv()(t_fit)
+                dx_dt = p1.deriv()(t_fit)
+                dy_dt = p2.deriv()(t_fit)
 
                 # Magnitude of the derivative at each point
                 derivative_magnitude = np.sqrt(dx_dt**2 + dy_dt**2)
-
                 # Find the index of the maximum magnitude
-                max_derivative_index = np.argmin(derivative_magnitude)
+                max_derivative_index = np.argmax(derivative_magnitude)
+                min_derivative_index = np.argmin(derivative_magnitude)
+
                 # max_derivative_index = np.argmax(derivative_magnitude)
-
-                max_x = x_fit[max_derivative_index]
-                max_y = y_fit[max_derivative_index]
-
                 # Rotate the fitted polynomial back to the original coordinate system
                 fitted_points = np.vstack((x_fit, y_fit)).T
                 original_fitted_points = pca.inverse_transform(fitted_points)
 
+                max_x = x_fit[max_derivative_index]
+                max_y = y_fit[max_derivative_index] 
+                min_x = x_fit[min_derivative_index]
+                min_y = y_fit[min_derivative_index] 
                 # Highlight the point with the highest derivative magnitude
                 max_point = pca.inverse_transform([[max_x, max_y]])[0]
+                min_point = pca.inverse_transform([[min_x, min_y]])[0]
                 cv_image = cv2.circle(cv_image, tuple(max_point.astype(int)), 5, (0, 0, 255), -1)  # Red dot for max derivative
+                cv_image = cv2.circle(cv_image, tuple(min_point.astype(int)), 5, (0, 255, 0), -1)  # Yellow dot for min derivative
                 # Publish the minimum gradient point
                 min_gradient_msg = Float32MultiArray()
                 min_gradient_msg.data = [max_point[0], max_point[1]]
-                self.sam_lowest_pub.publish(min_gradient_msg)    
+                self.sam_lowest_pub.publish(min_gradient_msg)
 
                 # Draw the fitted curve on the image
                 for i in range(len(original_fitted_points) - 1):
