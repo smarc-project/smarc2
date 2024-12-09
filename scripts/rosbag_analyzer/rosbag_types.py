@@ -96,10 +96,3 @@ class SmarcRosbagTypestore:
         ros_message = split_path[-3:]
         joined_name = r"/".join(ros_message)
         return joined_name.split('.')[0]
-
-if __name__ == "__main__":
-    smarc_types = SmarcRosbagTypestore()
-    print(smarc_types._script_path)
-    print(smarc_types._glob_path)
-    smarc_types.find_all_msg_files()
-    smarc_types.construct_custom_typestore()
