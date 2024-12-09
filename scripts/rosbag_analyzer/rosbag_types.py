@@ -22,11 +22,11 @@ class SmarcRosbagTypestore:
             # All items are the same just use the extended typestore with SMaRC custom messages
     """
     def __init__(self):
-        self.typestore = get_typestore(Stores.ROS2_HUMBLE)
-        self.script_path = pathlib.Path(__file__).parent.resolve()
-        self.glob_path = self._construct_glob_path()
-        self.message_paths = []
-        self.custom_types = {}
+        self._typestore = get_typestore(Stores.ROS2_HUMBLE)
+        self._script_path = pathlib.Path(__file__).parent.resolve()
+        self._glob_path = self._construct_glob_path()
+        self._message_paths = []
+        self._custom_types = {}
 
 
     def _construct_glob_path(self):
@@ -34,9 +34,21 @@ class SmarcRosbagTypestore:
 
             WARN: constructs relative to this files location
         """
-        glob_path = self.script_path.parent.parent.resolve()
+        glob_path = self._script_path.parent.parent.resolve()
         glob_path = glob_path / "messages/**/*.msg"
         return glob_path
+
+    def override_glob_path(self, glob_path: pathlib.Path):
+        """Allows overriding of glob path that defaults based on repo.
+
+            Can be useful if other types are located elsewhere and needed their own typestore.
+            Args:
+                glob_path: Path or string that is a glob type path that will be passed to glob.glob()
+            Returns:
+                None
+        """
+        self._glob_path = glob_path
+
 
     def find_all_msg_files(self) -> List[str]:
         """Finds all smarc msg files located in smarc2/messages folder structure
@@ -45,8 +57,8 @@ class SmarcRosbagTypestore:
             list of all absolute paths to messages files
         """
         # glob requires a string, which is annoying, and I don't like the Path Glob
-        self.message_paths = glob(str(self.glob_path), recursive=True)
-        return self.message_paths
+        self._message_paths = glob(str(self._glob_path), recursive=True)
+        return self._message_paths
 
     def construct_custom_typestore(self) -> store.Typestore:
         """Constructs custom typestore by guessing at message format name.
@@ -57,13 +69,13 @@ class SmarcRosbagTypestore:
             Examples include: `sensor_msgs/msg/Imu`
         """
         self.find_all_msg_files()
-        for msg_file in self.message_paths:
+        for msg_file in self._message_paths:
             msg_name = self.reconstruct_message_name(msg_file)
             msg_text = pathlib.Path(msg_file).read_text()
             msg_type = get_types_from_msg(msg_text, msg_name)
-            self.custom_types.update(msg_type)
-        self.typestore.register(self.custom_types)
-        return self.typestore
+            self._custom_types.update(msg_type)
+        self._typestore.register(self._custom_types)
+        return self._typestore
 
 
     @staticmethod
@@ -87,7 +99,7 @@ class SmarcRosbagTypestore:
 
 if __name__ == "__main__":
     smarc_types = SmarcRosbagTypestore()
-    print(smarc_types.script_path)
-    print(smarc_types.glob_path)
+    print(smarc_types._script_path)
+    print(smarc_types._glob_path)
     smarc_types.find_all_msg_files()
     smarc_types.construct_custom_typestore()
