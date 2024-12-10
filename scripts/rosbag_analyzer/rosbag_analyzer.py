@@ -8,36 +8,14 @@ from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 import numpy as np
 import matplotlib.pyplot as plt
 
-# For custom messages, we have to register the message type. Otherwise
-# the reader doesn't know what to do.
-def guess_msgtype(path: Path) -> str:
-    """Guess message type name from path."""
-    name = path.relative_to(path.parents[2]).with_suffix('')
-    if 'msg' not in name.parts:
-        name = name.parent / 'msg' / name.name
-    return str(name)
+from rosbag_types import SmarcRosbagTypestore
 
-# Get all default ROS2 message types
-typestore = get_typestore(Stores.ROS2_HUMBLE)
-add_types = {}
-
-# Directory with the custom message definitions. Assumes the ros WS is in the
-# home directory
-home = str(Path.home())
-message_dir = home + '/ros2_ws/src/smarc2/messages/smarc_control_msgs/msg/'
-
-# All custom message files have to be specified here
-for pathstr in [message_dir + 'ControlInput.msg',
-                message_dir + 'ControlState.msg', message_dir + 'State.msg']:
-    msgpath = Path(pathstr)
-    msgdef = msgpath.read_text(encoding='utf-8')
-    add_types.update(get_types_from_msg(msgdef, guess_msgtype(msgpath)))
-
-typestore.register(add_types)
+smarc_types = SmarcRosbagTypestore()
+typestore = smarc_types.construct_custom_typestore()
 
 # Path to the directory with the rosbag. Not the rosbag itself
 # due to the way ros2 records bags now.
-file ='./rosbag2_2024_10_15-11_47_37'
+file ='src/smarc2/scripts/rosbag_analyzer/rosbag2_2024_10_15-11_47_37'
 
 states = {}
 states["t"] = []
@@ -67,7 +45,7 @@ with Reader(file) as reader:
             states["t"].append(msg.header.stamp.sec + 1e-9 * msg.header.stamp.nanosec)
 
     print("Bag read")
-    
+
 events["trig"] = np.ones((len(events["t"])))
 
 fig = plt.figure()
@@ -94,8 +72,3 @@ plt.xlabel("x / m")
 plt.ylabel("y / m")
 
 plt.show()
-
-
-
-
-
