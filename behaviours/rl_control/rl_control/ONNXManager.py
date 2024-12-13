@@ -6,16 +6,20 @@ import onnxruntime as ort
 class ONNXManager:
     """
     Simple ONNX inference session: https://onnxruntime.ai/docs/get-started/with-python.html
+    Max values based on training configuration.
+    If you are not sure what values were used for training, do not touch this.
     """
 
-    def __init__(self, model_resource: str,
+    def __init__(self,
+                 model_resource: str,
+
                  rpm_max: float = 1000,
                  vbs_max: float = 100,
                  aileron_angle_max: float = 0.2,
                  rudder_angle_max: float = 0.2,
                  lcg_max: float = 100,
                  ):
-        self.onnx_inferenceSession = ort.InferenceSession(model_resource)
+        self.onnx_inferenceSession = ort.InferenceSession(model_resource) #TODO: If non-determinisim cant be solved, might need to load it as a torch model
 
         self.rpm_max = rpm_max
         self.rudder_angle_max = rudder_angle_max
@@ -50,6 +54,9 @@ class ONNXManager:
         return np.array(controls[0], dtype=np.float32).flatten()
 
     def rescale_outputs(self, y):
+        """
+        Rescale outputs to values actually used by SAM during training.
+        """
         y = np.array(y, dtype=np.float32)
 
         y = np.clip(y, -1, 1)

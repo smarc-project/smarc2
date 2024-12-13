@@ -11,7 +11,7 @@ from rclpy.executors import MultiThreadedExecutor
 
 def main():
     """
-    Run manual setpoints
+    Run control node
     """
 
     rclpy.init(args=sys.argv)
