@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 from rclpy.node import Node
-import rclpy.time as time
 
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Links as SamLinks
-from sam_msgs.msg import Leak, PercentStamped
+from smarc_msgs.msg import Leak, PercentStamped
 from sensor_msgs.msg import FluidPressure
 
 from .ros_vehicle import ROSVehicle
@@ -18,7 +17,6 @@ class SAMAuv(ROSVehicle):
                  node: Node):
         super().__init__(node, UnderwaterVehicleState, SamLinks)
         # The super-class handles everything except the sam-specific subscriptions :D
-
 
         # so we sub to sam-specific stuff
         self._dvl_sub = node.create_subscription(DVL, SamTopics.DVL_TOPIC, self._dvl_cb, 10)
@@ -43,7 +41,7 @@ class SAMAuv(ROSVehicle):
         self._vehicle_state.update_sensor(SensorNames.DEPTH, [water_depth], data.header.stamp.sec)
 
     def _leak_cb(self, data:Leak):
-        sec,_ = time.Time().seconds_nanoseconds()
+        sec,_ = self._node.get_clock().now().seconds_nanoseconds()
         self._vehicle_state.update_sensor(SensorNames.LEAK, [data.value], sec)
 
     def _vbs_cb(self, data:PercentStamped):
@@ -55,7 +53,7 @@ class SAMAuv(ROSVehicle):
     def _t1_cb(self, data:ThrusterFeedback):
         self._t1 = data.rpm.rpm
         self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
-    
+
     def _t2_cb(self, data:ThrusterFeedback):
         self._t2 = data.rpm.rpm
         self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
@@ -73,5 +71,3 @@ def test_sam_auv():
 
     node.create_timer(0.5, update)
     rclpy.spin(node)
-
-

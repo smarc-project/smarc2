@@ -61,7 +61,11 @@ If some messages are basically used only "internally", that set of messages shou
 An example would be "BT messages" that only the behaviour tree interacts with. Or "SLAM messages" used for communication between some slam-related nodes and nowhere else.
 
 ### [Navigation](/navigation/)
-Packages related to DR localization and mapping. 
+Packages related to DR localization and mapping.
+
+### [Perception](/perception/)
+Packages related to processing of sensors, like cameras, sonars etc.
+Nodes that produce input for navigation usually.
 
 ### [Scripts](/scripts/)
 Where scripts for ease-of-use are stored.

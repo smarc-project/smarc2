@@ -1,4 +1,0 @@
-# The task to be added to the state machine
-SMTask task
----
-uint64 task_id

@@ -1,1 +1,0 @@
-sam_msgs/UavcanNodeStatusNamed[] array

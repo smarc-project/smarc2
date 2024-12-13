@@ -1,0 +1,17 @@
+<launch>
+    <arg name="robot_name" default="Quadrotor"/>
+    
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+
+        <node
+            name="detector_node"
+            pkg="auv_detector"
+            exec="detector"
+            output="screen">
+            <!-- Declare parameters with default values -->
+            <param name="robot_name" value="$(var robot_name)" />
+        </node>
+
+    </group>
+</launch>
