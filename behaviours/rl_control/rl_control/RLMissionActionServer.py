@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 
-import rclpy
-import sys
 import time
+
 from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
-from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
@@ -19,7 +17,7 @@ except:
     from RLMissionController import RLMissionController
 
 
-class RLControlActionServer(RLMissionController):
+class RLMissionActionServer(RLMissionController):
     """
     A controller example that implements an action server to allow
     another node to control its execution, params, etc.

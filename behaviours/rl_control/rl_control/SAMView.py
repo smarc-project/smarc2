@@ -1,20 +1,18 @@
 #!/usr/bin/python3
-import sys
 
-import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sam_msgs.msg import ThrusterAngles
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
+from smarc_msgs.msg import ThrusterRPM, PercentStamped
 
 try:
     from .ISAMView import ISAMView
 except:
     from ISAMView import ISAMView
 
-class SAMDiveView(ISAMView):
+class SAMView(ISAMView):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """

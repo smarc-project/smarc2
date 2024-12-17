@@ -3,7 +3,7 @@ import numpy as np
 import onnxruntime as ort
 
 
-class ONNXManager:
+class ONNXManager():
     """
     Simple ONNX inference session: https://onnxruntime.ai/docs/get-started/with-python.html
     Max values based on training configuration.
@@ -31,12 +31,11 @@ class ONNXManager:
 
     def get_control(self, x):
         """
-        Inputs (1,13):
+        Inputs (1,14):
             x[0-3] = Orientation quaternion
             x[4-6] = Linear velocity
             x[7-9] = Angular velocity
             x[10-13] = Relative vector to waypoint
-            upcoming:
             x[14] = Desired speed (magnitude of linear velocity vector)
 
         Outputs:
@@ -45,16 +44,18 @@ class ONNXManager:
             y[2] = VBS
             y[3] = Aileron
             y[4] = Rudder
-
-            upcoming: TODO: Forgot to enable LCG control in learner. Must retrain
             y[5] = LCG
         """
-        x = self.prepare_state(x)
         controls = self.onnx_inferenceSession.run(["continuous_actions"], {'obs_0': x})
         return np.array(controls[0], dtype=np.float32).flatten()
 
     def prepare_state(self, state):
-        return state
+        odometry = state[0]
+        heading = state[1]
+        x = np.zeros((1,14))
+
+        x[14] = state[2]
+        return x
 
     def rescale_outputs(self, y):
         """
@@ -68,5 +69,5 @@ class ONNXManager:
         y[2] = ((y[2] + 1) * 0.5) * self.vbs_max
         y[3] = y[3] * self.aileron_angle_max
         y[4] = y[4] * self.rudder_angle_max
-        # y[5] = ((y[5] + 1) * 0.5) * self.vbs_max
+        y[5] = ((y[5] + 1) * 0.5) * self.vbs_max
         return y

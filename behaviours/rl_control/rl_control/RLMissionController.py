@@ -115,39 +115,8 @@ class RLMissionController():
 
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
-    # Get methods
-    def get_depth_setpoint(self):
-        if self._waypoint_body is not None:
-            self._depth_setpoint = self._waypoint_global.pose.position.z
-
-        return self._depth_setpoint
-
-    def get_pitch_setpoint(self):
-        if self._waypoint_body is not None:
-            rpy = euler_from_quaternion([
-                self._waypoint_global.pose.orientation.x,
-                self._waypoint_global.pose.orientation.y,
-                self._waypoint_global.pose.orientation.z,
-                self._waypoint_global.pose.orientation.w])
-
-            self._pitch_setpoint = rpy[1]
-
-        return self._pitch_setpoint
-
-    def get_heading_setpoint(self):
-        return 0.0
-
-    def get_rpm_setpoint(self):
-        return self._requested_rpm
-
-    def get_heading(self):
-
-        if self._waypoint_body is None:
-            return None
-
-        heading = math.atan2(self._waypoint_body.position.y, self._waypoint_body.position.x)
-
-        return heading
+    def get_waypoint_body(self):
+        return self._waypoint_body
 
     def get_distance(self):
         """
@@ -164,19 +133,6 @@ class RLMissionController():
         distance = math.sqrt(self._waypoint_body.position.x ** 2 + self._waypoint_body.position.y ** 2 + self._waypoint_body.position.z ** 2)
 
         return distance
-
-    def get_dive_pitch(self):
-        if self._waypoint_body is None:
-            return None
-
-        # With the ata2, we automatically get the desired diving pitch angle that corresponds to 
-        # a ENU system, i.e. positive pitch for diving down, negative pitch for diving up
-        current_depth = self.get_depth()
-        depth_error = np.abs(self._waypoint_global.pose.position.z) - np.abs(current_depth)
-        distance = self.get_distance()
-        dive_pitch = math.atan2(depth_error, distance)
-
-        return dive_pitch
 
     def get_waypoint(self):
         return self._waypoint_global

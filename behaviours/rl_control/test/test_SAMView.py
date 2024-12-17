@@ -9,7 +9,7 @@ from sam_msgs.msg import Topics as SamTopics, ThrusterAngles
 from smarc_control_msgs.msg import Topics as ControlTopics
 from smarc_msgs.msg import PercentStamped, ThrusterRPM
 
-from behaviours.rl_control.rl_control.SAMView import SAMDiveView
+from behaviours.rl_control.rl_control.SAMView import SAMView
 
 
 # Active tests
@@ -24,7 +24,7 @@ class TestTurtleSim(unittest.TestCase):
 
     def setUp(self):
         self.node = rclpy.create_node('test_sam_rl')
-        self.view = SAMDiveView(self.node)
+        self.view = SAMView(self.node)
 
     def tearDown(self):
         self.node.destroy_node()
