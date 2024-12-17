@@ -26,10 +26,8 @@ class RLControlModel:
 
         self._loginfo("Dive Controller created")
 
-
     def _loginfo(self, s):
         self._node.get_logger().info(s)
-
 
     def update(self):
         """
@@ -44,7 +42,6 @@ class RLControlModel:
             u_tv_hor_neutral = 0.0
             u_tv_ver_neutral = 0.0
             u_rpm_neutral = 0.0
-
 
             self._view.set_vbs(u_vbs_neutral)
             self._view.set_lcg(u_lcg_neutral)
@@ -68,7 +65,6 @@ class RLControlModel:
             u_tv_ver_neutral = 0.0
             u_rpm_neutral = 0.0
 
-
             self._view.set_vbs(u_vbs_neutral)
             self._view.set_lcg(u_lcg_neutral)
             self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
@@ -90,7 +86,6 @@ class RLControlModel:
             u_tv_hor_neutral = 0.0
             u_tv_ver_neutral = 0.0
             u_rpm_neutral = 0.0
-
 
             self._view.set_vbs(u_vbs_neutral)
             self._view.set_lcg(u_lcg_neutral)
@@ -114,7 +109,6 @@ class RLControlModel:
             u_tv_ver_neutral = 0.0
             u_rpm_neutral = 0.0
 
-
             self._view.set_vbs(u_vbs_neutral)
             self._view.set_lcg(u_lcg_neutral)
             self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
@@ -128,20 +122,19 @@ class RLControlModel:
             self._current_input.thrusterrpm = float(u_rpm_neutral)
             return
 
-
-
-        # Get current states
-        self._current_state = self._view.get_states()
-        waypoint = self._mission.get_waypoint_body()()
-
         if not self._mission.has_waypoint():
             return
 
-        self._onnx.get_control((self._current_state, waypoint, 1.0))
+        # Get current states
+        self._current_state = self._view.get_states()
+        waypoint = self._mission.get_waypoint_body()
 
-        self._view.set_vbs(u_vbs)
-        self._view.set_lcg(u_lcg)
-        self._view.set_thrust_vector(u_tv_hor, -u_tv_ver)
-        self._view.set_rpm(u_rpm)
+        x = self._onnx.prepare_state((self._current_state, waypoint, 1.0))
+        y = self._onnx.get_control(x)
+
+        self._view.set_rpm(y[0])
+        self._view.set_vbs(y[1])
+        self._view.set_thrust_vector(y[3], -y[2])
+        self._view.set_lcg(y[4])
 
         return

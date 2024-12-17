@@ -35,16 +35,15 @@ class ONNXManager():
             x[0-3] = Orientation quaternion
             x[4-6] = Linear velocity
             x[7-9] = Angular velocity
-            x[10-13] = Relative vector to waypoint
-            x[14] = Desired speed (magnitude of linear velocity vector)
+            x[10-12] = Relative vector to waypoint
+            x[13] = Desired speed (magnitude of linear velocity vector)
 
         Outputs:
-            y[0] = rpm1
-            y[1] = rpm2
-            y[2] = VBS
-            y[3] = Aileron
-            y[4] = Rudder
-            y[5] = LCG
+            y[0] = rpm1 // rpm2
+            y[1] = VBS
+            y[2] = Aileron
+            y[3] = Rudder
+            y[4] = LCG
         """
         controls = self.onnx_inferenceSession.run(["continuous_actions"], {'obs_0': x})
         return np.array(controls[0], dtype=np.float32).flatten()
@@ -52,9 +51,27 @@ class ONNXManager():
     def prepare_state(self, state):
         odometry = state[0]
         heading = state[1]
+
         x = np.zeros((1,14))
 
-        x[14] = state[2]
+        x[0] = odometry.posee.orientation.x
+        x[1] = odometry.pose.orientation.y
+        x[2] = odometry.pose.orientation.z
+        x[3] = odometry.pose.orientation.w
+
+        x[4] = odometry.pose.twist.linear.x
+        x[5] = odometry.pose.twist.linear.y
+        x[6] = odometry.pose.twist.linear.z
+
+        x[7] = odometry.pose.twist.angular.x / 0.5
+        x[8] = odometry.pose.twist.angular.y / 0.5
+        x[9] = odometry.pose.twist.angular.z / 0.5
+
+        x[10] = heading.pose.position.x
+        x[11] = heading.pose.position.y
+        x[12] = heading.pose.position.z
+
+        x[13] = state[2]
         return x
 
     def rescale_outputs(self, y):
@@ -65,9 +82,9 @@ class ONNXManager():
 
         y = np.clip(y, -1, 1)
         y[0] = y[0] * self.rpm_max
-        y[1] = y[1] * self.rpm_max
-        y[2] = ((y[2] + 1) * 0.5) * self.vbs_max
-        y[3] = y[3] * self.aileron_angle_max
-        y[4] = y[4] * self.rudder_angle_max
-        y[5] = ((y[5] + 1) * 0.5) * self.vbs_max
+        y[1] = ((y[1] + 1) * 0.5) * self.vbs_max
+        y[2] = y[2] * self.aileron_angle_max
+        y[3] = y[3] * self.rudder_angle_max
+        y[4] = ((y[4] + 1) * 0.5) * self.vbs_max
+        y[5] = 0 #TODO train without extra action, because i keep making mistakes.
         return y

@@ -40,10 +40,10 @@ def test_rescale_outputs_zeros():
 
     assert outputs.shape == (6,), 'Output shape is incorrect.'
     assert outputs[0] == 0
-    assert outputs[1] == 0
-    assert outputs[2] == 50
+    assert outputs[1] == 50
+    assert outputs[2] == 0
     assert outputs[3] == 0
-    assert outputs[4] == 0
+    assert outputs[4] == 50
 
 
 def test_rescale_outputs_outofrange_min():
@@ -51,11 +51,10 @@ def test_rescale_outputs_outofrange_min():
 
     assert outputs.shape == (6,), 'Output shape is incorrect.'
     assert outputs[0] == -sut.rpm_max
-    assert outputs[1] == -sut.rpm_max
-    assert outputs[2] == 0
-    assert outputs[3] == -sut.aileron_angle_max
-    assert outputs[4] == -sut.rudder_angle_max
-    assert outputs[5] == 0
+    assert outputs[1] == 0
+    assert outputs[2] == -sut.aileron_angle_max
+    assert outputs[3] == -sut.rudder_angle_max
+    assert outputs[4] == 0
 
 
 def test_rescale_outputs_outofrange_max():
@@ -63,35 +62,32 @@ def test_rescale_outputs_outofrange_max():
 
     assert outputs.shape == (6,), 'Output shape is incorrect.'
     assert outputs[0] == sut.rpm_max
-    assert outputs[1] == sut.rpm_max
-    assert outputs[2] == 100
-    assert outputs[3] == sut.aileron_angle_max
-    assert outputs[4] == sut.rudder_angle_max
-    assert outputs[5] == 100
+    assert outputs[1] == 100
+    assert outputs[2] == sut.aileron_angle_max
+    assert outputs[3] == sut.rudder_angle_max
+    assert outputs[4] == 100
 
 
 def test_rescale_outputs_testset():
-    outputs = sut.rescale_outputs(np.array([0.75, -0.3, -0.5, 0.2, -0.4, 0.5]))
+    outputs = sut.rescale_outputs(np.array([0.75, -0.3, -0.5, 0.2, -0.4, 0]))
 
     assert outputs.shape == (6,), 'Output shape is incorrect.'
     assert outputs[0] == 750
-    assert outputs[1] == -300
-    assert outputs[2] == 25
+    assert outputs[1] == 35
+    assert outputs[2] == pytest.approx(-0.1, 0.0001)
     assert outputs[3] == pytest.approx(0.04, 0.0001)
-    assert outputs[4] == pytest.approx(-0.08, 0.0001)
-    assert outputs[5] == pytest.approx(75, 0.0001)
+    assert outputs[4] == pytest.approx(30, 0.0001)
 
 
 def test_rescale_outputs_customconfig_testset():
     sut.rpm_max = 600
     sut.rudder_angle_max = 0.35
     sut.aileron_angle_max = 0.66
-    outputs = sut.rescale_outputs(np.array([0.75, -0.3, -0.5, 0.2, -0.4, 0.5]))
+    outputs = sut.rescale_outputs(np.array([0.75, -0.3, -0.5, 0.2, -0.4, 0]))
 
     assert outputs.shape == (6,), 'Output shape is incorrect.'
     assert outputs[0] == 450
-    assert outputs[1] == -180
-    assert outputs[2] == 25
-    assert outputs[3] == pytest.approx(0.132, 0.0001)
-    assert outputs[4] == pytest.approx(-0.14, 0.0001)
-    assert outputs[5] == pytest.approx(75, 0.0001)
+    assert outputs[1] == 35
+    assert outputs[2] == pytest.approx(-0.33, 0.0001)
+    assert outputs[3] == pytest.approx(0.07, 0.0001)
+    assert outputs[4] == pytest.approx(30, 0.0001)

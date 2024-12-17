@@ -87,7 +87,7 @@ class TestTurtleSim(unittest.TestCase):
             assert recieved_state.pose.pose.position.x == pytest.approx(1.1, 0.0001)
             assert recieved_state.pose.pose.position.x == pytest.approx(2.1, 0.0001)
             assert recieved_state.pose.pose.position.x == pytest.approx(3.1, 0.0001)
-            # TODO: Finish properly. For now this is good enough, just need to make sure the state is saved and accessible.
+            # TODO: Finish properly. For now this is good enough, just need to make sure the state is stored and accessible.
         finally:
             node.destroy_publisher(publisher)
 
