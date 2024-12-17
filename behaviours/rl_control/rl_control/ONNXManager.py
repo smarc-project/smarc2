@@ -29,7 +29,7 @@ class ONNXManager():
     def get_control_scaled(self, x):
         return self.rescale_outputs(self.get_control(x))
 
-    def get_control(self, x):
+    def get_control(self, x, prep_state_func = lambda x: x):
         """
         Inputs (1,14):
             x[0-3] = Orientation quaternion
@@ -45,6 +45,7 @@ class ONNXManager():
             y[3] = Rudder
             y[4] = LCG
         """
+        x = prep_state_func(x)
         controls = self.onnx_inferenceSession.run(["continuous_actions"], {'obs_0': x})
         return np.array(controls[0], dtype=np.float32).flatten()
 

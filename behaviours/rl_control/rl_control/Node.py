@@ -5,20 +5,25 @@ import sys
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 
-from behaviours.rl_control.rl_control.RLControlModel import RLControlModel
-from .ONNXManager import ONNXManager
-from .RLMissionActionServer import RLMissionActionServer
-from .SAMView import SAMView
+try:
+    from RLControlModel import RLControlModel
+except:
+    from .RLControlModel import RLControlModel
 
+try:
+    from ONNXManager import ONNXManager
+except:
+    from .ONNXManager import ONNXManager
 
-def main():
-    """
-    Run control node
-    """
-    rclpy.init(args=sys.argv)
+try:
+    from RLMissionActionServer import RLMissionActionServer
+except:
+    from .RLMissionActionServer import RLMissionActionServer
 
-    node = PrimaryNode()
-    node.loop()
+try:
+    from SAMView import SAMView
+except:
+    from .SAMView import SAMView
 
 
 class PrimaryNode():
@@ -31,8 +36,8 @@ class PrimaryNode():
         view_rate = global_rate
         model_rate = global_rate
         controller_rate = global_rate
-        onnx_manager = ONNXManager(onnx_path)
 
+        onnx_manager = ONNXManager(onnx_path)
         self.view = SAMView(self.node)
         self.controller = RLMissionActionServer(self.node)  # Note, this is a MVC controller, not a control theory controller
         self.model = RLControlModel(self.node, onnx_manager, self.view, self.controller, model_rate)  # This is where the actual PID controller lives.
@@ -41,8 +46,8 @@ class PrimaryNode():
         self.node.create_timer(controller_rate, self.controller.update)
         self.node.create_timer(model_rate, self.model.update)
 
-        self.node.get_logger().info(self.node, "RL Control Node started")
-        self.node.get_logger().info(self.node, "Created MVC")
+        self.node.get_logger().info("RL Control Node started")
+        self.node.get_logger().info("Created MVC")
 
         self.executor = MultiThreadedExecutor()
 
@@ -51,8 +56,20 @@ class PrimaryNode():
             self.node.get_logger().info("Spinning up")
             rclpy.spin(self.node, executor=self.executor)
         except KeyboardInterrupt:
-            pass
-        self.node.get_logger().info("Shutting down")
+            self.node.get_logger().info("Shutting down")
+
+
+node: PrimaryNode
+
+
+def main():
+    """
+    Run control node
+    """
+    rclpy.init(args=sys.argv)
+
+    node = PrimaryNode()
+    node.loop()
 
 
 if __name__ == "__main__":

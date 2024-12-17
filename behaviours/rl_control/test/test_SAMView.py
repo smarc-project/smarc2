@@ -13,7 +13,7 @@ from behaviours.rl_control.rl_control.SAMView import SAMView
 
 
 # Active tests
-class TestTurtleSim(unittest.TestCase):
+class TestSAMView(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         rclpy.init()
@@ -85,8 +85,8 @@ class TestTurtleSim(unittest.TestCase):
 
             recieved_state = self.view.get_state()
             assert recieved_state.pose.pose.position.x == pytest.approx(1.1, 0.0001)
-            assert recieved_state.pose.pose.position.x == pytest.approx(2.1, 0.0001)
-            assert recieved_state.pose.pose.position.x == pytest.approx(3.1, 0.0001)
+            assert recieved_state.pose.pose.position.y == pytest.approx(2.1, 0.0001)
+            assert recieved_state.pose.pose.position.z == pytest.approx(3.1, 0.0001)
             # TODO: Finish properly. For now this is good enough, just need to make sure the state is stored and accessible.
         finally:
             node.destroy_publisher(publisher)

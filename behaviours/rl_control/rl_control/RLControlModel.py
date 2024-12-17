@@ -1,12 +1,16 @@
 #!/usr/bin/python3
 
-import numpy as np
-from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
-from tf_transformations import euler_from_quaternion
+from smarc_control_msgs.msg import ControlInput
 
-from .ONNXManager import ONNXManager
-from .RLMissionController import MissionStates
+try:
+    from ONNXManager import ONNXManager
+except:
+    from .ONNXManager import ONNXManager
 
+try:
+    from RLMissionController import MissionStates
+except:
+    from .RLMissionController import MissionStates
 
 class RLControlModel:
 

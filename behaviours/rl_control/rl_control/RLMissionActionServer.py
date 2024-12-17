@@ -9,12 +9,13 @@ from rclpy.node import Node
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
-from RLMissionController import MissionStates
 
 try:
     from .RLMissionController import RLMissionController
+    from .RLMissionController import MissionStates
 except:
     from RLMissionController import RLMissionController
+    from RLMissionController import MissionStates
 
 
 class RLMissionActionServer(RLMissionController):
@@ -24,7 +25,7 @@ class RLMissionActionServer(RLMissionController):
     """
 
     def __init__(self, node: Node):
-        super().__init__(self._node)
+        super().__init__(node)
 
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)

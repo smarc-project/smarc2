@@ -2,7 +2,6 @@
 import enum
 import math
 
-import numpy as np
 import rclpy
 import tf2_geometry_msgs.tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
@@ -10,7 +9,6 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from tf_transformations import euler_from_quaternion
 
 
 class MissionStates(enum.Enum):
@@ -64,8 +62,6 @@ class RLMissionController():
 
         self._tf_base_link = None
 
-
-
         # TODO: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
 
@@ -74,7 +70,6 @@ class RLMissionController():
     # Internal methods
     def _loginfo(self, s):
         self._node.get_logger().info(s)
-
 
     def _wp_cb(self, wp):
         self._waypoint_global = PoseStamped()
