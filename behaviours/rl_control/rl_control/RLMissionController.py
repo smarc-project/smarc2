@@ -1,32 +1,48 @@
 #!/usr/bin/python3
-
+import enum
 import math
+
 import numpy as np
 import rclpy
-import sys
 import tf2_geometry_msgs.tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from smarc_control_msgs.msg import Topics as ControlTopics
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf_transformations import euler_from_quaternion
 
-from .IDiveView import IDiveView, MissionStates
+
+class MissionStates(enum.Enum):
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+    PAUSED = "PAUSED"
+    EMERGENCY = "EMERGENCY"
+    RECEIVED = "RECEIVED"
+    COMPLETED = "COMPLETED"
+    NONE = "NONE"
+    ACCEPTED = "ACCEPTED"
+    CANCELLED = "CANCELED"
+
+    def __str__(self):
+        return self.name
+
+    def TERMINAL_STATES():
+        return [MissionStates.COMPLETED,
+                MissionStates.CANCELLED,
+                MissionStates.STOPPED,
+                MissionStates.NONE]
 
 
-class DiveController():
+class RLMissionController():
     """
     Dive Controller to listen to a waypoint and provide the corresponding setpoints to the
     DivingModel within the MVC framework
     """
-    def __init__(self,
-                 node: Node,
-                 view: IDiveView):
+
+    def __init__(self, node: Node):
 
         self._node = node
-        self._view = view
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
@@ -48,22 +64,16 @@ class DiveController():
 
         self._tf_base_link = None
 
-        self._states = Odometry()
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+
         # TODO: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
 
-
     # Internal methods
     def _loginfo(self, s):
         self._node.get_logger().info(s)
-
-
-    def _states_cb(self, msg):
-        self._states = msg
 
 
     def _wp_cb(self, wp):
@@ -78,11 +88,10 @@ class DiveController():
         self._waypoint_global.pose.orientation.z = wp.pose.pose.orientation.z
         self._waypoint_global.pose.orientation.w = wp.pose.pose.orientation.w
 
-        #TODO: Get the proper RPM from the waypoint
+        # TODO: Get the proper RPM from the waypoint
         self._requested_rpm = 500
 
         self._received_waypoint = True
-
 
     def _update_tf(self):
         if self._waypoint_global is None:
@@ -97,7 +106,6 @@ class DiveController():
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
 
-
     def _transform_wp(self):
         if self._waypoint_global is None:
             return
@@ -107,14 +115,12 @@ class DiveController():
 
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
-
     # Get methods
     def get_depth_setpoint(self):
         if self._waypoint_body is not None:
             self._depth_setpoint = self._waypoint_global.pose.position.z
 
         return self._depth_setpoint
-
 
     def get_pitch_setpoint(self):
         if self._waypoint_body is not None:
@@ -134,28 +140,6 @@ class DiveController():
     def get_rpm_setpoint(self):
         return self._requested_rpm
 
-    def get_states(self):
-        # TODO: Might be better to split this by what 
-        # state you're interested in, then you can get them
-        # directly.
-        return self._states
-
-
-    def get_depth(self):
-        return self._states.pose.pose.position.z
-
-
-    def get_pitch(self):
-
-        rpy = euler_from_quaternion([
-            self._states.pose.pose.orientation.x,
-            self._states.pose.pose.orientation.y,
-            self._states.pose.pose.orientation.z,
-            self._states.pose.pose.orientation.w])
-
-        return rpy[1]
-
-
     def get_heading(self):
 
         if self._waypoint_body is None:
@@ -173,11 +157,11 @@ class DiveController():
         if self._waypoint_body is None:
             return None
 
-#        if self._mission_state == MissionStates.RECEIVED:
-#            self.update()
-#            self.set_mission_state(MissionStates.ACCEPTED, "DC")
+        #        if self._mission_state == MissionStates.RECEIVED:
+        #            self.update()
+        #            self.set_mission_state(MissionStates.ACCEPTED, "DC")
 
-        distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2 + self._waypoint_body.position.z**2)
+        distance = math.sqrt(self._waypoint_body.position.x ** 2 + self._waypoint_body.position.y ** 2 + self._waypoint_body.position.z ** 2)
 
         return distance
 
@@ -211,21 +195,20 @@ class DiveController():
         Could be fixed at one point...
         """
         return self._mission_state
-    
+
     # Has methods
     def has_waypoint(self):
         return self._received_waypoint
-
 
     def set_mission_state(self, new_state, node_name):
         old_state = self._mission_state
         self._mission_state = new_state
 
-        s=""
+        s = ""
         if new_state in MissionStates.TERMINAL_STATES():
             # TODO: Setting the waypoint to None kills the controller, bc it expects
             # a pose.
-            #self._waypoint_global = None 
+            # self._waypoint_global = None
             s = "(Terminal)"
 
         self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
@@ -236,23 +219,3 @@ class DiveController():
         """
         self._update_tf()
         self._transform_wp()
-
-
-
-def main():
-#    # when creating the _object_ rather than the _class_, we use the concrete classes
-#    from .SAMDiveView import SAMThrustView
-#
-    # create a node and our objects in the usual manner.
-    rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DiveNode")
-    node._logger("not implemented")
-#    view = SAMThrustView(node)
-#    controller = GoToWaypointActionServerController(node, view)
-#
-    executor = MultiThreadedExecutor()
-    rclpy.spin(node, executor=executor)
-
-
-if __name__ == "__main__":
-    main()

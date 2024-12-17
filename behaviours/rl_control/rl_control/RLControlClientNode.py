@@ -12,7 +12,7 @@ from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
 
-class DiveToWaypointActionClient():
+class RLActionClient():
     """
     Action Client version of the setpoint node
 
@@ -21,8 +21,8 @@ class DiveToWaypointActionClient():
     https://github.com/ros2/examples/tree/humble/rclpy/actions/minimal_action_client
     You can find some other examples there that do slightly different things.
     """
-    def __init__(self,
-                 node: Node) -> None:
+
+    def __init__(self, node: Node) -> None:
         self._node = node
 
         self._ac = ActionClient(node=self._node,
@@ -35,7 +35,6 @@ class DiveToWaypointActionClient():
     def _loginfo(self, s):
         self._node.get_logger().info(s)
 
-
     def _goal_response_cb(self, future):
         """
         We will register this method to the action client when we
@@ -44,7 +43,7 @@ class DiveToWaypointActionClient():
         the server: It could accept or reject our goal, the future here
         will have that information for us to handle.
         """
-        goal_handle = future.result() # wait for it
+        goal_handle = future.result()  # wait for it
         if not goal_handle.accepted:
             self._loginfo("Goal rejected. Sadness")
             return
@@ -56,7 +55,6 @@ class DiveToWaypointActionClient():
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self._get_result_cb)
 
-
     def _get_result_cb(self, future):
         result = future.result().result
         status = future.result().status
@@ -67,11 +65,9 @@ class DiveToWaypointActionClient():
 
         rclpy.shutdown()
 
-
     def _feedback_cb(self, feedback):
         # this field contains the object we defined in smarc_mission_msgs/action/GotoWaypoint.action
         self._loginfo(f"Got feedback from server: {feedback.feedback.feedback_message}")
-
 
     def send_goal(self):
 
@@ -106,8 +102,7 @@ class DiveToWaypointActionClient():
 
         self._send_goal_future.add_done_callback(self._goal_response_cb)
 
-
-    def rcl_time_to_stamp(self,time: rcl_Time) -> Stamp:
+    def rcl_time_to_stamp(self, time: rcl_Time) -> Stamp:
         """
         Converts rcl Time to stamp
         :param time:
@@ -141,7 +136,7 @@ def main():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("DiveActionClientNode")
 
-    ac = DiveToWaypointActionClient(node)
+    ac = RLActionClient(node)
 
     ac.send_goal()
 

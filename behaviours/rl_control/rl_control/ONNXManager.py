@@ -12,14 +12,13 @@ class ONNXManager:
 
     def __init__(self,
                  model_resource: str,
-
                  rpm_max: float = 1000,
                  vbs_max: float = 100,
                  aileron_angle_max: float = 0.2,
                  rudder_angle_max: float = 0.2,
                  lcg_max: float = 100,
                  ):
-        self.onnx_inferenceSession = ort.InferenceSession(model_resource) #TODO: If non-determinisim cant be solved, might need to load it as a torch model
+        self.onnx_inferenceSession = ort.InferenceSession(model_resource)  # TODO: If non-determinisim cant be solved, might need to load it as a torch model
 
         self.rpm_max = rpm_max
         self.rudder_angle_max = rudder_angle_max
@@ -50,8 +49,12 @@ class ONNXManager:
             upcoming: TODO: Forgot to enable LCG control in learner. Must retrain
             y[5] = LCG
         """
+        x = self.prepare_state(x)
         controls = self.onnx_inferenceSession.run(["continuous_actions"], {'obs_0': x})
         return np.array(controls[0], dtype=np.float32).flatten()
+
+    def prepare_state(self, state):
+        return state
 
     def rescale_outputs(self, y):
         """

@@ -2,27 +2,30 @@
 import sys
 
 import rclpy
+from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sam_msgs.msg import ThrusterAngles
 from sam_msgs.msg import Topics as SamTopics
 from smarc_msgs.msg import ThrusterRPM, PercentStamped
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 try:
-    from .IDiveView import IDiveView
+    from .ISAMView import ISAMView
 except:
-    from IDiveView import IDiveView
+    from ISAMView import ISAMView
 
-class SAMDiveView(IDiveView):
+class SAMDiveView(ISAMView):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
     def __init__(self, node: Node) -> None:
-        # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
         self._lcg_pub = node.create_publisher(PercentStamped, SamTopics.LCG_CMD_TOPIC, 10)
         self._rpm1_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, 10)
         self._rpm2_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, 10)
         self._thrust_vector_pub = node.create_publisher(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, 10)
+
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
 
         # Messages
         self._vbs_msg = PercentStamped()
@@ -30,7 +33,13 @@ class SAMDiveView(IDiveView):
         self._t1_msg = ThrusterRPM()
         self._t2_msg = ThrusterRPM()
         self._thrust_vector_msg = ThrusterAngles()
+        self._states = Odometry()
 
+    def _states_cb(self, msg):
+       self._states = msg
+
+    def get_state(self):
+        return self._states
 
     def set_vbs(self, vbs: float) -> None:
         """

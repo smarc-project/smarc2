@@ -3,9 +3,9 @@
 import rclpy
 import sys
 
-from .SAMDiveView import SAMDiveView
+from .SAMView import SAMDiveView
 from .RLControlActionServer import RLControlActionServer
-from .DiveController import DiveController
+from .RLMissionController import RLMissionController
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -26,7 +26,7 @@ def main():
     controller_rate = global_rate
 
     view = SAMDiveView(node)
-    controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
+    controller = RLMissionController(node, view)   # Note, this is a MVC controller, not a control theory controller
     model = RLControlActionServer(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
 
