@@ -1,6 +1,8 @@
 import numpy as np
 from ament_copyright.main import main
 import pytest
+from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
 
 from behaviours.rl_control.rl_control.ONNXManager import ONNXManager
 
@@ -91,3 +93,8 @@ def test_rescale_outputs_customconfig_testset():
     assert outputs[2] == pytest.approx(-0.33, 0.0001)
     assert outputs[3] == pytest.approx(0.07, 0.0001)
     assert outputs[4] == pytest.approx(30, 0.0001)
+
+def test_prepare_state():
+    state = sut.prepare_state((Odometry(), Pose(), 1))
+
+    assert state.shape == (1,14), 'Output shape is incorrect.'

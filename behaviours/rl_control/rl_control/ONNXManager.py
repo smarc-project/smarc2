@@ -54,24 +54,24 @@ class ONNXManager():
 
         x = np.zeros((1,14))
 
-        x[0] = odometry.posee.orientation.x
-        x[1] = odometry.pose.orientation.y
-        x[2] = odometry.pose.orientation.z
-        x[3] = odometry.pose.orientation.w
+        x[0, 0] = odometry.pose.pose.orientation.x
+        x[0, 1] = odometry.pose.pose.orientation.y
+        x[0, 2] = odometry.pose.pose.orientation.z
+        x[0, 3] = odometry.pose.pose.orientation.w
 
-        x[4] = odometry.pose.twist.linear.x
-        x[5] = odometry.pose.twist.linear.y
-        x[6] = odometry.pose.twist.linear.z
+        x[0, 4] = odometry.twist.twist.linear.x
+        x[0, 5] = odometry.twist.twist.linear.y
+        x[0, 6] = odometry.twist.twist.linear.z
 
-        x[7] = odometry.pose.twist.angular.x / 0.5
-        x[8] = odometry.pose.twist.angular.y / 0.5
-        x[9] = odometry.pose.twist.angular.z / 0.5
+        x[0, 7] = odometry.twist.twist.angular.x / 0.5
+        x[0, 8] = odometry.twist.twist.angular.y / 0.5
+        x[0, 9] = odometry.twist.twist.angular.z / 0.5
 
-        x[10] = heading.pose.position.x
-        x[11] = heading.pose.position.y
-        x[12] = heading.pose.position.z
+        x[0, 10] = heading.position.x
+        x[0, 11] = heading.position.y
+        x[0, 12] = heading.position.z
 
-        x[13] = state[2]
+        x[0, 13] = state[2]
         return x
 
     def rescale_outputs(self, y):
