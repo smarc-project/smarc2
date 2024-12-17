@@ -1,25 +1,20 @@
 #!/usr/bin/python3
 
-import rclpy, sys, time
-from rclpy.node import Node
-
-import numpy as np
 import math
-
+import numpy as np
+import rclpy
+import sys
 import tf2_geometry_msgs.tf2_geometry_msgs
-from std_msgs.msg import Float64
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped, TransformStamped
-
+from rclpy.node import Node
 from smarc_control_msgs.msg import Topics as ControlTopics
-
-from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-
 from tf_transformations import euler_from_quaternion
 
 from .IDiveView import IDiveView, MissionStates
+
 
 class DiveController():
     """

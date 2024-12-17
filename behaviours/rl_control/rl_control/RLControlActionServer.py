@@ -1,30 +1,15 @@
 #!/usr/bin/python3
 
-import rclpy, sys, time
-from rclpy.node import Node
+import rclpy
+import sys
+import time
+from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.executors import MultiThreadedExecutor
-
-import numpy as np
-import math
-
+from rclpy.node import Node
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
-
-from tf2_ros import TransformException
-from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
-
-import tf2_geometry_msgs.tf2_geometry_msgs
-from tf_transformations import euler_from_quaternion
-
-from std_msgs.msg import Float64
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped, TransformStamped
-
-from smarc_control_msgs.msg import Topics as ControlTopics
-
 
 from .IDiveView import IDiveView, MissionStates
 
@@ -34,7 +19,7 @@ except:
     from DiveController import DiveController
 
 
-class DiveActionServerController(DiveController):
+class RLControlActionServer(DiveController):
     """
     A controller example that implements an action server to allow
     another node to control its execution, params, etc.

@@ -4,7 +4,7 @@ import rclpy
 import sys
 
 from .SAMDiveView import SAMDiveView
-from .ActionServerDiveController import DiveActionServerController
+from .RLControlActionServer import RLControlActionServer
 from .DiveController import DiveController
 
 from rclpy.executors import MultiThreadedExecutor
@@ -27,7 +27,7 @@ def main():
 
     view = SAMDiveView(node)
     controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    model = DiveActionServerController(node, view, controller, model_rate)  # This is where the actual PID controller lives.
+    model = RLControlActionServer(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
 
     node.create_timer(view_rate, view.update)

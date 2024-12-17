@@ -1,20 +1,16 @@
 #!/usr/bin/python3
 
-import rclpy, sys, random
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from rclpy import time
-
+import rclpy
+import sys
 from action_msgs.msg import GoalStatus
+from builtin_interfaces.msg import Time as Stamp
+from geometry_msgs.msg import PoseStamped
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.time import Time as rcl_Time
 from smarc_mission_msgs.action import GotoWaypoint
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
-from geometry_msgs.msg import PoseStamped
-
-# ROS imports
-from builtin_interfaces.msg import Time as Stamp
-from geometry_msgs.msg import TransformStamped
-from rclpy.time import Time as rcl_Time
 
 class DiveToWaypointActionClient():
     """
