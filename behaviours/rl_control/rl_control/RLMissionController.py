@@ -93,9 +93,9 @@ class RLMissionController():
             return
 
         try:
-            self._tf_base_link = self._tf_buffer.lookup_transform(self._robot_base_link,
-                                                                  self._waypoint_global.header.frame_id,
-                                                                  rclpy.time.Time(seconds=0))
+            self._tf_base_link = self._tf_buffer.lookup_transform(target_frame=self._robot_base_link,
+                                                                  source_frame=self._waypoint_global.header.frame_id,
+                                                                  time=rclpy.time.Time(seconds=0))
         except Exception as ex:
             self._loginfo(f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
@@ -107,7 +107,7 @@ class RLMissionController():
         if self._tf_base_link is None:
             return
 
-        self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
+        self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)  # TODO: This is actually wrong, need to fix model
 
     def get_waypoint_body(self):
         if self._waypoint_body is None:

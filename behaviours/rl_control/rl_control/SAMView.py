@@ -27,7 +27,9 @@ class SAMView(ISAMView):
 
         # Messages
         self._vbs_msg = PercentStamped()
+        self._vbs_msg.value = 50.0
         self._lcg_msg = PercentStamped()
+        self._lcg_msg.value = 50.0
         self._t1_msg = ThrusterRPM()
         self._t2_msg = ThrusterRPM()
         self._thrust_vector_msg = ThrusterAngles()

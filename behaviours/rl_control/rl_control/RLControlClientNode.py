@@ -81,7 +81,7 @@ class RLActionClient():
 
         waypoint = PoseStamped()
 
-        s = "sam_auv_v1" #str(self._node.get_parameter('robot_name').get_parameter_value())
+        s = "sam_auv_v1"   #str(self._node.get_parameter('robot_name').get_parameter_value())
         waypoint.header.frame_id = s + '/odom_gt'
         waypoint.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         waypoint.pose.position.x = 25.0

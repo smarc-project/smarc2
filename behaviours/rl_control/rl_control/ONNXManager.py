@@ -18,7 +18,11 @@ class ONNXManager():
                  rudder_angle_max: float = 0.2,
                  lcg_max: float = 100,
                  ):
-        self.onnx_inferenceSession = ort.InferenceSession(model_resource)  # TODO: If non-determinisim cant be solved, might need to load it as a torch model
+        #options = ort.SessionOptions()
+      #  options.use_deterministic_compute = True
+        self.onnx_inferenceSession = ort.InferenceSession(model_resource,
+                                                         # sess_options=options
+                                                          )  # TODO: If non-determinisim cant be solved, might need to load it as a torch model
 
         self.rpm_max = rpm_max
         self.rudder_angle_max = rudder_angle_max
@@ -29,7 +33,7 @@ class ONNXManager():
     def get_control_scaled(self, x):
         return self.rescale_outputs(self.get_control(x))
 
-    def get_control(self, x, prep_state_func = lambda x: x):
+    def get_control(self, x, prep_state_func=lambda x: x):
         """
         Inputs (1,14):
             x[0-3] = Orientation quaternion
@@ -53,7 +57,7 @@ class ONNXManager():
         odometry = state[0]
         heading = state[1]
 
-        x = np.zeros((1,14), dtype=np.float32)
+        x = np.zeros((1, 14), dtype=np.float32)
 
         x[0, 0] = odometry.pose.pose.orientation.x
         x[0, 1] = odometry.pose.pose.orientation.y
@@ -68,9 +72,9 @@ class ONNXManager():
         x[0, 8] = odometry.twist.twist.angular.y / 0.5
         x[0, 9] = odometry.twist.twist.angular.z / 0.5
 
-        x[0, 10] = heading.position.x
-        x[0, 11] = heading.position.y
-        x[0, 12] = heading.position.z
+        x[0, 10] = heading.position.x / 90
+        x[0, 11] = heading.position.y / 90
+        x[0, 12] = heading.position.z / 90
 
         x[0, 13] = state[2]
         return x

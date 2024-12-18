@@ -137,7 +137,7 @@ class RLControlModel:
         y = self._onnx.get_control(x)
         y = self._onnx.rescale_outputs(y)
 
-        self._view.set_rpm(-y[0])
+        self._view.set_rpm(y[0])
         self._view.set_vbs(y[1])
         self._view.set_thrust_vector(y[3], y[2])
         self._view.set_lcg(y[4])
