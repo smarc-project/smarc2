@@ -4,7 +4,7 @@ import pytest
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 
-from behaviours.rl_control.rl_control.ONNXManager import ONNXManager
+from rl_control.ONNXManager import ONNXManager
 
 sut: ONNXManager
 
@@ -13,7 +13,7 @@ sut: ONNXManager
 def test_before_after():
     # Code that will run before your test, for example:
     global sut
-    sut = ONNXManager("../resource/SAMSimple-18499903.onnx")
+    sut = ONNXManager("/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx")
     # A test function will be run at this point
     yield
     # Code that will run after your test

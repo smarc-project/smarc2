@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 import rclpy
 
-from behaviours.rl_control.rl_control.RLMissionActionServer import RLMissionActionServer
+from rl_control.RLMissionActionServer import RLMissionActionServer
 
 
 # Active tests

@@ -3,11 +3,11 @@ import signal
 import time
 from multiprocessing import Process
 
-import behaviours.rl_control.rl_control.Node
+import rl_control.Node
 
 
 def test_node():
-    process = Process(target=behaviours.rl_control.rl_control.Node.main)
+    process = Process(target=rl_control.Node.main)
     try:
         process.start()
 

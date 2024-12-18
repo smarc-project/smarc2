@@ -85,7 +85,7 @@ class RLControlModel:
         if mission_state == MissionStates.EMERGENCY:
             self._loginfo("Emergency mode. No controller running")
 
-            u_vbs_neutral = 0.0
+            u_vbs_neutral = 50.0
             u_lcg_neutral = 50.0
             u_tv_hor_neutral = 0.0
             u_tv_ver_neutral = 0.0

@@ -9,7 +9,7 @@ from sam_msgs.msg import Topics as SamTopics, ThrusterAngles
 from smarc_control_msgs.msg import Topics as ControlTopics
 from smarc_msgs.msg import PercentStamped, ThrusterRPM
 
-from behaviours.rl_control.rl_control.SAMView import SAMView
+from rl_control.SAMView import SAMView
 
 
 # Active tests

@@ -28,7 +28,9 @@ except:
 
 class PrimaryNode():
 
-    def __init__(self, global_rate=1 / 5, onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx"):
+    def __init__(self,
+                 global_rate=1 / 50,
+                 onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx"):
         self.node = rclpy.create_node("RLControlNode")
 
         # This is not a frequency, but a period.
@@ -42,14 +44,18 @@ class PrimaryNode():
         self.controller = RLMissionActionServer(self.node)  # Note, this is a MVC controller, not a control theory controller
         self.model = RLControlModel(self.node, onnx_manager, self.view, self.controller, model_rate)  # This is where the actual PID controller lives.
 
-        self.node.create_timer(view_rate, self.view.update)
-        self.node.create_timer(controller_rate, self.controller.update)
-        self.node.create_timer(model_rate, self.model.update)
+        self.node.create_timer(global_rate, self.update)
 
         self.node.get_logger().info("RL Control Node started")
         self.node.get_logger().info("Created MVC")
 
         self.executor = MultiThreadedExecutor()
+
+    def update(self):
+        self.model.update()
+        self.controller.update()
+        self.view.update()
+
 
     def loop(self):
         try:
