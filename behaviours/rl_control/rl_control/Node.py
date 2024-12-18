@@ -28,13 +28,13 @@ except:
 
 class PrimaryNode():
 
-    def __init__(self, global_rate=1 / 10, onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx"):
+    def __init__(self, global_rate=1 / 5, onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx"):
         self.node = rclpy.create_node("RLControlNode")
 
         # This is not a frequency, but a period.
         # t = 10 -> callback gets called every 10 sec
         view_rate = global_rate
-        model_rate = 1/50
+        model_rate = global_rate
         controller_rate = global_rate
 
         onnx_manager = ONNXManager(onnx_path)
