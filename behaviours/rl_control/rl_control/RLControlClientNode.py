@@ -80,9 +80,11 @@ class RLActionClient():
             return
 
         waypoint = PoseStamped()
-        waypoint.header.frame_id = 'sam0/odom_gt'
+
+        s = "sam_auv_v1" #str(self._node.get_parameter('robot_name').get_parameter_value())
+        waypoint.header.frame_id = s + '/odom_gt'
         waypoint.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
-        waypoint.pose.position.x = 50.0
+        waypoint.pose.position.x = 15.0
         waypoint.pose.position.y = 0.0
         waypoint.pose.position.z = 0.0
         waypoint.pose.orientation.x = 0.0
@@ -141,7 +143,7 @@ def main():
     ac.send_goal()
 
     # To test the cancel callback
-    node.create_timer(5.0, ac.cancel_goal)
+    #node.create_timer(5.0, ac.cancel_goal)
 
     rclpy.spin(node)
     ac._loginfo("spin")

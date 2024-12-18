@@ -34,7 +34,7 @@ class PrimaryNode():
         # This is not a frequency, but a period.
         # t = 10 -> callback gets called every 10 sec
         view_rate = global_rate
-        model_rate = global_rate
+        model_rate = 1/50
         controller_rate = global_rate
 
         onnx_manager = ONNXManager(onnx_path)

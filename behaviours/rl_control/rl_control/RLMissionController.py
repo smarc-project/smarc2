@@ -97,8 +97,7 @@ class RLMissionController():
                                                                   self._waypoint_global.header.frame_id,
                                                                   rclpy.time.Time(seconds=0))
         except Exception as ex:
-            self._loginfo(
-                f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
+            self._loginfo(f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
 
     def _transform_wp(self):
@@ -111,6 +110,9 @@ class RLMissionController():
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
     def get_waypoint_body(self):
+        if self._waypoint_body is None:
+            self.update()
+
         return self._waypoint_body
 
     def get_distance(self):

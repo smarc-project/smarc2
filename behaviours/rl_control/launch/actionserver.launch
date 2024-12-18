@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="robot_name" default="sam0"/>
+    <arg name="robot_name" default="sam_auv_v1"/>
     <arg name="model_path" default="../resource/SAMSimple-18499903.onnx"/>
 
     <group>

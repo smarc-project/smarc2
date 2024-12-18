@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="robot_name" default="sam0"/>
+    <arg name="robot_name" default="sam_auv_v1"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>

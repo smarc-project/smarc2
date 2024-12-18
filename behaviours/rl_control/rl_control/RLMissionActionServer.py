@@ -113,7 +113,7 @@ class RLMissionActionServer(RLMissionController):
 
                 time.sleep(0.1)
             else:
-                self._loginfo("get distance is none?")
+                pass # self._loginfo("get distance is none?")
 
         goal_handle.succeed()
         result.reached_waypoint = True

@@ -53,7 +53,7 @@ class ONNXManager():
         odometry = state[0]
         heading = state[1]
 
-        x = np.zeros((1,14))
+        x = np.zeros((1,14), dtype=np.float32)
 
         x[0, 0] = odometry.pose.pose.orientation.x
         x[0, 1] = odometry.pose.pose.orientation.y

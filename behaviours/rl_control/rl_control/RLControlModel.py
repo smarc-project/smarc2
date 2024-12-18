@@ -130,15 +130,16 @@ class RLControlModel:
             return
 
         # Get current states
-        self._current_state = self._view.get_states()
+        self._current_state = self._view.get_state()
         waypoint = self._mission.get_waypoint_body()
 
-        x = self._onnx.prepare_state((self._current_state, waypoint, 1.0))
+        x = self._onnx.prepare_state((self._current_state, waypoint, 0.9))
         y = self._onnx.get_control(x)
+        y = self._onnx.rescale_outputs(y)
 
-        self._view.set_rpm(y[0])
+        self._view.set_rpm(-y[0])
         self._view.set_vbs(y[1])
-        self._view.set_thrust_vector(y[3], -y[2])
+        self._view.set_thrust_vector(y[3], y[2])
         self._view.set_lcg(y[4])
 
         return
