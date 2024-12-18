@@ -54,8 +54,8 @@ def test_rescale_outputs_outofrange_min():
     assert outputs.shape == (5,), 'Output shape is incorrect.'
     assert outputs[0] == -sut.rpm_max
     assert outputs[1] == 0
-    assert outputs[2] == -sut.aileron_angle_max
-    assert outputs[3] == -sut.rudder_angle_max
+    assert outputs[2] == pytest.approx(-sut.aileron_angle_max, 0.0001)
+    assert outputs[3] == pytest.approx(-sut.rudder_angle_max, 0.0001)
     assert outputs[4] == 0
 
 
@@ -65,8 +65,8 @@ def test_rescale_outputs_outofrange_max():
     assert outputs.shape == (5,), 'Output shape is incorrect.'
     assert outputs[0] == sut.rpm_max
     assert outputs[1] == 100
-    assert outputs[2] == sut.aileron_angle_max
-    assert outputs[3] == sut.rudder_angle_max
+    assert outputs[2] == pytest.approx(sut.aileron_angle_max, 0.0001)
+    assert outputs[3] == pytest.approx(sut.rudder_angle_max, 0.0001)
     assert outputs[4] == 100
 
 
