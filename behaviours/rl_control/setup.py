@@ -23,12 +23,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'action_server_node = rl_control.ActionserverControllerNode:main',
-            'action_client_node = rl_control.ActionClientNode:main',
-            'manual_diving = rl_control.Node:main',
-            'action_server_rl_waypoint = rl_control.Node:action_server',
-            'test_view = rl_control.SAMDiveView:test_view',
-            'setpoint = rl_control.SetpointNode:main'
+          #  'action_server_node = rl_control.ActionserverControllerNode:main',
+          #  'action_client_node = rl_control.ActionClientNode:main',
+            'rl_control_node = rl_control.Node:main',
         ],
     },
 )

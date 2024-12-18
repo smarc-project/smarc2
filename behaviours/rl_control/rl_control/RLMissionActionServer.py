@@ -1,7 +1,8 @@
 #!/usr/bin/python3
-
+import sys
 import time
 
+import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
@@ -131,3 +132,22 @@ class RLMissionActionServer(RLMissionController):
 
     def set_feedback_msg(self, msg):
         return msg
+
+
+##def main():
+#    # when creating the _object_ rather than the _class_, we use the concrete classes
+#    from SAMThrustView import SAMThrustView
+#
+#    # create a node and our objects in the usual manner.
+#    rclpy.init(args=sys.argv)
+#    node = rclpy.create_node("ActionServerNode")
+#    view = SAMThrustView(node)
+#    controller = GoToWaypointActionServerController(node, view)
+#
+#    executor = MultiThreadedExecutor()
+#    rclpy.spin(node, executor=executor)
+#
+#
+#if __name__ == "__main__":
+#    main()
+#

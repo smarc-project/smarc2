@@ -1,11 +1,13 @@
 <launch>
 
     <arg name="robot_name" default="sam0"/>
-   
+    <arg name="model_path" default="../resource/SAMSimple-18499903.onnx"/>
+
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
-       <node name="rl_waypoint" pkg="rl_control" exec="action_server_rl_waypoint" output="screen">
+       <node name="rl_waypoint_follower" pkg="rl_control" exec="rl_control_node" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
+        <param name="model_path" value="$(var model_path)"/>
        </node>
     </group>
 
