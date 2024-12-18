@@ -87,5 +87,4 @@ class ONNXManager():
         y[2] = y[2] * self.aileron_angle_max
         y[3] = y[3] * self.rudder_angle_max
         y[4] = ((y[4] + 1) * 0.5) * self.vbs_max
-        y[5] = 0 #TODO train without extra action, because i keep making mistakes.
         return y
