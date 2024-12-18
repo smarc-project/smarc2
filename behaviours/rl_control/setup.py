@@ -23,8 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-          #  'action_server_node = rl_control.ActionserverControllerNode:main',
-          #  'action_client_node = rl_control.ActionClientNode:main',
+            'action_server_node = rl_control.RLMissionActionServer:main',
+            'action_client_node = rl_control.RLControlClientNode:main',
             'rl_control_node = rl_control.Node:main',
         ],
     },

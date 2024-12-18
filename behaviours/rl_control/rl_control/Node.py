@@ -28,7 +28,7 @@ except:
 
 class PrimaryNode():
 
-    def __init__(self, global_rate=1 / 10, onnx_path="../resource/SAMSimple.onnx"):
+    def __init__(self, global_rate=1 / 10, onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-18499903.onnx"):
         self.node = rclpy.create_node("RLControlNode")
 
         # This is not a frequency, but a period.

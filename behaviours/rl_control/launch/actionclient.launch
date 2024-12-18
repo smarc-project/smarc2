@@ -1,0 +1,12 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+       <node name="rl_waypoint_follower" pkg="rl_control" exec="action_client_node" output="screen">
+        <param name="robot_name" value="$(var robot_name)"/>
+       </node>
+    </group>
+
+</launch>
