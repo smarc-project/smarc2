@@ -94,7 +94,7 @@ class RLMissionController():
 
         try:
             self._tf_base_link = self._tf_buffer.lookup_transform(target_frame=self._robot_base_link,
-                                                                  source_frame=self._waypoint_global.header.frame_id,
+                                                                  source_frame=self._waypoint_global.header.frame_id, #/odom_gt
                                                                   time=rclpy.time.Time(seconds=0))
         except Exception as ex:
             self._loginfo(f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")

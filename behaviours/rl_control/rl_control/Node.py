@@ -16,9 +16,9 @@ except:
     from .ONNXManager import ONNXManager
 
 try:
-    from RLMissionActionServer import RLMissionActionServer
+    from RLActionServer import RLMissionActionServer
 except:
-    from .RLMissionActionServer import RLMissionActionServer
+    from .RLActionServer import RLMissionActionServer
 
 try:
     from SAMView import SAMView
@@ -30,7 +30,7 @@ class PrimaryNode():
 
     def __init__(self,
                  global_rate=1 / 10,
-                 onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-14499500.onnx"):
+                 onnx_path="/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple.onnx"):
         self.node = rclpy.create_node("RLControlNode")
 
         # This is not a frequency, but a period.

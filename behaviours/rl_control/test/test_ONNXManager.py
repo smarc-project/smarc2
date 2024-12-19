@@ -13,7 +13,7 @@ sut: ONNXManager
 def test_before_after():
     # Code that will run before your test, for example:
     global sut
-    sut = ONNXManager("/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple-14499500.onnx")
+    sut = ONNXManager("/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple.onnx")
     # A test function will be run at this point
     yield
     # Code that will run after your test
