@@ -86,7 +86,7 @@ class RLActionClient():
         waypoint.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         waypoint.pose.position.x = 25.0
         waypoint.pose.position.y = 10.0
-        waypoint.pose.position.z = 0.0
+        waypoint.pose.position.z = -4.0
         waypoint.pose.orientation.x = 0.0
         waypoint.pose.orientation.y = 0.0
         waypoint.pose.orientation.z = 0.0
@@ -94,7 +94,7 @@ class RLActionClient():
 
         goal_msg = GotoWaypoint.Goal()
         goal_msg.waypoint.pose = waypoint
-        goal_msg.waypoint.travel_rpm = 500.0
+        goal_msg.waypoint.travel_rpm = 900.0
 
         self._loginfo(f"Sending goal: {goal_msg}")
 

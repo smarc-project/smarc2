@@ -133,6 +133,9 @@ class RLControlModel:
         self._current_state = self._view.get_state()
         waypoint = self._mission.get_waypoint_body()
 
+        if waypoint is None:
+            return self._loginfo("Heading in body frame was none")
+
         x = self._onnx.prepare_state((self._current_state, waypoint, 0.9))
         y = self._onnx.get_control(x)
         y = self._onnx.rescale_outputs(y)

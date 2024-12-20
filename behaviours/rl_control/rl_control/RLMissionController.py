@@ -6,6 +6,7 @@ import rclpy
 import tf2_geometry_msgs.tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
+from rclpy.duration import Duration
 from rclpy.node import Node
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -50,8 +51,6 @@ class RLMissionController():
         # TODO: add _gt as tf_suffix parameter. Then it's easier to change depending on whether we're using the sim or the real robot.
         self._robot_base_link = self._node.get_parameter('robot_name').get_parameter_value().string_value + '/base_link_gt'
 
-        self._depth_setpoint = None
-        self._pitch_setpoint = None
         self._requested_rpm = None
         self._goal_tolerance = None
         self._waypoint_global = None
@@ -95,7 +94,8 @@ class RLMissionController():
         try:
             self._tf_base_link = self._tf_buffer.lookup_transform(target_frame=self._robot_base_link,
                                                                   source_frame=self._waypoint_global.header.frame_id, #/odom_gt
-                                                                  time=rclpy.time.Time(seconds=0))
+                                                                  time=rclpy.time.Time(seconds=0),
+                                                                  timeout=Duration(seconds=2))
         except Exception as ex:
             self._loginfo(f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
@@ -107,12 +107,9 @@ class RLMissionController():
         if self._tf_base_link is None:
             return
 
-        self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)  # TODO: This is actually wrong, need to fix model
+        self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
     def get_waypoint_body(self):
-        if self._waypoint_body is None:
-            self.update()
-
         return self._waypoint_body
 
     def get_distance(self):
