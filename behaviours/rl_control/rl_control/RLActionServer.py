@@ -19,7 +19,7 @@ except:
     from RLMissionController import MissionStates
 
 
-class RLMissionActionServer(RLMissionController):
+class RLActionServer(RLMissionController):
     """
     A controller example that implements an action server to allow
     another node to control its execution, params, etc.

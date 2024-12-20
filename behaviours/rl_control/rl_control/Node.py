@@ -16,9 +16,9 @@ except:
     from .ONNXManager import ONNXManager
 
 try:
-    from RLActionServer import RLMissionActionServer
+    from RLActionServer import RLActionServer
 except:
-    from .RLActionServer import RLMissionActionServer
+    from .RLActionServer import RLActionServer
 
 try:
     from SAMView import SAMView
@@ -41,7 +41,7 @@ class PrimaryNode():
 
         onnx_manager = ONNXManager(onnx_path)
         self.view = SAMView(self.node)
-        self.controller = RLMissionActionServer(self.node)  # Note, this is a MVC controller, not a control theory controller
+        self.controller = RLActionServer(self.node)  # Note, this is a MVC controller, not a control theory controller
         self.model = RLControlModel(self.node, onnx_manager, self.view, self.controller, model_rate)  # This is where the actual PID controller lives.
 
         self.node.create_timer(global_rate, self.update)

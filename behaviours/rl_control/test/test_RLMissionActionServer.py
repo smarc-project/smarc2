@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 import rclpy
 
-from rl_control.RLMissionActionServer import RLMissionActionServer
+from rl_control.RLActionServer import RLActionServer
 
 
 # Active tests
@@ -19,7 +19,7 @@ class TestRLMissionController(unittest.TestCase):
 
     def setUp(self):
         self.node = rclpy.create_node('test_sam_rl_mission_controller')
-        self.RLActionServer = RLMissionActionServer(self.node)
+        self.RLActionServer = RLActionServer(self.node)
 
     def tearDown(self):
         self.node.destroy_node()
