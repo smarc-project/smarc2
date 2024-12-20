@@ -57,9 +57,6 @@ class RLMissionActionServer(RLMissionController):
         self._requested_rpm = self._waypoint.travel_rpm
         self._goal_tolerance = self._waypoint.goal_tolerance
 
-        self._waypoint.pose.pose.position.x = 25.0
-        self._waypoint.pose.pose.position.y = 10.0
-        self._waypoint.pose.pose.position.z = -4.0
         self._save_wp(self._waypoint.pose)  # get the proper pose
         goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
                          pos x: {self._waypoint.pose.pose.position.x}\

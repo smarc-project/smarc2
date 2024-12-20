@@ -35,7 +35,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "echo 'Not launching sam_dead_reckoning sam_dr_launch.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-#tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
+tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
 
 tmux select-window -t $SESSION:2
 # tmux send-keys "ros2 launch dive_control actionserver.launch robot_name:=$ROBOT_NAME" C-m
