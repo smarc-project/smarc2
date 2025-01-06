@@ -38,7 +38,7 @@ class DiveController():
 
         # We need to declare the parameter we want to read out from the alunch file first.
         self._node.declare_parameter('robot_name')
-        # TODO: add _gt as tf_suffix parameter. Then it's easier to change depending on whether we're using the sim or the real robot.
+        # FIXME: add _gt as tf_suffix parameter. Then it's easier to change depending on whether we're using the sim or the real robot.
         self._robot_base_link = self._node.get_parameter('robot_name').get_parameter_value().string_value + '/base_link_gt'
 
         self._depth_setpoint = None
@@ -56,7 +56,7 @@ class DiveController():
         self._states = Odometry()
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
-        # TODO: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
+        # FIXME: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
@@ -83,7 +83,7 @@ class DiveController():
         self._waypoint_global.pose.orientation.z = wp.pose.pose.orientation.z
         self._waypoint_global.pose.orientation.w = wp.pose.pose.orientation.w
 
-        #TODO: Get the proper RPM from the waypoint
+        # TODO: Get the proper RPM from the waypoint
         self._requested_rpm = 500
 
         self._received_waypoint = True
@@ -134,6 +134,7 @@ class DiveController():
         return self._pitch_setpoint
 
     def get_heading_setpoint(self):
+        # FIXME: Why is this 0?
         return 0.0
 
     def get_rpm_setpoint(self):
@@ -178,10 +179,6 @@ class DiveController():
         if self._waypoint_body is None:
             return None
 
-#        if self._mission_state == MissionStates.RECEIVED:
-#            self.update()
-#            self.set_mission_state(MissionStates.ACCEPTED, "DC")
-
         distance = math.sqrt(self._waypoint_body.position.x**2 + self._waypoint_body.position.y**2 + self._waypoint_body.position.z**2)
 
         return distance
@@ -220,7 +217,6 @@ class DiveController():
     # Has methods
     def has_waypoint(self):
         return self._received_waypoint
-
 
     def set_mission_state(self, new_state, node_name):
         old_state = self._mission_state

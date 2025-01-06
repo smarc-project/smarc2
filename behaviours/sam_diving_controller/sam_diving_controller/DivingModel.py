@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
+from .ParamUtils import DivingModelParam
 from .IDiveView import MissionStates
 
 
@@ -91,6 +92,8 @@ class DiveControlModel:
         self._view = view
         self._dt = rate
 
+        param = DivingModelParam(self._node).get_param()
+
         # Convenience Topics
         self._current_state = None
         self._ref = None
@@ -98,7 +101,13 @@ class DiveControlModel:
         self._input = None
 
         # TODO: Get the parameters from a config file
-        self._depth_vbs_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
+        self._depth_vbs_pid = PIDControl(Kp = param['vbs_pid_kp'],
+                                         Ki = param['vbs_pid_ki'],
+                                         Kd = param['vbs_pid_kd'],
+                                         Kaw = param['vbs_pid_kaw'],
+                                         u_neutral = param['vbs_u_neutral'],
+                                         u_min = param['vbs_u_min'],
+                                         u_max = param['vbs_u_max'])
         self._pitch_lcg_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
         self._pitch_tv_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
         self._yaw_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
@@ -235,6 +244,7 @@ class DiveControlModel:
         current_depth *= -1
 
         # Choose active vs. static diving based on dive pitch angle
+        # FIXME: Move the max dive angle up as a parameter
         if np.abs(dive_pitch_setpoint) <= np.abs(np.deg2rad(20)):
             self._loginfo("Active Diving")
             pitch_setpoint = dive_pitch_setpoint
