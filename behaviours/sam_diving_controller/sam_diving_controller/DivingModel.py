@@ -92,11 +92,7 @@ class DiveControlModel:
         self._view = view
         self._dt = rate
 
-        self._loginfo(f"dt: {rate}")
-
-
         self.param = DivingModelParam(self._node).get_param()
-        
 
         # Convenience Topics
         self._current_state = None
@@ -104,7 +100,6 @@ class DiveControlModel:
         self._error = None
         self._input = None
 
-        # TODO: Get the parameters from a config file
         self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
                                          Ki = self.param['vbs_pid_ki'],
                                          Kd = self.param['vbs_pid_kd'],
@@ -112,9 +107,27 @@ class DiveControlModel:
                                          u_neutral = self.param['vbs_u_neutral'],
                                          u_min = self.param['vbs_u_min'],
                                          u_max = self.param['vbs_u_max'])
-        self._pitch_lcg_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
-        self._pitch_tv_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
-        self._yaw_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
+        self._pitch_lcg_pid = PIDControl(Kp = self.param['lcg_pid_kp'],
+                                         Ki = self.param['lcg_pid_ki'],
+                                         Kd = self.param['lcg_pid_kd'],
+                                         Kaw = self.param['lcg_pid_kaw'],
+                                         u_neutral = self.param['lcg_u_neutral'],
+                                         u_min = self.param['lcg_u_min'],
+                                         u_max = self.param['lcg_u_max'])
+        self._pitch_tv_pid = PIDControl(Kp = self.param['tv_pid_kp'],
+                                        Ki = self.param['tv_pid_ki'],
+                                        Kd = self.param['tv_pid_kd'],
+                                        Kaw = self.param['tv_pid_kaw'],
+                                        u_neutral = self.param['tv_u_neutral'],
+                                        u_min = self.param['tv_u_min'],
+                                        u_max = self.param['tv_u_max'])
+        self._yaw_pid = PIDControl(Kp = self.param['yaw_pid_kp'],
+                                   Ki = self.param['yaw_pid_ki'],
+                                   Kd = self.param['yaw_pid_kd'],
+                                   Kaw = self.param['yaw_pid_kaw'],
+                                   u_neutral = self.param['yaw_u_neutral'],
+                                   u_min = self.param['yaw_u_min'],
+                                   u_max = self.param['yaw_u_max'])
 
         self._loginfo("Dive Controller created")
 
@@ -225,14 +238,13 @@ class DiveControlModel:
         current_depth *= -1
 
         # Choose active vs. static diving based on dive pitch angle
-        # FIXME: Move the max dive angle up as a parameter
-        if np.abs(dive_pitch_setpoint) <= np.abs(np.deg2rad(20)):
+        if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
             self._loginfo("Active Diving")
             pitch_setpoint = dive_pitch_setpoint
 
             u_rpm = rpm_setpoint
-            u_vbs_raw = 50.0
-            u_lcg_raw = 50.0
+            u_vbs_raw = self.param['vbs_u_neutral']
+            u_lcg_raw = self.param['lcg_u_neutral']
             u_vbs = u_vbs_raw
             u_lcg = u_lcg_raw
 
@@ -242,9 +254,9 @@ class DiveControlModel:
 
         else:
             self._loginfo("Static Diving")
-            u_rpm = 0
-            u_tv_ver_raw = 0.0
-            u_tv_hor_raw = 0.0
+            u_rpm = self.param['rpm_u_neutral']
+            u_tv_ver_raw = self.param['tv_u_neutral']
+            u_tv_hor_raw = self.param['tv_u_neutral']
             u_tv_ver = u_tv_ver_raw
             u_tv_hor = u_tv_hor_raw
 

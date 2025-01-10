@@ -49,6 +49,8 @@ class DivingModelParam():
         self._node.declare_parameter('rpm_u_max', 1500.0)
         self._node.declare_parameter('rpm_u_emergency', 0.0)
 
+        self._node.declare_parameter('max_dive_pitch', 0.349)
+
     def get_param(self):
 
         param = {}
@@ -92,5 +94,7 @@ class DivingModelParam():
         param['rpm_u_min'] = self._node.get_parameter('rpm_u_min').get_parameter_value().double_value
         param['rpm_u_max'] = self._node.get_parameter('rpm_u_max').get_parameter_value().double_value
         param['rpm_u_emergency'] = self._node.get_parameter('rpm_u_emergency').get_parameter_value().double_value
+
+        param['max_dive_pitch'] = self._node.get_parameter('max_dive_pitch').get_parameter_value().double_value
 
         return param

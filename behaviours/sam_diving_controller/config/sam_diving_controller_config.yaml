@@ -35,3 +35,4 @@
     rpm_u_neutral: 0.0
     rpm_u_min: -400.0
     rpm_u_max: 1500.0
+    max_dive_pitch: 0.349
