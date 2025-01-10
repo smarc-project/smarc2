@@ -1,9 +1,9 @@
 ---
 /*/diving_node:
-  ros_parameters:
-    view_rate: 1/10
-    model_rate: 1/10
-    controller_rate: 1/10
+  ros__parameters:
+    view_rate: 0.1
+    model_rate: 0.1
+    controller_rate: 0.1
     vbs_pid_kp: 40.0
     vbs_pid_ki: 5.0
     vbs_pid_kd: 1.0
@@ -32,3 +32,6 @@
     yaw_u_neutral: 0.0
     yaw_u_min: -0.122173
     yaw_u_max: 0.122173
+    rpm_u_neutral: 0.0
+    rpm_u_min: -400.0
+    rpm_u_max: 1500.0

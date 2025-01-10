@@ -85,14 +85,18 @@ class PIDControl:
 
 class DiveControlModel:
 
-    def __init__(self, node, view, controller, rate=1/10):
+    def __init__(self, node, view, controller, rate=0.1):
 
         self._node = node
         self._controller = controller
         self._view = view
         self._dt = rate
 
-        param = DivingModelParam(self._node).get_param()
+        self._loginfo(f"dt: {rate}")
+
+
+        self.param = DivingModelParam(self._node).get_param()
+        
 
         # Convenience Topics
         self._current_state = None
@@ -101,13 +105,13 @@ class DiveControlModel:
         self._input = None
 
         # TODO: Get the parameters from a config file
-        self._depth_vbs_pid = PIDControl(Kp = param['vbs_pid_kp'],
-                                         Ki = param['vbs_pid_ki'],
-                                         Kd = param['vbs_pid_kd'],
-                                         Kaw = param['vbs_pid_kaw'],
-                                         u_neutral = param['vbs_u_neutral'],
-                                         u_min = param['vbs_u_min'],
-                                         u_max = param['vbs_u_max'])
+        self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
+                                         Ki = self.param['vbs_pid_ki'],
+                                         Kd = self.param['vbs_pid_kd'],
+                                         Kaw = self.param['vbs_pid_kaw'],
+                                         u_neutral = self.param['vbs_u_neutral'],
+                                         u_min = self.param['vbs_u_min'],
+                                         u_max = self.param['vbs_u_max'])
         self._pitch_lcg_pid = PIDControl(Kp = 40.0, Ki = 5.0, Kd = 1.0, Kaw = 1.0, u_neutral = 50.0, u_min = 0.0, u_max = 100.0)
         self._pitch_tv_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
         self._yaw_pid = PIDControl(Kp = 2.5, Ki = 0.25, Kd = 0.5, Kaw = 1.0, u_neutral = 0.0, u_min = np.deg2rad(-7), u_max = np.deg2rad(7))
@@ -119,6 +123,53 @@ class DiveControlModel:
         self._node.get_logger().info(s)
 
 
+    def _set_actuators_neutral(self):
+        """
+        Setting all actuators to neutral.
+        """
+
+        u_vbs_neutral = self.param['vbs_u_neutral']
+        u_lcg_neutral = self.param['lcg_u_neutral']
+        u_tv_hor_neutral = self.param['tv_u_neutral']
+        u_tv_ver_neutral = self.param['tv_u_neutral']
+        u_rpm_neutral = self.param['rpm_u_neutral']
+
+        self._view.set_vbs(u_vbs_neutral)
+        self._view.set_lcg(u_lcg_neutral)
+        self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+        self._view.set_rpm(u_rpm_neutral)
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs_neutral
+        self._input.lcg = u_lcg_neutral
+        self._input.thrustervertical = u_tv_ver_neutral
+        self._input.thrusterhorizontal = u_tv_hor_neutral
+        self._input.thrusterrpm = float(u_rpm_neutral)
+
+    def _set_actuators_emergency(self):
+        """
+        Setting all actuators to neutral.
+        """
+
+        u_vbs_emergency = self.param['vbs_u_emergency']
+        u_lcg_emergency= self.param['lcg_u_emergency']
+        u_tv_hor_emergency= self.param['tv_u_emergency']
+        u_tv_ver_emergency= self.param['tv_u_emergency']
+        u_rpm_emergency= self.param['rpm_u_emergency']
+
+        self._view.set_vbs(u_vbs_emergency)
+        self._view.set_lcg(u_lcg_emergency)
+        self._view.set_thrust_vector(u_tv_hor_emergency, -u_tv_ver_emergency)
+        self._view.set_rpm(u_rpm_emergency)
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs_emergency
+        self._input.lcg = u_lcg_emergency
+        self._input.thrustervertical = u_tv_ver_emergency
+        self._input.thrusterhorizontal = u_tv_hor_emergency
+        self._input.thrusterrpm = float(u_rpm_emergency)
+
+
     def update(self):
         """
         This is where all the magic happens.
@@ -127,93 +178,23 @@ class DiveControlModel:
 
         if mission_state == MissionStates.RECEIVED:
             self._loginfo("Mission Received")
-            u_vbs_neutral = 50.0
-            u_lcg_neutral = 50.0
-            u_tv_hor_neutral = 0.0
-            u_tv_ver_neutral = 0.0
-            u_rpm_neutral = 0.0
-
-
-            self._view.set_vbs(u_vbs_neutral)
-            self._view.set_lcg(u_lcg_neutral)
-            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-            self._view.set_rpm(u_rpm_neutral)
-
-            self._input = ControlInput()
-            self._input.vbs = u_vbs_neutral
-            self._input.lcg = u_lcg_neutral
-            self._input.thrustervertical = u_tv_ver_neutral
-            self._input.thrusterhorizontal = u_tv_hor_neutral
-            self._input.thrusterrpm = float(u_rpm_neutral)
+            self._set_actuators_neutral()
             return
 
         if mission_state == MissionStates.COMPLETED:
             self._loginfo("Mission Complete")
-
-            u_vbs_neutral = 50.0
-            u_lcg_neutral = 50.0
-            u_tv_hor_neutral = 0.0
-            u_tv_ver_neutral = 0.0
-            u_rpm_neutral = 0.0
-
-
-            self._view.set_vbs(u_vbs_neutral)
-            self._view.set_lcg(u_lcg_neutral)
-            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-            self._view.set_rpm(u_rpm_neutral)
-
-            self._input = ControlInput()
-            self._input.vbs = u_vbs_neutral
-            self._input.lcg = u_lcg_neutral
-            self._input.thrustervertical = u_tv_ver_neutral
-            self._input.thrusterhorizontal = u_tv_hor_neutral
-            self._input.thrusterrpm = float(u_rpm_neutral)
+            self._set_actuators_neutral()
             return
 
         if mission_state == MissionStates.EMERGENCY:
+            # FIXME: This is never called when aborting the mission/being in emergency mode
             self._loginfo("Emergency mode. No controller running")
-
-            u_vbs_neutral = 0.0
-            u_lcg_neutral = 50.0
-            u_tv_hor_neutral = 0.0
-            u_tv_ver_neutral = 0.0
-            u_rpm_neutral = 0.0
-
-
-            self._view.set_vbs(u_vbs_neutral)
-            self._view.set_lcg(u_lcg_neutral)
-            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-            self._view.set_rpm(u_rpm_neutral)
-
-            self._input = ControlInput()
-            self._input.vbs = u_vbs_neutral
-            self._input.lcg = u_lcg_neutral
-            self._input.thrustervertical = u_tv_ver_neutral
-            self._input.thrusterhorizontal = u_tv_hor_neutral
-            self._input.thrusterrpm = float(u_rpm_neutral)
+            self._set_actuators_emergency()
             return
 
         if mission_state == MissionStates.CANCELLED:
             self._loginfo("Mission Cancelled")
-
-            u_vbs_neutral = 50.0
-            u_lcg_neutral = 50.0
-            u_tv_hor_neutral = 0.0
-            u_tv_ver_neutral = 0.0
-            u_rpm_neutral = 0.0
-
-
-            self._view.set_vbs(u_vbs_neutral)
-            self._view.set_lcg(u_lcg_neutral)
-            self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-            self._view.set_rpm(u_rpm_neutral)
-
-            self._input = ControlInput()
-            self._input.vbs = u_vbs_neutral
-            self._input.lcg = u_lcg_neutral
-            self._input.thrustervertical = u_tv_ver_neutral
-            self._input.thrusterhorizontal = u_tv_hor_neutral
-            self._input.thrusterrpm = float(u_rpm_neutral)
+            self._set_actuators_neutral()
             return
 
         # Get setpoints

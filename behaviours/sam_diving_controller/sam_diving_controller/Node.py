@@ -19,18 +19,18 @@ def main():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("DivingNode")
 
-    node.declare_parameter('view_rate', 1/10)
-    node.declare_parameter('model_rate', 1/10)
-    node.declare_parameter('controller_rate', 1/10)
-    node.declare_parameter('convenience_rate', 1/10)
+    node.declare_parameter('view_rate', 0.1)
+    node.declare_parameter('model_rate', 0.1)
+    node.declare_parameter('controller_rate', 0.1)
+    node.declare_parameter('convenience_rate', 0.1)
 
     # This is not a frequency, but a period.
     # t = 10 -> callback gets called every 10 sec
-    view_rate = node.get_parameter('view_rate').get_parameter_value().integer_value
-    model_rate = node.get_parameter('model_rate').get_parameter_value().integer_value
-    controller_rate = node.get_parameter('controller_rate').get_parameter_value().integer_value
+    view_rate = node.get_parameter('view_rate').get_parameter_value().double_value
+    model_rate = node.get_parameter('model_rate').get_parameter_value().double_value
+    controller_rate = node.get_parameter('controller_rate').get_parameter_value().double_value
 
-    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().integer_value
+    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
     view = SAMDiveView(node)
     controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
@@ -68,18 +68,18 @@ def action_server():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("DivingNode")
 
-    node.declare_parameter('view_rate', 1/10)
-    node.declare_parameter('model_rate', 1/10)
-    node.declare_parameter('controller_rate', 1/10)
-    node.declare_parameter('convenience_rate', 1/10)
+    node.declare_parameter('view_rate', 0.1)
+    node.declare_parameter('model_rate', 0.1)
+    node.declare_parameter('controller_rate', 0.1)
+    node.declare_parameter('convenience_rate', 0.1)
 
     # This is not a frequency, but a period.
     # t = 10 -> callback gets called every 10 sec
-    view_rate = node.get_parameter('view_rate').get_parameter_value().integer_value
-    model_rate = node.get_parameter('model_rate').get_parameter_value().integer_value
-    controller_rate = node.get_parameter('controller_rate').get_parameter_value().integer_value
+    view_rate = node.get_parameter('view_rate').get_parameter_value().double_value
+    model_rate = node.get_parameter('model_rate').get_parameter_value().double_value
+    controller_rate = node.get_parameter('controller_rate').get_parameter_value().double_value
 
-    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().integer_value
+    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
     view = SAMDiveView(node)
     controller = DiveActionServerController(node, view)   # Note, this is a MVC controller, not a control theory controller
