@@ -24,6 +24,40 @@ Both launch files call Node.py, which takes care of the rest.
 
 ## sam\_diving\_controller
 
+### ActionClientNode.py
+
+If you want to test something and provide your own waypoint, that's the way to go.
+
+### ActionServerDiveController.py
+
+Inherits from DiveController.py, but allows you to interface with the BT action
+server instead.
+
+### ConvenienceView.py
+
+Defines control convenience topics and publishes to them. That is:
+    - current state
+    - current control reference
+    - current control error
+    - current control input
+    - current waypoint
+All are published under /conv/ to make it easier to read them out afterwards.
+
+### DiveController.py
+
+Reads out all robot states. This is a MVC Controller, not a control theory
+controller!
+
+### DivingModel.py
+
+This is the actual control, currently running several PIDs. All parameters are
+specified in sam\_diving\_controller\_config.yaml. Each PID gain, min, max, and
+neutral actuator values as well as emergency actuator values.
+
+### IDiveView.py
+
+Interface for the DiveView. Defines the mission states enum.
+
 ### Node.py
 
 Runs the different MVC nodes plus a convenience node for extra rostopics. 
@@ -34,18 +68,32 @@ Requires the following parameter:
     - controller\_rate: rate of the controller node
     - convenience\_rate: rate of the convenience node
 
+These are set in sam\_diving\_controller\_config.yaml.
+
+### ParamUtils.py
+
+Reads out all parameters for the DivingModel.py
+
 ### SAMDiveView.py
 
 Publishes all actuator commands. Contains the corresponding set methods.
+Requires the following SamTopics:
+    - VBS\_CMD\_TOPIC
+    - LCG\_CMG\_TOPIC
+    - THRUSTER1\_CMD\_TOPIC
+    - THRUSTER2\_CMD\_TOPIC
+    - THRUST\_VECTOR\_CMD\_TOPIC
 
-### DiveController.py
+### SetpointNode.py
 
-Reads out all robot states. This is a MVC Controller, not a control theory controller!
+If you need to publihs a setpoint.
 
-### DivingModel.py
+## config
 
-This is the actual control, currently running several PIDs.
+Contains the config file for this package
 
-### ActionServerDiveController.py
+## rviz
 
-Inherits from DiveController.py, but allows you to interface with the BT action server instead.
+Sample rviz layout to follow the vehicle and visualize the waypoints.
+
+

@@ -19,7 +19,7 @@ from rclpy.executors import MultiThreadedExecutor
 
 class SetpointPublisher():
     """
-    Simple set point publisher for development and debuggin purposes.
+    Simple set point publisher for development and debugging purposes.
     Publishes setpoint pose to a topic the controller listens to.
     """
     def __init__(self, node: Node) -> None:
