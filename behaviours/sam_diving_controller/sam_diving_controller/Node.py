@@ -39,11 +39,11 @@ def main():
     convenience_view = ConvenienceView(node, controller, model)
 
 
-    node.create_timer(view_rate, view.update).integer_value
-    node.create_timer(model_rate, model.update).integer_value
-    node.create_timer(controller_rate, controller.update).integer_value
+    node.create_timer(view_rate, view.update)
+    node.create_timer(model_rate, model.update)
+    node.create_timer(controller_rate, controller.update)
 
-    node.create_timer(convenience_view_rate, convenience_view.update).integer_value
+    node.create_timer(convenience_view_rate, convenience_view.update)
 
     def _loginfo(node, s):
         node.get_logger().info(s)

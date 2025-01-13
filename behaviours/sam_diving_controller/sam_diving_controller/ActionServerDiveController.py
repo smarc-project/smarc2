@@ -104,7 +104,7 @@ class DiveActionServerController(DiveController):
         self._waypoint_global.pose.orientation.z = wp.pose.orientation.z
         self._waypoint_global.pose.orientation.w = wp.pose.orientation.w
 
-        #TODO: Get the proper RPM from the waypoint
+        # TODO: Get the proper RPM from the waypoint
 
         self._received_waypoint = True
 
