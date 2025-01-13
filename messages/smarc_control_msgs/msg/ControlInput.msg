@@ -1,3 +1,4 @@
+std_msgs/Header header
 float64 thrusterrpm
 float64 thrustervertical 
 float64 thrusterhorizontal

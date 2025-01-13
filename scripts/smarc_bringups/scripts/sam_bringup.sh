@@ -38,7 +38,7 @@ tmux select-window -t $SESSION:1
 tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
 
 tmux select-window -t $SESSION:2
-tmux send-keys "ros2 launch dive_control actionserver.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch sam_diving_controller actionserver.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m

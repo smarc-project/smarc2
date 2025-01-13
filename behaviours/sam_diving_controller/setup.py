@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 import glob, os
 
-package_name = 'dive_control'
+package_name = 'sam_diving_controller'
 
 setup(
     name=package_name,
@@ -23,12 +23,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'action_server_node = dive_control.ActionserverControllerNode:main',
-            'action_client_node = dive_control.ActionClientNode:main',
-            'manual_diving = dive_control.Node:main',
-            'action_server_diving = dive_control.Node:action_server',
-            'test_view = dive_control.SAMDiveView:test_view',
-            'setpoint = dive_control.SetpointNode:main'
+            'action_server_node = sam_diving_controller.ActionserverControllerNode:main',
+            'action_client_node = sam_diving_controller.ActionClientNode:main',
+            'manual_diving = sam_diving_controller.Node:main',
+            'action_server_diving = sam_diving_controller.Node:action_server',
+            'test_view = sam_diving_controller.SAMDiveView:test_view',
+            'setpoint = sam_diving_controller.SetpointNode:main'
         ],
     },
 )
