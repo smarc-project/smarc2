@@ -135,6 +135,9 @@ class DiveControlModel:
     def _loginfo(self, s):
         self._node.get_logger().info(s)
 
+    def _loginfo_once(self, s):
+        self._node.get_logger().info(s, once=True)
+
 
     def _set_actuators_neutral(self):
         """
@@ -190,24 +193,18 @@ class DiveControlModel:
         mission_state = self._controller.get_mission_state()
 
         if mission_state == MissionStates.RECEIVED:
-            self._loginfo("Mission Received")
+            self._loginfo_once("Mission Received")
             self._set_actuators_neutral()
             return
 
         if mission_state == MissionStates.COMPLETED:
-            self._loginfo("Mission Complete")
+            self._loginfo_once("Mission Complete")
             self._set_actuators_neutral()
-            return
-
-        if mission_state == MissionStates.EMERGENCY:
-            # FIXME: This is never called when aborting the mission/being in emergency mode
-            self._loginfo("Emergency mode. No controller running")
-            self._set_actuators_emergency()
             return
 
         if mission_state == MissionStates.CANCELLED:
-            self._loginfo("Mission Cancelled")
-            self._set_actuators_neutral()
+            self._loginfo_once("Mission Cancelled")
+            self._set_actuators_emergency()
             return
 
         # Get setpoints
