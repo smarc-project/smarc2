@@ -20,12 +20,34 @@ class KNN(Node):
         # ===== Get parameters =====
         self.robot_name = self.get_parameter("robot_name").value
 
+        self.knn_lowerbound = self.get_parameter("knn.lowerbound").value
+        self.aspect_upper_bound = self.get_parameter("data_association.aspect_upper_bound").value
+        self.sam_threshold = self.get_parameter("sam.threshold").value
+        self.min_area_sam = self.get_parameter("sam.min_area").value
+        self.sam_color = self.get_parameter("sam.color_rgb").value
+        self.buoy_threshold = self.get_parameter("buoy.threshold").value
+        self.buoy_color = self.get_parameter("buoy.color_rgb").value
+        self.auv_name = self.get_parameter("name.auv_name").value
+        self.buoy_name = self.get_parameter("name.buoy_name").value
+        self.min_area_filter = self.get_parameter("vision.min_area_filter").value
+        self.max_area_filter = self.get_parameter("vision.max_area_filter").value
+        self.best_fit_degree = self.get_parameter("vision.best_fit_degree").value
+        self.realdata_topic = self.get_parameter("realdata.topic").value
+        self.realdata = self.get_parameter("realdata.enabled").value
+        # self.realdata_path = self.get_parameter("realdata.path").value
 
-        self.subscription = self.create_subscription(
-            Image,
-            f"/{self.robot_name}/{DroneTopics.CAMERA_DATA_TOPIC}",
-            self.listener_callback,            
-            10)
+        if(P.REALDATA) :
+            self.subscription = self.create_subscription(
+                Image,
+                f"/{self.robot_name}/{self.realdata_topic}",
+                self.listener_callback,            
+                10)
+        else:
+            self.subscription = self.create_subscription(
+                Image,
+                f"/{self.robot_name}/{DroneTopics.CAMERA_DATA_TOPIC}",
+                self.listener_callback,            
+                10)
         self.subscription
         self.bridge = CvBridge()
         self.mask_publisher = self.create_publisher(Image, f"/{self.robot_name}/{DroneTopics.CAMERA_PROCESSED_TOPIC}", 10)
@@ -34,7 +56,7 @@ class KNN(Node):
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
         self.sam_lowest_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.SAM_LOWEST_POINT_ESTIMATE_TOPIC}", 10)
         
-        self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=1000,detectShadows=False)
+        self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
 
     def declare_node_parameters(self):
         """
@@ -42,15 +64,49 @@ class KNN(Node):
         """
         self.declare_parameter("robot_name", "Quadrotor")
         
-    def listener_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        self.declare_parameter("knn.lowerbound", P.KNN_LOWERBOUND)
+        self.declare_parameter("data_association.aspect_upper_bound", P.ASPECT_UPPER_BOUND)
+        self.declare_parameter("sam.threshold", P.SAM_THRESHOLD)
+        self.declare_parameter("sam.min_area", P.MIN_AREA_SAM)
+        self.declare_parameter("sam.color_rgb", P.SAM_COLOR)
+        self.declare_parameter("buoy.threshold", P.BUOY_THRESHOLD)
+        self.declare_parameter("buoy.color_rgb", P.BUOY_COLOR)
+        self.declare_parameter("name.auv_name", P.AUV_NAME)
+        self.declare_parameter("name.buoy_name", P.BUOY_NAME)
+        self.declare_parameter("vision.min_area_filter", P.MIN_AREA_FILTER)
+        self.declare_parameter("vision.max_area_filter", P.MAX_AREA_FILTER)
+        self.declare_parameter("vision.best_fit_degree", P.BEST_FIT_DEGREE)
+        self.declare_parameter("realdata.topic", P.REALDATA_TOPIC)
+        self.declare_parameter("realdata.enabled", P.REALDATA)
+        # self.declare_parameter("realdata_path", P.REALDATA_PATH)
 
+
+        
+    def listener_callback(self, msg):
+        # self.get_logger().info("Received an image!")
+        cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        # cv_image = self.enhance_saturation(cv_image, saturation_factor=1.5) TODO : increase saturation and see if results improve
+        #enhance saturation values
+        sat_factor = 1
+        imghsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV).astype("float32")
+        (h, s, v) = cv2.split(imghsv)
+        s = s*sat_factor
+        s = np.clip(s,0,255)
+        imghsv = cv2.merge([h,s,v])
+        imgrgb = cv2.cvtColor(imghsv.astype("uint8"), cv2.COLOR_HSV2BGR)
+        cv_image = imgrgb
         # Apply the MOG2 algorithm to get the foreground mask
         foreground_mask = self.knn.apply(cv_image)
+        
 
         # Apply the connected component filtering
-        filtered_mask = self.remove_small_blobs_connected_components(foreground_mask, min_area=50, max_area=4000)
-
+        filtered_mask = self.remove_small_blobs_connected_components(foreground_mask, min_area=self.min_area_filter, max_area=self.max_area_filter)
+        masked_image = cv2.bitwise_and(cv_image, cv_image, mask=filtered_mask)
+        avg_rgb = cv2.mean(masked_image, mask=filtered_mask)
+        self.get_logger().info(f"average rgb : {avg_rgb}")  #BGR
+        # # Display the mask from KNN
+        cv2.imshow('Detected Foreground', filtered_mask)
+        cv2.waitKey(1)
         # Apply morphological operations to remove noise and fill gaps
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         foreground_mask = cv2.morphologyEx(filtered_mask, cv2.MORPH_CLOSE, kernel)
@@ -62,7 +118,7 @@ class KNN(Node):
         for cnt in large_contours:
 
             # Data Association
-            if self.data_association(cnt, filtered_mask, cv_image) == P.AUV_NAME:
+            if self.data_association(cnt, filtered_mask, cv_image) == self.auv_name:
                 # Extract points from the contour
                 points = cnt[:, 0, :]  # Extract (x, y) points
 
@@ -83,8 +139,8 @@ class KNN(Node):
                 # best_p1 = None
                 # best_p2 = None
                 # Fit ith degree polynomial to x(t) and y(t)
-                p1 = np.poly1d(np.polyfit(t, x, P.BEST_FIT_DEGREE))
-                p2 = np.poly1d(np.polyfit(t, y, P.BEST_FIT_DEGREE))
+                p1 = np.poly1d(np.polyfit(t, x, self.best_fit_degree))
+                p2 = np.poly1d(np.polyfit(t, y, self.best_fit_degree))
                 # for i in range(1, 10):
                 #     # Fit ith degree polynomial to x(t) and y(t)
                 #     p1 = np.poly1d(np.polyfit(t, x, i))
@@ -148,25 +204,7 @@ class KNN(Node):
                     pt2 = tuple(original_fitted_points[i + 1].astype(int))
                     cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)
 
-            elif self.data_association(cnt, filtered_mask, cv_image) == P.BUOY_NAME:
-                # commented because centroid blowing up.
-                # # Compute moments of the contour
-                # M = cv2.moments(cnt)
-
-                # # Check if the contour area is non-zero to avoid division by zero
-                # if M["m00"] != 0:
-                #     # Compute the centroid coordinates
-                #     cX = int(M["m10"] / M["m00"])
-                #     cY = int(M["m01"] / M["m00"])
-                    
-                #     # Draw a circle at the centroid
-                #     cv_image = cv2.circle(cv_image, (cX, cY), radius=5, color=(0, 255, 0), thickness=-1)  # Green dot 
-                
-                # # Publish the minimum gradient point
-                # buoy_position_msg = Float32MultiArray()
-                # buoy_position_msg.data = [float(cX), float(cY)]
-                # self.buoy_pub.publish(buoy_position_msg)
-
+            elif self.data_association(cnt, filtered_mask, cv_image) == self.buoy_name:
                 # Get any point from the contour (e.g., the first point)
                 point = cnt[0][0]  # This is the first point in the contour, it could be any point from the contour
 
@@ -190,107 +228,97 @@ class KNN(Node):
         # # Display the mask from KNN
         # cv2.imshow('Detected Foreground', filtered_mask)
         # cv2.waitKey(1)
-
-
+    
     def data_association(self, cnt, filtered_mask, cv_image):
-        # Define the yellow range in HSV (adjust these as needed)
-        #TODO :  
-        lower_yellow = np.array(P.SAM_COLOR_LOWER_BOUND, dtype=np.uint8)
-        upper_yellow = np.array(P.SAM_COLOR_UPPER_BOUND, dtype=np.uint8)
-
-        # lower_yellow1 = np.array([20, 100, 100], dtype=np.uint8)  # Even higher S & V to exclude dull colors
-        # upper_yellow1 = np.array([27, 180, 180], dtype=np.uint8)
-
-        lower_yellow1 = np.array(P.SAM_COLOR1_LOWER_BOUND, dtype=np.uint8)  # Even higher S & V to exclude dull colors
-        upper_yellow1 = np.array(P.SAM_COLOR1_UPPER_BOUND, dtype=np.uint8)
-
 
         # Step 1: Calculate the yellow percentage in the contour
         contour_mask = np.zeros_like(filtered_mask)
         cv2.drawContours(contour_mask, [cnt], -1, 255, thickness=cv2.FILLED)
-        orange_percentage = self.get_orange_percentage(contour_mask, cv_image, np.uint8([[P.BUOY_COLOR]]))
-        yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
+        orange_percentage = self.get_orange_percentage(contour_mask, cv_image, np.uint8([[self.buoy_color]]))
+        # yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
+        yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, np.uint8([[self.sam_color]]))
 
         # # Print the yellow percentage for tuning
         self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
         self.get_logger().info(f'Orange percentage: {orange_percentage:.2f}%')
-        if orange_percentage > P.BUOY_THRESHOLD :
+        if orange_percentage > self.buoy_threshold:
             # cv2.drawContours(cv_image, [cnt], -1, (0, 255, 0), thickness=cv2.FILLED)
-            return P.BUOY_NAME
+            return self.buoy_name
         # Step 2: Proceed only if the yellow percentage is high enough
-        if yellow_percentage > P.SAM_THRESHOLD:  # Liberal threshold, you can adjust this
-            if cv2.contourArea(cnt) > P.MIN_AREA_SAM :  
-
-                # Apply the yellow mask to the contour
-                yellow_mask = self.mask_yellow_regions(cv_image, lower_yellow1, upper_yellow1)
-
-                # Combine the contour mask with the yellow mask (logical AND)
-                contour_yellow_mask = cv2.bitwise_and(yellow_mask, contour_mask)
-
-                # Check if there are any yellow pixels in the contour
-                if np.sum(contour_yellow_mask) > 0:  # Ensure there are yellow pixels to proceed
+        if yellow_percentage > self.sam_threshold:  # Liberal threshold, you can adjust this
+            if cv2.contourArea(cnt) > self.min_area_sam :  # Adjust as needed
                 
-                    # Use minAreaRect to get the smallest bounding box around the contour
-                    rect = cv2.minAreaRect(cnt)
-                    box = cv2.boxPoints(rect)
-                    box = np.intp(box)
+                # Use minAreaRect to get the smallest bounding box around the contour
+                rect = cv2.minAreaRect(cnt)
+                box = cv2.boxPoints(rect)
+                box = np.intp(box)
 
+                # Extract width and height from the bounding box (minAreaRect)
+                width = rect[1][0]
+                height = rect[1][1]
 
-                    # Extract width and height from the bounding box (minAreaRect)
-                    width = rect[1][0]
-                    height = rect[1][1]
+                # Ensure width and height are non-zero to avoid division by zero
+                if width > 0 and height > 0:
+                    # Aspect ratio from the minimum area rectangle
+                    aspect_ratio = min(width, height) / max(width, height)
+                    # self.get_logger().info(f'Aspect ratio: {aspect_ratio:.2f}')
 
-                    # Ensure width and height are non-zero to avoid division by zero
-                    if width > 0 and height > 0:
-                        # Aspect ratio from the minimum area rectangle
-                        aspect_ratio = min(width, height) / max(width, height)
-                        # self.get_logger().info(f'Aspect ratio: {aspect_ratio:.2f}')
+                    # Check the aspect ratio against the liberal threshold
+                    
+                    if 0 < aspect_ratio < self.aspect_upper_bound:  # Adjust as needed
+                        # self.get_logger().info('Contour meets aspect ratio criteria')
+                        # Visualize the contour and the minAreaRect box
+                        # cv2.drawContours(cv_image, [box], -1, (0, 255, 0), 2)
 
-                        # Check the aspect ratio against the liberal threshold
-                        
-                        if 0 < aspect_ratio < P.ASPECT_UPPER_BOUND:  # Adjust as needed
-                            # self.get_logger().info('Contour meets aspect ratio criteria')
-                            # Visualize the contour and the minAreaRect box
-                            # cv2.drawContours(cv_image, [box], -1, (0, 255, 0), 2)
-
-                            # Display the contour yellow mask REDUNDANT
-                            # cv2.imshow('Yellow Contour Mask', contour_yellow_mask)
-                            # cv2.waitKey(1)
-                            self.get_logger().info(f"all tests satisfied")
-                            return P.AUV_NAME
-                        # else :
-                            # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
-                            # self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
+                        self.get_logger().info(f"all tests satisfied")
+                        return self.auv_name
+                    else :
+                        # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
+                        self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
                 # else :
-                    # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
-                    # self.get_logger().info("yellow pixel test not satisfied")
-        # else : 
-            # self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
+            #         # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
+            #         self.get_logger().info("yellow pixel test not satisfied")
+            else : 
+                self.get_logger().info(f"area test not satisfied : {cv2.contourArea(cnt)}")
+        else : 
+            self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
         return False
 
-    
-    # Step 1: yellow regions percentage
-    def get_yellow_percentage(self, mask, image, lower_yellow, upper_yellow):
-        # Apply mask to the image
+
+    def get_yellow_percentage(self, mask, image, rgb_color_yellow):
+        # Convert RGB color to HSV
+        hsv_color = cv2.cvtColor(rgb_color_yellow, cv2.COLOR_RGB2HSV)
+        hsv_value = hsv_color[0][0]
+
+        # print("Target HSV value:", hsv_value)
+
+        # Define your lower and upper HSV bounds (widened range)
+        lower_yellow = hsv_value - np.array([5, 25, 25])  # Adjust tolerances as needed
+        upper_yellow = hsv_value + np.array([5, 25, 25])
+
+        # Clip to valid HSV ranges
+        lower_yellow = np.clip(lower_yellow, 0, 255)
+        upper_yellow = np.clip(upper_yellow, 0, 255)
+
+        # Apply the mask to the image
         masked_image = cv2.bitwise_and(image, image, mask=mask)
 
-        # Convert the image to HSV color space
+        # Convert the masked image to HSV color space
         hsv_image = cv2.cvtColor(masked_image, cv2.COLOR_BGR2HSV)
 
-        # Create a mask for the yellow color
+        # Create a mask for the orange color
         yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
 
-        # Calculate the number of yellow pixels
-        yellow_pixels = np.sum(yellow_mask == 255)
+        # Count all non-zero values in the orange mask
+        yellow_pixels = np.sum(yellow_mask > 0)  # Count all orange-like pixels
 
-        # Calculate the total number of pixels in the contour
-        total_pixels = np.sum(mask == 255)
+        # Calculate the total number of pixels in the original mask
+        total_pixels = np.sum(mask > 0)  # Count all non-zero pixels in the mask
 
-        # Calculate the percentage of yellow pixels
+        # Calculate the percentage of orange pixels
         yellow_percentage = (yellow_pixels / total_pixels) * 100 if total_pixels > 0 else 0
 
         return yellow_percentage
-
 
     def get_orange_percentage(self, mask, image, rgb_color):
         # Convert RGB color to HSV
@@ -341,7 +369,7 @@ class KNN(Node):
         return aspect_ratio        
     
 
-    def remove_small_blobs_connected_components(self, foreground_mask, min_area=P.MIN_AREA_FILTER, max_area=P.MAX_AREA_FILTER):
+    def remove_small_blobs_connected_components(self, foreground_mask, min_area= P.MIN_AREA_FILTER , max_area=P.MAX_AREA_FILTER):
             # Find all connected components in the mask
             num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(foreground_mask)
 
