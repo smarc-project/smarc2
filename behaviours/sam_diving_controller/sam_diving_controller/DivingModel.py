@@ -204,7 +204,7 @@ class DiveControlModel:
 
         if mission_state == MissionStates.CANCELLED:
             self._loginfo_once("Mission Cancelled")
-            self._set_actuators_emergency()
+            self._set_actuators_neutral()
             return
 
         # Get setpoints
