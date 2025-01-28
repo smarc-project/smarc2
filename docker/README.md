@@ -80,7 +80,6 @@ cd src/smarc2/simulation/binaries/SMaRCUnityStandard
 # you can Ctrl-D to detach from it
 ```
 
-> Note: for setup involving container in WSL2, you might need to manually add a port after the container is running. This can be done in VS Code.
 
 #### Terminal 2
 ```bash
