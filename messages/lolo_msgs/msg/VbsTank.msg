@@ -1,0 +1,5 @@
+Header header
+float32 percent_current
+float32 percent_target
+float32 pressure
+float32 volume

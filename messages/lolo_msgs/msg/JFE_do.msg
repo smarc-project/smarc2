@@ -1,0 +1,4 @@
+time time
+float32 temperature
+float32 dissolvedOxygen
+string checkSum

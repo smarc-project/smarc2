@@ -1,0 +1,12 @@
+time time
+string NMEA_header
+uint8 instrumentAddress
+uint8 parameterID
+float32 val1
+float32 val1_sd
+string val1_unit
+float32 val2
+float32 val2_sd
+string val2_unit
+string operatingMode
+string checkSum
