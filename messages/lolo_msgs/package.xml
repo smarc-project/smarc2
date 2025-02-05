@@ -3,7 +3,7 @@
 <package format="3">
   <name>lolo_msgs</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Messages and topic names that are specific to Lolo</description>
   <maintainer email="r.julianvaldez@gmail.com">julian</maintainer>
   <license>MIT</license>
 
