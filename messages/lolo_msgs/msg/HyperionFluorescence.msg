@@ -1,0 +1,9 @@
+builtin_interfaces/Time time
+string nmea_header
+uint8 instrument_address
+uint8 parameter_id
+float32 val
+float32 val_sd
+string val_unit
+string operating_mode
+string check_sum

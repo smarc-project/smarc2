@@ -1,5 +1,5 @@
 # lolo_msgs Package
-Lolo specific messages and topics.
+Lolo specific messages and topics. Please note, that to comply with ROS2 conventions message names and field names have been changed! 
 
 # Messages
 - BottomTrack.msg

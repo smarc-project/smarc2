@@ -1,50 +1,50 @@
 uint8 version
-uint8 offsetOfData
-uint32 serialNumber
+uint8 data_offset  # OfData #
+uint32 serial_number
 uint8 year #Trigger time
 uint8 month
 uint8 day
 uint8 hour
 uint8 minute
 uint8 seconds
-uint16 microSeconds100
-uint16 nBeams
+uint16 micro_seconds_100
+uint16 n_beams
 uint32 error
 uint32 status
-float32 soundSpeed     # [m/s]
+float32 sound_speed     # [m/s]
 float32 temperature    # [Celsius]
 float32 pressure       # [Bar]
 
 # Beam data
-float32 velBeam0        #Velocities for each beam. [m/s]
-float32 velBeam1        #Velocities for each beam. [m/s]
-float32 velBeam2        #Velocities for each beam. [m/s]
-float32 velBeam3        #Velocities for each beam. [m/s]
+float32 vel_beam0        #Velocities for each beam. [m/s]
+float32 vel_beam1        #Velocities for each beam. [m/s]
+float32 vel_beam2        #Velocities for each beam. [m/s]
+float32 vel_beam3        #Velocities for each beam. [m/s]
 
-float32 distBeam0       #Distances for each beam. [m ]
-float32 distBeam1       #Distances for each beam. [m ]
-float32 distBeam2       #Distances for each beam. [m ]
-float32 distBeam3       #Distances for each beam. [m ]
+float32 dist_beam0       #Distances for each beam. [m ]
+float32 dist_beam1       #Distances for each beam. [m ]
+float32 dist_beam2       #Distances for each beam. [m ]
+float32 dist_beam3       #Distances for each beam. [m ]
 
-float32 fomBeam0        #FOM for each beam.
-float32 fomBeam1        #FOM for each beam.
-float32 fomBeam2        #FOM for each beam.
-float32 fomBeam3        #FOM for each beam.
+float32 fom_beam0        #FOM for each beam.
+float32 fom_beam1        #FOM for each beam.
+float32 fom_beam2        #FOM for each beam.
+float32 fom_beam3        #FOM for each beam.
 
-float32 timeDiff1Beam0      #DT1 for each beam. [s ]
-float32 timeDiff1Beam1      #DT1 for each beam. [s ]
-float32 timeDiff1Beam2      #DT1 for each beam. [s ]
-float32 timeDiff1Beam3      #DT1 for each beam. [s ]
+float32 time_diff1_beam0      #DT1 for each beam. [s ]
+float32 time_diff1_beam1      #DT1 for each beam. [s ]
+float32 time_diff1_beam2      #DT1 for each beam. [s ]
+float32 time_diff1_beam3      #DT1 for each beam. [s ]
 
-float32 timeDiff2Beam0      #DT2 for each beam. [s ]
-float32 timeDiff2Beam1      #DT2 for each beam. [s ]
-float32 timeDiff2Beam2      #DT2 for each beam. [s ]
-float32 timeDiff2Beam3      #DT2 for each beam. [s ]
+float32 time_diff2_beam0      #DT2 for each beam. [s ]
+float32 time_diff2_beam1      #DT2 for each beam. [s ]
+float32 time_diff2_beam2      #DT2 for each beam. [s ]
+float32 time_diff2_beam3      #DT2 for each beam. [s ]
 
-float32 timeVelEstBeam0     #Duration of velocity estimate for each beam. [s ]
-float32 timeVelEstBeam1     #Duration of velocity estimate for each beam. [s ]
-float32 timeVelEstBeam2     #Duration of velocity estimate for each beam. [s ]
-float32 timeVelEstBeam3     #Duration of velocity estimate for each beam. [s ]
+float32 time_vel_est_beam0     #Duration of velocity estimate for each beam. [s ]
+float32 time_vel_est_beam1     #Duration of velocity estimate for each beam. [s ]
+float32 time_vel_est_beam2     #Duration of velocity estimate for each beam. [s ]
+float32 time_vel_est_beam3     #Duration of velocity estimate for each beam. [s ]
 
 # XYZ data
 #float velX # Velocity X. [m/s]
