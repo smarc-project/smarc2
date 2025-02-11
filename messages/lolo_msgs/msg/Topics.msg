@@ -5,7 +5,7 @@
 # string EXAMPLE_TOPIC = 'lolo/example_topic'
 
 # Topics for Navigation and Control
-string DVL_Topic = 'dvl/bottomtrack'
+string DVL_TOPIC = 'dvl/bottomtrack'
 
 # Topics for Payload Sensors
 

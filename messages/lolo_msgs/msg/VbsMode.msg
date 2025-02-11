@@ -1,10 +1,10 @@
-int8 vbs_mode_auto = 0
-int8 vbs_mode_manual = 1
-int8 vbs_mode_empty = 2
-int8 vbs_mode_light = 3
-int8 vbs_mode_neutral = 4
-int8 vbs_mode_heavy = 5
+int8 VBS_MODE_AUTO = 0
+int8 VBS_MODE_MANUAL = 1
+int8 VBS_MODE_EMPTY = 2
+int8 VBS_MODE_LIGHT = 3
+int8 VBS_MODE_NEUTRAL = 4
+int8 VBS_MODE_HEAVY = 5
 
-header header
+std_msgs/Header header
 int8 target_mode
 int8 current_mode

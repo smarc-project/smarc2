@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 float32 percent_current
 float32 percent_target
 float32 pressure

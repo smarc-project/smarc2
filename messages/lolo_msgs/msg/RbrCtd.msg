@@ -1,4 +1,4 @@
-time time
+builtin_interfaces/Time time
 string time_ctd
 float32 conductivity
 float32 temperature

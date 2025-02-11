@@ -4,4 +4,4 @@ float32 rpm
 float32 input_current
 float32 input_voltage
 float32 motor_current
-float32 tempMosfet
+float32 temp_mosfet
