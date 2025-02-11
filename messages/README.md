@@ -33,9 +33,15 @@ Message definitions specific to SAM AUV.
 
 Contains sam-specific topics.
 
+## lolo_msgs
+Message definitions specific to LOLO AUV.
+
+Contains lolo-specific topics.
+
+- Porting lolo is ongoing and some of these might need to be (re)moved
+
 ## smarc_mission_msgs
 Messages that concern planning, global things like lat/lon/utm, behaviour tree-related functions...
-
 
 ## smarc_msgs
 Message definitions that don't belong anywhere else.
