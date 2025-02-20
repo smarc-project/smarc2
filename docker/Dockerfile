@@ -12,11 +12,16 @@ ENV ROS_LOCALHOST_ONLY 0
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # update things
-RUN apt update && apt upgrade -y \
-# package managers and such...
-&&  apt install -y python3-pip apt-utils ros-dev-tools unzip \
-# this version of setuptools doesn't have the annoying warnings...
-&&  pip install --no-input setuptools==58.2.0
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y python3-pip \
+    apt-utils \
+    ros-dev-tools \
+    unzip \
+    vim nano \
+    sudo git \
+    && pip install --upgrade pip==25.0 \
+    && pip install --no-input setuptools==58.2.0 \
+    && rm -rf /var/lib/apt/lists/*
 
 # create a non-root user for most things, including ros2
 # use --build-arg UID=${id -u} etc to transfer host ids/name into the container!
@@ -32,30 +37,10 @@ RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 WORKDIR /home/${USERNAME}
 
 # clone the base smarc2 dir and make the colcon ws while at it
-RUN mkdir -p colcon_ws/src/smarc2
-
-# copy everything in the smarc2 folder, _except the unity sim projects_, into the container
-# the "except" part is defined in the .dockerignore file!
-COPY . colcon_ws/src/smarc2/
+RUN mkdir colcon_ws
 
 # make colcon behave by adding this defaults file
-RUN mkdir .colcon/ \
-&& echo "{ \
-    "build": { \
-        "symlink-install": true, \
-        "build-base": "/home/${USERNAME}/colcon_ws/build", \
-        "install-base": "/home/${USERNAME}/colcon_ws/install", \
-        "log-base": "/home/${USERNAME}/colcon_ws/log", \
-        "base-paths": ["/home/${USERNAME}/colcon_ws/src"] \
-    }, \
-    "test": { \
-        "build-base": "/home/${USERNAME}/colcon_ws/build", \
-        "install-base": "/home/${USERNAME}/colcon_ws/install", \
-        "log-base": "/home/${USERNAME}/colcon_ws/log", \
-        "event-handlers": ["console_direct+"], \
-        "base-paths": ["/home/${USERNAME}/colcon_ws/src"], \
-    } \
-}" > .colcon/defaults.yaml
+COPY defaults.yaml .colcon/defaults.yaml
 
 WORKDIR /home/${USERNAME}/colcon_ws/src/smarc2
 
