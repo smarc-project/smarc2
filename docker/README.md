@@ -70,6 +70,7 @@ cd ~/colcon_ws
 # build an image out of the dockerfile named "smarc2/base"
 # make sure that you are in the root of the ros workspace to have everything run properly
 # notice the . at the end!
+# this process will take 6-10min so get a cup of coffee
 docker build -t smarc2/base -f src/smarc2/docker/Dockerfile .
 
 # check that the image is there
@@ -78,7 +79,8 @@ docker images
 
 #### Run the container
 
-The container will be deleted upon exit, so do not save anything in it. If you have libraries that you would like to install, add them to the Dockerfile and rebuild the image.
+The typical practice is that the container be destroyed when it exits. However, for ease of development, we will keep it running even after we exit it, so that if you have to install some package or something, you don't have to do it every time you start the container.
+
 ```bash
 # Start the container
 . src/smarc2/docker/run_container.sh
