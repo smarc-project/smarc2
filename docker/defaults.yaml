@@ -1,14 +1,14 @@
 {
     "build": {
         "symlink-install": true,
-        "build-base": "/home/colcon_ws/build",
-        "install-base": "/home/colcon_ws/install",
-        "base-paths": ["/home/colcon_ws/src"]
+        "build-base": "/home/smarc2user/colcon_ws/build",
+        "install-base": "/home/smarc2user/colcon_ws/install",
+        "base-paths": ["/home/smarc2user/colcon_ws/src"]
     },
     "test": {
-        "build-base": "/home/colcon_ws/build",
-        "install-base": "/home/colcon_ws/install",
+        "build-base": "/home/smarc2user/colcon_ws/build",
+        "install-base": "/home/smarc2user/colcon_ws/install",
         "event-handlers": ["console_direct+"],
-        "base-paths": ["/home/colcon_ws/src"],
+        "base-paths": ["/home/smarc2user/colcon_ws/src"],
     }
 }

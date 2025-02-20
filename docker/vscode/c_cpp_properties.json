@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/opt/ros/humble/include/**",
+        "/usr/include/**",
+        "${workspaceFolder}/install/smarc_msgs/include/smarc_msgs",
+        "${workspaceFolder}/install/sam_msgs/include/sam_msgs",
+        "${workspaceFolder}/src/sam_mission_planner/include",
+        "${workspaceFolder}/src/sam_mission_planner/src",
+        "${workspaceFolder}/src/BehaviorTree.CPP/include",
+        "${workspaceFolder}/src/BehaviorTree.ROS2/behaviortree_ros2/include",
+        "${workspaceFolder}/install/btcpp_ros2_interfaces/include/btcpp_ros2_interfaces"
+      ],
+      "name": "ROS2",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++17"
+    }
+  ],
+  "version": 4
+}

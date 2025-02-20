@@ -56,47 +56,49 @@ Note that what we do here is not exactly best practice, since we'll be running m
 However, this is easier to understand.
 Normally, you should run one program per container, and possibly use docker-compose to arrange them, network them etc.
 
-> Notice that the example here uses `build-me-smarc2.sh` which uses linux-y commands!
-> This script by default exposes the container network to the host entirely. For most of us, this is fine. If you are concerned about security, do not use this :)
+#### Build the image 
 
+Skip this if you have already built the image.
 
-#### Terminal 1
 ```bash
-# get the repo, get in it
+# Create the workspace (skip if you have it)
+mkdir -p ~/colcon_ws/src 
+cd ~/colcon_ws/src
 git clone <this repo>
-cd smarc2
+cd ~/colcon_ws
+
 # build an image out of the dockerfile named "smarc2/base"
-# the long build command is in a script
-./docker/build-me-smarc2.sh
-# check out the image
+# make sure that you are in the root of the ros workspace to have everything run properly
+# notice the . at the end!
+docker build -t smarc2/base -f src/smarc2/docker/Dockerfile .
+
+# check that the image is there
 docker images
-# make a container out of the image that runs bash interactively by default
-docker run -it --network=host -p 10000 smarc2/base
-# you are now inside the container, which by default is in colcon_ws
-cd src/smarc2/simulation/binaries/SMaRCUnityStandard
-./smarc_unity_standard_linux.x86_64 -nographics -batchmode
-# now the sim is running in this terminal
-# you can Ctrl-C to kill it
-# you can Ctrl-D to detach from it
+```
+
+#### Run the container
+
+The container will be deleted upon exit, so do not save anything in it. If you have libraries that you would like to install, add them to the Dockerfile and rebuild the image.
+```bash
+# Start the container
+. src/smarc2/docker/run_container.sh
+
+# you can Ctrl-D to exit the container
+# Do not close this terminal if you want to use the container!
 ```
 
 
-#### Terminal 2
-```bash
-docker ps
-# find the name of the running container
-docker exec -it <container_name> /bin/bash
-source install/setup.bash
-cd src/smarc2/scripts
-./unity_ros_bridge.sh
-```
+#### Attach to the container in VSCode
 
-#### Terminal 3
+Install `Dev Containers` extension in VSCode.
+
+Press `Ctrl+Shift+P` and type `Dev Containers: Attach to Running Container...` and attach to the container that pops up. This will bring you to the container where you can do all the development.
+
+All the code changes made here will be saved locally as well.
+
+Open a terminal in the container and run ros_tcp_endpoint:
 ```bash
-docker exec -it <container_name> /bin/bash
-source install/setup.bash
-ros2 topic list
-# you should see the list of topics from the sim here
+ros2 launch ros_tcp_endpoint endpoint.launch.py
 ```
 
 ## Connecting your host ros2 and dockerized ros2
@@ -104,5 +106,4 @@ ros2 topic list
 
 The Dockerfile we use sets `ROS_DOMAIN_ID=42` (so the containers do not by default mess with your system) so you need to tell your host system the same:
 - `export ROS_DOMAIN_ID=42`  on the host, on each terminal you want connected to the dockerized ros2 setup.
-- When building the container, use build-args like so: `docker build - -t smarc2/base --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg USERNAME=$(whoami)  < Dockerfile`. This makes it so that the container has the same user name, id, and group ids, which makes dockerized-ros2 use the same memory as the host user, which means nodes speak using shared memory = fast and 0 config required. [This script](./build-me-smarc2.sh) has this in it for repeated use~.
 
