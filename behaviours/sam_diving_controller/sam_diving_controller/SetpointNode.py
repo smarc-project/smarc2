@@ -14,6 +14,8 @@ from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 from nav_msgs.msg import Odometry
+from smarc_control_msgs.msg import Topics as ControlTopics
+
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -26,10 +28,15 @@ class SetpointPublisher():
 
         self._node = node
 
-        self._setpoint_pub = node.create_publisher(Odometry, '/ctrl/waypoint', 10)
+        self._node.declare_parameter('robot_name')
+        self._node.declare_parameter('tf_suffix')
+        tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
+        robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
+
+        self._setpoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT, 10) 
         self._setpoint_msg = Odometry()
         self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
-        self._setpoint_msg.header.frame_id = 'sam0/odom_gt'
+        self._setpoint_msg.header.frame_id = robot_name + '/odom' + tf_suffix
         self._setpoint_msg.pose.pose.position.x = 40.0
         self._setpoint_msg.pose.pose.position.y = 10.0
         self._setpoint_msg.pose.pose.position.z = -5.0
