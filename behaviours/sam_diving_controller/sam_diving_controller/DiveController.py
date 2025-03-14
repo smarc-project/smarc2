@@ -37,11 +37,13 @@ class DiveController():
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
         # We need to declare the parameter we want to read out from the alunch file first.
-        self._node.declare_parameter('robot_name')
-        self._node.declare_parameter('tf_suffix')
+        self._node.declare_parameter('robot_name', 'sam0')
+        self._node.declare_parameter('tf_suffix', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self._robot_base_link = robot_name + '/base_link'+ tf_suffix #'/base_link_gt'
+
+        self._loginfo(f"robot base link: {self._robot_base_link}")
 
         self._depth_setpoint = None
         self._pitch_setpoint = None
@@ -58,8 +60,7 @@ class DiveController():
         self._states = Odometry()
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
-        # FIXME: Hardcoded topic _at the root_ even... david plz. how will this work with 2 sams?
-        self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic='/ctrl/waypoint', callback=self._wp_cb, qos_profile=10)
+        self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
 
@@ -136,8 +137,11 @@ class DiveController():
         return self._pitch_setpoint
 
     def get_heading_setpoint(self):
-        # FIXME: Why is this 0?
-        return 0.0
+        # NOTE: Sketchy implementation. We want the heading to be zero since we
+        # calculate the heading error as the angle between the current heading
+        # and where the waypoint is. In case we want to do heading control at
+        # one point, we have to change/adjust this.
+        return 0.0 
 
     def get_rpm_setpoint(self):
         return self._requested_rpm

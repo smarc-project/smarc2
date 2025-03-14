@@ -8,6 +8,7 @@
     <push-ros-namespace namespace="$(var robot_name)"/>
        <node name="diving_node" pkg="sam_diving_controller" exec="action_server_diving" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
+        <param name="tf_suffix" value="$(var tf_suffix)"/>
 	<param from="$(var control_yaml)"/>
        </node>
     </group>
