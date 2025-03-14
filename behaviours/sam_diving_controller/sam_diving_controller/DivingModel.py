@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 
 import numpy as np
-import math
 
-import tf2_geometry_msgs.tf2_geometry_msgs
 from tf_transformations import euler_from_quaternion
 
-from geometry_msgs.msg import PoseStamped, TransformStamped
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
