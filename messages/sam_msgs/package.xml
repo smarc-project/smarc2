@@ -14,6 +14,7 @@
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>smarc_msgs</depend>
   
   <!-- Message gen depends -->
   <build_depend>rosidl_default_generators</build_depend>
