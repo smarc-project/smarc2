@@ -29,3 +29,11 @@
 	path = drivers/nmea_navsat_driver
 	url = git@github.com:smarc-project/nmea_navsat_driver.git
 	branch = ros2
+[submodule "drivers/stim300"]
+	path = drivers/stim300
+	url = git@github.com:smarc-project/stim300.git
+	branch = humble
+[submodule "drivers/dvl-a50-ros-driver"]
+	path = drivers/dvl-a50-ros-driver
+	url = git@github.com:smarc-project/dvl-a50-ros-driver.git
+	branch = humble
