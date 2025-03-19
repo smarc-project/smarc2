@@ -55,6 +55,7 @@ string BATTERY_2_TOPIC = "lolo/battery2"
 
 #Extended interface
 string EXTENDED_STATUS_TOPIC = "lolo/extended/status"
+string EXTENDED_SETTINGS_TOPIC = "lolo/extended/settings_cmd"
 string EXTENDED_INTERNAL_TEMPERATURE_TOPIC = "lolo/extended/internal_temperature"
 string EXTENDED_INTERNAL_PRESSURE_TOPIC = "lolo/extended/internal_pressure"
 
@@ -68,6 +69,7 @@ string EXTENDED_VERTICAL_THRUSTER_1_FB_TOPIC = "lolo/extended/actuators/vertical
 string EXTENDED_VERTICAL_THRUSTER_2_FB_TOPIC = "lolo/extended/actuators/vertical_thruster_2_fb"
 string EXTENDED_VERTICAL_THRUSTER_3_FB_TOPIC = "lolo/extended/actuators/vertical_thruster_3_fb"
 string EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC = "lolo/extended/actuators/vertical_thruster_4_fb"
+
 
 
 #Communication
