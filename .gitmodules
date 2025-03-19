@@ -37,3 +37,7 @@
 	path = drivers/dvl-a50-ros-driver
 	url = git@github.com:smarc-project/dvl-a50-ros-driver.git
 	branch = humble
+[submodule "drivers/ublox"]
+	path = drivers/ublox
+	url = https://github.com/KumarRobotics/ublox.git
+	branch = ros2
