@@ -20,7 +20,7 @@ float32 vertical_thruster_isb
 float32 vertical_thruster_1_esc
 float32 vertical_thruster_2_esc
 float32 vertical_thruster_3_esc
-float32 vertical_thruster_4_es
+float32 vertical_thruster_4_esc
 float32 prevco_isb
 float32 edw_isb
 float32 battery1_isb

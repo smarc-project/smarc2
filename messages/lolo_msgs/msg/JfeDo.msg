@@ -1,4 +1,0 @@
-builtin_interfaces/Time time
-float32 temperature
-float32 dissolved_oxygen
-string check_sum
