@@ -79,7 +79,8 @@ class RosToMqtt:
         # before sending it
         # otherwise, the string is likely coming from json.dumps put into a ros string, where double quotes become single quotes
         # so we convert the ros string to a python dict, then convert that to a json string
-        if(msg.data[0] == "'"):
+        self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
+        if(msg.data[0] == "'" or msg.data[0] == '"'):
             json_str = msg.data[1:-1] # remove the single quotes so the inner string is a valid json string
         else:
             json_obj = ast.literal_eval(msg.data)
