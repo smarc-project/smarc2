@@ -1,0 +1,44 @@
+/**: # we give this config to two nodes, so we cant just "pick" a node for these params
+    ros__parameters:
+        mqtt:
+            client:
+                protocol: 4      # MQTTv311
+            connection:
+                # host: 20.240.40.232 # these are set in the launch file, so we could have args from outside
+                # port: 1884
+                keepalive: 60
+            # private_path: ros2test #also set in the launch file
+        serializer: json:dumps
+        deserializer: json:loads
+        # this needs to be set accordingly 
+        # TODO maybe modify the mqtt_brdige to acquire these from the yaml directly?
+        n_bridges: 7
+        bridge:
+            # dont forget to add the ".msg" part!
+            #  the ~ in front will fill with smarc/<robot_name>/ for mqtt
+            #  and this node is run under /<robot_name>/ in ROS, relative topics etc.
+
+            # each one needs to be named "bridgeN" in ros2 version...
+            ###
+            # ROS -> MQTT
+            ###
+            # core stuff
+            # BRIDGGE_NUM: ["DIRECTION", ROS_MSG, ROS_TOPIC, MQTT_TOPIC]
+            # dont forget to namespace the node with robot_name/waraps!
+            # WARAPS LEVEL 1
+            bridge1: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "hearbeat", "~/heartbeat"]
+            bridge2: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "sensor_info", "~/sensor_info"]
+            bridge3: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "sensor/position", "~/sensor/position"]
+            bridge4: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "sensor/heading", "~/sensor/heading"]
+            bridge5: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "sensor/course", "~/sensor/course"]
+            bridge6: ["mqtt_bridge.bridge:RosToMqttBridge", "std_msgs.msg:String", "sensor/speed", "~/sensor/speed"]
+            ###
+            # MQTT -> ROS
+            ###
+            bridge7: ["mqtt_bridge.bridge:MqttToRosBridge", "std_msgs.msg:String", "~/exec/command", "exec/command"]
+            # bridge21: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:MissionControl", "~/bt_cmd/mission_control", "mission/mission_control"]
+            # bridge22: ["mqtt_bridge.bridge:MqttToRosBridge", "smarc_mission_msgs.msg:BTCommand", "~/bt_cmd/bt_cmd", "mission/bt_command"]
+
+
+
+
