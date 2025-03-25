@@ -59,8 +59,14 @@ class DiveController():
 
         self._states = Odometry()
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
-        self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
+        self.state_sub = node.create_subscription(msg_type=Odometry, 
+                                                  topic=ControlTopics.STATES, 
+                                                  callback=self._states_cb, 
+                                                  qos_profile=10)
+        self.waypoint_sub = node.create_subscription(msg_type=Odometry, 
+                                                     topic=ControlTopics.WAYPOINT, 
+                                                     callback=self._wp_cb, 
+                                                     qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
 
