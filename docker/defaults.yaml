@@ -1,14 +1,17 @@
-{
-    "build": {
-        "symlink-install": true,
-        "build-base": "/home/colcon_ws/build",
-        "install-base": "/home/colcon_ws/install",
-        "base-paths": ["/home/colcon_ws/src"]
-    },
-    "test": {
-        "build-base": "/home/colcon_ws/build",
-        "install-base": "/home/colcon_ws/install",
-        "event-handlers": ["console_direct+"],
-        "base-paths": ["/home/colcon_ws/src"],
-    }
-}
+"": # applies to all colcon subcommands
+    log-base: /code/ros2_ws/log
+
+build:
+    symlink-install: true
+    build-base: /code/ros2_ws/build
+    install-base: /code/ros2_ws/install
+    base-paths:
+        - /code/ros2_ws/src
+
+test:
+    build-base: /code/ros2_ws/build
+    install-base: /code/ros2_ws/install
+    event-handlers:
+        - console_direct+
+    base-paths:
+        - /code/ros2_ws/src
