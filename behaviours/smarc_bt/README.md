@@ -61,6 +61,8 @@ A good example of this would be `vehicle.py`.
 
 > Notice a lack of some non-ros version of things, like the `bt`, `bb_updater`, `mission_updater` and so on. Due to our need being ROS-specific, non-ros versions of these are not needed. Yet. But the structure of the package is such that it is possible.
 
+# See [the diagram of all components here](smarc_bt.png)
+
 ### bt
 - **ros_bt**: A concrete BT defined for an AUV such as SAM or LoLo. Takes as input generic objects such as an `IBBUpdater`, `IBBMissionUpdater` and `IActionClient` to allow a user to modify the data i/o without modifying the BT structure.
 - **actions**:
