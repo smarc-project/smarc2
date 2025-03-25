@@ -28,6 +28,8 @@ from smarc_mission_msgs.srv import UTMLatLon
 from sam_msgs.msg import Topics as SamTopics
 from dead_reckoning_msgs.msg import Topics as DRTopics
 from smarc_mission_msgs.msg import Topics as MissionTopics
+from utm_latlon_converter.converter_service_node import GeoConverterService
+import asyncio
 
 from geodesy.utm import UTMPoint
 
@@ -53,10 +55,8 @@ class DrOdom2LatLon(Node):
         self.lat_lon_topic = DRTopics.DR_LAT_LON_TOPIC
 
         # Frame names
-        self.utm_frame = 'utm'
-        self.odom_frame = 'odom'
-
-        self.tf_buffer = Buffer()
+        self.map_frame = self.get_parameter("map_frame").value
+        self.tf_buffer = Buffer(rclpy.duration.Duration(seconds=5.0))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.create_subscription(msg_type=Odometry, topic=self.odom_topic,
@@ -72,54 +72,54 @@ class DrOdom2LatLon(Node):
         self.perform_test_conversion = True  # Only use for testing
         self.status_last_time = None
         self.status_min_period = 2.0
-        self.verbose_conversion = True
+        self.verbose_conversion = False
 
         self.lat_lon_pub = self.create_publisher(msg_type=GeoPoint, topic=self.lat_lon_topic,
                                                          qos_profile=10)
 
-        # Lat/Lon conversion client
-        self.latlon_client = self.create_client(UTMLatLon,
-                                                MissionTopics.UTM_LATLON_CONVERSION_SERVICE)
+        # # Lat/Lon conversion client
+        # self.latlon_client = self.create_client(UTMLatLon,
+        #                                         MissionTopics.UTM_LATLON_CONVERSION_SERVICE)
 
-        self.future = None  # Note sure if this is needed
+        # self.future = None  # Note sure if this is needed
 
-        # Wait for the conversion service
-        while not self.latlon_client.wait_for_service(timeout_sec=1.0):
-            self._log(f"Can't reach the service {MissionTopics.UTM_LATLON_CONVERSION_SERVICE}")
+        # # Wait for the conversion service
+        # while not self.latlon_client.wait_for_service(timeout_sec=1.0):
+        #     self._log(f"Can't reach the service {MissionTopics.UTM_LATLON_CONVERSION_SERVICE}")
 
     def _log(self, message):
         self.get_logger().info(message)
 
     def determine_utm_zone(self):
-        if self.utm_zone_status:
-            return
+        # if self.utm_zone_status:
+        #     return
 
-        self._log("Determining UTM zone and band")
+        # self._log("Determining UTM zone and band")
 
-        # yaml method for finding the utm zone
-        frames_yaml = self.tf_buffer.all_frames_as_yaml()
+        frames_yaml = self.tf_buffer.all_frames_as_yaml(rclpy.time.Time())
         frames_dict = yaml.safe_load(frames_yaml)
         if len(frames_dict) < 1:
             self._log(f"TF Buffer has no frames")
             return
         frame_names = frames_dict.keys()
 
-        # Verify  that utm frame is present
-        if "utm" not in frame_names:
+        # # Verify  that utm frame is present
+        if self.map_frame not in frame_names:
             return
 
-        # Zone info is contained in the name of the utm frame parent, utm_%%_##
-        utm_parent = frames_dict["utm"]["parent"]
-        utm_parent_split = utm_parent.split("_")
+        # # Zone info is contained in the name of the utm frame parent, utm_%%_##
+        utm_frame = frames_dict["map"]["parent"]
+        utm_parent_split = utm_frame.split("_")
+        self.get_logger().info(f'UTM frame: {utm_frame}', once=True)
 
-        # Check that split results in expected number of elements, 3
+        # # Check that split results in expected number of elements, 3
         if len(utm_parent_split) != 3:
             return
 
-        self.utm_zone = [utm_parent_split[1], utm_parent_split[2]]
+        # self.utm_zone = [utm_parent_split[1], utm_parent_split[2]]
+        self.utm_zone = ["34", "V"]
         self.utm_zone_status = True
 
-        self._log(f'UTM Zone: {self.utm_zone}')
 
     def determine_transform_status(self, frame_name):
 
@@ -145,14 +145,14 @@ class DrOdom2LatLon(Node):
         """
         Callback function for converting odometry messages to lat lon coordinates
         """
-        # Check that the service is available
-        if not self.latlon_client.service_is_ready():
-            return
+        # # Check that the service is available
+        # if not self.latlon_client.service_is_ready():
+        #     return
 
         # Regulate the rate of status and latlon updates
         # Might be better to move to a timer at some point...
         current_odom_time = rcl_time_to_secs(self.get_clock().now())
-        if self.check_status_valid(current_odom_time):
+        if self.check_status_valid(current_odom_time) and self.verbose_conversion:
             self._log("Odom Callback")
         else:
             return
@@ -168,16 +168,21 @@ class DrOdom2LatLon(Node):
 
         # Perform the odom -> utm conversion
         try:
-            utm_transform = self.tf_buffer.lookup_transform(target_frame=self.utm_frame,
+            utm_transform = self.tf_buffer.lookup_transform(target_frame=f"utm_{self.utm_zone[0]}_{self.utm_zone[1]}",
                                                             source_frame=odom_msg.header.frame_id,
                                                             time=rclpy.time.Time())
 
-            odom_utm_pose = self.transformed_odometry_to_pose(odom_msg, utm_transform, self.utm_frame)
+            odom_utm_pose = do_transform_pose(odom_msg.pose.pose, utm_transform)
 
         except (LookupException, ConnectivityException, ExtrapolationException) as e:
             self.get_logger().error(f'Failed to transform odometry: {e}')
             return
+        
+        self.lat_long_conv(odom_utm_pose)
 
+
+    def lat_long_conv(self, odom_utm_pose):
+        
         # Construct real request
         req = UTMLatLon.Request()
         req.utm_points = []
@@ -189,49 +194,18 @@ class DrOdom2LatLon(Node):
         ps.point.y = odom_utm_pose.position.y
         req.utm_points.append(ps)
 
-        self.future = self.latlon_client.call_async(req)
-        self.future.add_done_callback(callback=self.lat_lon_service_response_callback)
-
-        # Note:
-        # The resulting GeoPoint from the lat lon service is published in the service response callback
-
-    def lat_lon_service_response_callback(self, future):
-        """
-        Callback function for handling th response
-
-        A response callback was used because the lat lon conversion service request was causing some sort of deadlocking
-        when used with rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
-        """
-
-        # Check for completion, timeout
-        try:
-            if not self.future.done():
-                self._log(f"LAT LON Service failed!!")
-                return
-        except Exception as e:
-            self._log(f"Service call failed: {e}")
-            return
-
-        # Check if the future resulted in an exception
-        if self.future.result() is None:
-            self._log(f"Service call failed with exception: {self.future.exception()}")
-            return
-
-        # At this point the response is valid UTMLatLon.Response
-        # The response might still be empty due to an invalid request
-
-        response = future.result()
+        response = GeoConverterService.convert(req, UTMLatLon.Response())
         lat_lon_points = response.lat_lon_points
 
         # Check service response Lat Lon points
         # (1) lat_lon_points is a non-empty list
         # (2) Valid point != None
         if len(lat_lon_points) == 0:
-            self._log(f"LAT LON Service returned no points")
+            self._log(f"LAT LON conversion returned no points")
             return
 
         if lat_lon_points[0] is None:
-            self._log(f"LAT LON Service returned no valid points")
+            self._log(f"LAT LON conversion returned no valid points")
             return
 
         if self.verbose_conversion:
@@ -239,20 +213,6 @@ class DrOdom2LatLon(Node):
 
         self.lat_lon_pub.publish(lat_lon_points[0])
 
-    def transformed_odometry_to_pose(self, odom_msg, transform, target_frame) -> Pose:
-        # Create a new odometry message for the transformed odometry
-        transformed_odom = Odometry()
-
-        # Copy the header and twist information
-        transformed_odom.header.stamp = self.get_clock().now().to_msg()
-        transformed_odom.header.frame_id = target_frame
-        transformed_odom.child_frame_id = odom_msg.child_frame_id
-        transformed_odom.twist = odom_msg.twist
-
-        # Transform the pose
-        transformed_pose = do_transform_pose(odom_msg.pose.pose, transform)
-
-        return transformed_pose
 
     def check_status_valid(self, current_time: float):
         """

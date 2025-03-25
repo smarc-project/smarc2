@@ -47,6 +47,7 @@ class PublishGPSPose(Node):
         self.tf_buffer = Buffer()
         self.listener = TransformListener(self.tf_buffer, self)
         self.static_tf_bc = tf2_ros.StaticTransformBroadcaster(self)
+        self.br = tf2_ros.TransformBroadcaster(self)
 
         # Subscriptions
         self.gps_sam_sub = self.create_subscription(msg_type=NavSatFix, topic=SmarcTopics.GPS_TOPIC,
@@ -84,41 +85,48 @@ class PublishGPSPose(Node):
 
         if sam_gps.status.status != -1:
 
+            self.get_logger().debug(f"GPS cb")
+            
             utm_sam = utm.fromLatLong(sam_gps.latitude, sam_gps.longitude)
             rot = [0., 0., 0., 1.]
 
-            try:
-                # TODO check that the frame order is correct
-                # Not sure what the argument order is in ros 1
-                # ROS1
-                # (world_trans, world_rot) = self.listener.lookupTransform(self.utm_frame,
-                #                                                          self.map_frame,
-                #                                                          rospy.Time(0))
+            # Name the UTM frame based on zone and band
+            self.utm_frame = f"utm_{utm_sam.zone}_{utm_sam.band}"
 
-                # This appears unused but leaving as its a good example of a ROS1 / ROS2 difference
-                world_transform = self.tf_buffer.lookup_transform(target_frame=self.map_frame,
-                                                                           source_frame=self.utm_frame,
-                                                                           time=rclpy.time.Time())
+            # try:
+            #     # TODO check that the frame order is correct
+            #     # Not sure what the argument order is in ros 1
+            #     # ROS1
+            #     # (world_trans, world_rot) = self.listener.lookupTransform(self.utm_frame,
+            #     #                                                          self.map_frame,
+            #     #                                                          rospy.Time(0))
 
-                world_trans = world_transform.transform.translation
-                world_rot = world_transform.transform.rotation
+            #     # This appears unused but leaving as its a good example of a ROS1 / ROS2 difference
+            #     world_transform = self.tf_buffer.lookup_transform(target_frame=self.map_frame,
+            #                                                                source_frame=self.utm_frame,
+            #                                                                time=rclpy.time.Time())
 
-            except (LookupException, ConnectivityException):
-                self.get_logger().info(f"GPS node: broadcasting transform {self.utm_frame} to {self.map_frame}")
-                transformStamped = TransformStamped()
-                transformStamped.transform.translation.x = utm_sam.easting
-                transformStamped.transform.translation.y = utm_sam.northing
-                transformStamped.transform.translation.z = 0.
-                transformStamped.transform.rotation.x = rot[0]
-                transformStamped.transform.rotation.y = rot[1]
-                transformStamped.transform.rotation.z = rot[2]
-                transformStamped.transform.rotation.w = rot[3]
-                transformStamped.header.frame_id = self.utm_frame
-                transformStamped.child_frame_id = self.map_frame
-                transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())
-                self.static_tf_bc.sendTransform(transformStamped)
+            #     world_trans = world_transform.transform.translation
+            #     world_rot = world_transform.transform.rotation
 
-                return
+            # except (LookupException, ConnectivityException):
+
+            self.get_logger().info(f"GPS node: broadcasting transform {self.utm_frame} to {self.map_frame}", once=True)
+            transformStamped = TransformStamped()
+            transformStamped.transform.translation.x = utm_sam.easting
+            transformStamped.transform.translation.y = utm_sam.northing
+            transformStamped.transform.translation.z = 0.
+            transformStamped.transform.rotation.x = rot[0]
+            transformStamped.transform.rotation.y = rot[1]
+            transformStamped.transform.rotation.z = rot[2]
+            transformStamped.transform.rotation.w = rot[3]
+            transformStamped.header.frame_id = self.utm_frame
+            transformStamped.child_frame_id = self.map_frame
+            transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())
+            self.static_tf_bc.sendTransform(transformStamped)
+            # self.br.sendTransform(transformStamped)
+
+                # return
 
             # For SAM GPS
             odom_msg = Odometry()
