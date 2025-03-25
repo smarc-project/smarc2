@@ -41,7 +41,7 @@ test:
 ```
 
 Now you can run `colcon build` and `colcon test` from anywhere in your system and it will create its files in the same place, all the time.
-You might need to change this if you ever need multiple workspaces and don't want to delete the created folders.
+You might need to change this if you ever need multiple workspaces and don't want to delete the created folders. If you want to go crazy with this, check out [this example](https://gist.github.com/rotu/62cccb11b25398e9d1aa45021376d546).
 
 You can also find this file [here](../docker/defaults.yaml)
 
