@@ -8,7 +8,7 @@
 # Control topics
 ########################
 # States
-string STATES = 'core/odom_gt' # Type: Odometry
+string STATES = 'dr/odom' # Type: Odometry
 
 # Setpoints
 string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64

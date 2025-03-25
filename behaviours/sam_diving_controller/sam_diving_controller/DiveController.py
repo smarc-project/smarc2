@@ -60,7 +60,7 @@ class DiveController():
         self._states = Odometry()
 
         self.state_sub = node.create_subscription(msg_type=Odometry, 
-                                                  topic=ControlTopics.STATES, 
+                                                  topic=ControlTopics.STATES + str(tf_suffix), 
                                                   callback=self._states_cb, 
                                                   qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, 
