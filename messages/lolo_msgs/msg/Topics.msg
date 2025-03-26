@@ -37,17 +37,8 @@ string VERTICAL_THRUSTER_4_FB = "actuators/vertical_thruster_4_fb"
 
 # Topics for ....
 
-#Heartbeat topic
-string HEARTBEAT_TOPIC = "heartbeat"
-
-string LOLO_ABORT_TOPIC = "lolo_abort"
-
 #Leak topic
-string LEAK_TOPIC = "leak"
-
-#Battry topics
-string BATTERY_1_TOPIC = "battery1"
-string BATTERY_2_TOPIC = "battery2"
+string LEAK_TOPIC = "core/leak"
 
 
 #Extended interface
@@ -66,6 +57,10 @@ string EXTENDED_VERTICAL_THRUSTER_1_FB_TOPIC = "extended/actuators/vertical_thru
 string EXTENDED_VERTICAL_THRUSTER_2_FB_TOPIC = "extended/actuators/vertical_thruster_2_fb"
 string EXTENDED_VERTICAL_THRUSTER_3_FB_TOPIC = "extended/actuators/vertical_thruster_3_fb"
 string EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC = "extended/actuators/vertical_thruster_4_fb"
+
+#Extended Battery topics
+string EXTENDED_BATTERY_1_TOPIC = "extended/battery1"
+string EXTENDED_BATTERY_2_TOPIC = "extended/battery2"
 
 
 
