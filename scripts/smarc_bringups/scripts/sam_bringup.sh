@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=sam_auv_v1
+ROBOT_NAME=sam0
 SESSION=${ROBOT_NAME}_bringup
 
 # create a tmux session with a name

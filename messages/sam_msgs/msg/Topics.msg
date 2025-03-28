@@ -64,3 +64,9 @@ string GET_NODE_INFO_SRV = 'core/uavcan_get_node_info'
 string GET_TRANSPORT_STATS_SRV = 'core/uavcan_get_transport_stats'
 string RESTART_NODE_SRV = 'core/uavcan_restart_node'
 string UPDATE_BATTERY_SRV = 'core/uavcan_update_battery'
+
+################
+# WARA-PS Topics
+################
+string WARA_PS_HB_TOPIC = 'waraps/heartbeat'
+string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'
