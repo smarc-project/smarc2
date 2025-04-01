@@ -28,6 +28,10 @@ tmux new-window -t $SESSION:8 -n 'description'
 # dummy stuff to temporarily let other stuff work
 tmux new-window -t $SESSION:9 -n 'dummies'
 
+# for the mqtt bridge.
+tmux new-window -t $SESSION:10 -n 'mqtt'
+
+
 
 # Now we launch things in each window.
 tmux select-window -t $SESSION:0
@@ -53,6 +57,10 @@ tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$
 
 tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
+
+tmux select-window -t $SESSION:10
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch" C-m
+
 
 
 # Conditional launches, for sim-only or real-only things

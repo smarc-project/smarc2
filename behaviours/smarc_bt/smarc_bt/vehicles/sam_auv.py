@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 
 from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
@@ -29,6 +30,28 @@ class SAMAuv(ROSVehicle):
 
         self._t1 = None
         self._t2 = None
+
+
+        # WARA-PS stuff defined in ROSVehicle class
+
+        # override ros_vehicle stuff for sam, in the context of WARA-PS
+        node.set_parameters([
+            Parameter("agent_levels", Parameter.Type.STRING, "sensor, direct execution")
+        ])
+
+        node.set_parameters([
+            Parameter("agent_uuid", Parameter.Type.STRING, "sam0")
+        ])
+
+        node.set_parameters([
+            Parameter("agent_type", Parameter.Type.STRING, "subsurface")
+        ])
+
+        self._agent_rate = node.set_parameters([
+            Parameter("agent_rate", Parameter.Type.DOUBLE, 1.0)
+        ])
+
+
 
     def _dvl_cb(self, data:DVL):
         self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)

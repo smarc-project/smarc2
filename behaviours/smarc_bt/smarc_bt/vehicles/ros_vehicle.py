@@ -59,6 +59,13 @@ class ROSVehicle(IVehicleStateContainer):
         self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_healthy_cb, 10)
 
 
+        # WARA-PS stuff
+        self._agent_levels = node.declare_parameter("agent_levels", "").value
+        self._agent_uuid = node.declare_parameter("agent_uuid", "").value
+        self._agent_type = node.declare_parameter("agent_type", "").value
+        self._agent_rate = node.declare_parameter("agent_rate", 1.0).value
+
+
     def update_tf(self):
         try:
             latest = self._tf_buffer.get_latest_common_time(self._robot_base_link, self._vehicle_state._reference_frame)

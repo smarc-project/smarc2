@@ -29,15 +29,16 @@ from .conditions import C_CheckMissionPlanState,\
                         C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK
+                        C_MissionTimeoutOK, \
+                        C_Seconds
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
-                     A_WaitForData
-
+                     A_WaitForData,\
+                     A_WarapsHeartbeat
 
 
 class BT(HasVehicleContainer, HasClock):
@@ -103,6 +104,15 @@ class BT(HasVehicleContainer, HasClock):
 
         return safety_tree
     
+    def _waraps_heartbeat_tree(self):
+        waraps_heartbeat = Sequence("S_WARAPS_Heartbeat", memory=False, children=[
+            # C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY), # don't need this since _liveliness_tree() already checks it
+            C_Seconds(self), # check if 1 second has passed
+            A_WarapsHeartbeat(self) # publish heartbeat to waraps topic
+        ])
+
+        return waraps_heartbeat
+    
     def _run_tree(self):
         finalize_mission = Sequence("S_Finalize_Mission", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
@@ -134,6 +144,7 @@ class BT(HasVehicleContainer, HasClock):
             A_Heartbeat(self),
             A_ProcessBTCommand(self._mission_updater),
             self._liveliness_tree(),
+            self._waraps_heartbeat_tree(),
             self._safety_tree(),
             self._run_tree()
         ])
@@ -151,7 +162,7 @@ class BT(HasVehicleContainer, HasClock):
         self._bb.set(BBKeys.TREE_TIP, self._bt.tip())
 
 
-def old_smarc_bt():
+def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
     from ..vehicles.sam_auv import SAMAuv
     from ..mission.ros_mission_updater import ROSMissionUpdater
@@ -201,7 +212,7 @@ def old_smarc_bt():
 
 
 
-def smarc_bt():
+def new_smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
     from ..vehicles.sam_auv import SAMAuv
     from ..mission.ros_mission_updater import ROSMissionUpdater

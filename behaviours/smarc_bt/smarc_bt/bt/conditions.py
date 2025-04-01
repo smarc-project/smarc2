@@ -17,6 +17,31 @@ from ..vehicles.sensor import SensorNames
 
 
         
+class C_Seconds(VehicleBehaviour):
+    def __init__(self, bt: HasClock):
+        """
+        Returns S if one second has passed since the last tick
+        Returns R if less than one second has passed since the last tick
+        """
+        name = f"{self.__class__.__name__}"
+        super().__init__(bt, name)
+        self._bb = Blackboard()
+        self._seconds = 0 
+        self._last_tick_seconds = None
+
+    def update(self) -> Status:
+        if self._last_tick_seconds is None:
+            self._last_tick_seconds = self._bt.now_seconds
+
+        dt = self._bt.now_seconds - self._last_tick_seconds
+        if dt >= 1:
+            self._seconds += 1
+            self._last_tick_seconds = self._bt.now_seconds
+            self.feedback_message = f"{self._seconds} seconds"
+            return Status.SUCCESS
+
+        self.feedback_message = f"{dt:.2f} seconds"
+        return Status.RUNNING
 
         
 class C_CheckSensorBool(VehicleBehaviour):
