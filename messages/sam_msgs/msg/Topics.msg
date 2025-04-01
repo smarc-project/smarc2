@@ -68,5 +68,5 @@ string UPDATE_BATTERY_SRV = 'core/uavcan_update_battery'
 ################
 # WARA-PS Topics
 ################
-string WARA_PS_HB_TOPIC = 'waraps/heartbeat'
-string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'
+# string WARA_PS_HEARTBEAT_TOPIC = 'waraps/heartbeat'
+# string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'

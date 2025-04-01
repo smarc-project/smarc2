@@ -4,7 +4,7 @@ from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
 
-from std_msgs.msg import Empty, Bool
+from std_msgs.msg import Empty, Bool, String
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics, FloatStamped
 
@@ -64,6 +64,8 @@ class ROSVehicle(IVehicleStateContainer):
         self._agent_uuid = node.declare_parameter("agent_uuid", "").value
         self._agent_type = node.declare_parameter("agent_type", "").value
         self._agent_rate = node.declare_parameter("agent_rate", 1.0).value
+
+        self._wara_ps_heartbeat_pub = node.create_publisher(String, Topics.WARA_PS_HEARTBEAT_TOPIC, 10)
 
 
     def update_tf(self):

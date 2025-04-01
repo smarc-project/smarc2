@@ -15,6 +15,7 @@ from ..mission.i_action_client import IActionClient, ActionClientState
 
 # import waraps_hb topic from smarc_topics
 from smarc_msgs.msg import Topics as SmarcTopics
+from ..mqtt_stuff.mqtt_interactor import MQTTInteractor
 
 # import string
 from std_msgs.msg import String
@@ -22,62 +23,40 @@ import json
 
 class A_WarapsHeartbeat(VehicleBehaviour):
     def __init__(self,
-                bt: HasClock):
-        super().__init__(bt)
+                bt: HasClock,
+                mqtt_interactor: MQTTInteractor):
+        name = f"{self.__class__.__name__}({mqtt_interactor.__class__.__name__})"
+        super().__init__(bt, name)
+
+        self.mqtt_interactor = mqtt_interactor
 
         # define ros publisher
         self.waraps_heartbeat_pub = bt.vehicle_container._node.create_publisher(String, SmarcTopics.WARA_PS_HEARTBEAT_TOPIC, 10)
+        self.prev_time = None
+        self.beat_now = False
 
+    def update(self):
+        self.feedback_message = "Sent heartbeat to WARA-PS"
+        # get the current time
+        now = self._bt.now_seconds
+        # if the time is None, set it to now for the future, and tell the vehiclecontainer to send the heartbeat
+        if self.prev_time is None:
+            self.prev_time = now
+            self.beat_now = True
+        # if the time is not None, check if the time is greater than 1 second
+        elif now - self.prev_time >= 1.0/self.mqtt_interactor.pulse_rate:
+            self.prev_time = now
+            self.beat_now = True
+        else:
+            self.beat_now = False
 
-        # compute levels
-        level_str = self._bt.vehicle_container._node.get_parameter("agent_levels").value,
-        
-        # at this stage, it's a tuple object
-        # so we need to get the first element of the tuple
-        level_str = level_str[0]
-        
-        # string example: "level1,level2,level3"
-        # convert to list
-        # print(f"level_str: {level_str}")
-        levels = level_str.split(",")
-        # remove leading and trailing whitespace from each level
-        levels = [level.strip() for level in levels]
-        # remove empty strings
-        levels = [level for level in levels if level != ""]
-        # remove duplicates
-        self.levels = list(set(levels))
+        # if the time is greater than 1 second, send the heartbeat
+        if self.beat_now:
+            self.mqtt_interactor.publish_heartbeat(now, self.mqtt_interactor.pulse_rate)
 
-        self.agent_type = self._bt.vehicle_container._node.get_parameter("agent_type").value
-        self.agent_uuid = self._bt.vehicle_container._node.get_parameter("agent_uuid").value
-        self.robot_name = self._bt.vehicle_container._node.get_parameter("robot_name").value
-        self.agent_rate = self._bt.vehicle_container._node.get_parameter("agent_rate").value
+        # feedback
+        self.feedback_message = f"Heartbeat sent to WARA-PS at {now:.2f}s"
 
-
-
-    def update(self) -> Status:        
-            
-
-        heartbeat_data = {
-            "agent-type": self.agent_type,
-            "agent-uuid": self.agent_uuid,
-            "levels": self.levels,
-            # "name": sam.vehicle_state.,
-            # use rosparam "robot_name"
-            "name": self.robot_name, 
-            "rate": self.agent_rate,
-            "stamp": self._bt.now_seconds,
-            # UTC time please
-            # "stamp": node.get_clock().now().to_msg().sec + node.get_clock().now().to_msg().nanosec * 1e-9,
-            "type": "HeartBeat"
-        }
-
-        # convert to string
-        msg = String()
-        msg.data = json.dumps(heartbeat_data)
-
-        # publish
-        self.waraps_heartbeat_pub.publish(msg)
-        self.feedback_message = f"Published WARAPS heartbeat: {heartbeat_data}"
         return Status.SUCCESS
 
 

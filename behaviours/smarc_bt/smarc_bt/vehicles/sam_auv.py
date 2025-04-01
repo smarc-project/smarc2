@@ -12,6 +12,8 @@ from sensor_msgs.msg import FluidPressure
 from .ros_vehicle import ROSVehicle
 from .vehicle import UnderwaterVehicleState, SensorNames
 
+import json
+from std_msgs.msg import String
 
 class SAMAuv(ROSVehicle):
     def __init__(self,
@@ -47,9 +49,23 @@ class SAMAuv(ROSVehicle):
             Parameter("agent_type", Parameter.Type.STRING, "subsurface")
         ])
 
-        self._agent_rate = node.set_parameters([
-            Parameter("agent_rate", Parameter.Type.DOUBLE, 1.0)
-        ])
+
+    def wara_ps_heartbeat(self, now_time, pulse_rate):
+        """Override default heartbeat to use sam-specific message"""
+        heartbeat_data = {
+            "agent-type": self._agent_type,
+            "agent-uuid": self._agent_uuid,
+            "levels": self._agent_levels,
+            "name": self._robot_name,
+            "rate": pulse_rate,
+            "stamp": now_time,
+            # "stamp": self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9,
+            "type": "HeartBeat"
+        }
+        msg = String()
+        msg.data = json.dumps(heartbeat_data)
+        self._wara_ps_heartbeat_pub.publish(msg)
+        self._node.get_logger().info('Published Heartbeat message')
 
 
 

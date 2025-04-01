@@ -24,26 +24,27 @@ from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
+from ..mqtt_stuff.mqtt_interactor import MQTTInteractor
+
 
 from .conditions import C_CheckMissionPlanState,\
                         C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK, \
-                        C_Seconds
+                        C_MissionTimeoutOK
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
-                     A_WaitForData,\
+                     A_WaitForData, \
                      A_WarapsHeartbeat
-
 
 class BT(HasVehicleContainer, HasClock):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
+                 mqtt_interactor:MQTTInteractor,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
                  goto_wp_action: IActionClient,
@@ -55,6 +56,7 @@ class BT(HasVehicleContainer, HasClock):
             SAMAuv, ROSVehicle, etc. should all fit this
         """
         self._vehicle_container = vehicle_container
+        self._mqtt_interactor = mqtt_interactor
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
@@ -68,6 +70,10 @@ class BT(HasVehicleContainer, HasClock):
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
         return self._vehicle_container
+    
+    @property
+    def mqtt_interactor(self) -> typing.Any:
+        return self._mqtt_interactor
     
     @property
     def now_seconds(self) -> int:
@@ -103,16 +109,7 @@ class BT(HasVehicleContainer, HasClock):
         ])
 
         return safety_tree
-    
-    def _waraps_heartbeat_tree(self):
-        waraps_heartbeat = Sequence("S_WARAPS_Heartbeat", memory=False, children=[
-            # C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY), # don't need this since _liveliness_tree() already checks it
-            C_Seconds(self), # check if 1 second has passed
-            A_WarapsHeartbeat(self) # publish heartbeat to waraps topic
-        ])
-
-        return waraps_heartbeat
-    
+        
     def _run_tree(self):
         finalize_mission = Sequence("S_Finalize_Mission", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
@@ -142,9 +139,9 @@ class BT(HasVehicleContainer, HasClock):
         
         root = Sequence("S_Root", memory=False, children=[
             A_Heartbeat(self),
+            A_WarapsHeartbeat(self, self._mqtt_interactor),
             A_ProcessBTCommand(self._mission_updater),
             self._liveliness_tree(),
-            self._waraps_heartbeat_tree(),
             self._safety_tree(),
             self._run_tree()
         ])
@@ -182,7 +179,9 @@ def smarc_bt():
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
     ros_goto_wp = ROSGotoWaypoint(node)
+    mqtt_interactor = MQTTInteractor(sam)
     bt = BT(vehicle_container = sam,
+            mqtt_interactor    = mqtt_interactor,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
             goto_wp_action    = ros_goto_wp,
