@@ -16,6 +16,7 @@ tmux new-window -t $SESSION:0 -n 'dr'
 tmux rename-window "dr"
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
+tmux rename-window "bt"
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'control'
 # connection to different GUIs

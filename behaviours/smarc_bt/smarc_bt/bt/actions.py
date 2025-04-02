@@ -31,34 +31,65 @@ class A_WarapsHeartbeat(VehicleBehaviour):
         self.mqtt_interactor = mqtt_interactor
 
         # define ros publisher
-        self.waraps_heartbeat_pub = bt.vehicle_container._node.create_publisher(String, SmarcTopics.WARA_PS_HEARTBEAT_TOPIC, 10)
         self.prev_time = None
-        self.beat_now = False
 
     def update(self):
-        self.feedback_message = "Sent heartbeat to WARA-PS"
         # get the current time
         now = self._bt.now_seconds
-        # if the time is None, set it to now for the future, and tell the vehiclecontainer to send the heartbeat
+
+        # if this is the first tick, set the previous time to now
         if self.prev_time is None:
             self.prev_time = now
-            self.beat_now = True
-        # if the time is not None, check if the time is greater than 1 second
-        elif now - self.prev_time >= 1.0/self.mqtt_interactor.pulse_rate:
+
+        # call the mqtt interactor to publish the heartbeat
+        beat_now = self.mqtt_interactor.publish_heartbeat(self.prev_time, now)
+
+        # if the heartbeat was published, update the previous time
+        if beat_now:
             self.prev_time = now
-            self.beat_now = True
+            feedback_msg = "Published heartbeat"
         else:
-            self.beat_now = False
+            feedback_msg = "Not my time yet, waiting for next tick"
 
-        # if the time is greater than 1 second, send the heartbeat
-        if self.beat_now:
-            self.mqtt_interactor.publish_heartbeat(now, self.mqtt_interactor.pulse_rate)
-
-        # feedback
-        self.feedback_message = f"Heartbeat sent to WARA-PS at {now:.2f}s"
+        # set the feedback message
+        self.feedback_message = feedback_msg
 
         return Status.SUCCESS
 
+class A_WarapsLvl1(VehicleBehaviour):
+    def __init__(self,
+                bt: HasClock,
+                mqtt_interactor: MQTTInteractor):
+        name = f"{self.__class__.__name__}({mqtt_interactor.__class__.__name__})"
+        super().__init__(bt, name)
+
+        self.mqtt_interactor = mqtt_interactor
+
+        # define ros publisher
+        self.prev_time = None
+
+    def update(self):
+        # get the current time
+        now = self._bt.now_seconds
+
+        # if this is the first tick, set the previous time to now
+        if self.prev_time is None:
+            self.prev_time = now
+
+        # call the mqtt interactor to publish the heartbeat
+        pub_now = self.mqtt_interactor.wara_ps_lvl1(self.prev_time, now)
+
+        # if the heartbeat was published, update the previous time
+        if pub_now:
+            self.prev_time = now
+            feedback_msg = "Published sensor(s) info"
+        else:
+            feedback_msg = "Not my time yet, waiting for next tick"
+
+        # set the feedback message
+        self.feedback_message = feedback_msg
+
+        return Status.SUCCESS
 
 
 

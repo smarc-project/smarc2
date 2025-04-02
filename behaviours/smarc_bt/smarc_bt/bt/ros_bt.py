@@ -39,7 +39,8 @@ from .actions import A_Abort,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
                      A_WaitForData, \
-                     A_WarapsHeartbeat
+                     A_WarapsHeartbeat, \
+                     A_WarapsLvl1
 
 class BT(HasVehicleContainer, HasClock):
     def __init__(self,
@@ -133,16 +134,24 @@ class BT(HasVehicleContainer, HasClock):
             mission
         ])
         return run
+    
+    def _waraps_lvl_1_tree(self):
+        lvl_1 = Sequence("S_WARAPS_LVL_1", memory=False, children=[
+            A_WarapsHeartbeat(self, self._mqtt_interactor),
+            A_WarapsLvl1(self, self._mqtt_interactor),
+        ])
+        return lvl_1
         
 
     def setup(self) -> bool:
         
         root = Sequence("S_Root", memory=False, children=[
             A_Heartbeat(self),
-            A_WarapsHeartbeat(self, self._mqtt_interactor),
+            # A_WarapsHeartbeat(self, self._mqtt_interactor),
             A_ProcessBTCommand(self._mission_updater),
             self._liveliness_tree(),
             self._safety_tree(),
+            self._waraps_lvl_1_tree(),
             self._run_tree()
         ])
 
@@ -161,7 +170,7 @@ class BT(HasVehicleContainer, HasClock):
 
 def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
-    from ..vehicles.sam_auv import SAMAuv
+    from ..vehicles.sam_auv import SAMAuv, SAMAuvWaraPS
     from ..mission.ros_mission_updater import ROSMissionUpdater
     from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
     import rclpy, sys
@@ -175,7 +184,8 @@ def smarc_bt():
         return int(secs)
 
     
-    sam = SAMAuv(node)
+    sam = SAMAuvWaraPS(node)
+    # sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
     ros_goto_wp = ROSGotoWaypoint(node)

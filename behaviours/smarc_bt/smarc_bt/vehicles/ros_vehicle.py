@@ -10,7 +10,7 @@ from smarc_msgs.msg import Topics, FloatStamped
 
 from typing import Type
 
-from .vehicle import IVehicleState, IVehicleStateContainer
+from .vehicle import IVehicleState, IVehicleStateContainer, IWaraPSVehicleStateContainer
 from .sensor import Sensor, SensorNames
 
 
@@ -57,16 +57,6 @@ class ROSVehicle(IVehicleStateContainer):
         self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
         self._heartbeat_pub = node.create_publisher(Empty, Topics.HEARTBEAT_TOPIC, 10)
         self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_healthy_cb, 10)
-
-
-        # WARA-PS stuff
-        self._agent_levels = node.declare_parameter("agent_levels", "").value
-        self._agent_uuid = node.declare_parameter("agent_uuid", "").value
-        self._agent_type = node.declare_parameter("agent_type", "").value
-        self._agent_rate = node.declare_parameter("agent_rate", 1.0).value
-
-        self._wara_ps_heartbeat_pub = node.create_publisher(String, Topics.WARA_PS_HEARTBEAT_TOPIC, 10)
-
 
     def update_tf(self):
         try:
@@ -124,6 +114,24 @@ class ROSVehicle(IVehicleStateContainer):
     
     def __getitem__(self, key:str) -> Sensor:
         return self._vehicle_state[key]
+
+
+#extend the ROSVehicle with WaraPSVehicle, made using IWaraPSVehicleStateContainer instead of IVehicleStateContainer
+class WaraPSVehicle(ROSVehicle, IWaraPSVehicleStateContainer):
+    def __init__(self,
+                 node: Node,
+                 vehicle_state_type: Type[IVehicleState],
+                 links_message):
+        super().__init__(node, vehicle_state_type, links_message)
+
+        # Publishers for WARA-PS topics
+        self._wara_ps_heartbeat_pub = node.create_publisher(String, Topics.WARA_PS_HEARTBEAT_TOPIC, 10)
+        self._wara_ps_position_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_POSITION_TOPIC, 10)
+        self._wara_ps_heading_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_HEADING_TOPIC, 10)
+        self._wara_ps_course_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_COURSE_TOPIC, 10)
+        self._wara_ps_speed_pub = node.create_publisher(String, Topics.
+        WARA_PS_SENSOR_SPEED_TOPIC, 10)
+        self._wara_ps_sensor_info_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_INFO_TOPIC, 10)
 
 
 

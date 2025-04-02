@@ -24,7 +24,13 @@ class IVehicleStateContainer():
     def vehicle_state(self) -> Type[IVehicleState]: pass
     def abort(self) -> bool: pass
     def heartbeat(self) -> bool: pass
-    def wara_ps_heartbeat(self) -> bool: pass
+
+class IWaraPSVehicleStateContainer(IVehicleStateContainer):
+    
+    @property    
+    def wara_ps_dict(self) -> dict: pass
+    def wara_ps_heartbeat(self, prev_time: float, now_time: float) -> bool: pass
+    def wara_ps_lvl1(self, prev_time: float, now_time: float) -> bool: pass
     
 
 
