@@ -13,13 +13,7 @@ from .bb_keys import BBKeys
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient, ActionClientState
 
-# import waraps_hb topic from smarc_topics
-from smarc_msgs.msg import Topics as SmarcTopics
 from ..mqtt_stuff.mqtt_interactor import MQTTInteractor
-
-# import string
-from std_msgs.msg import String
-import json
 
 class A_WarapsHeartbeat(VehicleBehaviour):
     def __init__(self,
