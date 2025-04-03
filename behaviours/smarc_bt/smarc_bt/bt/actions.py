@@ -13,7 +13,7 @@ from .bb_keys import BBKeys
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient, ActionClientState
 
-from ..mqtt_stuff.mqtt_interactor import MQTTInteractor
+from smarc_bt.waraps.mqtt_interactor import MQTTInteractor
 
 class A_WarapsHeartbeat(VehicleBehaviour):
     def __init__(self,
@@ -28,9 +28,10 @@ class A_WarapsHeartbeat(VehicleBehaviour):
         self.prev_time = None
 
     def update(self):
+
+        print(self.prev_time, self._bt.now_seconds)
         # get the current time
         now = self._bt.now_seconds
-
         # if this is the first tick, set the previous time to now
         if self.prev_time is None:
             self.prev_time = now
@@ -43,7 +44,8 @@ class A_WarapsHeartbeat(VehicleBehaviour):
             self.prev_time = now
             feedback_msg = "Published heartbeat"
         else:
-            feedback_msg = "Not my time yet, waiting for next tick"
+            time_to_next_tick = 1/self.mqtt_interactor.pulse_rate - (now - self.prev_time)
+            feedback_msg = "Not my time yet. Next tick in {:.2f}s".format(time_to_next_tick)
 
         # set the feedback message
         self.feedback_message = feedback_msg
@@ -78,7 +80,8 @@ class A_WarapsLvl1(VehicleBehaviour):
             self.prev_time = now
             feedback_msg = "Published sensor(s) info"
         else:
-            feedback_msg = "Not my time yet, waiting for next tick"
+            time_to_next_tick = 1/self.mqtt_interactor.pulse_rate - (now - self.prev_time)
+            feedback_msg = "Not my time yet. Next tick in {:.2f}s".format(time_to_next_tick)
 
         # set the feedback message
         self.feedback_message = feedback_msg

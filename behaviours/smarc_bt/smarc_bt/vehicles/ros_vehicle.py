@@ -4,13 +4,13 @@ from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
 
-from std_msgs.msg import Empty, Bool, String
+from std_msgs.msg import Empty, Bool
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics, FloatStamped
 
 from typing import Type
 
-from .vehicle import IVehicleState, IVehicleStateContainer, IWaraPSVehicleStateContainer
+from .vehicle import IVehicleState, IVehicleStateContainer
 from .sensor import Sensor, SensorNames
 
 
@@ -114,24 +114,6 @@ class ROSVehicle(IVehicleStateContainer):
     
     def __getitem__(self, key:str) -> Sensor:
         return self._vehicle_state[key]
-
-
-#extend the ROSVehicle with WaraPSVehicle, made using IWaraPSVehicleStateContainer instead of IVehicleStateContainer
-class WaraPSVehicle(ROSVehicle, IWaraPSVehicleStateContainer):
-    def __init__(self,
-                 node: Node,
-                 vehicle_state_type: Type[IVehicleState],
-                 links_message):
-        super().__init__(node, vehicle_state_type, links_message)
-
-        # Publishers for WARA-PS topics
-        self._wara_ps_heartbeat_pub = node.create_publisher(String, Topics.WARA_PS_HEARTBEAT_TOPIC, 10)
-        self._wara_ps_position_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_POSITION_TOPIC, 10)
-        self._wara_ps_heading_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_HEADING_TOPIC, 10)
-        self._wara_ps_course_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_COURSE_TOPIC, 10)
-        self._wara_ps_speed_pub = node.create_publisher(String, Topics.
-        WARA_PS_SENSOR_SPEED_TOPIC, 10)
-        self._wara_ps_sensor_info_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_INFO_TOPIC, 10)
 
 
 

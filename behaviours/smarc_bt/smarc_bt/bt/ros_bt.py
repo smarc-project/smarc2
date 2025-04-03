@@ -24,7 +24,8 @@ from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
-from ..mqtt_stuff.mqtt_interactor import MQTTInteractor
+from ..waraps.mqtt_interactor import HasMQTTInteractor, MQTTInteractor
+from ..waraps.waraps_vehicle import WaraPSVehicle
 
 
 from .conditions import C_CheckMissionPlanState,\
@@ -42,7 +43,7 @@ from .actions import A_Abort,\
                      A_WarapsHeartbeat, \
                      A_WarapsLvl1
 
-class BT(HasVehicleContainer, HasClock):
+class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  mqtt_interactor:MQTTInteractor,
@@ -136,7 +137,8 @@ class BT(HasVehicleContainer, HasClock):
         return run
     
     def _waraps_lvl_1_tree(self):
-        lvl_1 = Sequence("S_WARAPS_LVL_1", memory=False, children=[
+        lvl_1 = Parallel("S_WARAPS_LVL_1", 
+        policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
             A_WarapsHeartbeat(self, self._mqtt_interactor),
             A_WarapsLvl1(self, self._mqtt_interactor),
         ])
@@ -170,10 +172,12 @@ class BT(HasVehicleContainer, HasClock):
 
 def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
-    from ..vehicles.sam_auv import SAMAuv, SAMAuvWaraPS
+    from ..vehicles.sam_auv import SAMAuv
+    from ..waraps.waraps_vehicle import WaraPSVehicle
     from ..mission.ros_mission_updater import ROSMissionUpdater
     from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
     import rclpy, sys
+    import uuid
 
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("smarc_bt")
@@ -182,20 +186,35 @@ def smarc_bt():
         nonlocal node
         secs, _ = node.get_clock().now().seconds_nanoseconds()
         return int(secs)
+    
+    def ros_seconds_float() -> float:
+        nonlocal node
+        secs, nsecs = node.get_clock().now().seconds_nanoseconds()
+        return float(secs) + float(nsecs) * 1e-9
 
     
-    sam = SAMAuvWaraPS(node)
+    sam = SAMAuv(node)
     # sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
     ros_mission_updater = ROSMissionUpdater(node)
     ros_goto_wp = ROSGotoWaypoint(node)
-    mqtt_interactor = MQTTInteractor(sam)
+
+    sam_waraps_dict = {
+            "agent-type": "subsurface",
+            "agent-uuid": str(uuid.uuid4()),
+            "levels": ["sensor, direct execution"],
+            "name": node.get_parameter("robot_name").value,
+            "pulse_rate": 0.2,
+        }        
+    
+    wara_ps_vehicle = WaraPSVehicle(node, sam.vehicle_state, sam_waraps_dict)
+    mqtt_interactor = MQTTInteractor(wara_ps_vehicle)
     bt = BT(vehicle_container = sam,
             mqtt_interactor    = mqtt_interactor,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
             goto_wp_action    = ros_goto_wp,
-            now_seconds_func  = ros_seconds)
+            now_seconds_func  = ros_seconds_float)
     bt.setup()
 
 
@@ -215,7 +234,7 @@ def smarc_bt():
         nonlocal bt
         bt.tick()
 
-    node.create_timer(0.2, update)
+    node.create_timer(0.1, update)
     node.create_timer(0.5, print_bt)
     rclpy.spin(node)
 

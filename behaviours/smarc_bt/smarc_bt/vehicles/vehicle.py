@@ -7,6 +7,11 @@ except:
 
     
 from typing import Type
+from rclpy.node import Node
+from std_msgs.msg import String
+import uuid
+import json
+from smarc_msgs.msg import Topics
 
 class IVehicleState():
     def update_sensor(self, sensor_name:str, values, time:float): pass
@@ -25,14 +30,7 @@ class IVehicleStateContainer():
     def abort(self) -> bool: pass
     def heartbeat(self) -> bool: pass
 
-class IWaraPSVehicleStateContainer(IVehicleStateContainer):
     
-    @property    
-    def wara_ps_dict(self) -> dict: pass
-    def wara_ps_heartbeat(self, prev_time: float, now_time: float) -> bool: pass
-    def wara_ps_lvl1(self, prev_time: float, now_time: float) -> bool: pass
-    
-
 
 class MockVehicleStateContainer(IVehicleStateContainer):
     def __init__(self, state_type: Type[IVehicleState]) -> None:
