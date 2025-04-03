@@ -204,7 +204,7 @@ def smarc_bt():
             "agent-uuid": str(uuid.uuid4()),
             "levels": ["sensor, direct execution"],
             "name": node.get_parameter("robot_name").value,
-            "pulse_rate": 0.2,
+            "pulse_rate": 1,
         }        
     
     wara_ps_vehicle = WaraPSVehicle(node, sam.vehicle_state, sam_waraps_dict)
