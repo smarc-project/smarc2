@@ -31,6 +31,7 @@ class SetpointServer(SMARCActionServer):
         self._pub_setpoint = self._node.create_publisher(
             Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
         )
+        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
 
     def declare_parameters(self):
         """Declares node's parameters in a single space for easier editing."""
@@ -123,7 +124,9 @@ class SetpointServer(SMARCActionServer):
             TransformException when transform fails
         """
         try:
+            # FIXME: The transform I am getting here is incorrect and needs fixing
             position = self.transform_goal(utm_val)
+            self.logger.debug(f"Position after tranform to {self.target_frame}: {position}")
         except TransformException as err:
             err_str = "Failed to compute transform when computing distance to target"
             raise TransformException(err_str) from err
@@ -183,6 +186,7 @@ class SetpointServer(SMARCActionServer):
         """
         geo_setpoint = goal_request.setpoint
         utm_val: utm.UTMPoint = utm.fromMsg(geo_setpoint)
+        self.logger.info(f"Recieved UTM point at {utm_val}")
         try:
             dist = self.compute_distance(utm_val)
         except TransformException as err:
