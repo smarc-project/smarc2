@@ -41,14 +41,6 @@ class SetpointServer(SMARCActionServer):
             "target_frame", "base_link"
         ).value
 
-        self._source_frame = node.declare_parameter(
-            "source_frame",
-            "utm",
-            ParameterDescriptor(
-                description="UTM source frame that values setpoints will be sent from."
-            ),
-        ).value
-
         self._frame_suffix = node.declare_parameter(
             "frame_suffix",
             "_gt",
@@ -92,7 +84,7 @@ class SetpointServer(SMARCActionServer):
             )
 
     def transform_goal(self, pose_stamped: PoseStamped) -> PoseStamped:
-        """Provides transformed point from self._source_frame to self.target_frame.
+        """Provides transformed point from pose_stamped.header.frame_id to self.target_frame.
 
         Raises:
             TransformException when transformation fails allowing for caller to handle exception
@@ -101,9 +93,9 @@ class SetpointServer(SMARCActionServer):
             pose: pose in specified frame
         """
         t = self._tf_buffer.lookup_transform(
-            self.target_frame,
-            pose_stamped.header.frame_id,
-            Time(seconds=0),
+            target_frame =self.target_frame,
+            source_frame =pose_stamped.header.frame_id,
+            time=Time(seconds=0),
             timeout=Duration(seconds=2),
         )
         # based on ReadMe in repository
@@ -113,7 +105,7 @@ class SetpointServer(SMARCActionServer):
         """Euclidean distance to target.
 
         Args:
-            utm_val: current location of utm target in self._source_frame
+            pose_stamped: current location of target in utm frame
         Returns:
             distance: euclidean distance to target
         Raises:
@@ -121,19 +113,19 @@ class SetpointServer(SMARCActionServer):
         """
         try:
             # FIXME: The transform I am getting here is incorrect and needs fixing
-            position = self.transform_goal(pose_stamped)
+            pose_transformed: PoseStamped = self.transform_goal(pose_stamped)
             self.logger.debug(
-                f"Position after tranform to {self.target_frame}: {position}"
+                "Position after transform:" + self._str_posestamp(pose_transformed)
             )
         except TransformException as err:
             err_str = "Failed to compute transform when computing distance to target"
             raise TransformException(err_str) from err
 
-        position = pose_stamped.pose
+        pose_delta = pose_transformed.pose
         delta = np.sqrt(
-            (position.position.x) ** 2
-            + (position.position.y) ** 2
-            + (position.position.z) ** 2
+            (pose_delta.position.x) ** 2
+            + (pose_delta.position.y) ** 2
+            + (pose_delta.position.z) ** 2
         )
         return delta
 
@@ -157,6 +149,9 @@ class SetpointServer(SMARCActionServer):
         pose_stamp.pose.position = point.toPoint()
         zone, band = point.gridZone()
         pose_stamp.header.frame_id = f"utm_{zone}_{band}"
+        self.logger.debug(
+            f"Point Position from lat long:{self._str_posestamp(pose_stamp)}"
+        )
         return pose_stamp
 
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionType.Result:
@@ -174,7 +169,7 @@ class SetpointServer(SMARCActionServer):
             result_msg.reached_setpoint = False
             return result_msg
         self.logger.info(
-            f"Publishing to {self._setpoint_topic}, with position {self.goal_base_link}"
+            f"Publishing to {self._setpoint_topic}, Setpoint" + self._str_posestamp(self.goal_base_link.pose)
         )
         # TODO: need to implement feedback here
         self._pub_setpoint.publish(self.goal_base_link.pose)
@@ -216,6 +211,11 @@ class SetpointServer(SMARCActionServer):
         pose_msg.header.frame_id = self.target_frame
         self._pub_setpoint.publish(pose_msg)
         return CancelResponse.ACCEPT
+
+    @staticmethod
+    def _str_posestamp(pose:PoseStamped):
+        return f"\nFrame: {pose.header.frame_id}\nPosition:{pose.pose.position}\nOrientation{pose.pose.orientation}"
+
 
 
 def main(args=None):

@@ -40,8 +40,10 @@ class SetpointClient(SMARCActionClient):
         goal_msg = GotoSetpoint.Goal()
         goal_msg.setpoint = GeoPoint()
         # https://awsm-tools.com/utm-to-lat-long?form%5Beasting%5D=652698.125&form%5Bnorthing%5D=6524250.5&form%5Bzone%5D=33&form%5Bband%5D=V&form%5Bellipsoid%5D=WGS+84
-        goal_msg.setpoint.latitude = 58.83099123563405
-        goal_msg.setpoint.longitude = 17.645308490070622
+        # goal_msg.setpoint.latitude = 58.83099123563405
+        # goal_msg.setpoint.longitude = 17.645308490070622
+        goal_msg.setpoint.latitude = 58.82332
+        goal_msg.setpoint.longitude = 17.635227
         goal_msg.setpoint.altitude = 10.0
         self.logger.info(f"Sending empty geopoint {goal_msg.setpoint}")
         self.send_goal(goal_msg, server_timeout_sec=1)
