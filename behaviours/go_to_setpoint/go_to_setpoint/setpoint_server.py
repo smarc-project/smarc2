@@ -49,7 +49,7 @@ class SetpointServer(SMARCActionServer):
             ),
         ).value
 
-        self._setpoint_tol = node.declare_parameter(
+        self._setpoint_tol: float = node.declare_parameter(
             "setpoint_tolerance",
             0.1,
             ParameterDescriptor(
@@ -83,6 +83,11 @@ class SetpointServer(SMARCActionServer):
                 f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
             )
 
+    @staticmethod
+    def _str_posestamp(pose: PoseStamped):
+        """Helper function to print PoseStamped."""
+        return f"\nFrame: {pose.header.frame_id}\nPosition:{pose.pose.position}\nOrientation{pose.pose.orientation}"
+
     def transform_goal(self, pose_stamped: PoseStamped) -> PoseStamped:
         """Provides transformed point from pose_stamped.header.frame_id to self.target_frame.
 
@@ -92,9 +97,10 @@ class SetpointServer(SMARCActionServer):
         Returns:
             pose: pose in specified frame
         """
+        # FIXME: Transform drama I can't figure out
         t = self._tf_buffer.lookup_transform(
-            target_frame =self.target_frame,
-            source_frame =pose_stamped.header.frame_id,
+            target_frame=self.target_frame,
+            source_frame=pose_stamped.header.frame_id,
             time=Time(seconds=0),
             timeout=Duration(seconds=2),
         )
@@ -112,7 +118,6 @@ class SetpointServer(SMARCActionServer):
             TransformException when transform fails
         """
         try:
-            # FIXME: The transform I am getting here is incorrect and needs fixing
             pose_transformed: PoseStamped = self.transform_goal(pose_stamped)
             self.logger.debug(
                 "Position after transform:" + self._str_posestamp(pose_transformed)
@@ -144,6 +149,15 @@ class SetpointServer(SMARCActionServer):
             return True
 
     def convert_to_utm(self, point: GeoPoint) -> PoseStamped:
+        """Converts GeoPoint to UTM with proper frame id
+
+        Args:
+            point: lat-long geopoint
+
+        Returns:
+            PoseStamped that has frame_id labeled based on UTM zone and band.
+
+        """
         point: utm.UTMPoint = utm.fromMsg(point)
         pose_stamp = PoseStamped()
         pose_stamp.pose.position = point.toPoint()
@@ -169,7 +183,8 @@ class SetpointServer(SMARCActionServer):
             result_msg.reached_setpoint = False
             return result_msg
         self.logger.info(
-            f"Publishing to {self._setpoint_topic}, Setpoint" + self._str_posestamp(self.goal_base_link.pose)
+            f"Publishing to {self._setpoint_topic}, Setpoint"
+            + self._str_posestamp(self.goal_base_link.pose)
         )
         # TODO: need to implement feedback here
         self._pub_setpoint.publish(self.goal_base_link.pose)
@@ -211,11 +226,6 @@ class SetpointServer(SMARCActionServer):
         pose_msg.header.frame_id = self.target_frame
         self._pub_setpoint.publish(pose_msg)
         return CancelResponse.ACCEPT
-
-    @staticmethod
-    def _str_posestamp(pose:PoseStamped):
-        return f"\nFrame: {pose.header.frame_id}\nPosition:{pose.pose.position}\nOrientation{pose.pose.orientation}"
-
 
 
 def main(args=None):

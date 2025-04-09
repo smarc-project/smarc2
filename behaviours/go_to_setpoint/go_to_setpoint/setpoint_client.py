@@ -56,7 +56,6 @@ def main(args=None):
     action_type = ActionType(GotoSetpoint)
     setpoint = SetpointClient(node, "go_to_setpoint", action_type)
     setpoint.test_geopoint()
-    setpoint._client._cancel_goal(setpoint._goal_handle)
     rclpy.spin(node)
 
 
