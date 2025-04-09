@@ -5,14 +5,14 @@ import numpy as np
 import rclpy
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped, Pose
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.time import Duration, Time
 from smarc_action_client.smarc_action_client import ActionType, SMARCActionServer
 from smarc_mission_msgs.action import GotoSetpoint
-from tf2_geometry_msgs import do_transform_pose
+from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
 KM_TO_METER = 100
@@ -91,7 +91,7 @@ class SetpointServer(SMARCActionServer):
                 f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
             )
 
-    def transform_goal(self, utm_val: utm.UTMPoint) -> Pose:
+    def transform_goal(self, pose_stamped: PoseStamped) -> PoseStamped:
         """Provides transformed point from self._source_frame to self.target_frame.
 
         Raises:
@@ -102,18 +102,14 @@ class SetpointServer(SMARCActionServer):
         """
         t = self._tf_buffer.lookup_transform(
             self.target_frame,
-            self._source_frame,
+            pose_stamped.header.frame_id,
             Time(seconds=0),
             timeout=Duration(seconds=2),
         )
-        goal = Pose()
         # based on ReadMe in repository
-        goal.position.x = utm_val.easting
-        goal.position.y = utm_val.northing
-        goal.position.z = utm_val.altitude
-        return do_transform_pose(goal, t)
+        return do_transform_pose_stamped(pose_stamped, t)
 
-    def compute_distance(self, utm_val: utm.UTMPoint) -> Optional[float]:
+    def compute_distance(self, pose_stamped: PoseStamped) -> float:
         """Euclidean distance to target.
 
         Args:
@@ -125,12 +121,15 @@ class SetpointServer(SMARCActionServer):
         """
         try:
             # FIXME: The transform I am getting here is incorrect and needs fixing
-            position = self.transform_goal(utm_val)
-            self.logger.debug(f"Position after tranform to {self.target_frame}: {position}")
+            position = self.transform_goal(pose_stamped)
+            self.logger.debug(
+                f"Position after tranform to {self.target_frame}: {position}"
+            )
         except TransformException as err:
             err_str = "Failed to compute transform when computing distance to target"
             raise TransformException(err_str) from err
 
+        position = pose_stamped.pose
         delta = np.sqrt(
             (position.position.x) ** 2
             + (position.position.y) ** 2
@@ -152,13 +151,21 @@ class SetpointServer(SMARCActionServer):
         else:
             return True
 
+    def convert_to_utm(self, point: GeoPoint) -> PoseStamped:
+        point: utm.UTMPoint = utm.fromMsg(point)
+        pose_stamp = PoseStamped()
+        pose_stamp.pose.position = point.toPoint()
+        zone, band = point.gridZone()
+        pose_stamp.header.frame_id = f"utm_{zone}_{band}"
+        return pose_stamp
+
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionType.Result:
         self.logger.info("Executing callback")
         self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        utm_val: utm.UTMPoint = utm.fromMsg(goal_handle.request.setpoint)
+        pose_stamped = self.convert_to_utm(goal_handle.request.setpoint)
         try:
-            self.goal_base_link = self.transform_goal(utm_val)
+            self.goal_base_link = self.transform_goal(pose_stamped)
         except TransformException as err:
             self.logger.error(
                 f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
@@ -170,7 +177,7 @@ class SetpointServer(SMARCActionServer):
             f"Publishing to {self._setpoint_topic}, with position {self.goal_base_link}"
         )
         # TODO: need to implement feedback here
-        self._pub_setpoint.publish(self.goal_base_link)
+        self._pub_setpoint.publish(self.goal_base_link.pose)
         result_msg.reached_setpoint = True
         return result_msg
 
@@ -185,10 +192,10 @@ class SetpointServer(SMARCActionServer):
 
         """
         geo_setpoint = goal_request.setpoint
-        utm_val: utm.UTMPoint = utm.fromMsg(geo_setpoint)
-        self.logger.info(f"Recieved UTM point at {utm_val}")
+        self.logger.info(f"Recieved UTM point at {geo_setpoint}")
+        pose_stamped = self.convert_to_utm(geo_setpoint)
         try:
-            dist = self.compute_distance(utm_val)
+            dist = self.compute_distance(pose_stamped)
         except TransformException as err:
             err_str = "Could not successfully compute transform. Rejecting goal!\n"
             exec_up = TransformException(err_str)
