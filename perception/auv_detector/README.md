@@ -25,6 +25,13 @@ Ensure that the following ROS 2 packages are installed:
 - `sensor_msgs`
 - `geometry_msgs`
 - `tf2_ros` (for TF tree manipulation)
+- 'drone_msgs'
+You can install msg by  
+```bash
+cd /home/user/colcon_ws
+colcon build --packages-select drone_msgs
+source install/setup.bash
+```
 
 ### External Tools/Hardware:
 - The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and an the data is fused to make a gloval georeferenced estimate of the AUV.
