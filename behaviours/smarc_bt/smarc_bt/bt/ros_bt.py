@@ -24,7 +24,7 @@ from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.waraps_task_handler import HasMQTTInteractor, WaraPSTaskHandler
+from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
 from ..waraps.waraps_vehicle import WaraPSVehicle
 
 
@@ -32,16 +32,20 @@ from .conditions import C_CheckMissionPlanState,\
                         C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK
+                        C_MissionTimeoutOK,\
+                        C_TaskIsMoveTo
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
-                     A_WaitForData
+                     A_WaitForData,\
+                    A_JustChillForFiveSeconds,\
+                    A_ClearTaskQueue,\
+                    A_Chilling
 
-class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
+class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
@@ -134,17 +138,37 @@ class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
         ])
         return run
             
+    def _task_handler_tree(self):
+        """
+        Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
+        """
+
+        task_handler = Fallback("F_Task_Handler", memory=False, children=[
+            # is the current task a move to task? If so, do it
+            Sequence("S_MoveTo", memory=False, children=[
+                C_TaskIsMoveTo(self._task_handler),
+                A_JustChillForFiveSeconds(self), #TODO: replace this with correct action client
+                A_ClearTaskQueue(self._task_handler),
+            ]),
+            #TODO: implement more tasks types
+            # is the current task a move path task? If so, do it
+
+            # last type: just do nothing
+            A_Chilling(self)
+        ])
+
+        return task_handler
 
     def setup(self) -> bool:
 
         children = [
             A_Heartbeat(self),
-            # A_WarapsHeartbeat(self, self._mqtt_interactor),
             A_ProcessBTCommand(self._mission_updater),
             self._liveliness_tree(),
             self._safety_tree(),
             # add the mission tree
-            self._run_tree()
+            self._task_handler_tree(),
+            # self._run_tree()
         ]
 
         # clean out Nones   

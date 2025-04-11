@@ -15,43 +15,61 @@ from ..mission.i_action_client import IActionClient, ActionClientState
 
 from smarc_bt.waraps.waraps_task_handler import WaraPSTaskHandler
 
-    
-class A_WarapsLvl2Heartbeat(VehicleBehaviour):
-    def __init__(self,
-                bt: HasClock,
-                task_handler: WaraPSTaskHandler):
-        name = f"{self.__class__.__name__}({task_handler.__class__.__name__})"
+class A_Chilling(VehicleBehaviour):
+    """
+    An Action to just do nothing (while waiting for task input)
+    """
+
+    def __init__(self, bt: HasClock):
+        name = f"{self.__class__.__name__}"
         super().__init__(bt, name)
 
-        self.mqtt_interactor = task_handler
 
-        self.prev_time = None
 
-    def update(self):
-        # get the current time
-        now = self._bt.now_seconds
+    def initialise(self):
+        self._start_time = None
 
-        # if this is the first tick, set the previous time to now
-        if self.prev_time is None:
-            self.prev_time = now
+    def update(self) -> Status:
 
-        # call the mqtt interactor to publish the heartbeat
-        pub_now = self.mqtt_interactor.publish_direct_execution_info(self.prev_time, now)
+        if self._start_time is None:
+            self._start_time = self._bt.now_seconds
 
-        # if the heartbeat was published, update the previous time
-        if pub_now:
-            self.prev_time = now
-            feedback_msg = "Published sensor(s) info"
-        else:
-            time_to_next_tick = 1/self.mqtt_interactor.pulse_rate - (now - self.prev_time)
-            feedback_msg = "Not my time yet. Next tick in {:.2f}s".format(time_to_next_tick)
+        dt = self._bt.now_seconds - self._start_time
 
-        # set the feedback message
-        self.feedback_message = feedback_msg
+        self.feedback_message = f"I'm chilling ({dt:.1f}s). Gimme some work!"
+        return Status.RUNNING
+    
+    
+class A_JustChillForFiveSeconds(VehicleBehaviour):
+    def __init__(self, bt: HasClock):
+        name = f"{self.__class__.__name__}"
+        super().__init__(bt, name)
 
+        self._start_time = None
+
+    def update(self) -> Status:
+        if self._start_time is None:
+            self._start_time = self._bt.now_seconds
+
+        dt = self._bt.now_seconds - self._start_time
+
+        if dt > 5:
+            self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' is OVER. Gimme some work!"
+            return Status.SUCCESS
+
+        self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' will continue for {5-dt:.1f}s"
+        return Status.RUNNING
+    
+class A_ClearTaskQueue(VehicleBehaviour):
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self._task_handler = task_handler
+
+    def update(self) -> Status:
+
+        self._task_handler.clear_task_queue()
+        self.feedback_message = "Cleared task queue"
         return Status.SUCCESS
-
-
 
 class A_WaitForData(VehicleBehaviour):
     def __init__(self,

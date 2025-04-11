@@ -13,6 +13,10 @@ from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates
 from ..vehicles.sensor import SensorNames       
+
+from ..waraps.waraps_task_handler import HasWaraPSTaskHandler, WaraPSTaskHandler
+
+
 class C_CheckSensorBool(VehicleBehaviour):
     def __init__(self,
                  bt: HasVehicleContainer,
@@ -124,3 +128,25 @@ class C_MissionTimeoutOK(MissionPlanBehaviour):
         if plan.timeout_reached: 
             return Status.FAILURE
         return Status.SUCCESS
+    
+class C_TaskIsMoveTo(Behaviour):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
+        """
+        Returns S if the current task is a move_to task
+        """
+        self._wara_ps_task_handler = wara_ps_task_handler
+        name = f"{self.__class__.__name__}({self._wara_ps_task_handler})"
+        super().__init__(name)
+
+    def update(self) -> Status:
+
+        if self._wara_ps_task_handler.tasks_executing == []:
+            self.feedback_message = "No tasks executing"
+            return Status.FAILURE
+
+        if self._wara_ps_task_handler.tasks_executing[0]["task"]["name"] == "move-to":
+            self.feedback_message = f"Current task is move-to"
+            return Status.SUCCESS
+
+        return Status.FAILURE
+    

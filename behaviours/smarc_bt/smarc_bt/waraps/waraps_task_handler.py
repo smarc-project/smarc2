@@ -5,20 +5,43 @@ from smarc_msgs.msg import Topics
 from smarc_bt.vehicles.sensor import Sensor, SensorNames
 import json
 
-class HasMQTTInteractor:
+class HasWaraPSTaskHandler:
     """
     This class is used to mark a class as having an MQTT interactor. This is used to make sure that the class has the methods that are needed for the MQTT interactor to work.
     """
     def __init__(self):
-        self._mqtt_interactor = None
+        self._wara_ps_task_handler = None
+        self._wara_ps_dict = None
+        self._robot_name = None
 
     @property
-    def mqtt_interactor(self):
-        return self._mqtt_interactor
+    def wara_ps_task_handler(self):
+        """
+        Returns the WaraPSTaskHandler object that is used to handle the MQTT interactor.
+        """
+        return self._wara_ps_task_handler
 
-    @mqtt_interactor.setter
-    def mqtt_interactor(self, value):
-        self._mqtt_interactor = value
+    @wara_ps_task_handler.setter
+    def wara_ps_task_handler(self, value):
+        """
+        Sets the WaraPSTaskHandler object that is used to handle the MQTT interactor.
+        """
+        self._wara_ps_task_handler = value
+
+    @property
+    def wara_ps_dict(self):
+        """
+        Returns the WaraPS dictionary that is used to handle the MQTT interactor.
+        """
+        return self._wara_ps_dict
+    
+    @wara_ps_dict.setter
+    def wara_ps_dict(self, value):
+        """
+        Sets the WaraPS dictionary that is used to handle the MQTT interactor.
+        """
+        self._wara_ps_dict = value
+        self._robot_name = value["name"] if value else None
 
 class WaraPSTaskHandler:
     def __init__(self, node:Node, wara_ps_dict:Type[dict]):
@@ -39,11 +62,17 @@ class WaraPSTaskHandler:
         # private: only this class should access this
         self._node = node
 
+
+        
         # Publishers for Level 2 WARA-PS topics
         self._wara_ps_direct_execution_info_pub = node.create_publisher(String, Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10)
 
         self._wara_ps_exec_response_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_RESPONSE_TOPIC, 10)
         self._wara_ps_exec_feedback_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_FEEDBACK_TOPIC, 10)
+
+        # subscribe to Level 1 heartbeat to trigger direct_execution_info
+        self._wara_ps_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._publish_direct_execution_info_cb, 10)
+
 
         # Subscriptions for WARA-PS command topics
         self._wara_ps_exec_command_sub = node.create_subscription(String, Topics.WARA_PS_EXEC_COMMAND_TOPIC, self._exec_command_cb, 10)
@@ -60,8 +89,21 @@ class WaraPSTaskHandler:
             }
 
 
+    # read only task_handler.wara_ps_dict
+    @property
+    def wara_ps_dict(self):
+        """
+        Returns the WaraPS dictionary that is used to handle the MQTT interactor.
+        """
+        return self._wara_ps_dict
+
+
                         
-    def publish_direct_execution_info(self, now_time):
+    def _publish_direct_execution_info_cb(self, data: String):
+
+        # find now_time from the stamp in the heartbeat data
+        heartbeat_data = json.loads(data.data)
+        now_time = heartbeat_data["stamp"]
 
         # update the direct execution info data
         self._direct_execusion_info_data["stamp"] = now_time
@@ -198,7 +240,21 @@ class WaraPSTaskHandler:
             if "task" not in command:
                 self._node.get_logger().error("Invalid start-task command: missing 'task' key")
                 return
-            
+
+        # example start-task command
+        # {
+        #     "com-uuid": <uuid v4 of command>,
+        #     "command": "start-task",
+        #     "execution-unit": <name of unit to execute the command>,
+        #     "sender": <name of sender of command>,
+        #     "task": {
+        #         "name": <task name>,
+        #         "params": {
+        #             <specifics of the task e.g. waypoint, speed ect.>
+        #         }
+        #     },
+        #     "task-uuid": <uuid v4 of task>
+        # }            
 
             if not any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing): # if this task is not already executing
             
@@ -213,7 +269,7 @@ class WaraPSTaskHandler:
                 # publish the feedback
                 feedback_msg = {
 
-                    "agent-uuid": self.wara_ps_dict()["agent-uuid"],
+                    "agent-uuid": self.wara_ps_dict["agent-uuid"],
                     "com-uuid": command["com-uuid"],
                     "task-uuid": command["task-uuid"],
                     "task": command["task"],
@@ -228,12 +284,14 @@ class WaraPSTaskHandler:
 
         return
 
-
-    def wara_ps_lvl_2(self):
-        # 1. publish sensor data
-        # TODO: implement this to invoke action servers
-        pass
-
-    # need a fucntion to take kind of task being queried as input and produces 
-    # conditions to check which task type is happening        
-
+    def clear_task_queue(self):
+        """
+        Clears the task queue.
+        """
+        self.tasks_executing = []
+        
+    def get_executing_tasks(self):
+        """
+        Returns the list of executing tasks.
+        """
+        return self.tasks_executing
