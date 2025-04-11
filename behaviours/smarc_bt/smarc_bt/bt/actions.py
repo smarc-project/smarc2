@@ -47,6 +47,10 @@ class A_JustChillForFiveSeconds(VehicleBehaviour):
 
         self._start_time = None
 
+    def initialise(self):
+        self._start_time = None
+        self.feedback_message = None
+
     def update(self) -> Status:
         if self._start_time is None:
             self._start_time = self._bt.now_seconds
