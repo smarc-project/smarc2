@@ -96,8 +96,8 @@ class WaraPSVehicle():
 
                                     
         position_msg = {
-            "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'],
-            "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'],
+            "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] is not None else 0,
+            "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] is not None else 0,
             "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
             "type": "GeoPoint"
         }

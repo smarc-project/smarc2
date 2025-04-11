@@ -140,11 +140,14 @@ class C_TaskIsMoveTo(Behaviour):
 
     def update(self) -> Status:
 
-        if self._wara_ps_task_handler.tasks_executing == []:
+        current_executing_tasks = self._wara_ps_task_handler.get_executing_tasks()
+
+        # if no tasks are executing, return failure
+        if len(current_executing_tasks) == 0:
             self.feedback_message = "No tasks executing"
             return Status.FAILURE
-
-        if self._wara_ps_task_handler.tasks_executing[0]["task"]["name"] == "move-to":
+        # focus only on first task. #TODO: this needs to be changed later, when we want multiple tasks to happen simultaneously
+        if current_executing_tasks[0]["task"]["name"] == "move-to":
             self.feedback_message = f"Current task is move-to"
             return Status.SUCCESS
 

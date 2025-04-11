@@ -154,7 +154,9 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             # is the current task a move path task? If so, do it
 
             # last type: just do nothing
-            A_Chilling(self)
+            A_Chilling(self),
+            # succeed by default
+            # Success(),
         ])
 
         return task_handler
