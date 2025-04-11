@@ -25,7 +25,7 @@ Ensure that the following ROS 2 packages are installed:
 - `sensor_msgs`
 - `geometry_msgs`
 - `tf2_ros` (for TF tree manipulation)
-- 'drone_msgs'
+- `drone_msgs`
 You can install msg by  
 ```bash
 cd /home/user/colcon_ws
