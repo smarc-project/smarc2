@@ -24,7 +24,7 @@ from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.mqtt_interactor import HasMQTTInteractor, MQTTInteractor
+from ..waraps.waraps_task_handler import HasMQTTInteractor, WaraPSTaskHandler
 from ..waraps.waraps_vehicle import WaraPSVehicle
 
 
@@ -39,14 +39,12 @@ from .actions import A_Abort,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
-                     A_WaitForData, \
-                     A_WarapsHeartbeat, \
-                     A_WarapsLvl1
+                     A_WaitForData
 
 class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
-                 mqtt_interactor:MQTTInteractor,
+                 task_handler:WaraPSTaskHandler,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
                  goto_wp_action: IActionClient,
@@ -58,7 +56,7 @@ class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
             SAMAuv, ROSVehicle, etc. should all fit this
         """
         self._vehicle_container = vehicle_container
-        self._mqtt_interactor = mqtt_interactor
+        self._task_handler = task_handler
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
@@ -75,7 +73,7 @@ class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
     
     @property
     def mqtt_interactor(self) -> typing.Any:
-        return self._mqtt_interactor
+        return self._task_handler
     
     @property
     def now_seconds(self) -> int:
@@ -135,27 +133,25 @@ class BT(HasVehicleContainer, HasClock, HasMQTTInteractor):
             mission
         ])
         return run
-    
-    def _waraps_lvl_1_tree(self):
-        lvl_1 = Parallel("S_WARAPS_LVL_1", 
-        policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
-            A_WarapsHeartbeat(self, self._mqtt_interactor),
-            A_WarapsLvl1(self, self._mqtt_interactor),
-        ])
-        return lvl_1
-        
+            
 
     def setup(self) -> bool:
-        
-        root = Sequence("S_Root", memory=False, children=[
+
+        children = [
             A_Heartbeat(self),
             # A_WarapsHeartbeat(self, self._mqtt_interactor),
             A_ProcessBTCommand(self._mission_updater),
             self._liveliness_tree(),
             self._safety_tree(),
-            self._waraps_lvl_1_tree(),
+            # add the mission tree
             self._run_tree()
-        ])
+        ]
+
+        # clean out Nones   
+        children = [c for c in children if c is not None]
+
+        # make the sequence tree
+        root = Sequence("S_Root", memory=False, children=children)
 
         self._bt = pt.trees.BehaviourTree(root)
         self._bb_updater.update_bb()
@@ -202,15 +198,33 @@ def smarc_bt():
     sam_waraps_dict = {
             "agent-type": "subsurface",
             "agent-uuid": str(uuid.uuid4()),
-            "levels": ["sensor, direct execution"],
+            "levels": ["sensor", "direct_execution"],
             "name": node.get_parameter("robot_name").value,
             "pulse_rate": 1,
+            "tasks-available": [
+            {
+                "name": "move-to",
+                "signals": [
+                "$abort",
+                "$enough",
+                "$pause"
+                ]
+            },
+            {
+                "name": "move-path",
+                "signals": [
+                "$abort",
+                "$enough",
+                "$pause"
+                ]
+            }
+            ]
         }        
     
     wara_ps_vehicle = WaraPSVehicle(node, sam.vehicle_state, sam_waraps_dict)
-    mqtt_interactor = MQTTInteractor(wara_ps_vehicle)
+    mqtt_interactor = WaraPSTaskHandler(node, sam_waraps_dict)
     bt = BT(vehicle_container = sam,
-            mqtt_interactor    = mqtt_interactor,
+            task_handler    = mqtt_interactor,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
             goto_wp_action    = ros_goto_wp,
@@ -236,6 +250,18 @@ def smarc_bt():
 
     node.create_timer(0.1, update)
     node.create_timer(0.5, print_bt)
+
+
+    def wara_ps_level_1_comms():
+        nonlocal wara_ps_vehicle
+        # get the current time
+        now_time = ros_seconds_float()
+        # heartbeat
+        wara_ps_vehicle.wara_ps_heartbeat(now_time)
+        # sensor info
+        wara_ps_vehicle.wara_ps_lvl1(now_time)
+
+    node.create_timer(1.0/wara_ps_vehicle.wara_ps_dict()["pulse_rate"], wara_ps_level_1_comms)
     rclpy.spin(node)
 
 def test_bt_setup():
