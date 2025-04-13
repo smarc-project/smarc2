@@ -25,5 +25,5 @@ SAM_COLOR = [91,96,61]
 BEST_FIT_DEGREE = 3
 #TOPIC TO PUBLISH REAL VIDEO IMAGES
 REALDATA_TOPIC = 'realdata/camera/image'
-REALDATA = True
+REALDATA = False
 REALDATA_PATH = "/home/schnizzle/Downloads/real_sam_data.MP4"
