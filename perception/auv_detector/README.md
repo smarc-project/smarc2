@@ -114,8 +114,8 @@ This is suitable when you need simultaneous estimation and detection.
 1. Make sure your ROS 2 system is set up correctly with the necessary dependencies.
 2. Ensure the drone is publishing sensor data, such as IMU and GPS.
 3. Run the appropriate launch file based on your task:
-   - For **only detection**: `ros2 launch state_estimation detector_only.launch.xml`
-   - For **estimation and detection**: `ros2 launch state_estimation estimator_detector.launch.xml`
+   - For **only detection**: `ros2 launch auv_detector detector_only.launch`
+   - For **estimation and detection**: `ros2 launch auv_detector estimator_detector.launch`
 
 4. Verify that the nodes are receiving the data correctly, and check the console output for any state or detection information.
 
