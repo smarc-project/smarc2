@@ -81,21 +81,21 @@ This script implements the EKF, which operates similarly to the Kalman Filter bu
 
 ## Launch Files
 
-### 1. `detector_only.launch.xml`
+### 1. `detector_only.launch`
 This launch file starts only the `detector` node, which executes the KNN-based detection algorithm.
 
 #### Usage
 ```bash
-ros2 launch state_estimation detector_only.launch.xml
+ros2 launch auv_detector detector_only.launch
 ```
 This is useful in cases where only object detection is required without running the state estimator.
 
-### 2. `estimator_detector.launch.xml`
+### 2. `estimator_detector.launch`
 This launch file starts both the `estimator` and `detector` nodes, allowing both state estimation and object detection to run simultaneously.
 
 #### Usage
 ```bash
-ros2 launch state_estimation estimator_detector.launch.xml
+ros2 launch auv_detector estimator_detector.launch
 ```
 This is suitable when you need simultaneous estimation and detection.
 
