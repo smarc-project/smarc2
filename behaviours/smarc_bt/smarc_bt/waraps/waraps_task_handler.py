@@ -4,6 +4,7 @@ from std_msgs.msg import String
 from smarc_msgs.msg import Topics
 from smarc_bt.vehicles.sensor import Sensor, SensorNames
 import json
+from copy import deepcopy
 
 class HasWaraPSTaskHandler:
     """
@@ -78,6 +79,7 @@ class WaraPSTaskHandler:
         self._wara_ps_exec_command_sub = node.create_subscription(String, Topics.WARA_PS_EXEC_COMMAND_TOPIC, self._exec_command_cb, 10)
 
 
+
         if "direct_execution" in self._wara_ps_dict["levels"]:
             self._direct_execusion_info_data = {
                 "name": self._wara_ps_dict["name"],
@@ -85,8 +87,12 @@ class WaraPSTaskHandler:
                 "type": "DirectExecutionInfo",
                 "stamp": "",
                 "tasks-available": self._wara_ps_dict["tasks-available"],
-                "tasks-executing": self.tasks_executing
+                "tasks-executing": self.tasks_executing,
             }
+
+
+    
+
 
 
     # read only task_handler.wara_ps_dict
@@ -101,6 +107,11 @@ class WaraPSTaskHandler:
                         
     def _publish_direct_execution_info_cb(self, data: String):
 
+        """
+        This method subscribes to the level 1 heartbeat, and publishes the level 2 direct execution info whenever a level 1 heartbeat is received.
+        """
+        #TODO: independent timer please
+
         # find now_time from the stamp in the heartbeat data
         heartbeat_data = json.loads(data.data)
         now_time = heartbeat_data["stamp"]
@@ -108,8 +119,19 @@ class WaraPSTaskHandler:
         # update the direct execution info data
         self._direct_execusion_info_data["stamp"] = now_time
 
+        # naming convention change
+        list_of_running_tasks = deepcopy(self.tasks_executing)
+
+        # for every dict in this list, rename the key "name" to "task-name"
+        for i in range(len(list_of_running_tasks)):
+            list_of_running_tasks[i]["task-name"] = list_of_running_tasks[i]["task"]["name"]
+            # remove "task" param from dict
+            list_of_running_tasks[i].pop("task", None)
+            # remove "status" param from dict
+            list_of_running_tasks[i].pop("status", None)
+
         # update tasks executing
-        self._direct_execusion_info_data["tasks-executing"] = self.tasks_executing
+        self._direct_execusion_info_data["tasks-executing"] = list_of_running_tasks
 
         # publish the heartbeat data
         msg = String()
@@ -157,7 +179,7 @@ class WaraPSTaskHandler:
 
             status_msg = "task not found",
             
-            if command["task-uuid"] not in self._executing_tasks:
+            if command["task-uuid"] not in [task["task-uuid"] for task in self.tasks_executing]:
                 self._node.get_logger().error("Invalid signal-task command: task not found in executing tasks")
 
                 status_msg = "task not in current tasks"
@@ -171,7 +193,7 @@ class WaraPSTaskHandler:
                     # remove the task from the executing tasks list
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
-                            self.tasks_executing.remove(task)
+                            self.tasks_executing.pop(self.tasks_executing.index(task))
                             break
                     # add the task to the completed tasks list
                     task_dict = {
@@ -203,6 +225,7 @@ class WaraPSTaskHandler:
             msg = String()
             msg.data = json.dumps(response_msg)
             self._wara_ps_exec_response_pub.publish(msg)
+            self._node.get_logger().info('Published Signal Task response message')
 
         # handle query-task command
         elif command["command"] == "query-task":
@@ -277,9 +300,9 @@ class WaraPSTaskHandler:
                 }
                 msg = String()
                 msg.data = json.dumps(feedback_msg)
-                self._wara_ps_exec_feedback_pub.publish(msg)
+                self._wara_ps_exec_response_pub.publish(msg)
 
-                self._node.get_logger().info('Published Feedback message')
+                self._node.get_logger().info('Published Start Task response message')
             
 
         return

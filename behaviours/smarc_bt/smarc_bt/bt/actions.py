@@ -57,7 +57,7 @@ class A_JustChillForFiveSeconds(VehicleBehaviour):
 
         dt = self._bt.now_seconds - self._start_time
 
-        if dt > 5:
+        if dt > 500:
             self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' is OVER. Gimme some work!"
             return Status.SUCCESS
 

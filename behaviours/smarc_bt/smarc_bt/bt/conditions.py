@@ -150,6 +150,7 @@ class C_TaskIsMoveTo(Behaviour):
         if current_executing_tasks[0]["task"]["name"] == "move-to":
             self.feedback_message = f"Current task is move-to"
             return Status.SUCCESS
-
-        return Status.FAILURE
+        else:
+            self.feedback_message = f"Not a move-to task"
+            return Status.FAILURE
     
