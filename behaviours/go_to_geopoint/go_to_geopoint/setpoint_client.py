@@ -3,11 +3,11 @@ from action_msgs.msg import GoalStatus
 from geographic_msgs.msg import GeoPoint
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action.client import ClientGoalHandle
-from smarc_action_client.smarc_action_client import ActionType, SMARCActionClient
+from smarc_action_base.smarc_action_base import ActionType, SMARCActionClient
 from smarc_mission_msgs.action import GotoSetpoint
 
 
-class SetpointClient(SMARCActionClient):
+class GeopointClient(SMARCActionClient):
     def __init__(
         self, node: rclpy.node.Node, action_name: str, action_type: ActionType, **kwargs
     ):
@@ -54,7 +54,7 @@ def main(args=None):
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(GotoSetpoint)
-    setpoint = SetpointClient(node, "go_to_setpoint", action_type)
+    setpoint = GeopointClient(node, "go_to_setpoint", action_type)
     setpoint.test_geopoint()
     rclpy.spin(node)
 

@@ -10,7 +10,7 @@ from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.time import Duration, Time
-from smarc_action_client.smarc_action_client import ActionType, SMARCActionServer
+from smarc_action_base.smarc_action_base import ActionType, SMARCActionServer
 from smarc_mission_msgs.action import GotoSetpoint
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -18,7 +18,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 KM_TO_METER = 100
 
 
-class SetpointServer(SMARCActionServer):
+class GeopointServer(SMARCActionServer):
     def __init__(self, node: rclpy.node.Node, action_name, action_type: ActionType):
         super().__init__(node, action_name, action_type)
         self.logger = node.get_logger()
@@ -38,7 +38,7 @@ class SetpointServer(SMARCActionServer):
         node = self._node
         self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
         self._target_frame_param = node.declare_parameter(
-            "target_frame", "base_link"
+            "target_frame", "odom_gt"
         ).value
 
         self._frame_suffix = node.declare_parameter(
@@ -233,7 +233,7 @@ def main(args=None):
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(GotoSetpoint)
-    setpoint = SetpointServer(node, "go_to_setpoint", action_type)
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
     rclpy.spin(node)
 
 

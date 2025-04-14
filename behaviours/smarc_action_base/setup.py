@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'smarc_action_client'
+package_name = 'smarc_action_base'
 
 setup(
     name=package_name,

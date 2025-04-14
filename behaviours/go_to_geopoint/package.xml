@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>go_to_setpoint</name>
+  <name>go_to_geopoint</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="kogucki@kth.se">tko</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>smarc_action_client</depend>
+  <depend>smarc_action_base</depend>
   <depend>smarc_mission_msgs</depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

@@ -1,4 +1,4 @@
-# smarc_action_client
+# smarc_action_base
 Library that enforces ROS2 action-client interfaces be implemented using Python Abstract Base Class.
 The library intends to abstract and simplify the registering of callbacks and hide some of the async complexity from the user. 
 

@@ -2,13 +2,13 @@ import pytest
 
 import rclpy
 from rclpy.node import Node
-import smarc_action_client.smarc_action_client as sac
+import smarc_action_base.smarc_action_base as sac
 
 class NodeTest(Node):
     def __init__(self):
         super().__init__("test_node")
 
-class ActServTest(sac.SMARCActionServer):
+class ActServTest(sac.SMARCActionBase):
     def __init__(self, node):
         super().__init__(node)
         pass

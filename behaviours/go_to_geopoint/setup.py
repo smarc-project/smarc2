@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'go_to_setpoint'
+package_name = 'go_to_geopoint'
 
 setup(
     name=package_name,
@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "client = go_to_setpoint.setpoint_client:main",
-            "server = go_to_setpoint.setpoint_server:main",
+            "client = go_to_geopoint.geopoint_client:main",
+            "server = go_to_geopoint.geopoint_server:main",
         ],
     },
 )
