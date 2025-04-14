@@ -1,17 +1,22 @@
-from typing import Optional
 import traceback
 
 import numpy as np
 import rclpy
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import Pose, PoseStamped
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.node import Node
 from rclpy.time import Duration, Time
-from smarc_action_base.smarc_action_base import ActionType, SMARCActionServer
-from smarc_mission_msgs.action import GotoSetpoint
+from smarc_action_base.smarc_action_base import (
+    ActionResult,
+    ActionType,
+    SMARCActionServer,
+)
+from smarc_mission_msgs.action import GotoGeopoint
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -19,7 +24,15 @@ KM_TO_METER = 100
 
 
 class GeopointServer(SMARCActionServer):
-    def __init__(self, node: rclpy.node.Node, action_name, action_type: ActionType):
+    """Action point server that handle GotoGeopoint messages.
+
+    Attributes:
+        logger: shorthand for `node.get_logger()`
+        robot_name: provided robot name from launch file
+        target_frame: frame that goal's should be transformed to
+    """
+
+    def __init__(self, node: Node, action_name, action_type: ActionType):
         super().__init__(node, action_name, action_type)
         self.logger = node.get_logger()
         self._tf_buffer = Buffer()
@@ -34,11 +47,11 @@ class GeopointServer(SMARCActionServer):
         self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
 
     def declare_parameters(self):
-        """Declares node's parameters in a single space for easier editing."""
+        """Declares all of node's parameters in a single location."""
         node = self._node
         self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
         self._target_frame_param = node.declare_parameter(
-            "target_frame", "odom_gt"
+            "target_frame", "base_link"
         ).value
 
         self._frame_suffix = node.declare_parameter(
@@ -51,9 +64,9 @@ class GeopointServer(SMARCActionServer):
 
         self._setpoint_tol: float = node.declare_parameter(
             "setpoint_tolerance",
-            0.1,
+            0.8,
             ParameterDescriptor(
-                description="Setpoint tolerance for one the goal is considered achieved (think of it as radius)"
+                description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
             ),
         ).value
 
@@ -70,7 +83,7 @@ class GeopointServer(SMARCActionServer):
                 "goal_threshold",
                 10,
                 ParameterDescriptor(
-                    description="Distance threshold in kilometers where a goal should be rejected."
+                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
                 ),
             ).value
             * KM_TO_METER
@@ -85,7 +98,7 @@ class GeopointServer(SMARCActionServer):
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
-        """Helper function to print PoseStamped."""
+        """Helper function to print PoseStamped Messages nicely."""
         return f"\nFrame: {pose.header.frame_id}\nPosition:{pose.pose.position}\nOrientation{pose.pose.orientation}"
 
     def transform_goal(self, pose_stamped: PoseStamped) -> PoseStamped:
@@ -95,9 +108,8 @@ class GeopointServer(SMARCActionServer):
             TransformException when transformation fails allowing for caller to handle exception
 
         Returns:
-            pose: pose in specified frame
+            PoseStamped in specified frame
         """
-        # FIXME: Transform drama I can't figure out
         t = self._tf_buffer.lookup_transform(
             target_frame=self.target_frame,
             source_frame=pose_stamped.header.frame_id,
@@ -106,6 +118,26 @@ class GeopointServer(SMARCActionServer):
         )
         # based on ReadMe in repository
         return do_transform_pose_stamped(pose_stamped, t)
+
+    def get_robot_pose_in_msg_frame(self, pose_stamped: PoseStamped) -> PoseStamped:
+        """Provides robot position in message frame.
+
+        Useful for showing user how far away the drone is from the target and understand why goal is rejected
+
+        Raises:
+            TransformException when transformation fails allowing for caller to handle exception
+
+        Returns:
+            pose: pose in specified frame
+        """
+        t = self._tf_buffer.lookup_transform(
+            target_frame=pose_stamped.header.frame_id,
+            source_frame=self.target_frame,
+            time=Time(seconds=0),
+            timeout=Duration(seconds=2),
+        )
+        # based on ReadMe in repository
+        return do_transform_pose_stamped(PoseStamped(), t)
 
     def compute_distance(self, pose_stamped: PoseStamped) -> float:
         """Euclidean distance to target.
@@ -134,14 +166,14 @@ class GeopointServer(SMARCActionServer):
         )
         return delta
 
-    def tol_check(self, delta):
+    def _tol_check(self, delta):
         """Checks if vehicle is within tolerance of setpoint.
 
         Args:
             delta (float): distance to setpoint
 
         Returns:
-            tol_check (bool): if vehicle is within zone
+            tol_check (bool): true if vehicle is within zone
         """
         if delta > self._setpoint_tol:
             return False
@@ -168,9 +200,17 @@ class GeopointServer(SMARCActionServer):
         )
         return pose_stamp
 
-    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionType.Result:
-        self.logger.info("Executing callback")
-        self.logger.info(f"{goal_handle.request}")
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """Primary execution callback where goal's are handled after acceptance.
+
+        Args:
+            goal_handle: handle to control server and add callbacks
+
+        Returns:
+            A populated ActionResult message
+        """
+        # self.logger.info("Executing callback")
+        # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
         pose_stamped = self.convert_to_utm(goal_handle.request.setpoint)
         try:
@@ -184,10 +224,12 @@ class GeopointServer(SMARCActionServer):
             return result_msg
         self.logger.info(
             f"Publishing to {self._setpoint_topic}, Setpoint"
-            + self._str_posestamp(self.goal_base_link.pose)
+            + self._str_posestamp(self.goal_base_link)
         )
-        # TODO: need to implement feedback here
         self._pub_setpoint.publish(self.goal_base_link.pose)
+
+        self.feedback_loop(pose_stamped, goal_handle)
+
         result_msg.reached_setpoint = True
         return result_msg
 
@@ -210,31 +252,71 @@ class GeopointServer(SMARCActionServer):
             err_str = "Could not successfully compute transform. Rejecting goal!\n"
             exec_up = TransformException(err_str)
             exec_up.__cause__ = err
+            # Adding error message to traceback for debug log.
             self.logger.info(err_str)
             self.logger.debug(traceback.print_exception(exec()))
             return GoalResponse.REJECT
+
         if dist >= self._goal_threshold:
             err_str = f"Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self._goal_threshold:.1f}"
             self.logger.info(err_str)
+
+            # providing additional details if possible about error
+            try:
+                pose = self.get_robot_pose_in_msg_frame(pose_stamped)
+                err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
+                self.logger.debug(err_str)
+            except TransformException:
+                pass
             return GoalResponse.REJECT
         # Accepts as all criteria fulfilled
         return GoalResponse.ACCEPT
 
-    def cancel_callback(self, goal_handle) -> CancelResponse:
-        # TODO: Implement method to cancel the goal (move the target)
+    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        """Handles canceling of goal requests.
+
+        Args:
+            goal_handle: handle
+
+        Returns:
+            Cancel response as ACCEPT
+        """
         pose_msg = Pose()
-        pose_msg.header.frame_id = self.target_frame
         self._pub_setpoint.publish(pose_msg)
         return CancelResponse.ACCEPT
+
+    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
+        """Abstracted feedback loop where tolerance checks are conducted.
+
+        Args:
+            pose_stamped: target location
+            goal_handle: passed in to enable feedback publishing
+        """
+        rate = self._node.create_rate(2)
+        d = self.compute_distance(pose_stamped)
+        feedback = self.action_type.Feedback
+        tol_check = self._tol_check(d)
+        while not tol_check:
+            feedback.distance_remaining = d
+            goal_handle.publish_feedback(feedback)
+            rate.sleep()
+            d = self.compute_distance(pose_stamped)
+            tol_check = self._tol_check(d)
+            self.logger.debug(f"Tol check result: {tol_check}")
+
+        rate.destroy()
+        return
 
 
 def main(args=None):
     rclpy.init(args=args)
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
-    action_type = ActionType(GotoSetpoint)
+    action_type = ActionType(GotoGeopoint)
     setpoint = GeopointServer(node, "go_to_setpoint", action_type)
-    rclpy.spin(node)
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+    executor.spin()
 
 
 if __name__ == "__main__":

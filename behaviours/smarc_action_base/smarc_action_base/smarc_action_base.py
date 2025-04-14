@@ -1,15 +1,19 @@
 import abc
+from functools import partial
+
+from action_msgs.msg import GoalStatus
+from action_msgs.srv import CancelGoal
 
 # ROS Imports
-from rclpy.action import ActionClient, ActionServer, GoalResponse, CancelResponse
+from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.action.client import ClientGoalHandle
-from rclpy.task import Future
-from action_msgs.msg import GoalStatus
 from rclpy.action.server import ServerGoalHandle
 from rclpy.node import Node
+from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
 
 from smarc_action_base.smarc_ros_types import ActionFeedback, ActionGoal, ActionResult
+
 
 class ActionType:
     """Wrapper around ROS Action Type to provide easy dot completion.
@@ -37,7 +41,6 @@ class ActionType:
             err_str += "Action types generally should be of type `from some_interface.action import MyAction"
             raise AttributeError(err_str) from err
 
-
     @property
     def ros_type(self):
         """Underlying ROS type.
@@ -63,15 +66,21 @@ class ActionType:
         return self._action_type.Goal()
 
 
-
 class SMARCActionServer(abc.ABC):
     """Action Server base class
 
-    Attributes: 
-        action_type: 
+    Attributes:
+        action_type: Action type for retrieving empty Goal, Feedback, and Result messages
     """
-    def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
-        self._node = node
+
+    def __init__(
+        self,
+        node: Node,
+        action_name: str,
+        action_type: ActionType,
+        **kwargs,
+    ):
+        self._node: Node = node
         self.action_type = action_type
         self._server = ActionServer(
             self._node,
@@ -117,8 +126,16 @@ class SMARCActionServer(abc.ABC):
 
 
 class SMARCActionClient(abc.ABC):
+    """Action client base class.
+
+
+    Attributes:
+        action_type: Action type for retrieving empty Goal, Feedback, and Result messages
+        _goal_handle:
+    """
+
     def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
-        self._node = node
+        self._node: Node = node
         self.action_type = action_type
         self._client: ActionClient = ActionClient(
             self._node,
@@ -126,6 +143,7 @@ class SMARCActionClient(abc.ABC):
             action_name,
             **kwargs,
         )
+        self._goal_handle: ClientGoalHandle | None = None
 
     def _wrap_feedback_callback(self, feedback):
         """Simplifies feedback callback by extracting values from future."""
@@ -139,39 +157,85 @@ class SMARCActionClient(abc.ABC):
         self.result_callback(result, status)
 
     def _wrap_goal_response_callback(self, future: Future):
-        """Simplifies goal response callback extracting values from future."""
+        """Simplifies goal response callback extracting values from future.
+
+        Does preemptive checking on goal success to setup future callbacks.
+        """
         self._goal_handle = future.result()
+        if self._goal_handle.accepted:
+            self._get_result()
+        # calling inheritors function
         self.goal_response_callback(self._goal_handle)
 
     @abc.abstractmethod
     def feedback_callback(self, feedback_msg: ActionFeedback):
-        """Callback where feedback is provided from the action server."""
+        """Implement feedback logic for each action server feedback message."""
         pass
 
     @abc.abstractmethod
     def goal_response_callback(self, goal_handle: ClientGoalHandle):
-        """Result when a goal is sent to the server."""
+        """Implement handing of two goal scenarios.
+
+        GoalResponse.ACCEPT: acceptance of the goal by action server
+        GoalResponse.REJECT: rejection of the goal by action server
+        """
         pass
 
     @abc.abstractmethod
     def result_callback(self, result: ActionResult, status: GoalStatus):
-        """Callback that is executed when a result comes back from the action server."""
+        """Implement callback to parse out the result of an action server task."""
         pass
 
-    def get_result(self, goal_handle: ClientGoalHandle):
+    def _get_result(self):
         """Send request to get result.
 
         Args:
             goal_handle: handle provided in `goal_response_callback`.
 
         """
-        self._result_future = goal_handle.get_result_async()
-        self._result_future.add_done_callback(self.result_callback)
+        self._result_future = self._goal_handle.get_result_async()
+        self._result_future.add_done_callback(self._wrap_result_callback)
 
-    def send_goal(self, goal_msg: ActionGoal, server_timeout_sec=0.5):
+    def _wrap_cancel_callback(self, user_callback: callable, future: Future):
+        """Wrapper for user's provided callback function.
+
+        Formulated based off buried ROS documentation.
+            ROS Buried Docs:
+                Response from CancelGoal is a Cancel Response with fileds:
+                    - goals_canceling
+                    - goal_info
+
+        Sources:
+        - https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_client/examples_rclpy_minimal_action_client/client_cancel.py
+        - https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
+        """
+        result: ActionResult = future.result()
+        user_callback(result)
+
+    def cancel_goal(self, callback: callable):
+        """Sends goal cancellation and setups up cancellation callback for caller.
+
+        The callback function provided accepts the CancelGoal Response object.
+            - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
+        """
+        if self._goal_handle is not None:
+            future = self._goal_handle.cancel_goal_async()
+            func = partial(self._wrap_cancel_callback, callback)
+            future.add_done_callback(func)
+        else:
+            self._node.get_logger().debug(
+                "No goal present to cancel. Skipping cancellation."
+            )
+
+    def send_goal(self, goal_msg: ActionGoal, server_timeout_sec: float = 0.5):
         """Send goal to action server via an asynchronous callback.
 
-        Establishes hook to feedback and goal callback for user behind the scenes
+        Args:
+            server_timeout_sec: Duration for which the client should wait for the action server to be ready.
+            goal_msg: a populated ActionGoal message that will be sent to action server
+
+        **Lower Level Details**
+        Establishes hooks to `self.goal_response_callback` and `self.feedback_callback` for the user.
 
         Args:
             goal_msg: a filled out goal message to request the server to complete
