@@ -26,17 +26,8 @@ class A_Chilling(VehicleBehaviour):
 
 
 
-    def initialise(self):
-        self._start_time = None
-
     def update(self) -> Status:
-
-        if self._start_time is None:
-            self._start_time = self._bt.now_seconds
-
-        dt = self._bt.now_seconds - self._start_time
-
-        self.feedback_message = f"I'm chilling ({dt:.1f}s). Gimme some work!"
+        self.feedback_message = f"Just chillin'... Got something for me to do?"
         return Status.RUNNING
     
     
@@ -57,11 +48,13 @@ class A_JustChillForFiveSeconds(VehicleBehaviour):
 
         dt = self._bt.now_seconds - self._start_time
 
-        if dt > 500:
+        horizon = 500
+
+        if dt > horizon:
             self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' is OVER. Gimme some work!"
             return Status.SUCCESS
 
-        self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' will continue for {5-dt:.1f}s"
+        self.feedback_message = f"I've been chillin for {dt:.1f}s. Chillin' will continue for {horizon-dt:.1f}s"
         return Status.RUNNING
     
 class A_ClearTaskQueue(VehicleBehaviour):

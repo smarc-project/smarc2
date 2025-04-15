@@ -60,7 +60,10 @@ tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:10
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch" C-m
+# To connect to our MQTT broker
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 " C-m
+# For local testing: use defaults
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch" C-m
 
 
 

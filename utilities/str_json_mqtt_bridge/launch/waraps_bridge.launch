@@ -1,9 +1,9 @@
 <launch>
   <arg name="robot_name" default="sam0"/>
-  <!-- <arg name="broker_addr" default="localhost"/> -->
-  <!-- <arg name="broker_port" default="1889"/> -->
-<arg name="broker_addr" default="20.240.40.232"/>
-  <arg name="broker_port" default="1884"/>
+  <arg name="broker_addr" default="localhost"/>
+  <arg name="broker_port" default="1889"/>
+  <!-- <arg name="broker_addr" default="20.240.40.232"/> -->
+  <!-- <arg name="broker_port" default="1884"/> -->
   <arg name="context" default="waraps"/>
   <arg name="domain" default="subsurface"/>
   <arg name="realsim" default="simulation"/>
