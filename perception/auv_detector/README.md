@@ -101,6 +101,23 @@ This is suitable when you need simultaneous estimation and detection.
 
 ---
 
+## Tune Parameters
+
+### 1. `manual_hsv_detector.py`
+This python file helps users to adjust hsv thresholds for their targets. This is the tutorial video: https://youtu.be/s7yu1LuMguQ
+Get the lower and upper bound to adjust the hsv threshold in KNN.py
+
+#### Usage
+```bash
+ros2 run auv_detector manual_hsv_detector
+```
+
+### 2. `params_detector.py`
+This python files provide variable `REALDATA`. When set it as True, the detector will use the pre-recorded mp4.data
+When set it False, the detector will use the real-time simulation in Unity.
+
+---
+
 ## Why These Techniques?
 
 - **KNN for Detection**: KNN is simple and effective when you have labeled sensor data. It's also non-parametric, meaning it doesn’t make strong assumptions about the data distribution, making it versatile in changing environments.
