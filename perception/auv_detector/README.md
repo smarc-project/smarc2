@@ -114,7 +114,7 @@ ros2 run auv_detector manual_hsv_detector
 ```
 
 ### 2. `params_detector.py`
-This python files provide variable `REALDATA`. When set it as True, the detector will use the pre-recorded mp4.data
+This python file includes the variable `REALDATA`. When set it as True, the detector will use the pre-recorded mp4.data
 When set it False, the detector will use the real-time simulation in Unity.
 
 ---
