@@ -104,8 +104,9 @@ This is suitable when you need simultaneous estimation and detection.
 ## Tune Parameters
 
 ### 1. `manual_hsv_detector.py`
-This python file helps users to adjust hsv thresholds for their targets. This is the tutorial video: https://youtu.be/s7yu1LuMguQ
-Get the lower and upper bound to adjust the hsv threshold in KNN.py
+This python file helps users to adjust hsv thresholds for their targets. 
+- Get the lower and upper bound to adjust the hsv threshold in KNN.py
+- This is the tutorial video: https://youtu.be/s7yu1LuMguQ.
 
 #### Usage
 ```bash
