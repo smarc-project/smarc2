@@ -81,23 +81,41 @@ This script implements the EKF, which operates similarly to the Kalman Filter bu
 
 ## Launch Files
 
-### 1. `detector_only.launch.xml`
+### 1. `detector_only.launch`
 This launch file starts only the `detector` node, which executes the KNN-based detection algorithm.
 
 #### Usage
 ```bash
-ros2 launch state_estimation detector_only.launch.xml
+ros2 launch auv_detector detector_only.launch
 ```
 This is useful in cases where only object detection is required without running the state estimator.
 
-### 2. `estimator_detector.launch.xml`
+### 2. `estimator_detector.launch`
 This launch file starts both the `estimator` and `detector` nodes, allowing both state estimation and object detection to run simultaneously.
 
 #### Usage
 ```bash
-ros2 launch state_estimation estimator_detector.launch.xml
+ros2 launch auv_detector estimator_detector.launch
 ```
 This is suitable when you need simultaneous estimation and detection.
+
+---
+
+## Tune Parameters
+
+### 1. `manual_hsv_detector.py`
+This python file helps users to adjust hsv thresholds for their targets. 
+- Get the lower and upper bound to adjust the hsv threshold in KNN.py
+- This is the tutorial video: https://youtu.be/s7yu1LuMguQ.
+
+#### Usage
+```bash
+ros2 run auv_detector manual_hsv_detector
+```
+
+### 2. `params_detector.py`
+This python file includes the variable `REALDATA`. When set it as True, the detector will use the pre-recorded mp4.data
+When set it False, the detector will use the real-time simulation in Unity.
 
 ---
 
@@ -114,8 +132,8 @@ This is suitable when you need simultaneous estimation and detection.
 1. Make sure your ROS 2 system is set up correctly with the necessary dependencies.
 2. Ensure the drone is publishing sensor data, such as IMU and GPS.
 3. Run the appropriate launch file based on your task:
-   - For **only detection**: `ros2 launch state_estimation detector_only.launch.xml`
-   - For **estimation and detection**: `ros2 launch state_estimation estimator_detector.launch.xml`
+   - For **only detection**: `ros2 launch auv_detector detector_only.launch`
+   - For **estimation and detection**: `ros2 launch auv_detector estimator_detector.launch`
 
 4. Verify that the nodes are receiving the data correctly, and check the console output for any state or detection information.
 
