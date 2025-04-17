@@ -56,7 +56,8 @@ class KNN(Node):
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
         self.sam_lowest_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.SAM_LOWEST_POINT_ESTIMATE_TOPIC}", 10)
         
-        self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
+        #self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
+        self.knn = cv2.createBackgroundSubtractorKNN(history=1000, dist2Threshold=10,detectShadows=False)
 
     def declare_node_parameters(self):
         """
@@ -97,6 +98,7 @@ class KNN(Node):
         cv_image = imgrgb
         # Apply the MOG2 algorithm to get the foreground mask
         foreground_mask = self.knn.apply(cv_image)
+        cv2.imshow('KNN', foreground_mask)
         
 
         # Apply the connected component filtering
@@ -114,6 +116,11 @@ class KNN(Node):
 
         min_area = 0  # Minimum area threshold to consider a contour
         large_contours = [c for c in contours if cv2.contourArea(c) > min_area]
+
+        debug_contour_img = cv_image.copy()
+        cv2.drawContours(debug_contour_img, large_contours, -1, (0, 255, 0), 2)  # green contours
+        cv2.imshow("Large Contours", debug_contour_img)
+
 
         for cnt in large_contours:
 
@@ -202,7 +209,7 @@ class KNN(Node):
                 for i in range(len(original_fitted_points) - 1):
                     pt1 = tuple(original_fitted_points[i].astype(int))
                     pt2 = tuple(original_fitted_points[i + 1].astype(int))
-                    cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)
+                    cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)   # Blue color
 
             elif self.data_association(cnt, filtered_mask, cv_image) == self.buoy_name:
                 # Get any point from the contour (e.g., the first point)
@@ -215,6 +222,7 @@ class KNN(Node):
                 buoy_position_msg = Float32MultiArray()
                 buoy_position_msg.data = [float(point[0]), float(point[1])]  # Publish the coordinates of the point
                 self.buoy_pub.publish(buoy_position_msg)
+                self.get_logger().info(f"buoy publishing ......!!!! ")
 
 
         # Publish the processed mask
@@ -234,6 +242,8 @@ class KNN(Node):
         # Step 1: Calculate the yellow percentage in the contour
         contour_mask = np.zeros_like(filtered_mask)
         cv2.drawContours(contour_mask, [cnt], -1, 255, thickness=cv2.FILLED)
+        #cv2.imshow("data_association", contour_mask)
+        #cv2.waitKey(1) 
         orange_percentage = self.get_orange_percentage(contour_mask, cv_image, np.uint8([[self.buoy_color]]))
         # yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, lower_yellow, upper_yellow)
         yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, np.uint8([[self.sam_color]]))
@@ -330,6 +340,9 @@ class KNN(Node):
         # Define your lower and upper HSV bounds (widened range)
         lower_orange = hsv_value - np.array([15, 80, 80])  # Adjust tolerances as needed
         upper_orange = hsv_value + np.array([15, 80, 80])
+
+        lower_orange = np.array([16, 0, 255])  # manual hsv detector
+        upper_orange = np.array([25, 152, 255])
 
         # Clip to valid HSV ranges
         lower_orange = np.clip(lower_orange, 0, 255)

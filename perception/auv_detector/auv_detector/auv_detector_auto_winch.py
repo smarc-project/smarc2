@@ -47,6 +47,8 @@ class AUVPositionEstimator(Node):
 
         self.quadrotor_setpoint_publisher = self.create_publisher(Pose, f"/{self.robot_name}/go_to_setpoint", 10)
 
+        self.winch_publisher = self.create_publisher(Float32MultiArray, f"/winch_control_test", 10)
+        self.timer = self.create_timer(1.0, self.timer_callback)  # Publish every 1 second
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -56,6 +58,11 @@ class AUVPositionEstimator(Node):
         self.image_point = None
         self.X_auv_relative = None
         self.first_measurement = False
+
+        self.buoy_detect_count = 0
+        self.winch_extend = False
+        self.winch_count = 0
+        self.winch_completed = False
 
     def declare_node_parameters(self):
         self.declare_parameter("robot_name", "Quadrotor")
@@ -123,8 +130,45 @@ class AUVPositionEstimator(Node):
             self.publish_auv_position(auv_rel_position)
             self.publish_tf(auv_rel_position)
             self.get_logger().info(f"check enter quadrotor publih setpoints--------------: {auv_rel_position}")
-            self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
+            if self.buoy_detect_count < 5:
+                self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
+                self.buoy_detect_count += 1
+                self.get_logger().info(f"UAV is aiming--------------buoy_detect_count: {self.buoy_detect_count}")
+                # publisher hook 
+            else:
+                self.winch_extend = True
+            # elif self.buoy_detect_count < 20:
+            #     msg = Float32MultiArray()
+            #     msg.data = [7.0, 0.3]
+            #     self.winch_publisher.publish(msg)
+            #     self.get_logger().info(f'Winch extending --------: {msg.data}')
+            #     self.buoy_detect_count += 1
+            # else:
+            #     msg = Float32MultiArray()
+            #     msg.data = [0.1, 0.3]
+            #     self.winch_publisher.publish(msg)
+            #     self.get_logger().info(f'Winch retrieving  --------: {msg.data}')
+
+
             # ros2 topic pub /Quadrotor/go_to_setpoint geometry_msgs/msg/Pose "{position: {x: 0.0, y: -2.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}"  Here z is height.  Unity prefeb, y is height
+    def timer_callback(self):
+            if self.winch_extend == True:
+                if self.winch_count < 14:
+                    msg = Float32MultiArray()
+                    # Example: publish a test command [position, velocity]
+                    msg.data = [7.0, 0.5]
+                    self.winch_publisher.publish(msg)
+                    self.get_logger().info(f'Winch extending --------: {msg.data}')
+                    self.winch_count += 1
+                elif self.winch_count < 28:
+                    msg = Float32MultiArray() 
+                    msg.data = [0.1, 0.5]
+                    self.winch_publisher.publish(msg)
+                    self.get_logger().info(f'Winch retrieving  --------: {msg.data}')
+                    self.winch_count += 1
+
+                
+
 
     def get_first_measured_state(self, observation):
         direction_vector = np.dot(self.K_inv, np.array([observation[0], observation[1], 1]))
