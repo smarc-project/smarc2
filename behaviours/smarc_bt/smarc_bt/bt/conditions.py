@@ -154,3 +154,26 @@ class C_TaskIsMoveTo(Behaviour):
             self.feedback_message = f"Not a move-to task"
             return Status.FAILURE
     
+class C_TaskIsRunning(Behaviour):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
+        """
+        Returns S if the current task status is "running"
+        """
+        self._wara_ps_task_handler = wara_ps_task_handler
+        name = f"{self.__class__.__name__}({self._wara_ps_task_handler})"
+        super().__init__(name)
+
+    def update(self) -> Status:
+        current_executing_tasks = self._wara_ps_task_handler.get_executing_tasks()
+
+        # if no tasks are executing, return failure
+        if len(current_executing_tasks) == 0:
+            self.feedback_message = "No tasks executing"
+            return Status.FAILURE
+        # focus only on first task. #TODO: this needs to be changed later, when we want multiple tasks to happen simultaneously
+        if current_executing_tasks[0]["status"] == "paused":
+            self.feedback_message = f"This task is currently paused. Please resume it."
+            return Status.FAILURE
+        else:
+            self.feedback_message = f"Current task status is {current_executing_tasks[0]['status']}"
+            return Status.SUCCESS

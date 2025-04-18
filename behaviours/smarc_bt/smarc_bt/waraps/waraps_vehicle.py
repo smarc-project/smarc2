@@ -64,11 +64,12 @@ class WaraPSVehicle():
         "type": "SensorInfo"
         }
 
+    @property
     def wara_ps_dict(self):
-        """Override default WARA-PS dictionary to use sam-specific values"""
-        # self._node.get_logger().info(f"Using WARA-PS dict: {self._wara_ps_dict}")
+        """
+        Returns the WaraPS dictionary that is used to handle the MQTT interactor.
+        """
         return self._wara_ps_dict
-    
 
     def wara_ps_heartbeat(self, now_time):
         

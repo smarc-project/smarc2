@@ -72,7 +72,7 @@ class WaraPSTaskHandler:
         self._wara_ps_exec_feedback_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_FEEDBACK_TOPIC, 10)
 
         # subscribe to Level 1 heartbeat to trigger direct_execution_info
-        self._wara_ps_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._publish_direct_execution_info_cb, 10)
+        # self._wara_ps_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._publish_direct_execution_info_cb, 10)
 
 
         # Subscriptions for WARA-PS command topics
@@ -104,20 +104,13 @@ class WaraPSTaskHandler:
         return self._wara_ps_dict
 
 
-                        
-    def _publish_direct_execution_info_cb(self, data: String):
-
+    def lvl_2_heartbeat(self, now_time):
         """
-        This method subscribes to the level 1 heartbeat, and publishes the level 2 direct execution info whenever a level 1 heartbeat is received.
+        This method is called to publish the level 2 heartbeat.
         """
-        #TODO: independent timer please
-
         # find now_time from the stamp in the heartbeat data
-        heartbeat_data = json.loads(data.data)
-        now_time = heartbeat_data["stamp"]
-
-        # update the direct execution info data
         self._direct_execusion_info_data["stamp"] = now_time
+
 
         # naming convention change
         list_of_running_tasks = deepcopy(self.tasks_executing)
@@ -128,19 +121,19 @@ class WaraPSTaskHandler:
             # remove "task" param from dict
             list_of_running_tasks[i].pop("task", None)
             # remove "status" param from dict
-            list_of_running_tasks[i].pop("status", None)
+            # list_of_running_tasks[i].pop("status", None)
 
         # update tasks executing
         self._direct_execusion_info_data["tasks-executing"] = list_of_running_tasks
+
 
         # publish the heartbeat data
         msg = String()
         msg.data = json.dumps(self._direct_execusion_info_data)
         self._wara_ps_direct_execution_info_pub.publish(msg)
-        self._node.get_logger().info('Published Direct Execution Info message')    
-            
-        return True
-    
+        self._node.get_logger().info('Published Direct Execution Info message')
+        
+        return True    
 
     def _exec_command_cb(self, data: String):
         # this function is called when a new command is received from the MQTT broker
@@ -211,7 +204,7 @@ class WaraPSTaskHandler:
                 elif command["signal"] == "$continue":
                     # continue the task
                     for task in self.tasks_executing:
-                        if task["task-uuid"] == command["task-uuid"] and task["status"] == "$paused":
+                        if task["task-uuid"] == command["task-uuid"] and task["status"] == "paused":
                             task["status"] = "running"
                             break
                 
@@ -264,21 +257,6 @@ class WaraPSTaskHandler:
                 self._node.get_logger().error("Invalid start-task command: missing 'task' key")
                 return
 
-        # example start-task command
-        # {
-        #     "com-uuid": <uuid v4 of command>,
-        #     "command": "start-task",
-        #     "execution-unit": <name of unit to execute the command>,
-        #     "sender": <name of sender of command>,
-        #     "task": {
-        #         "name": <task name>,
-        #         "params": {
-        #             <specifics of the task e.g. waypoint, speed ect.>
-        #         }
-        #     },
-        #     "task-uuid": <uuid v4 of task>
-        # }            
-
             if not any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing): # if this task is not already executing
             
                 # add the task to the executing tasks list
@@ -318,3 +296,14 @@ class WaraPSTaskHandler:
         Returns the list of executing tasks.
         """
         return self.tasks_executing
+    
+    def get_current_task_params(self):
+        """
+        Returns the parameters of the current task.
+        """
+        if len(self.tasks_executing) > 0:
+            return self.tasks_executing[0]["task"]["params"]
+        else:
+            # log
+            self._node.get_logger().error("No tasks executing")
+            return None

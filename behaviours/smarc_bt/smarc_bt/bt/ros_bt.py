@@ -33,7 +33,8 @@ from .conditions import C_CheckMissionPlanState,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
                         C_MissionTimeoutOK,\
-                        C_TaskIsMoveTo
+                        C_TaskIsMoveTo,\
+                        C_TaskIsRunning
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
@@ -147,6 +148,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             # is the current task a move to task? If so, do it
             Sequence("S_MoveTo", memory=False, children=[
                 C_TaskIsMoveTo(self._task_handler),
+                C_TaskIsRunning(self._task_handler),
                 A_JustChillForFiveSeconds(self), #TODO: replace this with correct action client
                 A_ClearTaskQueue(self._task_handler),
             ]),
@@ -248,9 +250,9 @@ def smarc_bt():
         }        
     
     wara_ps_vehicle = WaraPSVehicle(node, sam.vehicle_state, sam_waraps_dict)
-    mqtt_interactor = WaraPSTaskHandler(node, sam_waraps_dict)
+    wara_ps_task_handler = WaraPSTaskHandler(node, sam_waraps_dict)
     bt = BT(vehicle_container = sam,
-            task_handler    = mqtt_interactor,
+            task_handler    = wara_ps_task_handler,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
             goto_wp_action    = ros_goto_wp,
@@ -287,7 +289,19 @@ def smarc_bt():
         # sensor info
         wara_ps_vehicle.wara_ps_lvl1(now_time)
 
-    node.create_timer(1.0/wara_ps_vehicle.wara_ps_dict()["pulse_rate"], wara_ps_level_1_comms)
+    node.create_timer(1.0/wara_ps_vehicle.wara_ps_dict["pulse_rate"], wara_ps_level_1_comms)
+
+    def wara_ps_lvl_2_comms():
+        nonlocal wara_ps_task_handler
+
+        # get the current time
+        now_time = ros_seconds_float()
+        # heartbeat
+        wara_ps_task_handler.lvl_2_heartbeat(now_time)
+
+    node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
+
+    
     rclpy.spin(node)
 
 def test_bt_setup():

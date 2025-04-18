@@ -65,8 +65,6 @@ tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_add
 # For local testing: use defaults
 # tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch" C-m
 
-
-
 # Conditional launches, for sim-only or real-only things
 # the real sam's username is "sam" and lolo's "lolo".
 # So we can switch on that.
