@@ -235,7 +235,8 @@ def smarc_bt():
                 "signals": [
                 "$abort",
                 "$enough",
-                "$pause"
+                "$pause",
+                "$continue"
                 ]
             },
             {
@@ -243,7 +244,8 @@ def smarc_bt():
                 "signals": [
                 "$abort",
                 "$enough",
-                "$pause"
+                "$pause",
+                "$continue"
                 ]
             }
             ]
