@@ -1,6 +1,7 @@
 <launch>
     <arg name="robot_name" default="Quadrotor"/>
-    <arg name="vision_params_yaml" default="$(find-pkg-share auv_detector)/config/simulation_config.yaml"/>
+    <arg name="vision_params_yaml" default="$(find-pkg-share auv_detector)/config/realdata_config.yaml"/>
+
     
     <group>
         <push-ros-namespace namespace="$(var robot_name)"/>
@@ -13,7 +14,15 @@
             <!-- Declare parameters with default values -->
             <param name="robot_name" value="$(var robot_name)" />
             <param from="$(var vision_params_yaml)"/>
+        </node>
 
+        <node
+            name="video_pipeline_node"
+            pkg="auv_detector"
+            exec="realdata"
+            output="screen">
+            <!-- Declare parameters with default values -->
+            <param name="robot_name" value="$(var robot_name)" />
         </node>
 
     </group>

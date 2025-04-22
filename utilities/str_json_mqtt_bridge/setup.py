@@ -1,13 +1,12 @@
 from setuptools import find_packages, setup
 import glob, os
 
-package_name = 'auv_detector'
+package_name = 'str_json_mqtt_bridge'
 
 setup(
     name=package_name,
     version='0.0.0',
     packages=find_packages(exclude=['test']),
-    # py_modules=['estimator', 'KNN','model_kf','model_ekf'], 
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -17,16 +16,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='aryan',
-    maintainer_email='aryand@kth.se',
-    description='perception and estimation of AUV using UAV',
+    maintainer='Ozer Ozkahraman',
+    maintainer_email='ozero@kth.se',
+    description='A simple json ros string to mqtt bridge',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-	        'estimator = auv_detector.auv_detector:main', 
-            'detector = auv_detector.KNN:main',
-            'realdata = auv_detector.video_pipeline:main',
+            "waraps_bridge = str_json_mqtt_bridge.bridge:main",
         ],
     },
 )
