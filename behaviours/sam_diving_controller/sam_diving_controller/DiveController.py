@@ -19,7 +19,10 @@ from tf2_ros.transform_listener import TransformListener
 
 from tf_transformations import euler_from_quaternion
 
-from .IDiveView import IDiveView, MissionStates
+try:
+    from .IDiveView import IDiveView, MissionStates
+except: 
+    from IDiveView import IDiveView, MissionStates
 
 class DiveController():
     """

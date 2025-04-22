@@ -26,12 +26,13 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
 
 
-from .IDiveView import IDiveView, MissionStates
 
 try:
     from .DiveController import DiveController
+    from .IDiveView import IDiveView, MissionStates
 except: 
     from DiveController import DiveController
+    from IDiveView import IDiveView, MissionStates
 
 
 class DiveActionServerController(DiveController):
