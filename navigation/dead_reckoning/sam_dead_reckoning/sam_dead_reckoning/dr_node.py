@@ -259,7 +259,6 @@ class VehicleDR(Node):
                     self.transformStamped.header.frame_id = self.map_frame
                     self.transformStamped.child_frame_id = self.odom_frame
                     self.transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())
-                    self.static_tf_bc.sendTransform(self.transformStamped)
                     self.map_2_odom_initialized = True
                     # self.gps_sub.unregister()
                     self.destroy_subscription(self.gps_sub)
@@ -289,7 +288,7 @@ class VehicleDR(Node):
 
     def dr_timer(self):
         
-        # Determine actual period of timer
+        # Determine actual period of timer 
         dr_current_time = rcl_time_to_secs(self.get_clock().now())
         if self.dr_last_time is None:
             self.dr_measured_period = 0
@@ -301,6 +300,8 @@ class VehicleDR(Node):
         start_time_dbg = python_time.time()
 
         if self.map_2_odom_initialized and self.stim_initialized:
+
+            self.static_tf_bc.sendTransform(self.transformStamped)
 
             pose_t = np.concatenate([self.pos_t, self.rot_t])  # Catch latest estimate from IMU
             rot_vel_t = self.vel_rot  # TODO: rn this keeps the last vels even if the IMU dies

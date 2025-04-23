@@ -55,7 +55,8 @@ class DrOdom2LatLon(Node):
         self.lat_lon_topic = DRTopics.DR_LAT_LON_TOPIC
 
         # Frame names
-        self.map_frame = self.get_parameter("map_frame").value
+        # self.map_frame = self.get_parameter("map_frame").value
+        self.map_frame = "map"
         self.tf_buffer = Buffer(rclpy.duration.Duration(seconds=5.0))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 

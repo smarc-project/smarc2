@@ -54,10 +54,10 @@ tmux send-keys "ros2 launch sam_dead_reckoning sam_dr_launch.launch robot_name:=
 #tmux send-keys "echo 'Not launching sam_dead_reckoning sam_dr_launch.launch until someone fixes it!'" C-m
 
 # BT, action servers etc.
-tmux new-window -t $SESSION:2 -n 'bt'
-tmux select-window -t $SESSION:2
+#tmux new-window -t $SESSION:2 -n 'bt'
+#tmux select-window -t $SESSION:2
 #tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
-tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+#tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:3 -n 'control'
@@ -66,9 +66,9 @@ tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch sam_diving_controller actionserver.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
 # connection to different GUIs
-tmux new-window -t $SESSION:4 -n 'gui'
-tmux select-window -t $SESSION:4
-tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
+#tmux new-window -t $SESSION:4 -n 'gui'
+#tmux select-window -t $SESSION:4
+#tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
 
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
 tmux new-window -t $SESSION:5 -n 'utils'
