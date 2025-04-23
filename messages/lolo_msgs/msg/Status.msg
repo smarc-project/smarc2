@@ -27,3 +27,14 @@ int8 servo1_output
 int8 servo2_output
 int8 lumen_output
 int8 mbes_output
+
+string emergency_status
+string control_mode
+string control_source
+
+int8 thrusters_enabled
+int8 vertical_thrusters_enabled
+
+int8 edw_armed
+int8 edw_timer_armed
+int32 edw_timer_time_left

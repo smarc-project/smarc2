@@ -16,22 +16,10 @@ find_package(std_msgs REQUIRED)
 
 # Add messages here!!
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/BottomTrack.msg"
-  "msg/CaptainService.msg"
-  "msg/CustomCommand.msg"
-  "msg/HyperionFluorescence.msg"
-  "msg/HyperionTurbidity.msg"
-  "msg/JfeDo.msg"
-  "msg/Pd0BottomTrack.msg"
-  "msg/Pd0FixedLeader.msg"
-  "msg/Pd0VariableLeader.msg"
   "msg/Pressures.msg"
-  "msg/RbrCtd.msg"
   "msg/Status.msg"
   "msg/Temperatures.msg"
   "msg/UsblTopsideCorrection.msg"
-  "msg/VbsMode.msg"
-  "msg/VbsTank.msg"
   "msg/VescFeedback.msg"
   "msg/VolzServo.msg"
   "msg/Topics.msg"
