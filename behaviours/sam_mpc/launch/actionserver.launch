@@ -6,18 +6,11 @@
    
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
-       <node name="diving" pkg="sam_diving_controller" exec="manual_diving" output="screen">
+       <node name="diving_node" pkg="sam_mpc" exec="action_server_diving" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
 	<param from="$(var control_yaml)"/>
        </node>
-
-       #<node name="diving" pkg="sam_diving_controller" exec="setpoint" output="screen">
-       # <param name="robot_name" value="$(var robot_name)"/>
-       # <param name="tf_suffix" value="$(var tf_suffix)"/>
-       # <param from="$(var control_yaml)"/>
-       #</node>
-       
     </group>
 
 </launch>
