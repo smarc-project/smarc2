@@ -1,12 +1,12 @@
 <!--toc:start-->
 - [go_to_geopoint](#gotogeopoint)
 - [Implementing an Action Server/Client](#implementing-an-action-serverclient)
-  - [Creating and Action](#creating-and-action)
+  - [Creating an Action](#creating-an-action)
     - [ROS2 Humble Doc's](#ros2-humble-docs)
   - [Implementing with smarc-action-base](#implementing-with-smarc-action-base)
     - [Server](#server)
     - [Client](#client)
-    - [ROS2 Humble Doc's](#ros2-humble-docs)
+  - [ROS2 Humble Documentation on Action Server Client](#ros2-humble-documentation-on-action-server-client)
 <!--toc:end-->
 
 # go_to_geopoint

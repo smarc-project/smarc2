@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MissionControl.msg"
   "action/Empty.action"
   "action/GotoGeopoint.action"
+  "action/GotoWaypoint.action"
   "srv/DubinsPlan.srv"
   "srv/UTMLatLon.srv"
   DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
