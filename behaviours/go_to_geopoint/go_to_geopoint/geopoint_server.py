@@ -44,14 +44,28 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint = self._node.create_publisher(
             Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
         )
-        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
         self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
-        self._target_frame_param = node.declare_parameter(
-            "target_frame", "base_link"
+        self._target_frame_param = node.declare_parameter("target_frame", "odom").value
+
+        self._distance_frame_param = node.declare_parameter(
+            "distance_frame",
+            "base_link",
+            ParameterDescriptor(
+                description="Frame for which the distance to target will be computed (usually base_link)"
+            ),
+        ).value
+
+        self._distance_frame_suffix = node.declare_parameter(
+            "distance_frame_suffix",
+            "_gt",
+            ParameterDescriptor(
+                description="Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable"
+            ),
         ).value
 
         self._frame_suffix = node.declare_parameter(
@@ -64,7 +78,7 @@ class GeopointServer(SMARCActionServer):
 
         self._setpoint_tol: float = node.declare_parameter(
             "setpoint_tolerance",
-            0.8,
+            0.25,
             ParameterDescriptor(
                 description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
             ),
@@ -89,19 +103,22 @@ class GeopointServer(SMARCActionServer):
             * KM_TO_METER
         )
 
-        if self._frame_suffix == "":
-            self.target_frame = f"{self.robot_name}/{self._target_frame_param}"
-        else:
-            self.target_frame = (
-                f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
-            )
+        self.target_frame = (
+            f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
+        )
+
+        self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
         """Helper function to print PoseStamped Messages nicely."""
-        return f"\nFrame: {pose.header.frame_id}\nPosition:{pose.pose.position}\nOrientation{pose.pose.orientation}"
+        return f"\nFrame: {pose.header.frame_id}\nPosition: {pose.pose.position}\nOrientation: {pose.pose.orientation}"
 
-    def transform_goal(self, pose_stamped: PoseStamped) -> PoseStamped:
+    def transform_goal(
+        self,
+        pose_stamped: PoseStamped,
+        override_target: str | None = None,
+    ) -> PoseStamped:
         """Provides transformed point from pose_stamped.header.frame_id to self.target_frame.
 
         Raises:
@@ -110,12 +127,20 @@ class GeopointServer(SMARCActionServer):
         Returns:
             PoseStamped in specified frame
         """
-        t = self._tf_buffer.lookup_transform(
-            target_frame=self.target_frame,
-            source_frame=pose_stamped.header.frame_id,
-            time=Time(seconds=0),
-            timeout=Duration(seconds=2),
-        )
+        if override_target is None:
+            t = self._tf_buffer.lookup_transform(
+                target_frame=self.target_frame,
+                source_frame=pose_stamped.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=2),
+            )
+        else:
+            t = self._tf_buffer.lookup_transform(
+                target_frame=override_target,
+                source_frame=pose_stamped.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=2),
+            )
         # based on ReadMe in repository
         return do_transform_pose_stamped(pose_stamped, t)
 
@@ -130,10 +155,11 @@ class GeopointServer(SMARCActionServer):
         Returns:
             pose: pose in specified frame
         """
+
         t = self._tf_buffer.lookup_transform(
             target_frame=pose_stamped.header.frame_id,
             source_frame=self.target_frame,
-            time=Time(seconds=0),
+            time=0,
             timeout=Duration(seconds=2),
         )
         # based on ReadMe in repository
@@ -150,7 +176,10 @@ class GeopointServer(SMARCActionServer):
             TransformException when transform fails
         """
         try:
-            pose_transformed: PoseStamped = self.transform_goal(pose_stamped)
+            override_frame = self.distance_frame
+            pose_transformed: PoseStamped = self.transform_goal(
+                pose_stamped, override_target=override_frame
+            )
             self.logger.debug(
                 "Position after transform:" + self._str_posestamp(pose_transformed)
             )
@@ -215,6 +244,9 @@ class GeopointServer(SMARCActionServer):
         pose_stamped = self.convert_to_utm(goal_handle.request.setpoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
+            self.logger.debug(
+                f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
+            )
         except TransformException as err:
             self.logger.error(
                 f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
@@ -302,7 +334,7 @@ class GeopointServer(SMARCActionServer):
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
-            self.logger.debug(f"Tol check result: {tol_check}")
+            self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
 
         rate.destroy()
         return
