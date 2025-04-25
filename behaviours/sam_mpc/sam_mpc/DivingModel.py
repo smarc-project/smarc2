@@ -124,7 +124,7 @@ class DiveControlModel:
         # create ocp object to formulate the OCP
         Ts = 0.1            # Sampling time
         self.N_horizon = 10      # Prediction horizon
-        nmpc = NMPC_trajectory(sam, Ts, self.N_horizon)
+        nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, False)
         self.nx = nmpc.nx        # State vector length + control vector
         nu = nmpc.nu        # Control derivative vector length
 
@@ -158,9 +158,11 @@ class DiveControlModel:
         x0 = self.trajectory[0] 
         self.simX[0,:] = x0
 
-        # Augment the trajectory and control input reference 
+        # Augment the trajectory and control input r0.0eference 
         Uref = np.zeros((self.trajectory.shape[0], nu))  # Derivative reference - set to 0 to penalize fast control changes
         self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
+
+        self.ref = np.zeros(self.trajectory.shape)
 
         # Run the MPC setup
         self.ocp_solver, self.integrator = nmpc.setup(x0)
@@ -255,6 +257,8 @@ class DiveControlModel:
         This is where all the magic happens.
         """
         # Get setpoints
+        # FIXME: This should be the full pose for the MPC to handle, not just depth and pitch.
+        waypoint = self._controller.get_waypoint()
         depth_setpoint = self._controller.get_depth_setpoint()
         pitch_setpoint = self._controller.get_pitch_setpoint()
         dive_pitch_setpoint = self._controller.get_dive_pitch()
@@ -268,34 +272,40 @@ class DiveControlModel:
         current_pitch = self._controller.get_pitch()
         current_heading = self._controller.get_heading()
 
-        x_current = self.simX[self.i, :]
-        #x_current = np.zeros(19)
-        #x_current[0] = self._current_state.pose.pose.position.x
-        #x_current[1] = self._current_state.pose.pose.position.y
-        #x_current[2] = self._current_state.pose.pose.position.z
-        #x_current[3] = self._current_state.pose.pose.orientation.w
-        #x_current[4] = self._current_state.pose.pose.orientation.x
-        #x_current[5] = self._current_state.pose.pose.orientation.y
-        #x_current[6] = self._current_state.pose.pose.orientation.z
-        #x_current[7] = self._current_state.twist.twist.linear.x
-        #x_current[8] = self._current_state.twist.twist.linear.y
-        #x_current[9] = self._current_state.twist.twist.linear.z
-        #x_current[10] = self._current_state.twist.twist.angular.x
-        #x_current[11] = self._current_state.twist.twist.angular.y
-        #x_current[12] = self._current_state.twist.twist.angular.z
-        #x_current[13] = self._current_control['vbs']
-        #x_current[14] = self._current_control['lcg']
-        #x_current[15] = self._current_control['stern']
-        #x_current[16] = self._current_control['rudder']
-        #x_current[17] = self._current_control['rpm1']
-        #x_current[18] = self._current_control['rpm2']
+        #x_current = self.simX[self.i, :]
+        x_current = np.zeros(19)
+        x_current[0] = self._current_state.pose.pose.position.x
+        x_current[1] = self._current_state.pose.pose.position.y
+        x_current[2] = self._current_state.pose.pose.position.z # FIXME: Sketchy - sign due to ENU to NED transform
+        x_current[3] = self._current_state.pose.pose.orientation.w
+        x_current[4] = self._current_state.pose.pose.orientation.x
+        x_current[5] = self._current_state.pose.pose.orientation.y
+        x_current[6] = self._current_state.pose.pose.orientation.z
+        x_current[7] = self._current_state.twist.twist.linear.x
+        x_current[8] = self._current_state.twist.twist.linear.y
+        x_current[9] = self._current_state.twist.twist.linear.z
+        x_current[10] = self._current_state.twist.twist.angular.x
+        x_current[11] = self._current_state.twist.twist.angular.y
+        x_current[12] = self._current_state.twist.twist.angular.z
+        x_current[13] = self._current_control['vbs']
+        x_current[14] = self._current_control['lcg']
+        x_current[15] = self._current_control['stern']
+        x_current[16] = self._current_control['rudder']
+        x_current[17] = self._current_control['rpm1']
+        x_current[18] = self._current_control['rpm2']
+
+        #self._loginfo(f"state: {self._current_state.header}")
+        #if waypoint is not None:
+        #    self._loginfo(f"waypoint: {waypoint}")
+        #else:
+        #    self._loginfo(f"no waypoint received yet.")
 
         # NOTE: This is the current time step in the trajctory
         # FIXME: We want to take care of the trajectory and iterate through it
         # until we either succeed or can't complete it anymore. Then we send
         # the response with the action server back to either say mission
         # success or need new trajectory.
-        print(f"self.Nsim: {self.i}")
+        #print(f"self.Nsim: {self.i}")
         #print(f"x_current: {x_current}")
 
         # FIXME: This is for debugging only!
@@ -303,22 +313,32 @@ class DiveControlModel:
             self.i = 0
 
         # extract the sub-trajectory for the horizon
-        if self.i <= (self.Nsim - self.N_horizon):
-            ref = self.trajectory[self.i:self.i + self.N_horizon, :]
-        else:
-            ref = self.trajectory[self.i:, :]
+        #if self.i <= (self.Nsim - self.N_horizon):
+        #    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+        #else:
+        #    self.ref = self.trajectory[self.i:, :]
+
+        if waypoint is not None:
+            self.ref[:,0] = waypoint.pose.position.x
+            self.ref[:,1] = waypoint.pose.position.y
+            self.ref[:,2] = waypoint.pose.position.z
+            self.ref[:,3] = waypoint.pose.orientation.w
+            self.ref[:,4] = waypoint.pose.orientation.x
+            self.ref[:,5] = waypoint.pose.orientation.y
+            self.ref[:,5] = waypoint.pose.orientation.z
+
 
         # Update reference vector
         # If the end of the trajectory has been reached, (ref.shape < N_horizon)
         # set the following waypoints in the horizon to the last waypoint of the trajectory
         for stage in range(self.N_horizon):
-            if ref.shape[0] < self.N_horizon and ref.shape[0] != 0:
-                self.ocp_solver.set(stage, "p", ref[ref.shape[0]-1,:])
+            if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
+                self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
             else:
-                self.ocp_solver.set(stage, "p", ref[stage,:])
+                self.ocp_solver.set(stage, "p", self.ref[stage,:])
 
         # Set the terminal state reference
-        self.ocp_solver.set(self.N_horizon, "yref", ref[-1,:self.nx])
+        self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
  
         # Set current state
         self.ocp_solver.set(0, "lbx", x_current)
@@ -327,8 +347,8 @@ class DiveControlModel:
         # solve ocp and get next control input
         status = self.ocp_solver.solve()
         #ocp_solver.print_statistics()
-        if status != 0:
-            print(f" Note: acados_ocp_solver returned status: {status}")
+        #if status != 0:
+            #print(f" Note: acados_ocp_solver returned status: {status}")
 
         # simulate system
         self.t[self.i] = self.ocp_solver.get_stats('time_tot')
@@ -338,12 +358,12 @@ class DiveControlModel:
 
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
-        u_stern = mpc_solution[15]
+        u_stern = mpc_solution[15] # FIXME: Sketchy - sign! potentially due to NED mpc model, that doesn't match with the SIM?
         u_rudder = mpc_solution[16]
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
-        print(f"u_vbs: {u_vbs}, u_lcg: {u_lcg}, u_stern: {u_stern}, u_rudder: {u_rudder}, u_rpm1: {u_rpm1}, u_rpm2: {u_rpm2}")
+        #print(f"u_vbs: {u_vbs}, u_lcg: {u_lcg}, u_stern: {u_stern}, u_rudder: {u_rudder}, u_rpm1: {u_rpm1}, u_rpm2: {u_rpm2}")
 
         self.simX[self.i+1, :] = mpc_solution
 
@@ -352,6 +372,28 @@ class DiveControlModel:
         self._view.set_lcg(u_lcg)
         self._view.set_thrust_vector(u_rudder, u_stern) 
         self._view.set_rpm(u_rpm1, u_rpm2)
+
+        # Convenience Topics
+        # FIXME: This is a hack. Fix how the setpoint is published, otherwise the node crashes in the first iteration.
+        if depth_setpoint is not None:
+            self._ref = ControlReference()
+            self._ref.x = self.ref[0,0]
+            self._ref.y = self.ref[0,1]
+            self._ref.z = self.ref[0,2]
+            self._ref.pitch = pitch_setpoint
+
+        self._error = ControlError()
+        self._error.z = self.ref[0,2] - x_current[2]
+        self._error.pitch = 0.# pitch_error
+        self._error.yaw =  0.#yaw_error
+        self._error.heading =  0.#current_heading
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
+        self._input.thrustervertical = u_stern
+        self._input.thrusterhorizontal = u_rudder
+        self._input.thrusterrpm = float(u_rpm1)
 
         self.i += 1
 
@@ -421,23 +463,7 @@ class DiveControlModel:
         #self._view.set_thrust_vector(u_tv_hor, -u_tv_ver) 
         #self._view.set_rpm(u_rpm)
 
-        ## Convenience Topics
-        #self._ref = ControlReference()
-        #self._ref.z = depth_setpoint
-        #self._ref.pitch = pitch_setpoint
 
-        #self._error = ControlError()
-        #self._error.z = depth_error
-        #self._error.pitch = pitch_error
-        #self._error.yaw = yaw_error
-        #self._error.heading = current_heading
-
-        #self._input = ControlInput()
-        #self._input.vbs = u_vbs
-        #self._input.lcg = u_lcg
-        #self._input.thrustervertical = u_tv_ver
-        #self._input.thrusterhorizontal = u_tv_hor
-        #self._input.thrusterrpm = float(u_rpm)
 
         return
 

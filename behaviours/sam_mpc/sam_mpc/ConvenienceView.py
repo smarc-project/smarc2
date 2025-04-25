@@ -135,17 +135,30 @@ class ConvenienceView(IDiveView):
                  f"TV hor: {self._input_msg.thrusterhorizontal:.3f}, "\
                  f"RPM: {self._input_msg.thrusterrpm:.3f}\n"
 
-        if self._waypoint_msg is None:
-            s += "No Waypoint Yet\n"
+        if self._ref_msg is None:
+            s += "No Reference Yet\n"
         else:
-            distance = self._controller.get_distance()
-            heading = self._controller.get_heading()
-            dive_pitch = self._controller.get_dive_pitch()
+            ref = self._ref_msg
 
-            s += f"Waypoint Following\n"
-            s += f"   distance: {distance:.3f}, "\
-                 f"heading: {heading:.3f}, "\
-                 f"dive pitch: {dive_pitch:.3f}\n"
+            s += f"Reference\n"
+            s += f"   x: {ref.x:.3f}, "\
+                f"   y: {ref.y:.3f}, "\
+                f"   z: {ref.z:.3f}, "\
+                f"   depth: {ref.z:.3f}, \n"
+                 #f"heading: {heading:.3f}, "\
+                 #f"dive pitch: {dive_pitch:.3f}\n"
+
+#        if self._waypoint_msg is None:
+#            s += "No Waypoint Yet\n"
+#        else:
+#            distance = self._controller.get_distance()
+#            heading = self._controller.get_heading()
+#            dive_pitch = self._controller.get_dive_pitch()
+#
+#            s += f"Waypoint Following\n"
+#            s += f"   distance: {distance:.3f}, "\
+#                 f"heading: {heading:.3f}, "\
+#                 f"dive pitch: {dive_pitch:.3f}\n"
 
         if self._error_msg is None:
             s += "No control yet\n"
