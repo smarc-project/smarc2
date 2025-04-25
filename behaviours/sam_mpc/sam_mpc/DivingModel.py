@@ -3,6 +3,8 @@
 import numpy as np
 
 from tf_transformations import euler_from_quaternion
+from tf_transformations import translation_matrix, translation_from_matrix
+from tf_transformations import quaternion_matrix, quaternion_from_matrix
 
 import csv
 
@@ -252,31 +254,22 @@ class DiveControlModel:
         self._input.thrusterrpm = float(u_rpm_emergency)
 
 
+
     def update(self):
         """
         This is where all the magic happens.
         """
         # Get setpoints
-        # FIXME: This should be the full pose for the MPC to handle, not just depth and pitch.
         waypoint = self._controller.get_waypoint()
-        depth_setpoint = self._controller.get_depth_setpoint()
-        pitch_setpoint = self._controller.get_pitch_setpoint()
-        dive_pitch_setpoint = self._controller.get_dive_pitch()
-        heading_setpoint = self._controller.get_heading_setpoint()
-        rpm_setpoint = self._controller.get_rpm_setpoint()
 
         # Get current states
         self._current_state = self._controller.get_states()
         self._current_control = self._controller.get_control_input()
-        current_depth = self._controller.get_depth()
-        current_pitch = self._controller.get_pitch()
-        current_heading = self._controller.get_heading()
 
-        #x_current = self.simX[self.i, :]
         x_current = np.zeros(19)
         x_current[0] = self._current_state.pose.pose.position.x
         x_current[1] = self._current_state.pose.pose.position.y
-        x_current[2] = self._current_state.pose.pose.position.z # FIXME: Sketchy - sign due to ENU to NED transform
+        x_current[2] = self._current_state.pose.pose.position.z 
         x_current[3] = self._current_state.pose.pose.orientation.w
         x_current[4] = self._current_state.pose.pose.orientation.x
         x_current[5] = self._current_state.pose.pose.orientation.y
@@ -294,25 +287,11 @@ class DiveControlModel:
         x_current[17] = self._current_control['rpm1']
         x_current[18] = self._current_control['rpm2']
 
-        #self._loginfo(f"state: {self._current_state.header}")
-        #if waypoint is not None:
-        #    self._loginfo(f"waypoint: {waypoint}")
-        #else:
-        #    self._loginfo(f"no waypoint received yet.")
-
-        # NOTE: This is the current time step in the trajctory
-        # FIXME: We want to take care of the trajectory and iterate through it
-        # until we either succeed or can't complete it anymore. Then we send
-        # the response with the action server back to either say mission
-        # success or need new trajectory.
-        #print(f"self.Nsim: {self.i}")
-        #print(f"x_current: {x_current}")
-
         # FIXME: This is for debugging only!
         if self.i == self.Nsim:
             self.i = 0
 
-        # extract the sub-trajectory for the horizon
+        ## extract the sub-trajectory for the horizon
         #if self.i <= (self.Nsim - self.N_horizon):
         #    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
         #else:
@@ -356,17 +335,15 @@ class DiveControlModel:
         #X_eval = ocp_solver.get(0, "x")
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU[self.i, :])
 
+        # TODO: Check that the outputs fit the actual actuators
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
-        u_stern = mpc_solution[15] # FIXME: Sketchy - sign! potentially due to NED mpc model, that doesn't match with the SIM?
+        u_stern = mpc_solution[15] 
         u_rudder = mpc_solution[16]
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
-        #print(f"u_vbs: {u_vbs}, u_lcg: {u_lcg}, u_stern: {u_stern}, u_rudder: {u_rudder}, u_rpm1: {u_rpm1}, u_rpm2: {u_rpm2}")
-
         self.simX[self.i+1, :] = mpc_solution
-
 
         self._view.set_vbs(u_vbs)
         self._view.set_lcg(u_lcg)
@@ -374,16 +351,17 @@ class DiveControlModel:
         self._view.set_rpm(u_rpm1, u_rpm2)
 
         # Convenience Topics
-        # FIXME: This is a hack. Fix how the setpoint is published, otherwise the node crashes in the first iteration.
-        if depth_setpoint is not None:
+        if self.ref is not None:
             self._ref = ControlReference()
             self._ref.x = self.ref[0,0]
             self._ref.y = self.ref[0,1]
             self._ref.z = self.ref[0,2]
-            self._ref.pitch = pitch_setpoint
 
         self._error = ControlError()
+        self._error.x = self.ref[0,2] - x_current[2]
         self._error.z = self.ref[0,2] - x_current[2]
+        self._error.z = self.ref[0,2] - x_current[2]
+        # TODO: Finish this. Use euler_from_quaternion(quaternion) to do the conversion.
         self._error.pitch = 0.# pitch_error
         self._error.yaw =  0.#yaw_error
         self._error.heading =  0.#current_heading
