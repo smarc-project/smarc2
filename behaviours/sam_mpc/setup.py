@@ -24,7 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'manual_diving = sam_mpc.Node:main',
-            'action_server_diving = sam_diving_controller.Node:action_server',
+            'action_server_diving = sam_mpc.Node:action_server',
+            'setpoint = sam_mpc.SetpointNode:main'
         ],
     },
 )

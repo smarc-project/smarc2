@@ -152,7 +152,7 @@ class NMPC:
         return x_error
 
 class NMPC_trajectory:
-    def __init__(self, casadi_model, Ts, N_horizon):
+    def __init__(self, casadi_model, Ts, N_horizon, build=True):
         '''
         Input:
         casadi_model == Casadi model
@@ -167,6 +167,7 @@ class NMPC_trajectory:
         self.Ts    = Ts
         self.Tf    = Ts*N_horizon
         self.N_horizon = N_horizon
+        self.build = build
         
     # Function to create a Acados model from the casadi model
     def export_dynamics_model(self, casadi_model):
@@ -291,10 +292,11 @@ class NMPC_trajectory:
         self.ocp.solver_options.regularize_method = 'NO_REGULARIZE'
 
         solver_json = 'acados_ocp_' + self.model.name + '.json'
-        acados_ocp_solver = AcadosOcpSolver(self.ocp, json_file = solver_json, generate=False, build=False)
+        solver_dir = '/home/parallels/ros2_ws/src/smarc2/behaviours/sam_mpc/sam_mpc/' # FIXME: This should be read out by the script instead of hard coded.
+        acados_ocp_solver = AcadosOcpSolver(self.ocp, json_file = solver_dir + solver_json, generate=self.build, build=self.build)
 
         # create an integrator with the same settings as used in the OCP solver.
-        acados_integrator = AcadosSimSolver(self.ocp, json_file = solver_json, generate=False, build=False)
+        acados_integrator = AcadosSimSolver(self.ocp, json_file = solver_dir + solver_json, generate=self.build, build=self.build)
 
         return acados_ocp_solver, acados_integrator
     

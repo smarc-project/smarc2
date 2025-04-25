@@ -47,7 +47,7 @@ class DiveController():
         self._node.declare_parameter('tf_suffix', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link'+ tf_suffix #'/base_link_gt'
+        self._robot_base_link = robot_name + '/base_link'+ tf_suffix 
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
 
@@ -158,6 +158,12 @@ class DiveController():
             self._depth_setpoint = self._waypoint_global.pose.position.z
 
         return self._depth_setpoint
+
+    def get_body_waypoint(self):
+        if self._waypoint_body is not None:
+            return self._waypoint_body
+        else:
+            return None
 
 
     def get_pitch_setpoint(self):
