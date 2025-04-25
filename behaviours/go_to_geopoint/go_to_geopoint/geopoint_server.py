@@ -20,7 +20,7 @@ from smarc_mission_msgs.action import GotoGeopoint
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-KM_TO_METER = 100
+KM_TO_METER = 1000
 
 
 class GeopointServer(SMARCActionServer):
