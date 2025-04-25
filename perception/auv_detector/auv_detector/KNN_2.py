@@ -9,7 +9,7 @@ from std_msgs.msg import Float32MultiArray
 from sklearn.decomposition import PCA
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
-import auv_detector.params_detector as P
+import auv_detector.params_detector_2 as P
 
 class KNN(Node):
     def __init__(self):
@@ -209,7 +209,7 @@ class KNN(Node):
                 for i in range(len(original_fitted_points) - 1):
                     pt1 = tuple(original_fitted_points[i].astype(int))
                     pt2 = tuple(original_fitted_points[i + 1].astype(int))
-                    cv_image = cv2.line(cv_image, pt1, pt2, (255, 0, 0), 2)   # Blue color
+                    cv_image = cv2.line(cv_image, pt1, pt2, (255, 255, 0), 2)   # Blue color
 
             elif self.data_association(cnt, filtered_mask, cv_image) == self.buoy_name:
                 # Get any point from the contour (e.g., the first point)

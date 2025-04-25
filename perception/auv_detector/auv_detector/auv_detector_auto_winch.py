@@ -11,6 +11,7 @@ from sensor_msgs.msg import CameraInfo
 import tf2_ros
 import tf2_geometry_msgs
 from rclpy.executors import MultiThreadedExecutor
+import time
 
 class AUVPositionEstimator(Node):
     def __init__(self):
@@ -45,7 +46,8 @@ class AUVPositionEstimator(Node):
         self.create_subscription(Float32, f"/{self.robot_name}/{DroneTopics.DEPTH_TOPIC}", self.depth_cb, 10)
         self.auv_position_publisher = self.create_publisher(Odometry, f"/{self.robot_name}/{DroneTopics.AUV_RELATIVE_POSITION_TOPIC}", 10)
 
-        self.quadrotor_setpoint_publisher = self.create_publisher(Pose, f"/{self.robot_name}/go_to_setpoint", 10)
+        self.quadrotor_setpoint_publisher = self.create_publisher(Pose, f"/{self.robot_name}/go_to_setpoint", 10)  # absolute position
+        # ros2 topic pub /Quadrotor/go_to_setpoint geometry_msgs/msg/Pose "{position: {x: 0.0, y: 0.0, z: -3.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}"
 
         self.winch_publisher = self.create_publisher(Float32MultiArray, f"/winch_control_test", 10)
         self.timer = self.create_timer(1.0, self.timer_callback)  # Publish every 1 second
@@ -63,6 +65,7 @@ class AUVPositionEstimator(Node):
         self.winch_extend = False
         self.winch_count = 0
         self.winch_completed = False
+        self.CatchStartTime = 0
 
     def declare_node_parameters(self):
         self.declare_parameter("robot_name", "Quadrotor")
@@ -136,7 +139,9 @@ class AUVPositionEstimator(Node):
                 self.get_logger().info(f"UAV is aiming--------------buoy_detect_count: {self.buoy_detect_count}")
                 # publisher hook 
             else:
-                self.winch_extend = True
+                #self.winch_extend = True
+                self.winch_extend = False # just tracking now
+                
             # elif self.buoy_detect_count < 20:
             #     msg = Float32MultiArray()
             #     msg.data = [7.0, 0.3]
@@ -152,6 +157,19 @@ class AUVPositionEstimator(Node):
 
             # ros2 topic pub /Quadrotor/go_to_setpoint geometry_msgs/msg/Pose "{position: {x: 0.0, y: -2.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}"  Here z is height.  Unity prefeb, y is height
     def timer_callback(self):
+            # if self.winch_extend == False:
+            #     self.CatchStartTime = time.time()
+            # else:
+            #     Tp = time.time() - self.CatchStartTime
+            #     msg = Float32MultiArray()
+            #     if Tp < 14.5: # seconds
+            #         msg.data = [7, 0.5]
+            #         self.winch_publisher.publish(msg)
+            #         self.get_logger().info(f'Winch extending --------: {msg.data}, Time: {Tp}')
+            #     elif Tp < 28.5:
+            #         msg.data = [0.1, 0.5]
+            #         self.winch_publisher.publish(msg)
+            #         self.get_logger().info(f'Winch retrieving --------: {msg.data}, Time: {Tp}')
             if self.winch_extend == True:
                 if self.winch_count < 14:
                     msg = Float32MultiArray()
