@@ -12,6 +12,9 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
 from smarc_control_msgs.msg import Topics as ControlTopics
+from smarc_msgs.msg import ThrusterRPM, PercentStamped
+from sam_msgs.msg import Topics as SamTopics
+from sam_msgs.msg import ThrusterAngles
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -44,7 +47,7 @@ class DiveController():
         self._node.declare_parameter('tf_suffix', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link'+ tf_suffix #'/base_link_gt'
+        self._robot_base_link = robot_name + '/base_link'+ tf_suffix 
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
 
@@ -64,6 +67,20 @@ class DiveController():
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
+
+        self._control_input = {}
+        self._control_input['vbs'] = 0.0
+        self._control_input['lcg'] = 0.0
+        self._control_input['rpm1'] = 0.0
+        self._control_input['rpm2'] = 0.0
+        self._control_input['stern'] = 0.0
+        self._control_input['rudder'] = 0.0
+
+        self.vbs_sub = node.create_subscription(PercentStamped, SamTopics.VBS_CMD_TOPIC, self._vbs_cb, 10)
+        self.lcg_sub = node.create_subscription(PercentStamped, SamTopics.LCG_CMD_TOPIC, self._lcg_cb, 10)
+        self.rpm1_sub = node.create_subscription(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, self._rpm1_cb, 10)
+        self.rpm2_sub = node.create_subscription(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, self._rpm2_cb, 10)
+        self.thrust_vector_sub = node.create_subscription(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, self._thrust_vector_cb, 10)
 
         self._loginfo("Dive Controller Node started")
 
@@ -93,6 +110,22 @@ class DiveController():
         self._requested_rpm = 500
 
         self._received_waypoint = True
+
+    def _vbs_cb(self, msg):
+        self._control_input['vbs'] = msg.value
+
+    def _lcg_cb(self, msg):
+        self._control_input['lcg'] = msg.value
+
+    def _rpm1_cb(self, msg):
+        self._control_input['rpm1'] = float(msg.rpm)
+
+    def _rpm2_cb(self, msg):
+        self._control_input['rpm2'] = float(msg.rpm)
+
+    def _thrust_vector_cb(self, msg):
+        self._control_input['stern'] = float(msg.thruster_vertical_radians)
+        self._control_input['rudder'] = float(msg.thruster_horizontal_radians)
 
 
     def _update_tf(self):
@@ -126,6 +159,12 @@ class DiveController():
 
         return self._depth_setpoint
 
+    def get_body_waypoint(self):
+        if self._waypoint_body is not None:
+            return self._waypoint_body
+        else:
+            return None
+
 
     def get_pitch_setpoint(self):
         if self._waypoint_body is not None:
@@ -154,6 +193,9 @@ class DiveController():
         # state you're interested in, then you can get them
         # directly.
         return self._states
+
+    def get_control_input(self):
+        return self._control_input
 
 
     def get_depth(self):

@@ -1,0 +1,8 @@
+# goal message
+geographic_msgs/GeoPoint setpoint
+---
+# result message
+bool reached_setpoint
+---
+# feedback message
+float32 distance_remaining
