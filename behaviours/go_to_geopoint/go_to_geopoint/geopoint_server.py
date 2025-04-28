@@ -299,7 +299,7 @@ class GeopointServer(SMARCActionServer):
             exec_up.__cause__ = err
             # Adding error message to traceback for debug log.
             self.logger.info(err_str)
-            self.logger.debug(traceback.print_exception(exec()))
+            self.logger.debug(traceback.format_exc())
             return GoalResponse.REJECT
 
         if dist >= self._goal_threshold:

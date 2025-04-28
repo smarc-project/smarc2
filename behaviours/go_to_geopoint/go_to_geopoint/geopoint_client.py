@@ -32,6 +32,7 @@ class GeopointClient(SMARCActionClient):
         self.logger = self._node.get_logger()
         self.declare_parameters()
         self._json_ops = geopoint_action.GeoPointAction()
+        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
         """Location to declare parameters."""
@@ -45,8 +46,11 @@ class GeopointClient(SMARCActionClient):
 
     def feedback_callback(self, feedback_msg: ActionFeedback):
         """Result when a goal is sent to the server."""
-        self.logger.debug(f"Received feedback {feedback_msg.distance_remaining}")
-        self.dist_rem = feedback_msg.distance_remaining
+        self.logger.debug(f"Received feedback {feedback_msg.feedback}")
+        self.dist_rem = self._json_ops.decode(
+            feedback_msg.feedback,
+            geopoint_action.ActionComponent.FEEDBACK,
+        )
 
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""

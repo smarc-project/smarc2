@@ -20,7 +20,7 @@ class GeoPointAction:
         component: ActionComponent,
     ) -> GeoPoint | float:
         """Decodes action message from json to Python / ROS types."""
-        fmt_dict = json.loads(serialized_fmt)
+        fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionComponent.GOAL:
             geopoint = GeoPoint()
             geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
