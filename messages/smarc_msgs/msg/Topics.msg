@@ -4,3 +4,5 @@ string HEADING_TOPIC = 'core/heading'
 string ABORT_TOPIC = 'core/abort'
 string HEARTBEAT_TOPIC = 'core/heartbeat'
 string VEHICLE_READY_TOPIC = 'core/vehicle_ready'
+
+string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'

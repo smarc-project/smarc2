@@ -1,4 +1,5 @@
 import abc
+import traceback
 from functools import partial
 
 from action_msgs.msg import GoalStatus
@@ -11,6 +12,7 @@ from rclpy.action.server import ServerGoalHandle
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
+from std_msgs.msg import String
 
 from smarc_action_base.smarc_ros_types import ActionFeedback, ActionGoal, ActionResult
 
@@ -78,8 +80,21 @@ class SMARCActionServer(abc.ABC):
         node: Node,
         action_name: str,
         action_type: ActionType,
+        task_name: str,
+        heartbeat_topic:str, 
+        heartbeat_period: float = 1,
         **kwargs,
     ):
+        """Action Server base class initialization function
+
+        Args:
+            node: ros2 node
+            action_name: name of action client/server in ros
+            action_type: ros2 message action type
+            task_name: name of task provided to WARPAS via heartbeat signal
+            heartbeat_topic: WARPAS heartbeat topic (can be found in smarc_msgs Topics.msg file)
+            heartbeat_period: period in seconds of heartbeat timer
+        """
         self._node: Node = node
         self.action_type = action_type
         self._server = ActionServer(
@@ -89,8 +104,19 @@ class SMARCActionServer(abc.ABC):
             self.execution_callback,
             **kwargs,
         )
-        self._server.register_goal_callback(self.goal_callback)
-        self._server.register_cancel_callback(self.cancel_callback)
+        self._heartbeat_topic = heartbeat_topic
+        self._server.register_goal_callback(self._wrap_goal_callback)
+        self._server.register_cancel_callback(self._wrap_cancel_callback)
+        self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
+        self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
+        self._hb_msg = String()
+        self._hb_msg.data = str(task_name)
+
+    def _heartbeat_cb(self):
+        """Sends out topic to WARPAS on specified heartbeat timer cadence."""
+        self._hb_pub.publish(self._hb_msg)
+
+
 
     @abc.abstractmethod
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
@@ -104,6 +130,17 @@ class SMARCActionServer(abc.ABC):
         """
         pass
 
+    def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:
+        """Wraps user callback in try and except to prevent failed cancellation requests due to exceptions."""
+        try:
+            return self.cancel_callback(goal_handle)
+        except Exception as err:
+            logger = self._node.get_logger()
+            trace = traceback.print_exception(exec())
+            err_str = "User provided callback failed with exception. See exception below:\n{err}\n"
+            logger.error(err_str + trace)
+            return CancelResponse.REJECT
+
     @abc.abstractmethod
     def cancel_callback(self, goal_handle) -> CancelResponse:
         """
@@ -113,6 +150,17 @@ class SMARCActionServer(abc.ABC):
             cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
         """
         pass
+
+    def _wrap_goal_callback(self, goal_request) -> GoalResponse:
+        """Wraps user callback in try and except to prevent failed goal requests not responding due to exceptions."""
+        try:
+            return self.goal_callback(goal_request)
+        except Exception as err:
+            logger = self._node.get_logger()
+            trace = traceback.print_exception(exec())
+            err_str = "User provided callback failed with exception. See exception below:\n{err}\n"
+            logger.error(err_str + str(trace))
+            return GoalResponse.REJECT
 
     @abc.abstractmethod
     def goal_callback(self, goal_request) -> GoalResponse:

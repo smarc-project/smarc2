@@ -17,6 +17,7 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionServer,
 )
 from smarc_mission_msgs.action import GotoGeopoint
+from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -32,8 +33,14 @@ class GeopointServer(SMARCActionServer):
         target_frame: frame that goal's should be transformed to
     """
 
-    def __init__(self, node: Node, action_name, action_type: ActionType):
-        super().__init__(node, action_name, action_type)
+    def __init__(self, node: Node, action_name, action_type: ActionType, task_name: str):
+        super().__init__(
+            node,
+            action_name,
+            action_type,
+            task_name,
+            Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+        )
         self.logger = node.get_logger()
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(
@@ -345,7 +352,7 @@ def main(args=None):
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(GotoGeopoint)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "go_to_geopoint")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
