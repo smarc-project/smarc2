@@ -136,8 +136,8 @@ class SMARCActionServer(abc.ABC):
             return self.cancel_callback(goal_handle)
         except Exception as err:
             logger = self._node.get_logger()
-            trace = traceback.print_exception(exec())
-            err_str = "User provided callback failed with exception. See exception below:\n{err}\n"
+            trace = traceback.format_exc()
+            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + trace)
             return CancelResponse.REJECT
 
@@ -157,8 +157,8 @@ class SMARCActionServer(abc.ABC):
             return self.goal_callback(goal_request)
         except Exception as err:
             logger = self._node.get_logger()
-            trace = traceback.print_exception(exec())
-            err_str = "User provided callback failed with exception. See exception below:\n{err}\n"
+            trace = traceback.format_exc()
+            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + str(trace))
             return GoalResponse.REJECT
 

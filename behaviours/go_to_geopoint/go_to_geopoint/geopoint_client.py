@@ -10,7 +10,8 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionClient,
 )
-from smarc_mission_msgs.action import GotoGeopoint
+from smarc_mission_msgs.action import BaseAction
+from go_to_geopoint import geopoint_action
 
 
 class GeopointClient(SMARCActionClient):
@@ -30,6 +31,7 @@ class GeopointClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
+        self._json_ops = geopoint_action.GeoPointAction()
 
     def declare_parameters(self):
         """Location to declare parameters."""
@@ -75,27 +77,26 @@ class GeopointClient(SMARCActionClient):
 
         Interface for external usage of client.
         """
-        goal_msg = GotoGeopoint.Goal()
-        goal_msg.setpoint = GeoPoint()
+        goal_msg = BaseAction.Goal()
+        goal_msg.goal = self._json_ops.encode(geo_pt)
         self.send_goal(goal_msg, server_timeout_sec=1)
 
     def _test_geopoint(self):
         """For testing geopoint setting."""
-        goal_msg = GotoGeopoint.Goal()
-        goal_msg.setpoint = GeoPoint()
+        geopoint = GeoPoint()
         # https://awsm-tools.com/utm-to-lat-long?form%5Beasting%5D=652698.125&form%5Bnorthing%5D=6524250.5&form%5Bzone%5D=33&form%5Bband%5D=V&form%5Bellipsoid%5D=WGS+84
-        goal_msg.setpoint.latitude = 58.850281
-        goal_msg.setpoint.longitude = 17.674866
-        goal_msg.setpoint.altitude = 10.0
-        self.logger.info(f"Sending geopoint {goal_msg.setpoint}")
-        self.send_goal(goal_msg, server_timeout_sec=1)
+        geopoint.latitude = 58.850281
+        geopoint.longitude = 17.674866
+        geopoint.altitude = 10.0
+        self.logger.info(f"Sending geopoint {geopoint}")
+        self.send_geopoint(geopoint)
 
 
 def main(args=None):
     rclpy.init(args=args)
     node_name = "setpoint_client"
     node = Node(node_name)
-    action_type = ActionType(GotoGeopoint)
+    action_type = ActionType(BaseAction)
     setpoint = GeopointClient(node, "go_to_setpoint", action_type)
     setpoint._test_geopoint()
     rclpy.spin(node)
