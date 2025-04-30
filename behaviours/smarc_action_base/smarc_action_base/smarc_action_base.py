@@ -91,8 +91,8 @@ class SMARCActionServer(abc.ABC):
             node: ros2 node
             action_name: name of action client/server in ros
             action_type: ros2 message action type
-            task_name: name of task provided to WARPAS via heartbeat signal
-            heartbeat_topic: WARPAS heartbeat topic (can be found in smarc_msgs Topics.msg file)
+            task_name: name of task provided to Wara-PS via heartbeat signal
+            heartbeat_topic: Wara-PS heartbeat topic (can be found in smarc_msgs Topics.msg file)
             heartbeat_period: period in seconds of heartbeat timer
         """
         self._node: Node = node
@@ -113,7 +113,7 @@ class SMARCActionServer(abc.ABC):
         self._hb_msg.data = str(task_name)
 
     def _heartbeat_cb(self):
-        """Sends out topic to WARPAS on specified heartbeat timer cadence."""
+        """Sends out topic to Wara-PS on specified heartbeat timer cadence."""
         self._hb_pub.publish(self._hb_msg)
 
 
