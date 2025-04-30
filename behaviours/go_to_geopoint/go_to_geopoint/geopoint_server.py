@@ -20,7 +20,9 @@ from smarc_mission_msgs.action import BaseAction
 from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
-from go_to_geopoint import geopoint_action
+
+from go_to_geopoint.geopoint_action import ActionComponent as ActC
+from go_to_geopoint.geopoint_action import GeoPointAction
 
 KM_TO_METER = 1000
 
@@ -55,7 +57,7 @@ class GeopointServer(SMARCActionServer):
             Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: GeoPointAction = geopoint_action.GeoPointAction()
+        self._json_ops: GeoPointAction = GeoPointAction()
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
@@ -170,7 +172,7 @@ class GeopointServer(SMARCActionServer):
         t = self._tf_buffer.lookup_transform(
             target_frame=pose_stamped.header.frame_id,
             source_frame=self.target_frame,
-            time=0,
+            time=rclpy.time.Duration(seconds=0),
             timeout=Duration(seconds=2),
         )
         # based on ReadMe in repository
@@ -252,7 +254,7 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        geopoint = self._json_ops.decode(goal_handle.request.goal, geopoint_action.ActionComponent.GOAL)
+        geopoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
@@ -274,7 +276,7 @@ class GeopointServer(SMARCActionServer):
 
         self.feedback_loop(pose_stamped, goal_handle)
 
-        result_msg.success= True
+        result_msg.success = True
         return result_msg
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
@@ -288,7 +290,7 @@ class GeopointServer(SMARCActionServer):
 
         """
         goal_request = goal_request.goal
-        geo_setpoint = self._json_ops.decode(goal_request, geopoint_action.ActionComponent.GOAL) 
+        geo_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
         self.logger.info(f"Recieved UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
         try:

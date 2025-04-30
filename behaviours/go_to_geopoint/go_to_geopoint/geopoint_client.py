@@ -11,7 +11,9 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionClient,
 )
 from smarc_mission_msgs.action import BaseAction
-from go_to_geopoint import geopoint_action
+
+from go_to_geopoint.geopoint_action import ActionComponent as ActC
+from go_to_geopoint.geopoint_action import GeoPointAction
 
 
 class GeopointClient(SMARCActionClient):
@@ -31,7 +33,7 @@ class GeopointClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = geopoint_action.GeoPointAction()
+        self._json_ops = GeoPointAction()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
@@ -49,7 +51,7 @@ class GeopointClient(SMARCActionClient):
         self.logger.debug(f"Received feedback {feedback_msg.feedback}")
         self.dist_rem = self._json_ops.decode(
             feedback_msg.feedback,
-            geopoint_action.ActionComponent.FEEDBACK,
+            ActC.FEEDBACK,
         )
 
     def result_callback(self, result: ActionResult, status: GoalStatus):
