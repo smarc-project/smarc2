@@ -360,7 +360,7 @@ def main(args=None):
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to-geopoint")
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
