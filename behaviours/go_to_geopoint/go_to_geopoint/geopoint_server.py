@@ -16,9 +16,13 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import GotoGeopoint
+from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
+
+from go_to_geopoint.geopoint_action import ActionComponent as ActC
+from go_to_geopoint.geopoint_action import GeoPointAction
 
 KM_TO_METER = 1000
 
@@ -32,8 +36,16 @@ class GeopointServer(SMARCActionServer):
         target_frame: frame that goal's should be transformed to
     """
 
-    def __init__(self, node: Node, action_name, action_type: ActionType):
-        super().__init__(node, action_name, action_type)
+    def __init__(
+        self, node: Node, action_name, action_type: ActionType, task_name: str
+    ):
+        super().__init__(
+            node,
+            action_name,
+            action_type,
+            task_name,
+            Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+        )
         self.logger = node.get_logger()
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(
@@ -45,6 +57,7 @@ class GeopointServer(SMARCActionServer):
             Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        self._json_ops: GeoPointAction = GeoPointAction()
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
@@ -159,7 +172,7 @@ class GeopointServer(SMARCActionServer):
         t = self._tf_buffer.lookup_transform(
             target_frame=pose_stamped.header.frame_id,
             source_frame=self.target_frame,
-            time=0,
+            time=rclpy.time.Duration(seconds=0),
             timeout=Duration(seconds=2),
         )
         # based on ReadMe in repository
@@ -241,7 +254,8 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        pose_stamped = self.convert_to_utm(goal_handle.request.setpoint)
+        geopoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
+        pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
             self.logger.debug(
@@ -252,7 +266,7 @@ class GeopointServer(SMARCActionServer):
                 f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
             )
             goal_handle.abort()
-            result_msg.reached_setpoint = False
+            result_msg.success = False
             return result_msg
         self.logger.info(
             f"Publishing to {self._setpoint_topic}, Setpoint"
@@ -262,7 +276,7 @@ class GeopointServer(SMARCActionServer):
 
         self.feedback_loop(pose_stamped, goal_handle)
 
-        result_msg.reached_setpoint = True
+        result_msg.success = True
         return result_msg
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
@@ -275,7 +289,8 @@ class GeopointServer(SMARCActionServer):
             response: Either GoalResponse.Accept or GoalResponse.Reject
 
         """
-        geo_setpoint = goal_request.setpoint
+        goal_request = goal_request.goal
+        geo_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
         self.logger.info(f"Recieved UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
         try:
@@ -286,7 +301,7 @@ class GeopointServer(SMARCActionServer):
             exec_up.__cause__ = err
             # Adding error message to traceback for debug log.
             self.logger.info(err_str)
-            self.logger.debug(traceback.print_exception(exec()))
+            self.logger.debug(traceback.format_exc())
             return GoalResponse.REJECT
 
         if dist >= self._goal_threshold:
@@ -329,7 +344,7 @@ class GeopointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
-            feedback.distance_remaining = d
+            feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
@@ -344,8 +359,8 @@ def main(args=None):
     rclpy.init(args=args)
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
-    action_type = ActionType(GotoGeopoint)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
+    action_type = ActionType(BaseAction)
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to-geopoint")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
