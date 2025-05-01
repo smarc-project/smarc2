@@ -47,7 +47,7 @@ class DiveController():
         self._node.declare_parameter('tf_suffix', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link'+ tf_suffix 
+        self._robot_base_link = robot_name + '/base_link_ned'+ tf_suffix 
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
 
