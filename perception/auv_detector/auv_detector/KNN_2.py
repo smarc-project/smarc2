@@ -10,6 +10,10 @@ from sklearn.decomposition import PCA
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
 import auv_detector.params_detector_2 as P
+from scipy.interpolate import splprep, splev
+from sklearn.neighbors import NearestNeighbors
+from collections import deque
+import heapq
 
 class KNN(Node):
     def __init__(self):
@@ -35,6 +39,10 @@ class KNN(Node):
         self.realdata_topic = self.get_parameter("realdata.topic").value
         self.realdata = self.get_parameter("realdata.enabled").value
         # self.realdata_path = self.get_parameter("realdata.path").value
+
+        # Initialization (in __init__ or once)
+        self.rope_img_buffer = deque(maxlen=5)
+        self.rope_mask_buffer = deque(maxlen=5)
 
         if(P.REALDATA) :
             self.subscription = self.create_subscription(
@@ -99,7 +107,268 @@ class KNN(Node):
         # Apply the MOG2 algorithm to get the foreground mask
         foreground_mask = self.knn.apply(cv_image)
         cv2.imshow('KNN', foreground_mask)
+
+        #########################################################################################  buoy
+
+        # HSV filter for buoy
+        lower_orange = np.array([16, 0, 255])  # manual hsv detector
+        upper_orange = np.array([25, 152, 255])
+        hsv_thresh_buoy = cv2.inRange(imghsv, lower_orange, upper_orange)
+        preview_buoy = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_buoy)
+        #cv2.imshow('HSV_buoy', preview_buoy)
+
+        # Find contours
+        contours, _ = cv2.findContours(hsv_thresh_buoy, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find largest contour
+        max_area = 0
+        max_contour = None
+        center_buoy = None
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area > max_area:
+                max_area = area
+                max_contour = cnt
+
+        # Draw largest contour and show area
+        if max_contour is not None:
+            # Draw the contour
+            # cv2.drawContours(preview_buoy, [max_contour], -1, (0, 255, 0), 1)
+
+            # Get center
+            M = cv2.moments(max_contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                #center_buoy = (cx, cy)
+                center_buoy = np.array([cx, cy])
+                cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        #cv2.imshow('HSV_buoy', preview_buoy)
+
+        #########################################################################################  auv
+
+
+        # HSV filter for sam auv
+        lower_yellow = np.array([0, 55, 153])  # manual hsv detector
+        upper_yellow = np.array([195, 97, 254])
+        hsv_thresh_auv = cv2.inRange(imghsv, lower_yellow, upper_yellow)
+        preview_auv = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_auv)
+        preview_auv_2 = preview_auv.copy()
+        #cv2.imshow('HSV_auv', preview_auv)
         
+        # Find contours
+        contours, _ = cv2.findContours(hsv_thresh_auv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find largest contour
+        max_area = 0
+        max_contour = None
+        center_auv = None
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area > max_area:
+                max_area = area
+                max_contour = cnt
+
+        # Draw largest contour and show area
+        if max_contour is not None:
+            # Draw the contour
+            # cv2.drawContours(preview_auv, [max_contour], -1, (0, 255, 0), 1)
+
+            # Get center
+            M = cv2.moments(max_contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                #center_auv = (cx,cy)
+                center_auv = np.array([cx, cy])
+                cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(preview_auv, f"Contour Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        cv2.imshow('HSV_auv', preview_auv)
+
+
+
+        # Missle-Shape detector Parameters
+        min_area = 300
+        min_aspect_ratio = 2.5  # Tune this: 2.5 means at least 2.5x longer than wide
+        best_contour = None
+        best_ratio = 0
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < min_area:
+                continue
+
+            # Fit rotated rectangle to get aspect ratio
+            rect = cv2.minAreaRect(cnt)
+            width, height = rect[1]
+
+            if width == 0 or height == 0:
+                continue
+
+            aspect_ratio = max(width, height) / min(width, height)
+
+            if aspect_ratio > min_aspect_ratio and aspect_ratio > best_ratio:
+                best_ratio = aspect_ratio
+                best_contour = cnt
+
+        # Draw best contour if found
+        if best_contour is not None:
+            rect = cv2.minAreaRect(best_contour)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(preview_auv_2, [box], 0, (0, 255, 0), 2)
+
+            # Get center from rect
+            center = tuple(map(int, rect[0]))
+            cv2.circle(preview_auv_2, center, 3, (0, 0, 255), -1)
+            cv2.putText(preview_auv_2, f"AUV W/H: {best_ratio:.2f}", (center[0] + 10, center[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+
+        cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
+        #########################################################################################   rope
+
+        # HSV filter for rope
+        lower_rope = np.array([3, 146, 82])  # manual hsv detector
+        upper_rope = np.array([13, 255, 245])
+        hsv_thresh_rope = cv2.inRange(imghsv, lower_rope, upper_rope)
+        preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
+        preview_rope_2 = preview_rope.copy()
+        preview_rope_3 = preview_rope.copy()
+        cv2.imshow('HSV_rope', preview_rope)
+
+
+        # Rope Reconstruction method 1 
+        # # Step 1: Find rope points
+        # ys, xs = np.where(hsv_thresh_rope > 0)
+        # rope_points = np.array(list(zip(xs, ys)))
+        # # Step 2: Add AUV and buoy centers
+        # if center_auv is not None and center_buoy is not None and len(rope_points) > 0:
+        #     full_points = np.vstack([rope_points, center_auv, center_buoy])
+
+        #     # Optional: Sort points based on distance from AUV or along y-axis
+        #     full_points = full_points[full_points[:, 1].argsort()]  # sort by y (top to bottom)
+
+        #     # Step 3: Fit a polyline or spline through the points
+        #     for i in range(len(full_points) - 1):
+        #         pt1 = tuple(full_points[i])
+        #         pt2 = tuple(full_points[i + 1])
+        #         cv2.line(preview_rope_2, pt1, pt2, (255, 0, 255), 2)  # Draw in magenta
+        # cv2.imshow("Rope_Reconstructed", preview_rope_2)
+
+        # # Rope Reconstruction method 2  ---- Spline
+        # # 1. Extract rope pixels
+        # ys, xs = np.where(hsv_thresh_rope > 0)
+        # rope_pixels = np.array(list(zip(xs, ys)))
+
+        # # 2. Add AUV and buoy centers
+        # if center_auv is not None and center_buoy is not None and len(rope_pixels) > 2:
+        #     full_points = np.vstack([rope_pixels, center_auv, center_buoy])
+
+        #     # 3. Sort points vertically (optional, for consistency)
+        #     full_points = full_points[full_points[:, 1].argsort()]
+
+        #     # 4. Fit spline
+        #     try:
+        #         tck, _ = splprep([full_points[:, 0], full_points[:, 1]], s=50)  # s controls smoothness
+        #         u_fine = np.linspace(0, 1, 100)
+        #         x_fine, y_fine = splev(u_fine, tck)
+
+        #         # 5. Draw the spline
+        #         for i in range(len(x_fine) - 1):
+        #             pt1 = (int(x_fine[i]), int(y_fine[i]))
+        #             pt2 = (int(x_fine[i + 1]), int(y_fine[i + 1]))
+        #             cv2.line(preview_rope_3, pt1, pt2, (255, 0, 255), 2)  # magenta curve
+        #     except Exception as e:
+        #         print("Spline fitting failed:", e)
+        # cv2.imshow("Rope Curve Fit", preview_rope_3)
+
+
+
+        # # Rope Reconstruction method 3 ---- KNN
+
+        # # 1. Get rope pixel coordinates
+        # ys, xs = np.where(hsv_thresh_rope > 0)
+        # rope_pixels = np.array(list(zip(xs, ys)))
+
+        # # 2. Add buoy and AUV centers
+        # if len(rope_pixels) > 2 and center_buoy is not None and center_auv is not None:
+        #     full_points = np.vstack([rope_pixels, center_buoy, center_auv])
+
+        #     # 3. Use KNN to order points starting from one end (e.g., AUV)
+        #     ordered_points = self.order_points_knn(full_points, center_auv)
+
+        #     # # 4. Fit spline curve
+        #     try:
+        #         tck, _ = splprep([ordered_points[:, 0], ordered_points[:, 1]], s=30)
+        #         u_fine = np.linspace(0, 1, 100)
+        #         x_fine, y_fine = splev(u_fine, tck)
+
+        #         # 5. Draw the fitted rope curve
+        #         for i in range(len(x_fine) - 1):
+        #             pt1 = (int(x_fine[i]), int(y_fine[i]))
+        #             pt2 = (int(x_fine[i + 1]), int(y_fine[i + 1]))
+        #             cv2.line(preview_rope_3, pt1, pt2, (255, 0, 255), 2)
+        #     except Exception as e:
+        #         print("Spline fitting failed:", e)
+
+
+        #     # # Step 4: Fit a polyline through the points
+        #     # for i in range(len(ordered_points) - 1):
+        #     #     pt1 = tuple(ordered_points[i])
+        #     #     pt2 = tuple(ordered_points[i + 1])
+        #     #     cv2.line(preview_rope_3, pt1, pt2, (255, 0, 255), 2)  # Draw in magenta
+
+        # cv2.imshow("Rope Curve Fit", preview_rope_3)
+
+        
+
+        # Rope Reconstruction method 4 ---- multi frames
+        self.rope_img_buffer.append(preview_rope_3)
+        for img_tmp in self.rope_img_buffer:
+            preview_rope_3 = cv2.add(preview_rope_3, img_tmp)
+        #cv2.imshow("N frames rope detect", preview_rope_3)
+
+
+       
+
+        # Apply dilation to connect fragmented rope segments
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6, 6))  # or (3,3) if rope is thin
+        rope_dilated = cv2.dilate(preview_rope_3, kernel, iterations=1)
+        # Use this dilated result for binary mask and grid processing
+        rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
+        _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+        cv2.imshow("Dilation", rope_bin)
+
+        # grid-based search require fully connection 
+        # path_px = self.grid_path_from_rope(preview_rope_3, center_buoy, center_auv, cell_size=5)
+
+        # # Draw the path on image
+        # for i in range(1, len(path_px)):
+        #     cv2.line(preview_rope_3, path_px[i-1], path_px[i], (0, 255, 0), 2)
+        # cv2.imshow("Grid-Based Rope Path Reconstructed", preview_rope_3)
+
+
+        #########################################################################################
+
+        # Just add the filtered images directly
+        combined_preview = cv2.add(preview_buoy, preview_auv)
+        combined_preview = cv2.add(combined_preview, preview_rope_3)
+
+        # Show the combined result
+        cv2.imshow('Combined_HSV', combined_preview)
+
+        #########################################################################################
 
         # Apply the connected component filtering
         filtered_mask = self.remove_small_blobs_connected_components(foreground_mask, min_area=self.min_area_filter, max_area=self.max_area_filter)
@@ -400,6 +669,81 @@ class KNN(Node):
                     filtered_mask[labels == i] = 255
 
             return filtered_mask    
+    
+    def order_points_knn(self, points, start_point, k=5):
+        ordered = [start_point]
+        remaining = points.copy()
+        nbrs = NearestNeighbors(n_neighbors=min(k, len(points))).fit(remaining)
+
+        current = start_point
+        for _ in range(len(points)):
+            distances, indices = nbrs.kneighbors([current], return_distance=True)
+            for idx in indices[0]:
+                candidate = remaining[idx]
+                if not any(np.array_equal(candidate, o) for o in ordered):
+                    ordered.append(candidate)
+                    current = candidate
+                    break
+
+        return np.array(ordered)
+
+
+    def astar(self, grid, start, goal):
+        """A* pathfinding on binary grid."""
+        rows, cols = grid.shape
+        open_set = [(0 + np.linalg.norm(np.subtract(start, goal)), 0, start, [])]
+        visited = set()
+
+        while open_set:
+            est_total, cost, current, path = heapq.heappop(open_set)
+
+            if current in visited:
+                continue
+            visited.add(current)
+            path = path + [current]
+
+            if current == goal:
+                return path
+
+            for dx, dy in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,1),(1,-1),(-1,1)]:
+                nx, ny = current[0] + dx, current[1] + dy
+                if 0 <= nx < rows and 0 <= ny < cols and grid[nx, ny]:
+                    heapq.heappush(open_set, (
+                        cost + 1 + np.linalg.norm(np.subtract((nx, ny), goal)),
+                        cost + 1,
+                        (nx, ny),
+                        path
+                    ))
+        return []
+
+
+    def grid_path_from_rope(self, rope_img, start_px, end_px, cell_size=5):
+        # 1. Threshold the rope mask
+        rope_gray = cv2.cvtColor(rope_img, cv2.COLOR_BGR2GRAY)
+        _, rope_bin = cv2.threshold(rope_gray, 1, 1, cv2.THRESH_BINARY)
+
+        # 2. Downsample to grid
+        h, w = rope_bin.shape
+        grid_h, grid_w = h // cell_size, w // cell_size
+        grid = np.zeros((grid_h, grid_w), dtype=np.uint8)
+
+        for y in range(grid_h):
+            for x in range(grid_w):
+                grid[y, x] = np.any(
+                    rope_bin[y*cell_size:(y+1)*cell_size, x*cell_size:(x+1)*cell_size]
+                )
+
+        # 3. Convert start/end points to grid
+        start_grid = (start_px[1] // cell_size, start_px[0] // cell_size)
+        end_grid = (end_px[1] // cell_size, end_px[0] // cell_size)
+
+        # 4. Run A*
+        path = self.astar(grid, start_grid, end_grid)
+
+        # 5. Convert path back to pixel coordinates
+        path_px = [(x * cell_size + cell_size//2, y * cell_size + cell_size//2) for y, x in path]
+        return path_px
+
 
 def main(args=None):
     rclpy.init(args=args)
