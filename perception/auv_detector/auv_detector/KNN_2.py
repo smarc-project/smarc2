@@ -143,11 +143,17 @@ class KNN(Node):
                 cy = int(M["m01"] / M["m00"])
                 #center_buoy = (cx, cy)
                 center_buoy = np.array([cx, cy])
+
+                buoy_position_msg = Float32MultiArray()
+                buoy_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the point
+                self.buoy_pub.publish(buoy_position_msg)
+                #self.get_logger().info(f"detect buoy")
+
                 cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
 
                 # Put area text
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         #cv2.imshow('HSV_buoy', preview_buoy)
 
         #########################################################################################  auv
@@ -190,8 +196,8 @@ class KNN(Node):
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
                 # Put area text
-                cv2.putText(preview_auv, f"Contour Area: {int(max_area)}", (cx + 10, cy - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
 
@@ -343,13 +349,39 @@ class KNN(Node):
        
 
         # Apply dilation to connect fragmented rope segments
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6, 6))  # or (3,3) if rope is thin
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin
         rope_dilated = cv2.dilate(preview_rope_3, kernel, iterations=1)
         # Use this dilated result for binary mask and grid processing
         rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
         cv2.imshow("Dilation", rope_bin)
 
+        # Curve fitting 
+
+        # Get coordinates of white pixels (rope)
+        ys, xs = np.where(rope_bin == 255)
+        # Fit a 2nd or 3rd degree polynomial (x = f(y) or y = f(x))
+        coeffs = np.polyfit(xs, ys, deg=3)  # Try deg=2 or 3   # can be changed by distance
+        poly_func = np.poly1d(coeffs)
+        # Generate smoothed rope line
+        x_fit_rope = np.linspace(min(xs), max(xs), 100)
+        y_fit_rope = poly_func(x_fit_rope)
+        
+        for x, y in zip(x_fit_rope.astype(int), y_fit_rope.astype(int)):
+            cv2.circle(preview_rope_2, (x, y), 1, (0, 255, 0), -1)
+        
+        #center_x_rope = int(np.mean(x_fit_rope))
+        #center_y_rope = int(np.mean(y_fit_rope))
+
+        center_x_rope = int(x_fit_rope[50])
+        center_y_rope = int(y_fit_rope[50])
+        cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
+
+        cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+
+        cv2.imshow("Curve Fitting", preview_rope_2)
         # grid-based search require fully connection 
         # path_px = self.grid_path_from_rope(preview_rope_3, center_buoy, center_auv, cell_size=5)
 
@@ -365,16 +397,59 @@ class KNN(Node):
         combined_preview = cv2.add(preview_buoy, preview_auv)
         combined_preview = cv2.add(combined_preview, preview_rope_3)
 
+        if center_auv is not None and center_buoy is not None:
+            center_between_auv_and_buoy = (center_auv + center_buoy) / 2
+            direction_between_auv_and_buoy =  center_auv - center_buoy
+            direction_between_auv_and_buoy = direction_between_auv_and_buoy / np.linalg.norm(direction_between_auv_and_buoy)  # Normalize
+
+            # Compute Perpendicular Unit Vector
+            perp = np.array([direction_between_auv_and_buoy[1], -direction_between_auv_and_buoy[0]])
+
+            # Assume camera intrinsics
+            fx, fy = 369.5, 415.69 # focus
+            cam_x, cam_y = 320, 240 # pixels
+            cam_Z = 7.0  # e.g., quadrotor height (meter)
+
+            # Midpoint in 3D
+            X_center = (center_between_auv_and_buoy[0] - cam_x) * cam_Z / fx
+            Y_center = (center_between_auv_and_buoy[1] - cam_y) * cam_Z / fy
+
+            # Convert pixel offset (perp) to metric offset at depth Z
+            dx = (perp[0] * cam_Z) / fx
+            dy = (perp[1] * cam_Z) / fy
+
+            # Scale to get 0.2m offset distance
+            scale = 0.2 / np.sqrt(dx**2 + dy**2)
+            offset_x = dx * scale
+            offset_y = dy * scale
+
+            # Final 3D target in camera frame
+            target_camera = [X_center + offset_x, Y_center + offset_y, cam_Z]
+
+            # Display into camera
+            target_u = int(fx * target_camera[0] / cam_Z + cam_x)
+            target_v = int(fy * target_camera[1] / cam_Z + cam_y)
+
+            cv2.circle(combined_preview, (target_u, target_v), radius=3, color=(0, 255, 255), thickness=-1)
+            cv2.putText(combined_preview, "Diving Point", (target_u + 10, target_v - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            
+
+            # Draw heading
+            arrow_start_point = (target_u, target_v)
+            arrow_end_point = (center_x_rope, center_y_rope)
+            cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
+
+
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
-
         #########################################################################################
 
         # Apply the connected component filtering
         filtered_mask = self.remove_small_blobs_connected_components(foreground_mask, min_area=self.min_area_filter, max_area=self.max_area_filter)
         masked_image = cv2.bitwise_and(cv_image, cv_image, mask=filtered_mask)
         avg_rgb = cv2.mean(masked_image, mask=filtered_mask)
-        self.get_logger().info(f"average rgb : {avg_rgb}")  #BGR
+        #self.get_logger().info(f"average rgb : {avg_rgb}")  #BGR
         # # Display the mask from KNN
         cv2.imshow('Detected Foreground', filtered_mask)
         cv2.waitKey(1)
@@ -488,10 +563,10 @@ class KNN(Node):
                 cv_image = cv2.circle(cv_image, (point[0], point[1]), radius=5, color=(0, 255, 0), thickness=-1)  # Green dot
 
                 # Publish the point (as a Float32MultiArray)
-                buoy_position_msg = Float32MultiArray()
-                buoy_position_msg.data = [float(point[0]), float(point[1])]  # Publish the coordinates of the point
-                self.buoy_pub.publish(buoy_position_msg)
-                self.get_logger().info(f"buoy publishing ......!!!! ")
+                # buoy_position_msg = Float32MultiArray()
+                # buoy_position_msg.data = [float(point[0]), float(point[1])]  # Publish the coordinates of the point
+                # self.buoy_pub.publish(buoy_position_msg)
+                # self.get_logger().info(f"buoy publishing ......!!!! ")
 
 
         # Publish the processed mask
@@ -518,8 +593,8 @@ class KNN(Node):
         yellow_percentage = self.get_yellow_percentage(contour_mask, cv_image, np.uint8([[self.sam_color]]))
 
         # # Print the yellow percentage for tuning
-        self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
-        self.get_logger().info(f'Orange percentage: {orange_percentage:.2f}%')
+        #self.get_logger().info(f'Yellow percentage: {yellow_percentage:.2f}%')
+        #self.get_logger().info(f'Orange percentage: {orange_percentage:.2f}%')
         if orange_percentage > self.buoy_threshold:
             # cv2.drawContours(cv_image, [cnt], -1, (0, 255, 0), thickness=cv2.FILLED)
             return self.buoy_name
@@ -549,18 +624,21 @@ class KNN(Node):
                         # Visualize the contour and the minAreaRect box
                         # cv2.drawContours(cv_image, [box], -1, (0, 255, 0), 2)
 
-                        self.get_logger().info(f"all tests satisfied")
+                        #self.get_logger().info(f"all tests satisfied")
                         return self.auv_name
                     else :
                         # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
-                        self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
+                        #self.get_logger().info(f"aspect ratio test not satisfied : {aspect_ratio}")
+                        pass
                 # else :
             #         # cv2.drawContours(cv_image, [cnt], -1, (0, 0, 255), thickness=cv2.FILLED)
             #         self.get_logger().info("yellow pixel test not satisfied")
             else : 
-                self.get_logger().info(f"area test not satisfied : {cv2.contourArea(cnt)}")
+                #self.get_logger().info(f"area test not satisfied : {cv2.contourArea(cnt)}")
+                pass
         else : 
-            self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
+            #self.get_logger().info(f"color threshold test  not satisfied : {yellow_percentage}")
+            pass
         return False
 
 
@@ -657,7 +735,7 @@ class KNN(Node):
 
             # Create a blank mask
             filtered_mask = np.zeros_like(foreground_mask)
-            self.get_logger().info("_____________________________________________")
+            #self.get_logger().info("_____________________________________________")
             # Loop over each connected component
             for i in range(1, num_labels):  # Start from 1 to skip the background
                 area = stats[i, cv2.CC_STAT_AREA]
@@ -665,7 +743,7 @@ class KNN(Node):
                 # Filter based on the area
  
                 if min_area < area < max_area:
-                    self.get_logger().info(f"area :{area}") 
+                    #self.get_logger().info(f"area :{area}") 
                     filtered_mask[labels == i] = 255
 
             return filtered_mask    

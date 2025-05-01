@@ -102,9 +102,9 @@ class AUVPositionEstimator(Node):
     def buoy_cb(self, msg: Float32MultiArray):
         u, v = msg.data[0], msg.data[1]
         self.image_point = np.array([u, v, 1])
-        self.get_logger().info(f"enter buoy call back!!!!!-------------------------enter buoy call back!!!!!")
+        #self.get_logger().info(f"enter buoy call back!!!!!-------------------------enter buoy call back!!!!!")
         if self.image_point is not None:
-            self.get_logger().info(f"check enter estimate relative position")
+            #self.get_logger().info(f"check enter estimate relative position")
             self.estimate_relative_position()
 
     def estimate_relative_position(self):
@@ -141,7 +141,7 @@ class AUVPositionEstimator(Node):
             else:
                 #self.winch_extend = True
                 self.winch_extend = False # just tracking now
-                
+
             # elif self.buoy_detect_count < 20:
             #     msg = Float32MultiArray()
             #     msg.data = [7.0, 0.3]
