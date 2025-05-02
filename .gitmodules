@@ -29,3 +29,6 @@
 	path = drivers/nmea_navsat_driver
 	url = git@github.com:smarc-project/nmea_navsat_driver.git
 	branch = ros2
+[submodule "external_packages/smarc_modelling"]
+	path = external_packages/smarc_modelling
+	url = https://github.com/smarc-project/smarc_modelling.git
