@@ -13,7 +13,7 @@ string STATES = 'core/odom_gt' # Type: Odometry
 # Setpoints
 string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
 string PITCH_SETPOINT = 'ctrl/pitch_setpoint' # Type: Float64
-string WAYPOINT = 'ctrl/waypoint' # Type: Odometry
+string WAYPOINT = 'ctrl/waypoint' # Type: PoseWithCovarianceStamped
 
 # Convenience Topics
 string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
