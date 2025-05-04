@@ -50,9 +50,11 @@ def generate_launch_description():
         ),
 
         # RVIZ2 + robot models come in this launch file
+        # TODO: modify to add more than one Bluerov with different names
         IncludeLaunchDescription(
         PathJoinSubstitution([FindPackageShare('watertank_utils'), 'launch', 'tank_visualization.launch.py']),
         launch_arguments={
+            'brov_name': 'bluerov_saab',
             'brov_package': 'brov2heavy_description',
             'brov_package_path': PathJoinSubstitution(['robots', 'brov2heavy_default.urdf.xacro']),
             'tank_package': 'watertank_description',
