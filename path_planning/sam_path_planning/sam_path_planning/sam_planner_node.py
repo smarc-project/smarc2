@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry, Path
 from tf2_ros import Buffer, TransformListener
 from rclpy.executors import MultiThreadedExecutor
@@ -29,7 +29,7 @@ class SamPathPlanner(Node):
         # Declare your publishers here
 
         # Declar your subscribers here
-        self.pose_sub = self.create_subscription(PoseWithCovarianceStamped, 
+        self.pose_sub = self.create_subscription(PoseStamped, 
                                                  ControlTopics.WAYPOINT, self.goal_cb, 1)
 
         self.odom_sub = self.create_subscription(Odometry, 
@@ -38,6 +38,7 @@ class SamPathPlanner(Node):
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self, PercentStamped, SamTopics.VBS_FB_TOPIC)
         self.vbs_fb = Subscriber(self, PercentStamped, SamTopics.LCG_FB_TOPIC)
+        # keep adding stuff...
 
         self.ctrl_synch_msg = ApproximateTimeSynchronizer(
             [self.vbs_fb, self.lcg_fb],
@@ -53,7 +54,7 @@ class SamPathPlanner(Node):
 
         ## Add your parameters here
 
-    def goal_cb(self, msg: PoseWithCovarianceStamped):
+    def goal_cb(self, msg: PoseStamped):
         self.get_logger().info(f'Received goal')
 
     def state_cb(self, msg: Odometry):

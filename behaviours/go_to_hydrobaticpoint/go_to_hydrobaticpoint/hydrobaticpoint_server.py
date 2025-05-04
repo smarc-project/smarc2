@@ -16,7 +16,9 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionServer,
 )
 from smarc_mission_msgs.action import BaseAction
-from smarc_msgs.msg import Topics
+from smarc_msgs.msg import Topics as SmarcTopics
+from smarc_control_msgs.msg import Topics as ControlTopics
+
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -24,7 +26,6 @@ from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
 from go_to_hydrobaticpoint.hydrobaticpoint_action import HydrobaticPointAction
 
 KM_TO_METER = 1000
-
 
 class HydropointServer(SMARCActionServer):
     """Action point server that handle GotoGeopoint messages.
@@ -43,7 +44,7 @@ class HydropointServer(SMARCActionServer):
             action_name,
             action_type,
             task_name,
-            Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+            SmarcTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
         self._tf_buffer = Buffer()
@@ -53,7 +54,7 @@ class HydropointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
+            PoseStamped, ControlTopics.WAYPOINT, 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self._json_ops: HydrobaticPointAction = HydrobaticPointAction()
