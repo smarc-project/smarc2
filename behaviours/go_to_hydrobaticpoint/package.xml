@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>go_to_geopoint</name>
+  <name>go_to_hydrobaticpoint</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="kogucki@kth.se">tko</maintainer>
+  <maintainer email="torroba@kth.se">tko</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>smarc_action_base</depend>

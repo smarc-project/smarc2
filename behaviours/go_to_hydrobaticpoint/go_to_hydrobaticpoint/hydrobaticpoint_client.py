@@ -11,12 +11,13 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionClient,
 )
 from smarc_mission_msgs.action import BaseAction
+from geometry_msgs.msg import Pose, PoseStamped
 
-from go_to_geopoint.geopoint_action import ActionComponent as ActC
-from go_to_geopoint.geopoint_action import GeoPointAction
+from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
+from go_to_hydrobaticpoint.hydrobaticpoint_action import HydrobaticPointAction
 
 
-class GeopointClient(SMARCActionClient):
+class HydropointClient(SMARCActionClient):
     """Client for sending Geopoint message requests to vehicles.
 
     Attributes:
@@ -33,7 +34,7 @@ class GeopointClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = GeoPointAction()
+        self._json_ops = HydrobaticPointAction()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
@@ -78,32 +79,36 @@ class GeopointClient(SMARCActionClient):
         """
         self.cancel_goal(self.cancel_callback)
 
-    def send_geopoint(self, geo_pt: GeoPoint):
-        """Request geopoint be sent to server.
+    def send_hydropoint(self, hydro_pt: PoseStamped):
+        """Request hydropoint be sent to server.
 
         Interface for external usage of client.
         """
         goal_msg = BaseAction.Goal()
-        goal_msg.goal = self._json_ops.encode(geo_pt)
+        goal_msg.goal = self._json_ops.encode(hydro_pt)
         self.send_goal(goal_msg, server_timeout_sec=1)
 
     def _test_geopoint(self):
         """For testing geopoint setting."""
-        geopoint = GeoPoint()
-        # https://awsm-tools.com/utm-to-lat-long?form%5Beasting%5D=652698.125&form%5Bnorthing%5D=6524250.5&form%5Bzone%5D=33&form%5Bband%5D=V&form%5Bellipsoid%5D=WGS+84
-        geopoint.latitude = 58.850281
-        geopoint.longitude = 17.674866
-        geopoint.altitude = 10.0
-        self.logger.info(f"Sending geopoint {geopoint}")
-        self.send_geopoint(geopoint)
+        hydropoint = PoseStamped()
+        hydropoint.header.frame_id = "mocap"
+        hydropoint.pose.position.x = 3.
+        hydropoint.pose.position.y = 0.
+        hydropoint.pose.position.z = 1.
+        hydropoint.pose.orientation.x = 0.
+        hydropoint.pose.orientation.y = 0.
+        hydropoint.pose.orientation.z = 0.
+        hydropoint.pose.orientation.w = 1.
+        self.logger.info(f"Sending hydropoint {hydropoint}")
+        self.send_hydropoint(hydropoint)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "setpoint_client"
+    node_name = "hydropoint_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = GeopointClient(node, "go_to_setpoint", action_type)
+    setpoint = HydropointClient(node, "go_to_hydropoint", action_type)
     setpoint._test_geopoint()
     rclpy.spin(node)
 

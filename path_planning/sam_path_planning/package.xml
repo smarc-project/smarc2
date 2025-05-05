@@ -1,15 +1,19 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>go_to_geopoint</name>
+  <name>sam_path_planning</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="kogucki@kth.se">tko</maintainer>
+  <maintainer email="torroba@kth.se">torroba</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>smarc_action_base</depend>
-  <depend>smarc_mission_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>smarc_control_msgs</depend>
   <depend>smarc_msgs</depend>
+  <depend>sam_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>message_filters</depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

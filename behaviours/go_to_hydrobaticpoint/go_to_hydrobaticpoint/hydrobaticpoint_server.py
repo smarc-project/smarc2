@@ -3,7 +3,6 @@ import traceback
 import numpy as np
 import rclpy
 from geodesy import utm
-from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import Pose, PoseStamped
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
@@ -17,17 +16,18 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionServer,
 )
 from smarc_mission_msgs.action import BaseAction
-from smarc_msgs.msg import Topics
+from smarc_msgs.msg import Topics as SmarcTopics
+from smarc_control_msgs.msg import Topics as ControlTopics
+
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from go_to_geopoint.geopoint_action import ActionComponent as ActC
-from go_to_geopoint.geopoint_action import GeoPointAction
+from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
+from go_to_hydrobaticpoint.hydrobaticpoint_action import HydrobaticPointAction
 
 KM_TO_METER = 1000
 
-
-class GeopointServer(SMARCActionServer):
+class HydropointServer(SMARCActionServer):
     """Action point server that handle GotoGeopoint messages.
 
     Attributes:
@@ -44,7 +44,7 @@ class GeopointServer(SMARCActionServer):
             action_name,
             action_type,
             task_name,
-            Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+            SmarcTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
         self._tf_buffer = Buffer()
@@ -54,10 +54,10 @@ class GeopointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
+            PoseStamped, ControlTopics.WAYPOINT, 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: GeoPointAction = GeoPointAction()
+        self._json_ops: HydrobaticPointAction = HydrobaticPointAction()
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
@@ -206,6 +206,9 @@ class GeopointServer(SMARCActionServer):
             + (pose_delta.position.y) ** 2
             + (pose_delta.position.z) ** 2
         )
+
+        # TODO: add orientation errors
+
         return delta
 
     def _tol_check(self, delta):
@@ -222,26 +225,6 @@ class GeopointServer(SMARCActionServer):
         else:
             return True
 
-    def convert_to_utm(self, point: GeoPoint) -> PoseStamped:
-        """Converts GeoPoint to UTM with proper frame id
-
-        Args:
-            point: lat-long geopoint
-
-        Returns:
-            PoseStamped that has frame_id labeled based on UTM zone and band.
-
-        """
-        point: utm.UTMPoint = utm.fromMsg(point)
-        pose_stamp = PoseStamped()
-        pose_stamp.pose.position = point.toPoint()
-        zone, band = point.gridZone()
-        pose_stamp.header.frame_id = f"utm_{zone}_{band}"
-        self.logger.debug(
-            f"Point Position from lat long:{self._str_posestamp(pose_stamp)}"
-        )
-        return pose_stamp
-
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
         """Primary execution callback where goal's are handled after acceptance.
 
@@ -254,8 +237,8 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        geopoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
-        pose_stamped = self.convert_to_utm(geopoint)
+        hydropoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
+        pose_stamped = hydropoint
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
             self.logger.debug(
@@ -272,8 +255,8 @@ class GeopointServer(SMARCActionServer):
             f"Publishing to {self._setpoint_topic}, Setpoint"
             + self._str_posestamp(self.goal_base_link)
         )
-        self._pub_setpoint.publish(self.goal_base_link.pose)
 
+        self._pub_setpoint.publish(self.goal_base_link.pose)
         self.feedback_loop(pose_stamped, goal_handle)
 
         result_msg.success = True
@@ -290,9 +273,9 @@ class GeopointServer(SMARCActionServer):
 
         """
         goal_request = goal_request.goal
-        geo_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
-        self.logger.info(f"Recieved UTM point at {geo_setpoint}")
-        pose_stamped = self.convert_to_utm(geo_setpoint)
+        hydro_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
+        self.logger.info(f"Recieved setpoint at {hydro_setpoint}")
+        pose_stamped = hydro_setpoint
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
@@ -329,7 +312,9 @@ class GeopointServer(SMARCActionServer):
             Cancel response as ACCEPT
         """
         pose_msg = Pose()
+
         self._pub_setpoint.publish(pose_msg)
+
         return CancelResponse.ACCEPT
 
     def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
@@ -357,10 +342,10 @@ class GeopointServer(SMARCActionServer):
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "setpoint_client"
+    node_name = "hydropoint_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to")
+    setpoint = HydropointServer(node, "go_to_hydropoint", action_type, "move-to")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
