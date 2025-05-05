@@ -350,6 +350,8 @@ class DiveControlModel:
         self._view.set_thrust_vector(u_rudder, u_stern) 
         self._view.set_rpm(u_rpm1, u_rpm2)
 
+        self._loginfo(f"vbs: {u_vbs}, lcg: {u_lcg}, rpm1: {u_rpm1}")
+
         # Convenience Topics
         if self.ref is not None:
             self._ref = ControlReference()

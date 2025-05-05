@@ -60,7 +60,7 @@ class SetpointPublisher():
 
         self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         #self._setpoint_msg.header.frame_id = self.robot_name + '/map' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
-        self._setpoint_msg.header.frame_id = 'map' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
+        self._setpoint_msg.header.frame_id = 'map_ned' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
         self._setpoint_msg.pose.pose.position.x = current_x
         self._setpoint_msg.pose.pose.position.y = current_y
         self._setpoint_msg.pose.pose.position.z = -1.0
