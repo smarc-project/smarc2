@@ -63,7 +63,7 @@ class DiveController():
         self._states = Odometry()
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
-        self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
+        self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
 
         self._loginfo("Dive Controller Node started")
 
@@ -78,16 +78,16 @@ class DiveController():
 
 
     def _wp_cb(self, wp):
-        self._waypoint_global = PoseStamped()
-        self._waypoint_global.header.stamp = wp.header.stamp
-        self._waypoint_global.header.frame_id = wp.header.frame_id
-        self._waypoint_global.pose.position.x = wp.pose.pose.position.x
-        self._waypoint_global.pose.position.y = wp.pose.pose.position.y
-        self._waypoint_global.pose.position.z = wp.pose.pose.position.z
-        self._waypoint_global.pose.orientation.x = wp.pose.pose.orientation.x
-        self._waypoint_global.pose.orientation.y = wp.pose.pose.orientation.y
-        self._waypoint_global.pose.orientation.z = wp.pose.pose.orientation.z
-        self._waypoint_global.pose.orientation.w = wp.pose.pose.orientation.w
+        self._waypoint_global = wp
+        # self._waypoint_global.header.stamp = wp.header.stamp
+        # self._waypoint_global.header.frame_id = wp.header.frame_id
+        # self._waypoint_global.pose.position.x = wp.pose.pose.position.x
+        # self._waypoint_global.pose.position.y = wp.pose.pose.position.y
+        # self._waypoint_global.pose.position.z = wp.pose.pose.position.z
+        # self._waypoint_global.pose.orientation.x = wp.pose.pose.orientation.x
+        # self._waypoint_global.pose.orientation.y = wp.pose.pose.orientation.y
+        # self._waypoint_global.pose.orientation.z = wp.pose.pose.orientation.z
+        # self._waypoint_global.pose.orientation.w = wp.pose.pose.orientation.w
 
         # TODO: Get the proper RPM from the waypoint
         self._requested_rpm = 500

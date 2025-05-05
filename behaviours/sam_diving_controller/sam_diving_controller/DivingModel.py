@@ -10,6 +10,8 @@ from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference,
 from .ParamUtils import DivingModelParam
 from .IDiveView import MissionStates
 
+from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
+from smarc_modelling.control.control import *
 
 class PIDControl:
     """
@@ -322,4 +324,321 @@ class DiveControlModel:
         return self._input
 
 # TODO: Write unit tests here that do one loop of everything
+
+
+class DiveControlModelMPC:
+
+    def __init__(self, node, view, controller, rate=0.1):
+
+        self._node = node
+        self._controller = controller
+        self._view = view
+        self._dt = rate
+
+        self.param = DivingModelParam(self._node).get_param()
+
+        # Convenience Topics
+        self._current_state = None
+        self._current_control = None
+        self._ref = None
+        self._error = None
+        self._input = None
+
+        # Extract the CasADi model
+        sam = SAM_casadi()
+
+
+        # create ocp object to formulate the OCP
+        Ts = 0.1            # Sampling time
+        self.N_horizon = 10      # Prediction horizon
+        nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, False)
+        self.nx = nmpc.nx        # State vector length + control vector
+        nu = nmpc.nu        # Control derivative vector length
+
+        
+        # load trajectory - Replace with your actual file path
+        #file_path = "/home/admin/smarc_modelling/src/Trajectories/simonTrajectory.csv"
+        file_path = "/home/parallels/ros2_ws/src/smarc2/behaviours/sam_mpc/sam_mpc/trajectoryComplexity3.csv"
+        #file_path = "/home/admin/smarc_modelling/src/Trajectories/resolution01.csv"  
+        #file_path = "/home/admin/smarc_modelling/src/Trajectories/straight_trajectory.csv"
+        #self.trajectory = self._read_csv_to_array(file_path)
+
+
+        self.trajectory = np.zeros((self.N_horizon, 19))
+        self.trajectory[:, 3] = 1.
+        self.trajectory[:, 0] = 10.
+        self.trajectory[0, 0] = 0.
+        self.trajectory[0, 7] = 1e-7
+        self.trajectory[0, 17] = 1e-7
+        self.trajectory[0, 18] = 1e-7
+        self.i = 0
+
+        # Declare duration of sim. and the x_axis in the plots
+        self.Nsim = (self.trajectory.shape[0])            # The sim length should be equal to the number of waypoints
+        x_axis = np.linspace(0, Ts*self.Nsim, self.Nsim)
+
+        self.simU = np.zeros((self.Nsim, nu))     # Matrix to store the optimal control derivative
+        self.simX = np.zeros((self.Nsim+1, self.nx))     # Matrix to store the optimal control derivative
+
+
+        # Declare the initial state
+        x0 = self.trajectory[0] 
+        self.simX[0,:] = x0
+
+        # Augment the trajectory and control input r0.0eference 
+        Uref = np.zeros((self.trajectory.shape[0], nu))  # Derivative reference - set to 0 to penalize fast control changes
+        self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
+
+        self.ref = np.zeros(self.trajectory.shape)
+
+        # Run the MPC setup
+        self.ocp_solver, self.integrator = nmpc.setup(x0)
+
+        # Initialize the state and control vector as David does
+        for stage in range(self.N_horizon + 1):
+            self.ocp_solver.set(stage, "x", x0)
+        for stage in range(self.N_horizon):
+            self.ocp_solver.set(stage, "u", np.zeros(nu,))
+
+        # Array to store the time values
+        self.t = np.zeros((self.Nsim))
+
+        self._loginfo("Dive Controller created")
+
+
+    def _loginfo(self, s):
+        self._node.get_logger().info(s)
+
+    def _loginfo_once(self, s):
+        self._node.get_logger().info(s, once=True)
+
+    def _read_csv_to_array(self, file_path: str):
+        """
+        Reads a CSV file and converts the elements to a NumPy array.
+
+        Parameters:
+        file_path (str): The path to the CSV file.
+
+        Returns:
+        np.array: A NumPy array containing the CSV data.
+        """
+        data = []
+        with open(file_path, 'r') as csvfile:
+            csvreader = csv.reader(csvfile)
+            next(csvreader)
+            for row in csvreader:
+                data.append([float(element) for element in row])
+
+        
+        return np.array(data)
+
+    def _set_actuators_neutral(self):
+        """
+        Setting all actuators to neutral.
+        """
+
+        u_vbs_neutral = self.param['vbs_u_neutral']
+        u_lcg_neutral = self.param['lcg_u_neutral']
+        u_tv_hor_neutral = self.param['tv_u_neutral']
+        u_tv_ver_neutral = self.param['tv_u_neutral']
+        u_rpm_neutral = self.param['rpm_u_neutral']
+
+        self._view.set_vbs(u_vbs_neutral)
+        self._view.set_lcg(u_lcg_neutral)
+        self._view.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+        self._view.set_rpm(u_rpm_neutral)
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs_neutral
+        self._input.lcg = u_lcg_neutral
+        self._input.thrustervertical = u_tv_ver_neutral
+        self._input.thrusterhorizontal = u_tv_hor_neutral
+        self._input.thrusterrpm = float(u_rpm_neutral)
+
+    def _set_actuators_emergency(self):
+        """
+        Setting all actuators to neutral.
+        """
+
+        u_vbs_emergency = self.param['vbs_u_emergency']
+        u_lcg_emergency= self.param['lcg_u_emergency']
+        u_tv_hor_emergency= self.param['tv_u_emergency']
+        u_tv_ver_emergency= self.param['tv_u_emergency']
+        u_rpm_emergency= self.param['rpm_u_emergency']
+
+        self._view.set_vbs(u_vbs_emergency)
+        self._view.set_lcg(u_lcg_emergency)
+        self._view.set_thrust_vector(u_tv_hor_emergency, -u_tv_ver_emergency)
+        self._view.set_rpm(u_rpm_emergency)
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs_emergency
+        self._input.lcg = u_lcg_emergency
+        self._input.thrustervertical = u_tv_ver_emergency
+        self._input.thrusterhorizontal = u_tv_hor_emergency
+        self._input.thrusterrpm = float(u_rpm_emergency)
+
+
+
+    def update(self):
+        """
+        This is where all the magic happens.
+        """
+        # Get setpoints
+        waypoint = self._controller.get_waypoint()
+
+        # Get current states
+        self._current_state = self._controller.get_states()
+        self._current_control = self._controller.get_control_input()
+
+        x_current = np.zeros(19)
+        x_current[0] = self._current_state.pose.pose.position.x
+        x_current[1] = self._current_state.pose.pose.position.y
+        x_current[2] = self._current_state.pose.pose.position.z 
+        x_current[3] = self._current_state.pose.pose.orientation.w
+        x_current[4] = self._current_state.pose.pose.orientation.x
+        x_current[5] = self._current_state.pose.pose.orientation.y
+        x_current[6] = self._current_state.pose.pose.orientation.z
+        x_current[7] = self._current_state.twist.twist.linear.x
+        x_current[8] = self._current_state.twist.twist.linear.y
+        x_current[9] = self._current_state.twist.twist.linear.z
+        x_current[10] = self._current_state.twist.twist.angular.x
+        x_current[11] = self._current_state.twist.twist.angular.y
+        x_current[12] = self._current_state.twist.twist.angular.z
+        x_current[13] = self._current_control['vbs']
+        x_current[14] = self._current_control['lcg']
+        x_current[15] = self._current_control['stern']
+        x_current[16] = self._current_control['rudder']
+        x_current[17] = self._current_control['rpm1']
+        x_current[18] = self._current_control['rpm2']
+
+        # FIXME: This is for debugging only!
+        if self.i == self.Nsim:
+            self.i = 0
+
+        ## extract the sub-trajectory for the horizon
+        #if self.i <= (self.Nsim - self.N_horizon):
+        #    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+        #else:
+        #    self.ref = self.trajectory[self.i:, :]
+
+        if waypoint is not None:
+            self.ref[:,0] = waypoint.pose.position.x
+            self.ref[:,1] = waypoint.pose.position.y
+            self.ref[:,2] = waypoint.pose.position.z
+            self.ref[:,3] = waypoint.pose.orientation.w
+            self.ref[:,4] = waypoint.pose.orientation.x
+            self.ref[:,5] = waypoint.pose.orientation.y
+            self.ref[:,5] = waypoint.pose.orientation.z
+
+
+        # Update reference vector
+        # If the end of the trajectory has been reached, (ref.shape < N_horizon)
+        # set the following waypoints in the horizon to the last waypoint of the trajectory
+        for stage in range(self.N_horizon):
+            if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
+                self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
+            else:
+                self.ocp_solver.set(stage, "p", self.ref[stage,:])
+
+        # Set the terminal state reference
+        self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
+ 
+        # Set current state
+        self.ocp_solver.set(0, "lbx", x_current)
+        self.ocp_solver.set(0, "ubx", x_current)
+
+        # solve ocp and get next control input
+        status = self.ocp_solver.solve()
+        #ocp_solver.print_statistics()
+        #if status != 0:
+            #print(f" Note: acados_ocp_solver returned status: {status}")
+
+        # simulate system
+        self.t[self.i] = self.ocp_solver.get_stats('time_tot')
+        self.simU[self.i, :] = self.ocp_solver.get(0, "u")
+        #X_eval = ocp_solver.get(0, "x")
+        mpc_solution = self.integrator.simulate(x=x_current, u=self.simU[self.i, :])
+
+        # TODO: Check that the outputs fit the actual actuators
+        u_vbs = mpc_solution[13]
+        u_lcg = mpc_solution[14]
+        u_stern = mpc_solution[15] 
+        u_rudder = mpc_solution[16]
+        u_rpm1 = mpc_solution[17]
+        u_rpm2 = mpc_solution[18]
+
+        self.simX[self.i+1, :] = mpc_solution
+
+        self._view.set_vbs(u_vbs)
+        self._view.set_lcg(u_lcg)
+        self._view.set_thrust_vector(u_rudder, u_stern) 
+        self._view.set_rpm(u_rpm1, u_rpm2)
+
+        # Convenience Topics
+        if self.ref is not None:
+            self._ref = ControlReference()
+            self._ref.x = self.ref[0,0]
+            self._ref.y = self.ref[0,1]
+            self._ref.z = self.ref[0,2]
+
+        self._error = ControlError()
+        self._error.x = self.ref[0,2] - x_current[2]
+        self._error.z = self.ref[0,2] - x_current[2]
+        self._error.z = self.ref[0,2] - x_current[2]
+        # TODO: Finish this. Use euler_from_quaternion(quaternion) to do the conversion.
+        self._error.pitch = 0.# pitch_error
+        self._error.yaw =  0.#yaw_error
+        self._error.heading =  0.#current_heading
+
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
+        self._input.thrustervertical = u_stern
+        self._input.thrusterhorizontal = u_rudder
+        self._input.thrusterrpm = float(u_rpm1)
+
+        self.i += 1
+
+
+        return
+
+
+    def get_state(self):
+        '''
+        For the ConvenienceView
+        '''
+        if self._current_state is None:
+            return None
+
+        state = ControlState()
+        state.pose.x = self._current_state.pose.pose.position.x
+        state.pose.y = self._current_state.pose.pose.position.y
+        state.pose.z = self._current_state.pose.pose.position.z
+
+        rpy = euler_from_quaternion([
+            self._current_state.pose.pose.orientation.x,
+            self._current_state.pose.pose.orientation.y,
+            self._current_state.pose.pose.orientation.z,
+            self._current_state.pose.pose.orientation.w])
+
+        state.pose.roll = rpy[0]
+        state.pose.pitch = rpy[1]
+        state.pose.yaw = rpy[2]
+
+        # TODO: Add the velocity
+
+        return state
+
+    def get_ref(self):
+        return self._ref
+
+    def get_error(self):
+        return self._error
+
+    def get_input(self):
+        return self._input
+
+# TODO: Write unit tests here that do one loop of everything
+
 
