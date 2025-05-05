@@ -14,6 +14,7 @@ string STATES = 'core/odom_gt' # Type: Odometry
 string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
 string PITCH_SETPOINT = 'ctrl/pitch_setpoint' # Type: Float64
 string WAYPOINT = 'ctrl/waypoint' # Type: PoseWithCovarianceStamped
+string TRAJ_MPC = 'ctrl/traj_mpc' # Type: smarc_control_msgs/TrajectoryMPC
 
 # Convenience Topics
 string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
