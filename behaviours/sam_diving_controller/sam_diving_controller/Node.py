@@ -6,7 +6,7 @@ import sys
 from .SAMDiveView import SAMDiveView
 from .ActionServerDiveController import DiveActionServerController
 from .DiveController import DiveController
-from .DivingModel import DiveControlModel
+from .DivingModel import DiveControlModel, DiveControlModelMPC
 from .ConvenienceView import ConvenienceView
 
 from rclpy.executors import MultiThreadedExecutor
@@ -34,10 +34,9 @@ def main():
 
     view = SAMDiveView(node)
     controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    model = DiveControlModel(node, view, controller, model_rate)  # This is where the actual PID controller lives.
+    model = DiveControlModelMPC(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
     convenience_view = ConvenienceView(node, controller, model)
-
 
     node.create_timer(view_rate, view.update)
     node.create_timer(model_rate, model.update)
@@ -83,7 +82,7 @@ def action_server():
 
     view = SAMDiveView(node)
     controller = DiveActionServerController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    model = DiveControlModel(node, view, controller, model_rate)  # This is where the actual PID controller lives.
+    model = DiveControlModelMPC(node, view, controller, model_rate)  # This is where the actual PID controller lives.
 
     convenience_view = ConvenienceView(node, controller, model)
 
