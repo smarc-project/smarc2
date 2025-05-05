@@ -8,11 +8,11 @@ from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 try:
-    from .IDiveView import IDiveView
+    from .IDivePub import IDivePub
 except:
-    from IDiveView import IDiveView
+    from IDivePub import IDivePub
 
-class SAMDiveView(IDiveView):
+class SAMDivePub(IDivePub):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
@@ -46,12 +46,12 @@ class SAMDiveView(IDiveView):
         self._lcg_msg.value = float(lcg)
 
 
-    def set_rpm(self, rpm: int) -> None:
+    def set_rpm(self, rpm1: int, rpm2: int) -> None:
         """
         Set RPMs
         """
-        self._t1_msg.rpm = int(rpm)
-        self._t2_msg.rpm = int(rpm)
+        self._t1_msg.rpm = int(rpm1)
+        self._t2_msg.rpm = int(rpm2)
 
     def set_thrust_vector(self, horizontal_tv: float, vertical_tv: float) -> None:
         """
@@ -72,57 +72,57 @@ class SAMDiveView(IDiveView):
         self._thrust_vector_pub.publish(self._thrust_vector_msg)
 
 
-def test_view():
-    """
-    How will we know this is working as intended? By running it!
-    Check setup.py to see how this function can be run with ros2
-    Use `ros2 run basic_depth_pitch_control test_view` to run this.
-    """
-    rclpy.init(args=sys.argv)
-    node = rclpy.create_node("SAMDiveView_test")
-    view = SAMDiveView(node)
-
-    print("start test view")
-
-    lcg = 0.0
-    vbs = 0.0
-    rpm = 500
-    hor_tv = 0.1
-    ver_tv = -0.1
-
-    i = 0
-
-    # a simple "controller" to give the View _something_ to do.
-    def loop():
-        nonlocal lcg
-        nonlocal vbs
-        nonlocal rpm
-        nonlocal hor_tv
-        nonlocal ver_tv
-        nonlocal i
-
-        rpm *= -1
-        hor_tv *= -1
-        ver_tv *= -1
-        i += 1.0
-        vbs += i
-        lcg += i
-
-        view.set_rpm(rpm)
-        view.set_thrust_vector(hor_tv, ver_tv)
-        view.set_lcg(lcg)
-        view.set_vbs(vbs)
-
-        view.update()
-
-    loop_period = 1
-    node.create_timer(loop_period, loop)
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-
-
-# Could also run this without ros2
-if __name__ == "__main__":
-    test_view()
+#def test_view():
+#    """
+#    How will we know this is working as intended? By running it!
+#    Check setup.py to see how this function can be run with ros2
+#    Use `ros2 run basic_depth_pitch_control test_view` to run this.
+#    """
+#    rclpy.init(args=sys.argv)
+#    node = rclpy.create_node("SAMDiveView_test")
+#    view = SAMDiveView(node)
+#
+#    print("start test view")
+#
+#    lcg = 0.0
+#    vbs = 0.0
+#    rpm = 500
+#    hor_tv = 0.1
+#    ver_tv = -0.1
+#
+#    i = 0
+#
+#    # a simple "controller" to give the View _something_ to do.
+#    def loop():
+#        nonlocal lcg
+#        nonlocal vbs
+#        nonlocal rpm
+#        nonlocal hor_tv
+#        nonlocal ver_tv
+#        nonlocal i
+#
+#        rpm *= -1
+#        hor_tv *= -1
+#        ver_tv *= -1
+#        i += 1.0
+#        vbs += i
+#        lcg += i
+#
+#        view.set_rpm(rpm)
+#        view.set_thrust_vector(hor_tv, ver_tv)
+#        view.set_lcg(lcg)
+#        view.set_vbs(vbs)
+#
+#        view.update()
+#
+#    loop_period = 1
+#    node.create_timer(loop_period, loop)
+#    try:
+#        rclpy.spin(node)
+#    except KeyboardInterrupt:
+#        pass
+#
+#
+## Could also run this without ros2
+#if __name__ == "__main__":
+#    test_view()

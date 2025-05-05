@@ -28,26 +28,26 @@ from smarc_control_msgs.msg import Topics as ControlTopics
 
 
 try:
-    from .DiveController import DiveController
-    from .IDiveView import IDiveView, MissionStates
+    from .DiveSub import DiveSub
+    from .IDivePub import IDivePub, MissionStates
 except: 
-    from DiveController import DiveController
-    from IDiveView import IDiveView, MissionStates
+    from DiveSub import DiveSub
+    from IDivePub import IDivePub, MissionStates
 
 
-class DiveActionServerController(DiveController):
+class DiveActionServerSub(DiveSub):
     """
     A controller example that implements an action server to allow
     another node to control its execution, params, etc.
     """
     def __init__(self,
                  node: Node,
-                 view: IDiveView):
+                 dive_pub: IDivePub):
 
         self._node = node
-        self._view = view
+        self._dive_pub = dive_pub
 
-        super().__init__(self._node, self._view)
+        super().__init__(self._node, self._dive_pub)
 
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)
@@ -157,10 +157,10 @@ class DiveActionServerController(DiveController):
 
         self.set_mission_state(MissionStates.CANCELLED, "AS")
 
-        self._view.set_vbs(0)
-        self._view.set_lcg(50)
-        self._view.set_thrust_vector(0.0, 0.0) 
-        self._view.set_rpm(0)
+        self._dive_pub.set_vbs(0)
+        self._dive_pub.set_lcg(50)
+        self._dive_pub.set_thrust_vector(0.0, 0.0) 
+        self._dive_pub.set_rpm(0)
 
         self._loginfo("Everything set to neutral")
 
@@ -171,19 +171,19 @@ class DiveActionServerController(DiveController):
         return msg
 
 
-def main():
-    # when creating the _object_ rather than the _class_, we use the concrete classes
-    from .SAMThrustView import SAMThrustView
-
-    # create a node and our objects in the usual manner.
-    rclpy.init(args=sys.argv)
-    node = rclpy.create_node("ActionServerNode")
-    view = SAMThrustView(node)
-    controller = GoToWaypointActionServerController(node, view)
-
-    executor = MultiThreadedExecutor()
-    rclpy.spin(node, executor=executor)
-
-
-if __name__ == "__main__":
-    main()
+#def main():
+#    # when creating the _object_ rather than the _class_, we use the concrete classes
+#    from .SAMThrustView import SAMThrustView
+#
+#    # create a node and our objects in the usual manner.
+#    rclpy.init(args=sys.argv)
+#    node = rclpy.create_node("ActionServerNode")
+#    view = SAMThrustView(node)
+#    controller = GoToWaypointActionServerController(node, view)
+#
+#    executor = MultiThreadedExecutor()
+#    rclpy.spin(node, executor=executor)
+#
+#
+#if __name__ == "__main__":
+#    main()

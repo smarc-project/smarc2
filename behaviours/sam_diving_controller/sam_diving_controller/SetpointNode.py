@@ -6,7 +6,7 @@ from rclpy import time
 
 # ROS imports
 from builtin_interfaces.msg import Time as Stamp
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped
 from rclpy.time import Time as rcl_Time
 
 from std_msgs.msg import Float64
@@ -30,20 +30,18 @@ class SetpointPublisher():
 
         self._node.declare_parameter('robot_name')
         self._node.declare_parameter('tf_suffix')
-        tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
-        robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
+        self.tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
+        self.robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
 
-        self._setpoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT, 10) 
-        self._setpoint_msg = Odometry()
-        self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
-        self._setpoint_msg.header.frame_id = robot_name + '/odom' + tf_suffix
-        self._setpoint_msg.pose.pose.position.x = 40.0
-        self._setpoint_msg.pose.pose.position.y = 10.0
-        self._setpoint_msg.pose.pose.position.z = -5.0
-        self._setpoint_msg.pose.pose.orientation.x = 0.0
-        self._setpoint_msg.pose.pose.orientation.y = 0.0
-        self._setpoint_msg.pose.pose.orientation.z = 0.0
-        self._setpoint_msg.pose.pose.orientation.w = 1.0
+        self._states = Odometry()
+
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+
+        self._setpoint_pub = node.create_publisher(PoseStamped, ControlTopics.WAYPOINT, 10) 
+        self._setpoint_msg = PoseStamped()
+
+        self.received_current_state = False
+        self.created_waypoint = False
 
         self._loginfo("Created Setpoint Publisher")
 
@@ -51,6 +49,27 @@ class SetpointPublisher():
     def _loginfo(self, s):
         self._node.get_logger().info(s)
 
+    def _states_cb(self, msg):
+        self._states = msg
+        self.received_current_state = True
+
+    def _create_waypoint_message(self):
+
+        current_x = self._states.pose.pose.position.x
+        current_y = self._states.pose.pose.position.y
+
+        self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
+        #self._setpoint_msg.header.frame_id = self.robot_name + '/map' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
+        self._setpoint_msg.header.frame_id = 'map_ned' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
+        self._setpoint_msg.pose.position.x = current_x
+        self._setpoint_msg.pose.position.y = current_y
+        self._setpoint_msg.pose.position.z = -1.0
+        self._setpoint_msg.pose.orientation.x = 0.0
+        self._setpoint_msg.pose.orientation.y = 0.0
+        self._setpoint_msg.pose.orientation.z = 0.0
+        self._setpoint_msg.pose.orientation.w = 1.0
+
+        self.created_waypoint = True
 
     def rcl_time_to_stamp(self,time: rcl_Time) -> Stamp:
         """
@@ -67,7 +86,12 @@ class SetpointPublisher():
         """
         Publish setpoint message
         """
-        self._setpoint_pub.publish(self._setpoint_msg)
+        if not self.created_waypoint:
+            if self.received_current_state:
+                self._create_waypoint_message()
+        else:
+            self._setpoint_pub.publish(self._setpoint_msg)
+            #self._loginfo(f"SN: WP: {self._setpoint_msg.pose.position}")
 
 
 def main():
@@ -81,6 +105,11 @@ def main():
     setpoint_pub = SetpointPublisher(node)
 
     node_rate = 1/10
+
+    def _loginfo(node, s):
+        node.get_logger().info(s)
+
+    _loginfo(node,"Setpoint Node created")
 
     node.create_timer(node_rate, setpoint_pub.update)
 

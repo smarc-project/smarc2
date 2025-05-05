@@ -3,11 +3,11 @@
 import rclpy
 import sys
 
-from .SAMDiveView import SAMDiveView
-from .ActionServerDiveController import DiveActionServerController
-from .DiveController import DiveController
-from .DivingModel import DiveControlModel, DiveControlModelMPC
-from .ConvenienceView import ConvenienceView
+from .SAMDivePub import SAMDivePub
+from .ActionServerDiveSub import DiveActionServerSub
+from .DiveSub import DiveSub
+from .DiveController import DiveControllerPID, DiveControllerMPC 
+from .ConveniencePub import ConveniencePub
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -19,30 +19,31 @@ def main():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("DivingNode")
 
-    node.declare_parameter('view_rate', 0.1)
-    node.declare_parameter('model_rate', 0.1)
-    node.declare_parameter('controller_rate', 0.1)
+    node.declare_parameter('dive_pub_rate', 0.1)
+    node.declare_parameter('dive_controller_rate', 0.1)
+    node.declare_parameter('dive_sub_rate', 0.1)
     node.declare_parameter('convenience_rate', 0.1)
 
     # This is not a frequency, but a period.
     # t = 10 -> callback gets called every 10 sec
-    view_rate = node.get_parameter('view_rate').get_parameter_value().double_value
-    model_rate = node.get_parameter('model_rate').get_parameter_value().double_value
-    controller_rate = node.get_parameter('controller_rate').get_parameter_value().double_value
+    dive_pub_rate = node.get_parameter('dive_pub_rate').get_parameter_value().double_value
+    dive_controller_rate = node.get_parameter('dive_controller_rate').get_parameter_value().double_value
+    dive_sub_rate = node.get_parameter('dive_sub_rate').get_parameter_value().double_value
 
-    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
+    convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
-    view = SAMDiveView(node)
-    controller = DiveController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    model = DiveControlModelMPC(node, view, controller, model_rate)  # This is where the actual PID controller lives.
+    dive_pub = SAMDivePub(node)
+    dive_sub = DiveSub(node, dive_pub) 
+    #dive_controller = DiveControlLerMPC(node, dive_pub, dive_sub, dive_controller_rate)
+    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, dive_controller_rate) 
 
-    convenience_view = ConvenienceView(node, controller, model)
+    convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
-    node.create_timer(view_rate, view.update)
-    node.create_timer(model_rate, model.update)
-    node.create_timer(controller_rate, controller.update)
+    node.create_timer(dive_pub_rate, dive_pub.update)
+    node.create_timer(dive_controller_rate, dive_controller.update)
+    node.create_timer(dive_sub_rate, dive_sub.update)
 
-    node.create_timer(convenience_view_rate, convenience_view.update)
+    node.create_timer(convenience_pub_rate, convenience_pub.update)
 
     def _loginfo(node, s):
         node.get_logger().info(s)
@@ -67,31 +68,31 @@ def action_server():
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("DivingNode")
 
-    node.declare_parameter('view_rate', 0.1)
-    node.declare_parameter('model_rate', 0.1)
-    node.declare_parameter('controller_rate', 0.1)
+    node.declare_parameter('dive_pub_rate', 0.1)
+    node.declare_parameter('dive_controller_rate', 0.1)
+    node.declare_parameter('dive_sub_rate', 0.1)
     node.declare_parameter('convenience_rate', 0.1)
 
     # This is not a frequency, but a period.
     # t = 10 -> callback gets called every 10 sec
-    view_rate = node.get_parameter('view_rate').get_parameter_value().double_value
-    model_rate = node.get_parameter('model_rate').get_parameter_value().double_value
-    controller_rate = node.get_parameter('controller_rate').get_parameter_value().double_value
+    dive_pub_rate = node.get_parameter('dive_pub_rate').get_parameter_value().double_value
+    dive_controller_rate = node.get_parameter('dive_controller_rate').get_parameter_value().double_value
+    dive_sub_rate = node.get_parameter('dive_sub_rate').get_parameter_value().double_value
 
-    convenience_view_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
+    convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
-    view = SAMDiveView(node)
-    controller = DiveActionServerController(node, view)   # Note, this is a MVC controller, not a control theory controller
-    model = DiveControlModelMPC(node, view, controller, model_rate)  # This is where the actual PID controller lives.
+    dive_pub = SAMDivePub(node)
+    dive_sub = DiveActionServerSub(node, dive_pub)
+    dive_controller = DiveControllerMPC(node, dive_pub, dive_sub, dive_controller_rate)
 
-    convenience_view = ConvenienceView(node, controller, model)
+    convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
 
-    node.create_timer(view_rate, view.update)
-    node.create_timer(model_rate, model.update)
-    node.create_timer(controller_rate, controller.update)
+    node.create_timer(dive_pub_rate, dive_pub.update)
+    node.create_timer(dive_controller_rate, dive_controller.update)
+    node.create_timer(dive_sub_rate, dive_sub.update)
 
-    node.create_timer(convenience_view_rate, convenience_view.update)
+    node.create_timer(convenience_pub_rate, convenience_pub.update)
 
     def _loginfo(node, s):
         node.get_logger().info(s)
