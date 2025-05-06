@@ -54,7 +54,7 @@ class GeopointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
+            Pose, f"{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self._json_ops: GeoActionParsing = GeoActionParsing()
@@ -62,7 +62,6 @@ class GeopointServer(SMARCActionServer):
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
-        self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
         self._target_frame_param = node.declare_parameter("target_frame", "odom").value
 
         self._distance_frame_param = node.declare_parameter(
@@ -117,10 +116,10 @@ class GeopointServer(SMARCActionServer):
         )
 
         self.target_frame = (
-            f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
+            f"{self._target_frame_param}{self._frame_suffix}"
         )
 
-        self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
+        self.distance_frame = f"{self._distance_frame_param}{self._distance_frame_suffix}"
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
