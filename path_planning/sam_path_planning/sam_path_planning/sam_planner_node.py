@@ -74,7 +74,7 @@ class SamPathPlanner(Node):
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
                 
                 ## Do planning stuff here
-                # === Construct START STATE ===
+                # === Start state ===
                 start_state = np.array([
                         self.sam_pose_t.pose.pose.position.x,
                         self.sam_pose_t.pose.pose.position.y,
@@ -97,7 +97,7 @@ class SamPathPlanner(Node):
                         self.sam_control_t.rpm2.rpm
                     ])
 
-                # === Construct END STATE ===
+                # === End state ===
                 end_state = np.array([
                         self.sam_goal_t.pose.position.x,
                         self.sam_goal_t.pose.position.y,
@@ -111,7 +111,7 @@ class SamPathPlanner(Node):
                         50, 50, 0, 0, 0, 0
                     ])
 
-                # === Call your motion planner ===
+                # === Motion Planner ===
                 self.get_logger().info(f'Calling planner...')
                 trajectory, successful = MotionPlanningROS(start_state, end_state)
 
