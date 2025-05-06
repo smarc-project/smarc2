@@ -53,6 +53,24 @@ def generate_launch_description():
 
     ld.add_action(robot_state_publisher_node_1)
 
+    # Hulahoop model
+    hula_package_dir = FindPackageShare(LaunchConfiguration('hula_package'))
+    hula_path = PathJoinSubstitution([hula_package_dir, LaunchConfiguration('hula_package_path')])
+
+    robot_description_content = ParameterValue(Command(['xacro ', hula_path]), value_type=str)
+
+    robot_state_publisher_node_2 = Node(package='robot_state_publisher',
+                                      executable='robot_state_publisher',
+                                      parameters=[{
+                                          'robot_description': robot_description_content,
+                                      }], 
+                                      remappings=[
+                                            ('robot_description', 'hula_description'),
+                                        ]
+                                      )
+
+    ld.add_action(robot_state_publisher_node_2)
+
     # RVIZ
     watertank_utils_package = FindPackageShare('watertank_utils')
     default_rviz_config_path = PathJoinSubstitution([watertank_utils_package, 'config', 'watertank.rviz'])

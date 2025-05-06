@@ -58,7 +58,9 @@ def generate_launch_description():
             'brov_package': 'brov2heavy_description',
             'brov_package_path': PathJoinSubstitution(['robots', 'brov2heavy_default.urdf.xacro']),
             'tank_package': 'watertank_description',
-            'tank_package_path': PathJoinSubstitution(['robots', 'watertank_default.urdf.xacro'])
+            'tank_package_path': PathJoinSubstitution(['robots', 'watertank_default.urdf.xacro']),
+            'hula_package': 'hula_description',
+            'hula_package_path': PathJoinSubstitution(['robots', 'hula_default.urdf.xacro'])
             }.items()
         ),
 
