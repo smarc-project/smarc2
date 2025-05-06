@@ -91,10 +91,10 @@ class SamPathPlanner(Node):
                         self.sam_pose_t.twist.twist.angular.z,
                         self.sam_control_t.vbs.value,
                         self.sam_control_t.lcg.value ,
-                        self.sam_control_t.dsdr.thruster_vertical_radians,
-                        self.sam_control_t.dsdr.thruster_horizontal_radians,
-                        self.sam_control_t.rpm1.rpm,
-                        self.sam_control_t.rpm2.rpm
+                        self.sam_control_t.thruster_angles.thruster_vertical_radians,
+                        self.sam_control_t.thruster_angles.thruster_horizontal_radians,
+                        self.sam_control_t.rpms.thruster_1_rpm,
+                        self.sam_control_t.rpms.thruster_2_rpm
                     ])
 
                 # === End state ===
@@ -120,9 +120,38 @@ class SamPathPlanner(Node):
                 goal_path.header.stamp = self.get_clock().now().to_msg()
                 goal_path.header.frame_id = self.sam_goal_t.header.frame_id = self.sam_goal_t.header.frame_id
 
-                # For each trajectory wp, do this
-                wp_i = WpMPC()
-                goal_path.trajectory.append(wp_i)
+                for wp in trajectory:
+                    wp_i = WpMPC()
+
+                    # PoseStamped 
+                    wp_i.wp.header.stamp = self.get_clock().now().to_msg()
+                    wp_i.wp.header.frame_id = self.map_frame  
+                    wp_i.wp.pose.position.x = float(wp[0])
+                    wp_i.wp.pose.position.y = float(wp[1])
+                    wp_i.wp.pose.position.z = float(wp[2])
+                    wp_i.wp.pose.orientation.w = float(wp[3])
+                    wp_i.wp.pose.orientation.x = float(wp[4])
+                    wp_i.wp.pose.orientation.y = float(wp[5])
+                    wp_i.wp.pose.orientation.z = float(wp[6])
+
+                    # Twist 
+                    wp_i.velocities.linear.x = float(wp[7])
+                    wp_i.velocities.linear.y = float(wp[8])
+                    wp_i.velocities.linear.z = float(wp[9])
+                    wp_i.velocities.angular.x = float(wp[10])
+                    wp_i.velocities.angular.y = float(wp[11])
+                    wp_i.velocities.angular.z = float(wp[12])
+
+                    # SamControl
+                    wp_i.nominal_control.vbs.value = float(wp[13])
+                    wp_i.nominal_control.lcg.value = float(wp[14])
+                    wp_i.nominal_control.thruster_angles.thruster_vertical_radians = float(wp[15])
+                    wp_i.nominal_control.thruster_angles.thruster_horizontal_radians = float(wp[16])
+                    wp_i.nominal_control.rpms.thruster_1_rpm = float(wp[17])
+                    wp_i.nominal_control.rpms.thruster_2_rpm = float(wp[18])
+
+                    # Append to goal trajectory
+                    goal_path.trajectory.append(wp_i)
 
                 # Send to MPC
                 self.send_goal(goal_path)
@@ -164,9 +193,9 @@ class SamPathPlanner(Node):
         self.sam_control_t = SamControl()
         self.sam_control_t.vbs = vbs_fb_msg
         self.sam_control_t.lcg = lcg_fb_msg
-        self.sam_control_t.dsdr = dsdr_cmd_msg
-        self.sam_control_t.rpm1 = rpm1_fb_msg
-        self.sam_control_t.rpm2 = rpm2_fb_msg
+        self.sam_control_t.thruster_angles = dsdr_cmd_msg
+        self.sam_control_t.rpms.thruster_1_rpm = rpm1_fb_msg.rpm.rpm
+        self.sam_control_t.rpms.thruster_2_rpm = rpm2_fb_msg.rpm.rpm
 
     #### AC for the MPC functions from here
     def send_goal(self, goal_msg):
