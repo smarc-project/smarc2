@@ -80,7 +80,6 @@ class SMARCActionServer(abc.ABC):
         node: Node,
         action_name: str,
         action_type: ActionType,
-        task_name: str,
         heartbeat_topic:str, 
         heartbeat_period: float = 1,
         **kwargs,
@@ -91,7 +90,6 @@ class SMARCActionServer(abc.ABC):
             node: ros2 node
             action_name: name of action client/server in ros
             action_type: ros2 message action type
-            task_name: name of task provided to Wara-PS via heartbeat signal
             heartbeat_topic: Wara-PS heartbeat topic (can be found in smarc_msgs Topics.msg file)
             heartbeat_period: period in seconds of heartbeat timer
         """
@@ -110,7 +108,8 @@ class SMARCActionServer(abc.ABC):
         self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
         self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
         self._hb_msg = String()
-        self._hb_msg.data = str(task_name)
+        # TODO: NEED TO PARSE Namespace here
+        self._hb_msg.data = ""
 
     def _heartbeat_cb(self):
         """Sends out topic to Wara-PS on specified heartbeat timer cadence."""

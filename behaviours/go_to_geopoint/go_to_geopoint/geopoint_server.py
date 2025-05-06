@@ -37,13 +37,12 @@ class GeopointServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType, task_name: str
+        self, node: Node, action_name, action_type: ActionType,
     ):
         super().__init__(
             node,
             action_name,
             action_type,
-            task_name,
             Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
@@ -359,7 +358,7 @@ def main(args=None):
     node_name = "setpoint_client"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to")
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
