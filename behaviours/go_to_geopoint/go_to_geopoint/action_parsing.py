@@ -5,19 +5,19 @@ from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import String
 
 
-class ActionComponent(Enum):
+class ActionSubMsg(Enum):
     GOAL = 0
     FEEDBACK = 2
 
 
-class GeoPointAction:
+class GeoActionParsing:
     def __init__(self):
         pass
 
     def decode(
         self,
         serialized_fmt: String,
-        component: ActionComponent,
+        component: ActionSubMsg,
     ) -> GeoPoint | float:
         """Decodes action message from json to Python / ROS types.
 
@@ -31,13 +31,13 @@ class GeoPointAction:
             
         """
         fmt_dict = json.loads(serialized_fmt.data)
-        if component is ActionComponent.GOAL:
+        if component is ActionSubMsg.GOAL:
             geopoint = GeoPoint()
             geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
             geopoint.longitude = float(fmt_dict["geopoint"]["longitude"])
             geopoint.altitude = float(fmt_dict["geopoint"]["altitude"])
             return geopoint
-        elif component is ActionComponent.FEEDBACK:
+        elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["distance_remaining"])
 
     def encode(

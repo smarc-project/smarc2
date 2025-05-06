@@ -21,8 +21,8 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from go_to_geopoint.action_parsing import ActionComponent as ActC
-from go_to_geopoint.action_parsing import GeoPointAction
+from go_to_geopoint.action_parsing import ActionSubMsg as ActC
+from go_to_geopoint.action_parsing import GeoActionParsing
 
 KM_TO_METER = 1000
 
@@ -57,7 +57,7 @@ class GeopointServer(SMARCActionServer):
             Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: GeoPointAction = GeoPointAction()
+        self._json_ops: GeoActionParsing = GeoActionParsing()
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""

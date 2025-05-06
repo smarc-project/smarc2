@@ -12,8 +12,8 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from go_to_geopoint.action_parsing import ActionComponent as ActC
-from go_to_geopoint.action_parsing import GeoPointAction
+from go_to_geopoint.action_parsing import ActionSubMsg as ActC
+from go_to_geopoint.action_parsing import GeoActionParsing
 
 
 class GeopointClient(SMARCActionClient):
@@ -33,7 +33,7 @@ class GeopointClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = GeoPointAction()
+        self._json_ops = GeoActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
