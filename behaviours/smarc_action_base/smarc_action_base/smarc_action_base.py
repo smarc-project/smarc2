@@ -80,7 +80,7 @@ class SMARCActionServer(abc.ABC):
         node: Node,
         action_name: str,
         action_type: ActionType,
-        heartbeat_topic:str, 
+        heartbeat_topic: str,
         heartbeat_period: float = 1,
         **kwargs,
     ):
@@ -95,6 +95,8 @@ class SMARCActionServer(abc.ABC):
         """
         self._node: Node = node
         self.action_type = action_type
+        self._action_name: str = action_name
+        self._parsed_action_name: str | None = None
         self._server = ActionServer(
             self._node,
             self.action_type.ros_type,
@@ -109,13 +111,34 @@ class SMARCActionServer(abc.ABC):
         self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
         self._hb_msg = String()
         # TODO: NEED TO PARSE Namespace here
-        self._hb_msg.data = ""
+        self._hb_msg.data = self.parsed_action_name
 
     def _heartbeat_cb(self):
         """Sends out topic to Wara-PS on specified heartbeat timer cadence."""
         self._hb_pub.publish(self._hb_msg)
 
+    @property
+    def parsed_action_name(self):
+        """Action name with namespace included."""
+        if self._parsed_action_name is None:
+            self._parsed_action_name = self._construct_hb_msg()
+        return self._parsed_action_name
 
+    def _construct_hb_msg(self) -> str:
+        """Constructs heartbeat message with proper namespace.
+
+            https://design.ros2.org/articles/actions.html
+        Returns: 
+            heartbeat message prepended with namespace
+        """
+        namespace = self._node.get_namespace()
+        if namespace is "/":
+            namespace = ""
+        msg_str = f"{namespace}/{self._action_name}"
+        self._node.get_logger().info(
+            f"Parsed out action server name for Wara-PS: {msg_str}"
+        )
+        return msg_str
 
     @abc.abstractmethod
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
