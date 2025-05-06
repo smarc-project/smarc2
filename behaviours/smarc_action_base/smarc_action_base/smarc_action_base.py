@@ -127,8 +127,8 @@ class SMARCActionServer(abc.ABC):
     def _construct_hb_msg(self) -> str:
         """Constructs heartbeat message with proper namespace.
 
-            https://design.ros2.org/articles/actions.html
-        Returns: 
+            Some documentation that maybe useful: <https://design.ros2.org/articles/actions.html>
+        Returns:
             heartbeat message prepended with namespace
         """
         namespace = self._node.get_namespace()
