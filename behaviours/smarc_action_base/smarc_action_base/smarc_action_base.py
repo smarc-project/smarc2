@@ -287,7 +287,6 @@ class SMARCActionClient(abc.ABC):
         """Send goal to action server via an asynchronous callback.
 
         Args:
-            server_timeout_sec: Duration for which the client should wait for the action server to be ready.
             goal_msg: a populated ActionGoal message that will be sent to action server
 
         **Lower Level Details**
