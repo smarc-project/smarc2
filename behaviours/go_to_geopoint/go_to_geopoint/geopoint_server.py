@@ -21,7 +21,7 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from go_to_geopoint.action_parsing import ActionSubMsg as ActC
+from go_to_geopoint.action_parsing import ActionSubMsg as ActS
 from go_to_geopoint.action_parsing import GeoActionParsing
 
 KM_TO_METER = 1000
@@ -254,7 +254,7 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        geopoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
+        geopoint = self._json_ops.decode(goal_handle.request.goal, ActS.GOAL)
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
@@ -290,7 +290,7 @@ class GeopointServer(SMARCActionServer):
 
         """
         goal_request = goal_request.goal
-        geo_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
+        geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
         self.logger.info(f"Recieved UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
         try:

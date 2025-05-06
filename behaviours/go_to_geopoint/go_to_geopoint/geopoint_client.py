@@ -12,7 +12,7 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from go_to_geopoint.action_parsing import ActionSubMsg as ActC
+from go_to_geopoint.action_parsing import ActionSubMsg as ActS
 from go_to_geopoint.action_parsing import GeoActionParsing
 
 
@@ -51,7 +51,7 @@ class GeopointClient(SMARCActionClient):
         self.logger.debug(f"Received feedback {feedback_msg.feedback}")
         self.dist_rem = self._json_ops.decode(
             feedback_msg.feedback,
-            ActC.FEEDBACK,
+            ActS.FEEDBACK,
         )
 
     def result_callback(self, result: ActionResult, status: GoalStatus):
