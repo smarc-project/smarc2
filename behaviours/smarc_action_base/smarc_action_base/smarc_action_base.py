@@ -132,7 +132,7 @@ class SMARCActionServer(abc.ABC):
             heartbeat message prepended with namespace
         """
         namespace = self._node.get_namespace()
-        if namespace is "/":
+        if namespace == "/":
             namespace = ""
         msg_str = f"{namespace}/{self._action_name}"
         self._node.get_logger().info(
