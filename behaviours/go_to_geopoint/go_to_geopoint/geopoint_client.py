@@ -85,7 +85,7 @@ class GeopointClient(SMARCActionClient):
         """
         goal_msg = BaseAction.Goal()
         goal_msg.goal = self._json_ops.encode(geo_pt)
-        self.send_goal(goal_msg, server_timeout_sec=1)
+        self.send_goal(goal_msg)
 
     def _test_geopoint(self):
         """For testing geopoint setting."""

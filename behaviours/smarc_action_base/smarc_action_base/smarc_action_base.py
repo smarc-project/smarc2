@@ -192,6 +192,14 @@ class SMARCActionClient(abc.ABC):
             **kwargs,
         )
         self._goal_handle: ClientGoalHandle | None = None
+        self._setup()
+
+    def _setup(self):
+        server_status = False
+        while not server_status:
+            self._node.get_logger().info("Waiting for server to start.")
+            server_status = self._client.wait_for_server(timeout_sec=1.0)
+        self._node.get_logger().info("Server found.")
 
     def _wrap_feedback_callback(self, feedback):
         """Simplifies feedback callback by extracting values from future."""
@@ -275,7 +283,7 @@ class SMARCActionClient(abc.ABC):
                 "No goal present to cancel. Skipping cancellation."
             )
 
-    def send_goal(self, goal_msg: ActionGoal, server_timeout_sec: float = 0.5):
+    def send_goal(self, goal_msg: ActionGoal):
         """Send goal to action server via an asynchronous callback.
 
         Args:
@@ -288,7 +296,6 @@ class SMARCActionClient(abc.ABC):
         Args:
             goal_msg: a filled out goal message to request the server to complete
         """
-        self._client.wait_for_server(timeout_sec=server_timeout_sec)
 
         self._send_goal_future = self._client.send_goal_async(
             goal_msg, feedback_callback=self._wrap_feedback_callback
