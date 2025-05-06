@@ -5,9 +5,6 @@ string ABORT_TOPIC = 'core/abort'
 string HEARTBEAT_TOPIC = 'core/heartbeat'
 string VEHICLE_READY_TOPIC = 'core/vehicle_ready'
 
-string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'
-
-
 ################
 # WARA-PS Topics
 ################
@@ -27,3 +24,4 @@ string WARA_PS_DIRECT_EXECUTION_INFO_TOPIC = 'waraps/direct_execution_info'
 string WARA_PS_EXEC_RESPONSE_TOPIC = 'waraps/exec/response'
 string WARA_PS_EXEC_FEEDBACK_TOPIC = 'waraps/exec/feedback'
 string WARA_PS_EXEC_COMMAND_TOPIC = 'waraps/exec/command'
+string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'

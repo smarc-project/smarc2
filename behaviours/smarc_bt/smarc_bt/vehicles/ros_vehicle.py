@@ -94,6 +94,7 @@ class ROSVehicle(IVehicleStateContainer):
 
     def _gps_cb(self, data: NavSatFix):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)
+        self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)
 
     def _heading_cb(self, data: FloatStamped):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data], data.header.stamp.sec)

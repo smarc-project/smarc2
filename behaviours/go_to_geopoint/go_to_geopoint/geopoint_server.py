@@ -54,7 +54,7 @@ class GeopointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
+            Pose, f"{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self._json_ops: GeoPointAction = GeoPointAction()
@@ -357,7 +357,7 @@ class GeopointServer(SMARCActionServer):
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "setpoint_client"
+    node_name = "setpoint_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
     setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to")

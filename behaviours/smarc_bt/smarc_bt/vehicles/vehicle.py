@@ -86,6 +86,10 @@ class VehicleState(IVehicleState):
                                        2,
                                        ["lat", "lon"])
         
+        self._altitude = Sensor(SensorNames.ALTITUDE,
+                                VehicleState.ABSOLUTE,
+                                1)
+        
         self._global_heading_deg = Sensor(SensorNames.GLOBAL_HEADING_DEG,
                                           VehicleState.LATLON,
                                           1)
@@ -149,6 +153,15 @@ class VehicleState(IVehicleState):
     def update_sensor_status_str(self, sensor_name:str, status:str):
         self.sensors[sensor_name].update_status_str(status)
 
+class DroneVehicleState(VehicleState):
+    def __init__(self, name: str, reference_frame: str):
+        """
+        Extends the base vehicle to include drone-related basics
+        """
+        
+        self._thrusters = Sensor(SensorNames.THRUSTERS, VehicleState.ABSOLUTE, 4)
+        
+        super().__init__(name, reference_frame)
 
 
 class UnderwaterVehicleState(VehicleState):
