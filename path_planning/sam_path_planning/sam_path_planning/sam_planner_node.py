@@ -1,5 +1,6 @@
 import rclpy
 import rclpy.logging
+import numpy as np
 from rclpy.node import Node
 
 from geometry_msgs.msg import PoseStamped
@@ -12,11 +13,13 @@ from smarc_control_msgs.msg import WpMPC, SamControl
 from smarc_control_msgs.action import TrajectoryMPC
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
+from sam_msgs.msg import ThrusterAngles
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy.action import ActionClient
-####TEST
+
 # Path planning modules from smarc_modelling go here
 from smarc_modelling.vehicles.SAM import SAM
+from smarc_modelling.motion_planning.MotionPrimitives.MainScript import MotionPlanningROS
 
 class SamPathPlanner(Node):
 
@@ -43,9 +46,12 @@ class SamPathPlanner(Node):
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self, PercentStamped, SamTopics.LCG_FB_TOPIC)
         self.vbs_fb = Subscriber(self, PercentStamped, SamTopics.VBS_FB_TOPIC)
+        self.thrusters_cmd = Subscriber(self, ThrusterAngles , SamTopics.THRUST_VECTOR_CMD_TOPIC)
+        self.rpm1_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC)
+        self.rpm2_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC)
 
         self.ctrl_synch_msg = ApproximateTimeSynchronizer(
-            [self.vbs_fb, self.lcg_fb],
+            [self.vbs_fb, self.lcg_fb, self.thrusters_cmd, self.rpm1_fb, self.rpm2_fb],
             queue_size = 100,
             slop = 0.0001
         )
@@ -68,6 +74,46 @@ class SamPathPlanner(Node):
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
                 
                 ## Do planning stuff here
+                # === Construct START STATE ===
+                start_state = np.array([
+                        self.sam_pose_t.pose.pose.position.x,
+                        self.sam_pose_t.pose.pose.position.y,
+                        self.sam_pose_t.pose.pose.position.z,
+                        self.sam_pose_t.pose.pose.orientation.w,
+                        self.sam_pose_t.pose.pose.orientation.x,
+                        self.sam_pose_t.pose.pose.orientation.y,
+                        self.sam_pose_t.pose.pose.orientation.z,
+                        self.sam_pose_t.twist.twist.linear.x,
+                        self.sam_pose_t.twist.twist.linear.y,
+                        self.sam_pose_t.twist.twist.linear.z,
+                        self.sam_pose_t.twist.twist.angular.x,
+                        self.sam_pose_t.twist.twist.angular.y,
+                        self.sam_pose_t.twist.twist.angular.z,
+                        self.sam_control_t.vbs.value,
+                        self.sam_control_t.lcg.value ,
+                        self.sam_control_t.dsdr.thruster_vertical_radians,
+                        self.sam_control_t.dsdr.thruster_horizontal_radians,
+                        self.sam_control_t.rpm1.rpm,
+                        self.sam_control_t.rpm2.rpm
+                    ])
+
+                # === Construct END STATE ===
+                end_state = np.array([
+                        self.sam_goal_t.pose.position.x,
+                        self.sam_goal_t.pose.position.y,
+                        self.sam_goal_t.pose.position.z,
+                        self.sam_goal_t.pose.orientation.w,
+                        self.sam_goal_t.pose.orientation.x,
+                        self.sam_goal_t.pose.orientation.y,
+                        self.sam_goal_t.pose.orientation.z,
+                        0, 0, 0,
+                        0, 0, 0,
+                        50, 50, 0, 0, 0, 0
+                    ])
+
+                # === Call your motion planner ===
+                self.get_logger().info(f'Calling planner...')
+                trajectory, successful = MotionPlanningROS(start_state, end_state)
 
                 ## Parse your output into this action
                 goal_path = TrajectoryMPC.Goal()
@@ -113,11 +159,14 @@ class SamPathPlanner(Node):
         self.get_logger().info(f'Received state')
         self.sam_pose_t = msg
 
-    def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped):
+    def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped, dsdr_cmd_msg: ThrusterAngles, rpm1_fb_msg: ThrusterFeedback, rpm2_fb_msg: ThrusterFeedback):
         self.get_logger().info(f'Received ctrl inputs')
         self.sam_control_t = SamControl()
         self.sam_control_t.vbs = vbs_fb_msg
         self.sam_control_t.lcg = lcg_fb_msg
+        self.sam_control_t.dsdr = dsdr_cmd_msg
+        self.sam_control_t.rpm1 = rpm1_fb_msg
+        self.sam_control_t.rpm2 = rpm2_fb_msg
 
     #### AC for the MPC functions from here
     def send_goal(self, goal_msg):
