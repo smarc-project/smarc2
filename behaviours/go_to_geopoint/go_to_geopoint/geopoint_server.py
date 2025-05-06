@@ -21,8 +21,8 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from go_to_geopoint.geopoint_action import ActionComponent as ActC
-from go_to_geopoint.geopoint_action import GeoPointAction
+from go_to_geopoint.action_parsing import ActionComponent as ActC
+from go_to_geopoint.action_parsing import GeoPointAction
 
 KM_TO_METER = 1000
 
