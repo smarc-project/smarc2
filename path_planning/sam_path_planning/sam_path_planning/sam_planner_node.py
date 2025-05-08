@@ -34,6 +34,7 @@ class SamPathPlanner(Node):
         )
 
         # Declare your publishers here
+        self.path_pub = self.create_publisher(Path, 'planned_path', 1)  # For Rviz
         # self.traj_pub = self.create_publisher(TrajectoryMPC, ControlTopics.TRAJ_MPC, 1)
 
         # Declare your subscribers here
@@ -64,6 +65,29 @@ class SamPathPlanner(Node):
 
         self._goal_handle = None
 
+    def publishTrajectoryRviz(self, trajectory):
+
+        path_msg = Path()
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.header.frame_id = self.map_frame
+
+        for wp in trajectory:
+            pose = PoseStamped()
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.header.frame_id = self.map_frame
+            pose.pose.position.x = float(wp[0])
+            pose.pose.position.y = float(wp[1])
+            pose.pose.position.z = float(wp[2])
+            pose.pose.orientation.w = float(wp[3])
+            pose.pose.orientation.x = float(wp[4])
+            pose.pose.orientation.y = float(wp[5])
+            pose.pose.orientation.z = float(wp[6])
+            path_msg.poses.append(pose)
+
+        self.path_pub.publish(path_msg)
+        self._logger.info(f"Trajectory published for Rviz2")
+
+
     def run(self):
         
         rate = self.create_rate(self.node_rate)  # Hz rate
@@ -72,7 +96,7 @@ class SamPathPlanner(Node):
             
             # If goal is empty or feedback has not been received yet, keep spinning
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
-                
+    
                 ## Do planning stuff here
                 # === Start state ===
                 start_state = np.array([
@@ -115,10 +139,13 @@ class SamPathPlanner(Node):
                 self.get_logger().info(f'Calling planner...')
                 trajectory, successful = MotionPlanningROS(start_state, end_state)
 
+                ## Publish trajectory for Rviz
+                self.publishTrajectoryRviz(trajectory)
+
                 ## Parse your output into this action
                 goal_path = TrajectoryMPC.Goal()
                 goal_path.header.stamp = self.get_clock().now().to_msg()
-                goal_path.header.frame_id = self.sam_goal_t.header.frame_id = self.sam_goal_t.header.frame_id
+                goal_path.header.frame_id = self.sam_goal_t.header.frame_id
 
                 for wp in trajectory:
                     wp_i = WpMPC()
