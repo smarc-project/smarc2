@@ -61,10 +61,10 @@ def combine_ns_and_action(namespace:str, action_name:str):
     Returns:
         heartbeat message prepended with namespace
     """
-        if namespace == "/":
-            namespace = ""
-        msg_str = f"{namespace}/{action_name}"
-        return msg_str
+    if namespace == "/":
+        namespace = ""
+    msg_str = f"{namespace}/{action_name}"
+    return msg_str
 
 
 class ActionType:
