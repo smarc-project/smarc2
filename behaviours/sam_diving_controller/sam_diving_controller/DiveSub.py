@@ -62,12 +62,16 @@ class DiveSub():
         self._waypoint_global = None
         self._waypoint_body = None
         self._received_waypoint = False
+        self._joy_depth = None
+        self._depth = None
+        self._pitch = None
 
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
 
         self._states = Odometry()
+        self._received_states = False
 
         self._control_input = {} 
         self._control_input['vbs'] = 0.0
@@ -79,6 +83,9 @@ class DiveSub():
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
+        self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
+        self.depth_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.DEPTH, callback=self._depth_cb, qos_profile=10)
+        self.pitch_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
 
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
@@ -103,7 +110,9 @@ class DiveSub():
 
 
     def _states_cb(self, msg):
+        self._loginfo(f"DiveSub States received")
         self._states = msg
+        self._received_states = True
 
 
     def _wp_cb(self, wp):
@@ -112,6 +121,15 @@ class DiveSub():
         # TODO: Get the proper RPM from the waypoint
         self._requested_rpm = 500
         self._received_waypoint = True
+
+    def _joy_depth_setpoint_cb(self, msg):
+        self._joy_depth = msg
+
+    def _depth_cb(self, msg):
+        self._depth = msg
+
+    def _pitch_cb(self, msg):
+        self._pitch = msg
 
     def _ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped,
                        rpm1_fb_msg: ThrusterRPM, rpm2_fb_msg: ThrusterRPM, 
@@ -182,7 +200,11 @@ class DiveSub():
         # TODO: Might be better to split this by what 
         # state you're interested in, then you can get them
         # directly.
-        return self._states
+        #return self._states
+        if self._received_states:
+            return self._states
+        else: 
+            return None
 
     def get_control_input(self):
         return self._control_input
@@ -191,6 +213,8 @@ class DiveSub():
     def get_depth(self):
         return self._states.pose.pose.position.z
 
+    def get_sensor_depth(self):
+        return self._depth
 
     def get_pitch(self):
 
@@ -201,6 +225,9 @@ class DiveSub():
             self._states.pose.pose.orientation.w])
 
         return rpy[1]
+
+    def get_sensor_pitch(self):
+        return self._pitch
 
 
     def get_heading(self):
@@ -254,6 +281,15 @@ class DiveSub():
         Could be fixed at one point...
         """
         return self._mission_state
+
+
+    def get_joy_depth_setpoint(self):
+        return 
+
+
+    def get_joy_pitch_setpoint(self):
+
+        return 0.0
     
     # Has methods
     def has_waypoint(self):

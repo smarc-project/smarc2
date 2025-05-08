@@ -27,8 +27,8 @@ setup(
             'action_client_node = sam_diving_controller.ActionClientNode:main',
             'manual_diving = sam_diving_controller.Node:main',
             'action_server_diving = sam_diving_controller.Node:action_server',
-            'test_view = sam_diving_controller.SAMDiveView:test_view',
-            'setpoint = sam_diving_controller.SetpointNode:main'
+            'setpoint = sam_diving_controller.SetpointNode:main',
+            'joy_depth = sam_diving_controller.Node:joy_depth'
         ],
     },
 )

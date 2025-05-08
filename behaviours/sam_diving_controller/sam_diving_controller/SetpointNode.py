@@ -61,13 +61,13 @@ class SetpointPublisher():
         self._setpoint_msg.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
         #self._setpoint_msg.header.frame_id = self.robot_name + '/map' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
         self._setpoint_msg.header.frame_id = 'map_ned' + self.tf_suffix # NOTE: map frame to be in the same frame as the states.
-        self._setpoint_msg.pose.position.x = current_x
+        self._setpoint_msg.pose.position.x = current_x + 1.
         self._setpoint_msg.pose.position.y = current_y
-        self._setpoint_msg.pose.position.z = -1.0
-        self._setpoint_msg.pose.orientation.x = 0.0
-        self._setpoint_msg.pose.orientation.y = 0.0
-        self._setpoint_msg.pose.orientation.z = 0.0
-        self._setpoint_msg.pose.orientation.w = 1.0
+        self._setpoint_msg.pose.position.z = 0.5
+        self._setpoint_msg.pose.orientation.x = self._states.pose.pose.orientation.x
+        self._setpoint_msg.pose.orientation.y = self._states.pose.pose.orientation.y
+        self._setpoint_msg.pose.orientation.z = self._states.pose.pose.orientation.z
+        self._setpoint_msg.pose.orientation.w = self._states.pose.pose.orientation.w
 
         self.created_waypoint = True
 
