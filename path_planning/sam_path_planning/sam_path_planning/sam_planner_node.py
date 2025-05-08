@@ -94,6 +94,21 @@ class SamPathPlanner(Node):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0.0) 
             
+            # Tf 
+            try:
+                sam_pose_t_PoseStamped = PoseStamped()
+                sam_pose_t_PoseStamped.header = self.sam_pose_t.header
+                sam_pose_t_PoseStamped.pose = self.sam_pose_t.pose.pose
+                new_sam_pose_t_PoseStamped = self._tf_buffer.transform(sam_pose_t_PoseStamped, self.map_frame, timeout=rclpy.duration.Duration(seconds=0.5))
+
+                # Replace in the sam_pose_t
+                self.sam_pose_t.pose.pose = new_sam_pose_t_PoseStamped.pose
+                self.sam_pose_t.header = new_sam_pose_t_PoseStamped.header
+
+            except Exception as e:
+                self.get_logger().warn(f"TF lookup failed: {e}")
+                continue
+
             # If goal is empty or feedback has not been received yet, keep spinning
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
     
