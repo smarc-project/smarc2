@@ -290,6 +290,14 @@ class SMARCActionClient(abc.ABC):
         self._node.get_logger().info("Server found.")
         self.state = ActionClientState.READY
 
+    def get_goal_success(self) -> ActionClientState:
+        """Success response for proper client state updating."""
+        return ActionClientState.DONE
+
+    def get_goal_error(self) -> ActionClientState:
+        """Error response for proper client state updating."""
+        return ActionClientState.ERROR
+
     def _wrap_feedback_callback(self, feedback):
         """Simplifies feedback callback by extracting values from future."""
         # setting state to running whenever feedback is being received
@@ -349,6 +357,7 @@ class SMARCActionClient(abc.ABC):
 
         Returns:
             Must return ActionClientState.DONE or ActionClientState.ERROR for higher level state management
+            **Values can be accessed via `self.get_goal_success()` and `self.get_goal_error()`**
             Return values are checked at runtime.
         """
         pass

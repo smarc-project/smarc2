@@ -10,7 +10,6 @@ from smarc_action_base.smarc_action_base import (
     ActionResult,
     ActionType,
     SMARCActionClient,
-    ActionClientState
 )
 from smarc_mission_msgs.action import BaseAction
 
@@ -60,9 +59,9 @@ class GeopointClient(SMARCActionClient):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
         if result.success:
-            return ActionClientState.DONE
+            return self.get_goal_success()
         else:
-            return ActionClientState.ERROR
+            return self.get_goal_error()
 
     def cancel_callback(self, response):
         """Cancellation callback.
