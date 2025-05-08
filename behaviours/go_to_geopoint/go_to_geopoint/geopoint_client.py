@@ -4,11 +4,13 @@ from geographic_msgs.msg import GeoPoint
 from rclpy.action import CancelResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
+from rosidl_parser.definition import Action
 from smarc_action_base.smarc_action_base import (
     ActionFeedback,
     ActionResult,
     ActionType,
     SMARCActionClient,
+    ActionClientState
 )
 from smarc_mission_msgs.action import BaseAction
 
@@ -57,6 +59,10 @@ class GeopointClient(SMARCActionClient):
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
+        if result.success:
+            return ActionClientState.DONE
+        else:
+            return ActionClientState.ERROR
 
     def cancel_callback(self, response):
         """Cancellation callback.

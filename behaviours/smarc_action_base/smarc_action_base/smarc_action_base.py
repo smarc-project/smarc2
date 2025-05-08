@@ -54,7 +54,8 @@ def _validate_state(input_state: Any) -> ActionClientState:
         err_str = f"Expected type {type(ActionClientState).__name__}, but received {type(input_state).__name__}"
         raise ValueError(err_str)
 
-def combine_ns_and_action(namespace:str, action_name:str):
+
+def combine_ns_and_action(namespace: str, action_name: str):
     """Constructs heartbeat message with proper namespace.
 
         Some documentation that maybe useful: <https://design.ros2.org/articles/actions.html>
@@ -243,7 +244,6 @@ class SMARCActionServer(abc.ABC):
         pass
 
 
-
 class SMARCActionClient(abc.ABC):
     """Action client base class.
 
@@ -262,6 +262,7 @@ class SMARCActionClient(abc.ABC):
             action_name,
             **kwargs,
         )
+        self._action_name = action_name
         self._goal_handle: ClientGoalHandle | None = None
         self._state: ActionClientState = ActionClientState.DISCONNECTED
         self._setup()
@@ -274,6 +275,8 @@ class SMARCActionClient(abc.ABC):
     def state(self, val):
         try:
             self._state = _validate_state(val)
+            name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            self._node.get_logger().info(f"Client State ({name}) is {self._state}")
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
@@ -285,12 +288,12 @@ class SMARCActionClient(abc.ABC):
             self._node.get_logger().info("Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
         self._node.get_logger().info("Server found.")
-        self._state = ActionClientState.READY
+        self.state = ActionClientState.READY
 
     def _wrap_feedback_callback(self, feedback):
         """Simplifies feedback callback by extracting values from future."""
         # setting state to running whenever feedback is being received
-        self._state = ActionClientState.RUNNING
+        self.state = ActionClientState.RUNNING
         feedback: ActionFeedback = feedback.feedback
         self.feedback_callback(feedback)
 
@@ -298,7 +301,15 @@ class SMARCActionClient(abc.ABC):
         """Simplifies result response callback extracting values from future."""
         result: ActionResult = future.result().result
         status: GoalStatus = future.result().status
-        self.result_callback(result, status)
+        response = self.result_callback(result, status)
+        valid_response = response is ActionClientState.DONE or response is ActionClientState.ERROR
+        if valid_response:
+            self.state = response
+        else:
+            err_str = "Provided return value from result callback must be either "
+            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR}. "
+            err_str += f"Provided value is {response}"
+            raise ValueError(err_str)
 
     def _wrap_goal_response_callback(self, future: Future):
         """Simplifies goal response callback extracting values from future.
@@ -307,10 +318,10 @@ class SMARCActionClient(abc.ABC):
         """
         self._goal_handle = future.result()
         if self._goal_handle.accepted:
-            self._state = ActionClientState.ACCEPTED
+            self.state = ActionClientState.ACCEPTED
             self._get_result()
         else:
-            self._state = ActionClientState.REJECTED
+            self.state = ActionClientState.REJECTED
         # calling inheritors function
         self.goal_response_callback(self._goal_handle)
 
@@ -329,8 +340,17 @@ class SMARCActionClient(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def result_callback(self, result: ActionResult, status: GoalStatus):
-        """Implement callback to parse out the result of an action server task."""
+    def result_callback(
+        self,
+        result: ActionResult,
+        status: GoalStatus,
+    ) -> ActionClientState:
+        """Implement callback to parse out the result of an action server task.
+
+        Returns:
+            Must return ActionClientState.DONE or ActionClientState.ERROR for higher level state management
+            Return values are checked at runtime.
+        """
         pass
 
     def _get_result(self):
@@ -359,7 +379,7 @@ class SMARCActionClient(abc.ABC):
         result: ActionResult = future.result()
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
         if len(result.goals_canceling) > 0:
-            self._state = ActionClientState.CANCELLED
+            self.state = ActionClientState.CANCELLED
         user_callback(result)
 
     def cancel_goal(self, callback: callable):
@@ -369,7 +389,7 @@ class SMARCActionClient(abc.ABC):
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
-            self._state = ActionClientState.CANCELLING
+            self.state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
             func = partial(self._wrap_cancel_callback, callback)
             future.add_done_callback(func)
@@ -391,7 +411,7 @@ class SMARCActionClient(abc.ABC):
             goal_msg: a filled out goal message to request the server to complete
         """
 
-        self._state = ActionClientState.SENT
+        self.state = ActionClientState.SENT
         self._send_goal_future = self._client.send_goal_async(
             goal_msg, feedback_callback=self._wrap_feedback_callback
         )

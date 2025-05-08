@@ -1,4 +1,5 @@
 import traceback
+from unicodedata import name
 
 import numpy as np
 import rclpy
@@ -113,12 +114,20 @@ class GeopointServer(SMARCActionServer):
             ).value
             * KM_TO_METER
         )
+        
+        namespace = self._node.get_namespace() 
+        if namespace == "/":
+            namespace = ""
+        else:
+            namespace = namespace[1:] + "/"
+
 
         self.target_frame = (
-            f"{self._target_frame_param}{self._frame_suffix}"
+            f"{namespace}{self._target_frame_param}{self._frame_suffix}"
         )
 
-        self.distance_frame = f"{self._distance_frame_param}{self._distance_frame_suffix}"
+        self.distance_frame = f"{namespace}{self._distance_frame_param}{self._distance_frame_suffix}"
+
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
