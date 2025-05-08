@@ -1,6 +1,8 @@
 import abc
 import traceback
 from functools import partial
+import enum
+from typing import Any
 
 from action_msgs.msg import GoalStatus
 from action_msgs.srv import CancelGoal
@@ -12,9 +14,45 @@ from rclpy.action.server import ServerGoalHandle
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
+from rosidl_parser.definition import Action
 from std_msgs.msg import String
 
 from smarc_action_base.smarc_ros_types import ActionFeedback, ActionGoal, ActionResult
+
+
+class ActionClientState(enum.Enum):
+    DISCONNECTED = "DISCONNECTED"
+    READY = "READY"
+    SENT = "SENT"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    RUNNING = "RUNNING"
+    DONE = "DONE"
+    CANCELLED = "CANCELLED"
+    CANCELLING = "CANCELLING"
+    ERROR = "ERROR"
+
+    def __str__(self):
+        return self.name
+
+
+def _validate_state(input_state: Any) -> ActionClientState:
+    """Validates if provided state is correct
+
+    Args:
+        input_state: value to change the state too
+
+    Returns:
+        Validated ActionClientState
+
+    Raises:
+        ValueError: error message to help debug
+    """
+    if isinstance(input_state, (ActionClientState,)):
+        return input_state
+    else:
+        err_str = f"Expected type {type(ActionClientState).__name__}, but received {type(input_state).__name__}"
+        raise ValueError(err_str)
 
 
 class ActionType:
@@ -201,7 +239,7 @@ class SMARCActionClient(abc.ABC):
 
     Attributes:
         action_type: Action type for retrieving empty Goal, Feedback, and Result messages
-        _goal_handle:
+        _goal_handle: internal handle to goal to help register callbacks as user needs them
     """
 
     def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
@@ -214,7 +252,21 @@ class SMARCActionClient(abc.ABC):
             **kwargs,
         )
         self._goal_handle: ClientGoalHandle | None = None
+        self._state: ActionClientState = ActionClientState.DISCONNECTED
         self._setup()
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, val):
+        try:
+            self._state = _validate_state(val)
+        except ValueError as err:
+            self._state = ActionClientState.ERROR
+            err_str = traceback.format_exc()
+            self._node.get_logger().error(f"{err_str}")
 
     def _setup(self):
         server_status = False
@@ -222,9 +274,12 @@ class SMARCActionClient(abc.ABC):
             self._node.get_logger().info("Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
         self._node.get_logger().info("Server found.")
+        self._state = ActionClientState.READY
 
     def _wrap_feedback_callback(self, feedback):
         """Simplifies feedback callback by extracting values from future."""
+        # setting state to running whenever feedback is being received
+        self._state = ActionClientState.RUNNING
         feedback: ActionFeedback = feedback.feedback
         self.feedback_callback(feedback)
 
@@ -241,7 +296,10 @@ class SMARCActionClient(abc.ABC):
         """
         self._goal_handle = future.result()
         if self._goal_handle.accepted:
+            self._state = ActionClientState.ACCEPTED
             self._get_result()
+        else:
+            self._state = ActionClientState.REJECTED
         # calling inheritors function
         self.goal_response_callback(self._goal_handle)
 
@@ -288,6 +346,9 @@ class SMARCActionClient(abc.ABC):
         - https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         result: ActionResult = future.result()
+        # checking before user to see if goal got cancelled already (duplicate check but necessary)
+        if len(result.goals_canceling) > 0:
+            self._state = ActionClientState.CANCELLED
         user_callback(result)
 
     def cancel_goal(self, callback: callable):
@@ -297,6 +358,7 @@ class SMARCActionClient(abc.ABC):
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
+            self._state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
             func = partial(self._wrap_cancel_callback, callback)
             future.add_done_callback(func)
@@ -318,6 +380,7 @@ class SMARCActionClient(abc.ABC):
             goal_msg: a filled out goal message to request the server to complete
         """
 
+        self._state = ActionClientState.SENT
         self._send_goal_future = self._client.send_goal_async(
             goal_msg, feedback_callback=self._wrap_feedback_callback
         )
