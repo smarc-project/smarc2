@@ -54,6 +54,18 @@ def _validate_state(input_state: Any) -> ActionClientState:
         err_str = f"Expected type {type(ActionClientState).__name__}, but received {type(input_state).__name__}"
         raise ValueError(err_str)
 
+def combine_ns_and_action(namespace:str, action_name:str):
+    """Constructs heartbeat message with proper namespace.
+
+        Some documentation that maybe useful: <https://design.ros2.org/articles/actions.html>
+    Returns:
+        heartbeat message prepended with namespace
+    """
+        if namespace == "/":
+            namespace = ""
+        msg_str = f"{namespace}/{action_name}"
+        return msg_str
+
 
 class ActionType:
     """Wrapper around ROS Action Type to provide easy dot completion.
@@ -170,9 +182,7 @@ class SMARCActionServer(abc.ABC):
             heartbeat message prepended with namespace
         """
         namespace = self._node.get_namespace()
-        if namespace == "/":
-            namespace = ""
-        msg_str = f"{namespace}/{self._action_name}"
+        msg_str = combine_ns_and_action(namespace, self._action_name)
         self._node.get_logger().info(
             f"Parsed out action server name for Wara-PS: {msg_str}"
         )
@@ -231,6 +241,7 @@ class SMARCActionServer(abc.ABC):
             goal_response: GoalResponse.ACCEPT or GoalResponse.REJECT
         """
         pass
+
 
 
 class SMARCActionClient(abc.ABC):
