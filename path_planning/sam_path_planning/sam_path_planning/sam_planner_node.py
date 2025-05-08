@@ -136,8 +136,13 @@ class SamPathPlanner(Node):
                     ])
 
                 # === Motion Planner ===
+                ## Collect the map parameters
+                map_boundaries = (self.x_max, self.y_max, self.z_max)
+                map_resolution = self.TILESIZE
+
+                ## Call the planner
                 self.get_logger().info(f'Calling planner...')
-                trajectory, successful = MotionPlanningROS(start_state, end_state)
+                trajectory, successful = MotionPlanningROS(start_state, end_state, map_boundaries, map_resolution)
 
                 ## Publish trajectory for Rviz
                 self.publishTrajectoryRviz(trajectory)
@@ -193,6 +198,10 @@ class SamPathPlanner(Node):
         self.robot_name = self.declare_parameter("robot_name", "sam").value
         self.map_frame = self.declare_parameter("map_frame", "mocap").value
         self.node_rate = self.declare_parameter("node_rate", 1.).value
+        self.x_max = self.declare_parameter("x_max", 5).value   # map
+        self.y_max = self.declare_parameter("y_max", 10).value  # map
+        self.z_max = self.declare_parameter("z_max", 3).value   # map
+        self.TILESIZE = self.declare_parameter("TILESIZE", 0.5).value   # map resolution
 
         # Variables
         self.sam_pose_t = None
