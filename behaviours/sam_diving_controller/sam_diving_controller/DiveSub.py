@@ -110,7 +110,6 @@ class DiveSub():
 
 
     def _states_cb(self, msg):
-        self._loginfo(f"DiveSub States received")
         self._states = msg
         self._received_states = True
 

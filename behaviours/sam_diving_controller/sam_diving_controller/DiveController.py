@@ -479,9 +479,9 @@ class DiveControllerMPC(DiveControllerInterface):
         # create ocp object to formulate the OCP
         Ts = 0.1            # Sampling time
         self.N_horizon = 40      # Prediction horizon
-        nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, build, self.acados_dir)
-        self.nx = nmpc.nx        # State vector length + control vector
-        self.nu = nmpc.nu        # Control derivative vector length
+        self.nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, build, self.acados_dir)
+        self.nx = self.nmpc.nx        # State vector length + control vector
+        self.nu = self.nmpc.nu        # Control derivative vector length
 
         
         ref_is_traj = True
@@ -529,14 +529,14 @@ class DiveControllerMPC(DiveControllerInterface):
 
         self.ref = np.zeros(self.trajectory.shape)
 
-        # Run the MPC setup
-        self.ocp_solver, self.integrator = nmpc.setup(self.x0)
+        ## Run the MPC setup
+        #self.ocp_solver, self.integrator = nmpc.setup(self.x0)
 
-        # Initialize the state and control vector as David does
-        for stage in range(self.N_horizon + 1):
-            self.ocp_solver.set(stage, "x", self.x0)
-        for stage in range(self.N_horizon):
-            self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
+        ## Initialize the state and control vector as David does
+        #for stage in range(self.N_horizon + 1):
+        #    self.ocp_solver.set(stage, "x", self.x0)
+        #for stage in range(self.N_horizon):
+        #    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
         # Array to store the time values
         self.t = np.zeros((self.Nsim))
@@ -582,38 +582,47 @@ class DiveControllerMPC(DiveControllerInterface):
             self._init_state = self._dive_sub.get_states()
             self._init_control = self._dive_sub.get_control_input()
             self._loginfo(f"init state: {self._init_state}")
-            self.x0 = np.zeros(19)
-            self.x0[0] = self._init_state.pose.pose.position.x
-            self.x0[1] = self._init_state.pose.pose.position.y
-            self.x0[2] = self._init_state.pose.pose.position.z 
-            self.x0[3] = self._init_state.pose.pose.orientation.w
-            self.x0[4] = self._init_state.pose.pose.orientation.x
-            self.x0[5] = self._init_state.pose.pose.orientation.y
-            self.x0[6] = self._init_state.pose.pose.orientation.z
-            self.x0[7] = self._init_state.twist.twist.linear.x
-            self.x0[8] = self._init_state.twist.twist.linear.y
-            self.x0[9] = self._init_state.twist.twist.linear.z
-            self.x0[10] = self._init_state.twist.twist.angular.x
-            self.x0[11] = self._init_state.twist.twist.angular.y
-            self.x0[12] = self._init_state.twist.twist.angular.z
-            self.x0[13] = self._init_control['vbs']
-            self.x0[14] = self._init_control['lcg']
-            self.x0[15] = self._init_control['stern']
-            self.x0[16] = self._init_control['rudder']
-            self.x0[17] = self._init_control['rpm1']
-            self.x0[18] = self._init_control['rpm2']
+            #self.x0 = np.zeros(19)
+            #self.x0[0] = self._init_state.pose.pose.position.x
+            #self.x0[1] = self._init_state.pose.pose.position.y
+            #self.x0[2] = self._init_state.pose.pose.position.z 
+            #self.x0[3] = self._init_state.pose.pose.orientation.w
+            #self.x0[4] = self._init_state.pose.pose.orientation.x
+            #self.x0[5] = self._init_state.pose.pose.orientation.y
+            #self.x0[6] = self._init_state.pose.pose.orientation.z
+            #self.x0[7] = self._init_state.twist.twist.linear.x
+            #self.x0[8] = self._init_state.twist.twist.linear.y
+            #self.x0[9] = self._init_state.twist.twist.linear.z
+            #self.x0[10] = self._init_state.twist.twist.angular.x
+            #self.x0[11] = self._init_state.twist.twist.angular.y
+            #self.x0[12] = self._init_state.twist.twist.angular.z
+            #self.x0[13] = self._init_control['vbs']
+            #self.x0[14] = self._init_control['lcg']
+            #self.x0[15] = self._init_control['stern']
+            #self.x0[16] = self._init_control['rudder']
+            #self.x0[17] = self._init_control['rpm1']
+            #self.x0[18] = self._init_control['rpm2']
 
             #x0 = self.trajectory[0] 
             #self.simX[0,:] = self.x0
-            self.simX[0,0] += self.x0[0]
-            self.simX[0,1] += self.x0[1]
-            self.simX[0,2] += self.x0[2]
+            self.simX[0,0] = self.x0[0]
+            self.simX[0,1] = self.x0[1]
+            self.simX[0,2] = self.x0[2]
 
             # Shift trajectory
-            for jj in range(self.trajectory.shape[0]):
-                self.trajectory[jj,0] = self.trajectory[jj,0] + self.x0[0]
-                self.trajectory[jj,1] = self.trajectory[jj,1] + self.x0[1]
-                self.trajectory[jj,2] = self.trajectory[jj,2] + self.x0[2]
+            #for jj in range(self.trajectory.shape[0]):
+            #    self.trajectory[jj,0] = self.trajectory[jj,0] + self.x0[0]
+            #    self.trajectory[jj,1] = self.trajectory[jj,1] + self.x0[1]
+            #    self.trajectory[jj,2] = self.trajectory[jj,2] + self.x0[2]
+
+            # Run the MPC setup
+            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
+
+            # Initialize the state and control vector as David does
+            for stage in range(self.N_horizon + 1):
+                self.ocp_solver.set(stage, "x", self.x0)
+            for stage in range(self.N_horizon):
+                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
             self._initialized = True
 
@@ -627,27 +636,27 @@ class DiveControllerMPC(DiveControllerInterface):
 
         #x_current = self.simX[self.i,:]
         x_current_sim = self.simX[self.i,:]
-        x_current = self.simX[self.i,:]
-        #x_current = np.zeros(19)
+        #x_current = self.simX[self.i,:]
+        x_current = np.zeros(19)
         x_current[0] = self._current_state.pose.pose.position.x
         x_current[1] = self._current_state.pose.pose.position.y
         x_current[2] = self._current_state.pose.pose.position.z 
-        #x_current[3] = self._current_state.pose.pose.orientation.w
-        #x_current[4] = self._current_state.pose.pose.orientation.x
-        #x_current[5] = self._current_state.pose.pose.orientation.y
-        #x_current[6] = self._current_state.pose.pose.orientation.z
-        #x_current[7] = self._current_state.twist.twist.linear.x
-        #x_current[8] = self._current_state.twist.twist.linear.y
-        #x_current[9] = self._current_state.twist.twist.linear.z
-        #x_current[10] = self._current_state.twist.twist.angular.x
-        #x_current[11] = self._current_state.twist.twist.angular.y
-        #x_current[12] = self._current_state.twist.twist.angular.z
-        #x_current[13] = self._current_control['vbs']
-        #x_current[14] = self._current_control['lcg']
-        #x_current[15] = self._current_control['stern']
-        #x_current[16] = self._current_control['rudder']
-        #x_current[17] = self._current_control['rpm1']
-        #x_current[18] = self._current_control['rpm2']
+        x_current[3] = self._current_state.pose.pose.orientation.w
+        x_current[4] = self._current_state.pose.pose.orientation.x
+        x_current[5] = self._current_state.pose.pose.orientation.y
+        x_current[6] = self._current_state.pose.pose.orientation.z
+        x_current[7] = self._current_state.twist.twist.linear.x
+        x_current[8] = self._current_state.twist.twist.linear.y
+        x_current[9] = self._current_state.twist.twist.linear.z
+        x_current[10] = self._current_state.twist.twist.angular.x
+        x_current[11] = self._current_state.twist.twist.angular.y
+        x_current[12] = self._current_state.twist.twist.angular.z
+        x_current[13] = self._current_control['vbs']
+        x_current[14] = self._current_control['lcg']
+        x_current[15] = self._current_control['stern']
+        x_current[16] = self._current_control['rudder']
+        x_current[17] = self._current_control['rpm1']
+        x_current[18] = self._current_control['rpm2']
         
         # Warm start?
         #for stage in range(self.N_horizon + 1):
@@ -664,44 +673,6 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
         else:
             self.ref = self.trajectory[self.i:, :]
-
-        # Shift trajectory
-        #for jj in range(self.ref.shape[0]):
-        #    self.ref[jj,0] = self.ref[jj,0] + self.x0[0]
-        #    self.ref[jj,1] = self.ref[jj,1] + self.x0[1]
-        #    self.ref[jj,2] = self.ref[jj,2] + self.x0[2]
-
-        #if waypoint is not None:
-            #for jj in range(self.ref.shape[0]):
-            #    self.ref[jj,:19] = x_current
-            #    self.ref[jj,0] = waypoint.pose.position.x
-            #    self.ref[jj,1] = waypoint.pose.position.y
-            #    self.ref[jj,2] = waypoint.pose.position.z
-            #    self.ref[jj,13] = 50
-            #    self.ref[jj,14] = 50
-
-            ## Removing rotation control for now.
-        #self.ref[:,3] = x_current[3] #waypoint.pose.orientation.w
-        #self.ref[:,4] = x_current[4] #waypoint.pose.orientation.x
-        #self.ref[:,5] = x_current[5] #waypoint.pose.orientation.y
-        #self.ref[:,6] = x_current[6] #waypoint.pose.orientation.z
-
-            # For when using the trajectory since it starts at the origin and
-            # might not match where SAM actually is.
-            #self.ref[:,0] = self.ref[:,0] + waypoint.pose.position.x
-            #self.ref[:,1] = self.ref[:,1] + waypoint.pose.position.y
-            #self.ref[:,2] = self.ref[:,2] + waypoint.pose.position.z
-            #self.ref[:,3] = self.ref[:,3] + waypoint.pose.orientation.w
-            #self.ref[:,4] = self.ref[:,4] + waypoint.pose.orientation.x
-            #self.ref[:,5] = self.ref[:,5] + waypoint.pose.orientation.y
-            #self.ref[:,6] = self.ref[:,6] + waypoint.pose.orientation.z
-            #for jj in range(self.ref.shape[0]):
-            #    self.ref[jj,3] = self.ref[jj,3] + waypoint.pose.orientation.w
-            #    self.ref[jj,4] = self.ref[jj,4] + waypoint.pose.orientation.x
-            #    self.ref[jj,5] = self.ref[jj,5] + waypoint.pose.orientation.y
-            #    self.ref[jj,6] = self.ref[jj,6] + waypoint.pose.orientation.z
-            #    q_norm = np.linalg.norm(self.ref[jj,3:6])
-            #    self.ref[jj,3:6] = self.ref[jj,3:6]/q_norm
 
 
         # Update reference vector
