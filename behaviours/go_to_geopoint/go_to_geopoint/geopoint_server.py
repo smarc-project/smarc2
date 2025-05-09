@@ -1,4 +1,5 @@
 import traceback
+from unicodedata import name
 
 import numpy as np
 import rclpy
@@ -21,8 +22,8 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from go_to_geopoint.geopoint_action import ActionComponent as ActC
-from go_to_geopoint.geopoint_action import GeoPointAction
+from go_to_geopoint.action_parsing import ActionSubMsg as ActS
+from go_to_geopoint.action_parsing import GeoActionParsing
 
 KM_TO_METER = 1000
 
@@ -37,13 +38,12 @@ class GeopointServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType, task_name: str
+        self, node: Node, action_name, action_type: ActionType,
     ):
         super().__init__(
             node,
             action_name,
             action_type,
-            task_name,
             Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
@@ -57,12 +57,11 @@ class GeopointServer(SMARCActionServer):
             Pose, f"{self._setpoint_topic}", 2
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: GeoPointAction = GeoPointAction()
+        self._json_ops: GeoActionParsing = GeoActionParsing()
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
-        self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
         self._target_frame_param = node.declare_parameter("target_frame", "odom").value
 
         self._distance_frame_param = node.declare_parameter(
@@ -115,12 +114,20 @@ class GeopointServer(SMARCActionServer):
             ).value
             * KM_TO_METER
         )
+        
+        namespace = self._node.get_namespace() 
+        if namespace == "/":
+            namespace = ""
+        else:
+            namespace = namespace[1:] + "/"
+
 
         self.target_frame = (
-            f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
+            f"{namespace}{self._target_frame_param}{self._frame_suffix}"
         )
 
-        self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
+        self.distance_frame = f"{namespace}{self._distance_frame_param}{self._distance_frame_suffix}"
+
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
@@ -254,7 +261,7 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        geopoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
+        geopoint = self._json_ops.decode(goal_handle.request.goal, ActS.GOAL)
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
@@ -290,7 +297,7 @@ class GeopointServer(SMARCActionServer):
 
         """
         goal_request = goal_request.goal
-        geo_setpoint = self._json_ops.decode(goal_request, ActC.GOAL)
+        geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
         self.logger.info(f"Recieved UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
         try:
@@ -360,7 +367,7 @@ def main(args=None):
     node_name = "setpoint_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type, "move-to")
+    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()

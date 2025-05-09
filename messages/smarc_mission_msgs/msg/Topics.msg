@@ -8,3 +8,4 @@ string BT_TIP_TOPIC = 'mission/bt_tip'
 string BT_LAST_WP_TOPIC = 'mission/last_wp'
 
 string GOTO_WP_ACTION = 'mission/goto_wp_action'
+string GOTO_GEOPOINT_ACTION = '/mission/move_to'

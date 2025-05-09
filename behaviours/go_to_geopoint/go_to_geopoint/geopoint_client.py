@@ -4,6 +4,7 @@ from geographic_msgs.msg import GeoPoint
 from rclpy.action import CancelResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
+from rosidl_parser.definition import Action
 from smarc_action_base.smarc_action_base import (
     ActionFeedback,
     ActionResult,
@@ -12,8 +13,8 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from go_to_geopoint.geopoint_action import ActionComponent as ActC
-from go_to_geopoint.geopoint_action import GeoPointAction
+from go_to_geopoint.action_parsing import ActionSubMsg as ActS
+from go_to_geopoint.action_parsing import GeoActionParsing
 
 
 class GeopointClient(SMARCActionClient):
@@ -33,7 +34,7 @@ class GeopointClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = GeoPointAction()
+        self._json_ops = GeoActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
@@ -51,12 +52,16 @@ class GeopointClient(SMARCActionClient):
         self.logger.debug(f"Received feedback {feedback_msg.feedback}")
         self.dist_rem = self._json_ops.decode(
             feedback_msg.feedback,
-            ActC.FEEDBACK,
+            ActS.FEEDBACK,
         )
 
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
+        if result.success:
+            return self.get_goal_success()
+        else:
+            return self.get_goal_error()
 
     def cancel_callback(self, response):
         """Cancellation callback.
@@ -85,7 +90,7 @@ class GeopointClient(SMARCActionClient):
         """
         goal_msg = BaseAction.Goal()
         goal_msg.goal = self._json_ops.encode(geo_pt)
-        self.send_goal(goal_msg, server_timeout_sec=1)
+        self.send_goal(goal_msg)
 
     def _test_geopoint(self):
         """For testing geopoint setting."""

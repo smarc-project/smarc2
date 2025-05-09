@@ -14,6 +14,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 find_package(std_msgs REQUIRED)
+find_package(sam_msgs REQUIRED)
+find_package(smarc_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"
@@ -22,7 +24,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ControlReference.msg"
   "msg/ControlState.msg"
   "msg/State.msg"
-  DEPENDENCIES std_msgs
+  "msg/SamControl.msg"
+  "action/TrajectoryMPC.action"
+  "msg/WpMPC.msg"
+  DEPENDENCIES std_msgs sam_msgs smarc_msgs
  )
 
 if(BUILD_TESTING)

@@ -12,16 +12,27 @@ class WaraPSTaskStates(enum.Enum):
     """
     The states of the WARAPS task
     """
-    IDLE = "IDLE"
-    READY = "READY"
-    SENT = "SENT"
-    ACCEPTED = "ACCEPTED"
-    REJECTED = "REJECTED"
-    RUNNING = "RUNNING"
-    DONE = "DONE"
-    CANCELLED = "CANCELLED"
-    CANCELLING = "CANCELLING"
-    ERROR = "ERROR"
+    # old stuff from where this class was copied
+    # IDLE = "IDLE"
+    # READY = "READY"
+    # SENT = "SENT"
+    # ACCEPTED = "ACCEPTED"
+    # REJECTED = "REJECTED"
+    # RUNNING = "RUNNING"
+    # DONE = "DONE"
+    # CANCELLED = "CANCELLED"
+    # CANCELLING = "CANCELLING"
+    # ERROR = "ERROR"
+
+    # new stuff that is more relevant to the WARA-PS task signals:
+    STARTED = "started"
+    RUNNING = "running"
+    PAUSED = "paused"
+    RESUMED = "resumed"
+    ENOUGH = "enough"
+    ABORTED = "aborted"
+    ERROR = "error"
+
 
     def __str__(self):
         return self.name

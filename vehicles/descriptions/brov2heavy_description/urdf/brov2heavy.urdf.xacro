@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot name="brov2heavy" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="PI" value="3.141592" />
+  <xacro:property name="body" value="file://$(find brov2heavy_description)/mesh/brov2heavy.dae"/>
+  
+  <xacro:macro name="brov2heavy" params="robot_name debug">
+
+  <!-- Links. -->
+  <link name="$(arg robot_name)/base_link">
+    <visual>
+      <!-- <origin xyz="0. 0 0." rpy="${-pi/2} ${-pi/2} 0"/> -->
+      <!-- <origin xyz="0. 0 0." rpy="0 0 0"/> -->
+      <origin xyz="0. 0. 0." rpy="${pi} 0. 0."/>
+      <geometry>
+        <mesh filename="${body}" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  </xacro:macro>
+
+</robot>
