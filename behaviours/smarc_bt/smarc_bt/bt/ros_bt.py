@@ -200,6 +200,17 @@ def smarc_bt():
     from ..waraps.waraps_vehicle import WaraPSVehicle
     from ..mission.ros_mission_updater import ROSMissionUpdater
     from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
+
+    from smarc_action_base.smarc_action_base import SMARCActionClient
+    from behaviours.go_to_geopoint.go_to_geopoint.geopoint_client import GeopointClient
+    from smarc_action_base.smarc_action_base import (
+        ActionFeedback,
+        ActionResult,
+        ActionType,
+        SMARCActionClient,
+    )
+    from smarc_mission_msgs.action import BaseAction
+
     import rclpy, sys
     import uuid
 
@@ -221,11 +232,10 @@ def smarc_bt():
     agent = Quadrotor(node)
 
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
-    ros_mission_updater = ROSMissionUpdater(node)
-    ros_goto_wp = ROSGotoWaypoint(node)
-    # go_to_geopoint = ROSGotoGeopoint(node)
+    ros_mission_updater = ROSMissionUpdater(node) 
+    action_type = ActionType(BaseAction)
+    action_client_move_to = GeopointClient(node, "goto_wp", action_type)
 
-    action_client = ros_goto_wp
     # action_client = go_to_geopoint
 
     agent_waraps_dict = {
@@ -242,18 +252,18 @@ def smarc_bt():
             task_handler    = wara_ps_task_handler,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
-            goto_wp_action    = action_client,
+            goto_wp_action    = action_client_move_to,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, ros_goto_wp, ros_mission_updater, agent
+        nonlocal bt, bt_str, node, action_client_move_to, ros_mission_updater, agent
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
-            s += f"GOTOWP Client::\n{ros_goto_wp.feedback_message}\n\n"
+            s += f"GOTOWP Client::\n{action_client_move_to.feedback_message}\n\n"
             s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str

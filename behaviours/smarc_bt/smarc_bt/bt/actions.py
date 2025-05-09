@@ -17,6 +17,9 @@ from geographic_msgs.msg import GeoPoint
 
 from smarc_bt.waraps.waraps_task_handler import WaraPSTaskHandler
 
+from smarc_mission_msgs.action import BaseAction
+from smarc_action_base.smarc_action_base import SMARCActionClient
+
 class A_Chilling(VehicleBehaviour):
     """
     An Action to just do nothing (while waiting for task input)
@@ -251,12 +254,14 @@ class A_ProcessBTCommand(Behaviour):
         return Status.FAILURE
 
 
-class A_ActionClient(MissionPlanBehaviour):
+class A_ActionClient(Behaviour):
     def __init__(self,
-                 client: IActionClient):
+                 client: SMARCActionClient,
+                 task_handler: WaraPSTaskHandler):
         super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
         self._client = client
         # self._bb = Blackboard()
+        self._task_handler = task_handler
 
         self._cancel_response = None
         self._feedback_message = None
