@@ -152,7 +152,7 @@ class SamPathPlanner(Node):
 
                 # === Motion Planner ===
                 ## Collect the map parameters
-                map_boundaries = (self.x_max, self.y_max, self.z_max)
+                map_boundaries = (self.x_max, self.y_max, self.z_max, self.x_min, self.y_min, self.z_min)
                 map_resolution = self.TILESIZE
 
                 ## Call the planner
@@ -213,9 +213,12 @@ class SamPathPlanner(Node):
         self.robot_name = self.declare_parameter("robot_name", "sam").value
         self.map_frame = self.declare_parameter("map_frame", "mocap").value
         self.node_rate = self.declare_parameter("node_rate", 1.).value
-        self.x_max = self.declare_parameter("x_max", 5).value   # map
+        self.x_max = self.declare_parameter("x_max", 2.5).value   # map
         self.y_max = self.declare_parameter("y_max", 10).value  # map
         self.z_max = self.declare_parameter("z_max", 3).value   # map
+        self.x_min = self.declare_parameter("x_min", -2.5).value    # map
+        self.y_min = self.declare_parameter("y_min", 0).value   # map
+        self.z_min = self.declare_parameter("z_min", 0).value   # map
         self.TILESIZE = self.declare_parameter("TILESIZE", 0.5).value   # map resolution
 
         # Variables
