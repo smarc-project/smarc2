@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"
   "msg/DualThrusterRPM.msg"
   "msg/DualThrusterFeedback.msg"
+  "msg/SensorStatus.msg"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs smarc_msgs
  )
 
