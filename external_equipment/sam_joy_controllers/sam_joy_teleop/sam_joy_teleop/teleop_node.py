@@ -30,7 +30,7 @@ SOFTWARE.
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, Float64
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 from sam_msgs.msg import ThrusterAngles, ThrusterRPMs
 from smarc_msgs.msg import ThrusterRPM
 
@@ -40,6 +40,55 @@ from smarc_control_msgs.msg import Topics as ControlTopics
 import math
 
 class teleop(Node):
+
+    # ================================================================================
+    # Node Init
+    # ================================================================================
+
+    def __init__(self):
+
+        # pub = rospy.Publisher('chatter', String, queue_size=10)
+        super().__init__('ds5_teleop')
+
+        self.depth_sp = 0.
+        self.elev_effort = 0.
+        self.start_ad = True
+
+        self.rpm_msg = ThrusterRPMs()
+        self.vec_msg = ThrusterAngles()
+
+        self.published_zero_rpm_once = False
+        self.published_zero_vec_once = False
+
+        # States
+        self.teleop_enabled = False
+        self.assisted_driving_enabled = False
+
+        # Publishers
+        self.rpm_joystick_pub =self.create_publisher( Twist,ControlTopics.RPM_JOYSTICK_TOPIC, qos_profile=1)
+        self.vector_deg_joystick_pub = self.create_publisher(Twist,ControlTopics.VEC_DEG_JOY_TOPIC,  qos_profile=1)
+        #self.elev_sp_pub = self.create_publisher( Float64,ControlTopics.ELEV_SP_TOP, qos_profile=1)
+        self.thrrust1_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER1_CMD_TOPIC,  qos_profile=1)
+        self.thrrust2_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER2_CMD_TOPIC,  qos_profile=1)
+        self.vector_pub = self.create_publisher(ThrusterAngles,Topics.THRUST_VECTOR_CMD_TOPIC,  qos_profile=1)
+
+        # Subscribers
+        self.joy_btn_sub = self.create_subscription(
+            JoyButtons,ControlTopics.JOY_BUTTONS_TOPIC,
+            self.joy_btns_callback,qos_profile=1)
+        self.teleop_enabled_sub = self.create_subscription(Bool,ControlTopics.TELEOP_ENABLE,
+                                 self.teleop_enabled_callback,qos_profile=1)
+        self.assit_driving_sub = self.create_subscription(Bool,ControlTopics.ASSIST_ENABLE,
+                                 self.assisted_driving_callback,qos_profile=1)
+        #self.depth_sub = self.create_subscription(PoseWithCovarianceStamped,DR_Topics.DR_DEPTH_POSE_TOPIC, self.depth_cb,qos_profile=1)
+        self.elevator_pid_sub = self.create_subscription(Float64,ControlTopics.ELEVATOR_PID_CTRL,  self.elev_pid_cb,qos_profile=1)
+        self.timer = self.create_timer(0.1, self.send_cmds)
+        # rate = self.create_rate(12)
+        # while rclpy.ok():
+        #     self.send_cmds()
+        #     rate.sleep()
+
+        # rospy.spin()
     
     # ================================================================================
     # Callback Functions
@@ -141,7 +190,7 @@ class teleop(Node):
             # Lock current depth when assisted driving is turned on to
             # be used as PID setpoint
             if self.start_ad:
-                self.depth_sp = msg.data
+                self.depth_sp = msg.pose.pose.position.z
                 self.start_ad = False
             self.elev_sp_pub.publish(Float64(self.depth_sp))
 
@@ -149,50 +198,6 @@ class teleop(Node):
 
         self.elev_effort = msg.data
 
-    # ================================================================================
-    # Node Init
-    # ================================================================================
-
-    def __init__(self):
-
-        # pub = rospy.Publisher('chatter', String, queue_size=10)
-        super().__init__('ds5_teleop')
-
-        self.depth_sp = 0.
-        self.elev_effort = 0.
-        self.start_ad = True
-
-        self.rpm_msg = ThrusterRPMs()
-        self.vec_msg = ThrusterAngles()
-
-        self.published_zero_rpm_once = False
-        self.published_zero_vec_once = False
-
-        # States
-        self.teleop_enabled = False
-        self.assisted_driving_enabled = False
-
-        # Publishers
-        self.rpm_joystick_pub =self.create_publisher( Twist,ControlTopics.RPM_JOYSTICK_TOPIC, qos_profile=1)
-        self.vector_deg_joystick_pub = self.create_publisher(Twist,ControlTopics.VEC_DEG_JOY_TOPIC,  qos_profile=1)
-        self.elev_sp_pub = self.create_publisher( Float64,ControlTopics.ELEV_SP_TOP, qos_profile=1)
-        self.thrrust1_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER1_CMD_TOPIC,  qos_profile=1)
-        self.thrrust2_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER2_CMD_TOPIC,  qos_profile=1)
-        self.vector_pub = self.create_publisher(ThrusterAngles,Topics.THRUST_VECTOR_CMD_TOPIC,  qos_profile=1)
-
-        # Subscribers
-        self.joy_btn_sub = self.create_subscription( JoyButtons,ControlTopics.JOY_BUTTONS_TOPIC, self.joy_btns_callback,qos_profile=1)
-        self.teleop_enabled_sub = self.create_subscription(Bool,ControlTopics.TELEOP_ENABLE,  self.teleop_enabled_callback,qos_profile=1)
-        self.assit_driving_sub = self.create_subscription(Bool,ControlTopics.ASSIST_ENABLE,  self.assisted_driving_callback,qos_profile=1)
-        self.depth_sub = self.create_subscription(Float64,DR_Topics.DR_DEPTH_TOPIC,  self.depth_cb,qos_profile=1)
-        self.elevator_pid_sub = self.create_subscription(Float64,ControlTopics.ELEVATOR_PID_CTRL,  self.elev_pid_cb,qos_profile=1)
-        self.timer = self.create_timer(0.1, self.send_cmds)
-        # rate = self.create_rate(12)
-        # while rclpy.ok():
-        #     self.send_cmds()
-        #     rate.sleep()
-
-        # rospy.spin()
 def main(args=None):
     rclpy.init(args=args)
 

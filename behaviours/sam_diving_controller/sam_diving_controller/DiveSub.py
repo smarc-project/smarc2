@@ -6,15 +6,18 @@ from rclpy.node import Node
 import numpy as np
 import math
 
+from tf2_geometry_msgs import PoseWithCovarianceStamped
 import tf2_geometry_msgs.tf2_geometry_msgs
 from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from sensor_msgs.msg import Imu
 
 from smarc_msgs.msg import PercentStamped, ThrusterRPM
 from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
+from dead_reckoning_msgs.msg import Topics as DRTopics
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -84,8 +87,8 @@ class DiveSub():
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
         self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
-        self.depth_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.DEPTH, callback=self._depth_cb, qos_profile=10)
-        self.pitch_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
+        self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
+        self.pitch_sub = node.create_subscription(msg_type=Imu, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
 
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
@@ -110,7 +113,6 @@ class DiveSub():
 
 
     def _states_cb(self, msg):
-        self._loginfo(f"DiveSub States received")
         self._states = msg
         self._received_states = True
 
@@ -123,13 +125,15 @@ class DiveSub():
         self._received_waypoint = True
 
     def _joy_depth_setpoint_cb(self, msg):
-        self._joy_depth = msg
+        self._joy_depth = msg.data
 
     def _depth_cb(self, msg):
-        self._depth = msg
+        self._depth = msg.pose.pose.position.z
 
     def _pitch_cb(self, msg):
-        self._pitch = msg
+        quat = np.array([msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z])
+        rpy = euler_from_quaternion(quat,axes='sxyz')
+        self._pitch = rpy[1]
 
     def _ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped,
                        rpm1_fb_msg: ThrusterRPM, rpm2_fb_msg: ThrusterRPM, 
@@ -227,6 +231,7 @@ class DiveSub():
         return rpy[1]
 
     def get_sensor_pitch(self):
+        
         return self._pitch
 
 
@@ -284,7 +289,7 @@ class DiveSub():
 
 
     def get_joy_depth_setpoint(self):
-        return 
+        return self._joy_depth
 
 
     def get_joy_pitch_setpoint(self):

@@ -3,7 +3,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Bool
 from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
@@ -25,6 +25,7 @@ class SAMDivePub(IDivePub):
         self._rpm2_pub = node.create_publisher(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, 10)
         self._thrust_vector_pub = node.create_publisher(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, 10)
         self._joy_thrust_vector_pub = node.create_publisher(Float64, ControlTopics.ELEVATOR_PID_CTRL, 10)
+        self._joy_assisted_driving_pub = node.create_publisher(Bool, ControlTopics.ASSIST_ENABLE, qos_profile=10)
 
         # Messages
         self._vbs_msg = PercentStamped()
@@ -65,7 +66,7 @@ class SAMDivePub(IDivePub):
 
 
     def set_stern(self, u_tv_ver):
-        self._joy_tv_msg = u_tv_ver
+        self._joy_tv_msg.data = float(u_tv_ver)
 
 
     def update(self) -> None:
@@ -79,6 +80,14 @@ class SAMDivePub(IDivePub):
         self._thrust_vector_pub.publish(self._thrust_vector_msg)
 
     def joy_update(self):
+        """
+        Publish all actuator values
+        """
+        self._joy_assisted_driving_msg = Bool()
+        self._joy_assisted_driving_msg.data = True
+        self._vbs_pub.publish(self._vbs_msg)
+        self._lcg_pub.publish(self._lcg_msg)
         self._joy_thrust_vector_pub.publish(self._joy_tv_msg)
+        self._joy_assisted_driving_pub.publish(self._joy_assisted_driving_msg)
 
 
