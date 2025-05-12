@@ -21,7 +21,7 @@ class MocapToEnuBroadcaster(Node):
             durability=QoSDurabilityPolicy.SYSTEM_DEFAULT
         )
 
-        self.publisher = self.create_publisher(NavSatFix, '/tank/gps', qos_profile)
+        self.publisher = self.create_publisher(NavSatFix, '/mocap/tank/gps', qos_profile)
         self.timer = self.create_timer(0.02, self.timer_cb)  # 50Hz
 
         # TF broadcaster
@@ -57,7 +57,7 @@ class MocapToEnuBroadcaster(Node):
         t_local.transform.translation.y = 0.0
         t_local.transform.translation.z = 0.0
 
-        q_local = quaternion_from_euler(0, 0, math.radians(215))
+        q_local = quaternion_from_euler(0, 0, math.radians(211))
         t_local.transform.rotation.x = q_local[0]
         t_local.transform.rotation.y = q_local[1]
         t_local.transform.rotation.z = q_local[2]
@@ -100,7 +100,7 @@ class MocapToEnuBroadcaster(Node):
         gps_msg.altitude = 0.0
 
         self.publisher.publish(gps_msg)
-        self.get_logger().info('Latched GPS message published.')
+        # self.get_logger().info('Latched GPS message published.')
 
         
 
