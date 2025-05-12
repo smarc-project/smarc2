@@ -38,7 +38,10 @@ class GeopointServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType,
+        self,
+        node: Node,
+        action_name,
+        action_type: ActionType,
     ):
         super().__init__(
             node,
@@ -56,7 +59,7 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint = self._node.create_publisher(
             Pose, f"{self._setpoint_topic}", 2
         )
-        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
         self._json_ops: GeoActionParsing = GeoActionParsing()
 
     def declare_parameters(self):
@@ -114,20 +117,18 @@ class GeopointServer(SMARCActionServer):
             ).value
             * KM_TO_METER
         )
-        
-        namespace = self._node.get_namespace() 
+
+        namespace = self._node.get_namespace()
         if namespace == "/":
             namespace = ""
         else:
             namespace = namespace[1:] + "/"
 
+        self.target_frame = f"{namespace}{self._target_frame_param}{self._frame_suffix}"
 
-        self.target_frame = (
-            f"{namespace}{self._target_frame_param}{self._frame_suffix}"
+        self.distance_frame = (
+            f"{namespace}{self._distance_frame_param}{self._distance_frame_suffix}"
         )
-
-        self.distance_frame = f"{namespace}{self._distance_frame_param}{self._distance_frame_suffix}"
-
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
@@ -152,14 +153,14 @@ class GeopointServer(SMARCActionServer):
                 target_frame=self.target_frame,
                 source_frame=pose_stamped.header.frame_id,
                 time=Time(seconds=0),
-                timeout=Duration(seconds=2),
+                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
             )
         else:
             t = self._tf_buffer.lookup_transform(
                 target_frame=override_target,
                 source_frame=pose_stamped.header.frame_id,
                 time=Time(seconds=0),
-                timeout=Duration(seconds=2),
+                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
             )
         # based on ReadMe in repository
         return do_transform_pose_stamped(pose_stamped, t)
@@ -282,6 +283,8 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint.publish(self.goal_base_link.pose)
 
         self.feedback_loop(pose_stamped, goal_handle)
+        if not goal_handle.is_active or goal_handle.is_cancel_requested:
+            return result_msg
 
         result_msg.success = True
         return result_msg
@@ -298,7 +301,7 @@ class GeopointServer(SMARCActionServer):
         """
         goal_request = goal_request.goal
         geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
-        self.logger.info(f"Recieved UTM point at {geo_setpoint}")
+        self.logger.info(f"Received UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
         try:
             dist = self.compute_distance(pose_stamped)
@@ -322,8 +325,10 @@ class GeopointServer(SMARCActionServer):
                 self.logger.debug(err_str)
             except TransformException:
                 pass
+            self.logger.info("Rejecting Goal")
             return GoalResponse.REJECT
         # Accepts as all criteria fulfilled
+        self.logger.info("Accepting Goal")
         return GoalResponse.ACCEPT
 
     def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
@@ -335,11 +340,32 @@ class GeopointServer(SMARCActionServer):
         Returns:
             Cancel response as ACCEPT
         """
-        pose_msg = Pose()
-        self._pub_setpoint.publish(pose_msg)
+        self.logger.info("Received Cancel Request")
+        # FIXME: Transform is not working here as expected and its beyond confusing
+        pose_msg = PoseStamped()
+        try:
+            t = self._tf_buffer.lookup_transform(
+                target_frame=self.target_frame,
+                source_frame=self.distance_frame,
+                time=Time(),
+                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
+            )
+            pose_msg.pose.position.x = t.transform.translation.x
+            pose_msg.pose.position.y = t.transform.translation.y
+            pose_msg.pose.position.z = t.transform.translation.z
+            pose_msg.pose.orientation.x = t.transform.rotation.x
+            pose_msg.pose.orientation.y = t.transform.rotation.y
+            pose_msg.pose.orientation.z = t.transform.rotation.z
+            pose_msg.pose.orientation.w = t.transform.rotation.w
+            self._pub_setpoint.publish(pose_msg.pose)
+        except TransformException:
+            self.logger.error("Could not lookup transform to cancel goal.")
+            return CancelResponse.REJECT
         return CancelResponse.ACCEPT
 
-    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
+    def feedback_loop(
+        self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle | None
+    ):
         """Abstracted feedback loop where tolerance checks are conducted.
 
         Args:
@@ -351,6 +377,9 @@ class GeopointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
+            self.logger.info(f"Goal handle active: {goal_handle.is_active}")
+            if not goal_handle.is_active or goal_handle.is_cancel_requested:
+                return
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()

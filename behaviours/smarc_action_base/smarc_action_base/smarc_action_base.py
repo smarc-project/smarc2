@@ -11,6 +11,7 @@ from action_msgs.srv import CancelGoal
 from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
@@ -153,15 +154,16 @@ class SMARCActionServer(abc.ABC):
             self.action_type.ros_type,
             action_name,
             self.execution_callback,
+            callback_group=ReentrantCallbackGroup(),
             **kwargs,
         )
         self._heartbeat_topic = heartbeat_topic
         self._server.register_goal_callback(self._wrap_goal_callback)
         self._server.register_cancel_callback(self._wrap_cancel_callback)
+        # self._server.register_handle_accepted_callback(self._handle_accepted_callback)
         self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
         self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
         self._hb_msg = String()
-        # TODO: NEED TO PARSE Namespace here
         self._hb_msg.data = self.parsed_action_name
 
     def _heartbeat_cb(self):
@@ -189,17 +191,10 @@ class SMARCActionServer(abc.ABC):
         )
         return msg_str
 
-    @abc.abstractmethod
-    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
-        """
-        Primary execution callback.
-
-        Here your action server will do most of the heavy lifting of computing whatever it needs to.
-
-        Returns:
-            result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
-        """
-        pass
+    # def _handle_accepted_callback(self, goal_handle):
+    #     # naming it base here as ROS often has self._goal_handle and I don't want overrides
+    #     # TODO: Do I need this?
+    #     self._base_goal_handle = goal_handle
 
     def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:
         """Wraps user callback in try and except to prevent failed cancellation requests due to exceptions."""
@@ -212,15 +207,6 @@ class SMARCActionServer(abc.ABC):
             logger.error(err_str + trace)
             return CancelResponse.REJECT
 
-    @abc.abstractmethod
-    def cancel_callback(self, goal_handle) -> CancelResponse:
-        """
-        Implement goal cancel logic in this method.
-
-        Return:
-            cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
-        """
-        pass
 
     def _wrap_goal_callback(self, goal_request) -> GoalResponse:
         """Wraps user callback in try and except to prevent failed goal requests not responding due to exceptions."""
@@ -240,6 +226,28 @@ class SMARCActionServer(abc.ABC):
 
         Return:
             goal_response: GoalResponse.ACCEPT or GoalResponse.REJECT
+        """
+        pass
+
+    @abc.abstractmethod
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """
+        Primary execution callback.
+
+        Here your action server will do most of the heavy lifting of computing whatever it needs to.
+
+        Returns:
+            result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
+        """
+        pass
+
+    @abc.abstractmethod
+    def cancel_callback(self, goal_handle) -> CancelResponse:
+        """
+        Implement goal cancel logic in this method.
+
+        Return:
+            cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
         """
         pass
 
@@ -278,9 +286,10 @@ class SMARCActionClient(abc.ABC):
             prev_state = self._state
             self._state = _validate_state(val)
             name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
-            self._node.get_logger().info(
-                f"Client State ({name}) transitioned from {prev_state} to {self._state}"
-            )
+            if prev_state != self._state:
+                self._node.get_logger().info(
+                    f"Client State ({name}) transitioned from {prev_state} to {self._state}"
+                )
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
@@ -386,30 +395,35 @@ class SMARCActionClient(abc.ABC):
 
         Formulated based off buried ROS documentation.
             ROS Buried Docs:
-                Response from CancelGoal is a Cancel Response with fileds:
+                Response from CancelGoal is a Cancel Response with fields:
                     - goals_canceling
-                    - goal_info
+                    - return_code
 
         Sources:
         - https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_client/examples_rclpy_minimal_action_client/client_cancel.py
+        Cancel Goal Documentation Link
         - https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         result: ActionResult = future.result()
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
+        self._node.get_logger().debug(f"{result}")
         if len(result.goals_canceling) > 0:
             self.state = ActionClientState.CANCELLED
+        else:
+            self._node.get_logger().debug("smarc_action_base client goal failed to cancel.")
         user_callback(result)
 
-    def cancel_goal(self, callback: callable):
+    def cancel_goal(self, usr_callback: Callable[..., Any]):
         """Sends goal cancellation and setups up cancellation callback for caller.
 
         The callback function provided accepts the CancelGoal Response object.
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
+            self._node.get_logger().debug(f"Cancelling goal in smarc_action_base.")
             self.state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
-            func = partial(self._wrap_cancel_callback, callback)
+            func = partial(self._wrap_cancel_callback, usr_callback)
             future.add_done_callback(func)
         else:
             self._node.get_logger().debug(
