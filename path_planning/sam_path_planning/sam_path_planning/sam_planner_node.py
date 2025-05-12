@@ -41,6 +41,7 @@ class SamPathPlanner(Node):
         self.pose_sub = self.create_subscription(PoseStamped, 
                                                  ControlTopics.WAYPOINT, self.target_cb, 1)
 
+        # TODO: get state from TF instead of odom since we want mocap --> base_link
         self.odom_sub = self.create_subscription(Odometry, 
                                                  ControlTopics.STATES, self.state_cb, 1)
         
@@ -60,8 +61,10 @@ class SamPathPlanner(Node):
 
         # Action client to communicate with MPC
         self._action_client = ActionClient(self, TrajectoryMPC, ControlTopics.TRAJ_MPC)
-        while not self._action_client.wait_for_server(timeout_sec=1.) and rclpy.ok():
-            self._logger.info(f"Planner waiting for {ControlTopics.TRAJ_MPC} server")
+        
+        # Uncomment when MPC is ready to be used
+        # while not self._action_client.wait_for_server(timeout_sec=1.) and rclpy.ok():
+        #     self._logger.info(f"Planner waiting for {ControlTopics.TRAJ_MPC} server")
 
         self._goal_handle = None
 
@@ -93,21 +96,6 @@ class SamPathPlanner(Node):
         rate = self.create_rate(self.node_rate)  # Hz rate
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0.0) 
-            
-            # Tf 
-            try:
-                sam_pose_t_PoseStamped = PoseStamped()
-                sam_pose_t_PoseStamped.header = self.sam_pose_t.header
-                sam_pose_t_PoseStamped.pose = self.sam_pose_t.pose.pose
-                new_sam_pose_t_PoseStamped = self._tf_buffer.transform(sam_pose_t_PoseStamped, self.map_frame, timeout=rclpy.duration.Duration(seconds=0.5))
-
-                # Replace in the sam_pose_t
-                self.sam_pose_t.pose.pose = new_sam_pose_t_PoseStamped.pose
-                self.sam_pose_t.header = new_sam_pose_t_PoseStamped.header
-
-            except Exception as e:
-                self.get_logger().warn(f"TF lookup failed: {e}")
-                continue
 
             # If goal is empty or feedback has not been received yet, keep spinning
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
@@ -201,6 +189,7 @@ class SamPathPlanner(Node):
                     goal_path.trajectory.append(wp_i)
 
                 # Send to MPC
+                self._logger.info(f"Sending goal to MPC")
                 self.send_goal(goal_path)
 
                 # Reset this after planning
@@ -212,6 +201,7 @@ class SamPathPlanner(Node):
         ## Add your parameters here
         self.robot_name = self.declare_parameter("robot_name", "sam").value
         self.map_frame = self.declare_parameter("map_frame", "mocap").value
+        self.base_frame = self.declare_parameter("base_frame", "sam/base_link").value
         self.node_rate = self.declare_parameter("node_rate", 1.).value
         self.x_max = self.declare_parameter("x_max", 2.5).value   # map
         self.y_max = self.declare_parameter("y_max", 10).value  # map
@@ -234,13 +224,27 @@ class SamPathPlanner(Node):
         
         # The action server will send an empty msg when cancelling
         if self.sam_goal_t == PoseStamped():
-            # Pass cancel to controller as an empty TrajectoryMPC()
-            path_t = TrajectoryMPC()
-            self.traj_pub.publish(path_t)
+            self.cancel_goal()
 
     def state_cb(self, msg: Odometry):
         self.get_logger().info(f'Received state')
+        
+        # Tf 
+        try:    
+            t = self._tf_buffer.lookup_transform(self.map_frame, self.base_frame, rclpy.time.Time())
+        except TransformException as ex:
+            self.get_logger().info(f'Could not transform {self.map_frame} to {self.base_frame}: {ex}')
+            return
+        
+        # Transform the pose        
         self.sam_pose_t = msg
+        self.sam_pose_t.pose.pose.position.x = t.transform.translation.x
+        self.sam_pose_t.pose.pose.position.y = t.transform.translation.y
+        self.sam_pose_t.pose.pose.position.z = t.transform.translation.z
+        self.sam_pose_t.pose.pose.orientation.w = t.transform.rotation.w
+        self.sam_pose_t.pose.pose.orientation.x = t.transform.rotation.x
+        self.sam_pose_t.pose.pose.orientation.y = t.transform.rotation.y
+        self.sam_pose_t.pose.pose.orientation.z = t.transform.rotation.z
 
     def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped, dsdr_cmd_msg: ThrusterAngles, rpm1_fb_msg: ThrusterFeedback, rpm2_fb_msg: ThrusterFeedback):
         self.get_logger().info(f'Received ctrl inputs')
@@ -289,7 +293,6 @@ class SamPathPlanner(Node):
             self._goal_handle
         else:
             self.get_logger().info('Goal failed to cancel.')
-
 
 def main(args=None):
     rclpy.init(args=args)
