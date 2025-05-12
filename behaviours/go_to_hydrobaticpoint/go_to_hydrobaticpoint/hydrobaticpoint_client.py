@@ -12,6 +12,7 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 from geometry_msgs.msg import Pose, PoseStamped
+from smarc_control_msgs.msg import Topics as ControlTopics
 
 from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
 from go_to_hydrobaticpoint.hydrobaticpoint_action import HydrobaticPointAction
@@ -36,6 +37,21 @@ class HydropointClient(SMARCActionClient):
         self.declare_parameters()
         self._json_ops = HydrobaticPointAction()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+
+        # Wait for server
+        while not self._client.wait_for_server(timeout_sec=1.) and rclpy.ok():
+            self.logger.info(f"Node {action_name} waiting for go_to_hydropoint server")
+
+        self.logger.info(f"Node {action_name} connected to go_to_hydropoint server")
+        self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
+                                                             ControlTopics.MOCAP_HYDROPOINT,
+                                                             self.mocap_hydro_cb, 1)
+    def mocap_hydro_cb(self, mocap_goal: PoseStamped):
+        self.logger.info(f"Sending goal {mocap_goal}")
+        
+        goal_msg = BaseAction.Goal()
+        goal_msg.goal = self._json_ops.encode(mocap_goal)
+        self.send_goal(goal_msg, server_timeout_sec=1)
 
     def declare_parameters(self):
         """Location to declare parameters."""
@@ -79,37 +95,14 @@ class HydropointClient(SMARCActionClient):
         """
         self.cancel_goal(self.cancel_callback)
 
-    def send_hydropoint(self, hydro_pt: PoseStamped):
-        """Request hydropoint be sent to server.
-
-        Interface for external usage of client.
-        """
-        goal_msg = BaseAction.Goal()
-        goal_msg.goal = self._json_ops.encode(hydro_pt)
-        self.send_goal(goal_msg, server_timeout_sec=1)
-
-    def _test_geopoint(self):
-        """For testing geopoint setting."""
-        hydropoint = PoseStamped()
-        hydropoint.header.frame_id = "mocap"
-        hydropoint.pose.position.x = 3.
-        hydropoint.pose.position.y = 0.
-        hydropoint.pose.position.z = 1.
-        hydropoint.pose.orientation.x = 0.
-        hydropoint.pose.orientation.y = 0.
-        hydropoint.pose.orientation.z = 0.
-        hydropoint.pose.orientation.w = 1.
-        self.logger.info(f"Sending hydropoint {hydropoint}")
-        self.send_hydropoint(hydropoint)
-
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "hydropoint_client"
+    node_name = "mocap_hydropoint_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
     setpoint = HydropointClient(node, "go_to_hydropoint", action_type)
-    setpoint._test_geopoint()
+    # setpoint._test_geopoint()
     rclpy.spin(node)
 
 
