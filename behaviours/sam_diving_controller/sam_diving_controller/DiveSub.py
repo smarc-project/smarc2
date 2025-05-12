@@ -6,38 +6,43 @@ from rclpy.node import Node
 import numpy as np
 import math
 
+from tf2_geometry_msgs import PoseWithCovarianceStamped
 import tf2_geometry_msgs.tf2_geometry_msgs
 from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from sensor_msgs.msg import Imu
 
+from smarc_msgs.msg import PercentStamped, ThrusterRPM
 from smarc_control_msgs.msg import Topics as ControlTopics
-from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
+from dead_reckoning_msgs.msg import Topics as DRTopics
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+
 from tf_transformations import euler_from_quaternion
 
 try:
-    from .IDiveView import IDiveView, MissionStates
+    from .IDivePub import IDivePub, MissionStates
 except: 
-    from IDiveView import IDiveView, MissionStates
+    from IDivePub import IDivePub, MissionStates
 
-class DiveController():
+class DiveSub():
     """
     Dive Controller to listen to a waypoint and provide the corresponding setpoints to the
     DivingModel within the MVC framework
     """
     def __init__(self,
                  node: Node,
-                 view: IDiveView):
+                 dive_pub: IDivePub):
 
         self._node = node
-        self._view = view
+        self._dive_pub = dive_pub
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
@@ -45,9 +50,11 @@ class DiveController():
         # We need to declare the parameter we want to read out from the alunch file first.
         self._node.declare_parameter('robot_name', 'sam0')
         self._node.declare_parameter('tf_suffix', '')
+        self._node.declare_parameter('acados_dir', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link_ned'+ tf_suffix 
+        self._robot_base_link = robot_name + '/base_link'+ tf_suffix #'/base_link_gt'
+        self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
 
@@ -58,17 +65,18 @@ class DiveController():
         self._waypoint_global = None
         self._waypoint_body = None
         self._received_waypoint = False
+        self._joy_depth = None
+        self._depth = None
+        self._pitch = None
 
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
 
         self._states = Odometry()
+        self._received_states = False
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
-        self.waypoint_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
-
-        self._control_input = {}
+        self._control_input = {} 
         self._control_input['vbs'] = 0.0
         self._control_input['lcg'] = 0.0
         self._control_input['rpm1'] = 0.0
@@ -76,11 +84,25 @@ class DiveController():
         self._control_input['stern'] = 0.0
         self._control_input['rudder'] = 0.0
 
-        self.vbs_sub = node.create_subscription(PercentStamped, SamTopics.VBS_CMD_TOPIC, self._vbs_cb, 10)
-        self.lcg_sub = node.create_subscription(PercentStamped, SamTopics.LCG_CMD_TOPIC, self._lcg_cb, 10)
-        self.rpm1_sub = node.create_subscription(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, self._rpm1_cb, 10)
-        self.rpm2_sub = node.create_subscription(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, self._rpm2_cb, 10)
-        self.thrust_vector_sub = node.create_subscription(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, self._thrust_vector_cb, 10)
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+        self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
+        self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
+        self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
+        self.pitch_sub = node.create_subscription(msg_type=Imu, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
+
+        # Synch subscribers here 
+        self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
+        self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
+        self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_FB_TOPIC)
+        self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_FB_TOPIC)
+        self.thrust_vector_fb = Subscriber(self._node, ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC)
+
+        self.ctrl_synch_msg = ApproximateTimeSynchronizer(
+            [self.vbs_fb, self.lcg_fb, self.rpm1_fb, self.rpm2_fb, self.thrust_vector_fb],
+            queue_size = 100,
+            slop = 0.0001
+        )
+        self.ctrl_synch_msg.registerCallback(self._ctrl_synch_cb)
 
         self._loginfo("Dive Controller Node started")
 
@@ -92,40 +114,36 @@ class DiveController():
 
     def _states_cb(self, msg):
         self._states = msg
+        self._received_states = True
 
 
     def _wp_cb(self, wp):
-        self._waypoint_global = PoseStamped()
-        self._waypoint_global.header.stamp = wp.header.stamp
-        self._waypoint_global.header.frame_id = wp.header.frame_id
-        self._waypoint_global.pose.position.x = wp.pose.pose.position.x
-        self._waypoint_global.pose.position.y = wp.pose.pose.position.y
-        self._waypoint_global.pose.position.z = wp.pose.pose.position.z
-        self._waypoint_global.pose.orientation.x = wp.pose.pose.orientation.x
-        self._waypoint_global.pose.orientation.y = wp.pose.pose.orientation.y
-        self._waypoint_global.pose.orientation.z = wp.pose.pose.orientation.z
-        self._waypoint_global.pose.orientation.w = wp.pose.pose.orientation.w
+        self._waypoint_global = wp
 
         # TODO: Get the proper RPM from the waypoint
         self._requested_rpm = 500
-
         self._received_waypoint = True
 
-    def _vbs_cb(self, msg):
-        self._control_input['vbs'] = msg.value
+    def _joy_depth_setpoint_cb(self, msg):
+        self._joy_depth = msg.data
 
-    def _lcg_cb(self, msg):
-        self._control_input['lcg'] = msg.value
+    def _depth_cb(self, msg):
+        self._depth = msg.pose.pose.position.z
 
-    def _rpm1_cb(self, msg):
-        self._control_input['rpm1'] = float(msg.rpm)
+    def _pitch_cb(self, msg):
+        quat = np.array([msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z])
+        rpy = euler_from_quaternion(quat,axes='sxyz')
+        self._pitch = rpy[1]
 
-    def _rpm2_cb(self, msg):
-        self._control_input['rpm2'] = float(msg.rpm)
-
-    def _thrust_vector_cb(self, msg):
-        self._control_input['stern'] = float(msg.thruster_vertical_radians)
-        self._control_input['rudder'] = float(msg.thruster_horizontal_radians)
+    def _ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped,
+                       rpm1_fb_msg: ThrusterRPM, rpm2_fb_msg: ThrusterRPM, 
+                       thrust_vector_fb_msg: ThrusterAngles):
+        self._control_input['vbs'] = vbs_fb_msg.value
+        self._control_input['lcg'] = lcg_fb_msg.value
+        self._control_input['rpm1'] = rpm1_fb_msg.rpm
+        self._control_input['rpm2'] = rpm2_fb_msg.rpm
+        self._control_input['stern'] = thrust_vector_fb_msg.thruster_vertical_radians
+        self._control_input['rudder'] = thrust_vector_fb_msg.thruster_horizontal_radians
 
 
     def _update_tf(self):
@@ -159,12 +177,6 @@ class DiveController():
 
         return self._depth_setpoint
 
-    def get_body_waypoint(self):
-        if self._waypoint_body is not None:
-            return self._waypoint_body
-        else:
-            return None
-
 
     def get_pitch_setpoint(self):
         if self._waypoint_body is not None:
@@ -192,15 +204,21 @@ class DiveController():
         # TODO: Might be better to split this by what 
         # state you're interested in, then you can get them
         # directly.
-        return self._states
+        #return self._states
+        if self._received_states:
+            return self._states
+        else: 
+            return None
 
     def get_control_input(self):
         return self._control_input
-
+    
 
     def get_depth(self):
         return self._states.pose.pose.position.z
 
+    def get_sensor_depth(self):
+        return self._depth
 
     def get_pitch(self):
 
@@ -211,6 +229,10 @@ class DiveController():
             self._states.pose.pose.orientation.w])
 
         return rpy[1]
+
+    def get_sensor_pitch(self):
+        
+        return self._pitch
 
 
     def get_heading(self):
@@ -264,6 +286,15 @@ class DiveController():
         Could be fixed at one point...
         """
         return self._mission_state
+
+
+    def get_joy_depth_setpoint(self):
+        return self._joy_depth
+
+
+    def get_joy_pitch_setpoint(self):
+
+        return 0.0
     
     # Has methods
     def has_waypoint(self):

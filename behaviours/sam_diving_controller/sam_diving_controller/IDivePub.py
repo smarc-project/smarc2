@@ -2,7 +2,7 @@
 
 import enum
 
-class IDiveView:
+class IDivePub:
     """
     An interface for some kind of "view" that can do _something_ with a given RPM value.
     """

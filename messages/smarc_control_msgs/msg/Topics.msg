@@ -9,6 +9,8 @@
 ########################
 # States
 string STATES = 'core/odom_gt' # Type: Odometry
+string DEPTH = 'dr/depth' # Type: Float64
+string PITCH = 'core/imu' # Type: 
 
 # Setpoints
 string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
