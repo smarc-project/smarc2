@@ -37,6 +37,7 @@ class SamPathPlanner(Node):
         self.pose_sub = self.create_subscription(PoseStamped, 
                                                  ControlTopics.WAYPOINT, self.target_cb, 1)
 
+        # TODO: get state from TF instead of odom since we want mocap --> base_link
         self.odom_sub = self.create_subscription(Odometry, 
                                                  ControlTopics.STATES, self.state_cb, 1)
         
@@ -53,8 +54,10 @@ class SamPathPlanner(Node):
 
         # Action client to communicate with MPC
         self._action_client = ActionClient(self, TrajectoryMPC, ControlTopics.TRAJ_MPC)
-        while not self._action_client.wait_for_server(timeout_sec=1.) and rclpy.ok():
-            self._logger.info(f"Planner waiting for {ControlTopics.TRAJ_MPC} server")
+        
+        # Uncomment when MPC is ready to be used
+        # while not self._action_client.wait_for_server(timeout_sec=1.) and rclpy.ok():
+        #     self._logger.info(f"Planner waiting for {ControlTopics.TRAJ_MPC} server")
 
         self._goal_handle = None
 
@@ -79,6 +82,7 @@ class SamPathPlanner(Node):
                 goal_path.trajectory.append(wp_i)
 
                 # Send to MPC
+                self._logger.info(f"Sending goal to MPC")
                 self.send_goal(goal_path)
 
                 # Reset this after planning
@@ -105,9 +109,7 @@ class SamPathPlanner(Node):
         
         # The action server will send an empty msg when cancelling
         if self.sam_goal_t == PoseStamped():
-            # Pass cancel to controller as an empty TrajectoryMPC()
-            path_t = TrajectoryMPC()
-            self.traj_pub.publish(path_t)
+            self.cancel_goal()
 
     def state_cb(self, msg: Odometry):
         self.get_logger().info(f'Received state')
