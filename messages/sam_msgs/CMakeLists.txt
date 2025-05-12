@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Links.msg"
   "msg/ThrusterAngles.msg"
   "msg/ThrusterRPMs.msg"
+  "msg/JoyButtons.msg"
   "msg/Topics.msg"
   "msg/DualThrusterRPM.msg"
   "msg/DualThrusterFeedback.msg"

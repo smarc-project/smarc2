@@ -1,0 +1,9 @@
+## Goal
+std_msgs/Header header
+smarc_control_msgs/WpMPC[] trajectory
+---
+## Result
+bool success
+---
+## Feedback
+int32 current_wp_idx

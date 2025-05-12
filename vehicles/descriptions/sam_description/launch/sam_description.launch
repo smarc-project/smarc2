@@ -6,10 +6,12 @@
   <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
 
+    <?ignore
     <node name="joint_state_publisher" pkg="joint_state_publisher" exec="joint_state_publisher">
       <param name="rate" value="300"/>
       <param name="source_list" value="['command_states']"/>
     </node>
+    ?>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher" respawn="true" output="screen">
       <param name="frame_prefix" value="$(var prefix)"/>
