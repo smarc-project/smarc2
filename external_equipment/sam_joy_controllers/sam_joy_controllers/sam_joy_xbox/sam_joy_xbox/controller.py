@@ -150,7 +150,8 @@ class xbox_joy(Node):
             self.get_logger().info(f"[XBOX CONTROLLER] Assisted driving enabled: {format(self.assisted_driving_enabled)}")
             assisted_driving_enabled_msg = Bool()
             assisted_driving_enabled_msg.data = self.assisted_driving_enabled
-            self.assisted_driving_enabled_pub.publish(self.assisted_driving_enabled)
+            #self.assisted_driving_enabled_pub.publish(self.assisted_driving_enabled)
+            self.assisted_driving_enabled_pub.publish(assisted_driving_enabled_msg)
             if self.assisted_driving_enabled:
                 self.rumble(1)
             else:
