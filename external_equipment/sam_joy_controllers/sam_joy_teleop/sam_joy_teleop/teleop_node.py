@@ -34,7 +34,7 @@ from geometry_msgs.msg import Twist
 from sam_msgs.msg import ThrusterAngles, ThrusterRPMs
 from smarc_msgs.msg import ThrusterRPM
 
-from sam_msgs.msg import JoyButtons,Topics
+from sam_msgs.msg import JoyButtons, Topics
 from dead_reckoning_msgs.msg import Topics as DR_Topics
 from smarc_control_msgs.msg import Topics as ControlTopics
 import math
