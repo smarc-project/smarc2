@@ -193,7 +193,7 @@ class SMARCActionServer(abc.ABC):
 
     # def _handle_accepted_callback(self, goal_handle):
     #     # naming it base here as ROS often has self._goal_handle and I don't want overrides
-    #     # TODO: Do I need this?
+    #     # TODO: (Tim) Do I need this?
     #     self._base_goal_handle = goal_handle
 
     def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:

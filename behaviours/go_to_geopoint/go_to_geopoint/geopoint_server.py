@@ -283,6 +283,8 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint.publish(self.goal_base_link.pose)
 
         self.feedback_loop(pose_stamped, goal_handle)
+        # TODO: (Tim) Need to figure out how to hide this from user
+        # Thinking something like self.is_goal_valid property
         if not goal_handle.is_active or goal_handle.is_cancel_requested:
             return result_msg
 
@@ -341,7 +343,7 @@ class GeopointServer(SMARCActionServer):
             Cancel response as ACCEPT
         """
         self.logger.info("Received Cancel Request")
-        # FIXME: Transform is not working here as expected and its beyond confusing
+        # FIXME: (Tim) Transform is not working here as expected and its beyond confusing on why not
         pose_msg = PoseStamped()
         try:
             t = self._tf_buffer.lookup_transform(
@@ -378,6 +380,7 @@ class GeopointServer(SMARCActionServer):
         tol_check = self._tol_check(d)
         while not tol_check:
             self.logger.info(f"Goal handle active: {goal_handle.is_active}")
+            # TODO: (Tim) Is there anyway to not check this in the loop
             if not goal_handle.is_active or goal_handle.is_cancel_requested:
                 return
             feedback.feedback = self._json_ops.encode(d)
