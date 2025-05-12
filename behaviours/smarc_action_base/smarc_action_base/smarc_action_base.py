@@ -2,7 +2,7 @@ import abc
 import traceback
 from functools import partial
 import enum
-from typing import Any
+from typing import Any, Callable
 
 from action_msgs.msg import GoalStatus
 from action_msgs.srv import CancelGoal
@@ -274,9 +274,13 @@ class SMARCActionClient(abc.ABC):
     @state.setter
     def state(self, val):
         try:
+            # saving previous state for logger output
+            prev_state = self._state
             self._state = _validate_state(val)
             name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
-            self._node.get_logger().info(f"Client State ({name}) is {self._state}")
+            self._node.get_logger().info(
+                f"Client State ({name}) transitioned from {prev_state} to {self._state}"
+            )
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
@@ -310,7 +314,9 @@ class SMARCActionClient(abc.ABC):
         result: ActionResult = future.result().result
         status: GoalStatus = future.result().status
         response = self.result_callback(result, status)
-        valid_response = response is ActionClientState.DONE or response is ActionClientState.ERROR
+        valid_response = (
+            response is ActionClientState.DONE or response is ActionClientState.ERROR
+        )
         if valid_response:
             self.state = response
         else:
@@ -369,10 +375,13 @@ class SMARCActionClient(abc.ABC):
             goal_handle: handle provided in `goal_response_callback`.
 
         """
-        self._result_future = self._goal_handle.get_result_async()
+        if self._goal_handle is not None:
+            self._result_future = self._goal_handle.get_result_async()
+        else:
+            raise ValueError("Goal handle is of type None. This should not be the case.")
         self._result_future.add_done_callback(self._wrap_result_callback)
 
-    def _wrap_cancel_callback(self, user_callback: callable, future: Future):
+    def _wrap_cancel_callback(self, user_callback: Callable[..., Any], future: Future):
         """Wrapper for user's provided callback function.
 
         Formulated based off buried ROS documentation.
