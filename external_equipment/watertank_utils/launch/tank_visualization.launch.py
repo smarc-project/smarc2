@@ -12,6 +12,26 @@ from launch.substitutions import Command
 def generate_launch_description():
     ld = LaunchDescription()
 
+    # robot_name = "sam"
+    # sam_package_dir = FindPackageShare(LaunchConfiguration('sam_package'))
+    # sam_path = PathJoinSubstitution([sam_package_dir, LaunchConfiguration('sam_package_path')])
+
+    # robot_description_content = ParameterValue(Command(['xacro ', sam_path, ' ', f'robot_name:={robot_name}']), value_type=str)
+
+    # robot_state_publisher_node_0 = Node(package='robot_state_publisher',
+    #                                   executable='robot_state_publisher',
+    #                                   parameters=[{
+    #                                       'robot_description': robot_description_content,
+    #                                     #   'robot_description': Command([
+    #                                     #             'xacro ', brov_path, f'robot_name:={bluerov1}'])
+    #                                   }], 
+    #                                   remappings=[
+    #                                         ('robot_description', 'sam_description'),
+    #                                     ]
+    #                                   )
+
+    # ld.add_action(robot_state_publisher_node_0)
+
     # Bluerov model for visualization
 
     # robot_name = LaunchConfiguration('brov_name')
@@ -21,7 +41,7 @@ def generate_launch_description():
 
     robot_description_content = ParameterValue(Command(['xacro ', brov_path, ' ', f'robot_name:={robot_name}']), value_type=str)
 
-    robot_state_publisher_node_0 = Node(package='robot_state_publisher',
+    robot_state_publisher_node_1 = Node(package='robot_state_publisher',
                                       executable='robot_state_publisher',
                                       parameters=[{
                                           'robot_description': robot_description_content,
@@ -33,7 +53,7 @@ def generate_launch_description():
                                         ]
                                       )
 
-    ld.add_action(robot_state_publisher_node_0)
+    ld.add_action(robot_state_publisher_node_1)
 
     # Watertank model
     tank_package_dir = FindPackageShare(LaunchConfiguration('tank_package'))
@@ -41,7 +61,7 @@ def generate_launch_description():
 
     robot_description_content = ParameterValue(Command(['xacro ', tank_path]), value_type=str)
 
-    robot_state_publisher_node_1 = Node(package='robot_state_publisher',
+    robot_state_publisher_node_2 = Node(package='robot_state_publisher',
                                       executable='robot_state_publisher',
                                       parameters=[{
                                           'robot_description': robot_description_content,
@@ -51,7 +71,25 @@ def generate_launch_description():
                                         ]
                                       )
 
-    ld.add_action(robot_state_publisher_node_1)
+    ld.add_action(robot_state_publisher_node_2)
+
+    # Hulahoop model
+    hula_package_dir = FindPackageShare(LaunchConfiguration('hula_package'))
+    hula_path = PathJoinSubstitution([hula_package_dir, LaunchConfiguration('hula_package_path')])
+
+    robot_description_content = ParameterValue(Command(['xacro ', hula_path]), value_type=str)
+
+    robot_state_publisher_node_3 = Node(package='robot_state_publisher',
+                                      executable='robot_state_publisher',
+                                      parameters=[{
+                                          'robot_description': robot_description_content,
+                                      }], 
+                                      remappings=[
+                                            ('robot_description', 'hula_description'),
+                                        ]
+                                      )
+
+    ld.add_action(robot_state_publisher_node_3)
 
     # RVIZ
     watertank_utils_package = FindPackageShare('watertank_utils')
