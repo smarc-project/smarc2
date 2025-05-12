@@ -387,20 +387,39 @@ class DepthJoyControllerPID(DiveControllerInterface):
         current_pitch = self._dive_sub.get_sensor_pitch()
 
         if depth_setpoint is None:
-            self._loginfo_once("No setpoint received")
+            self._loginfo_once("No depth setpoint received")
             return
 
-        if depth_setpoint is None:
-            self._loginfo("No depth setpoint yet")
+        if pitch_setpoint is None:
+            self._loginfo("No pitch setpoint yet")
+            return
+
+        if current_depth is None:
+            self._loginfo("No depth measurement yet")
+            return
+
+        if current_pitch is None:
+            self._loginfo("No pitch measurement yet")
             return
 
         # Sketchy minus signs...
-        depth_setpoint *= -1
-        current_depth *= -1
+        depth_setpoint *= -1.0
+        current_depth *= -1.0
 
         # Choose active vs. static diving based on dive pitch angle
+        s = f"Control States:\n"
+        s += f"Depth: {current_depth}, Pitch: {current_pitch}\n"
+        s += f"SP depth: {depth_setpoint}, pitch: {pitch_setpoint}\n"
+        #s += f"Errors: depth: {depth_error}, pitch: {pitch_error}\n"
+        #s += f"VBS: {u_vbs}, LCG: {u_lcg}, tv: {u_tv_ver}\n"
+        s += f"[-----]"
+        self._loginfo(s)
 
-        if np.abs(depth_setpoint) <= self.param['max_dive_pitch']:
+        self._loginfo(f"Joy Update: Begin Control Loop")
+
+        depth_error = depth_setpoint - current_depth
+
+        if np.abs(depth_error) <= 0.5:
             self._loginfo("Active Diving")
 
             u_vbs_raw = self.param['vbs_u_neutral']
@@ -419,6 +438,14 @@ class DepthJoyControllerPID(DiveControllerInterface):
             u_vbs, depth_error, u_vbs_raw = self._depth_vbs_pid.get_control(current_depth, depth_setpoint, self._dt)
             u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
 
+
+        s = f"Control States:\n"
+        s += f"Depth: {current_depth:.3f}, Pitch: {current_pitch:.3f}\n"
+        s += f"SP depth: {depth_setpoint}, pitch: {pitch_setpoint}\n"
+        s += f"Errors: depth: {depth_error:.3f}, pitch: {pitch_error:.3f}\n"
+        s += f"VBS: {u_vbs:.3f}, LCG: {u_lcg:.3f}, tv: {-u_tv_ver:.3f}\n"
+        s += f"[-----]"
+        self._loginfo(s)
 
 
         self._dive_pub.set_vbs(u_vbs)
