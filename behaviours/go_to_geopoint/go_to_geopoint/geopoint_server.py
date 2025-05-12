@@ -270,7 +270,7 @@ class GeopointServer(SMARCActionServer):
             )
         except TransformException as err:
             self.logger.error(
-                f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
+                f"Failed to transform goal target frame {self.target_frame}.\n\t Tf2 exception error {err}"
             )
             goal_handle.abort()
             result_msg.success = False
