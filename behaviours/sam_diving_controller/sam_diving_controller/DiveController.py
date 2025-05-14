@@ -406,6 +406,11 @@ class DepthJoyControllerPID(DiveControllerInterface):
         depth_setpoint *= -1.0
         current_depth *= -1.0
 
+        # This is due to the fact that we want to move the LCG forward when
+        # having a negative real pitch error.
+        pitch_setpoint *= -1.0
+        current_pitch *= -1.0
+
         # Choose active vs. static diving based on dive pitch angle
         s = f"Control States:\n"
         s += f"Depth: {current_depth}, Pitch: {current_pitch}\n"
