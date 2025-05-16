@@ -1,0 +1,388 @@
+#!/usr/bin/python3
+
+from typing import Any, Callable
+
+from py_trees.common import Status
+from py_trees.blackboard import Blackboard
+from py_trees.behaviour import Behaviour
+
+from .i_has_vehicle_container import HasVehicleContainer
+from .i_has_clock import HasClock
+from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
+from .bb_keys import BBKeys
+from ..mission.i_bb_mission_updater import IBBMissionUpdater
+from smarc_action_base.smarc_action_base import ActionClientState
+
+from geographic_msgs.msg import GeoPoint
+from std_msgs.msg import String
+import json
+
+from smarc_bt.waraps.waraps_task_handler import WaraPSTaskHandler
+
+from smarc_mission_msgs.action import BaseAction
+from smarc_action_base.smarc_action_base import SMARCActionClient
+
+
+class A_Chilling(VehicleBehaviour):
+    """
+    An Action to just do nothing (while waiting for task input)
+    """
+
+    def __init__(self, bt: HasClock):
+        name = f"{self.__class__.__name__}"
+        super().__init__(bt, name)
+
+
+
+    def update(self) -> Status:
+        self.feedback_message = f"Just chillin'... Got something for me to do?"
+        return Status.RUNNING
+    
+    def terminate(self, new_status: Status) -> None:
+        if new_status == Status.INVALID:
+            # action is finished proper. 
+            self.feedback_message = "Chillin' is OVER. I got work to do!"
+        return
+
+    
+    
+class A_JustChillFor(VehicleBehaviour):
+    def __init__(self, bt: HasClock, task_handler: WaraPSTaskHandler, duration: float):
+        name = f"{self.__class__.__name__}({duration})Seconds"
+        super().__init__(bt, name)
+
+        self._start_time = None
+        self._duration = duration
+        self._task_handler = task_handler
+        self._elapsed_time = 0
+
+    def initialise(self):
+        self._start_time = None
+        self.feedback_message = None
+        self.paused = False
+
+    def setup(self, timeout: int = 1) -> None:
+        self._start_time = None
+        self._duration = self._duration
+        self._task_handler.set_current_task_status("started")
+        self.feedback_message = "Task started. Waiting for task to finish..."
+        return True
+
+    def update(self) -> Status:
+        if self._start_time is None:
+            self._start_time = self._bt.now_seconds
+
+        # handle status signals
+        latest_status = self._task_handler.get_current_task_status()
+        
+        if latest_status == "started" or latest_status == "resumed":
+            
+            self._task_handler.set_current_task_status("running")
+            self._start_time = self._bt.now_seconds
+
+            if self.paused:
+                self.paused = False
+            
+        if latest_status == "paused":
+            self.feedback_message = "Task paused. Waiting for resume..."
+            # set duration
+            if not self.paused:
+                self._elapsed_time += self._bt.now_seconds - self._start_time
+                self._duration = self._duration - self._elapsed_time
+                self.paused = True
+            return Status.RUNNING
+        
+        elif latest_status == "aborted" or latest_status == "enough":
+            self.feedback_message = "Task cancelled. Removing from Task Queue..."
+            # remove task from queue
+            self._task_handler.clear_task_queue()
+            return Status.SUCCESS
+        
+        if latest_status == "running":
+            dt = self._bt.now_seconds - self._start_time
+            if dt > self._duration:
+                self.feedback_message = f"I've been chillin for {self._elapsed_time + dt:.1f}s. Chillin' is OVER. Gimme some work!"
+                return Status.SUCCESS
+
+            self.feedback_message = f"I've been chillin for {self._elapsed_time + dt:.1f}s. Chillin' will continue for {self._duration-dt:.1f}s"
+            return Status.RUNNING
+    
+    def terminate(self, new_status: Status) -> None:
+        if new_status == Status.SUCCESS:
+            # action is finished proper. 
+            self.feedback_message = "Task finished!"
+            self._task_handler.set_current_task_status("finished")
+            self._task_handler.clear_task_queue()
+
+            # reset everything
+            self._start_time = None
+            self._elapsed_time = 0
+            self._duration = self._duration
+
+
+        return
+    
+class A_ClearTaskQueue(VehicleBehaviour):
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self._task_handler = task_handler
+
+    def update(self) -> Status:
+
+        
+        self._task_handler.clear_task_queue()
+        self.feedback_message = "Cleared task queue"
+        return Status.SUCCESS
+
+class A_WaitForData(VehicleBehaviour):
+    def __init__(self,
+                 bt: HasClock,
+                 sensor_name: str):
+        name = name = f"{self.__class__.__name__}({sensor_name})"
+        super().__init__(bt, name)
+        self._bb = Blackboard()
+        self._sensor_name = sensor_name
+        self._first_tick_seconds = None
+
+
+    @property
+    def _now(self):
+        return self._bt.now_seconds
+
+    def update(self) -> Status:
+        if self._first_tick_seconds is None:
+            self._first_tick_seconds = self._now
+
+        sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
+        
+        # has this sensor every gotten anything?
+        if sensor.last_update_seconds is None:
+            # nope
+            # are we letting it chill for a little?
+            initial_silence_seconds = self._bb.get(BBKeys.SENSOR_INITIAL_GRACE_PERIOD)
+            dt_since_first = self._now - self._first_tick_seconds
+            if dt_since_first < initial_silence_seconds:
+                # yeah, chill for a bit
+                self.feedback_message = f"{dt_since_first:.0f}/{initial_silence_seconds} of initial silence."
+                return Status.RUNNING
+            else:
+                # no, its been too long
+                self.feedback_message = f"Sensor dead?"
+                return Status.FAILURE
+
+        # it has gotten data at least once
+        # but how far behind is it?
+        allowed_silence_seconds = self._bb.get(BBKeys.SENSOR_SILENCE_PERIOD)
+        
+        dt = self._now - sensor.last_update_seconds 
+        if dt > allowed_silence_seconds:
+            # too far behind
+            self.feedback_message = f"{dt} > {allowed_silence_seconds}!"
+            return Status.FAILURE
+        
+        # not too far behind. we good.
+        self.feedback_message = f"{dt:.1f}s since last update"
+        return Status.SUCCESS
+
+class A_Abort(VehicleBehaviour):
+    def __init__(self, bt: HasVehicleContainer):
+        super().__init__(bt)
+
+    def update(self) -> Status:
+        self._bt.vehicle_container.abort()
+        self.feedback_message = "!! ABORTED !!"
+        return Status.SUCCESS
+
+    
+
+class A_Heartbeat(VehicleBehaviour):
+    def __init__(self, bt: HasVehicleContainer):
+        super().__init__(bt)
+
+    def update(self) -> Status:
+        return bool_to_status(self._bt.vehicle_container.heartbeat())
+    
+
+class A_UpdateMissionPlan(MissionPlanBehaviour):
+    def __init__(self, state_change_func: Callable):
+        self._state_change_func = state_change_func
+        name = name = f"{self.__class__.__name__}({self._state_change_func.__name__})"
+        super().__init__(name)
+
+    def update(self) -> Status:
+        self.feedback_message = ""
+        plan = self._get_plan()
+        if plan is None: return Status.FAILURE
+
+        return bool_to_status(self._state_change_func(plan))
+            
+        
+class A_ProcessBTCommand(Behaviour):
+    def __init__(self, mission_updater:IBBMissionUpdater ):
+        super().__init__(self.__class__.__name__)
+
+        self._accepted_commands = set()
+        self._accepted_commands.add("plan_dubins")
+        self._mission_updater = mission_updater
+
+        self._bb = Blackboard()
+
+    def update(self) -> Status:
+        try:
+            cmd_q = self._bb.get(BBKeys.BT_CMD_QUEUE)
+        except:
+            self.feedback_message = "No command to process (there is no queue)"
+            return Status.SUCCESS
+        
+        if cmd_q is None or len(cmd_q) == 0:
+            self.feedback_message = "No command to process (queue empty)"
+            return Status.SUCCESS
+        
+        cmd, arg = cmd_q[0]
+        cmd_q = cmd_q[1:]
+        self._bb.set(BBKeys.BT_CMD_QUEUE, cmd_q)
+
+        if not cmd in self._accepted_commands:
+            self.feedback_message = f"Command [{cmd}] not accepted. Ignored."
+            return Status.SUCCESS
+        
+        if cmd == "plan_dubins":
+            # the arg should be a float coming from the interacter, if any
+            if(arg): arg = float(arg)
+            self._mission_updater.plan_dubins(turning_radius=arg)
+            self.feedback_message = "Plan dubins called"
+            return Status.SUCCESS
+
+
+        self.feedback_message = "Invalid state of action?"
+        return Status.FAILURE
+
+
+class A_ActionClient(Behaviour):
+    def __init__(self,
+                 client: SMARCActionClient,
+                 task_handler: WaraPSTaskHandler):
+        super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
+        self._client = client
+        # self._bb = Blackboard()
+        self._task_handler = task_handler
+
+        self._cancel_response = None
+        self._feedback_message = None
+        self._goal_response = None
+        self._result = None
+
+        self._failure_states = [
+            ActionClientState.DISCONNECTED,
+            ActionClientState.ERROR,
+            ActionClientState.REJECTED,
+            ActionClientState.CANCELLED
+        ]
+
+        self._success_states = [
+            ActionClientState.DONE
+        ]
+
+        self._running_states = [
+            ActionClientState.SENT,
+            ActionClientState.ACCEPTED,
+            ActionClientState.RUNNING,
+            ActionClientState.CANCELLING
+        ]
+
+        self._logger = self._client._node.get_logger()
+            
+
+    def setup(self, timeout:int = 1) -> None:
+        return self._client._setup(timeout)
+        
+
+    def terminate(self, new_status: Status) -> None:
+
+        if new_status == Status.INVALID:
+            # pre-empted by a higher priority branch, cancel the goal!
+            self.feedback_message = "Preempted, cancelling goal"
+            self._client.cancel_goal(self._client.cancel_callback)
+            return
+
+        if new_status == Status.SUCCESS:
+            # action is finished proper. get ready for a next run.
+            self._client.get_ready()
+            self.feedback_message = "Action finished. Ready for next run."
+
+        if new_status == Status.FAILURE:
+            # action did not finish proper.
+            # should be handled by the rest of the tree
+            self.feedback_message = f"Action failed. Action Client state: {self._client.state}"
+            return
+
+
+
+    def update(self) -> Status:
+        s = self._client.state
+        # print(f"Action client state: {s}")
+        # exit(0)
+
+        # if it was cancelled, get the client ready for a new run for later
+        if s == ActionClientState.CANCELLED:
+            # change state to ready
+            self.feedback_message = "Action cancelled. Ready for next run."
+            self._client.state = ActionClientState.READY    
+            return Status.RUNNING
+
+        # # server is good to go
+        # print("I died here")
+        # exit(0)
+        if s == ActionClientState.READY:
+            # mplan = self._get_plan()
+            task_status = self._task_handler.get_current_task_status()
+            # self._logger.info(f"Task status: {task_status}")
+            if task_status == "started" or task_status == "resumed":
+                self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."
+                self._task_handler.set_current_task_status("running")
+                
+            mplan = self._task_handler.get_current_task_params()
+            
+            if mplan is None:
+                self.feedback_message = "No task to get a wp from..."
+                return Status.FAILURE
+            
+            # extract params
+            # self._logger.info(f"mplan: {mplan}")
+            param_dict = mplan["waypoint"]
+            msg_dict = {
+                "geopoint": {
+                    "latitude": param_dict["latitude"],
+                    "longitude": param_dict["longitude"],
+                    "altitude": param_dict["altitude"]
+                },
+            }
+
+            msg_str = json.dumps(msg_dict)
+
+            mission_msg = BaseAction.Goal()
+            mission_msg.goal.data = msg_str
+            # self._logger.info(f"mission_msg: {mission_msg}")
+            self._client.send_goal(mission_msg)
+
+            
+            self._logger.info("yall I sent dat task")
+            return Status.RUNNING
+        
+        if s in self._running_states:
+            # self._logger.info("boi")
+            self.feedback_message = self._client.feedback_message
+            return Status.RUNNING
+
+        if s in self._failure_states:
+            self._logger.info("jump")
+            return Status.FAILURE
+        
+        if s in self._success_states:
+            return Status.SUCCESS
+    
+
+        self.feedback_message = f"Unexpected status:{s}?!"
+        return Status.FAILURE
+
+

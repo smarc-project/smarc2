@@ -41,7 +41,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "echo 'Not launching drone_dr dead_reckoning.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
 
 #TODO: change this to the quadrotor action server
 tmux select-window -t $SESSION:2
