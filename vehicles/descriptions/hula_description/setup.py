@@ -1,8 +1,7 @@
 from setuptools import find_packages, setup
 import os
-import glob
-
-package_name = 'watertank_utils'
+from glob import glob
+package_name = 'hula_description'
 
 setup(
     name=package_name,
@@ -12,20 +11,20 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
-        (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))), 
+        (os.path.join('share', package_name, 'urdf'), glob(os.path.join('urdf', '*urdf.[xacro]*'))),
+        (os.path.join('share', package_name, 'mesh'), glob(os.path.join('mesh', '*dae*'))),
+        (os.path.join('share', package_name, 'robots'), glob(os.path.join('robots', '*urdf.[xacro]*')))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='babypool',
-    maintainer_email='you@example.com',
+    maintainer_email='babypool@todo.todo',
     description='TODO: Package description',
-    license='TODO: License declaration',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'watertank_tf_utils = watertank_utils.tf_utils_node:main',
-            'mocap_odom_sam = watertank_utils.mocap_odom:main'
         ],
     },
 )

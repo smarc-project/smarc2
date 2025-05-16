@@ -5,25 +5,21 @@ from rclpy.node import Node
 
 import numpy as np
 
-from smarc_msgs.msg import ThrusterRPM
-from sam_msgs.msg import Topics as SamTopics
-from sam_msgs.msg import ThrusterAngles
-
 from smarc_control_msgs.msg import Topics as ControlTopics
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
-from geometry_msgs.msg import PoseStamped, TransformStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped 
 
 try:
-    from .IDiveView import IDiveView
+    from .IDivePub import IDivePub
 except:
-    from IDiveView import IDiveView
+    from IDivePub import IDivePub
 
-class ConvenienceView(IDiveView):
+class ConveniencePub(IDivePub):
     """
     Implements convenience topic publishers for debugging
     """
-    def __init__(self, node: Node, controller, model) -> None:
+    def __init__(self, node: Node, dive_sub, dive_controller) -> None:
         self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
@@ -40,8 +36,8 @@ class ConvenienceView(IDiveView):
         self._goal_tolerance = None
 
         self._node = node
-        self._controller = controller
-        self._model = model
+        self._dive_sub = dive_sub
+        self._dive_controller = dive_controller
 
         self._previous_print = ""
 
@@ -59,7 +55,7 @@ class ConvenienceView(IDiveView):
 
 
     def _update_state(self) -> None:
-        self._state_msg = self._model.get_state()
+        self._state_msg = self._dive_controller.get_state()
 
         if self._state_msg is None:
             return
@@ -67,7 +63,7 @@ class ConvenienceView(IDiveView):
         self._state_pub.publish(self._state_msg)
 
     def _update_ref(self) -> None:
-        self._ref_msg = self._model.get_ref()
+        self._ref_msg = self._dive_controller.get_ref()
 
         if self._ref_msg is None:
             return
@@ -75,7 +71,7 @@ class ConvenienceView(IDiveView):
         self._ref_pub.publish(self._ref_msg)
 
     def _update_error(self) -> None:
-        self._error_msg = self._model.get_error()
+        self._error_msg = self._dive_controller.get_error()
 
         if self._error_msg is None:
             return
@@ -83,7 +79,7 @@ class ConvenienceView(IDiveView):
         self._error_pub.publish(self._error_msg)
 
     def _update_input(self) -> None:
-        self._input_msg = self._model.get_input()
+        self._input_msg = self._dive_controller.get_input()
 
         if self._input_msg is None:
             return
@@ -91,8 +87,8 @@ class ConvenienceView(IDiveView):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        self._waypoint = self._controller.get_waypoint()
-        self._goal_tolerance = self._controller.get_goal_tolerance()
+        self._waypoint = self._dive_sub.get_waypoint()
+        self._goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         if self._waypoint is None:
             return
@@ -102,9 +98,9 @@ class ConvenienceView(IDiveView):
         self._waypoint_msg.pose.pose = self._waypoint.pose
         self._waypoint_msg.pose.pose.orientation.w = 1.0
         cov = np.zeros([6,6])
-        cov[0][0] = self._goal_tolerance
-        cov[1][1] = self._goal_tolerance
-        cov[2][2] = self._goal_tolerance
+        cov[0][0] = np.sqrt(self._goal_tolerance)
+        cov[1][1] = np.sqrt(self._goal_tolerance)
+        cov[2][2] = np.sqrt(self._goal_tolerance)
         cov_vec = cov.reshape(36)
         self._waypoint_msg.pose.covariance = cov_vec.tolist()
 
@@ -123,7 +119,7 @@ class ConvenienceView(IDiveView):
                  f"roll: {self._state_msg.pose.roll:.3f}, "\
                  f"pitch: {self._state_msg.pose.pitch:.3f}, "\
                  f"yaw: {self._state_msg.pose.yaw:.3f}\n"
-            s += f"   DiveController mission state: {self._controller.get_mission_state()}\n"
+            s += f"   DiveController mission state: {self._dive_sub.get_mission_state()}\n"
 
         if self._input_msg is None:
             s += f"No inputs yet\n"
@@ -138,14 +134,19 @@ class ConvenienceView(IDiveView):
         if self._waypoint_msg is None:
             s += "No Waypoint Yet\n"
         else:
-            distance = self._controller.get_distance()
-            heading = self._controller.get_heading()
-            dive_pitch = self._controller.get_dive_pitch()
+            distance = self._dive_sub.get_distance()
+            heading = self._dive_sub.get_heading()
+            dive_pitch = self._dive_sub.get_dive_pitch()
+
+            # Somehow we get None every now and then and that crashes everything. 
+            distance_str = f"{distance:.3f}" if distance is not None else "None"
+            heading_str = f"{heading:.3f}" if heading is not None else "None"
+            dive_pitch_str = f"{dive_pitch:.3f}" if dive_pitch is not None else "None"
 
             s += f"Waypoint Following\n"
-            s += f"   distance: {distance:.3f}, "\
-                 f"heading: {heading:.3f}, "\
-                 f"dive pitch: {dive_pitch:.3f}\n"
+            s += f"   distance: " + distance_str + \
+                 f" heading: " + heading_str + \
+                 f" dive pitch: " + dive_pitch_str + "\n"
 
         if self._error_msg is None:
             s += "No control yet\n"
@@ -164,42 +165,3 @@ class ConvenienceView(IDiveView):
         self._loginfo(s)
         self._previous_print = s
 
-def test_view():
-    """
-    How will we know this is working as intended? By running it!
-    Check setup.py to see how this function can be run with ros2
-    Use `ros2 run workshopfun test_view` to run this.
-    """
-    rclpy.init(args=sys.argv)
-    node = rclpy.create_node("SAMThrustView_test")
-    view = ConvenienceView(node)
-
-    print("start test view")
-
-    rpm = 500
-    hor_tv = 0.1
-    ver_tv = -0.1
-
-    # a simple "controller" to give the View _something_ to do.
-    def loop():
-        nonlocal rpm
-        nonlocal hor_tv
-        nonlocal ver_tv
-        rpm *= -1
-        hor_tv *= -1
-        ver_tv *= -1
-        view.set_rpm(rpm)
-        view.set_thrust_vector(hor_tv, ver_tv)
-        view.update()
-
-    loop_period = 1
-    node.create_timer(loop_period, loop)
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-
-
-# Could also run this without ros2
-if __name__ == "__main__":
-    test_view()
