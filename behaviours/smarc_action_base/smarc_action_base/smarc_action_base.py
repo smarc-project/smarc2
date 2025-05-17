@@ -2,6 +2,7 @@ import abc
 import traceback
 from functools import partial
 import enum
+import threading
 from typing import Any, Callable
 
 from action_msgs.msg import GoalStatus
@@ -160,11 +161,15 @@ class SMARCActionServer(abc.ABC):
         self._heartbeat_topic = heartbeat_topic
         self._server.register_goal_callback(self._wrap_goal_callback)
         self._server.register_cancel_callback(self._wrap_cancel_callback)
-        # self._server.register_handle_accepted_callback(self._handle_accepted_callback)
+        self._server.register_handle_accepted_callback(self._handle_accepted_callback)
         self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
         self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
         self._hb_msg = String()
         self._hb_msg.data = self.parsed_action_name
+
+        # Multiple goal handling
+        self._goal_lock = threading.Lock()
+        self._base_goal_handle: None | ServerGoalHandle = None
 
     def _heartbeat_cb(self):
         """Sends out topic to Wara-PS on specified heartbeat timer cadence."""
@@ -176,6 +181,34 @@ class SMARCActionServer(abc.ABC):
         if self._parsed_action_name is None:
             self._parsed_action_name = self._construct_hb_msg()
         return self._parsed_action_name
+
+    @property
+    def is_valid_goal(self) -> bool:
+        """Returns valid goal status. If goal is None, returns False."""
+        # blocking threads from writing as goal is checked
+        self._node.get_logger().debug(f"Checking goal validity (trying lock)")
+        with self._goal_lock:
+            return self._no_lock_is_valid_goal
+
+    @property
+    def _no_lock_is_valid_goal(self) -> bool:
+        """Returns valid goal status. If goal is None, returns False.
+
+        No lock exists otherwise you are recursively calling a lock creating a *deadlock*
+
+        **If you don't know how locks work or why we need them DON'T use this property**
+
+        """
+        # blocking threads from writing as goal is checked
+        if self._base_goal_handle is None:
+            return False
+        # TODO: (Tim) Validate this OR versus AND
+        if (
+            not self._base_goal_handle.is_active
+            or self._base_goal_handle.is_cancel_requested
+        ):
+            return False
+        return True
 
     def _construct_hb_msg(self) -> str:
         """Constructs heartbeat message with proper namespace.
@@ -191,10 +224,21 @@ class SMARCActionServer(abc.ABC):
         )
         return msg_str
 
-    # def _handle_accepted_callback(self, goal_handle):
-    #     # naming it base here as ROS often has self._goal_handle and I don't want overrides
-    #     # TODO: (Tim) Do I need this?
-    #     self._base_goal_handle = goal_handle
+    def _handle_accepted_callback(self, goal_handle: ServerGoalHandle):
+        self._node.get_logger().debug(f"Accepted goal validity (trying lock)")
+        with self._goal_lock:
+            self._node.get_logger().debug(f"Accepted goal validity (has lock)")
+            # This server only allows one goal at a time
+            self._base_goal_handle = goal_handle
+            if not self._no_lock_is_valid_goal:
+                self._node.get_logger().info("Aborting previous goal")
+                # Abort the existing goal
+                self._base_goal_handle.abort()
+            self._base_goal_handle = goal_handle
+        # TODO: (Tim) Need to investigate multiple goal acceptance and how to handle these goals conflicting
+        # Best reference for this: https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_server/examples_rclpy_minimal_action_server/server_single_goal.py
+        self._base_goal_handle.execute()
+        return
 
     def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:
         """Wraps user callback in try and except to prevent failed cancellation requests due to exceptions."""

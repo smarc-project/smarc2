@@ -80,7 +80,7 @@ class GeopointServer(SMARCActionServer):
         if param_value is None:
             err_str = "This function wraps param calls to prevent None types."
             err_str = "A None parameter was discoverd violation the assumption.\n"
-            err_str += "Use node.declare_parameter and directly handle None types\n"
+            err_str += "Use node.declare_parameter and directly handle None types if you must\n"
             err_str += (
                 "Rewriting this function to allow None types would defeat it's purpose."
             )
@@ -123,6 +123,13 @@ class GeopointServer(SMARCActionServer):
             "setpoint_tolerance",
             0.25,
             "Setpoint tolerance for when the goal is considered achieved (Euclidean norm).",
+        )
+        
+        self._setpoint_topic = self._wrap_param_declare(
+            node,
+            "setpoint_topic",
+            "go_to_setpoint",
+            "Topic to publish setpoint targets to. Will be prepended with 'robot_name'",
         )
 
         self._goal_threshold = (
@@ -197,7 +204,7 @@ class GeopointServer(SMARCActionServer):
         t = self._tf_buffer.lookup_transform(
             target_frame=pose_stamped.header.frame_id,
             source_frame=self.target_frame,
-            time=rclpy.time.Duration(seconds=0),
+            time=Time(seconds=0),
             timeout=Duration(seconds=2),
         )
         # based on ReadMe in repository
@@ -279,7 +286,7 @@ class GeopointServer(SMARCActionServer):
         # self.logger.info("Executing callback")
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        geopoint = self._json_ops.decode(goal_handle.request.goal, ActS.GOAL)
+        geopoint: GeoPoint = self._json_ops.decode(goal_handle.request.goal, ActS.GOAL)
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
@@ -300,9 +307,8 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint.publish(self.goal_base_link.pose)
 
         self.feedback_loop(pose_stamped, goal_handle)
-        # TODO: (Tim) Need to figure out how to hide this from user
-        # Thinking something like self.is_goal_valid property
-        if not goal_handle.is_active or goal_handle.is_cancel_requested:
+        if not self.is_valid_goal:
+            result_msg.success = False
             return result_msg
 
         result_msg.success = True
@@ -394,9 +400,9 @@ class GeopointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
-            self.logger.info(f"Goal handle active: {goal_handle.is_active}")
+            self.logger.info(f"Goal handle active: {self.is_valid_goal}")
             # TODO: (Tim) Is there anyway to not check this in the loop
-            if not goal_handle.is_active or goal_handle.is_cancel_requested:
+            if not self.is_valid_goal:
                 return
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)

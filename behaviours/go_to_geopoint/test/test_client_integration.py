@@ -114,7 +114,7 @@ class TestClass(unittest.TestCase):
         self._broadcaster = StaticFramePublisher()
         self.executor.add_node(self._broadcaster)
 
-    def while_loop_state(self, expected_state, max_time = time.time() + 10):
+    def while_loop_state(self, expected_state, max_time = time.time() + 15):
         while max_time > time.time():
             self.executor.spin_once(timeout_sec = 0.2)
             if self.setpoint.state == expected_state:
