@@ -114,9 +114,9 @@ class TestClass(unittest.TestCase):
         self._broadcaster = StaticFramePublisher()
         self.executor.add_node(self._broadcaster)
 
-    def while_loop_state(self, expected_state, max_time = time.time() + 15):
+    def while_loop_state(self, expected_state, max_time = time.time() + 10):
         while max_time > time.time():
-            self.executor.spin_once(timeout_sec = 0.2)
+            self.executor.spin_once(timeout_sec = 0.1)
             if self.setpoint.state == expected_state:
                 return True
         return False
@@ -124,13 +124,13 @@ class TestClass(unittest.TestCase):
     def test_client_connect(self, proc_output):
         """Tests whether or not the client connects properly to the server."""
         print("Spinning executor")
-        self.executor.spin_once(timeout_sec=0.5)
+        self.executor.spin_once(timeout_sec=0.1)
         self.assertTrue(self.setpoint.state == ActionClientState.READY)
 
     def test_client_goal(self, proc_output):
         """Tests whether or not the client properly sends test messages."""
         print("Spinning executor")
-        self.executor.spin_once(timeout_sec=0.2)
+        self.executor.spin_once(timeout_sec=0.1)
         self.setpoint._test_geopoint()
         is_sent = self.while_loop_state(ActionClientState.SENT)
         self.assertTrue(is_sent)
@@ -140,7 +140,7 @@ class TestClass(unittest.TestCase):
         """Tests whether or not the client properly transitions after accepting goal and running."""
         print("Spinning executor")
         self.transform_setup()
-        self.executor.spin_once(timeout_sec=0.4)
+        self.executor.spin_once(timeout_sec=0.1)
         self.setpoint._test_geopoint()
         is_accepted = self.while_loop_state(ActionClientState.ACCEPTED)
         is_running = self.while_loop_state(ActionClientState.RUNNING)
@@ -152,7 +152,7 @@ class TestClass(unittest.TestCase):
         """Tests whether or not the client can cancel goals successfully."""
         print("Spinning executor")
         self.transform_setup()
-        self.executor.spin_once(timeout_sec=0.4)
+        self.executor.spin_once(timeout_sec=0.1)
         self.setpoint._test_geopoint()
         # while looping till we are accepted and getting feedback
         is_running = self.while_loop_state(ActionClientState.RUNNING)
@@ -164,3 +164,24 @@ class TestClass(unittest.TestCase):
 
         is_cancelled = self.while_loop_state(ActionClientState.CANCELLED)
         self.assertTrue(is_cancelled)
+
+    def test_client_cancel_reaccept(self, proc_output):
+        """Tests whether or not the client can cancel goals successfully."""
+        print("Spinning executor")
+        self.transform_setup()
+        self.executor.spin_once(timeout_sec=0.1)
+        self.setpoint._test_geopoint()
+        # while looping till we are accepted and getting feedback
+        is_running = self.while_loop_state(ActionClientState.RUNNING)
+        if is_running:
+            self.setpoint.cancel_geopoint()
+        else:
+            print("Failed to get to running state, so test case failed.")
+            self.assertTrue(is_running)
+
+        is_cancelled = self.while_loop_state(ActionClientState.CANCELLED)
+        self.assertTrue(is_cancelled)
+
+        self.setpoint._test_geopoint()
+        is_rerunning = self.while_loop_state(ActionClientState.RUNNING)
+        self.assertTrue(is_rerunning)
