@@ -117,6 +117,7 @@ class TestClass(unittest.TestCase):
     def while_loop_state(self, expected_state, max_time = time.time() + 10):
         while max_time > time.time():
             self.executor.spin_once(timeout_sec = 0.1)
+            self.setpoint.logger.debug(f"[TEST] Checked state is {self.setpoint.state}")
             if self.setpoint.state == expected_state:
                 return True
         return False
@@ -127,6 +128,7 @@ class TestClass(unittest.TestCase):
         self.executor.spin_once(timeout_sec=0.1)
         self.assertTrue(self.setpoint.state == ActionClientState.READY)
 
+    # TODO: (Tim) Fix failing test cases due to asynchronous stuff
     def test_client_goal(self, proc_output):
         """Tests whether or not the client properly sends test messages."""
         print("Spinning executor")

@@ -177,14 +177,14 @@ class GeopointServer(SMARCActionServer):
                 target_frame=self.target_frame,
                 source_frame=pose_stamped.header.frame_id,
                 time=Time(seconds=0),
-                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
+                timeout=Duration(seconds=1),
             )
         else:
             t = self._tf_buffer.lookup_transform(
                 target_frame=override_target,
                 source_frame=pose_stamped.header.frame_id,
                 time=Time(seconds=0),
-                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
+                timeout=Duration(seconds=1),
             )
         # based on ReadMe in repository
         return do_transform_pose_stamped(pose_stamped, t)
@@ -225,9 +225,9 @@ class GeopointServer(SMARCActionServer):
             pose_transformed: PoseStamped = self.transform_goal(
                 pose_stamped, override_target=override_frame
             )
-            self.logger.debug(
-                "Position after transform:" + self._str_posestamp(pose_transformed)
-            )
+            # self.logger.debug(
+            #     "Position after transform:" + self._str_posestamp(pose_transformed)
+            # )
         except TransformException as err:
             err_str = "Failed to compute transform when computing distance to target"
             raise TransformException(err_str) from err
@@ -269,9 +269,9 @@ class GeopointServer(SMARCActionServer):
         pose_stamp.pose.position = point.toPoint()
         zone, band = point.gridZone()
         pose_stamp.header.frame_id = f"utm_{zone}_{band}"
-        self.logger.debug(
-            f"Point Position from lat long:{self._str_posestamp(pose_stamp)}"
-        )
+        # self.logger.debug(
+        #     f"Point Position from lat long:{self._str_posestamp(pose_stamp)}"
+        # )
         return pose_stamp
 
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
@@ -346,7 +346,7 @@ class GeopointServer(SMARCActionServer):
             # providing additional details if possible about error
             try:
                 pose = self.get_robot_pose_in_msg_frame(pose_stamped)
-                err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
+                # err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
                 self.logger.debug(err_str)
             except TransformException:
                 pass
@@ -366,7 +366,6 @@ class GeopointServer(SMARCActionServer):
             Cancel response as ACCEPT
         """
         self.logger.info("Received Cancel Request")
-        # FIXME: (Tim) Transform is not working here as expected and its beyond confusing on why not
         pose_msg = PoseStamped()
         try:
             t = self._tf_buffer.lookup_transform(
@@ -378,10 +377,7 @@ class GeopointServer(SMARCActionServer):
             pose_msg.pose.position.x = t.transform.translation.x
             pose_msg.pose.position.y = t.transform.translation.y
             pose_msg.pose.position.z = t.transform.translation.z
-            pose_msg.pose.orientation.x = t.transform.rotation.x
-            pose_msg.pose.orientation.y = t.transform.rotation.y
-            pose_msg.pose.orientation.z = t.transform.rotation.z
-            pose_msg.pose.orientation.w = t.transform.rotation.w
+            self.logger.debug(self._str_posestamp(pose_msg))
             self._pub_setpoint.publish(pose_msg.pose)
         except TransformException:
             self.logger.error("Could not lookup transform to cancel goal.")
@@ -399,6 +395,7 @@ class GeopointServer(SMARCActionServer):
         d = self.compute_distance(pose_stamped)
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
+
         while not tol_check:
             self.logger.info(f"Goal handle active: {self.is_valid_goal}")
             # TODO: (Tim) Is there anyway to not check this in the loop
@@ -409,7 +406,7 @@ class GeopointServer(SMARCActionServer):
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
-            self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
+            # self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
 
         rate.destroy()
         return

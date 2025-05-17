@@ -185,8 +185,9 @@ class SMARCActionServer(abc.ABC):
     @property
     def is_valid_goal(self) -> bool:
         """Returns valid goal status. If goal is None, returns False."""
+
+        self._node.get_logger().debug(f"[action-base] Checking goal validity (trying lock)")
         # blocking threads from writing as goal is checked
-        self._node.get_logger().debug(f"Checking goal validity (trying lock)")
         with self._goal_lock:
             return self._no_lock_is_valid_goal
 
@@ -199,7 +200,6 @@ class SMARCActionServer(abc.ABC):
         **If you don't know how locks work or why we need them DON'T use this property**
 
         """
-        # blocking threads from writing as goal is checked
         if self._base_goal_handle is None:
             return False
         # TODO: (Tim) Validate this OR versus AND
@@ -220,45 +220,62 @@ class SMARCActionServer(abc.ABC):
         namespace = self._node.get_namespace()
         msg_str = combine_ns_and_action(namespace, self._action_name)
         self._node.get_logger().info(
-            f"Parsed out action server name for Wara-PS: {msg_str}"
+            f"[action-base] Parsed out action server name for Wara-PS: {msg_str}"
         )
         return msg_str
 
     def _handle_accepted_callback(self, goal_handle: ServerGoalHandle):
-        self._node.get_logger().debug(f"Accepted goal validity (trying lock)")
+        """Handles multithreaded goal acceptance.
+
+        Acquires lock and adds goal into accepted list. It will abort any old goals it is running if a new one comes in.
+
+        Best reference for this: https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_server/examples_rclpy_minimal_action_server/server_single_goal.py
+        """
+
+        self._node.get_logger().debug(f"[action-base] Accepted goal validity (trying lock)")
         with self._goal_lock:
-            self._node.get_logger().debug(f"Accepted goal validity (has lock)")
+            self._node.get_logger().debug(f"[action-base] Accepted goal validity (has lock)")
             # This server only allows one goal at a time
             self._base_goal_handle = goal_handle
             if not self._no_lock_is_valid_goal:
-                self._node.get_logger().info("Aborting previous goal")
+                self._node.get_logger().info("[action-base] Aborting previous goal")
+
+                # TODO: (Tim) If there are issues with goals not canceling correctly you may need to 
+                # call some form of cancel of callback here on the user end to cancel this goal
+                # TLDR from previous warning:
+                # How does this need to cancel the current goal if a new goal comes in. It might not
+                # Overwriting this goal handle immediately will do what to the old execution callback?
+
                 # Abort the existing goal
                 self._base_goal_handle.abort()
             self._base_goal_handle = goal_handle
-        # TODO: (Tim) Need to investigate multiple goal acceptance and how to handle these goals conflicting
-        # Best reference for this: https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_server/examples_rclpy_minimal_action_server/server_single_goal.py
         self._base_goal_handle.execute()
         return
 
-    def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:
+    def _wrap_cancel_callback(self, goal_handle:ServerGoalHandle) -> CancelResponse:
         """Wraps user callback in try and except to prevent failed cancellation requests due to exceptions."""
         try:
-            return self.cancel_callback(goal_handle)
+            usr_return = self.cancel_callback(goal_handle)
+            return usr_return
         except Exception as err:
             logger = self._node.get_logger()
             trace = traceback.format_exc()
-            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
+            err_str = f"[action-base] User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + trace)
             return CancelResponse.REJECT
 
     def _wrap_goal_callback(self, goal_request) -> GoalResponse:
         """Wraps user callback in try and except to prevent failed goal requests not responding due to exceptions."""
+        if self.is_valid_goal:
+            self._node.get_logger().debug(f"[action-base] Rejecting goal request as current goal is running")
+            return GoalResponse.REJECT
+
         try:
             return self.goal_callback(goal_request)
         except Exception as err:
             logger = self._node.get_logger()
             trace = traceback.format_exc()
-            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
+            err_str = f"[action-base] User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + str(trace))
             return GoalResponse.REJECT
 
@@ -331,19 +348,19 @@ class SMARCActionClient(abc.ABC):
             name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
             if prev_state != self._state:
                 self._node.get_logger().info(
-                    f"Client State ({name}) transitioned from {prev_state} to {self._state}"
+                    f"[action-base] Client State ({name}) transitioned from {prev_state} to {self._state}"
                 )
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
-            self._node.get_logger().error(f"{err_str}")
+            self._node.get_logger().error(f"[action-base] {err_str}")
 
     def _setup(self):
         server_status = False
         while not server_status:
-            self._node.get_logger().info("Waiting for server to start.")
+            self._node.get_logger().info("[action-base] Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
-        self._node.get_logger().info("Server found.")
+        self._node.get_logger().info("[action-base] Server found.")
         self.state = ActionClientState.READY
 
     def get_goal_success(self) -> ActionClientState:
@@ -368,7 +385,7 @@ class SMARCActionClient(abc.ABC):
             # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
             # otherwise the callback would not be called
             self._node.get_logger().error(
-                f"Result or status is none and should not be ({raw_result})"
+                f"[action-base] Result or status is none and should not be ({raw_result})"
             )
             self.state = ActionClientState.ERROR
             return
@@ -396,7 +413,7 @@ class SMARCActionClient(abc.ABC):
             self.state = ActionClientState.ERROR
             return
         self._node.get_logger().debug(
-            f"Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}"
+            f"[action-base] Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}"
         )
         if self._goal_handle.accepted:
             self.state = ActionClientState.ACCEPTED
@@ -469,17 +486,17 @@ class SMARCActionClient(abc.ABC):
             # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
             # otherwise the callback would not be called
             self._node.get_logger().error(
-                "Future result is None which should not occur with callback setup."
+                "[action-base] Future result is None which should not occur with callback setup."
             )
             self.state = ActionClientState.ERROR
             return
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
-        self._node.get_logger().debug(f"{result}")
+        self._node.get_logger().debug(f"[action-base] {result}")
         if len(result.goals_canceling) > 0:
             self.state = ActionClientState.CANCELLED
         else:
             self._node.get_logger().debug(
-                "smarc_action_base client goal failed to cancel."
+                "[action-base] smarc_action_base client goal failed to cancel."
             )
         user_callback(result)
 
@@ -490,14 +507,14 @@ class SMARCActionClient(abc.ABC):
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
-            self._node.get_logger().debug(f"Cancelling goal in smarc_action_base.")
+            self._node.get_logger().debug(f"[action-base] Cancelling goal in smarc_action_base.")
             self.state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
             func = partial(self._wrap_cancel_callback, usr_callback)
             future.add_done_callback(func)
         else:
             self._node.get_logger().debug(
-                "No goal present to cancel. Skipping cancellation."
+                "[action-base] No goal present to cancel. Skipping cancellation."
             )
 
     def send_goal(self, goal_msg: ActionGoal):
