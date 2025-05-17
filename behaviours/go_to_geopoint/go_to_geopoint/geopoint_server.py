@@ -1,5 +1,4 @@
 import traceback
-from unicodedata import name
 
 import numpy as np
 import rclpy
@@ -9,8 +8,9 @@ from geometry_msgs.msg import Pose, PoseStamped
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy import logging
 from rclpy.time import Duration, Time
 from smarc_action_base.smarc_action_base import (
     ActionResult,
@@ -24,8 +24,12 @@ from tf2_ros import Buffer, TransformException, TransformListener
 
 from go_to_geopoint.action_parsing import ActionSubMsg as ActS
 from go_to_geopoint.action_parsing import GeoActionParsing
+from typing import TypeVar
 
 KM_TO_METER = 1000
+
+
+T = TypeVar("T")
 
 
 class GeopointServer(SMARCActionServer):
@@ -59,62 +63,75 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint = self._node.create_publisher(
             Pose, f"{self._setpoint_topic}", 2
         )
-        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        self.logger.set_level(logging.LoggingSeverity.DEBUG)
         self._json_ops: GeoActionParsing = GeoActionParsing()
+
+    @staticmethod
+    def _wrap_param_declare(
+        node: Node, name: str, default_value: T, param_desc: str
+    ) -> T:
+        """Wrapped parameter declare to enable type completion for LSP.
+
+        Additional None protection added.
+        """
+        param_value = node.declare_parameter(
+            name, default_value, ParameterDescriptor(description=param_desc)
+        ).value
+        if param_value is None:
+            err_str = "This function wraps param calls to prevent None types."
+            err_str = "A None parameter was discoverd violation the assumption.\n"
+            err_str += "Use node.declare_parameter and directly handle None types\n"
+            err_str += (
+                "Rewriting this function to allow None types would defeat it's purpose."
+            )
+            raise ValueError(err_str)
+        return param_value
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
-        self._target_frame_param = node.declare_parameter("target_frame", "odom").value
+        self._target_frame_param = self._wrap_param_declare(
+            node,
+            "target_frame",
+            "odom",
+            "The frame in which the desired geopoint target should be tranformed to.",
+        )
 
-        self._distance_frame_param = node.declare_parameter(
+        self._distance_frame_param = self._wrap_param_declare(
+            node,
             "distance_frame",
             "base_link",
-            ParameterDescriptor(
-                description="Frame for which the distance to target will be computed (usually base_link)"
-            ),
-        ).value
+            "Frame for which the distance to target will be computed (usually base_link)",
+        )
 
-        self._distance_frame_suffix = node.declare_parameter(
+        self._distance_frame_suffix = self._wrap_param_declare(
+            node,
             "distance_frame_suffix",
             "_gt",
-            ParameterDescriptor(
-                description="Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable"
-            ),
-        ).value
+            "Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable",
+        )
 
-        self._frame_suffix = node.declare_parameter(
+        self._frame_suffix = self._wrap_param_declare(
+            node,
             "frame_suffix",
             "_gt",
-            ParameterDescriptor(
-                description="Frame suffix for transform. Commonly is '_gt' for ground truth if applicable"
-            ),
-        ).value
+            "Frame suffix for transform. Commonly is '_gt' for ground truth if applicable",
+        )
 
-        self._setpoint_tol: float = node.declare_parameter(
+        self._setpoint_tol = self._wrap_param_declare(
+            node,
             "setpoint_tolerance",
             0.25,
-            ParameterDescriptor(
-                description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
-            ),
-        ).value
-
-        self._setpoint_topic = node.declare_parameter(
-            "setpoint_topic",
-            "go_to_setpoint",
-            ParameterDescriptor(
-                description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
-            ),
-        ).value
+            "Setpoint tolerance for when the goal is considered achieved (Euclidean norm).",
+        )
 
         self._goal_threshold = (
-            node.declare_parameter(
+            self._wrap_param_declare(
+                node,
                 "goal_threshold",
-                10,
-                ParameterDescriptor(
-                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
-                ),
-            ).value
+                10.0,
+                "Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)",
+            )
             * KM_TO_METER
         )
 
@@ -365,9 +382,7 @@ class GeopointServer(SMARCActionServer):
             return CancelResponse.REJECT
         return CancelResponse.ACCEPT
 
-    def feedback_loop(
-        self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle | None
-    ):
+    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
         """Abstracted feedback loop where tolerance checks are conducted.
 
         Args:
@@ -395,14 +410,17 @@ class GeopointServer(SMARCActionServer):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node_name = "setpoint_client"
-    node = rclpy.node.Node(node_name)
-    action_type = ActionType(BaseAction)
-    setpoint = GeopointServer(node, "go_to_setpoint", action_type)
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
-    executor.spin()
+    try:
+        rclpy.init(args=args)
+        node_name = "setpoint_client"
+        node = Node(node_name)
+        action_type = ActionType(BaseAction)
+        setpoint = GeopointServer(node, "go_to_setpoint", action_type)
+        executor = MultiThreadedExecutor()
+        executor.add_node(node)
+        executor.spin()
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
 
 
 if __name__ == "__main__":

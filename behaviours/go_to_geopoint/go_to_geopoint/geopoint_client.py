@@ -36,7 +36,6 @@ class GeopointClient(SMARCActionClient):
         self.declare_parameters()
         self._json_ops = GeoActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
-        self.counter = 0
 
     def declare_parameters(self):
         """Location to declare parameters."""
@@ -55,9 +54,6 @@ class GeopointClient(SMARCActionClient):
             feedback_msg.feedback,
             ActS.FEEDBACK,
         )
-        if self.counter == 10:
-            self.cancel_geopoint()
-        self.counter +=1
 
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""

@@ -207,7 +207,6 @@ class SMARCActionServer(abc.ABC):
             logger.error(err_str + trace)
             return CancelResponse.REJECT
 
-
     def _wrap_goal_callback(self, goal_request) -> GoalResponse:
         """Wraps user callback in try and except to prevent failed goal requests not responding due to exceptions."""
         try:
@@ -320,8 +319,17 @@ class SMARCActionClient(abc.ABC):
 
     def _wrap_result_callback(self, future: Future):
         """Simplifies result response callback extracting values from future."""
-        result: ActionResult = future.result().result
-        status: GoalStatus = future.result().status
+        raw_result: ActionResult = future.result()
+        if raw_result is None:
+            # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
+            # otherwise the callback would not be called
+            self._node.get_logger().error(
+                f"Result or status is none and should not be ({raw_result})"
+            )
+            self.state = ActionClientState.ERROR
+            return
+        result: ActionResult = raw_result.result
+        status: GoalStatus = raw_result.status
         response = self.result_callback(result, status)
         valid_response = (
             response is ActionClientState.DONE or response is ActionClientState.ERROR
@@ -340,6 +348,12 @@ class SMARCActionClient(abc.ABC):
         Does preemptive checking on goal success to setup future callbacks.
         """
         self._goal_handle = future.result()
+        if self._goal_handle is None:
+            self.state = ActionClientState.ERROR
+            return
+        self._node.get_logger().debug(
+            f"Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}"
+        )
         if self._goal_handle.accepted:
             self.state = ActionClientState.ACCEPTED
             self._get_result()
@@ -387,7 +401,9 @@ class SMARCActionClient(abc.ABC):
         if self._goal_handle is not None:
             self._result_future = self._goal_handle.get_result_async()
         else:
-            raise ValueError("Goal handle is of type None. This should not be the case.")
+            raise ValueError(
+                "Goal handle is of type None. This should not be the case."
+            )
         self._result_future.add_done_callback(self._wrap_result_callback)
 
     def _wrap_cancel_callback(self, user_callback: Callable[..., Any], future: Future):
@@ -404,13 +420,23 @@ class SMARCActionClient(abc.ABC):
         Cancel Goal Documentation Link
         - https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
-        result: ActionResult = future.result()
+        result: ActionResult | None = future.result()
+        if result is None:
+            # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
+            # otherwise the callback would not be called
+            self._node.get_logger().error(
+                "Future result is None which should not occur with callback setup."
+            )
+            self.state = ActionClientState.ERROR
+            return
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
         self._node.get_logger().debug(f"{result}")
         if len(result.goals_canceling) > 0:
             self.state = ActionClientState.CANCELLED
         else:
-            self._node.get_logger().debug("smarc_action_base client goal failed to cancel.")
+            self._node.get_logger().debug(
+                "smarc_action_base client goal failed to cancel."
+            )
         user_callback(result)
 
     def cancel_goal(self, usr_callback: Callable[..., Any]):
