@@ -7,7 +7,7 @@ import time
 import atexit
 import signal
 
-from smarc_msgs.msg import Topics as SMaRCTopics
+from smarc_msgs.msg import Topics as SMaRCTopics, Leak
 from sensor_msgs.msg import BatteryState
 
 class TmuxAlertNode():
@@ -17,10 +17,10 @@ class TmuxAlertNode():
         self._node = node
 
         self._battery_percentage = None
+        self._leak = False
 
-        self.state_sub = node.create_subscription(msg_type=BatteryState, topic=SMaRCTopics.BATTERY_TOPIC, callback=self._battery_cb, qos_profile=10)
-
-
+        self.state_sub = node.create_subscription(msg_type=BatteryState, topic='core/battery_status', callback=self._battery_cb, qos_profile=10)
+        self.leak_sub = node.create_subscription(msg_type=Leak, topic='core/leak_fb', callback=self._leak_cb, qos_profile=10)
 
         # Register shutdown cleanup
         atexit.register(self.reset_all_tmux_panes)
@@ -34,6 +34,9 @@ class TmuxAlertNode():
 
     def _battery_cb(self, msg):
         self._battery_percentage = msg.percentage
+
+    def _leak_cb(self, msg):
+        self._leak = msg.value
 
 
     def handle_signal(self, signum, frame):
@@ -89,7 +92,10 @@ class TmuxAlertNode():
             self._node.get_logger().info("No Battery Message yet.")
             return False
 
-        if self._battery_percentage < 75:
+        if self._battery_percentage < 0.30:
+            return True
+
+        if self._leak:
             return True
 
     def alert_tmux(self):

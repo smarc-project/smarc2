@@ -8,6 +8,9 @@ from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
+
+from .ParamUtils import DivingModelParam
+
 try:
     from .IDivePub import IDivePub
 except:
@@ -18,6 +21,12 @@ class SAMDivePub(IDivePub):
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
     def __init__(self, node: Node) -> None:
+
+        self._node = node
+
+        # Get all the parameters
+        self.param = DivingModelParam(self._node).get_param()
+
         # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
         self._lcg_pub = node.create_publisher(PercentStamped, SamTopics.LCG_CMD_TOPIC, 10)
@@ -34,6 +43,13 @@ class SAMDivePub(IDivePub):
         self._t2_msg = ThrusterRPM()
         self._thrust_vector_msg = ThrusterAngles()
         self._joy_tv_msg = Float64()
+
+        self._vbs_msg.value = self.param['vbs_u_neutral']
+        self._lcg_msg.value = self.param['lcg_u_neutral']
+        self._thrust_vector_msg.thruster_vertical_radians = self.param['tv_u_neutral']
+        self._thrust_vector_msg.thruster_horizontal_radians = self.param['tv_u_neutral']
+        self._t1_msg.rpm = self.param['rpm_u_neutral']
+        self._t2_msg.rpm = self.param['rpm_u_neutral']
 
 
     def set_vbs(self, vbs: float) -> None:
