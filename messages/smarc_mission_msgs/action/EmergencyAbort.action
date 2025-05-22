@@ -1,0 +1,12 @@
+# Request
+uint8 level
+
+# Enum for level definitions
+uint8 NO_EMERGENCY=0
+uint8 EMERGENCY=1
+---
+# Result
+bool success
+---
+# feedback message
+std_msgs/String feedback
