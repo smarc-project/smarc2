@@ -19,18 +19,18 @@ string ELEVON_STRB_FB = "actuators/elevon_strb_fb"
 #Thrusters setpoint
 string THRUSTER_PORT_CMD = "actuators/thruster_port_cmd"
 string THRUSTER_STRB_CMD = "actuators/thruster_strb_cmd"
-string VERTICAL_THRUSTER_1_CMD = "actuators/vertical_thruster_1_cmd"
-string VERTICAL_THRUSTER_2_CMD = "actuators/vertical_thruster_2_cmd"
-string VERTICAL_THRUSTER_3_CMD = "actuators/vertical_thruster_3_cmd"
-string VERTICAL_THRUSTER_4_CMD = "actuators/vertical_thruster_4_cmd"
+string VERTICAL_THRUSTER_BACK_PORT_CMD = "actuators/vertical_thruster_back_port_cmd"
+string VERTICAL_THRUSTER_BACK_STRB_CMD = "actuators/vertical_thruster_back_strb_cmd"
+string VERTICAL_THRUSTER_FRONT_PORT_CMD = "actuators/vertical_thruster_front_port_cmd"
+string VERTICAL_THRUSTER_FRONT_STRB_CMD = "actuators/vertical_thruster_front_strb_cmd"
 
 #Thrusters feedback
 string THRUSTER_PORT_FB = "actuators/thruster_port_fb"
 string THRUSTER_STRB_FB = "actuators/thruster_strb_fb"
-string VERTICAL_THRUSTER_1_FB = "actuators/vertical_thruster_1_fb"
-string VERTICAL_THRUSTER_2_FB = "actuators/vertical_thruster_2_fb"
-string VERTICAL_THRUSTER_3_FB = "actuators/vertical_thruster_3_fb"
-string VERTICAL_THRUSTER_4_FB = "actuators/vertical_thruster_4_fb"
+string VERTICAL_THRUSTER_BACK_PORT_FB = "actuators/vertical_thruster_back_port_fb"
+string VERTICAL_THRUSTER_BACK_STRB_FB = "actuators/vertical_thruster_back_strb_fb"
+string VERTICAL_THRUSTER_FRONT_PORT_FB = "actuators/vertical_thruster_front_strb_fb"
+string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb_fb"
 
 
 # Topics for Payload Sensors
@@ -62,10 +62,10 @@ string EXTENDED_PORT_ELEVON_FB_TOPIC = "extended/actuators/elevon_port_fb"
 string EXTENDED_STRB_ELEVON_FB_TOPIC = "extended/actuators/elevon_strb_fb"
 string EXTENDED_PORT_THRUSTER_FB_TOPIC = "extended/actuators/thruster_port_fb"
 string EXTENDED_STRB_THRUSTER_FB_TOPIC = "extended/actuators/thruster_strb_fb"
-string EXTENDED_VERTICAL_THRUSTER_1_FB_TOPIC = "extended/actuators/vertical_thruster_1_fb"
-string EXTENDED_VERTICAL_THRUSTER_2_FB_TOPIC = "extended/actuators/vertical_thruster_2_fb"
-string EXTENDED_VERTICAL_THRUSTER_3_FB_TOPIC = "extended/actuators/vertical_thruster_3_fb"
-string EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC = "extended/actuators/vertical_thruster_4_fb"
+string EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_front_port_fb"
+string EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_front_strb_fb"
+string EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_back_port_fb"
+string EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_back_strb_fb"
 
 
 
