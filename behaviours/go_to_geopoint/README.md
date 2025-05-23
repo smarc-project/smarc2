@@ -35,6 +35,7 @@ In order to implement a server using the provided framework the following functi
 
 - `goal_callback`
     - The action server needs to manage what goals it accepts and rejects. This is handled in this callback. To see how to formulate the response such that ROS understand consult the docstring on the `goal_callback` or the example.
+    - Default behavior is to reject any incoming goal requests if there is a current active goal (this is part of the base class and is not controlled by the receiver)
 - `cancel_callback`
     - The action server needs to manage how it cancels goals. This is handled in this callback. This may seem trivial, but imagine a simple case where the action server is moving an AUV to a new waypoint and the client requests to cancel. The action server needs to stop the AUV's motion and indicate whether or not that was successful to the client. This is exactly the purpose of this callback.
     To see how to formulate the response such that ROS understand consult the docstring on the `cancel_callback` or the example.
