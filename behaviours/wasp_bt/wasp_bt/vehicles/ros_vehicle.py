@@ -50,7 +50,7 @@ class ROSVehicle(IVehicleStateContainer):
 
         self._gps_sub = node.create_subscription(NavSatFix, Topics.GPS_TOPIC, self._gps_cb, 10)
         self._heading_sub = node.create_subscription(FloatStamped, Topics.HEADING_TOPIC, self._heading_cb, 10)
-        self._battery_sub = node.create_subscription(BatteryState, Topics.BATTERY_TOPIC, self._battery_cb, 10)
+        self._battery_sub = node.create_subscription(BatteryState, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._tf_update_timer = node.create_timer(tf_update_period, self.update_tf)
 
         self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)

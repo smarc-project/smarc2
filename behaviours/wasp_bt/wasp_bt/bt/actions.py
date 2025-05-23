@@ -17,7 +17,7 @@ from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import String
 import json
 
-from smarc_bt.waraps.waraps_task_handler import WaraPSTaskHandler
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler
 
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
