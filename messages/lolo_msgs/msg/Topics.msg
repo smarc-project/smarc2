@@ -40,14 +40,12 @@ string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb
 #Heartbeat topic
 string HEARTBEAT_TOPIC = "heartbeat"
 
-string LOLO_ABORT_TOPIC = "lolo_abort"
-
 #Leak topic
 string LEAK_TOPIC = "leak"
 
 #Battry topics
-string BATTERY_1_TOPIC = "battery1"
-string BATTERY_2_TOPIC = "battery2"
+string BATTERY_1_TOPIC = "extended/battery1"
+string BATTERY_2_TOPIC = "extended/battery2"
 
 
 #Extended interface
