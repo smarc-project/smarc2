@@ -58,6 +58,7 @@ class ROSVehicle(IVehicleStateContainer):
         self._heartbeat_pub = node.create_publisher(Empty, Topics.HEARTBEAT_TOPIC, 10)
         self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_READY_TOPIC, self._vehicle_healthy_cb, 10)
 
+
     def update_tf(self):
         try:
             latest = self._tf_buffer.get_latest_common_time(self._robot_base_link, self._vehicle_state._reference_frame)
@@ -94,7 +95,6 @@ class ROSVehicle(IVehicleStateContainer):
 
     def _gps_cb(self, data: NavSatFix):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)
-        self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)
 
     def _heading_cb(self, data: FloatStamped):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data], data.header.stamp.sec)

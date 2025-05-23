@@ -12,11 +12,13 @@ from .i_has_clock import HasClock
 from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
 from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates
-from ..vehicles.sensor import SensorNames       
-
-from ..waraps.waraps_task_handler import HasWaraPSTaskHandler, WaraPSTaskHandler, WaraPSTaskStates
+from ..vehicles.sensor import SensorNames
 
 
+
+        
+
+        
 class C_CheckSensorBool(VehicleBehaviour):
     def __init__(self,
                  bt: HasVehicleContainer,
@@ -128,55 +130,3 @@ class C_MissionTimeoutOK(MissionPlanBehaviour):
         if plan.timeout_reached: 
             return Status.FAILURE
         return Status.SUCCESS
-    
-class C_TaskIs(Behaviour):
-    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, task_name: str):
-        """
-        Returns S if the current task is a move_to task
-        """
-        self._wara_ps_task_handler = wara_ps_task_handler
-        name = f"{self.__class__.__name__} {task_name}"
-        super().__init__(name)
-        self._task_name = task_name
-
-    def update(self) -> Status:
-
-        current_executing_tasks = self._wara_ps_task_handler.get_executing_tasks()
-
-
-        # if no tasks are executing, return failure
-        if len(current_executing_tasks) == 0:
-            self.feedback_message = "No tasks executing"
-            return Status.FAILURE
-        # focus only on first task. #TODO: this needs to be changed later, when we want multiple tasks to happen simultaneously
-        if current_executing_tasks[0]["task"]["name"] == self._task_name:
-            self.feedback_message = f"Current task is {self._task_name}"
-            return Status.SUCCESS
-        else:
-            self.feedback_message = f"Not a {self._task_name} task"
-            return Status.FAILURE
-    
-class C_TaskStatus(Behaviour):
-    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, expected_status: WaraPSTaskStates):
-        """
-        Returns S if the current task status is "running"
-        """
-        self._wara_ps_task_handler = wara_ps_task_handler
-        name = f"{self.__class__.__name__} {expected_status}({self._wara_ps_task_handler})"
-        super().__init__(name)
-        self._expected_status = expected_status
-
-    def update(self) -> Status:
-        current_executing_tasks = self._wara_ps_task_handler.get_executing_tasks()
-
-        # if no tasks are executing, return failure
-        if len(current_executing_tasks) == 0:
-            self.feedback_message = "No tasks executing"
-            return Status.FAILURE
-        # focus only on first task. #TODO: this needs to be changed later, when we want multiple tasks to happen simultaneously
-        if current_executing_tasks[0]["status"] == self._expected_status:
-            self.feedback_message = f"Current task status is {self._expected_status}"
-            return Status.SUCCESS
-        else:
-            self.feedback_message = f"Current task status is {current_executing_tasks[0]['status']}"
-            return Status.FAILURE

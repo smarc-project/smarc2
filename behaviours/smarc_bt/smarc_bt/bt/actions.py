@@ -13,122 +13,6 @@ from .bb_keys import BBKeys
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient, ActionClientState
 
-from geographic_msgs.msg import GeoPoint
-
-from smarc_bt.waraps.waraps_task_handler import WaraPSTaskHandler
-
-from smarc_mission_msgs.action import BaseAction
-from smarc_action_base.smarc_action_base import SMARCActionClient
-
-class A_Chilling(VehicleBehaviour):
-    """
-    An Action to just do nothing (while waiting for task input)
-    """
-
-    def __init__(self, bt: HasClock):
-        name = f"{self.__class__.__name__}"
-        super().__init__(bt, name)
-
-
-
-    def update(self) -> Status:
-        self.feedback_message = f"Just chillin'... Got something for me to do?"
-        return Status.RUNNING
-    
-    def terminate(self, new_status: Status) -> None:
-        if new_status == Status.INVALID:
-            # action is finished proper. 
-            self.feedback_message = "Chillin' is OVER. I got work to do!"
-        return
-
-    
-    
-class A_JustChillFor(VehicleBehaviour):
-    def __init__(self, bt: HasClock, task_handler: WaraPSTaskHandler, duration: float):
-        name = f"{self.__class__.__name__}({duration})Seconds"
-        super().__init__(bt, name)
-
-        self._start_time = None
-        self._duration = duration
-        self._task_handler = task_handler
-        self._elapsed_time = 0
-
-    def initialise(self):
-        self._start_time = None
-        self.feedback_message = None
-        self.paused = False
-
-    def setup(self, timeout: int = 1) -> None:
-        self._start_time = None
-        self._duration = self._duration
-        self._task_handler.set_current_task_status("started")
-        self.feedback_message = "Task started. Waiting for task to finish..."
-        return True
-
-    def update(self) -> Status:
-        if self._start_time is None:
-            self._start_time = self._bt.now_seconds
-
-        # handle status signals
-        latest_status = self._task_handler.get_current_task_status()
-        
-        if latest_status == "started" or latest_status == "resumed":
-            
-            self._task_handler.set_current_task_status("running")
-            self._start_time = self._bt.now_seconds
-
-            if self.paused:
-                self.paused = False
-            
-        if latest_status == "paused":
-            self.feedback_message = "Task paused. Waiting for resume..."
-            # set duration
-            if not self.paused:
-                self._elapsed_time += self._bt.now_seconds - self._start_time
-                self._duration = self._duration - self._elapsed_time
-                self.paused = True
-            return Status.RUNNING
-        
-        elif latest_status == "aborted" or latest_status == "enough":
-            self.feedback_message = "Task cancelled. Removing from Task Queue..."
-            # remove task from queue
-            self._task_handler.clear_task_queue()
-            return Status.SUCCESS
-        
-        if latest_status == "running":
-            dt = self._bt.now_seconds - self._start_time
-            if dt > self._duration:
-                self.feedback_message = f"I've been chillin for {self._elapsed_time + dt:.1f}s. Chillin' is OVER. Gimme some work!"
-                return Status.SUCCESS
-
-            self.feedback_message = f"I've been chillin for {self._elapsed_time + dt:.1f}s. Chillin' will continue for {self._duration-dt:.1f}s"
-            return Status.RUNNING
-    
-    def terminate(self, new_status: Status) -> None:
-        if new_status == Status.SUCCESS:
-            # action is finished proper. 
-            self.feedback_message = "Task finished!"
-            self._task_handler.set_current_task_status("finished")
-            self._task_handler.clear_task_queue()
-
-            # reset everything
-            self._start_time = None
-            self._elapsed_time = 0
-            self._duration = self._duration
-
-
-        return
-    
-class A_ClearTaskQueue(VehicleBehaviour):
-    def __init__(self, task_handler: WaraPSTaskHandler):
-        super().__init__(self.__class__.__name__)
-        self._task_handler = task_handler
-
-    def update(self) -> Status:
-
-        self._task_handler.clear_task_queue()
-        self.feedback_message = "Cleared task queue"
-        return Status.SUCCESS
 
 class A_WaitForData(VehicleBehaviour):
     def __init__(self,
@@ -254,19 +138,12 @@ class A_ProcessBTCommand(Behaviour):
         return Status.FAILURE
 
 
-class A_ActionClient(Behaviour):
+class A_ActionClient(MissionPlanBehaviour):
     def __init__(self,
-                 client: SMARCActionClient,
-                 task_handler: WaraPSTaskHandler):
+                 client: IActionClient):
         super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
         self._client = client
-        # self._bb = Blackboard()
-        self._task_handler = task_handler
-
-        self._cancel_response = None
-        self._feedback_message = None
-        self._goal_response = None
-        self._result = None
+        self._bb = Blackboard()
 
         self._failure_states = [
             ActionClientState.DISCONNECTED,
@@ -341,5 +218,9 @@ class A_ActionClient(Behaviour):
 
         self.feedback_message = f"Unexpected status:{s}?!"
         return Status.FAILURE
+
+            
+            
+        
 
 

@@ -1,8 +1,5 @@
 #!/usr/bin/python3
 
-import json
-from std_msgs.msg import String
-
 import operator
 import typing
 
@@ -24,32 +21,25 @@ from ..mission.mission_plan import MissionPlanStates, MissionPlan
 from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
-from ..waraps.waraps_vehicle import WaraPSVehicle
-
 
 from .conditions import C_CheckMissionPlanState,\
                         C_CheckSensorBool,\
                         C_NotAborted,\
                         C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK,\
-                        C_TaskIs,\
-                        C_TaskStatus
+                        C_MissionTimeoutOK
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_UpdateMissionPlan,\
                      A_ProcessBTCommand,\
                      A_ActionClient,\
-                     A_WaitForData,\
-                    A_JustChillFor,\
-                    A_ClearTaskQueue,\
-                    A_Chilling
+                     A_WaitForData
 
-class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
+
+
+class BT(HasVehicleContainer, HasClock):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
-                 task_handler:WaraPSTaskHandler,
                  bb_updater: IBBUpdater,
                  mission_updater: IBBMissionUpdater,
                  goto_wp_action: IActionClient,
@@ -61,7 +51,6 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             SAMAuv, ROSVehicle, etc. should all fit this
         """
         self._vehicle_container = vehicle_container
-        self._task_handler = task_handler
         self._bt = None
         self._bb_updater = bb_updater
         self._mission_updater = mission_updater
@@ -75,10 +64,6 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
         return self._vehicle_container
-    
-    @property
-    def mqtt_interactor(self) -> typing.Any:
-        return self._task_handler
     
     @property
     def now_seconds(self) -> int:
@@ -114,7 +99,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return safety_tree
-        
+    
     def _run_tree(self):
         finalize_mission = Sequence("S_Finalize_Mission", memory=False, children=[
             C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
@@ -138,47 +123,17 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             mission
         ])
         return run
-            
-    def _task_handler_tree(self):
-        """
-        Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
-        """
-
-        task_handler = Fallback("F_Task_Handler", memory=False, children=[
-            # is the current task a move to task? If so, do it
-            Sequence("S_MoveTo", memory=False, children=[
-                C_TaskIs(self._task_handler, "move-to"),
-                A_JustChillFor(self, self._task_handler, duration=20),
-                A_ClearTaskQueue(self._task_handler),
-            ]), 
-            #TODO: implement more tasks types
-            # is the current task a move path task? If so, do it
-
-            # last type: just do nothing
-            A_Chilling(self),
-            # succeed by default
-            # Success(),
-        ])
-
-        return task_handler
+        
 
     def setup(self) -> bool:
-
-        children = [
+        
+        root = Sequence("S_Root", memory=False, children=[
             A_Heartbeat(self),
-            # A_ProcessBTCommand(self._mission_updater),
-            # self._liveliness_tree(),
-            # self._safety_tree(),
-            # add the mission tree
-            self._task_handler_tree(),
-            # self._run_tree()
-        ]
-
-        # clean out Nones   
-        children = [c for c in children if c is not None]
-
-        # make the sequence tree
-        root = Sequence("S_Root", memory=False, children=children)
+            A_ProcessBTCommand(self._mission_updater),
+            self._liveliness_tree(),
+            self._safety_tree(),
+            self._run_tree()
+        ])
 
         self._bt = pt.trees.BehaviourTree(root)
         self._bb_updater.update_bb()
@@ -196,23 +151,9 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 def smarc_bt():
     from .ros_bb_updater import ROSBBUpdater
     from ..vehicles.sam_auv import SAMAuv
-    from ..vehicles.quadrotor import Quadrotor
-    from ..waraps.waraps_vehicle import WaraPSVehicle
     from ..mission.ros_mission_updater import ROSMissionUpdater
     from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
-
-    from smarc_action_base.smarc_action_base import SMARCActionClient
-    from behaviours.go_to_geopoint.go_to_geopoint.geopoint_client import GeopointClient
-    from smarc_action_base.smarc_action_base import (
-        ActionFeedback,
-        ActionResult,
-        ActionType,
-        SMARCActionClient,
-    )
-    from smarc_mission_msgs.action import BaseAction
-
     import rclpy, sys
-    import uuid
 
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("smarc_bt")
@@ -221,50 +162,28 @@ def smarc_bt():
         nonlocal node
         secs, _ = node.get_clock().now().seconds_nanoseconds()
         return int(secs)
-    
-    def ros_seconds_float() -> float:
-        nonlocal node
-        secs, nsecs = node.get_clock().now().seconds_nanoseconds()
-        return float(secs) + float(nsecs) * 1e-9
 
     
-    # agent = SAMAuv(node)
-    agent = Quadrotor(node)
-
+    sam = SAMAuv(node)
     sam_bbu = ROSBBUpdater(node, initialize_bb=True)
-    ros_mission_updater = ROSMissionUpdater(node) 
-    action_type = ActionType(BaseAction)
-    action_client_move_to = GeopointClient(node, "goto_wp", action_type)
-
-    # action_client = go_to_geopoint
-
-    agent_waraps_dict = {
-            "agent-type": "subsurface",
-            "agent-uuid": str(uuid.uuid4()),
-            "levels": ["sensor", "direct_execution"],
-            "name": node.get_parameter("robot_name").value,
-            "pulse_rate": 1,
-        }        
-    
-    wara_ps_vehicle = WaraPSVehicle(node, agent.vehicle_state, agent_waraps_dict)
-    wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
-    bt = BT(vehicle_container = agent,
-            task_handler    = wara_ps_task_handler,
+    ros_mission_updater = ROSMissionUpdater(node)
+    ros_goto_wp = ROSGotoWaypoint(node)
+    bt = BT(vehicle_container = sam,
             bb_updater        = sam_bbu,
             mission_updater   = ros_mission_updater,
-            goto_wp_action    = action_client_move_to,
-            now_seconds_func  = ros_seconds_float)
+            goto_wp_action    = ros_goto_wp,
+            now_seconds_func  = ros_seconds)
     bt.setup()
 
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, action_client_move_to, ros_mission_updater, agent
+        nonlocal bt, bt_str, node, ros_goto_wp, ros_mission_updater, sam
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
-            s += f"GOTOWP Client::\n{action_client_move_to.feedback_message}\n\n"
-            s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
+            s += f"GOTOWP Client::\n{ros_goto_wp.feedback_message}\n\n"
+            s += f"Vehicle::\nAborted:{sam.vehicle_state.aborted}\nHealthy:{sam.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str
 
@@ -273,33 +192,13 @@ def smarc_bt():
         nonlocal bt
         bt.tick()
 
-    node.create_timer(0.1, update)
+    node.create_timer(0.2, update)
     node.create_timer(0.5, print_bt)
-
-
-    def wara_ps_level_1_comms():
-        nonlocal wara_ps_vehicle
-        # get the current time
-        now_time = ros_seconds_float()
-        # heartbeat
-        wara_ps_vehicle.wara_ps_heartbeat(now_time)
-        # sensor info
-        wara_ps_vehicle.wara_ps_lvl1(now_time)
-
-    node.create_timer(1.0/wara_ps_vehicle.wara_ps_dict["pulse_rate"], wara_ps_level_1_comms)
-
-    def wara_ps_lvl_2_comms():
-        nonlocal wara_ps_task_handler
-
-        # get the current time
-        now_time = ros_seconds_float()
-        # heartbeat
-        wara_ps_task_handler.lvl_2_heartbeat(now_time)
-
-    node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
-
-    
     rclpy.spin(node)
+
+
+
+
 
 def test_bt_setup():
     from ..vehicles.vehicle import MockVehicleStateContainer, VehicleState, UnderwaterVehicleState

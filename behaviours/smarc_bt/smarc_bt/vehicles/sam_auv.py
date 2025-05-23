@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 
 from rclpy.node import Node
-from rclpy.parameter import Parameter
 
-from smarc_msgs.msg import DVL, ThrusterFeedback, Topics
+from smarc_msgs.msg import DVL, ThrusterFeedback
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import Links as SamLinks
 from smarc_msgs.msg import Leak, PercentStamped
@@ -12,12 +11,8 @@ from sensor_msgs.msg import FluidPressure
 from .ros_vehicle import ROSVehicle
 from .vehicle import UnderwaterVehicleState, SensorNames
 
-import uuid
-import json
-from std_msgs.msg import String
-from typing import Type
 
-class SAMAuv(ROSVehicle): #ROSVehicle
+class SAMAuv(ROSVehicle):
     def __init__(self,
                  node: Node):
         super().__init__(node, UnderwaterVehicleState, SamLinks)
@@ -63,7 +58,6 @@ class SAMAuv(ROSVehicle): #ROSVehicle
         self._t2 = data.rpm.rpm
         self._vehicle_state.update_sensor(SensorNames.THRUSTERS, [self._t1, self._t2], data.header.stamp.sec)
 
-            
 
 def test_sam_auv():
     import rclpy, sys

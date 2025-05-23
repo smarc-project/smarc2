@@ -7,11 +7,6 @@ except:
 
     
 from typing import Type
-from rclpy.node import Node
-from std_msgs.msg import String
-import uuid
-import json
-from smarc_msgs.msg import Topics
 
 class IVehicleState():
     def update_sensor(self, sensor_name:str, values, time:float): pass
@@ -29,8 +24,8 @@ class IVehicleStateContainer():
     def vehicle_state(self) -> Type[IVehicleState]: pass
     def abort(self) -> bool: pass
     def heartbeat(self) -> bool: pass
-
     
+
 
 class MockVehicleStateContainer(IVehicleStateContainer):
     def __init__(self, state_type: Type[IVehicleState]) -> None:
@@ -85,10 +80,6 @@ class VehicleState(IVehicleState):
                                        VehicleState.LATLON,
                                        2,
                                        ["lat", "lon"])
-        
-        self._altitude = Sensor(SensorNames.ALTITUDE,
-                                VehicleState.ABSOLUTE,
-                                1)
         
         self._global_heading_deg = Sensor(SensorNames.GLOBAL_HEADING_DEG,
                                           VehicleState.LATLON,
@@ -153,15 +144,6 @@ class VehicleState(IVehicleState):
     def update_sensor_status_str(self, sensor_name:str, status:str):
         self.sensors[sensor_name].update_status_str(status)
 
-class DroneVehicleState(VehicleState):
-    def __init__(self, name: str, reference_frame: str):
-        """
-        Extends the base vehicle to include drone-related basics
-        """
-        
-        self._thrusters = Sensor(SensorNames.THRUSTERS, VehicleState.ABSOLUTE, 4)
-        
-        super().__init__(name, reference_frame)
 
 
 class UnderwaterVehicleState(VehicleState):
