@@ -293,8 +293,8 @@ class A_ActionClient(Behaviour):
         self._logger = self._client._node.get_logger()
             
 
-    def setup(self, timeout:int = 1) -> None:
-        return self._client._setup(timeout)
+    def setup(self) -> None:
+        return self._client._setup()
         
 
     def terminate(self, new_status: Status) -> None:
