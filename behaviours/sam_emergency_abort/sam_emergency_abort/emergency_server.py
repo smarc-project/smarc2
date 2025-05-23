@@ -4,6 +4,7 @@ from unicodedata import name
 import numpy as np
 import rclpy
 from geodesy import utm
+from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.executors import MultiThreadedExecutor
@@ -18,6 +19,9 @@ from smarc_mission_msgs.action import EmergencyAbort
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, Topics
 from sam_msgs.msg import Topics as SamTopics
 from std_msgs.msg import String
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
 class EmergencyServer(SMARCActionServer):
@@ -30,7 +34,10 @@ class EmergencyServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType,
+        self,
+        node: Node,
+        action_name,
+        action_type: ActionType,
     ):
         super().__init__(
             node,
@@ -39,9 +46,43 @@ class EmergencyServer(SMARCActionServer):
             Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
+        self.declare_parameters()
         self.declare_publishers()
+        self.declare_messages()
+        self.abort_active = False
 
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+
+    @staticmethod
+    def _wrap_param_declare(
+        node: Node, name: str, default_value: T, param_desc: str
+    ) -> T:
+        """Wrapped parameter declare to enable type completion for LSP.
+
+        Additional None protection added.
+        """
+        param_value = node.declare_parameter(
+            name, default_value, ParameterDescriptor(description=param_desc)
+        ).value
+        if param_value is None:
+            err_str = "This function wraps param calls to prevent None types."
+            err_str = "A None parameter was discoverd violation the assumption.\n"
+            err_str += "Use node.declare_parameter and directly handle None types if you must\n"
+            err_str += (
+                "Rewriting this function to allow None types would defeat it's purpose."
+            )
+            raise ValueError(err_str)
+        return param_value
+
+    def declare_parameters(self):
+        """Declares parameters for the node."""
+        node = self._node
+        self._pub_frequency = self._wrap_param_declare(
+            node,
+            "pub_frequency",
+            10,
+            "Frequency of the RPM and VBS publishers in Hz",
+        )
 
     def declare_publishers(self):
         """Declares all of node's publishers."""
@@ -63,17 +104,18 @@ class EmergencyServer(SMARCActionServer):
         )
         self.logger.info("Publisher for VBS and Thruster RPMs created.")
 
-    def _set_zero_thruster_rpm(self, publisher):
-        """Sets the thruster RPM to zero."""
-        rpm_msg = ThrusterRPM()
-        rpm_msg.rpm = 0
-        publisher.publish(rpm_msg)
+    def declare_messages(self):
+        """Declares messages needed for the publishers."""
+        self._vbs_msg = PercentStamped()
+        self._vbs_msg.value = 0.0
+        self._rpm_msg = ThrusterRPM()
+        self._rpm_msg.rpm = 0
 
-    def _set_zero_vbs(self):
-        """Sets the VBS to zero."""
-        vbs_msg = PercentStamped()
-        vbs_msg.value = 0.
-        self._vbs_pub.publish(vbs_msg)
+    def set_thruster_and_vbs_to_zero(self):
+        """Sets the thruster RPM and VBS to zero."""
+        self._vbs_pub.publish(self._vbs_msg)
+        self._rpm1_pub.publish(self._rpm_msg)
+        self._rpm2_pub.publish(self._rpm_msg)
 
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
         """Primary execution callback where goal's are handled after acceptance.
@@ -86,17 +128,17 @@ class EmergencyServer(SMARCActionServer):
             A populated ActionResult message
         """
         self.logger.info("Executing emergency abort goal...")
+        rate = self._node.create_rate(self._pub_frequency)
+        self.abort_active = True
         result_msg = self.action_type.Result
 
-        # Set the thruster RPM to zero
-        self.publish_feedback(goal_handle, "Setting thruster1 RPM to zero...")
-        self._set_zero_thruster_rpm(self._rpm1_pub)
-        self.publish_feedback(goal_handle, "Setting thruster2 RPM to zero...")
-        self._set_zero_thruster_rpm(self._rpm2_pub)
-        # Set the VBS to zero
-        self.publish_feedback(goal_handle, "Setting VBS to zero...")
-        self._set_zero_vbs()
-        goal_handle.succeed()
+        while self.abort_active:
+            self.set_thruster_and_vbs_to_zero()
+            self.publish_feedback(
+                goal_handle, "Abort in progress. Setting VBS and RPM to 0..."
+            )
+            rate.sleep()
+        rate.destroy()
 
         result_msg.success = True
         return result_msg
@@ -131,6 +173,8 @@ class EmergencyServer(SMARCActionServer):
         Returns:
             Cancel response as ACCEPT
         """
+        self.logger.info("Canceling goal...")
+        self.abort_active = False
         return CancelResponse.ACCEPT
 
     def publish_feedback(self, goal_handle: ServerGoalHandle, message: str) -> None:
@@ -145,6 +189,7 @@ class EmergencyServer(SMARCActionServer):
         feedback_msg.feedback.data = message
         goal_handle.publish_feedback(feedback_msg)
         self.logger.info(f"Published feedback: {message}")
+
 
 def main(args=None):
     rclpy.init(args=args)
