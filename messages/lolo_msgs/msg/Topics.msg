@@ -72,6 +72,11 @@ string SATELITE_RECEIVED_TOPIC = "communication/satelite_received"
 string USBL_RECEIVED_TOPIC = "communication/usbl/received"
 string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
 
+#Navigation
+string INS_ODOM_TOPIC = "ins_odom"
+string INS_RAW_TOPIC = "/ix/ins"
+string INS_IMU_TOPIC = "/standard/imu"
+
 #Control topics
 #Publish info relevant to control as a Float32
 string CONTROL_YAW_TOPIC = "control/yaw"
