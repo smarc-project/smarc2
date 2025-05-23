@@ -63,7 +63,7 @@ class GeopointServer(SMARCActionServer):
         self._pub_setpoint = self._node.create_publisher(
             Pose, f"{self._setpoint_topic}", 2
         )
-        self.logger.set_level(logging.LoggingSeverity.DEBUG)
+        self.logger.set_level(logging.LoggingSeverity.INFO)
         self._json_ops: GeoActionParsing = GeoActionParsing()
 
     @staticmethod
