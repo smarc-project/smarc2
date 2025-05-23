@@ -42,3 +42,13 @@ When necessary values are extracted and saved in private variables to store for 
         # calling inheritors function
         self.goal_response_callback(self._goal_handle)
 ```
+
+# Useful Docs
+
+These examples are very useful in seeing how ROS recommends doing this stuff.
+- [Link for Action Client Examples](https://github.com/ros2/examples/tree/master/rclpy/actions/minimal_action_client/examples_rclpy_minimal_action_client)
+- [Link for Action Server Examples](https://github.com/ros2/examples/tree/humble/rclpy/actions/minimal_action_server/examples_rclpy_minimal_action_server)
+
+CancelGoal Relevant Docs:
+
+-[CancelGoal Underlying Message](https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html) 
