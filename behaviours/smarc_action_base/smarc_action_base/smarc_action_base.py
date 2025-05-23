@@ -296,6 +296,9 @@ class SMARCActionServer(abc.ABC):
 
         Here your action server will do most of the heavy lifting of computing whatever it needs to.
 
+        WARN: Ensure every iteration in the execution callback and feedback loop you check if the is_valid_goal()
+            ROS does not natively cancel these execution callbacks
+
         Returns:
             result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
         """

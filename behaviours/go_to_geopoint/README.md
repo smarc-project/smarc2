@@ -40,6 +40,7 @@ In order to implement a server using the provided framework the following functi
     To see how to formulate the response such that ROS understand consult the docstring on the `cancel_callback` or the example.
 - `execution_callback`
     - The execution callback is simpler than the previous examples. This is simply the callback where the user parses the Goal message and does what it needs to do with it to begin the action. Additionally feedback can be provided here by the action server to the client if the action takes a significant amount of time to complete.
+    - Ensure that in the execution callback and feedback loop you are checking is `is_valid_goal` as goal cancellation in ROS does not kill your execution callback.
 
 ### Client
 In order to implement a client using the provided framework the following functions must be filled out:
