@@ -20,10 +20,4 @@
     <param name="setpoint_topic" value="$(var setpoint_topic)"/>
     <param name="goal_threshold" value="$(var goal_threshold)"/>
   </node>
-
-  <!-- Node for the Geopoint Client -->
-  <!-- NOT RUNNING SINCE THE BT IS THE CLIENT -->
-  <!-- <node name="geopoint_client" pkg="go_to_geopoint" exec="client" output="screen" namespace="$(var robot_name)">
-    <param name="robot_name" value="$(var robot_name)"/>
-  </node> -->
 </launch>
