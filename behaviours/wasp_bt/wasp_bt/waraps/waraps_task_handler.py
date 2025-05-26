@@ -12,19 +12,6 @@ class WaraPSTaskStates(enum.Enum):
     """
     The states of the WARAPS task
     """
-    # old stuff from where this class was copied
-    # IDLE = "IDLE"
-    # READY = "READY"
-    # SENT = "SENT"
-    # ACCEPTED = "ACCEPTED"
-    # REJECTED = "REJECTED"
-    # RUNNING = "RUNNING"
-    # DONE = "DONE"
-    # CANCELLED = "CANCELLED"
-    # CANCELLING = "CANCELLING"
-    # ERROR = "ERROR"
-
-    # new stuff that is more relevant to the WARA-PS task signals:
     STARTED = "started"
     RUNNING = "running"
     PAUSED = "paused"
@@ -37,7 +24,17 @@ class WaraPSTaskStates(enum.Enum):
     def __str__(self):
         return self.name
     
-    
+class WaraPSCommandSignals(enum.Enum):
+    """
+    The signals that can be sent to the WaraPS task
+    """
+    ABORT = "$abort"
+    ENOUGH = "$enough"
+    PAUSE = "$pause"
+    CONTINUE = "$continue"
+
+    def __str__(self):
+        return self.name
 
 class HasWaraPSTaskHandler:
     """
@@ -126,11 +123,6 @@ class WaraPSTaskHandler:
                 "tasks-executing": self.tasks_executing,
             }
 
-
-    
-
-
-
     # read only task_handler.wara_ps_dict
     @property
     def wara_ps_dict(self):
@@ -207,10 +199,10 @@ class WaraPSTaskHandler:
             task_dict = {
                 "name": parsed_action_name,
                 "signals": [
-                    "$abort",
-                    "$enough", 
-                    "$pause", 
-                    "$continue"
+                    WaraPSCommandSignals.ABORT.value,
+                    WaraPSCommandSignals.ENOUGH.value, 
+                    WaraPSCommandSignals.PAUSE.value, 
+                    WaraPSCommandSignals.CONTINUE.value
                 ],
                 "last_seen": now_time,
             }
@@ -269,49 +261,47 @@ class WaraPSTaskHandler:
             if "task-uuid" not in command:
                 self._node.get_logger().error("Invalid signal-task command: missing 'task-uuid' key")
 
-            status_msg = "task not found",
+            status_msg = "task not found"
             
             if command["task-uuid"] not in [task["task-uuid"] for task in self.tasks_executing]:
                 self._node.get_logger().error("Invalid signal-task command: task not found in executing tasks")
-
                 status_msg = "task not in current tasks"
 
             else: # if the task is found in executing tasks
-
                 status_msg = "ok"
-              
                 # what is the signal asking for? options: enough, pause, continue, abort
 
-                if command["signal"] == "$abort":
+                if command["signal"] == WaraPSCommandSignals.ABORT.value:
                     # abort the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
-                            task["status"] = "aborted"
+                            task["status"] = WaraPSTaskStates.ABORTED.value
                             break
-                elif command["signal"] == "$enough":
+                elif command["signal"] == WaraPSCommandSignals.ENOUGH.value:
                     # enough of the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
-                            task["status"] = "enough"
+                            task["status"] = WaraPSTaskStates.ENOUGH.value
                             break
-                elif command["signal"] == "$pause":
+                elif command["signal"] == WaraPSCommandSignals.PAUSE.value:
                     # pause the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
-                            task["status"] = "paused"
+                            task["status"] = WaraPSTaskStates.PAUSED.value
                             break
-                elif command["signal"] == "$continue":
+                elif command["signal"] == WaraPSCommandSignals.CONTINUE.value:
                     # continue the task
                     for task in self.tasks_executing:
-                        if task["task-uuid"] == command["task-uuid"] and task["status"] == "paused":
-                            task["status"] = "resumed"
+                        if task["task-uuid"] == command["task-uuid"] and task["status"] == WaraPSTaskStates.PAUSED.value:
+                            task["status"] = WaraPSTaskStates.RESUMED.value
                             break
 
-            if command["signal"] not in ["$abort", "$enough", "$pause", "$continue"]:
+            valid_signals = [s.value for s in WaraPSCommandSignals]
+            if command["signal"] not in valid_signals:
                 self._node.get_logger().error("Invalid signal-task command: invalid signal")
                 status_msg = "invalid signal"
 
-            if command["signal"] == "$abort" or command["signal"] == "$enough":
+            if command["signal"] in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
                 # remove the task from the executing tasks list
                 for i in range(len(self.tasks_executing)):
                     task = self.tasks_executing[i]
@@ -340,15 +330,12 @@ class WaraPSTaskHandler:
                 return
             
             # check if the task is valid
-            status_msg = "task not found",
+            status_msg = "task not found"
             
-            if command["task-uuid"] in self.tasks_executing:
-                status_msg = "ok"
-                # get the task status
-                for task in self.tasks_executing:
-                    if task["task-uuid"] == command["task-uuid"]:
-                        status_msg = task["status"]
-                        break
+            for task in self.tasks_executing:
+                if task["task-uuid"] == command["task-uuid"]:
+                    status_msg = task["status"]
+                    break
             
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
@@ -398,23 +385,21 @@ class WaraPSTaskHandler:
 
 
             if not any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing): # if this task is not already executing
-            
                 # add the task to the executing tasks list
                 task_dict = {
                     "task-uuid": command["task-uuid"],
                     "task": command["task"],
-                    "status": "started"
+                    "status": WaraPSTaskStates.STARTED.value
                 }
                 self.tasks_executing.append(task_dict)
                 # self._node.get_logger().info(f"Starting task: {command['task']}")
                 # publish the feedback
                 feedback_msg = {
-
                     "agent-uuid": self.wara_ps_dict["agent-uuid"],
                     "com-uuid": command["com-uuid"],
                     "task-uuid": command["task-uuid"],
                     "task": command["task"],
-                    "status": "started",
+                    "status": WaraPSTaskStates.STARTED.value,
                 }
                 msg = String()
                 msg.data = json.dumps(feedback_msg)
@@ -464,9 +449,12 @@ class WaraPSTaskHandler:
         Sets the status of the current task.
         """
         if len(self.tasks_executing) > 0:
-            self.tasks_executing[0]["status"] = status
+            # Accept both enum and string for status
+            if isinstance(status, WaraPSTaskStates):
+                self.tasks_executing[0]["status"] = status.value
+            else:
+                self.tasks_executing[0]["status"] = status
         else:
-            # log
             self._node.get_logger().error("No tasks executing")
             return None
         
@@ -482,8 +470,29 @@ class WaraPSTaskHandler:
             self._node.get_logger().error("No tasks executing")
             return None
         
+    def __str__(self):
+        """
+        Returns the string representation of the WaraPSTaskHandler object. Should be a table of the tasks available, executing and past tasks.
+        """
+
+        # create a string representation of the tasks available
+        tasks_available_str = "Tasks Available:\n"
+        for task in self.tasks_available:
+            tasks_available_str += f"\t{task['name']}\n"
+
+        # create a string representation of the tasks executing
+        tasks_executing_str = "Tasks Executing:\n"
+        for task in self.tasks_executing:
+            tasks_executing_str += f"\t{task['task']['name']}\n"
+
+        # create a string representation of the past tasks
+        past_tasks_str = "Past Tasks:\n"
+        for task in self.past_tasks:
+            past_tasks_str += f"\t{task['task']['name']}\n"
+
+        return f"{tasks_available_str}{tasks_executing_str}{past_tasks_str}"
+    
+        
 # TODO:
-# subscribe to relevant topics for checking which action servers are available instead of hardcoding them in the wara_ps_dict: action servers publish to a certain topic (which topic? Look in smarc_msgs)
-# task signals can be fixed to be a hardcoded list of strings and used for each available task type. Or maybe action servers can publish the signals as a list inside the heartbeat message?
 # if status paused, use action class and inside method "terminate" call the cancel method of the action server to cancel the action
 #

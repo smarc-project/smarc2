@@ -50,8 +50,6 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
-                 bb_updater: IBBUpdater,
-                 mission_updater: IBBMissionUpdater,
                  goto_wp_action: IActionClient,
                  now_seconds_func: typing.Callable
                  ):
@@ -63,10 +61,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self._bb_updater = bb_updater
-        self._mission_updater = mission_updater
         self._goto_wp_action = goto_wp_action
-        self._bb = Blackboard()
         self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
@@ -114,31 +109,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return safety_tree
-        
-    def _run_tree(self):
-        finalize_mission = Sequence("S_Finalize_Mission", memory=False, children=[
-            C_CheckMissionPlanState(MissionPlanStates.COMPLETED),
-            A_UpdateMissionPlan(MissionPlan.complete)
-        ])
-
-        follow_wp_plan = Sequence("S_Follow_WP_Plan", memory=False, children=[
-            C_CheckMissionPlanState(MissionPlanStates.RUNNING),
-            A_ActionClient(client=self._goto_wp_action),
-            A_UpdateMissionPlan(MissionPlan.complete_current_wp)
-        ])
-
-        mission = Fallback("F_Mission", memory=False, children=[
-            # Other types of plans go here
-            follow_wp_plan
-        ])
-
-        run = Fallback("F_Run", memory=False, children=[
-            C_CheckMissionPlanState(MissionPlanStates.STOPPED),
-            finalize_mission,
-            mission
-        ])
-        return run
-            
+                    
     def _task_handler_tree(self):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
@@ -150,6 +121,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 C_TaskIs(self._task_handler, "move-to"),
                 Fallback("F_StatusCheck", memory=False, children=[
                     C_TaskStatus(self._task_handler, "started"),
+                    C_TaskStatus(self._task_handler, "resumed"),
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                     A_ActionClient(self._goto_wp_action, self._task_handler),
@@ -187,16 +159,12 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         root = Sequence("S_Root", memory=False, children=children)
 
         self._bt = pt.trees.BehaviourTree(root)
-        self._bb_updater.update_bb()
         return self._bt.setup()
 
 
 
     def tick(self):
-        self._bb_updater.update_bb()
-        self._mission_updater.tick()
         self._bt.tick()
-        self._bb.set(BBKeys.TREE_TIP, self._bt.tip())
 
 
 def wasp_bt():
@@ -224,7 +192,7 @@ def wasp_bt():
     import uuid
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("wasp_bt")
+    node = rclpy.create_node("wasp_bt_executor")
 
     def ros_seconds() -> int:
         nonlocal node
@@ -239,11 +207,10 @@ def wasp_bt():
     
     # agent = SAMAuv(node)
     agent = Quadrotor(node)
-
-    sam_bbu = ROSBBUpdater(node, initialize_bb=True)
-    ros_mission_updater = ROSMissionUpdater(node) 
     action_type = ActionType(BaseAction)
     action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # geopint version
+    # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
 
 
     # action_client = go_to_geopoint
@@ -256,12 +223,9 @@ def wasp_bt():
             "pulse_rate": 1,
         }        
     
-    wara_ps_vehicle = WaraPSVehicle(node, agent.vehicle_state, agent_waraps_dict)
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
-            bb_updater        = sam_bbu,
-            mission_updater   = ros_mission_updater,
             goto_wp_action    = action_client_move_to,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
@@ -269,11 +233,12 @@ def wasp_bt():
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, action_client_move_to, ros_mission_updater, agent
+        nonlocal bt, bt_str, node, action_client_move_to, agent
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
-            s += f"GOTOWP Client::\n{action_client_move_to.feedback_message}\n\n"
+            # s += f"GOTOWP Client::\n{action_client_move_to.feedback_message}\n\n"
+            s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
             s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str
@@ -282,22 +247,9 @@ def wasp_bt():
     def update():
         nonlocal bt
         bt.tick()
-        # print_bt()
-
+        
     node.create_timer(0.1, update)
     node.create_timer(0.5, print_bt)
-
-
-    def wara_ps_level_1_comms():
-        nonlocal wara_ps_vehicle
-        # get the current time
-        now_time = ros_seconds_float()
-        # heartbeat
-        wara_ps_vehicle.wara_ps_heartbeat(now_time)
-        # sensor info
-        wara_ps_vehicle.wara_ps_lvl1(now_time)
-
-    node.create_timer(1.0/wara_ps_vehicle.wara_ps_dict["pulse_rate"], wara_ps_level_1_comms)
 
     def wara_ps_lvl_2_comms():
         nonlocal wara_ps_task_handler

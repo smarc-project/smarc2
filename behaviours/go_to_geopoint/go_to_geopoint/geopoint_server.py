@@ -61,7 +61,7 @@ class GeopointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self._setpoint_topic}", 2
+            PoseStamped, f"{self._setpoint_topic}", 2
         )
         self.logger.set_level(logging.LoggingSeverity.INFO)
         self._json_ops: GeoActionParsing = GeoActionParsing()
@@ -304,7 +304,7 @@ class GeopointServer(SMARCActionServer):
             f"Publishing to {self._setpoint_topic}, Setpoint"
             + self._str_posestamp(self.goal_base_link)
         )
-        self._pub_setpoint.publish(self.goal_base_link.pose)
+        self._pub_setpoint.publish(self.goal_base_link)
 
         self.feedback_loop(pose_stamped, goal_handle)
         if not self.is_valid_goal:

@@ -155,7 +155,56 @@ class WaraPSVehicle():
 
         return True
     
+def main(args=None):
+    import rclpy
+    from rclpy.node import Node
+    import uuid
+    from wasp_bt.vehicles.ros_vehicle import ROSVehicle
+    from wasp_bt.vehicles.smarc_vehicle import GenericSMaRCVehicle
+    from wasp_bt.vehicles.vehicle import UnderwaterVehicleState
 
-    if __name__ == "__main__":
-        from rclpy.node import Node
-        # can write a script to test this functionality, but later. 
+
+    rclpy.init(args=args)
+
+    node = Node("vehicle_node")
+
+    def ros_seconds_float() -> float:
+        nonlocal node
+        secs, nsecs = node.get_clock().now().seconds_nanoseconds()
+        return float(secs) + float(nsecs) * 1e-9
+
+    smarc_vehicle = GenericSMaRCVehicle(node, UnderwaterVehicleState)
+    # smarc_vehicle = ROSVehicle(node, UnderwaterVehicleState)
+
+    agent_waraps_dict = {
+            "agent-type": "subsurface",
+            "agent-uuid": str(uuid.uuid4()),
+            "levels": ["sensor", "direct_execution"],
+            "name": node.get_parameter("robot_name").value,
+            "pulse_rate": 1,
+        }        
+    wara_ps_vehicle = WaraPSVehicle(node, smarc_vehicle.vehicle_state, agent_waraps_dict)
+
+    def wara_ps_level_1_comms():
+        nonlocal wara_ps_vehicle
+        # get the current time
+        now_time = ros_seconds_float()
+        # heartbeat
+        wara_ps_vehicle.wara_ps_heartbeat(now_time)
+        # sensor info
+        wara_ps_vehicle.wara_ps_lvl1(now_time)
+
+    # Create a timer to call the wara_ps_level_1_comms function every 1 second
+    timer_period = 1.0/agent_waraps_dict["pulse_rate"]  # seconds
+    timer = node.create_timer(timer_period, wara_ps_level_1_comms)
+    node.get_logger().info("WaraPS Vehicle Node started. Publishing WaraPS Level 1 data...")
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("WaraPS Vehicle Node stopped by user.")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()

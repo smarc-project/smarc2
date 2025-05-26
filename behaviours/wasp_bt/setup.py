@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             "wasp_bt = wasp_bt.bt.ros_bt:wasp_bt",
+            "waraps_vehicle = wasp_bt.waraps.waraps_vehicle:main",
             "test_ros_vehicle = wasp_bt.vehicles.ros_vehicle:test_ros_vehicle",
             "test_sam_auv = wasp_bt.vehicles.sam_auv:test_sam_auv",
             "test_bt_conditions = wasp_bt.bt.ros_bt:test_bt_conditions",

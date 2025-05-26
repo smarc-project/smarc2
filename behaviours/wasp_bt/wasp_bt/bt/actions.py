@@ -327,7 +327,7 @@ class A_ActionClient(Behaviour):
         if s == ActionClientState.CANCELLED:
             # change state to ready
             self.feedback_message = "Action cancelled. Ready for next run."
-            self._client.state = ActionClientState.READY    
+            self._client.get_ready()    
             return Status.RUNNING
 
         # # server is good to go
@@ -375,10 +375,13 @@ class A_ActionClient(Behaviour):
             return Status.RUNNING
 
         if s in self._failure_states:
-            self._logger.info("jump")
+            # self._logger.info("jump")
             return Status.FAILURE
         
         if s in self._success_states:
+
+            # cancel the goal
+            self._client.cancel_goal(self._client.cancel_callback)
             return Status.SUCCESS
     
 

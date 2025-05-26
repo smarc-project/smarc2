@@ -8,17 +8,11 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionClient,
     ActionClientState,
 )
-from smarc_mission_msgs.action import BaseAction
-# ROS Imports
-from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 
-from rclpy.action.client import ClientGoalHandle
-from rclpy.action.server import ServerGoalHandle
+# from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
-from rosidl_parser.definition import Action
-from std_msgs.msg import String
 from smarc_action_base.smarc_ros_types import ActionFeedback, ActionGoal, ActionResult
 from action_msgs.msg import GoalStatus
 
@@ -39,7 +33,7 @@ class BTActionClient(SMARCActionClient):
     ):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
-        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
         self._action_name = action_name
         self.feedback_message = ''
 
@@ -54,10 +48,10 @@ class BTActionClient(SMARCActionClient):
         self.logger.info(f"Waypoint reached boolean: {result}")
         
         if result.success:
-            self.state = ActionClientState.SUCCEEDED
+            self.state = ActionClientState.DONE
             return self.get_goal_success()
         else:
-            self.state = ActionClientState.FAILED
+            self.state = ActionClientState.ERROR
             return self.get_goal_error()
         
     
@@ -72,7 +66,7 @@ class BTActionClient(SMARCActionClient):
             self.state = ActionClientState.ERROR
 
 
-    def goal_response_callback(self, goal_handle: ClientGoalHandle):
+    def goal_response_callback(self, goal_handle: ActionGoal):
         if not goal_handle.accepted:
             self.logger.info("Goal was not accepted")
             
@@ -80,3 +74,9 @@ class BTActionClient(SMARCActionClient):
             self.logger.info("Goal was accepted")
             self.state = ActionClientState.ACCEPTED
             self._goal_handle = goal_handle
+
+    def get_ready(self):
+        """Get the action client ready to send goals."""
+        self.state = ActionClientState.READY
+        self.logger.info(f"Action client {self._action_name} is ready.")
+        return True
