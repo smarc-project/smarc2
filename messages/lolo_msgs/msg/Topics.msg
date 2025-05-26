@@ -19,18 +19,18 @@ string ELEVON_STRB_FB = "actuators/elevon_strb_fb"
 #Thrusters setpoint
 string THRUSTER_PORT_CMD = "actuators/thruster_port_cmd"
 string THRUSTER_STRB_CMD = "actuators/thruster_strb_cmd"
-string VERTICAL_THRUSTER_1_CMD = "actuators/vertical_thruster_1_cmd"
-string VERTICAL_THRUSTER_2_CMD = "actuators/vertical_thruster_2_cmd"
-string VERTICAL_THRUSTER_3_CMD = "actuators/vertical_thruster_3_cmd"
-string VERTICAL_THRUSTER_4_CMD = "actuators/vertical_thruster_4_cmd"
+string VERTICAL_THRUSTER_BACK_PORT_CMD = "actuators/vertical_thruster_back_port_cmd"
+string VERTICAL_THRUSTER_BACK_STRB_CMD = "actuators/vertical_thruster_back_strb_cmd"
+string VERTICAL_THRUSTER_FRONT_PORT_CMD = "actuators/vertical_thruster_front_port_cmd"
+string VERTICAL_THRUSTER_FRONT_STRB_CMD = "actuators/vertical_thruster_front_strb_cmd"
 
 #Thrusters feedback
 string THRUSTER_PORT_FB = "actuators/thruster_port_fb"
 string THRUSTER_STRB_FB = "actuators/thruster_strb_fb"
-string VERTICAL_THRUSTER_1_FB = "actuators/vertical_thruster_1_fb"
-string VERTICAL_THRUSTER_2_FB = "actuators/vertical_thruster_2_fb"
-string VERTICAL_THRUSTER_3_FB = "actuators/vertical_thruster_3_fb"
-string VERTICAL_THRUSTER_4_FB = "actuators/vertical_thruster_4_fb"
+string VERTICAL_THRUSTER_BACK_PORT_FB = "actuators/vertical_thruster_back_port_fb"
+string VERTICAL_THRUSTER_BACK_STRB_FB = "actuators/vertical_thruster_back_strb_fb"
+string VERTICAL_THRUSTER_FRONT_PORT_FB = "actuators/vertical_thruster_front_strb_fb"
+string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb_fb"
 
 
 # Topics for Payload Sensors
@@ -40,14 +40,12 @@ string VERTICAL_THRUSTER_4_FB = "actuators/vertical_thruster_4_fb"
 #Heartbeat topic
 string HEARTBEAT_TOPIC = "heartbeat"
 
-string LOLO_ABORT_TOPIC = "lolo_abort"
-
 #Leak topic
 string LEAK_TOPIC = "leak"
 
 #Battry topics
-string BATTERY_1_TOPIC = "battery1"
-string BATTERY_2_TOPIC = "battery2"
+string BATTERY_1_TOPIC = "extended/battery1"
+string BATTERY_2_TOPIC = "extended/battery2"
 
 
 #Extended interface
@@ -62,10 +60,10 @@ string EXTENDED_PORT_ELEVON_FB_TOPIC = "extended/actuators/elevon_port_fb"
 string EXTENDED_STRB_ELEVON_FB_TOPIC = "extended/actuators/elevon_strb_fb"
 string EXTENDED_PORT_THRUSTER_FB_TOPIC = "extended/actuators/thruster_port_fb"
 string EXTENDED_STRB_THRUSTER_FB_TOPIC = "extended/actuators/thruster_strb_fb"
-string EXTENDED_VERTICAL_THRUSTER_1_FB_TOPIC = "extended/actuators/vertical_thruster_1_fb"
-string EXTENDED_VERTICAL_THRUSTER_2_FB_TOPIC = "extended/actuators/vertical_thruster_2_fb"
-string EXTENDED_VERTICAL_THRUSTER_3_FB_TOPIC = "extended/actuators/vertical_thruster_3_fb"
-string EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC = "extended/actuators/vertical_thruster_4_fb"
+string EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_front_port_fb"
+string EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_front_strb_fb"
+string EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_back_port_fb"
+string EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_back_strb_fb"
 
 
 
@@ -73,3 +71,20 @@ string EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC = "extended/actuators/vertical_thru
 string SATELITE_RECEIVED_TOPIC = "communication/satelite_received"
 string USBL_RECEIVED_TOPIC = "communication/usbl/received"
 string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
+
+#Navigation
+string INS_ODOM_TOPIC = "ins_odom"
+string INS_RAW_TOPIC = "/ix/ins"
+string INS_IMU_TOPIC = "/standard/imu"
+
+#Control topics
+#Publish info relevant to control as a Float32
+string CONTROL_YAW_TOPIC = "control/yaw"
+string CONTROL_YAW_RATE_TOPIC = "control/yawrate"
+string CONTROL_PITCH_TOPIC = "control/pitch"
+string CONTROL_PITCH_RATE_TOPIC = "control/pitchrate"
+string CONTROL_ROLL_TOPIC = "control/roll"
+string CONTROL_ROLL_RATE_TOPIC = "control/rollrate"
+string CONTROL_SURGE_RATE_TOPIC = "control/surgerate"
+string CONTROL_DEPTH_TOPIC = "control/depth"
+string CONTROL_ALTITUDE_TOPIC = "control/altitude"

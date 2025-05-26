@@ -120,21 +120,20 @@
 -  ELEVON_STRB_FB :  "actuators/elevon_strb_fb"
 -  THRUSTER_PORT_CMD :  "actuators/thruster_port_cmd"
 -  THRUSTER_STRB_CMD :  "actuators/thruster_strb_cmd"
--  VERTICAL_THRUSTER_1_CMD :  "actuators/vertical_thruster_1_cmd"
--  VERTICAL_THRUSTER_2_CMD :  "actuators/vertical_thruster_2_cmd"
--  VERTICAL_THRUSTER_3_CMD :  "actuators/vertical_thruster_3_cmd"
--  VERTICAL_THRUSTER_4_CMD :  "actuators/vertical_thruster_4_cmd"
+-  VERTICAL_THRUSTER_BACK_PORT_CMD :  "actuators/vertical_thruster_back_port_cmd"
+-  VERTICAL_THRUSTER_BACK_STRB_CMD :  "actuators/vertical_thruster_back_strb_cmd"
+-  VERTICAL_THRUSTER_FRONT_PORT_CMD :  "actuators/vertical_thruster_front_port_cmd"
+-  VERTICAL_THRUSTER_FRONT_STRB_CMD :  "actuators/vertical_thruster_front_strb_cmd"
 -  THRUSTER_PORT_FB :  "actuators/thruster_port_fb"
 -  THRUSTER_STRB_FB :  "actuators/thruster_strb_fb"
--  VERTICAL_THRUSTER_1_FB :  "actuators/vertical_thruster_1_fb"
--  VERTICAL_THRUSTER_2_FB :  "actuators/vertical_thruster_2_fb"
--  VERTICAL_THRUSTER_3_FB :  "actuators/vertical_thruster_3_fb"
--  VERTICAL_THRUSTER_4_FB :  "actuators/vertical_thruster_4_fb"
+-  VERTICAL_THRUSTER_BACK_PORT_FB :  "actuators/vertical_thruster_back_port_fb"
+-  VERTICAL_THRUSTER_BACK_STRB_FB :  "actuators/vertical_thruster_back_strb_fb"
+-  VERTICAL_THRUSTER_FRONT_PORT_FB :  "actuators/vertical_thruster_front_strb_fb"
+-  VERTICAL_THRUSTER_FRONT_STRB_FB :  "actuators/vertical_thruster_front_strb_fb"
 -  HEARTBEAT_TOPIC :  "heartbeat"
--  LOLO_ABORT_TOPIC :  "lolo_abort"
 -  LEAK_TOPIC :  "leak"
--  BATTERY_1_TOPIC :  "battery1"
--  BATTERY_2_TOPIC :  "battery2"
+-  BATTERY_1_TOPIC :  "extended/battery1"
+-  BATTERY_2_TOPIC :  "extended/battery2"
 -  EXTENDED_STATUS_TOPIC :  "extended/status"
 -  EXTENDED_SETTINGS_TOPIC :  "extended/settings_cmd"
 -  EXTENDED_INTERNAL_TEMPERATURE_TOPIC :  "extended/internal_temperature"
@@ -145,10 +144,10 @@
 -  EXTENDED_STRB_ELEVON_FB_TOPIC :  "extended/actuators/elevon_strb_fb"
 -  EXTENDED_PORT_THRUSTER_FB_TOPIC :  "extended/actuators/thruster_port_fb"
 -  EXTENDED_STRB_THRUSTER_FB_TOPIC :  "extended/actuators/thruster_strb_fb"
--  EXTENDED_VERTICAL_THRUSTER_1_FB_TOPIC :  "extended/actuators/vertical_thruster_1_fb"
--  EXTENDED_VERTICAL_THRUSTER_2_FB_TOPIC :  "extended/actuators/vertical_thruster_2_fb"
--  EXTENDED_VERTICAL_THRUSTER_3_FB_TOPIC :  "extended/actuators/vertical_thruster_3_fb"
--  EXTENDED_VERTICAL_THRUSTER_4_FB_TOPIC :  "extended/actuators/vertical_thruster_4_fb"
+-  EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC :  "extended/actuators/vertical_thruster_front_port_fb"
+-  EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC :  "extended/actuators/vertical_thruster_front_strb_fb"
+-  EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC :  "extended/actuators/vertical_thruster_back_port_fb"
+-  EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC :  "extended/actuators/vertical_thruster_back_strb_fb"
 -  SATELITE_RECEIVED_TOPIC :  "communication/satelite_received"
 -  USBL_RECEIVED_TOPIC :  "communication/usbl/received"
 -  USBL_RECEIVED_CHR_TOPIC :  "communication/usbl/received/chr"
@@ -210,6 +209,9 @@
 -  'core/imu': 
     - [ STIM_IMU_TOPIC ](messages/sam_msgs/msg/Topics.msg)
     - [ IMU_TOPIC ](messages/drone_msgs/msg/Topics.msg)
+-  "actuators/vertical_thruster_front_strb_fb": 
+    - [ VERTICAL_THRUSTER_FRONT_PORT_FB ](messages/lolo_msgs/msg/Topics.msg)
+    - [ VERTICAL_THRUSTER_FRONT_STRB_FB ](messages/lolo_msgs/msg/Topics.msg)
 -  'core/gps': 
     - [ GPS_TOPIC ](messages/smarc_msgs/msg/Topics.msg)
     - [ GPS_TOPIC ](messages/drone_msgs/msg/Topics.msg)
