@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>sam_emergency_abort</name>
+  <name>sam_emergency_action</name>
   <version>0.0.0</version>
   <description>Emergency Abort Action Server for SAM</description>
   <maintainer email="liling@kth.se">Li Ling</maintainer>

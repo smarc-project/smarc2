@@ -13,8 +13,8 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from sam_emergency_abort.action_parsing import ActionSubMsg as ActS
-from sam_emergency_abort.action_parsing import GeoActionParsing
+from sam_emergency_action.action_parsing import ActionSubMsg as ActS
+from sam_emergency_action.action_parsing import GeoActionParsing
 
 
 class GeopointClient(SMARCActionClient):

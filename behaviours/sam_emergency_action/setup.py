@@ -2,7 +2,7 @@ import os
 import glob
 from setuptools import find_packages, setup
 
-package_name = 'sam_emergency_abort'
+package_name = 'sam_emergency_action'
 
 setup(
     name=package_name,
@@ -23,8 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "client = sam_emergency_abort.emergency_client:main",
-            "server = sam_emergency_abort.emergency_server:main",
+            "client = sam_emergency_action.emergency_client:main",
+            "server = sam_emergency_action.emergency_server:main",
         ],
     },
 )
