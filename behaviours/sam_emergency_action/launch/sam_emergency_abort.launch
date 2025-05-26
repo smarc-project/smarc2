@@ -4,11 +4,8 @@
   <!-- Node for the Emergency Abort Server -->
   <node name="emergency_server" pkg="sam_emergency_action" exec="server" output="screen" namespace="$(var robot_name)">
     <param name="robot_name" value="$(var robot_name)"/>
+    <param name="pub_frequency" value="10"/>
+    <param name="lcg_percentage" value="40.0"/>
   </node>
 
-  <!-- Node for the Emergency Abort Client -->
-  <!-- NOT RUNNING SINCE THE BT IS THE CLIENT -->
-  <node name="emergency_client" pkg="sam_emergency_action" exec="client" output="screen" namespace="$(var robot_name)">
-    <param name="robot_name" value="$(var robot_name)"/>
-  </node>
 </launch>

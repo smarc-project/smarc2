@@ -79,6 +79,12 @@ class EmergencyServer(SMARCActionServer):
     def declare_parameters(self):
         """Declares parameters for the node."""
         node = self._node
+        self.robot_name = self._wrap_param_declare(
+            node,
+            "robot_name",
+            "sam",
+            "Name of the robot, used for logging and topic names",
+        )
         self._pub_frequency = self._wrap_param_declare(
             node,
             "pub_frequency",
