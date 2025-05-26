@@ -15,7 +15,8 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import EmergencyAbort
+from go_to_hydrobaticpoint.hydrobaticpoint_client import HydropointClient
+from smarc_mission_msgs.action import EmergencyAbort, BaseAction
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, Topics
 from sam_msgs.msg import Topics as SamTopics
 from std_msgs.msg import String
@@ -49,6 +50,7 @@ class EmergencyServer(SMARCActionServer):
         self.declare_parameters()
         self.declare_publishers()
         self.declare_messages()
+        self.declare_action_clients()
         self.abort_active = False
 
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
@@ -86,7 +88,7 @@ class EmergencyServer(SMARCActionServer):
         self._lcg_percentage = self._wrap_param_declare(
             node,
             "lcg_percentage",
-            40.,
+            40.0,
             "% value to publish to the LCG publisher",
         )
 
@@ -124,6 +126,23 @@ class EmergencyServer(SMARCActionServer):
         self._lcg_msg = PercentStamped()
         self._lcg_msg.value = self._lcg_percentage
 
+    def declare_action_clients(self):
+        """Declare action clients needed for the server.
+        Note: assume corresponding action server is running, otherwise
+        this function will block indefinitely...
+        On emergencyAbort action, Send CANCEL signal to all action clients."""
+        self.action_clients = []
+        self.logger.info("Declaring action clients...")
+        hydrobatic_client = HydropointClient(
+            self._node,
+            "go_to_hydropoint",
+            ActionType(BaseAction),
+        )
+        self.action_clients.append(hydrobatic_client)
+        self.logger.info(
+            f"Declared {len(self.action_clients)} action clients: {self.action_clients}"
+        )
+
     def publish_emergency_messages(self):
         """Publish VBS=0, RPMs=0, LCG=self._lcg_percentage"""
         self._vbs_pub.publish(self._vbs_msg)
@@ -133,7 +152,6 @@ class EmergencyServer(SMARCActionServer):
 
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
         """Primary execution callback where goal's are handled after acceptance.
-        #TODO: Send CANCEL signal to all GOTOWAYPOINT actions!
 
         Args:
             goal_handle: handle to control server and add callbacks
@@ -147,6 +165,7 @@ class EmergencyServer(SMARCActionServer):
         result_msg = self.action_type.Result
 
         while self.abort_active:
+            self.cancel_actions()
             self.publish_emergency_messages()
             self.publish_feedback(
                 goal_handle,
@@ -157,6 +176,21 @@ class EmergencyServer(SMARCActionServer):
 
         result_msg.success = True
         return result_msg
+
+    def cancel_actions(self):
+        """Send CANCEL signal to all self.action_clients.
+        Assumes that all action clients implement the cancel_geopoint method."""
+        for client in self.action_clients:
+            try:
+                client.cancel_geopoint()
+                self.logger.info(
+                    f"Canceled action {client._action_name}"
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to cancel action {client.action_name}: {e}"
+                )
+                self.logger.debug(traceback.format_exc())
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
         """Considers a goal validity and evaluates whether it should be accepted or not.
@@ -211,7 +245,7 @@ def main(args=None):
     node_name = "emergency_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(EmergencyAbort)
-    emergency_server = EmergencyServer(node, "emergency_abort", action_type)
+    emergency_server = EmergencyServer(node, "emergency_action", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
