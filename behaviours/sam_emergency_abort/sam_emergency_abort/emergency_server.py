@@ -81,7 +81,13 @@ class EmergencyServer(SMARCActionServer):
             node,
             "pub_frequency",
             10,
-            "Frequency of the RPM and VBS publishers in Hz",
+            "Frequency of the RPM, VBS and LCG publishers in Hz",
+        )
+        self._lcg_percentage = self._wrap_param_declare(
+            node,
+            "lcg_percentage",
+            40.,
+            "% value to publish to the LCG publisher",
         )
 
     def declare_publishers(self):
@@ -102,7 +108,12 @@ class EmergencyServer(SMARCActionServer):
             SamTopics.THRUSTER2_CMD_TOPIC,
             10,
         )
-        self.logger.info("Publisher for VBS and Thruster RPMs created.")
+        self._lcg_pub = node.create_publisher(
+            PercentStamped,
+            SamTopics.LCG_CMD_TOPIC,
+            10,
+        )
+        self.logger.info("Publisher for VBS, Thruster RPMs, LGC created.")
 
     def declare_messages(self):
         """Declares messages needed for the publishers."""
@@ -110,12 +121,15 @@ class EmergencyServer(SMARCActionServer):
         self._vbs_msg.value = 0.0
         self._rpm_msg = ThrusterRPM()
         self._rpm_msg.rpm = 0
+        self._lcg_msg = PercentStamped()
+        self._lcg_msg.value = self._lcg_percentage
 
-    def set_thruster_and_vbs_to_zero(self):
-        """Sets the thruster RPM and VBS to zero."""
+    def publish_emergency_messages(self):
+        """Publish VBS=0, RPMs=0, LCG=self._lcg_percentage"""
         self._vbs_pub.publish(self._vbs_msg)
         self._rpm1_pub.publish(self._rpm_msg)
         self._rpm2_pub.publish(self._rpm_msg)
+        self._lcg_pub.publish(self._lcg_msg)
 
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
         """Primary execution callback where goal's are handled after acceptance.
@@ -133,9 +147,10 @@ class EmergencyServer(SMARCActionServer):
         result_msg = self.action_type.Result
 
         while self.abort_active:
-            self.set_thruster_and_vbs_to_zero()
+            self.publish_emergency_messages()
             self.publish_feedback(
-                goal_handle, "Abort in progress. Setting VBS and RPM to 0..."
+                goal_handle,
+                f"Abort in progress. Setting VBS and RPM to 0. LCG to {self._lcg_percentage}...",
             )
             rate.sleep()
         rate.destroy()
