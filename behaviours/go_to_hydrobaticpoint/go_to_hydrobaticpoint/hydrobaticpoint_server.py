@@ -37,13 +37,12 @@ class HydropointServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType, task_name: str
+        self, node: Node, action_name, action_type: ActionType,
     ):
         super().__init__(
             node,
             action_name,
             action_type,
-            task_name,
             SmarcTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
@@ -97,30 +96,31 @@ class HydropointServer(SMARCActionServer):
             ),
         ).value
 
-        self._setpoint_topic = node.declare_parameter(
-            "setpoint_topic",
-            "go_to_setpoint",
-            ParameterDescriptor(
-                description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
-            ),
-        ).value
+        # self._setpoint_topic = node.declare_parameter(
+        #     "setpoint_topic",
+        #     "go_to_setpoint",
+        #     ParameterDescriptor(
+        #         description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
+        #     ),
+        # ).value
 
         self._goal_threshold = (
             node.declare_parameter(
                 "goal_threshold",
                 10,
                 ParameterDescriptor(
-                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
+                    description="Distance threshold in meters where a goal should be rejected. (Euclidean Norm)"
                 ),
             ).value
-            * KM_TO_METER
         )
 
         self.target_frame = (
             f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
         )
+        self.logger.info(f"Target frame {self.target_frame}")
 
         self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
+        self.logger.info(f"Distance frame {self.distance_frame}")
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
@@ -238,27 +238,29 @@ class HydropointServer(SMARCActionServer):
         # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
         hydropoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
-        pose_stamped = hydropoint
-        try:
-            self.goal_base_link = self.transform_goal(pose_stamped)
-            self.logger.debug(
-                f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
-            )
-        except TransformException as err:
-            self.logger.error(
-                f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
-            )
-            goal_handle.abort()
-            result_msg.success = False
-            return result_msg
-        self.logger.info(
-            f"Publishing to {self._setpoint_topic}, Setpoint"
-            + self._str_posestamp(self.goal_base_link)
-        )
+        # pose_stamped = hydropoint
+        # try:
+        #     self.goal_base_link = self.transform_goal(pose_stamped)
+        #     self.logger.debug(
+        #         f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
+        #     )
+        # except TransformException as err:
+        #     self.logger.error(
+        #         f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
+        #     )
+        #     goal_handle.abort()
+        #     result_msg.success = False
+        #     return result_msg
+        # self.logger.info(
+        #     f"Publishing to {self._setpoint_topic}, Setpoint"
+        #     + self._str_posestamp(self.goal_base_link)
+        # )
 
-        self._pub_setpoint.publish(self.goal_base_link.pose)
-        self.feedback_loop(pose_stamped, goal_handle)
+        self._pub_setpoint.publish(hydropoint)
+        self.feedback_loop(hydropoint, goal_handle)
 
+        # Action succeeded
+        goal_handle.succeed()
         result_msg.success = True
         return result_msg
 
@@ -345,7 +347,7 @@ def main(args=None):
     node_name = "hydropoint_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = HydropointServer(node, "go_to_hydropoint", action_type, "move-to")
+    setpoint = HydropointServer(node, "go_to_hydropoint", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
