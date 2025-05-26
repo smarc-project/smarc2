@@ -17,6 +17,7 @@ class SensorNames(str, enum.Enum):
     TCG = "TCG"
     THRUSTERS = "thrusters"
     VEHICLE_HEALTHY = "vehicle_healthy"
+    SPEED = "speed"
 
     def __str__(self):
         return self.name

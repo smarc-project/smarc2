@@ -3,8 +3,8 @@ from typing import Type
 from rclpy.node import Node
 from std_msgs.msg import String
 from smarc_msgs.msg import Topics
-from smarc_bt.vehicles.sensor import Sensor, SensorNames
-from smarc_bt.vehicles.vehicle import IVehicleState
+from wasp_bt.vehicles.sensor import Sensor, SensorNames
+from wasp_bt.vehicles.vehicle import IVehicleState
 
 
 class WaraPSVehicle():
@@ -121,8 +121,8 @@ class WaraPSVehicle():
         
         # 4. publish speed data
         speed_msg = String()
-        # speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
-        speed_msg.data = "0.0" # TODO: this is FAKE!
+        speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
+        # speed_msg.data = "0.0
         # float
         self._wara_ps_speed_pub.publish(speed_msg)
         # self._node.get_logger().info('Published Speed message')
@@ -177,7 +177,7 @@ def main(args=None):
     # smarc_vehicle = ROSVehicle(node, UnderwaterVehicleState)
 
     agent_waraps_dict = {
-            "agent-type": "subsurface",
+            "agent-type": "air",
             "agent-uuid": str(uuid.uuid4()),
             "levels": ["sensor", "direct_execution"],
             "name": node.get_parameter("robot_name").value,

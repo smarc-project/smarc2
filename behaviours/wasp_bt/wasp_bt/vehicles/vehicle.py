@@ -102,6 +102,10 @@ class VehicleState(IVehicleState):
         self._vehicle_healthy = Sensor(SensorNames.VEHICLE_HEALTHY,
                                        VehicleState.ABSOLUTE,
                                        1)
+        
+        self._speed = Sensor(SensorNames.SPEED,
+                             VehicleState.ABSOLUTE,
+                             1)
 
         self.sensors = {}
         for k,v in vars(self).items():
@@ -169,7 +173,6 @@ class UnderwaterVehicleState(VehicleState):
         """
         Extends the base vehicle to include underwater-related basics
         """
-        
         self._depth = Sensor(SensorNames.DEPTH, VehicleState.ABSOLUTE, 1)
         self._altitude = Sensor(SensorNames.ALTITUDE, VehicleState.ABSOLUTE, 1)
         self._leak = Sensor(SensorNames.LEAK, VehicleState.ABSOLUTE, 1)
