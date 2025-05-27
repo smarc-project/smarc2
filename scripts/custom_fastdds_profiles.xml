@@ -1,0 +1,28 @@
+<profiles>
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>UDP</transport_id>
+      <type>UDPv4</type>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="discovery_client" is_default_profile="true">
+    <rtps>
+      <builtin>
+	      <!--<DiscoveryConfig>
+          <discoveryProtocol>SERVER</discoveryProtocol>
+          <discoveryServersList>
+	   <RemoteServer prefix="44.53.60.12.0.0.1">
+              <metatrafficUnicastLocatorList>
+                <locator>
+                  <kind>1</kind>
+                  <port>11811</port>
+                  <address>192.168.1.100</address>
+                </locator>
+              </metatrafficUnicastLocatorList>
+            </RemoteServer>
+          </discoveryServersList>
+	</DiscoveryConfig>-->
+      </builtin>
+    </rtps>
+  </participant>
+</profiles>

@@ -78,7 +78,7 @@ class HydropointClient(SMARCActionClient):
 
     def feedback_callback(self, feedback_msg: ActionFeedback):
         """Result when a goal is sent to the server."""
-        self.logger.info(f"Received feedback {feedback_msg.feedback}")
+        self.logger.debug(f"Received feedback {feedback_msg.feedback}")
         self.dist_rem = self._json_ops.decode(
             feedback_msg.feedback,
             ActC.FEEDBACK,

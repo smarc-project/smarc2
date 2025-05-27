@@ -17,7 +17,10 @@ string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
 string PITCH_SETPOINT = 'ctrl/pitch_setpoint' # Type: Float64
 string WAYPOINT = 'ctrl/waypoint' # Type: PoseWithCovarianceStamped
 string TRAJ_MPC = 'ctrl/traj_mpc' # Type: smarc_control_msgs/TrajectoryMPC
+
+# Mocap
 string MOCAP_HYDROPOINT = '/mocap/hula/pose' # Type: PoseStamped
+string MOCAP_STATE = '/mocap/sam_mocap/odom' # Type: Odometry
 
 # Convenience Topics
 string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
