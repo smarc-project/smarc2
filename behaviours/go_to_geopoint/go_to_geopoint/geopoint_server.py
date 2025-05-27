@@ -5,7 +5,6 @@ import rclpy
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import Pose, PoseStamped
-from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
@@ -24,12 +23,11 @@ from tf2_ros import Buffer, TransformException, TransformListener
 
 from go_to_geopoint.action_parsing import ActionSubMsg as ActS
 from go_to_geopoint.action_parsing import GeoActionParsing
-from typing import TypeVar
+from smarc_utilities.node_utils import typed_param_declare
 
 KM_TO_METER = 1000
 
 
-T = TypeVar("T")
 
 
 class GeopointServer(SMARCActionServer):
@@ -66,66 +64,45 @@ class GeopointServer(SMARCActionServer):
         self.logger.set_level(logging.LoggingSeverity.INFO)
         self._json_ops: GeoActionParsing = GeoActionParsing()
 
-    @staticmethod
-    def _wrap_param_declare(
-        node: Node, name: str, default_value: T, param_desc: str
-    ) -> T:
-        """Wrapped parameter declare to enable type completion for LSP.
-
-        Additional None protection added.
-        """
-        param_value = node.declare_parameter(
-            name, default_value, ParameterDescriptor(description=param_desc)
-        ).value
-        if param_value is None:
-            err_str = "This function wraps param calls to prevent None types."
-            err_str = "A None parameter was discoverd violation the assumption.\n"
-            err_str += "Use node.declare_parameter and directly handle None types if you must\n"
-            err_str += (
-                "Rewriting this function to allow None types would defeat it's purpose."
-            )
-            raise ValueError(err_str)
-        return param_value
-
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
-        self._target_frame_param = self._wrap_param_declare(
+        self._target_frame_param = typed_param_declare(
             node,
             "target_frame",
             "odom",
             "The frame in which the desired geopoint target should be tranformed to.",
         )
 
-        self._distance_frame_param = self._wrap_param_declare(
+        self._distance_frame_param = typed_param_declare(
             node,
             "distance_frame",
             "base_link",
             "Frame for which the distance to target will be computed (usually base_link)",
         )
 
-        self._distance_frame_suffix = self._wrap_param_declare(
+        self._distance_frame_suffix = typed_param_declare(
             node,
             "distance_frame_suffix",
             "_gt",
             "Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable",
         )
 
-        self._frame_suffix = self._wrap_param_declare(
+        self._frame_suffix = typed_param_declare(
             node,
             "frame_suffix",
             "_gt",
             "Frame suffix for transform. Commonly is '_gt' for ground truth if applicable",
         )
 
-        self._setpoint_tol = self._wrap_param_declare(
+        self._setpoint_tol = typed_param_declare(
             node,
             "setpoint_tolerance",
             0.25,
             "Setpoint tolerance for when the goal is considered achieved (Euclidean norm).",
         )
         
-        self._setpoint_topic = self._wrap_param_declare(
+        self._setpoint_topic = typed_param_declare(
             node,
             "setpoint_topic",
             "go_to_setpoint",
@@ -133,7 +110,7 @@ class GeopointServer(SMARCActionServer):
         )
 
         self._goal_threshold = (
-            self._wrap_param_declare(
+            typed_param_declare(
                 node,
                 "goal_threshold",
                 10.0,
