@@ -32,3 +32,4 @@
 [submodule "external_packages/smarc_modelling"]
 	path = external_packages/smarc_modelling
 	url = https://github.com/smarc-project/smarc_modelling.git
+	branch = master
