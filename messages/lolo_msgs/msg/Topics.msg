@@ -76,15 +76,3 @@ string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
 string INS_ODOM_TOPIC = "ins_odom"
 string INS_RAW_TOPIC = "/ix/ins"
 string INS_IMU_TOPIC = "/standard/imu"
-
-#Control topics
-#Publish info relevant to control as a Float32
-string CONTROL_YAW_TOPIC = "control/yaw"
-string CONTROL_YAW_RATE_TOPIC = "control/yawrate"
-string CONTROL_PITCH_TOPIC = "control/pitch"
-string CONTROL_PITCH_RATE_TOPIC = "control/pitchrate"
-string CONTROL_ROLL_TOPIC = "control/roll"
-string CONTROL_ROLL_RATE_TOPIC = "control/rollrate"
-string CONTROL_SURGE_RATE_TOPIC = "control/surgerate"
-string CONTROL_DEPTH_TOPIC = "control/depth"
-string CONTROL_ALTITUDE_TOPIC = "control/altitude"
