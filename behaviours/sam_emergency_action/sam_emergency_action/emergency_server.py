@@ -53,7 +53,7 @@ class EmergencyServer(SMARCActionServer):
         self.declare_action_clients()
         self.abort_active = False
 
-        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
 
     @staticmethod
     def _wrap_param_declare(
@@ -170,8 +170,8 @@ class EmergencyServer(SMARCActionServer):
         self.abort_active = True
         result_msg = self.action_type.Result
 
+        self.cancel_actions()
         while self.abort_active:
-            self.cancel_actions()
             self.publish_emergency_messages()
             self.publish_feedback(
                 goal_handle,
@@ -188,9 +188,10 @@ class EmergencyServer(SMARCActionServer):
         Assumes that all action clients implement the cancel_geopoint method."""
         for client in self.action_clients:
             try:
-                client.cancel_geopoint()
+                response = client.cancel_geopoint()
                 self.logger.info(
-                    f"Canceled action {client._action_name}"
+                    f"Cancel response from {client._action_name}: {response}\n"
+                    f"Client state: {client.state}"
                 )
             except Exception as e:
                 self.logger.error(
@@ -243,7 +244,7 @@ class EmergencyServer(SMARCActionServer):
         feedback_msg.feedback = String()
         feedback_msg.feedback.data = message
         goal_handle.publish_feedback(feedback_msg)
-        self.logger.info(f"Published feedback: {message}")
+        # self.logger.info(f"Published feedback: {message}")
 
 
 def main(args=None):
