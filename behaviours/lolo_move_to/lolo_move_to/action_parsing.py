@@ -5,19 +5,19 @@ from lolo_move_to.move_to_goal import MoveToGoal
 from std_msgs.msg import String
 
 
-class ActionComponent(Enum):
+class ActionSubMsg(Enum):
     GOAL = 0
     FEEDBACK = 2
 
 
-class MoveToAction:
+class MoveToActionParsing:
     def __init__(self):
         pass
 
     def decode(
         self,
         serialized_fmt: String,
-        component: ActionComponent,
+        component: ActionSubMsg,
     ) -> MoveToGoal | float:
         """Decodes action message from json to Python / ROS types.
 
@@ -31,16 +31,16 @@ class MoveToAction:
 
         """
         fmt_dict = json.loads(serialized_fmt.data)
-        if component is ActionComponent.GOAL:
+        if component is ActionSubMsg.GOAL:
             goal = MoveToGoal()
             goal.geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
             goal.geopoint.longitude = float(fmt_dict["geopoint"]["longitude"])
             goal.target_depth = float(fmt_dict["target_depth"])
             goal.min_altitude = float(fmt_dict["min_altitude"])
             goal.rpm = float(fmt_dict["rpm"])
-            goal.timeout = float(["timeout"])
+            goal.timeout = float(fmt_dict["timeout"])
             return goal
-        elif component is ActionComponent.FEEDBACK:
+        elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["distance_remaining"])
 
     def encode(

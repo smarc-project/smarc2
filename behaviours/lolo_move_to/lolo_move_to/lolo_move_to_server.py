@@ -4,7 +4,7 @@ import numpy as np
 import rclpy
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import PoseStamped
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
@@ -21,9 +21,9 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from lolo_move_to.move_to_action import ActionComponent as ActC
-from lolo_move_to.move_to_action import MoveToAction
-from lolo_move_to.lolo import Lolo
+from lolo_move_to.action_parsing import ActionSubMsg as ActMsg
+from lolo_move_to.action_parsing import MoveToActionParsing
+from virtual_lolo.lolo import Lolo
 
 KM_TO_METER = 1000
 
@@ -38,13 +38,12 @@ class MoveToServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType, task_name: str
+        self, node: Node, action_name, action_type: ActionType,
     ):
         super().__init__(
             node,
             action_name,
             action_type,
-            task_name,
             Topics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
@@ -53,16 +52,82 @@ class MoveToServer(SMARCActionServer):
             self._tf_buffer, self._node, spin_thread=True
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: MoveToAction = MoveToAction()
+        self._json_ops: MoveToActionParsing = MoveToActionParsing()
 
-        # self.declare_parameters()
+        # TODO: instatiate lolo with a config file name.
+        self.vehicle = Lolo(robot_name=self._node.get_namespace())
 
-        # FIXME: we should configure lolo here. Robot name + navigation frame of reference.
-        self.lolo = Lolo()
+        self.declare_parameters()
 
-        # self._pub_setpoint = self._node.create_publisher(
-            # Pose, f"{self.robot_name}/{self._setpoint_topic}", 2
-        # )
+
+    def declare_parameters(self):
+        """Declares all of node's parameters in a single location."""
+        node = self._node
+        self._target_frame_param = node.declare_parameter("target_frame", "odom").value
+
+        self._distance_frame_param = node.declare_parameter(
+            "distance_frame",
+            "base_link",
+            ParameterDescriptor(
+                description="Frame for which the distance to target will be computed (usually base_link)"
+            ),
+        ).value
+
+        self._distance_frame_suffix = node.declare_parameter(
+            "distance_frame_suffix",
+            "_gt",
+            ParameterDescriptor(
+                description="Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable"
+            ),
+        ).value
+
+        self._frame_suffix = node.declare_parameter(
+            "frame_suffix",
+            "_gt",
+            ParameterDescriptor(
+                description="Frame suffix for transform. Commonly is '_gt' for ground truth if applicable"
+            ),
+        ).value
+
+        self._setpoint_tol: float = node.declare_parameter(
+            "setpoint_tolerance",
+            0.25,
+            ParameterDescriptor(
+                description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
+            ),
+        ).value
+
+        self._setpoint_topic = node.declare_parameter(
+            "setpoint_topic",
+            "go_to_setpoint",
+            ParameterDescriptor(
+                description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
+            ),
+        ).value
+
+        self._goal_threshold = (
+            node.declare_parameter(
+                "goal_threshold",
+                10,
+                ParameterDescriptor(
+                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
+                ),
+            ).value
+            * KM_TO_METER
+        )
+
+    def init_frames(self):
+        """Initialize the vehicle navigation frames.
+        """
+        # The goal's frame should be the same as the vehicle's navigation frame.
+        # Won't go forward if the vehicle does not have state feeback.
+        rate = self._node.create_rate(2)
+        while self.vehicle.reference_frame == None and self.vehicle.base_frame == None:
+            self.logger.warning(f"Vehicle does not have defined reference and base frames, does {self.vehicle.odom_topic} exists?")
+            rate.sleep()
+        self.target_frame = self.vehicle.reference_frame
+        self.distance_frame = self.vehicle.base_frame
+        self.logger.info(f"Initialized server with:\ntarget_frame: {self.target_frame}\ndistance_frame: {self.distance_frame}")
 
 
     @staticmethod
@@ -197,10 +262,9 @@ class MoveToServer(SMARCActionServer):
         self.logger.info("Executing callback")
         self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
-        moveto_goal = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
-        # FIXME: we need a better sanity check for Lolo.
-        # e.g. try: self.lolo.check_goal(goal)
+        moveto_goal = self._json_ops.decode(goal_handle.request.goal, ActMsg.GOAL)
         pose_stamped = self.convert_to_utm(moveto_goal.geopoint)
+        # FIXME: the sanity check in the goal_callback should be enough. Prolly don't need this.
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
             self.logger.debug(
@@ -208,7 +272,7 @@ class MoveToServer(SMARCActionServer):
             )
         except TransformException as err:
             self.logger.error(
-                f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
+                f"Failed to transform goal target frame {self.target_frame} from source {pose_stamped.header.frame_id}.\n\t Tf2 exception error {err}"
             )
             goal_handle.abort()
             result_msg.success = False
@@ -218,14 +282,28 @@ class MoveToServer(SMARCActionServer):
             + self._str_posestamp(self.goal_base_link)
         )
 
-        # TODO: once the goal has been sanity-checked, update it in lolo.
-        # FIXME: which frame of reference should the waypoint be expressed in?
-        self.lolo.set_goal(target_pose=pose_stamped, goal=moveto_goal)
+        # self.send_goal_to_vehicle(pose_stamped, moveto_goal)
+        # self.vehicle.set_moveto_goal(target_pose=pose_stamped, goal=moveto_goal)
+        result_msg.success = self.feedback_loop(pose_stamped, goal_handle,
+                                                int(moveto_goal.timeout))
 
-        self.feedback_loop(pose_stamped, goal_handle)
-
-        result_msg.success = True
         return result_msg
+
+    def send_goal_to_vehicle(self, pose: PoseStamped, goal):
+        """Sends the goal to the vehicle object (only lolo is supported atm).
+
+        Args:
+            pose: target's pose in the UTM-ENU frame.
+            goal: XMoveToGoal instance.
+
+        Returns:
+            Boolean flag, true if the goal was accepted successfully.
+        """
+        return self.vehicle.set_goal(x=pose.pose.position.x,
+                                    y=pose.pose.position.y,
+                                    depth=goal.target_depth,
+                                    altitude=goal.min_altitude,
+                                    rpm=goal.rpm)
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
         """Considers a goal validity and evaluates whether it should be accepted or not.
@@ -237,19 +315,23 @@ class MoveToServer(SMARCActionServer):
             response: Either GoalResponse.Accept or GoalResponse.Reject
 
         """
+        # Initialize vehicle navigation frames.
+        self.init_frames()
+
         goal_request = goal_request.goal
-        moveto_goal = self._json_ops.decode(goal_request, ActC.GOAL)
+        moveto_goal = self._json_ops.decode(goal_request, ActMsg.GOAL)
         self.logger.info(f"Recieved MoveTo goal with parameters:\n {moveto_goal}")
-        # FIXME: We need a better goal sanity check for Lolo.
         pose_stamped = self.convert_to_utm(moveto_goal.geopoint)
+
+        # Preliminary sanity check on the goal.
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
-            err_str = "Could not successfully compute transform. Rejecting goal!\n"
+            err_str = "Could not successfully compute the distance to waypoint. "
             exec_up = TransformException(err_str)
             exec_up.__cause__ = err
             # Adding error message to traceback for debug log.
-            self.logger.info(err_str)
+            self.logger.error(err_str)
             self.logger.debug(traceback.format_exc())
             return GoalResponse.REJECT
 
@@ -265,6 +347,13 @@ class MoveToServer(SMARCActionServer):
             except TransformException:
                 pass
             return GoalResponse.REJECT
+
+        # Vehicle's check on the goal.
+        if not self.send_goal_to_vehicle(pose_stamped, moveto_goal):
+            err_str = "Rejecting goal. Goal does not fulfill vehicle limits"
+            self.logger.error(err_str)
+            return GoalResponse.REJECT
+
         # Accepts as all criteria fulfilled
         return GoalResponse.ACCEPT
 
@@ -277,42 +366,72 @@ class MoveToServer(SMARCActionServer):
         Returns:
             Cancel response as ACCEPT
         """
-        self.lolo.reset_goal()
+        self.vehicle.reset_goal()
         return CancelResponse.ACCEPT
 
-    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
+    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle,
+                      timeout: int) -> bool:
         """Abstracted feedback loop where tolerance checks are conducted.
 
         Args:
             pose_stamped: target location, in UTM.
             goal_handle: passed in to enable feedback publishing
+            timeout: time limit for the server to reach the goal
+
+        Returns:
+            Boolean flag, True if the goal was reached within the timeout.
         """
-        # TODO: make the loop's frequency a parameter.
-        rate = self._node.create_rate(self.lolo.update_freq)
-        d = self.compute_distance(pose_stamped)
+        rate = self._node.create_rate(self.vehicle.update_freq)
         feedback = self.action_type.Feedback
+        action_start_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
+        goal_reached = True
+
+        # Check tolerance before going into the loop.
+        d = self.compute_distance(pose_stamped)
         tol_check = self._tol_check(d)
         while not tol_check:
+            # Check if we have timed out first.
+            if self.timed_out(action_start_time, timeout):
+                self.logger.warning(f"Goal was not reached within the time limit of {timeout}s. Aborting goal.")
+                goal_handle.abort()
+                goal_reached = False
+                break
+
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
+            self.vehicle.update()
             rate.sleep()
-            # TODO: update lolo and send setpoints.
-            self.lolo.update()
+
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
             self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
 
         rate.destroy()
-        return
+        return goal_reached
+
+    def timed_out(self, start_time: int, timeout: int) -> bool:
+        """Checks if action has taken too long.
+
+        Args:
+            start_time: start time of feedback_loop of action server.
+            timeout: max duration allowed to reach goal.
+
+        Returns:
+            Boolean flag, true if goal should be aborted.
+        """
+        time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
+        return True if (time_now - start_time) > timeout else False
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "setpoint_client"
+    node_name = "lolo_depth_move_to_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = MoveToServer(node, "go_to_setpoint", action_type, "move-to")
+    lolo_move_to = MoveToServer(node, "auv_depth_move_to", action_type)
     executor = MultiThreadedExecutor()
+    # FIXME: I have no idea how this is supposed to be done, but it works...?
+    executor.add_node(lolo_move_to.vehicle)
     executor.add_node(node)
     executor.spin()
 
