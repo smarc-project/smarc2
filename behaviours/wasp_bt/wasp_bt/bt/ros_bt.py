@@ -38,13 +38,12 @@ from .conditions import C_CheckMissionPlanState,\
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
-                     A_UpdateMissionPlan,\
-                     A_ProcessBTCommand,\
                      A_ActionClient,\
                      A_WaitForData,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
-                    A_Chilling
+                    A_Chilling,\
+                     A_ClearCurrentTask
 
 class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
@@ -124,7 +123,11 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "resumed"),
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
-                    A_ActionClient(self._goto_wp_action, self._task_handler),
+                #TODO: need to handle task failure gracefully
+                A_ActionClient(self._goto_wp_action, self._task_handler),
+                # when done, clear the task queue
+                A_ClearCurrentTask(self._task_handler),
+                # A_ClearTaskQueue(self._task_handler),
                 ]),
 
             #TODO: implement more tasks types
@@ -209,14 +212,15 @@ def wasp_bt():
     agent = Quadrotor(node)
     action_type = ActionType(BaseAction)
     action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
-    # geopint version
+    # geopoint version
     # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
 
 
     # action_client = go_to_geopoint
 
+    #TODO: how to ensure that this is the same as the uuid etc. given to wara_ps_vehicle ros node?
     agent_waraps_dict = {
-            "agent-type": "subsurface",
+            "agent-type": "air",  # or "subsurface"
             "agent-uuid": str(uuid.uuid4()),
             "levels": ["sensor", "direct_execution"],
             "name": node.get_parameter("robot_name").value,

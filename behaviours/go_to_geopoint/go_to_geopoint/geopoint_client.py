@@ -36,8 +36,6 @@ class GeopointClient(SMARCActionClient):
         self.declare_parameters()
         self._json_ops = GeoActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self.feedback_message = ''
-
 
     def declare_parameters(self):
         """Location to declare parameters."""

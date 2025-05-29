@@ -90,6 +90,8 @@ class WaraPSTaskHandler:
         self.past_tasks = []
         self.tasks_executing = []
 
+        
+
 
         # private: only this class should access this
         self._node = node
@@ -415,6 +417,17 @@ class WaraPSTaskHandler:
         Clears the task queue.
         """
         self.tasks_executing = []
+
+    def clear_current_task(self):
+        """
+        Clears the current task.
+        """
+        if len(self.tasks_executing) > 0:
+            self.tasks_executing.pop(0)
+        else:
+            # log
+            self._node.get_logger().error("No tasks executing")
+            return None
         
     def get_executing_tasks(self):
         """
@@ -490,7 +503,7 @@ class WaraPSTaskHandler:
         for task in self.past_tasks:
             past_tasks_str += f"\t{task['task']['name']}\n"
 
-        return f"{tasks_available_str}{tasks_executing_str}{past_tasks_str}"
+        return f"{tasks_available_str}{tasks_executing_str}" #{past_tasks_str}"
     
         
 # TODO:

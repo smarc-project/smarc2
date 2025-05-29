@@ -2,6 +2,12 @@
 ROBOT_NAME=Quadrotor
 SESSION=${ROBOT_NAME}_bringup
 
+# New variables for wasp_bt.launch and wasp_mqtt_agent.launch
+AGENT_TYPE=air
+LEVELS="['sensor','direct_execution']"
+PULSE_RATE=1
+LINK_SUFFIX=_gt
+
 # create a tmux session with a name
 tmux -2 new-session -d -s $SESSION
 
@@ -30,7 +36,7 @@ tmux new-window -t $SESSION:8 -n 'description'
 tmux new-window -t $SESSION:9 -n 'dummies'
 
 # for the mqtt bridge.
-tmux new-window -t $SESSION:10 -n 'mqtt'
+tmux new-window -t $SESSION:10 -n 'mqtt_bridge'
 
 
 
@@ -41,7 +47,12 @@ tmux select-window -t $SESSION:0
 tmux send-keys "echo 'Not launching drone_dr dead_reckoning.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
+
+# option to make it just a node for the waraps agent without the bt
+# tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
+
+
 
 #TODO: change this to the quadrotor action server
 tmux select-window -t $SESSION:2
@@ -64,7 +75,7 @@ tmux select-window -t $SESSION:10
 # To connect to our MQTT broker
 # tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 " C-m
 # For local testing: use defaults
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=sim" C-m 
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation" C-m 
 
 # Conditional launches, for sim-only or real-only things
 # the real sam's username is "sam" and lolo's "lolo".

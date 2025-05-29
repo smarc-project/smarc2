@@ -306,8 +306,14 @@ class GeopointServer(SMARCActionServer):
         )
         self._pub_setpoint.publish(self.goal_base_link)
 
-        self.feedback_loop(pose_stamped, goal_handle)
-        if not self.is_valid_goal:
+        status = self.feedback_loop(pose_stamped, goal_handle)
+
+        if status == "cancelled":
+            self.logger.info("Goal was cancelled by client.")
+            result_msg.success = False
+            return result_msg
+
+        if status == "invalid":
             result_msg.success = False
             return result_msg
 
@@ -366,22 +372,6 @@ class GeopointServer(SMARCActionServer):
             Cancel response as ACCEPT
         """
         self.logger.info("Received Cancel Request")
-        pose_msg = PoseStamped()
-        try:
-            t = self._tf_buffer.lookup_transform(
-                target_frame=self.target_frame,
-                source_frame=self.distance_frame,
-                time=Time(),
-                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
-            )
-            pose_msg.pose.position.x = t.transform.translation.x
-            pose_msg.pose.position.y = t.transform.translation.y
-            pose_msg.pose.position.z = t.transform.translation.z
-            self.logger.debug(self._str_posestamp(pose_msg))
-            self._pub_setpoint.publish(pose_msg.pose)
-        except TransformException:
-            self.logger.error("Could not lookup transform to cancel goal.")
-            return CancelResponse.REJECT
         return CancelResponse.ACCEPT
 
     def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
@@ -397,19 +387,20 @@ class GeopointServer(SMARCActionServer):
         tol_check = self._tol_check(d)
 
         while not tol_check:
-            self.logger.info(f"Goal handle active: {self.is_valid_goal}")
-            # TODO: (Tim) Is there anyway to not check this in the loop
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client.")
+                goal_handle.canceled()
+                return "cancelled"
             if not self.is_valid_goal:
-                return
+                return "invalid"
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
-            # self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
 
         rate.destroy()
-        return
+        return "done"
 
 
 def main(args=None):

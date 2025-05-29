@@ -47,11 +47,16 @@ class BTActionClient(SMARCActionClient):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
         
+
         if result.success:
-            self.state = ActionClientState.DONE
+            # self.state = ActionClientState.DONE
             return self.get_goal_success()
+        elif status == GoalStatus.STATUS_CANCELED:
+            self.logger.info("Goal was cancelled")
+            # self.state = ActionClientState.CANCELLED
+            return ActionClientState.CANCELLED
         else:
-            self.state = ActionClientState.ERROR
+            # self.state = ActionClientState.ERROR
             return self.get_goal_error()
         
     
@@ -60,10 +65,10 @@ class BTActionClient(SMARCActionClient):
         
         if len(response.goals_canceling) > 0:
             self.logger.info(f"Successfully cancelled goal")
-            self.state = ActionClientState.CANCELLED
+            # self.state = ActionClientState.CANCELLED
         else:
             self.logger.info(f"Failed to cancel goal")
-            self.state = ActionClientState.ERROR
+            # self.state = ActionClientState.ERROR
 
 
     def goal_response_callback(self, goal_handle: ActionGoal):
@@ -72,7 +77,7 @@ class BTActionClient(SMARCActionClient):
             
         else:
             self.logger.info("Goal was accepted")
-            self.state = ActionClientState.ACCEPTED
+            # self.state = ActionClientState.ACCEPTED
             self._goal_handle = goal_handle
 
     def get_ready(self):

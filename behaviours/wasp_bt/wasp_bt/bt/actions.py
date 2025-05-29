@@ -132,7 +132,17 @@ class A_ClearTaskQueue(VehicleBehaviour):
         
         self._task_handler.clear_task_queue()
         self.feedback_message = "Cleared task queue"
-        return Status.SUCCESS
+        return Status.RUNNING
+    
+class A_ClearCurrentTask(VehicleBehaviour):
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self._task_handler = task_handler
+
+    def update(self) -> Status:
+        self._task_handler.clear_current_task()
+        self.feedback_message = "Cleared current task"
+        return Status.RUNNING
 
 class A_WaitForData(VehicleBehaviour):
     def __init__(self,
@@ -203,68 +213,13 @@ class A_Heartbeat(VehicleBehaviour):
         return bool_to_status(self._bt.vehicle_container.heartbeat())
     
 
-class A_UpdateMissionPlan(MissionPlanBehaviour):
-    def __init__(self, state_change_func: Callable):
-        self._state_change_func = state_change_func
-        name = name = f"{self.__class__.__name__}({self._state_change_func.__name__})"
-        super().__init__(name)
-
-    def update(self) -> Status:
-        self.feedback_message = ""
-        plan = self._get_plan()
-        if plan is None: return Status.FAILURE
-
-        return bool_to_status(self._state_change_func(plan))
             
-        
-class A_ProcessBTCommand(Behaviour):
-    def __init__(self, mission_updater:IBBMissionUpdater ):
-        super().__init__(self.__class__.__name__)
-
-        self._accepted_commands = set()
-        self._accepted_commands.add("plan_dubins")
-        self._mission_updater = mission_updater
-
-        self._bb = Blackboard()
-
-    def update(self) -> Status:
-        try:
-            cmd_q = self._bb.get(BBKeys.BT_CMD_QUEUE)
-        except:
-            self.feedback_message = "No command to process (there is no queue)"
-            return Status.SUCCESS
-        
-        if cmd_q is None or len(cmd_q) == 0:
-            self.feedback_message = "No command to process (queue empty)"
-            return Status.SUCCESS
-        
-        cmd, arg = cmd_q[0]
-        cmd_q = cmd_q[1:]
-        self._bb.set(BBKeys.BT_CMD_QUEUE, cmd_q)
-
-        if not cmd in self._accepted_commands:
-            self.feedback_message = f"Command [{cmd}] not accepted. Ignored."
-            return Status.SUCCESS
-        
-        if cmd == "plan_dubins":
-            # the arg should be a float coming from the interacter, if any
-            if(arg): arg = float(arg)
-            self._mission_updater.plan_dubins(turning_radius=arg)
-            self.feedback_message = "Plan dubins called"
-            return Status.SUCCESS
-
-
-        self.feedback_message = "Invalid state of action?"
-        return Status.FAILURE
-
-
 class A_ActionClient(Behaviour):
     def __init__(self,
                  client: SMARCActionClient,
                  task_handler: WaraPSTaskHandler):
         super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
         self._client = client
-        # self._bb = Blackboard()
         self._task_handler = task_handler
 
         self._cancel_response = None
@@ -298,11 +253,13 @@ class A_ActionClient(Behaviour):
         
 
     def terminate(self, new_status: Status) -> None:
-
         if new_status == Status.INVALID:
-            # pre-empted by a higher priority branch, cancel the goal!
-            self.feedback_message = "Preempted, cancelling goal"
-            self._client.cancel_goal(self._client.cancel_callback)
+            # Only try to cancel if the goal is still active
+            if self._client.state in self._running_states:
+                self.feedback_message = "Preempted, cancelling goal"
+                self._client.cancel_goal(self._client.cancel_callback)
+            else:
+                self.feedback_message = "Preempted, but goal already finished."
             return
 
         if new_status == Status.SUCCESS:
@@ -381,7 +338,7 @@ class A_ActionClient(Behaviour):
         if s in self._success_states:
 
             # cancel the goal
-            self._client.cancel_goal(self._client.cancel_callback)
+            # self._client.cancel_goal(self._client.cancel_callback)
             return Status.SUCCESS
     
 

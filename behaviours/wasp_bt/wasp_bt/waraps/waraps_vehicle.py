@@ -166,7 +166,7 @@ def main(args=None):
 
     rclpy.init(args=args)
 
-    node = Node("vehicle_node")
+    node = Node("waraps_vehicle_node")
 
     def ros_seconds_float() -> float:
         nonlocal node
@@ -176,13 +176,25 @@ def main(args=None):
     smarc_vehicle = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     # smarc_vehicle = ROSVehicle(node, UnderwaterVehicleState)
 
+    # Declare and get parameters with defaults
+    node.declare_parameter("agent_type", "air")
+    node.declare_parameter("levels", ["sensor", "direct_execution"])
+    node.declare_parameter("pulse_rate", 1)
+    node.declare_parameter("domain", "simulation")
+
+    agent_type = node.get_parameter("agent_type").value
+    levels = node.get_parameter("levels").value
+    pulse_rate = node.get_parameter("pulse_rate").value
+    robot_name = node.get_parameter("robot_name").value if node.has_parameter("robot_name") else "sam0"
+
     agent_waraps_dict = {
-            "agent-type": "air",
-            "agent-uuid": str(uuid.uuid4()),
-            "levels": ["sensor", "direct_execution"],
-            "name": node.get_parameter("robot_name").value,
-            "pulse_rate": 1,
-        }        
+        "agent-type": agent_type,
+        "agent-uuid": str(uuid.uuid4()),
+        "levels": levels,
+        "name": robot_name,
+        "pulse_rate": pulse_rate,
+    }
+
     wara_ps_vehicle = WaraPSVehicle(node, smarc_vehicle.vehicle_state, agent_waraps_dict)
 
     def wara_ps_level_1_comms():
