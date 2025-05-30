@@ -1,0 +1,227 @@
+# Topics in the system defined under all Topics.msg files
+
+## Topics in file: [messages/lolo_msgs/msg/Topics.msg](messages/lolo_msgs/msg/Topics.msg)
+
+-  RUDDER_CMD :  "actuators/rudder_cmd"
+-  ELEVATOR_CMD :  "actuators/elevator_cmd"
+-  ELEVON_PORT_CMD :  "actuators/elevon_port_cmd"
+-  ELEVON_STRB_CMD :  "actuators/elevon_strb_cmd"
+-  RUDDER_FB :  "actuators/rudder_fb"
+-  ELEVATOR_FB :  "actuators/elevator_fb"
+-  ELEVON_PORT_FB :  "actuators/elevon_port_fb"
+-  ELEVON_STRB_FB :  "actuators/elevon_strb_fb"
+-  THRUSTER_PORT_CMD :  "actuators/thruster_port_cmd"
+-  THRUSTER_STRB_CMD :  "actuators/thruster_strb_cmd"
+-  VERTICAL_THRUSTER_BACK_PORT_CMD :  "actuators/vertical_thruster_back_port_cmd"
+-  VERTICAL_THRUSTER_BACK_STRB_CMD :  "actuators/vertical_thruster_back_strb_cmd"
+-  VERTICAL_THRUSTER_FRONT_PORT_CMD :  "actuators/vertical_thruster_front_port_cmd"
+-  VERTICAL_THRUSTER_FRONT_STRB_CMD :  "actuators/vertical_thruster_front_strb_cmd"
+-  THRUSTER_PORT_FB :  "actuators/thruster_port_fb"
+-  THRUSTER_STRB_FB :  "actuators/thruster_strb_fb"
+-  VERTICAL_THRUSTER_BACK_PORT_FB :  "actuators/vertical_thruster_back_port_fb"
+-  VERTICAL_THRUSTER_BACK_STRB_FB :  "actuators/vertical_thruster_back_strb_fb"
+-  VERTICAL_THRUSTER_FRONT_PORT_FB :  "actuators/vertical_thruster_front_strb_fb"
+-  VERTICAL_THRUSTER_FRONT_STRB_FB :  "actuators/vertical_thruster_front_strb_fb"
+-  HEARTBEAT_TOPIC :  "heartbeat"
+-  LEAK_TOPIC :  "leak"
+-  BATTERY_1_TOPIC :  "extended/battery1"
+-  BATTERY_2_TOPIC :  "extended/battery2"
+-  EXTENDED_STATUS_TOPIC :  "extended/status"
+-  EXTENDED_SETTINGS_TOPIC :  "extended/settings_cmd"
+-  EXTENDED_INTERNAL_TEMPERATURE_TOPIC :  "extended/internal_temperature"
+-  EXTENDED_INTERNAL_PRESSURE_TOPIC :  "extended/internal_pressure"
+-  EXTENDED_RUDDER_FB_TOPIC :  "extended/actuators/rudder_fb"
+-  EXTENDED_ELEVATOR_FB_TOPIC :  "extended/actuators/elevator_fb"
+-  EXTENDED_PORT_ELEVON_FB_TOPIC :  "extended/actuators/elevon_port_fb"
+-  EXTENDED_STRB_ELEVON_FB_TOPIC :  "extended/actuators/elevon_strb_fb"
+-  EXTENDED_PORT_THRUSTER_FB_TOPIC :  "extended/actuators/thruster_port_fb"
+-  EXTENDED_STRB_THRUSTER_FB_TOPIC :  "extended/actuators/thruster_strb_fb"
+-  EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC :  "extended/actuators/vertical_thruster_front_port_fb"
+-  EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC :  "extended/actuators/vertical_thruster_front_strb_fb"
+-  EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC :  "extended/actuators/vertical_thruster_back_port_fb"
+-  EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC :  "extended/actuators/vertical_thruster_back_strb_fb"
+-  SATELITE_RECEIVED_TOPIC :  "communication/satelite_received"
+-  USBL_RECEIVED_TOPIC :  "communication/usbl/received"
+-  USBL_RECEIVED_CHR_TOPIC :  "communication/usbl/received/chr"
+-  INS_ODOM_TOPIC :  "ins_odom"
+-  INS_RAW_TOPIC :  "/ix/ins"
+-  INS_IMU_TOPIC :  "/standard/imu"
+## Topics in file: [messages/dead_reckoning_msgs/msg/Topics.msg](messages/dead_reckoning_msgs/msg/Topics.msg)
+
+-  DR_ODOM_TOPIC :  'dr/odom'  
+-  DR_DEPTH_POSE_TOPIC :  'dr/depth_pose'  
+-  DR_GPS_ODOM_TOPIC :  'dr/gps_odom'  
+-  DR_ROLL_TOPIC :  'dr/roll'  
+-  DR_PITCH_TOPIC :  'dr/pitch'  
+-  DR_YAW_TOPIC :  'dr/yaw'  
+-  DR_DEPTH_TOPIC :  'dr/depth'  
+-  DR_COMPASS_HEADING_TOPIC :  'dr/compass_heading'  
+-  DR_LAT_LON_TOPIC :  'dr/lat_lon'  
+-  DR_ODOM_X_TOPIC :  'dr/x'  
+-  DR_ODOM_Y_TOPIC :  'dr/y'  
+-  DR_ODOM_Z_TOPIC :  'dr/z'  
+-  DR_ODOM_U_TOPIC :  'dr/u'  
+-  DR_ODOM_V_TOPIC :  'dr/v'  
+-  DR_ODOM_W_TOPIC :  'dr/w'  
+-  DR_ODOM_P_TOPIC :  'dr/p'  
+-  DR_ODOM_Q_TOPIC :  'dr/q'  
+-  DR_ODOM_R_TOPIC :  'dr/r'  
+-  DR_ODOM_ALT_TOPIC :  'dr/alt'  
+## Topics in file: [messages/smarc_mission_msgs/msg/Topics.msg](messages/smarc_mission_msgs/msg/Topics.msg)
+
+-  DUBINS_SERVICE :  'mission/dubins_service'
+-  UTM_LATLON_CONVERSION_SERVICE :  'mission/utm_latlon_conversion_service'
+-  MISSION_COMPLETE_TOPIC :  'mission/complete'
+-  MISSION_CONTROL_TOPIC :  'mission/mission_control'
+-  BT_COMMAND_TOPIC :  'mission/bt_command'
+-  BT_TIP_TOPIC :  'mission/bt_tip'
+-  BT_LAST_WP_TOPIC :  'mission/last_wp'
+-  GOTO_WP_ACTION :  'mission/goto_wp_action'
+## Topics in file: [messages/sam_msgs/msg/Topics.msg](messages/sam_msgs/msg/Topics.msg)
+
+-  VBS_CMD_TOPIC :  'core/vbs_cmd'
+-  LCG_CMD_TOPIC :  'core/lcg_cmd'
+-  THRUSTER1_CMD_TOPIC :  'core/thruster1_cmd'
+-  THRUSTER2_CMD_TOPIC :  'core/thruster2_cmd'
+-  THRUST_VECTOR_CMD_TOPIC :  'core/thrust_vector_cmd'
+-  DEPTH_TOPIC :  'core/depth20_pressure'
+-  DVL_TOPIC :  'core/dvl'
+-  LEAK_TOPIC :  'core/leak'
+-  VBS_FB_TOPIC :  'core/vbs_fb'
+-  LCG_FB_TOPIC :  'core/lcg_fb'
+-  THRUSTER1_FB_TOPIC :  'core/thruster1_fb'
+-  THRUSTER2_FB_TOPIC :  'core/thruster2_fb'
+-  STIM_IMU_TOPIC :  'core/imu'
+-  SBG_IMU_TOPIC :  'core/sbg_imu'
+-  PRESS_DEPTH20_TOPIC :  'core/depth20_pressure'
+-  SIDESCAN_TOPIC :  'payload/sidescan'
+-  TOGGLE_SIDESCAN_SERVICE :  'payload/toggle_sidescan'
+-  SIDESCAN_STATUS_TOPIC :  'payload/sidescan_status'
+-  GPS_FIX_TOPIC :  'core/can_gps'
+-  MAGNETIC_FIELD_TOPIC :  'core/compass'
+-  VBS_TANK_TEMPERATURE_TOPIC :  'core/vbs_tank_temperature'
+-  ESC_STATUS0_TOPIC :  'core/esc_status0_fb'
+-  ESC_STATUS1_TOPIC :  'core/esc_status1_fb'
+-  CIRCUIT_STATUS_TOPIC :  'core/circuit_status'
+-  YOST_IMU_TOPIC :  'core/yost_imu'
+-  PRESS_DEPTH300_TOPIC :  'core/depth3000_pressure'
+-  MOTOR_TEMP_TOPIC :  'core/motor_temp'
+-  MOTOR_OIL_PRESSURE_TOPIC :  'core/motor_oil_pressure'
+-  VBS_TANK_PRESSURE_TOPIC :  'core/vbs_tank_pressure'
+-  BATTERY_STATUS_TOPIC :  'core/battery_status'
+-  CONSUMED_CHARED_ARRAY_TOPIC :  'core/consumed_charged_array'
+-  CTD_FB_TOPIC :  'core/ctd_fb'
+-  THRUSTERS_FEEDBACK_TOPIC :  'core/thrusters_fb'
+-  PANIC_FB_TOPIC :  'core/panic_fb'
+-  LEAK_TOPIC_FB :  'core/leak_fb'
+-  UTIL_CMD_TOPIC :  'core/util_cmd'
+-  ARRAY_CMD_TOPIC :  'core/util_array_cmd'
+-  TCG_CMD_TOPIC :  'core/tcg_cmd'
+-  DUAL_THRUSTER_CMD_TOPIC :  'core/thruster_cmd'
+-  LIGHTS_CMD_TOPIC :  'core/light_cmd'
+-  PANIC_CMD_TOPIC :  'core/panic_cmd'
+-  DROPWEIGHTS_CMD_TOPIC :  'core/dropweights_cmd'
+-  LED_CMD_TOPIC :  'core/led_cmd'
+-  DVL_CMD_TOPIC :  'core/dvl_relay'
+-  SSS_CMD_TOPIC :  'core/sss_relay'
+-  TOGGLE_7V_CMD_TOPIC :  'core/enable_7v'
+-  GET_NODE_INFO_SRV :  'core/uavcan_get_node_info'
+-  GET_TRANSPORT_STATS_SRV :  'core/uavcan_get_transport_stats'
+-  RESTART_NODE_SRV :  'core/uavcan_restart_node'
+-  UPDATE_BATTERY_SRV :  'core/uavcan_update_battery'
+## Topics in file: [messages/smarc_control_msgs/msg/Topics.msg](messages/smarc_control_msgs/msg/Topics.msg)
+
+-  STATES :  'core/odom_gt' 
+-  DEPTH :  'dr/depth' 
+-  PITCH :  'core/imu' 
+-  DEPTH_SETPOINT :  'ctrl/depth_setpoint' 
+-  PITCH_SETPOINT :  'ctrl/pitch_setpoint' 
+-  WAYPOINT :  'ctrl/waypoint' 
+-  TRAJ_MPC :  'ctrl/traj_mpc' 
+-  STATES_CONV :  'ctrl/conv/states' 
+-  REF_CONV :  'ctrl/conv/ref' 
+-  CONTROL_ERROR_CONV :  'ctrl/conv/error' 
+-  CONTROL_INPUT_CONV :  'ctrl/conv/control_input' 
+-  WAYPOINT_CONV :  'ctrl/conv/waypoint' 
+-  ELEV_SP_TOP :  'ctrl/elevator_pid/setpoint'
+-  JOY_TOPIC :  'ctrl/joy'
+-  JOY_BUTTONS_TOPIC :  'ctrl/joy_buttons'
+-  RPM_JOYSTICK_TOPIC :  'ctrl/rpm_joystick'
+-  VEC_DEG_JOY_TOPIC :   'actrl/vector_deg_joystick'
+-  TELEOP_ENABLE :  'teleop/enable'
+-  ASSIST_ENABLE :  'teleop/drive_assist_enable'
+-  ELEVATOR_PID_CTRL :  'ctrl/elevator_pid/ctrl_effort'
+-  CONTROL_YAW_TOPIC :  "ctrl/yaw"              
+-  CONTROL_YAW_RATE_TOPIC :  "ctrl/yawrate"     
+-  CONTROL_PITCH_TOPIC :  "ctrl/pitch"          
+-  CONTROL_PITCH_RATE_TOPIC :  "ctrl/pitchrate" 
+-  CONTROL_ROLL_TOPIC :  "ctrl/roll"            
+-  CONTROL_ROLL_RATE_TOPIC :  "ctrl/rollrate"   
+-  CONTROL_SURGE_RATE_TOPIC :  "ctrl/surgerate" 
+## Topics in file: [messages/sam_graph_slam_2_msgs/msg/Topics.msg](messages/sam_graph_slam_2_msgs/msg/Topics.msg)
+
+-  MAP_LINE_DEPTH_TOPIC :  'map/line_depth'
+-  MAP_POINT_FEATURE_TOPIC :  'map/point_features'
+-  MAP_LINE_FEATURE_TOPIC :  'map/line_features'
+-  MAP_MARKED_LINE_SPHERES_TOPIC :  'map/marked_lines_spheres'
+-  MAP_MARKED_LINE_LINES_TOPIC :  'map/marked_lines_lines'
+-  DETECTOR_HYPOTH_TOPIC :  'payload/sidescan/detection_hypothesis'  
+-  DETECTOR_MARKER_TOPIC :  'payload/sidescan/detection_markers'  
+-  DETECTOR_RAW_SSS_TOPIC :  'payload/sidescan/image'  
+-  DETECTOR_MARKED_SSS_TOPIC :  'payload/sidescan/detection_hypothesis_image'  
+-  DR_ODOM_TOPIC :  'graph_dr/dr_odom'
+-  GT_ODOM_TOPIC :  'graph_dr/gt_odom'
+## Topics in file: [messages/smarc_msgs/msg/Topics.msg](messages/smarc_msgs/msg/Topics.msg)
+
+-  GPS_TOPIC :  'core/gps'
+-  HEARTBEAT_TOPIC :  'core/heartbeat'
+-  VEHICLE_READY_TOPIC :  'core/vehicle_ready'
+-  ABORT_TOPIC :  'smarc/abort' 
+-  BT_HEARTBEAT_TOPIC :  'smarc/heartbeat' 
+-  VEHICLE_HEALTH_TOPIC :  'smarc/vehicle_health' 
+-  ODOM_TOPIC :  'smarc/odom'  
+-  HEADING_TOPIC :  'smarc/heading' 
+-  SPEED_TOPIC :  'smarc/speed' 
+-  POS_LATLON_TOPIC :  'smarc/latlon' 
+-  BATTERY_PERCENT_TOPIC :  'smarc/battery_percent'
+-  DEPTH_TOPIC :  'smarc/depth'
+-  ALTITUDE_TOPIC :  'smarc/altitude'
+-  WARA_PS_ACTION_SERVER_HB_TOPIC :  'waraps/action_server_heartbeat'
+## Topics in file: [messages/drone_msgs/msg/Topics.msg](messages/drone_msgs/msg/Topics.msg)
+
+-  PROP1_CMD_TOPIC :  'core/prop_1/cmd'
+-  PROP2_CMD_TOPIC :  'core/prop_2/cmd'
+-  PROP3_CMD_TOPIC :  'core/prop_3/cmd'
+-  PROP4_CMD_TOPIC :  'core/prop_4/cmd'
+-  DRONE_ODOM_GT_TOPIC :  'odom_gt'
+-  CAMERA_DATA_TOPIC :  'core/fpcamera/image'
+-  CAMERA_COMPRESSED_DATA_TOPIC :  'core/fpcamera/image_compressed'
+-  CAMERA_INFO_TOPIC :  'core/fpcamera/cam_info'
+-  PROP1_FB_TOPIC :  'core/prop_1/feedback'
+-  PROP2_FB_TOPIC :  'core/prop_2/feedback'
+-  PROP3_FB_TOPIC :  'core/prop_3/feedback'
+-  PROP4_FB_TOPIC :  'core/prop_4/feedback'
+-  IMU_TOPIC :  'core/imu'
+-  GPS_TOPIC :  'core/gps'
+-  RANGE_TOPIC :  'core/range'
+-  DEPTH_TOPIC :  'core/depth'
+-  DR_POSITION_TOPIC :  'est_position'
+-  AUV_RELATIVE_POSITION_TOPIC :  'auv/estimated_relative_position'
+-  BUOY_DETECTOR_ESTIMATE_TOPIC :  'auv/buoy_est'
+-  SAM_LOWEST_POINT_ESTIMATE_TOPIC :  'auv/sam_lowest_est'
+-  CAMERA_PROCESSED_TOPIC :  'core/fpcamera/image_processed'
+
+# Duplicates
+
+-  "actuators/vertical_thruster_front_strb_fb": 
+    - [ VERTICAL_THRUSTER_FRONT_PORT_FB ](messages/lolo_msgs/msg/Topics.msg)
+    - [ VERTICAL_THRUSTER_FRONT_STRB_FB ](messages/lolo_msgs/msg/Topics.msg)
+-  'core/depth20_pressure': 
+    - [ DEPTH_TOPIC ](messages/sam_msgs/msg/Topics.msg)
+    - [ PRESS_DEPTH20_TOPIC ](messages/sam_msgs/msg/Topics.msg)
+-  'core/imu': 
+    - [ STIM_IMU_TOPIC ](messages/sam_msgs/msg/Topics.msg)
+    - [ IMU_TOPIC ](messages/drone_msgs/msg/Topics.msg)
+-  'core/gps': 
+    - [ GPS_TOPIC ](messages/smarc_msgs/msg/Topics.msg)
+    - [ GPS_TOPIC ](messages/drone_msgs/msg/Topics.msg)

@@ -2,3 +2,6 @@ __pycache__
 .vscode
 
 .idea/
+
+mpc_codegen
+c_generated_code
