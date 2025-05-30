@@ -64,6 +64,8 @@ class KNN(Node):
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
         self.sam_lowest_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.SAM_LOWEST_POINT_ESTIMATE_TOPIC}", 10)
         
+        self.target_pub = self.create_publisher(Float32MultiArray, f"/target", 10)  # [diving x, diving y, heading x, heading y]
+
         self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
         #self.knn = cv2.createBackgroundSubtractorKNN(history=1000, dist2Threshold=10,detectShadows=False)
 
@@ -360,28 +362,27 @@ class KNN(Node):
 
         # Get coordinates of white pixels (rope)
         ys, xs = np.where(rope_bin == 255)
-        # Fit a 2nd or 3rd degree polynomial (x = f(y) or y = f(x))
-        coeffs = np.polyfit(xs, ys, deg=3)  # Try deg=2 or 3   # can be changed by distance
-        poly_func = np.poly1d(coeffs)
-        # Generate smoothed rope line
-        x_fit_rope = np.linspace(min(xs), max(xs), 100)
-        y_fit_rope = poly_func(x_fit_rope)
-        
-        for x, y in zip(x_fit_rope.astype(int), y_fit_rope.astype(int)):
-            cv2.circle(preview_rope_2, (x, y), 1, (0, 255, 0), -1)
-        
-        #center_x_rope = int(np.mean(x_fit_rope))
-        #center_y_rope = int(np.mean(y_fit_rope))
+        if len(xs) >= 3:   # if rope exist
+            # Fit a 2nd or 3rd degree polynomial (x = f(y) or y = f(x))
+            coeffs = np.polyfit(xs, ys, deg=3)  # Try deg=2 or 3   # can be changed by distance
+            poly_func = np.poly1d(coeffs)
+            # Generate smoothed rope line
+            x_fit_rope = np.linspace(min(xs), max(xs), 100)
+            y_fit_rope = poly_func(x_fit_rope)
+            
+            for x, y in zip(x_fit_rope.astype(int), y_fit_rope.astype(int)):
+                cv2.circle(preview_rope_2, (x, y), 1, (0, 255, 0), -1)
+            
+            #center_x_rope = int(np.mean(x_fit_rope))
+            #center_y_rope = int(np.mean(y_fit_rope))
 
-        center_x_rope = int(x_fit_rope[50])
-        center_y_rope = int(y_fit_rope[50])
-        cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
+            center_x_rope = int(x_fit_rope[50])
+            center_y_rope = int(y_fit_rope[50])
+            cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
 
-        cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-
-
-        cv2.imshow("Curve Fitting", preview_rope_2)
+            cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            cv2.imshow("Curve Fitting", preview_rope_2)
         # grid-based search require fully connection 
         # path_px = self.grid_path_from_rope(preview_rope_3, center_buoy, center_auv, cell_size=5)
 
@@ -425,6 +426,7 @@ class KNN(Node):
 
             # Final 3D target in camera frame
             target_camera = [X_center + offset_x, Y_center + offset_y, cam_Z]
+            #self.get_logger().info(f"Hook diving point-------------: {target_camera}")
 
             # Display into camera
             target_u = int(fx * target_camera[0] / cam_Z + cam_x)
@@ -440,6 +442,14 @@ class KNN(Node):
             arrow_end_point = (center_x_rope, center_y_rope)
             cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
 
+            # Final 3D heading in camera frame
+            heading_x = (center_x_rope - cam_x) * cam_Z / fx
+            heading_y = (center_y_rope - cam_y) * cam_Z / fy
+
+            # Publish Target
+            target_position_msg = Float32MultiArray()
+            target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
+            self.target_pub.publish(target_position_msg) 
 
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)

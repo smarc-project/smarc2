@@ -44,6 +44,8 @@ class AUVPositionEstimator(Node):
 
         self.create_subscription(Float32MultiArray, f"/{self.robot_name}/{DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", self.buoy_cb, 10)
         self.create_subscription(Float32, f"/{self.robot_name}/{DroneTopics.DEPTH_TOPIC}", self.depth_cb, 10)
+        self.create_subscription(Float32MultiArray, f"/target", self.target_cb, 10)
+
         self.auv_position_publisher = self.create_publisher(Odometry, f"/{self.robot_name}/{DroneTopics.AUV_RELATIVE_POSITION_TOPIC}", 10)
 
         self.quadrotor_setpoint_publisher = self.create_publisher(Pose, f"/{self.robot_name}/go_to_setpoint", 10)  # absolute position
@@ -106,6 +108,13 @@ class AUVPositionEstimator(Node):
         if self.image_point is not None:
             #self.get_logger().info(f"check enter estimate relative position")
             self.estimate_relative_position()
+    def target_cb(self, msg: Float32MultiArray):
+        diving_x, diving_y, heading_x, heading_y = msg.data[0], msg.data[1], msg.data[2], msg.data[3]
+        self.get_logger().info(f"diving point: {diving_x:.2f}, {diving_y:.2f}, {self.depth:.2f}")
+        self.get_logger().info(f"heading point:{heading_x:.2f}, {heading_y:.2f}")
+
+        self.publish_quadrotor_setpoint([diving_x,diving_y,0.0])
+
 
     def estimate_relative_position(self):
         observation = self.image_point.copy()
@@ -132,7 +141,7 @@ class AUVPositionEstimator(Node):
             auv_rel_position = self.X_auv_relative[:3]
             self.publish_auv_position(auv_rel_position)
             self.publish_tf(auv_rel_position)
-            self.get_logger().info(f"check enter quadrotor publih setpoints--------------: {auv_rel_position}")
+            #self.get_logger().info(f"check enter quadrotor publih setpoints--------------: {auv_rel_position}")
             if self.buoy_detect_count < 5:
                 self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
                 self.buoy_detect_count += 1
