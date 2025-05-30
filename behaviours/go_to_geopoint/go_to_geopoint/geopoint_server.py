@@ -390,6 +390,7 @@ class GeopointServer(SMARCActionServer):
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client.")
                 goal_handle.canceled()
+                self.publish_stop_setpoint()  # <-- Added this
                 return "cancelled"
             if not self.is_valid_goal:
                 return "invalid"
@@ -401,6 +402,37 @@ class GeopointServer(SMARCActionServer):
 
         rate.destroy()
         return "done"
+    
+    def publish_stop_setpoint(self):
+        """
+        Publish a stop/hold setpoint to the robot at its current position in the target frame.
+        """
+        stop_pose = PoseStamped()
+        stop_pose.header.stamp = self._node.get_clock().now().to_msg()
+        stop_pose.header.frame_id = self.target_frame
+
+        try:
+            # Get the robot's current pose in the target frame
+            # Use the robot's base_link or equivalent as the source frame
+            current_pose = self._tf_buffer.lookup_transform(
+                target_frame=self.target_frame,
+                # use the distance frame as the source frame
+                source_frame=self.distance_frame,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1),
+            )
+            stop_pose.pose.position.x = current_pose.transform.translation.x
+            stop_pose.pose.position.y = current_pose.transform.translation.y
+            stop_pose.pose.position.z = current_pose.transform.translation.z
+            stop_pose.pose.orientation = current_pose.transform.rotation
+        except Exception as e:
+            self.logger.warn(f"Could not get current robot pose for stop setpoint: {e}")
+            stop_pose.pose.position.x = 0.0
+            stop_pose.pose.position.y = 0.0
+            stop_pose.pose.position.z = 0.0
+
+        self.logger.info("Publishing stop setpoint at current robot position to halt the robot.")
+        self._pub_setpoint.publish(stop_pose)
 
 
 def main(args=None):

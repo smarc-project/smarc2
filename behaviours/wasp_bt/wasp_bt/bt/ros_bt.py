@@ -251,9 +251,10 @@ def wasp_bt():
     def update():
         nonlocal bt
         bt.tick()
+        print_bt()
         
     node.create_timer(0.1, update)
-    node.create_timer(0.5, print_bt)
+    # node.create_timer(0.5, print_bt)
 
     def wara_ps_lvl_2_comms():
         nonlocal wara_ps_task_handler
