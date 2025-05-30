@@ -1,0 +1,17 @@
+<launch>
+    <arg name="namespace" default="udp"/>
+
+    <push-ros-namespace namespace="$(var namespace)"/>
+    <node pkg="udp_driver" exec="udp_receiver_node">
+        <param name="listen_port" value="8888"/>
+        <param name="received_topic" value="received"/>
+        <param name="poll_rate" value="10"/>
+    </node>
+
+    <node pkg="udp_driver" exec="udp_transmit_node">
+        <param name="endpoint_ip" value="127.0.0.1"/>
+        <param name="endpoint_port" value="8888"/>
+        <param name="transmit_topic" value="send"/>
+    </node>
+
+</launch>
