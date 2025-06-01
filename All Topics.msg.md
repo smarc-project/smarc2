@@ -222,9 +222,6 @@
 -  'core/imu': 
     - [ STIM_IMU_TOPIC ](messages/sam_msgs/msg/Topics.msg)
     - [ IMU_TOPIC ](messages/drone_msgs/msg/Topics.msg)
--  "actuators/vertical_thruster_front_strb_fb": 
-    - [ VERTICAL_THRUSTER_FRONT_PORT_FB ](messages/lolo_msgs/msg/Topics.msg)
-    - [ VERTICAL_THRUSTER_FRONT_STRB_FB ](messages/lolo_msgs/msg/Topics.msg)
 -  'core/gps': 
     - [ GPS_TOPIC ](messages/smarc_msgs/msg/Topics.msg)
     - [ GPS_TOPIC ](messages/drone_msgs/msg/Topics.msg)
