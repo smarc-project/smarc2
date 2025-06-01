@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 
-from lolo_move_to.move_to_goal import MoveToGoal
+from lolo_depth_move_to.depth_move_to_goal import DepthMoveToGoal
 from std_msgs.msg import String
 
 
@@ -10,7 +10,7 @@ class ActionSubMsg(Enum):
     FEEDBACK = 2
 
 
-class MoveToActionParsing:
+class DepthMoveToActionParsing:
     def __init__(self):
         pass
 
@@ -18,7 +18,7 @@ class MoveToActionParsing:
         self,
         serialized_fmt: String,
         component: ActionSubMsg,
-    ) -> MoveToGoal | float:
+    ) -> DepthMoveToGoal | float:
         """Decodes action message from json to Python / ROS types.
 
         Note: this is done for the convenience of higher level operations and is not necessary.
@@ -27,12 +27,12 @@ class MoveToActionParsing:
             component: The desired action component that is being parsed (defines how it will be parsed)
 
         Returns:
-            Python and MoveToGoal types for usage in client and server.
+            Python and DepthMoveToGoal types for usage in client and server.
 
         """
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
-            goal = MoveToGoal()
+            goal = DepthMoveToGoal()
             goal.geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
             goal.geopoint.longitude = float(fmt_dict["geopoint"]["longitude"])
             goal.target_depth = float(fmt_dict["target_depth"])
@@ -45,12 +45,12 @@ class MoveToActionParsing:
 
     def encode(
         self,
-        val: MoveToGoal | float,
+        val: DepthMoveToGoal | float,
     ) -> String | None:
         """Encodes action message into string."""
         str_msg = String()
         fmt_dict = {}
-        if isinstance(val, (MoveToGoal,)):
+        if isinstance(val, (DepthMoveToGoal,)):
             fmt_dict["geopoint"] = {}
             fmt_dict["geopoint"]["latitude"] = val.geopoint.latitude
             fmt_dict["geopoint"]["longitude"] = val.geopoint.longitude

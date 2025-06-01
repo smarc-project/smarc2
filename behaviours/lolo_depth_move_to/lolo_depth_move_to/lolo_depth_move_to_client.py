@@ -1,10 +1,8 @@
 import rclpy
 from action_msgs.msg import GoalStatus
 from geographic_msgs.msg import GeoPoint
-from rclpy.action import CancelResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
-from rosidl_parser.definition import Action
 from smarc_action_base.smarc_action_base import (
     ActionFeedback,
     ActionResult,
@@ -13,12 +11,12 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from lolo_move_to.move_to_goal import MoveToGoal
-from lolo_move_to.action_parsing import ActionSubMsg as ActMsg
-from lolo_move_to.action_parsing import MoveToActionParsing
+from lolo_depth_move_to.depth_move_to_goal import DepthMoveToGoal
+from lolo_depth_move_to.action_parsing import ActionSubMsg as ActMsg
+from lolo_depth_move_to.action_parsing import DepthMoveToActionParsing
 
 
-class MoveToClient(SMARCActionClient):
+class DepthMoveToClient(SMARCActionClient):
     """Client for sending Geopoint message requests to vehicles.
 
     Attributes:
@@ -35,7 +33,7 @@ class MoveToClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = MoveToActionParsing()
+        self._json_ops = DepthMoveToActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
@@ -84,7 +82,7 @@ class MoveToClient(SMARCActionClient):
         """
         self.cancel_goal(self.cancel_callback)
 
-    def send_move_to(self, move_to_goal: MoveToGoal):
+    def send_move_to(self, move_to_goal: DepthMoveToGoal):
         """Request geopoint be sent to server.
 
         Interface for external usage of client.
@@ -95,17 +93,16 @@ class MoveToClient(SMARCActionClient):
 
     def _test_move_to(self):
         """For testing geopoint setting."""
-        goal = MoveToGoal()
+        goal = DepthMoveToGoal()
         geopoint = GeoPoint()
-        geopoint.latitude = 58.83036
-        geopoint.longitude = 17.65406
+        geopoint.latitude = 58.830426
+        geopoint.longitude = 17.652015
         goal.geopoint = geopoint
-        goal.target_depth = -10.0
-        goal.min_altitude = 1.0
+        goal.target_depth = 50.0
+        goal.min_altitude = 20.0
         goal.rpm = 800
         goal.timeout = 600
-
-        self.logger.info(f"Sending MoveTo goal:\n{goal}")
+        self.logger.info(f"Sending DepthMoveTo goal:\n{goal}")
         self.send_move_to(goal)
 
 
@@ -114,7 +111,7 @@ def main(args=None):
     node_name = "lolo_move_to_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = MoveToClient(node, "auv_depth_move_to", action_type)
+    setpoint = DepthMoveToClient(node, "auv_depth_move_to", action_type)
     setpoint._test_move_to()
     rclpy.spin(node)
 

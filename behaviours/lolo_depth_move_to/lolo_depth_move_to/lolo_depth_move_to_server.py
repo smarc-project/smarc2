@@ -1,11 +1,9 @@
-import traceback
 
 import numpy as np
 import rclpy
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseStamped
-from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.executors import MultiThreadedExecutor
@@ -21,15 +19,13 @@ from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from lolo_move_to.action_parsing import ActionSubMsg as ActMsg
-from lolo_move_to.action_parsing import MoveToActionParsing
+from lolo_depth_move_to.action_parsing import ActionSubMsg as ActMsg
+from lolo_depth_move_to.action_parsing import DepthMoveToActionParsing
 from virtual_lolo.lolo import Lolo
 
-KM_TO_METER = 1000
 
-
-class MoveToServer(SMARCActionServer):
-    """Action point server to handle MoveTo messages.
+class DepthMoveToServer(SMARCActionServer):
+    """Action point server to handle DepthMoveTo messages.
 
     Attributes:
         logger: shorthand for `node.get_logger()`
@@ -52,83 +48,38 @@ class MoveToServer(SMARCActionServer):
             self._tf_buffer, self._node, spin_thread=True
         )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
-        self._json_ops: MoveToActionParsing = MoveToActionParsing()
-
-        # TODO: instatiate lolo with a config file name.
-        self.vehicle = Lolo(robot_name=self._node.get_namespace())
+        self._json_ops: DepthMoveToActionParsing = DepthMoveToActionParsing()
 
         self.declare_parameters()
+        self.vehicle = Lolo(robot_name=self._robot_name,
+                            limits_filename=self._vehicle_limits_filename)
 
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
         node = self._node
-        self._target_frame_param = node.declare_parameter("target_frame", "odom").value
-
-        self._distance_frame_param = node.declare_parameter(
-            "distance_frame",
-            "base_link",
-            ParameterDescriptor(
-                description="Frame for which the distance to target will be computed (usually base_link)"
-            ),
-        ).value
-
-        self._distance_frame_suffix = node.declare_parameter(
-            "distance_frame_suffix",
-            "_gt",
-            ParameterDescriptor(
-                description="Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable"
-            ),
-        ).value
-
-        self._frame_suffix = node.declare_parameter(
-            "frame_suffix",
-            "_gt",
-            ParameterDescriptor(
-                description="Frame suffix for transform. Commonly is '_gt' for ground truth if applicable"
-            ),
-        ).value
-
-        self._setpoint_tol: float = node.declare_parameter(
-            "setpoint_tolerance",
-            0.25,
-            ParameterDescriptor(
-                description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
-            ),
-        ).value
-
-        self._setpoint_topic = node.declare_parameter(
-            "setpoint_topic",
-            "go_to_setpoint",
-            ParameterDescriptor(
-                description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
-            ),
-        ).value
-
-        self._goal_threshold = (
-            node.declare_parameter(
-                "goal_threshold",
-                10,
-                ParameterDescriptor(
-                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
-                ),
-            ).value
-            * KM_TO_METER
-        )
+        self._robot_name = node.declare_parameter(
+            "setpoint_tolerance", self._node.get_namespace()).value
+        self._update_rate = node.declare_parameter("update_rate", 10).value
+        # If filename not declared, default values should be
+        # set by the vehicle and not the server.
+        self._vehicle_limits_filename = node.declare_parameter(
+            "limits_filename", "").value
 
     def init_frames(self):
-        """Initialize the vehicle navigation frames.
+        """
+        Initialize the vehicle navigation frames.
         """
         # The goal's frame should be the same as the vehicle's navigation frame.
         # Won't go forward if the vehicle does not have state feeback.
-        rate = self._node.create_rate(2)
-        while self.vehicle.reference_frame == None and self.vehicle.base_frame == None:
+        rate = self._node.create_rate(0.2)
+        while self.vehicle.navigation_frame == None and self.vehicle.base_frame == None:
             self.logger.warning(f"Vehicle does not have defined reference and base frames, does {self.vehicle.odom_topic} exists?")
             rate.sleep()
-        self.target_frame = self.vehicle.reference_frame
+        rate.destroy()
+        self.target_frame = self.vehicle.navigation_frame
         self.distance_frame = self.vehicle.base_frame
         self.logger.info(f"Initialized server with:\ntarget_frame: {self.target_frame}\ndistance_frame: {self.distance_frame}")
-
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
@@ -186,7 +137,8 @@ class MoveToServer(SMARCActionServer):
         # based on ReadMe in repository
         return do_transform_pose_stamped(PoseStamped(), t)
 
-    def compute_distance(self, pose_stamped: PoseStamped) -> float:
+    def compute_distance(self, pose_stamped: PoseStamped,
+                         check_depth=True) -> float:
         """Euclidean distance to target.
 
         Args:
@@ -209,11 +161,13 @@ class MoveToServer(SMARCActionServer):
             raise TransformException(err_str) from err
 
         pose_delta = pose_transformed.pose
-        delta = np.sqrt(
-            (pose_delta.position.x) ** 2
-            + (pose_delta.position.y) ** 2
-            + (pose_delta.position.z) ** 2
-        )
+        if check_depth:
+            delta = np.linalg.norm([pose_delta.position.x,
+                                    pose_delta.position.y,
+                                    pose_delta.position.z])
+        else:
+            delta = np.linalg.norm([pose_delta.position.x,
+                                    pose_delta.position.y])
         return delta
 
     def _tol_check(self, delta):
@@ -225,7 +179,7 @@ class MoveToServer(SMARCActionServer):
         Returns:
             tol_check (bool): true if vehicle is within zone
         """
-        if delta > self._setpoint_tol:
+        if delta > self.vehicle.limits["goal_tolerance_plane"]:
             return False
         else:
             return True
@@ -259,32 +213,16 @@ class MoveToServer(SMARCActionServer):
         Returns:
             A populated ActionResult message
         """
-        self.logger.info("Executing callback")
-        self.logger.info(f"{goal_handle.request}")
+        self.logger.debug("Executing callback")
+        self.logger.debug(f"{goal_handle.request}")
         result_msg = self.action_type.Result
         moveto_goal = self._json_ops.decode(goal_handle.request.goal, ActMsg.GOAL)
-        pose_stamped = self.convert_to_utm(moveto_goal.geopoint)
-        # FIXME: the sanity check in the goal_callback should be enough. Prolly don't need this.
-        try:
-            self.goal_base_link = self.transform_goal(pose_stamped)
-            self.logger.debug(
-                f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
-            )
-        except TransformException as err:
-            self.logger.error(
-                f"Failed to transform goal target frame {self.target_frame} from source {pose_stamped.header.frame_id}.\n\t Tf2 exception error {err}"
-            )
-            goal_handle.abort()
-            result_msg.success = False
-            return result_msg
-        self.logger.info(
-            f"Publishing to {self._setpoint_topic}, Setpoint"
-            + self._str_posestamp(self.goal_base_link)
-        )
+        pose_stamped_utm_frame = self.convert_to_utm(moveto_goal.geopoint)
+        pose_stamped_nav_frame = self.transform_goal(pose_stamped=pose_stamped_utm_frame,
+                                                     override_target=self.target_frame)
 
-        # self.send_goal_to_vehicle(pose_stamped, moveto_goal)
-        # self.vehicle.set_moveto_goal(target_pose=pose_stamped, goal=moveto_goal)
-        result_msg.success = self.feedback_loop(pose_stamped, goal_handle,
+        result_msg.success = self.feedback_loop(pose_stamped_nav_frame,
+                                                goal_handle,
                                                 int(moveto_goal.timeout))
 
         return result_msg
@@ -293,8 +231,8 @@ class MoveToServer(SMARCActionServer):
         """Sends the goal to the vehicle object (only lolo is supported atm).
 
         Args:
-            pose: target's pose in the UTM-ENU frame.
-            goal: XMoveToGoal instance.
+            pose: target's pose in the vehicle's navigation frame.
+            goal: DepthMoveToGoal instance.
 
         Returns:
             Boolean flag, true if the goal was accepted successfully.
@@ -303,7 +241,8 @@ class MoveToServer(SMARCActionServer):
                                     y=pose.pose.position.y,
                                     depth=goal.target_depth,
                                     altitude=goal.min_altitude,
-                                    rpm=goal.rpm)
+                                    rpm=goal.rpm,
+                                    timeout=goal.timeout)
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
         """Considers a goal validity and evaluates whether it should be accepted or not.
@@ -320,36 +259,15 @@ class MoveToServer(SMARCActionServer):
 
         goal_request = goal_request.goal
         moveto_goal = self._json_ops.decode(goal_request, ActMsg.GOAL)
-        self.logger.info(f"Recieved MoveTo goal with parameters:\n {moveto_goal}")
-        pose_stamped = self.convert_to_utm(moveto_goal.geopoint)
+        self.logger.info(f"Recieved DepthMoveTo goal with parameters:\n {moveto_goal}")
 
-        # Preliminary sanity check on the goal.
-        try:
-            dist = self.compute_distance(pose_stamped)
-        except TransformException as err:
-            err_str = "Could not successfully compute the distance to waypoint. "
-            exec_up = TransformException(err_str)
-            exec_up.__cause__ = err
-            # Adding error message to traceback for debug log.
-            self.logger.error(err_str)
-            self.logger.debug(traceback.format_exc())
-            return GoalResponse.REJECT
+        # I think the goal should be sent in the robots nav frame?
+        pose_stamped_utm_frame = self.convert_to_utm(moveto_goal.geopoint)
+        pose_stamped_nav_frame = self.transform_goal(pose_stamped=pose_stamped_utm_frame,
+                                                     override_target=self.target_frame)
 
-        if dist >= self._goal_threshold:
-            err_str = f"Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self._goal_threshold:.1f}"
-            self.logger.info(err_str)
-
-            # providing additional details if possible about error
-            try:
-                pose = self.get_robot_pose_in_msg_frame(pose_stamped)
-                err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
-                self.logger.debug(err_str)
-            except TransformException:
-                pass
-            return GoalResponse.REJECT
-
-        # Vehicle's check on the goal.
-        if not self.send_goal_to_vehicle(pose_stamped, moveto_goal):
+        # Send the goal to the vehicle and check if it passed the check.
+        if not self.send_goal_to_vehicle(pose_stamped_nav_frame, moveto_goal):
             err_str = "Rejecting goal. Goal does not fulfill vehicle limits"
             self.logger.error(err_str)
             return GoalResponse.REJECT
@@ -381,13 +299,17 @@ class MoveToServer(SMARCActionServer):
         Returns:
             Boolean flag, True if the goal was reached within the timeout.
         """
-        rate = self._node.create_rate(self.vehicle.update_freq)
+        # FIXME: the tolerance check considers the distance to the waypoint in 3D, which means that
+        # if our robot reaches the goal in the XY plane, but not in Z, it will be going in circles
+        # until it times out. What's the best way of dealing with this??
+        rate = self._node.create_rate(self._update_rate)
         feedback = self.action_type.Feedback
         action_start_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
         goal_reached = True
 
         # Check tolerance before going into the loop.
-        d = self.compute_distance(pose_stamped)
+        # TODO: Should we consider the depth error as well?!
+        d = self.compute_distance(pose_stamped, check_depth=False)
         tol_check = self._tol_check(d)
         while not tol_check:
             # Check if we have timed out first.
@@ -402,9 +324,11 @@ class MoveToServer(SMARCActionServer):
             self.vehicle.update()
             rate.sleep()
 
-            d = self.compute_distance(pose_stamped)
+            # TODO: Should we consider the depth error as well?!
+            d = self.compute_distance(pose_stamped, check_depth=False)
             tol_check = self._tol_check(d)
-            self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
+            self.logger.info(f"\nWaypoint reached: {tol_check}\nDistance: {d} m.",
+                             throttle_duration_sec=10)
 
         rate.destroy()
         return goal_reached
@@ -428,11 +352,12 @@ def main(args=None):
     node_name = "lolo_depth_move_to_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    lolo_move_to = MoveToServer(node, "auv_depth_move_to", action_type)
+    lolo_move_to = DepthMoveToServer(node, "auv_depth_move_to", action_type)
     executor = MultiThreadedExecutor()
     # FIXME: I have no idea how this is supposed to be done, but it works...?
-    executor.add_node(lolo_move_to.vehicle)
+    # FIXME: Maybe I should pass the same node handle to the virtual lolo?
     executor.add_node(node)
+    executor.add_node(lolo_move_to.vehicle)
     executor.spin()
 
 

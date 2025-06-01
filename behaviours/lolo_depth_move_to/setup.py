@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'lolo_move_to'
+package_name = 'lolo_depth_move_to'
 
 setup(
     name=package_name,
@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "client = lolo_move_to.lolo_move_to_client:main",
-            "server = lolo_move_to.lolo_move_to_server:main",
+            "client = lolo_depth_move_to.lolo_depth_move_to_client:main",
+            "server = lolo_depth_move_to.lolo_depth_move_to_server:main",
         ],
     },
 )

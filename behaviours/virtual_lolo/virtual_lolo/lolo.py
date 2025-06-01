@@ -15,17 +15,20 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import yaml
 import numpy as np
 
 # TODO: add this as a dependency in package.xml.
 from tf_transformations import euler_from_quaternion
 
 from rclpy.node import Node
-
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32
+
 # from lolo_msgs.msg import Topics as LoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
+
+from ament_index_python.packages import get_package_share_directory
 
 
 class SimpleRPMGoal(object):
@@ -37,6 +40,7 @@ class SimpleRPMGoal(object):
                  depth = None,
                  altitude = None,
                  rpm = None,
+                 timeout = None,
                  tolerance = None,
                  targetCourse = None):
         self.x = x
@@ -44,6 +48,7 @@ class SimpleRPMGoal(object):
         self.depth = depth
         self.altitude = altitude
         self.rpm = rpm
+        self.timeout = timeout
         self.tolerance = tolerance
         self.targetCourse = targetCourse
         self.goal_type = self.GOALTYPE_WAYPOINT
@@ -57,49 +62,20 @@ class SimpleRPMGoal(object):
 
 class Lolo(Node):
 
-    def __init__(self, robot_name="lolo", update_freq=10, path_to_params = None):
-
+    def __init__(self, robot_name="lolo",
+                 limits_filename="lolo_default_limits.yaml"):
         super().__init__('virtual_lolo')
         self.logger = self.get_logger()
 
-        # TODO: Import config file with limits.
+        # Rosparams.
+        self.limits_filename = limits_filename
+
+        # Import config file with limits.
+        self.limits = self.read_limits()
 
         self.robot_name = robot_name
-        self.update_freq = update_freq
-        self.reference_frame = None
+        self.navigation_frame = None
         self.base_frame = None
-
-        # Navigation/INS feedback subscriber.
-        self.odom_topic = f"{self.robot_name}/{SmarcTopics.ODOM_TOPIC}"
-        self.create_subscription(Odometry, self.odom_topic, self.odometry_callback, 10)
-        # Altitude subscriber.
-        self.create_subscription(Float32, f"{self.robot_name}/{SmarcTopics.ALTITUDE_TOPIC}",
-                                 self.altitude_callback, 10)
-        # Absolute depth subscriber.
-        self.create_subscription(Float32, f"{self.robot_name}/{SmarcTopics.DEPTH_TOPIC}",
-                                 self.depth_callback, 10)
-
-        # Thruster setpoint publishers.
-        # TODO: Add this topic to LoloTopics.
-        self.thruster_pub = self.create_publisher(Float32, f"{self.robot_name}/ctrl/rpm_setpoint",
-                                                       10)
-        # self.v_thruster_1_pub = self.create_publisher(Float32, f"{self.robot_name}/{LoloTopics.VERTICAL_THRUSTER_1_CMD}",
-                                                      # 10)
-        # self.v_thruster_2_pub = self.create_publisher(Float32, f"{self.robot_name}/{LoloTopics.VERTICAL_THRUSTER_2_CMD}",
-                                                      # 10)
-        # self.v_thruster_3_pub = self.create_publisher(Float32, f"{self.robot_name}/{LoloTopics.VERTICAL_THRUSTER_3_CMD}",
-                                                      # 10)
-        # self.v_thruster_4_pub = self.create_publisher(Float32, f"{self.robot_name}/{LoloTopics.VERTICAL_THRUSTER_4_CMD}",
-                                                      # 10)
-        # Orientation setpoint publishers.
-        self.yaw_pub = self.create_publisher(Float32, f"{self.robot_name}/ctrl/yaw_setpoint",
-                                             10)
-        self.roll_pub = self.create_publisher(Float32, f"{self.robot_name}/ctrl/roll_setpoint",
-                                             10)
-        self.depth_pub = self.create_publisher(Float32, f"{self.robot_name}/ctrl/depth_setpoint",
-                                               10)
-
-
         self.goal = None
 
         #Vehicle state values
@@ -138,6 +114,53 @@ class Lolo(Node):
 
         self.elevator_angle = 0
         self.desired_elevator_angle = 0
+
+        # Navigation/INS feedback subscriber.
+        self.odom_topic = f"{self.robot_name}/{SmarcTopics.ODOM_TOPIC}"
+        self.create_subscription(Odometry, self.odom_topic, self.odometry_callback,
+                                 10)
+        # Altitude subscriber.
+        self.create_subscription(Float32,
+                                 f"{self.robot_name}/{SmarcTopics.ALTITUDE_TOPIC}",
+                                 self.altitude_callback, 10)
+        # Absolute depth subscriber.
+        self.create_subscription(Float32,
+                                 f"{self.robot_name}/{SmarcTopics.DEPTH_TOPIC}",
+                                 self.depth_callback, 10)
+
+        # Thruster setpoint publishers.
+        # TODO: Add this topics to LoloTopics.
+        self.thruster_pub = self.create_publisher(Float32,
+                                                  f"{self.robot_name}/ctrl/rpm_setpoint",
+                                                  10)
+        # Orientation setpoint publishers.
+        self.yaw_pub = self.create_publisher(Float32,
+                                             f"{self.robot_name}/ctrl/yaw_setpoint",
+                                             10)
+        self.roll_pub = self.create_publisher(Float32,
+                                              f"{self.robot_name}/ctrl/roll_setpoint",
+                                              10)
+        self.depth_pub = self.create_publisher(Float32,
+                                               f"{self.robot_name}/ctrl/depth_setpoint",
+                                               10)
+
+
+    def read_limits(self):
+        """
+        Read YAML file with Lolo's limits.
+        Returns a dictionary with the values.
+        """
+        if not self.limits_filename:
+            self.limits_filename = "lolo_default_limits.yaml"
+
+        limits = None
+        path_to_pkg = get_package_share_directory('virtual_lolo')
+        with open(path_to_pkg + "/config/" + self.limits_filename, 'r') as file:
+            limits = yaml.safe_load(file)
+        self.logger.info(f"Virtual Lolo has been configured with filename {self.limits_filename}")
+        [self.logger.info(f"{key}:{value}") for key, value in limits.items()]
+
+        return limits
 
     ######################################
     # Call this when you want lolo to actually control something
@@ -195,10 +218,10 @@ class Lolo(Node):
         # Hardcoded zero roll.
         self.desired_roll = 0.0
         setpoint_msg.data = self.desired_roll
-        self.roll_pub.publish(Float32())
+        self.roll_pub.publish(setpoint_msg)
 
     def set_goal(self, x: float, y: float, depth: float, altitude: float,
-                 rpm: float) -> bool:
+                 rpm: float, timeout: float) -> bool:
         """Checks whether the goal is withing the vehicle's limits and stores it.
 
             Args:
@@ -207,19 +230,35 @@ class Lolo(Node):
             Returns:
                 Boolean flag, true if the goal was within the vehicle limits.
         """
-        goal = SimpleRPMGoal(x, y, depth, altitude, rpm)
+        goal = SimpleRPMGoal(x, y, depth, altitude, rpm, timeout)
 
-        if not self.goal_viable(goal):
-            return False
-        else:
+        if self.goal_viable(goal):
             self.goal = goal
             return True
+        else:
+            return False
 
     def goal_viable(self, goal: SimpleRPMGoal) -> bool:
         """Checks ANY type of MoveToAction goal against Lolo's limits.
         """
-        # TODO: Check that the goal is within the limits
-        # set in the config file for lolo.
+        dist_to_waypoint = np.linalg.norm([goal.x - self.x, goal.y - self.y])
+        if goal.rpm > self.limits['max_thruster_rpm']:
+            self.logger.error(f"Goal's RPMs of {goal.rpm} exceed Lolo's limit of {self.limits['max_thruster_rpm']}.")
+            return False
+        elif goal.depth > self.limits['max_depth']:
+            self.logger.error(f"Goal's depth of {goal.depth} exceeds Lolo's limit of {self.limits['max_depth']}.")
+            return False
+        elif goal.altitude < self.limits['min_altitude']:
+            self.logger.error(f"Goal's altitude of {goal.altitude} exceeds Lolo's limit of {self.limits['min_altitude']}.")
+            return False
+        elif goal.timeout > self.limits['max_timeout_secs']:
+            self.logger.error(f"Goal's timeout of {goal.timeout} exceeds Lolo's limit of {self.limits['max_timeout_secs']}.")
+            return False
+        elif dist_to_waypoint > self.limits['max_waypoint_dist']:
+            self.logger.error(f"Goal's waypoint distance of {dist_to_waypoint} exceeds Lolo's limit of {self.limits['max_waypoint_dist']}.")
+            return False
+
+        self.logger.info("Goal is within Lolo's limits!")
         return True
 
     def reset_goal(self):
@@ -231,7 +270,7 @@ class Lolo(Node):
     # ---------
 
     def odometry_callback(self, msg: Odometry) -> None:
-        self.reference_frame = msg.header.frame_id
+        self.navigation_frame = msg.header.frame_id
         self.base_frame = msg.child_frame_id
         self.pos_x = msg.pose.pose.position.x
         self.pos_y = msg.pose.pose.position.y
@@ -280,10 +319,6 @@ class Lolo(Node):
     @property
     def yaw_vec(self):
         return np.array([np.cos(self.yaw), np.sin(self.yaw)])
-    @property
-    def ori_quat(self):
-        # return tf.transformations.quaternion_from_euler(self.roll, self.pitch, self.yaw)
-        pass
     @property
     def port_rpm(self):
         return self.thruster_rpms[0]

@@ -1,6 +1,6 @@
 from geographic_msgs.msg import GeoPoint
 
-class MoveToGoal():
+class DepthMoveToGoal():
     def __init__(self):
         self.geopoint = GeoPoint() # Lat/lon.
         self.target_depth = None   # In [m], positive depth is below the surface.
