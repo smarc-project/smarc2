@@ -4,19 +4,33 @@
 # Example
 # string EXAMPLE_TOPIC = 'example_topic'
 
-#Contorl surfaces setpoint
+# PID controllers setpoints. All Float32s.
+string YAW_SETPOINT = "ctrl/yaw_setpoint"
+string YAW_RATE_SETPOINT = "ctrl/yawrate_setpoint"
+string YAW_ACTUATION = "ctrl/yaw_actuation"
+string ROLL_SETPOINT = "ctrl/roll_setpoint"
+string ROLL_RATE_SETPOINT = "ctrl/rollrate_setpoint"
+string ROLL_ACTUATION = "ctrl/roll_actuation"
+string PITCH_SETPOINT = "ctrl/pitch_setpoint"
+string PITCH_RATE_SETPOINT = "ctrl/pitchrate_setpoint"
+string PITCH_ACTUATION = "ctrl/pitch_actuation"
+# This value is also under smarc_control_msgs, leave it here for convenience?
+string DEPTH_SETPOINT = "ctrl/depth_setpoint"
+string RPM_SETPOINT = "ctrl/rpm_setpoint"
+
+#Contorl surfaces setpoint. All Float32s.
 string RUDDER_CMD = "actuators/rudder_cmd"
 string ELEVATOR_CMD = "actuators/elevator_cmd"
 string ELEVON_PORT_CMD = "actuators/elevon_port_cmd"
 string ELEVON_STRB_CMD = "actuators/elevon_strb_cmd"
 
-#Control surfaces feedback
+#Control surfaces feedback. All Float32s.
 string RUDDER_FB = "actuators/rudder_fb"
 string ELEVATOR_FB = "actuators/elevator_fb"
 string ELEVON_PORT_FB = "actuators/elevon_port_fb"
 string ELEVON_STRB_FB = "actuators/elevon_strb_fb"
 
-#Thrusters setpoint
+#Thrusters setpoint. All Float32s.
 string THRUSTER_PORT_CMD = "actuators/thruster_port_cmd"
 string THRUSTER_STRB_CMD = "actuators/thruster_strb_cmd"
 string VERTICAL_THRUSTER_BACK_PORT_CMD = "actuators/vertical_thruster_back_port_cmd"
