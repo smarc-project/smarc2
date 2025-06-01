@@ -9,6 +9,7 @@ from smarc_msgs.msg import DVL, ThrusterFeedback, Topics
 from sensor_msgs.msg import FluidPressure
 
 from .ros_vehicle import ROSVehicle
+from .smarc_vehicle import GenericSMaRCVehicle
 from .vehicle import VehicleState, SensorNames, Sensor
 from .vehicle import DroneVehicleState
 
@@ -17,10 +18,10 @@ import json
 from std_msgs.msg import String
 from typing import Type
 
-class Quadrotor(ROSVehicle): #ROSVehicle
+class Quadrotor(GenericSMaRCVehicle): #ROSVehicle
     def __init__(self,
                  node: Node):
-        super().__init__(node, DroneVehicleState, DroneLinks)
+        super().__init__(node, DroneVehicleState)
         # The super-class handles everything except the sam-specific subscriptions :D
         
         self._t1 = None

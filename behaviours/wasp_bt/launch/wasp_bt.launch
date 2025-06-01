@@ -13,6 +13,9 @@
                 <param name="use_sim_time" value="$(var use_sim_time)" />
                 <param name="link_suffix" value="$(var link_suffix)"/>
                 <param name="robot_name" value="$(var robot_name)"/>
+                <param name="agent_type" value="$(var agent_type)"/>
+                <param name="levels" value="$(var levels)"/>
+                <param name="pulse_rate" value="$(var pulse_rate)"/>
             </node>
     </group>
 

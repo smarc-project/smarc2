@@ -8,6 +8,7 @@ class SensorNames(str, enum.Enum):
     ORIENTATION_EULER = "orientation_euler"
     GLOBAL_POSITION = "global_position"
     GLOBAL_HEADING_DEG = "global_heading_deg"
+    COURSE_DEG = "course"
     BATTERY = "battery"
     ALTITUDE = "altitude"
     DEPTH = "depth"

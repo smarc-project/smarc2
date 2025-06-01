@@ -114,6 +114,9 @@ class WaraPSTaskHandler:
         # Subscriptions to action Server topics
         self._wara_ps_action_server_sub = node.create_subscription(String, Topics.WARA_PS_ACTION_SERVER_HB_TOPIC, self._action_hb_callback, 10)
 
+        self._level_1_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._read_level_1_heartbeat_cb, 1)
+
+
         if "direct_execution" in self._wara_ps_dict["levels"]:
             self._direct_execution_info_data = {
                 "name": self._wara_ps_dict["name"],
@@ -177,7 +180,23 @@ class WaraPSTaskHandler:
         # self._node.get_logger().info('Published Direct Execution Info message')
         
         return True    
-
+    
+    def _read_level_1_heartbeat_cb(self, data: String):
+        """
+        This method is called to read the level 1 heartbeat.
+        It is used to update the WaraPS dictionary with the latest data.
+        """
+        # parse the command
+        if self._wara_ps_dict['agent-uuid'] is not None:
+            return
+        try:
+            hb_data = json.loads(data.data)
+        except json.JSONDecodeError as e:
+            self._node.get_logger().error(f"Failed to decode JSON from heartbeat data: {e}")
+            return
+        # update the WaraPS dictionary with the heartbeat data
+        self._wara_ps_dict["agent-uuid"] = hb_data["agent-uuid"]
+        
     def _action_hb_callback(self, data: String):
         # this function is called when a new action server heartbeat is received
 

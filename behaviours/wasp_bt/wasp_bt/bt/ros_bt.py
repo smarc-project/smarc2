@@ -18,14 +18,11 @@ from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .i_bb_updater import IBBUpdater
 from .bb_keys import BBKeys
-from ..mission.mission_plan import MissionPlanStates, MissionPlan
-from ..mission.i_bb_mission_updater import IBBMissionUpdater
 from ..mission.i_action_client import IActionClient
 
 from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
-from ..waraps.waraps_vehicle import WaraPSVehicle
+
 
 
 from .conditions import C_CheckMissionPlanState,\
@@ -39,7 +36,6 @@ from .conditions import C_CheckMissionPlanState,\
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
-                     A_WaitForData,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
                     A_Chilling,\
@@ -171,14 +167,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
 
 def wasp_bt():
-    from .ros_bb_updater import ROSBBUpdater
-    from ..vehicles.sam_auv import SAMAuv
-    from ..vehicles.quadrotor import Quadrotor
-    from ..waraps.waraps_vehicle import WaraPSVehicle
-    from ..mission.ros_mission_updater import ROSMissionUpdater
-    from ..mission.ros_action_goto_waypoint import ROSGotoWaypoint
-
-    from smarc_action_base.smarc_action_base import SMARCActionClient
+    from ..vehicles.smarc_vehicle import GenericSMaRCVehicle
+    from ..vehicles.vehicle import VehicleState, UnderwaterVehicleState
     from wasp_bt.bt.client import BTActionClient
 
     from go_to_geopoint.geopoint_client import GeopointClient
@@ -209,23 +199,31 @@ def wasp_bt():
 
     
     # agent = SAMAuv(node)
-    agent = Quadrotor(node)
+    agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
     action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
     # geopoint version
     # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
 
 
-    # action_client = go_to_geopoint
+    # Declare and get parameters with defaults
+    node.declare_parameter("agent_type", "air")
+    node.declare_parameter("levels", ["sensor", "direct_execution"])
+    node.declare_parameter("pulse_rate", 1)
+    node.declare_parameter("domain", "simulation")
 
-    #TODO: how to ensure that this is the same as the uuid etc. given to wara_ps_vehicle ros node?
+    agent_type = node.get_parameter("agent_type").value
+    levels = node.get_parameter("levels").value
+    pulse_rate = node.get_parameter("pulse_rate").value
+    robot_name = node.get_parameter("robot_name").value if node.has_parameter("robot_name") else "sam0"
+
     agent_waraps_dict = {
-            "agent-type": "air",  # or "subsurface"
-            "agent-uuid": str(uuid.uuid4()),
-            "levels": ["sensor", "direct_execution"],
-            "name": node.get_parameter("robot_name").value,
-            "pulse_rate": 1,
-        }        
+            "agent-type": agent_type,
+            "agent-uuid": None, # there is a callback in the WaraPSTaskHandler that will read this from the lvl1 WaraPSVehicle
+            "levels": levels,
+            "name": robot_name,
+            "pulse_rate": pulse_rate,
+        }
     
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
@@ -266,90 +264,4 @@ def wasp_bt():
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 
-    
     rclpy.spin(node)
-
-def test_bt_setup():
-    from ..vehicles.vehicle import MockVehicleStateContainer, VehicleState, UnderwaterVehicleState
-
-
-
-    v = MockVehicleStateContainer(VehicleState)
-
-    bt = BT(v)
-    bt.setup()
-
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-
-    v.vehicle_state.update_sensor(SensorNames.POSITION, [2,3,4], 0)
-    v.vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, [1,2,3], 0)
-    v.vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [1,2], 0)
-    v.vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
-    v.vehicle_state.update_sensor(SensorNames.BATTERY, [1,2], 0)
-    v.vehicle_state.update_sensor(SensorNames.DEPTH, [1], 0)
-
-    print('='*10)
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-
-
-
-def test_bt_conditions():
-    from ..vehicles.vehicle import MockVehicleStateContainer, UnderwaterVehicleState
-    bb = Blackboard()
-    bb.set(BBKeys.MIN_ALTITUDE, 20)
-    bb.set(BBKeys.MAX_DEPTH, 20)
-
-    v = MockVehicleStateContainer(UnderwaterVehicleState)
-
-    bt = BT(v)
-    bt.setup()
-
-    print("No update tick")
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-
-    v.vehicle_state.update_sensor(SensorNames.POSITION, [2,3,4], 0)
-    v.vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, [1,2,3], 0)
-    v.vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [1,2], 0)
-    v.vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
-    v.vehicle_state.update_sensor(SensorNames.BATTERY, [1,2], 0)
-    v.vehicle_state.update_sensor(SensorNames.ALTITUDE, [1], 0)
-    v.vehicle_state.update_sensor(SensorNames.DEPTH, [1], 0)
-    v.vehicle_state.update_sensor(SensorNames.LEAK, [False], 0)
-    v.vehicle_state.update_sensor(SensorNames.VBS, [1], 0)
-    v.vehicle_state.update_sensor(SensorNames.LCG, [10], 0)
-    v.vehicle_state.update_sensor(SensorNames.THRUSTERS, [1,2], 0)
-
-    print('='*10)
-
-    print("Single update tick")
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-
-    print("="*10)
-
-    print("Leak = True")
-    v.vehicle_state.update_sensor(SensorNames.LEAK, [True], 1)
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-
-    print("="*10)
-
-    print("ALT = 100")
-    v.vehicle_state.update_sensor(SensorNames.LEAK, [False], 2)
-    v.vehicle_state.update_sensor(SensorNames.ALTITUDE, [100], 2)
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))
-    print("ALT = 10")
-    v.vehicle_state.update_sensor(SensorNames.ALTITUDE, [10], 2)
-    bt.tick()
-    print(bt.vehicle_container.vehicle_state)
-    print(pt.display.ascii_tree(bt._bt.root, show_status=True))

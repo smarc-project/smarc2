@@ -35,9 +35,9 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
 
         self._gps_sub = node.create_subscription(GeoPoint, Topics.POS_LATLON_TOPIC, self._gps_cb, 10)
         self._heading_sub = node.create_subscription(Float32, Topics.HEADING_TOPIC, self._heading_cb, 10)
+        self._course_sub = node.create_subscription(Float32, Topics.COURSE_TOPIC, self._heading_cb, 10)
         self._battery_sub = node.create_subscription(BatteryState, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
-
         self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
         self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
         self._heartbeat_pub = node.create_publisher(Empty, Topics.BT_HEARTBEAT_TOPIC, 10)
@@ -70,6 +70,10 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
     def _heading_cb(self, data: Float32):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data], sec)
+
+    def _course_cb(self, data: Float32):
+        sec = self.current_time()
+        self._vehicle_state.update_sensor(SensorNames.COURSE_DEG, [data.data], sec)
 
     def _speed_cb(self, data: Float32):
         sec = self.current_time()

@@ -94,6 +94,10 @@ class VehicleState(IVehicleState):
                                           VehicleState.LATLON,
                                           1)
         
+        self._course_deg = Sensor(SensorNames.COURSE_DEG,
+                                    VehicleState.ABSOLUTE,
+                                  1)
+        
         self._battery = Sensor(SensorNames.BATTERY,
                                VehicleState.ABSOLUTE,
                                2,

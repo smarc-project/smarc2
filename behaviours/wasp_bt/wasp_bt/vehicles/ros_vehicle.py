@@ -7,6 +7,8 @@ from tf_transformations import euler_from_quaternion
 from std_msgs.msg import Empty, Bool
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics, FloatStamped
+from geographic_msgs.msg import GeoPoint
+from std_msgs.msg import Float32
 
 from typing import Type
 
@@ -48,8 +50,8 @@ class ROSVehicle(IVehicleStateContainer):
         self._tf_buffer = tf2_ros.buffer.Buffer()
         self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, node)
 
-        self._gps_sub = node.create_subscription(NavSatFix, Topics.GPS_TOPIC, self._gps_cb, 10)
-        self._heading_sub = node.create_subscription(FloatStamped, Topics.HEADING_TOPIC, self._heading_cb, 10)
+        self._gps_sub = node.create_subscription(GeoPoint, Topics.GPS_TOPIC, self._gps_cb, 10)
+        self._heading_sub = node.create_subscription(Float32, Topics.HEADING_TOPIC, self._heading_cb, 10)
         self._battery_sub = node.create_subscription(BatteryState, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._tf_update_timer = node.create_timer(tf_update_period, self.update_tf)
 
@@ -96,8 +98,8 @@ class ROSVehicle(IVehicleStateContainer):
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], data.header.stamp.sec)
         self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], data.header.stamp.sec)
 
-    def _heading_cb(self, data: FloatStamped):
-        self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data], data.header.stamp.sec)
+    def _heading_cb(self, data: Float32):
+        self._vehicle_state.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [data.data])
 
     def _battery_cb(self, data: BatteryState):
         self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], data.header.stamp.sec)
