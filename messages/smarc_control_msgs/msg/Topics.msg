@@ -35,4 +35,11 @@ string TELEOP_ENABLE = 'teleop/enable'
 string ASSIST_ENABLE = 'teleop/drive_assist_enable'
 string ELEVATOR_PID_CTRL = 'ctrl/elevator_pid/ctrl_effort'
 
-
+# Convenience topics published by the utilities/odom_splitter node.
+string CONTROL_YAW_TOPIC = "ctrl/yaw"              # Float32
+string CONTROL_YAW_RATE_TOPIC = "ctrl/yawrate"     # Float32
+string CONTROL_PITCH_TOPIC = "ctrl/pitch"          # Float32
+string CONTROL_PITCH_RATE_TOPIC = "ctrl/pitchrate" # Float32
+string CONTROL_ROLL_TOPIC = "ctrl/roll"            # Float32
+string CONTROL_ROLL_RATE_TOPIC = "ctrl/rollrate"   # Float32
+string CONTROL_SURGE_RATE_TOPIC = "ctrl/surgerate" # Float32
