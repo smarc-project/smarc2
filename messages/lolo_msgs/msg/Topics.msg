@@ -29,13 +29,9 @@ string THRUSTER_PORT_FB = "actuators/thruster_port_fb"
 string THRUSTER_STRB_FB = "actuators/thruster_strb_fb"
 string VERTICAL_THRUSTER_BACK_PORT_FB = "actuators/vertical_thruster_back_port_fb"
 string VERTICAL_THRUSTER_BACK_STRB_FB = "actuators/vertical_thruster_back_strb_fb"
-string VERTICAL_THRUSTER_FRONT_PORT_FB = "actuators/vertical_thruster_front_strb_fb"
+string VERTICAL_THRUSTER_FRONT_PORT_FB = "actuators/vertical_thruster_front_port_fb"
 string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb_fb"
 
-
-# Topics for Payload Sensors
-## Leak topic
-string LEAK_TOPIC = "sensor/leak"
 
 #Extended interface
 string EXTENDED_STATUS_TOPIC = "extended/status"
@@ -69,3 +65,35 @@ string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
 string INS_ODOM_TOPIC = "ins_odom"
 string INS_RAW_TOPIC = "/ix/ins"
 string INS_IMU_TOPIC = "/standard/imu"
+
+
+#Sensors
+string GPS_RAW_TOPIC = sensors/gps/raw
+string GPS_TOPIC = sensors/gps
+
+string SVS_RAW_TOPIC = sensors/svs/raw
+string SVS_TOPIC = sensors/svs
+
+string CTD_RAW_TOPIC = sensors/ctd/raw
+string CTD_TOPIC = sensors/ctd
+
+string DO_RAW_TOPIC = sensors/do/raw
+string DO_TOPIC = sensors/do
+
+string TURB_RAW_TOPIC = sensors/turbidity/raw
+string TURB_TOPIC = sensors/turbidity
+
+string FLUORESCENCE_RAW_TOPIC = sensors/fluorescence/raw
+string FLUORESCENCE_TOPIC = sensors/fluorescence
+
+string DVL_TOPIC = sensors/dvl
+
+string FLS_WC_TOPIC = sensors/fls/watercolumn
+string FLS_IMAGE_TOPIC = sensors/fls/watercolumn/image
+
+string MBES_WC_TOPIC = sensors/fls/watercolumn
+string MBES_IMAGE_TOPIC = sensors/fls/watercolumn/image
+string MBES_BATHY_TOPIC = sensors/fls/bathymetry
+string MBES_BATHY_POINTCLOUD_TOPIC = sensors/fls/bathymetry/points
+
+string LEAK_TOPIC = "sensor/leak"
