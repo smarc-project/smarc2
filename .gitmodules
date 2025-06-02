@@ -32,4 +32,8 @@
 [submodule "external_packages/smarc_modelling"]
 	path = external_packages/smarc_modelling
 	url = https://github.com/smarc-project/smarc_modelling.git
-	branch = master
+[submodule "vehicles/hardware/dji/psdk_ros2"]
+	path = vehicles/hardware/dji/psdk_ros2
+	url = https://gitr.sys.kth.se/smarc-project/dji_psdk_wrapper.git
+	branch = smarc
+
