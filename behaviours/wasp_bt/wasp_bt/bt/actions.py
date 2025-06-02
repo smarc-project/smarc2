@@ -247,18 +247,25 @@ class A_ActionClient(Behaviour):
                 self.feedback_message = "No task to get a wp from..."
                 self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
                 return Status.FAILURE
-            
-            # extract params
-            param_dict = mplan["waypoint"]
-            msg_dict = {
-                "geopoint": {
-                    "latitude": param_dict["latitude"],
-                    "longitude": param_dict["longitude"],
-                    "altitude": param_dict["altitude"]
-                },
-            }
 
-            msg_str = json.dumps(msg_dict)
+            
+            #log the mission plan
+            self._logger.info(f"Mission Plan: {mplan}")
+
+            msg_str = json.dumps(mplan)
+
+            # extract params, this is specific to the geopoint server made by Tim
+            
+            # param_dict = mplan["waypoint"]
+            # msg_dict = {
+            #     "geopoint": {
+            #         "latitude": param_dict["latitude"],
+            #         "longitude": param_dict["longitude"],
+            #         "altitude": param_dict["altitude"]
+            #     },
+            # }
+            # msg_str = json.dumps(msg_dict)
+
 
             mission_msg = BaseAction.Goal()
             mission_msg.goal.data = msg_str

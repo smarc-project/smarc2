@@ -216,8 +216,8 @@ class WaraPSTaskHandler:
         parsed_action_name = action_name.split("/")[-1]
         parsed_action_name = parsed_action_name.replace("_", "-")
 
-        #TODO: remove this hacky shit
-        parsed_action_name = "move-to"
+        #TODO: remove this hacky shit, unless on drone
+        # parsed_action_name = "move-to"
 
         # if this action server is not already in the list of available tasks, add it
         if parsed_action_name not in [task["name"] for task in self.tasks_available]:
