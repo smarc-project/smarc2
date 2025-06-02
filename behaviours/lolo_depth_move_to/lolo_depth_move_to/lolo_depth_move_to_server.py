@@ -315,7 +315,7 @@ class DepthMoveToServer(SMARCActionServer):
             # Check if we've been cancelled!
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client!")
-                goal_handle.cancelled()
+                goal_handle.canceled()
                 goal_reached = False
                 break
             # Check if we have timed out first.

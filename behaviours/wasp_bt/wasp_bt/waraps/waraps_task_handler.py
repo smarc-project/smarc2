@@ -544,7 +544,7 @@ class WaraPSTaskHandler:
             msg = String()
             msg.data = json.dumps(feedback_msg)
             self._wara_ps_exec_feedback_pub.publish(msg)
-            self._node.get_logger().info('Published Feedback message')
+            # self._node.get_logger().info('Published Feedback message')
         else:
             # log
             self._node.get_logger().error("No tasks executing")

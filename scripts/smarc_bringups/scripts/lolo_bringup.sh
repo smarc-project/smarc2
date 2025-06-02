@@ -6,11 +6,7 @@ SESSION=${ROBOT_NAME}_bringup
 AGENT_TYPE=subsurface
 LEVELS="['sensor','direct_execution']"
 PULSE_RATE=1
-<<<<<<< HEAD
-LINK_SUFFIX=""
-=======
 LINK_SUFFIX=_gt
->>>>>>> f60969e0c99e394c2a999864983066d886ce5e53
 REALSIM=simulation
 
 # create a tmux session with a name
