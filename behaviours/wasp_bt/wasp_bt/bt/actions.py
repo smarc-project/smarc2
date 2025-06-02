@@ -139,6 +139,16 @@ class A_ClearCurrentTask(VehicleBehaviour):
         self.feedback_message = "Cleared current task"
         return Status.RUNNING
 
+class A_AbortedFlagReset(VehicleBehaviour):
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self._task_handler = task_handler
+
+    def update(self) -> Status:
+        self._task_handler.aborted_flag = False
+        self.feedback_message = "Aborted flag reset"
+        return Status.SUCCESS
+
 class A_Abort(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):
         super().__init__(bt)
@@ -194,6 +204,17 @@ class A_ActionClient(Behaviour):
 
     def setup(self) -> None:
         return self._client._setup()
+    
+    def initialise(self) -> None: # this function is called when this Action is ticked for the first time
+        # if previously running, get the client ready for a new run
+        if self._client.state in self._running_states:
+            self.feedback_message = "Clearing previous goal and getting ready for a new run..."
+            self._client.cancel_goal(self._client.cancel_callback)
+
+
+        self.feedback_message = None
+        self._task_handler.set_current_task_status("started")
+        self._task_handler.publish_feedback_to_current_task("Action client initialised. Waiting for task to start...")
         
 
     def terminate(self, new_status: Status) -> None:

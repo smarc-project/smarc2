@@ -46,7 +46,7 @@ class BTActionClient(SMARCActionClient):
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
-        self.logger.info(f"Status: {status}")
+        # self.logger.info(f"Status: {status}")
         
 
         if result.success:

@@ -43,5 +43,11 @@ string WARA_PS_EXEC_RESPONSE_TOPIC = 'waraps/exec/response'
 string WARA_PS_EXEC_FEEDBACK_TOPIC = 'waraps/exec/feedback'
 string WARA_PS_EXEC_COMMAND_TOPIC = 'waraps/exec/command'
 
+# Level 3
+string WARA_PS_TST_EXEC_INFO_TOPIC = 'waraps/tst_execution_info'
+string WARA_PS_TST_COMMAND_TOPIC = 'waraps/tst/command'
+string WARA_PS_TST_RESPONSE_TOPIC = 'waraps/tst/response'
+string WARA_PS_TST_FEEDBACK_TOPIC = 'waraps/tst/feedback'
+
 # Action Server Heartbeat
 string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'

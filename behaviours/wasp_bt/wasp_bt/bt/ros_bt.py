@@ -31,13 +31,15 @@ from .conditions import C_CheckMissionPlanState,\
                         C_SensorOperatorBlackboard,\
                         C_MissionTimeoutOK,\
                         C_TaskIs,\
-                        C_TaskStatus
+                        C_TaskStatus,\
+                        C_AbortedPreviousTask
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
+                    A_AbortedFlagReset, \
                     A_Chilling,\
                      A_ClearCurrentTask
 
@@ -111,6 +113,15 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         """
 
         task_handler = Fallback("F_Task_Handler", memory=False, children=[
+            
+            Sequence("S_BreathAfterAborting", memory=False, children=[
+                C_AbortedPreviousTask(self._task_handler),
+                # chill for a bit
+                # A_JustChillFor(self, 5.0),
+                # reset the aborted flag
+                A_AbortedFlagReset(self._task_handler),
+            ]),
+
             # is the current task a move to task? If so, do it
             Sequence("S_MoveTo", memory=False, children=[
                 C_TaskIs(self._task_handler, "move-to"),
@@ -276,8 +287,10 @@ def wasp_bt():
 
         # get the current time
         now_time = ros_seconds_float()
-        # heartbeat
+        # task execution info
         wara_ps_task_handler.lvl_2_heartbeat(now_time)
+        # tst execution info
+        wara_ps_task_handler.lvl_3_heartbeat(now_time)
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 
