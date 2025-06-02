@@ -529,7 +529,26 @@ class WaraPSTaskHandler:
 
         return f"{tasks_available_str}{tasks_executing_str}" #{past_tasks_str}"
     
-        
+    def publish_feedback_to_current_task(self, feedback: str):
+        """
+        Publishes feedback to the current task.
+        """
+        if len(self.tasks_executing) > 0:
+            # create a feedback message
+            feedback_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "task-uuid": self.tasks_executing[0]["task-uuid"],
+                "feedback": feedback,
+                "status": self.tasks_executing[0]["status"]
+            }
+            msg = String()
+            msg.data = json.dumps(feedback_msg)
+            self._wara_ps_exec_feedback_pub.publish(msg)
+            self._node.get_logger().info('Published Feedback message')
+        else:
+            # log
+            self._node.get_logger().error("No tasks executing")
+            return None 
 # TODO:
 # if status paused, use action class and inside method "terminate" call the cancel method of the action server to cancel the action
 #
