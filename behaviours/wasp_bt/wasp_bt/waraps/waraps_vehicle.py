@@ -50,8 +50,10 @@ class WaraPSVehicle():
         self._sensor_info_data = {
             "name": self._wara_ps_dict["name"],
             "rate": self._wara_ps_dict["pulse_rate"],
+            # TODO: this is VERY bad, ideally we should listen to topics under a "sensor" namespace and just replicate the structure
             "sensor-data-provided": [
                 "position",
+                "heading",
                 "course",
                 "speed",
                 "roll",
@@ -113,11 +115,17 @@ class WaraPSVehicle():
 
         # 3. publish course data
         course_msg = String()
-        course_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}" if self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0] is not None else "0.0"
+        course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}" if self._vehicle_state[SensorNames.COURSE_DEG][0] is not None else "0.0"
         # float
-        # print(course_msg.data)
         self._wara_ps_course_pub.publish(course_msg)
         # self._node.get_logger().info('Published Course message')
+
+        # 3.5 publish heading data
+        heading_msg = String()
+        heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}" if self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0] is not None else "0.0"
+        # float
+        self._wara_ps_heading_pub.publish(heading_msg)
+        # self._node.get_logger().info('Published Heading message')
         
         # 4. publish speed data
         speed_msg = String()

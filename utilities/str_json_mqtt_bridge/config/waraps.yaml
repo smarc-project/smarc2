@@ -47,10 +47,17 @@
                 #lv2
                 "direct_execution_info",
                 "exec/response",
-                "exec/feedback"
+                "exec/feedback",
+                
+                #lv3
+                "tst/response",
+                "tst/feedback",
+
               ]
             to_ros:
               [
                 #lv2
-                "exec/command"
+                "exec/command",
+                #lv3
+                "tst/command",
               ]

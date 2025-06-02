@@ -195,8 +195,13 @@ class WaraPSTaskHandler:
             self._node.get_logger().error(f"Failed to decode JSON from heartbeat data: {e}")
             return
         # update the WaraPS dictionary with the heartbeat data
+        # log
+        self._node.get_logger().info(f"Received Level 1 heartbeat. Copying agent-uuid: {hb_data['agent-uuid']}")
         self._wara_ps_dict["agent-uuid"] = hb_data["agent-uuid"]
-        
+
+        # unregister the heartbeat subscriber
+        self._node.destroy_subscription(self._level_1_heartbeat_sub)
+
     def _action_hb_callback(self, data: String):
         # this function is called when a new action server heartbeat is received
 
