@@ -40,7 +40,12 @@
                 "sensor/heading",
                 "sensor/course",
                 "sensor/speed",
+                "sensor/roll",
+                "sensor/pitch",
+                "sensor/depth",
+
                 #lv2
+                "direct_execution_info",
                 "exec/response",
                 "exec/feedback"
               ]
