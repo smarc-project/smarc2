@@ -40,7 +40,8 @@ def generate_launch_description():
                      "output_limit": 0.05,
                      "meassurement_topic": ControlTopics.CONTROL_YAW_TOPIC,
                      "setpoint_topic": LoloTopics.YAW_SETPOINT,
-                     "output_topic": LoloTopics.YAW_RATE_SETPOINT
+                     "output_topic": LoloTopics.YAW_RATE_SETPOINT,
+                     "controller_type": 'yaw'
                      }]
     )
 
