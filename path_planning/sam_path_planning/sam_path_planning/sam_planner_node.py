@@ -2,10 +2,12 @@ import rclpy
 import rclpy.logging
 import numpy as np
 from rclpy.node import Node
+from scipy.spatial.transform import Rotation as R
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
 from nav_msgs.msg import Odometry, Path
-from tf2_ros import Buffer, TransformListener
+from tf2_ros import Buffer, TransformListener, TransformException
+from tf_transformations import quaternion_from_euler
 from rclpy.executors import MultiThreadedExecutor
 from rcl_interfaces.msg import ParameterDescriptor
 from smarc_control_msgs.msg import Topics as ControlTopics
@@ -35,6 +37,8 @@ class SamPathPlanner(Node):
 
         # Declare your publishers here
         self.path_pub = self.create_publisher(Path, 'planned_path', 1)  # For Rviz
+        self.pose_pub = self.create_publisher(PoseStamped, 'planned_pose', 1)  # For Rviz
+
         # self.traj_pub = self.create_publisher(TrajectoryMPC, ControlTopics.TRAJ_MPC, 1)
 
         # Declare your subscribers here
@@ -43,7 +47,7 @@ class SamPathPlanner(Node):
 
         # TODO: get state from TF instead of odom since we want mocap --> base_link
         self.odom_sub = self.create_subscription(Odometry, 
-                                                 ControlTopics.STATES, self.state_cb, 1)
+                                                 ControlTopics.MOCAP_STATE, self.state_cb, 1)
         
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self, PercentStamped, SamTopics.LCG_FB_TOPIC)
@@ -68,7 +72,10 @@ class SamPathPlanner(Node):
 
         self._goal_handle = None
 
-    def publishTrajectoryRviz(self, trajectory):
+    def publishTrajectoryRviz(self, trajectory, typeMsg = "trajectory"):
+        """
+        typeMsg = "pose" or "trajectory"
+        """
 
         path_msg = Path()
         path_msg.header.stamp = self.get_clock().now().to_msg()
@@ -182,8 +189,8 @@ class SamPathPlanner(Node):
                     wp_i.nominal_control.lcg.value = float(wp[14])
                     wp_i.nominal_control.thruster_angles.thruster_vertical_radians = float(wp[15])
                     wp_i.nominal_control.thruster_angles.thruster_horizontal_radians = float(wp[16])
-                    wp_i.nominal_control.rpms.thruster_1_rpm = float(wp[17])
-                    wp_i.nominal_control.rpms.thruster_2_rpm = float(wp[18])
+                    wp_i.nominal_control.rpms.thruster_1_rpm = int(wp[17])
+                    wp_i.nominal_control.rpms.thruster_2_rpm = int(wp[18])
 
                     # Append to goal trajectory
                     goal_path.trajectory.append(wp_i)
@@ -203,12 +210,12 @@ class SamPathPlanner(Node):
         self.map_frame = self.declare_parameter("map_frame", "mocap").value
         self.base_frame = self.declare_parameter("base_frame", "sam/base_link").value
         self.node_rate = self.declare_parameter("node_rate", 1.).value
-        self.x_max = self.declare_parameter("x_max", 2.5).value   # map
-        self.y_max = self.declare_parameter("y_max", 10).value  # map
+        self.x_max = self.declare_parameter("x_max", 10).value   # map
+        self.y_max = self.declare_parameter("y_max", 2.5).value  # map
         self.z_max = self.declare_parameter("z_max", 3).value   # map
-        self.x_min = self.declare_parameter("x_min", -2.5).value    # map
-        self.y_min = self.declare_parameter("y_min", 0).value   # map
-        self.z_min = self.declare_parameter("z_min", 0).value   # map
+        self.x_min = self.declare_parameter("x_min", 0).value    # map
+        self.y_min = self.declare_parameter("y_min", -2.5).value   # map
+        self.z_min = self.declare_parameter("z_min", -0.5).value   # map
         self.TILESIZE = self.declare_parameter("TILESIZE", 0.5).value   # map resolution
 
         # Variables
@@ -219,15 +226,14 @@ class SamPathPlanner(Node):
         # Define your map somewhere here
 
     def target_cb(self, msg: PoseStamped):
-        self.get_logger().info(f'Received goal')
-        self.sam_goal_t = msg
-        
+        self.get_logger().info(f'---------------Received goal')
+        self.sam_goal_t = msg   
         # The action server will send an empty msg when cancelling
         if self.sam_goal_t == PoseStamped():
             self.cancel_goal()
 
     def state_cb(self, msg: Odometry):
-        self.get_logger().info(f'Received state')
+        #self.get_logger().info(f'Received state')
         
         # Tf 
         try:    
@@ -247,7 +253,7 @@ class SamPathPlanner(Node):
         self.sam_pose_t.pose.pose.orientation.z = t.transform.rotation.z
 
     def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped, dsdr_cmd_msg: ThrusterAngles, rpm1_fb_msg: ThrusterFeedback, rpm2_fb_msg: ThrusterFeedback):
-        self.get_logger().info(f'Received ctrl inputs')
+        #self.get_logger().info(f'Received ctrl inputs')
         self.sam_control_t = SamControl()
         self.sam_control_t.vbs = vbs_fb_msg
         self.sam_control_t.lcg = lcg_fb_msg

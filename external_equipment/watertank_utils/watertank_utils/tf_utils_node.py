@@ -34,7 +34,7 @@ class MocapToEnuBroadcaster(Node):
         t_utm.header.frame_id = 'utm_34_V'
         t_utm.child_frame_id = 'tank_local'
         
-        utm_tank = utm.fromLatLong(59.350925, 18.068231)
+        utm_tank = utm.fromLatLong(59.3508558333, 18.0681783333)
         t_utm.transform.translation.x = utm_tank.easting
         t_utm.transform.translation.y = utm_tank.northing
         t_utm.transform.translation.z = 0.0
@@ -57,7 +57,7 @@ class MocapToEnuBroadcaster(Node):
         t_local.transform.translation.y = 0.0
         t_local.transform.translation.z = 0.0
 
-        q_local = quaternion_from_euler(0, 0, math.radians(211))
+        q_local = quaternion_from_euler(0, 0, math.radians(212))
         t_local.transform.rotation.x = q_local[0]
         t_local.transform.rotation.y = q_local[1]
         t_local.transform.rotation.z = q_local[2]

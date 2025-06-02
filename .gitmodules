@@ -36,3 +36,4 @@
 	path = vehicles/hardware/dji/psdk_ros2
 	url = https://gitr.sys.kth.se/smarc-project/dji_psdk_wrapper.git
 	branch = smarc
+

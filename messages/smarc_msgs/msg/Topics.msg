@@ -16,12 +16,32 @@ string BT_HEARTBEAT_TOPIC = 'smarc/heartbeat' #empty
 string VEHICLE_HEALTH_TOPIC = 'smarc/vehicle_health' #int
 string ODOM_TOPIC = 'smarc/odom'  #odom
 string HEADING_TOPIC = 'smarc/heading' #float32
+string COURSE_TOPIC = 'smarc/course' #float32
 string SPEED_TOPIC = 'smarc/speed' #float32
 string POS_LATLON_TOPIC = 'smarc/latlon' #geopoint
 string BATTERY_PERCENT_TOPIC = 'smarc/battery_percent'
 string DEPTH_TOPIC = 'smarc/depth'
 string ALTITUDE_TOPIC = 'smarc/altitude'
 
+################
+# WARA-PS Topics
+################
+## Level 1
+string WARA_PS_HEARTBEAT_TOPIC = 'waraps/heartbeat'
+string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'
+string WARA_PS_SENSOR_POSITION_TOPIC = 'waraps/sensor/position'
+string WARA_PS_SENSOR_HEADING_TOPIC = 'waraps/sensor/heading'
+string WARA_PS_SENSOR_COURSE_TOPIC = 'waraps/sensor/course'
+string WARA_PS_SENSOR_SPEED_TOPIC = 'waraps/sensor/speed'
+string WARA_PS_SENSOR_DEPTH_TOPIC = 'waraps/sensor/depth'
+string WARA_PS_SENSOR_ROLL_TOPIC = 'waraps/sensor/roll'
+string WARA_PS_SENSOR_PITCH_TOPIC = 'waraps/sensor/pitch'
 
-#Wara PS
+## Level 2
+string WARA_PS_DIRECT_EXECUTION_INFO_TOPIC = 'waraps/direct_execution_info'
+string WARA_PS_EXEC_RESPONSE_TOPIC = 'waraps/exec/response'
+string WARA_PS_EXEC_FEEDBACK_TOPIC = 'waraps/exec/feedback'
+string WARA_PS_EXEC_COMMAND_TOPIC = 'waraps/exec/command'
+
+# Action Server Heartbeat
 string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'
