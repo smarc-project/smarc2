@@ -1,13 +1,15 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>utm_latlon_converter</name>
+  <name>virtual_lolo</name>
   <version>0.0.0</version>
-  <description>A service to convert between UTM and LAT/LON coordinates</description>
-  <maintainer email="ozero@kth.se">Ozer Ozkahraman</maintainer>
+  <description>Virtual lolo class to be used for control, planning, etc.</description>
+  <maintainer email="aldot@kth.se">aldot</maintainer>
   <license>MIT</license>
 
-  <exec_depend>geodesy</exec_depend>
+
+  <exec_depend>tf_transformations</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

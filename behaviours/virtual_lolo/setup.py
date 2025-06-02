@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 import glob, os
 
-package_name = 'utm_latlon_converter'
+package_name = 'virtual_lolo'
 
 setup(
     name=package_name,
@@ -12,19 +12,16 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
-        (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Ozer Ozkahraman',
-    maintainer_email='ozero@kth.se',
-    description='A service to convert between UTM and LAT/LON coordinates',
+    maintainer='aldot',
+    maintainer_email='aldot@kth.se',
+    description='Virtual lolo class to be used for control, planning, etc.',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "converter = utm_latlon_converter.converter_service_node:main",
-            "test_converter = utm_latlon_converter.converter_service_node:test_converter"
         ],
     },
 )

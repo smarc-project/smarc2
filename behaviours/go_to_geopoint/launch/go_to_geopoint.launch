@@ -23,7 +23,7 @@
 
   <!-- Node for the Geopoint Client -->
   <!-- NOT RUNNING SINCE THE BT IS THE CLIENT -->
-  <node name="geopoint_client" pkg="go_to_geopoint" exec="client" output="screen" namespace="$(var robot_name)">
+  <!-- <node name="geopoint_client" pkg="go_to_geopoint" exec="client" output="screen" namespace="$(var robot_name)">
     <param name="robot_name" value="$(var robot_name)"/>
-  </node>
+  </node> -->
 </launch>

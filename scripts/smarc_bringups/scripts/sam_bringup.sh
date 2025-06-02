@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=sam_auv_v1
+ROBOT_NAME=sam0
 SESSION=${ROBOT_NAME}_bringup
 
 # create a tmux session with a name
@@ -16,6 +16,7 @@ tmux new-window -t $SESSION:0 -n 'dr'
 tmux rename-window "dr"
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
+tmux rename-window "bt"
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'control'
 # connection to different GUIs
@@ -27,6 +28,10 @@ tmux new-window -t $SESSION:4 -n 'utils'
 tmux new-window -t $SESSION:8 -n 'description'
 # dummy stuff to temporarily let other stuff work
 tmux new-window -t $SESSION:9 -n 'dummies'
+
+# for the mqtt bridge.
+tmux new-window -t $SESSION:10 -n 'mqtt'
+
 
 
 # Now we launch things in each window.
@@ -54,6 +59,11 @@ tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$
 tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
 
+tmux select-window -t $SESSION:10
+# To connect to our MQTT broker
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 " C-m
+# For local testing: use defaults
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME" C-m
 
 # Conditional launches, for sim-only or real-only things
 # the real sam's username is "sam" and lolo's "lolo".
