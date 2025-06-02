@@ -129,6 +129,20 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             #TODO: implement more tasks types
             # is the current task a move path task? If so, do it
 
+            Sequence("S_DepthMoveTo", memory=False, children=[
+                C_TaskIs(self._task_handler, "auv-depth-move-to"),
+                Fallback("F_StatusCheck", memory=False, children=[
+                    C_TaskStatus(self._task_handler, "started"),
+                    C_TaskStatus(self._task_handler, "resumed"),
+                    C_TaskStatus(self._task_handler, "running"),
+                ]),
+                #TODO: need to handle task failure gracefully
+                A_ActionClient(self._goto_wp_action, self._task_handler),
+                # when done, clear the task queue
+                A_ClearCurrentTask(self._task_handler),
+                # A_ClearTaskQueue(self._task_handler),
+                ]),
+
 
 
             # last type: just do nothing
@@ -201,7 +215,10 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
-    action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # for drone, use the following line
+    # action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # for lolo, use the following line
+    action_client_move_to = BTActionClient(node, "auv_depth_move_to", action_type)
     # geopoint version
     # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
 

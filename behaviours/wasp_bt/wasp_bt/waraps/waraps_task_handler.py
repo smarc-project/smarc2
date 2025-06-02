@@ -195,8 +195,13 @@ class WaraPSTaskHandler:
             self._node.get_logger().error(f"Failed to decode JSON from heartbeat data: {e}")
             return
         # update the WaraPS dictionary with the heartbeat data
+        # log
+        self._node.get_logger().info(f"Received Level 1 heartbeat. Copying agent-uuid: {hb_data['agent-uuid']}")
         self._wara_ps_dict["agent-uuid"] = hb_data["agent-uuid"]
-        
+
+        # unregister the heartbeat subscriber
+        self._node.destroy_subscription(self._level_1_heartbeat_sub)
+
     def _action_hb_callback(self, data: String):
         # this function is called when a new action server heartbeat is received
 
@@ -211,8 +216,8 @@ class WaraPSTaskHandler:
         parsed_action_name = action_name.split("/")[-1]
         parsed_action_name = parsed_action_name.replace("_", "-")
 
-        #TODO: remove this hacky shit
-        parsed_action_name = "move-to"
+        #TODO: remove this hacky shit, unless on drone
+        # parsed_action_name = "move-to"
 
         # if this action server is not already in the list of available tasks, add it
         if parsed_action_name not in [task["name"] for task in self.tasks_available]:
@@ -524,7 +529,26 @@ class WaraPSTaskHandler:
 
         return f"{tasks_available_str}{tasks_executing_str}" #{past_tasks_str}"
     
-        
+    def publish_feedback_to_current_task(self, feedback: str):
+        """
+        Publishes feedback to the current task.
+        """
+        if len(self.tasks_executing) > 0:
+            # create a feedback message
+            feedback_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "task-uuid": self.tasks_executing[0]["task-uuid"],
+                "feedback": feedback,
+                "status": self.tasks_executing[0]["status"]
+            }
+            msg = String()
+            msg.data = json.dumps(feedback_msg)
+            self._wara_ps_exec_feedback_pub.publish(msg)
+            self._node.get_logger().info('Published Feedback message')
+        else:
+            # log
+            self._node.get_logger().error("No tasks executing")
+            return None 
 # TODO:
 # if status paused, use action class and inside method "terminate" call the cancel method of the action server to cancel the action
 #

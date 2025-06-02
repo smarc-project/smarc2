@@ -6,7 +6,11 @@ SESSION=${ROBOT_NAME}_bringup
 AGENT_TYPE=subsurface
 LEVELS="['sensor','direct_execution']"
 PULSE_RATE=1
+<<<<<<< HEAD
 LINK_SUFFIX=""
+=======
+LINK_SUFFIX=_gt
+>>>>>>> f60969e0c99e394c2a999864983066d886ce5e53
 REALSIM=simulation
 
 # create a tmux session with a name
@@ -43,13 +47,13 @@ tmux new-window -t $SESSION:10 -n 'mqtt_bridge'
 
 # Now we launch things in each window.
 tmux select-window -t $SESSION:0
-tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME"
+tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:1
 tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
 
 tmux select-window -t $SESSION:2
-tmux send-keys "ros2 run lolo_depth_move_to server --ros-args -r __ns:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 run lolo_depth_move_to server --ros-args -r __ns:=/$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m

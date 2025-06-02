@@ -33,12 +33,12 @@ class DepthMoveToActionParsing:
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
             goal = DepthMoveToGoal()
-            goal.geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
-            goal.geopoint.longitude = float(fmt_dict["geopoint"]["longitude"])
-            goal.target_depth = float(fmt_dict["target_depth"])
-            goal.min_altitude = float(fmt_dict["min_altitude"])
-            goal.rpm = float(fmt_dict["rpm"])
-            goal.timeout = float(fmt_dict["timeout"])
+            goal.geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
+            goal.geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
+            goal.target_depth = float(fmt_dict["waypoint"]["target_depth"])
+            goal.min_altitude = float(fmt_dict["waypoint"]["min_altitude"])
+            goal.rpm = float(fmt_dict["waypoint"]["rpm"])
+            goal.timeout = float(fmt_dict["waypoint"]["timeout"])
             return goal
         elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["distance_remaining"])
