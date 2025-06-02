@@ -39,7 +39,7 @@ class BTActionClient(SMARCActionClient):
 
     def feedback_callback(self, feedback_msg: ActionFeedback):
         """Result when a goal is sent to the server."""
-        self.logger.debug(f"Received feedback {feedback_msg.feedback}")
+        # self.logger.debug(f"Received feedback {feedback_msg.feedback}")
         self.feedback_message = feedback_msg.feedback.data
         self._feedback_received = True
 
