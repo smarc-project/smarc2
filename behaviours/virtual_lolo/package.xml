@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>virtual_lolo</name>
+  <version>0.0.0</version>
+  <description>Virtual lolo class to be used for control, planning, etc.</description>
+  <maintainer email="aldot@kth.se">aldot</maintainer>
+  <license>MIT</license>
+
+
+  <exec_depend>tf_transformations</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
