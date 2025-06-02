@@ -396,13 +396,13 @@ class SMARCActionClient(abc.ABC):
         status: GoalStatus = raw_result.status
         response = self.result_callback(result, status)
         valid_response = (
-            response is ActionClientState.DONE or response is ActionClientState.ERROR
+            response is ActionClientState.DONE or response is ActionClientState.ERROR or ActionClientState.CANCELLED
         )
         if valid_response:
             self.state = response
         else:
             err_str = "Provided return value from result callback must be either "
-            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR}. "
+            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR} or {ActionClientState.CANCELLED}.\n"
             err_str += f"Provided value is {response}"
             raise ValueError(err_str)
 
@@ -449,7 +449,7 @@ class SMARCActionClient(abc.ABC):
         """Implement callback to parse out the result of an action server task.
 
         Returns:
-            Must return ActionClientState.DONE or ActionClientState.ERROR for higher level state management
+            Must return ActionClientState.DONE ActionClientState.ERROR for higher level state management
             **Values can be accessed via `self.get_goal_success()` and `self.get_goal_error()`**
             Return values are checked at runtime.
         """

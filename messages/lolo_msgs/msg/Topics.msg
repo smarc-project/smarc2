@@ -34,19 +34,8 @@ string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb
 
 
 # Topics for Payload Sensors
-
-# Topics for ....
-
-#Heartbeat topic
-string HEARTBEAT_TOPIC = "heartbeat"
-
-#Leak topic
-string LEAK_TOPIC = "leak"
-
-#Battry topics
-string BATTERY_1_TOPIC = "extended/battery1"
-string BATTERY_2_TOPIC = "extended/battery2"
-
+## Leak topic
+string LEAK_TOPIC = "sensor/leak"
 
 #Extended interface
 string EXTENDED_STATUS_TOPIC = "extended/status"
@@ -64,6 +53,10 @@ string EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC = "extended/actuators/vert
 string EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_front_strb_fb"
 string EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_back_port_fb"
 string EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_back_strb_fb"
+
+#Extended Battery topics
+string EXTENDED_BATTERY_1_TOPIC = "extended/battery1"
+string EXTENDED_BATTERY_2_TOPIC = "extended/battery2"
 
 
 
