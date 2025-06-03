@@ -26,5 +26,14 @@ The proper functioning of this setup depends on the following packages:
 ## ROS Topics Produced
 - Everything under `/robot_name/waraps/` namespace, which is the main namespace for WARA-PS Agent API topics. These topics are piped through the MQTT bridge to the desired MQTT broker.
 
+
+Use the following command to reset the emergency state of the robot if it has been triggered from either the GUI or the SMARC_ABORT ROS topic.
+
+```bash
+ros2 service call /$ROBOT_NAME/reset_emergency std_srvs/srv/Trigger```
+
+
+
+
 ## Disclaimer
 This package is under active development and may change significantly in the very near future. It is recommended to keep an eye on the repository for updates and changes. Feel free to contact the maintainers if you have any questions or suggestions.

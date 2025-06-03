@@ -32,14 +32,15 @@ from .conditions import C_CheckMissionPlanState,\
                         C_MissionTimeoutOK,\
                         C_TaskIs,\
                         C_TaskStatus,\
-                        C_AbortedPreviousTask
+                        C_AbortedPreviousTask,\
+                        C_NoEmergencyAbortSignalDetected
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
-                    A_AbortedFlagReset, \
+                    A_TaskAbortedFlagReset, \
                     A_Chilling,\
                      A_ClearCurrentTask
 
@@ -47,7 +48,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
-                 goto_wp_action: IActionClient,
+                 move_to_action: IActionClient,
+                 move_depth_action: IActionClient,
                  now_seconds_func: typing.Callable
                  ):
         """
@@ -58,7 +60,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self._goto_wp_action = goto_wp_action
+        self.move_to_action = move_to_action
+        self.move_depth_action = move_depth_action
         self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
@@ -106,6 +109,16 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return safety_tree
+    
+    def _handle_emergency_tree(self):
+        """
+        A tree that handles emergency situations, such as aborting the mission
+        """
+        return Fallback("F_HandleEmergency", memory=False, children=[
+            C_NoEmergencyAbortSignalDetected(self._task_handler),
+            # chill for a bit
+            A_Chilling(self), # should be replaced with EmergencyAction from Li
+        ])
                     
     def _task_handler_tree(self):
         """
@@ -119,7 +132,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 # chill for a bit
                 # A_JustChillFor(self, 5.0),
                 # reset the aborted flag
-                A_AbortedFlagReset(self._task_handler),
+                A_TaskAbortedFlagReset(self._task_handler),
             ]),
 
             # is the current task a move to task? If so, do it
@@ -131,7 +144,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                 #TODO: need to handle task failure gracefully
-                A_ActionClient(self._goto_wp_action, self._task_handler),
+                A_ActionClient(self.move_to_action, self._task_handler),
                 # when done, clear the task queue
                 A_ClearCurrentTask(self._task_handler),
                 # A_ClearTaskQueue(self._task_handler),
@@ -148,7 +161,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                 #TODO: need to handle task failure gracefully
-                A_ActionClient(self._goto_wp_action, self._task_handler),
+                A_ActionClient(self.move_depth_action, self._task_handler),
                 # when done, clear the task queue
                 A_ClearCurrentTask(self._task_handler),
                 # A_ClearTaskQueue(self._task_handler),
@@ -168,9 +181,11 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         children = [
             A_Heartbeat(self),
-            # A_ProcessBTCommand(self._mission_updater),
+            self._handle_emergency_tree(),
             # self._liveliness_tree(),
-            # self._safety_tree(),
+            
+            # self._safety_tree(), # should look at julian safety node topic
+
             # add the mission tree
             self._task_handler_tree(),
             # self._run_tree()
@@ -226,12 +241,12 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
+    
     # for drone, use the following line
-    # action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    action_client_move_to = BTActionClient(node, "move_to", action_type)
     # for lolo, use the following line
-    action_client_move_to = BTActionClient(node, "auv_depth_move_to", action_type)
-    # geopoint version
-    # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
+    action_client_move_depth = BTActionClient(node, "auv_depth_move_to", action_type)
+    
 
 
     # Declare and get parameters with defaults
@@ -256,7 +271,8 @@ def wasp_bt():
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
-            goto_wp_action    = action_client_move_to,
+            move_to_action    = action_client_move_to,
+            move_depth_action= action_client_move_depth,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 
