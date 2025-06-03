@@ -1,0 +1,17 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="robot_name" default="Quadrotor"/>
+  <arg name="target_frame" default="odom"/>
+  <arg name="distance_frame" default="base_link"/>
+  <arg name="distance_frame_suffix" default="_gt"/>
+  <arg name="frame_suffix" default="_gt"/>
+  <arg name="setpoint_tolerance" default="0.25"/>
+  <arg name="setpoint_topic" default="go_to_setpoint"/>
+  <arg name="goal_threshold" default="10.0"/>
+
+
+  <!-- Node for the Geopoint Client -->
+  <node name="geopoint_client" pkg="go_to_geopoint" exec="client" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)"/>
+  </node>
+</launch>

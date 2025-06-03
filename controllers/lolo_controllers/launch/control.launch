@@ -1,0 +1,93 @@
+<launch>
+  <arg name="robot_name" default="lolo"/>
+
+  <!-- launchfile for PID conrollers. -->
+
+  <!-- depth+altutude -> depth node -->
+
+  <!-- Yaw+yawrate controllers-->
+  <node name="lolo_yaw_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="0.1" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.05" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/yaw" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/yaw_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/yawrate_setpoint" />
+    <param name="controller_type" value="yaw" />
+  </node>
+
+  <node name="lolo_yawrate_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="40.0" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.7" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/yawrate" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/yawrate_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/yaw_actuation" />
+  </node>
+
+  <!-- roll+rollrate controllers-->
+  <node name="lolo_roll_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="1.0" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.1" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/roll" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/roll_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/rollrate_setpoint" />
+  </node>
+
+  <node name="lolo_rollrate_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="2.0" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.35" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/rollrate" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/rollrate_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/roll_actuation" />
+  </node>
+
+    <!-- depth+pitch+pitchrate controllers-->
+  <node name="lolo_depth_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="0.1" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.4" />
+    <param name="meassurement_topic" value="/$(var robot_name)/smarc/depth" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/depth_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/pitch_setpoint" />
+  </node>
+
+  <node name="lolo_pitch_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="0.5" />
+    <param name="i_gain" value="0.1" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.1" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/pitch" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/pitch_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/pitchrate_setpoint" />
+  </node>
+
+  <node name="lolo_pitchrate_pid" pkg="lolo_controllers" exec="pid" namespace="/lolo/ctrl" >
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="p_gain" value="8.0" />
+    <param name="i_gain" value="0.0" />
+    <param name="d_gain" value="0.0" />
+    <param name="output_limit" value="0.5" />
+    <param name="meassurement_topic" value="/$(var robot_name)/ctrl/pitchrate" />
+    <param name="setpoint_topic" value="/$(var robot_name)/ctrl/pitchrate_setpoint" />
+    <param name="output_topic" value="/$(var robot_name)/ctrl/pitch_actuation" />
+  </node>
+
+   <node name="lolo_control_mixer" pkg="lolo_controllers" exec="mixer" output="screen">
+    <param name="robot_name" value="$(var robot_name)"/>
+  </node>
+
+</launch>
