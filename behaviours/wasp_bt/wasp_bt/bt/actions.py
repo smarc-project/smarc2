@@ -203,7 +203,7 @@ class A_ActionClient(Behaviour):
             
 
     def setup(self) -> None:
-        return self._client._setup()
+        return self._client._setup(num_iters=5)
     
     def initialise(self) -> None: # this function is called when this Action is ticked for the first time
         # if previously running, get the client ready for a new run

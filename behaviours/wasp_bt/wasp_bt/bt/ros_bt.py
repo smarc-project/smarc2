@@ -48,7 +48,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
-                 goto_wp_action: IActionClient,
+                 move_to_action: IActionClient,
+                 move_depth_action: IActionClient,
                  now_seconds_func: typing.Callable
                  ):
         """
@@ -59,7 +60,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self._goto_wp_action = goto_wp_action
+        self.move_to_action = move_to_action
+        self.move_depth_action = move_depth_action
         self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
@@ -142,7 +144,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                 #TODO: need to handle task failure gracefully
-                A_ActionClient(self._goto_wp_action, self._task_handler),
+                A_ActionClient(self.move_to_action, self._task_handler),
                 # when done, clear the task queue
                 A_ClearCurrentTask(self._task_handler),
                 # A_ClearTaskQueue(self._task_handler),
@@ -159,7 +161,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                 #TODO: need to handle task failure gracefully
-                A_ActionClient(self._goto_wp_action, self._task_handler),
+                A_ActionClient(self.move_depth_action, self._task_handler),
                 # when done, clear the task queue
                 A_ClearCurrentTask(self._task_handler),
                 # A_ClearTaskQueue(self._task_handler),
@@ -241,9 +243,9 @@ def wasp_bt():
     action_type = ActionType(BaseAction)
     
     # for drone, use the following line
-    # action_client_move_to = BTActionClient(node, "move_to", action_type)
+    action_client_move_to = BTActionClient(node, "move_to", action_type)
     # for lolo, use the following line
-    action_client_move_to = BTActionClient(node, "auv_depth_move_to", action_type)
+    action_client_move_depth = BTActionClient(node, "auv_depth_move_to", action_type)
     
 
 
@@ -269,7 +271,8 @@ def wasp_bt():
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
-            goto_wp_action    = action_client_move_to,
+            move_to_action    = action_client_move_to,
+            move_depth_action= action_client_move_depth,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 

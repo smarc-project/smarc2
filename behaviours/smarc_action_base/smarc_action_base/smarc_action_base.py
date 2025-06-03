@@ -336,7 +336,7 @@ class SMARCActionClient(abc.ABC):
         self._action_name = action_name
         self._goal_handle: ClientGoalHandle | None = None
         self._state: ActionClientState = ActionClientState.DISCONNECTED
-        self._setup(num_iters=num_iters)
+        # self._setup(num_iters=num_iters)
 
     @property
     def state(self):
@@ -358,7 +358,7 @@ class SMARCActionClient(abc.ABC):
             err_str = traceback.format_exc()
             self._node.get_logger().error(f"[action-base] {err_str}")
 
-    def _setup(self, num_iters: int = 10):
+    def _setup(self, num_iters: int = 3):
         server_status = False
         iters = 0
         while not server_status and iters < num_iters:

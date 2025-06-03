@@ -519,9 +519,9 @@ class WaraPSTaskHandler:
 
             if command["signal"] in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
                 for i in range(len(self.tasks_executing)):
-                    task = self.tasks_executing[i]
+                    task = self.tasks_executing[0]
                     self.past_tasks.append(task)
-                    self.tasks_executing.pop(i)
+                    self.tasks_executing.pop(0)
                 
                 # raise aborted flag
                 self.aborted_flag = True
