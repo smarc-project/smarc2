@@ -11,12 +11,16 @@ ENV ROS_DOMAIN_ID 42
 ENV ROS_LOCALHOST_ONLY 0
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
+# Step 1: Install curl and gpg first
+RUN apt update && apt install -y curl gnupg
+
+# Step 2: Add the new ROS 2 GPG key and repo
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
     | gpg --dearmor -o /usr/share/keyrings/ros-archive-keyring.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" \
-    > /etc/apt/sources.list.d/ros2.list \
+    > /etc/apt/sources.list.d/ros2.list
 
-# update things
+# Step 3: Update and install everything else
 RUN apt update && apt upgrade -y \
 # package managers and such...
 &&  apt install -y python3-pip apt-utils ros-dev-tools unzip \
