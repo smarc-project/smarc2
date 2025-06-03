@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from sensor_msgs.msg import Imu
 
-from smarc_msgs.msg import PercentStamped, ThrusterRPM
+from smarc_msgs.msg import PercentStamped, ThrusterRPM, ThrusterFeedback
 from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
@@ -93,8 +93,8 @@ class DiveSub():
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
         self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
-        self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_FB_TOPIC)
-        self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_FB_TOPIC)
+        self.rpm1_fb = Subscriber(self._node, ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC)
+        self.rpm2_fb = Subscriber(self._node, ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC)
         self.thrust_vector_fb = Subscriber(self._node, ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC)
 
         self.ctrl_synch_msg = ApproximateTimeSynchronizer(
@@ -140,8 +140,8 @@ class DiveSub():
                        thrust_vector_fb_msg: ThrusterAngles):
         self._control_input['vbs'] = vbs_fb_msg.value
         self._control_input['lcg'] = lcg_fb_msg.value
-        self._control_input['rpm1'] = rpm1_fb_msg.rpm
-        self._control_input['rpm2'] = rpm2_fb_msg.rpm
+        self._control_input['rpm1'] = rpm1_fb_msg.rpm.rpm
+        self._control_input['rpm2'] = rpm2_fb_msg.rpm.rpm
         self._control_input['stern'] = thrust_vector_fb_msg.thruster_vertical_radians
         self._control_input['rudder'] = thrust_vector_fb_msg.thruster_horizontal_radians
 

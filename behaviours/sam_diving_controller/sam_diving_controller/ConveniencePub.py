@@ -51,7 +51,7 @@ class ConveniencePub(IDivePub):
         self._update_error()
         self._update_input()
         self._update_waypoint()
-        self._print_state()
+        #self._print_state()
 
 
     def _update_state(self) -> None:
