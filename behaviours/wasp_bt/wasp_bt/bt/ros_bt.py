@@ -226,12 +226,12 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
+    
     # for drone, use the following line
-    # action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # action_client_move_to = BTActionClient(node, "move_to", action_type)
     # for lolo, use the following line
     action_client_move_to = BTActionClient(node, "auv_depth_move_to", action_type)
-    # geopoint version
-    # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
+    
 
 
     # Declare and get parameters with defaults

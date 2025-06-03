@@ -324,7 +324,7 @@ class SMARCActionClient(abc.ABC):
         _goal_handle: internal handle to goal to help register callbacks as user needs them
     """
 
-    def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
+    def __init__(self, node: Node, action_name: str, action_type: ActionType, num_iters: int = 10, **kwargs):
         self._node: Node = node
         self.action_type = action_type
         self._client: ActionClient = ActionClient(
@@ -336,7 +336,7 @@ class SMARCActionClient(abc.ABC):
         self._action_name = action_name
         self._goal_handle: ClientGoalHandle | None = None
         self._state: ActionClientState = ActionClientState.DISCONNECTED
-        self._setup()
+        self._setup(num_iters=num_iters)
 
     @property
     def state(self):
@@ -358,13 +358,24 @@ class SMARCActionClient(abc.ABC):
             err_str = traceback.format_exc()
             self._node.get_logger().error(f"[action-base] {err_str}")
 
-    def _setup(self):
+    def _setup(self, num_iters: int = 10):
         server_status = False
-        while not server_status:
+        iters = 0
+        while not server_status and iters < num_iters:
+            iters += 1
             self._node.get_logger().info("[action-base] Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
-        self._node.get_logger().info("[action-base] Server found.")
-        self.state = ActionClientState.READY
+        
+        if server_status:
+            self._node.get_logger().info("[action-base] Server found.")
+            self.state = ActionClientState.READY
+        else:
+            self._node.get_logger().error(
+                "[action-base] Server not found. Action client will not be able to send goals."
+            )
+            self.state = ActionClientState.DISCONNECTED
+        
+        return server_status
 
     def get_goal_success(self) -> ActionClientState:
         """Success response for proper client state updating."""

@@ -121,7 +121,7 @@ class WaraPSTaskHandler:
         # Subscriptions for WARA-PS command topics
         self._wara_ps_exec_command_sub = node.create_subscription(String, Topics.WARA_PS_EXEC_COMMAND_TOPIC, self._exec_command_cb, 10)
 
-        self._wara_ps_tst_command_sub = node.create_subscription(String, Topics.WARA_PS_TST_COMMAND_TOPIC, self._exec_command_cb, 10)
+        self._wara_ps_tst_command_sub = node.create_subscription(String, Topics.WARA_PS_TST_COMMAND_TOPIC, self._tst_command_cb, 10)
 
         # Subscriptions to action Server topics
         self._wara_ps_action_server_sub = node.create_subscription(String, Topics.WARA_PS_ACTION_SERVER_HB_TOPIC, self._action_hb_callback, 10)
@@ -466,58 +466,6 @@ class WaraPSTaskHandler:
                 self._wara_ps_exec_response_pub.publish(msg)
 
                 self._node.get_logger().info('Published Start Task response message')
-            
-        elif command["command"] == "start-tst": # hacky way to handle list of tasks coming from Unity GUI. NOT COMPLIANT WITH WARA-PS API SPEC.
-            # example command:
-            '''
-            {"receiver":"shekharu_lolo","tst":{"common-params":{"execunit":"/shekharu_lolo","node-uuid":"e5bcb11a-2c8f-48cc-94c1-747c88ab516e"},"params":{},"children":[{"description":"1","task-uuid":"03acd059-73d2-412f-8d75-f3fd2b9efac0","params":{"waypoint":{"latitude":58.850523629300554,"longitude":17.674904712183004,"target_depth":10.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"},{"description":"2","task-uuid":"c83ff631-8b63-4c69-a260-9008782ee41a","params":{"waypoint":{"latitude":58.850628267523796,"longitude":17.675200365495684,"target_depth":15.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"}],"tst-uuid":"0536c8e2-0d23-45e0-9434-eed663b14ec0","description":"Lolo Test","name":"seq"},"command":"start-tst","com-uuid":"fe38f852-7ff4-4f4a-bd78-62011e0fca00","sender":"UnityGUI"}
-            '''
-            # check if the command is valid
-            if "tst" not in command.keys():
-                self._node.get_logger().error("Invalid start-tst command: missing 'tst' key")
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not found",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
-                return
-            
-            # extract the list of tasks from the command. They're the children of the tst key
-            if "children" not in command["tst"]:
-                self._node.get_logger().error("Invalid start-tst command: missing 'children' key in 'tst'")
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not found",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
-                return
-
-            common_params = command["tst"]["common-params"] if "common-params" in command["tst"].keys() else {}
-            tasks = command["tst"]["children"]
-
-            # inject common params into each tasks params
-            for task in tasks:
-                if "params" not in task:
-                    task["params"] = {}
-                # merge common params into task params
-                task["params"].update(common_params)
-                # add the task to the executing tasks list
-                task_dict = {
-                    "task-uuid": task["task-uuid"],
-                    "task": task,
-                    "status": WaraPSTaskStates.STARTED.value,
-                    "description": task["description"] if "description" in task.keys() else "",
-                }
-                self.tasks_executing.append(task_dict)
-            
 
         return
     
@@ -583,10 +531,28 @@ class WaraPSTaskHandler:
             self._wara_ps_tst_response_pub.publish(msg)
             self._node.get_logger().info('Published TST Signal Task response message')
 
-        # Example: handle start-tst command
-        elif command["command"] == "start-tst":
-            if "tst" not in command:
+            
+        elif command["command"] == "start-tst": 
+            # '''
+            # {"receiver":"shekharu_lolo","tst":{"common-params":{"execunit":"/shekharu_lolo","node-uuid":"e5bcb11a-2c8f-48cc-94c1-747c88ab516e"},"params":{},"children":[{"description":"1","task-uuid":"03acd059-73d2-412f-8d75-f3fd2b9efac0","params":{"waypoint":{"latitude":58.850523629300554,"longitude":17.674904712183004,"target_depth":10.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"},{"description":"2","task-uuid":"c83ff631-8b63-4c69-a260-9008782ee41a","params":{"waypoint":{"latitude":58.850628267523796,"longitude":17.675200365495684,"target_depth":15.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"}],"tst-uuid":"0536c8e2-0d23-45e0-9434-eed663b14ec0","description":"Lolo Test","name":"seq"},"command":"start-tst","com-uuid":"fe38f852-7ff4-4f4a-bd78-62011e0fca00","sender":"UnityGUI"}
+            # '''
+            # check if the command is valid
+            if "tst" not in command.keys():
                 self._node.get_logger().error("Invalid start-tst command: missing 'tst' key")
+                response_msg = {
+                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                    "com-uuid": command["com-uuid"],
+                    "response": "task not found",
+                    "response-to": command["com-uuid"]
+                }
+                msg = String()
+                msg.data = json.dumps(response_msg)
+                self._wara_ps_exec_response_pub.publish(msg)
+                return
+            
+            # extract the list of tasks from the command. They're the children of the tst key
+            if "children" not in command["tst"]:
+                self._node.get_logger().error("Invalid start-tst command: missing 'children' key in 'tst'")
                 response_msg = {
                     "agent-uuid": self._wara_ps_dict["agent-uuid"],
                     "com-uuid": command["com-uuid"],
@@ -597,10 +563,25 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(response_msg)
                 self._wara_ps_tst_response_pub.publish(msg)
                 return
-            
-            # extract the list of tasks from the command
-            #TODO: This needs to be developed further, as this is just a placeholder
-            pass
+
+            common_params = command["tst"]["common-params"] if "common-params" in command["tst"].keys() else {}
+            tasks = command["tst"]["children"]
+
+            # inject common params into each tasks params
+            for task in tasks:
+                if "params" not in task:
+                    task["params"] = {}
+                # merge common params into task params
+                task["params"].update(common_params)
+                # add the task to the executing tasks list
+                task_dict = {
+                    "task-uuid": task["task-uuid"],
+                    "task": task,
+                    "status": WaraPSTaskStates.STARTED.value,
+                    "description": task["description"] if "description" in task.keys() else "",
+                }
+                self.tasks_executing.append(task_dict)
+
             
 
 
