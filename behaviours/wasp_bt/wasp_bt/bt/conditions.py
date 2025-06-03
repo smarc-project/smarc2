@@ -128,7 +128,26 @@ class C_MissionTimeoutOK(MissionPlanBehaviour):
         if plan.timeout_reached: 
             return Status.FAILURE
         return Status.SUCCESS
-    
+
+class C_AbortedPreviousTask(Behaviour):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
+        """
+        Returns S if the previous task was aborted
+        """
+        self._wara_ps_task_handler = wara_ps_task_handler
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+
+    def update(self) -> Status:
+
+        if self._wara_ps_task_handler.aborted_flag == True:
+            self.feedback_message = "Previous task was aborted"
+            self._wara_ps_task_handler.aborted_flag = False  # reset the flag
+            return Status.SUCCESS
+        else:
+            self.feedback_message = "Previous task was not aborted"
+            return Status.FAILURE
+
 class C_TaskIs(Behaviour):
     def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, task_name: str):
         """

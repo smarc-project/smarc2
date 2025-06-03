@@ -31,13 +31,15 @@ from .conditions import C_CheckMissionPlanState,\
                         C_SensorOperatorBlackboard,\
                         C_MissionTimeoutOK,\
                         C_TaskIs,\
-                        C_TaskStatus
+                        C_TaskStatus,\
+                        C_AbortedPreviousTask
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
+                    A_AbortedFlagReset, \
                     A_Chilling,\
                      A_ClearCurrentTask
 
@@ -111,6 +113,15 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         """
 
         task_handler = Fallback("F_Task_Handler", memory=False, children=[
+            
+            Sequence("S_BreathAfterAborting", memory=False, children=[
+                C_AbortedPreviousTask(self._task_handler),
+                # chill for a bit
+                # A_JustChillFor(self, 5.0),
+                # reset the aborted flag
+                A_AbortedFlagReset(self._task_handler),
+            ]),
+
             # is the current task a move to task? If so, do it
             Sequence("S_MoveTo", memory=False, children=[
                 C_TaskIs(self._task_handler, "move-to"),
@@ -128,6 +139,20 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
             #TODO: implement more tasks types
             # is the current task a move path task? If so, do it
+
+            Sequence("S_DepthMoveTo", memory=False, children=[
+                C_TaskIs(self._task_handler, "auv-depth-move-to"),
+                Fallback("F_StatusCheck", memory=False, children=[
+                    C_TaskStatus(self._task_handler, "started"),
+                    C_TaskStatus(self._task_handler, "resumed"),
+                    C_TaskStatus(self._task_handler, "running"),
+                ]),
+                #TODO: need to handle task failure gracefully
+                A_ActionClient(self._goto_wp_action, self._task_handler),
+                # when done, clear the task queue
+                A_ClearCurrentTask(self._task_handler),
+                # A_ClearTaskQueue(self._task_handler),
+                ]),
 
 
 
@@ -201,7 +226,10 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
-    action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # for drone, use the following line
+    # action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
+    # for lolo, use the following line
+    action_client_move_to = BTActionClient(node, "auv_depth_move_to", action_type)
     # geopoint version
     # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
 
@@ -259,8 +287,10 @@ def wasp_bt():
 
         # get the current time
         now_time = ros_seconds_float()
-        # heartbeat
+        # task execution info
         wara_ps_task_handler.lvl_2_heartbeat(now_time)
+        # tst execution info
+        wara_ps_task_handler.lvl_3_heartbeat(now_time)
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 

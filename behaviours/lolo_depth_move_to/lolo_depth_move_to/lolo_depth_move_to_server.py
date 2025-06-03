@@ -312,6 +312,12 @@ class DepthMoveToServer(SMARCActionServer):
         d = self.compute_distance(pose_stamped, check_depth=False)
         tol_check = self._tol_check(d)
         while not tol_check:
+            # Check if we've been cancelled!
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client!")
+                goal_handle.canceled()
+                goal_reached = False
+                break
             # Check if we have timed out first.
             if self.timed_out(action_start_time, timeout):
                 self.logger.warning(f"Goal was not reached within the time limit of {timeout}s. Aborting goal.")

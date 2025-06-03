@@ -418,7 +418,7 @@ def main(args=None):
         node_name = "setpoint_server"
         node = Node(node_name)
         action_type = ActionType(BaseAction)
-        setpoint = GeopointServer(node, "go_to_setpoint", action_type)
+        setpoint = GeopointServer(node, "move_to", action_type)
         executor = MultiThreadedExecutor()
         executor.add_node(node)
         executor.spin()
