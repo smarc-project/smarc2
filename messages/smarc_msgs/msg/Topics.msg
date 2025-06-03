@@ -19,9 +19,9 @@ string HEADING_TOPIC = 'smarc/heading' #float32
 string COURSE_TOPIC = 'smarc/course' #float32
 string SPEED_TOPIC = 'smarc/speed' #float32
 string POS_LATLON_TOPIC = 'smarc/latlon' #geopoint
-string BATTERY_PERCENT_TOPIC = 'smarc/battery_percent'
-string DEPTH_TOPIC = 'smarc/depth'
-string ALTITUDE_TOPIC = 'smarc/altitude'
+string BATTERY_PERCENT_TOPIC = 'smarc/battery_percent' #batterystate
+string DEPTH_TOPIC = 'smarc/depth' #float32
+string ALTITUDE_TOPIC = 'smarc/altitude' #float32
 
 ################
 # WARA-PS Topics
@@ -42,6 +42,15 @@ string WARA_PS_DIRECT_EXECUTION_INFO_TOPIC = 'waraps/direct_execution_info'
 string WARA_PS_EXEC_RESPONSE_TOPIC = 'waraps/exec/response'
 string WARA_PS_EXEC_FEEDBACK_TOPIC = 'waraps/exec/feedback'
 string WARA_PS_EXEC_COMMAND_TOPIC = 'waraps/exec/command'
+
+# Level 3
+string WARA_PS_TST_EXEC_INFO_TOPIC = 'waraps/tst_execution_info'
+string WARA_PS_TST_COMMAND_TOPIC = 'waraps/tst/command'
+string WARA_PS_TST_RESPONSE_TOPIC = 'waraps/tst/response'
+string WARA_PS_TST_FEEDBACK_TOPIC = 'waraps/tst/feedback'
+
+# WARA-PS Abort Topic
+string WARA_PS_ABORT_TOPIC = 'waraps/abort'
 
 # Action Server Heartbeat
 string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'

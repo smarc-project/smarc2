@@ -33,9 +33,9 @@ class GeoActionParsing:
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
             geopoint = GeoPoint()
-            geopoint.latitude = float(fmt_dict["geopoint"]["latitude"])
-            geopoint.longitude = float(fmt_dict["geopoint"]["longitude"])
-            geopoint.altitude = float(fmt_dict["geopoint"]["altitude"])
+            geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
+            geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
+            geopoint.altitude = float(fmt_dict["waypoint"]["altitude"])
             return geopoint
         elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["distance_remaining"])
@@ -48,10 +48,10 @@ class GeoActionParsing:
         str_msg = String()
         fmt_dict = {}
         if isinstance(val, (GeoPoint,)):
-            fmt_dict["geopoint"] = {}
-            fmt_dict["geopoint"]["latitude"] = val.latitude
-            fmt_dict["geopoint"]["longitude"] = val.longitude
-            fmt_dict["geopoint"]["altitude"] = val.altitude
+            fmt_dict["waypoint"] = {}
+            fmt_dict["waypoint"]["latitude"] = val.latitude
+            fmt_dict["waypoint"]["longitude"] = val.longitude
+            fmt_dict["waypoint"]["altitude"] = val.altitude
         elif isinstance(val, (float,)):
             fmt_dict["distance_remaining"] = val
         else:

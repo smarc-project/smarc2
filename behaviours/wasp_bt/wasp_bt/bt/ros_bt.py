@@ -31,13 +31,16 @@ from .conditions import C_CheckMissionPlanState,\
                         C_SensorOperatorBlackboard,\
                         C_MissionTimeoutOK,\
                         C_TaskIs,\
-                        C_TaskStatus
+                        C_TaskStatus,\
+                        C_AbortedPreviousTask,\
+                        C_NoEmergencyAbortSignalDetected
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
+                    A_TaskAbortedFlagReset, \
                     A_Chilling,\
                      A_ClearCurrentTask
 
@@ -45,7 +48,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
-                 goto_wp_action: IActionClient,
+                 move_to_action: IActionClient,
+                 move_depth_action: IActionClient,
                  now_seconds_func: typing.Callable
                  ):
         """
@@ -56,7 +60,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self._goto_wp_action = goto_wp_action
+        self.move_to_action = move_to_action
+        self.move_depth_action = move_depth_action
         self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
@@ -104,6 +109,16 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return safety_tree
+    
+    def _handle_emergency_tree(self):
+        """
+        A tree that handles emergency situations, such as aborting the mission
+        """
+        return Fallback("F_HandleEmergency", memory=False, children=[
+            C_NoEmergencyAbortSignalDetected(self._task_handler),
+            # chill for a bit
+            A_Chilling(self), # should be replaced with EmergencyAction from Li
+        ])
                     
     def _task_handler_tree(self):
         """
@@ -111,6 +126,15 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         """
 
         task_handler = Fallback("F_Task_Handler", memory=False, children=[
+            
+            Sequence("S_BreathAfterAborting", memory=False, children=[
+                C_AbortedPreviousTask(self._task_handler),
+                # chill for a bit
+                # A_JustChillFor(self, 5.0),
+                # reset the aborted flag
+                A_TaskAbortedFlagReset(self._task_handler),
+            ]),
+
             # is the current task a move to task? If so, do it
             Sequence("S_MoveTo", memory=False, children=[
                 C_TaskIs(self._task_handler, "move-to"),
@@ -120,7 +144,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                     C_TaskStatus(self._task_handler, "running"),
                 ]),
                 #TODO: need to handle task failure gracefully
-                A_ActionClient(self._goto_wp_action, self._task_handler),
+                A_ActionClient(self.move_to_action, self._task_handler),
                 # when done, clear the task queue
                 A_ClearCurrentTask(self._task_handler),
                 # A_ClearTaskQueue(self._task_handler),
@@ -128,6 +152,20 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
             #TODO: implement more tasks types
             # is the current task a move path task? If so, do it
+
+            Sequence("S_DepthMoveTo", memory=False, children=[
+                C_TaskIs(self._task_handler, "auv-depth-move-to"),
+                Fallback("F_StatusCheck", memory=False, children=[
+                    C_TaskStatus(self._task_handler, "started"),
+                    C_TaskStatus(self._task_handler, "resumed"),
+                    C_TaskStatus(self._task_handler, "running"),
+                ]),
+                #TODO: need to handle task failure gracefully
+                A_ActionClient(self.move_depth_action, self._task_handler),
+                # when done, clear the task queue
+                A_ClearCurrentTask(self._task_handler),
+                # A_ClearTaskQueue(self._task_handler),
+                ]),
 
 
 
@@ -143,9 +181,11 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         children = [
             A_Heartbeat(self),
-            # A_ProcessBTCommand(self._mission_updater),
+            self._handle_emergency_tree(),
             # self._liveliness_tree(),
-            # self._safety_tree(),
+            
+            # self._safety_tree(), # should look at julian safety node topic
+
             # add the mission tree
             self._task_handler_tree(),
             # self._run_tree()
@@ -201,9 +241,12 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
-    action_client_move_to = BTActionClient(node, "go_to_setpoint", action_type)
-    # geopoint version
-    # action_client_move_to = GeopointClient(node, "go_to_setpoint", action_type)
+    
+    # for drone, use the following line
+    action_client_move_to = BTActionClient(node, "move_to", action_type)
+    # for lolo, use the following line
+    action_client_move_depth = BTActionClient(node, "auv_depth_move_to", action_type)
+    
 
 
     # Declare and get parameters with defaults
@@ -228,7 +271,8 @@ def wasp_bt():
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
-            goto_wp_action    = action_client_move_to,
+            move_to_action    = action_client_move_to,
+            move_depth_action= action_client_move_depth,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 
@@ -259,8 +303,10 @@ def wasp_bt():
 
         # get the current time
         now_time = ros_seconds_float()
-        # heartbeat
+        # task execution info
         wara_ps_task_handler.lvl_2_heartbeat(now_time)
+        # tst execution info
+        wara_ps_task_handler.lvl_3_heartbeat(now_time)
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 

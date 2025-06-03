@@ -8,6 +8,7 @@ from std_msgs.msg import Float32
 from geographic_msgs.msg import GeoPoint
 
 from std_msgs.msg import Empty, Bool
+from std_msgs.msg import String
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics
 
@@ -36,10 +37,13 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._gps_sub = node.create_subscription(GeoPoint, Topics.POS_LATLON_TOPIC, self._gps_cb, 10)
         self._heading_sub = node.create_subscription(Float32, Topics.HEADING_TOPIC, self._heading_cb, 10)
         self._course_sub = node.create_subscription(Float32, Topics.COURSE_TOPIC, self._heading_cb, 10)
-        self._battery_sub = node.create_subscription(BatteryState, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
+        self._battery_sub = node.create_subscription(String, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
-        self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
-        self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
+        self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
+        
+        self._abort_pub = node.create_publisher(String, Topics.ABORT_TOPIC, 10)
+        self._abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._abort_cb, 10)
+
         self._heartbeat_pub = node.create_publisher(Empty, Topics.BT_HEARTBEAT_TOPIC, 10)
         self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
 
@@ -66,6 +70,10 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], sec)
         self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], sec)
+
+    def _depth_cb(self, data: Float32):
+        sec = self.current_time()
+        self._vehicle_state.update_sensor(SensorNames.DEPTH, [data.data], sec)
 
     def _heading_cb(self, data: Float32):
         sec = self.current_time()

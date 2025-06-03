@@ -139,6 +139,16 @@ class A_ClearCurrentTask(VehicleBehaviour):
         self.feedback_message = "Cleared current task"
         return Status.RUNNING
 
+class A_TaskAbortedFlagReset(VehicleBehaviour):
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self._task_handler = task_handler
+
+    def update(self) -> Status:
+        self._task_handler.aborted_flag = False
+        self.feedback_message = "Aborted flag reset"
+        return Status.SUCCESS
+
 class A_Abort(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):
         super().__init__(bt)
@@ -193,7 +203,18 @@ class A_ActionClient(Behaviour):
             
 
     def setup(self) -> None:
-        return self._client._setup()
+        return self._client._setup(num_iters=5)
+    
+    def initialise(self) -> None: # this function is called when this Action is ticked for the first time
+        # if previously running, get the client ready for a new run
+        if self._client.state in self._running_states:
+            self.feedback_message = "Clearing previous goal and getting ready for a new run..."
+            self._client.cancel_goal(self._client.cancel_callback)
+
+
+        self.feedback_message = None
+        self._task_handler.set_current_task_status("started")
+        self._task_handler.publish_feedback_to_current_task("Action client initialised. Waiting for task to start...")
         
 
     def terminate(self, new_status: Status) -> None:
@@ -204,89 +225,96 @@ class A_ActionClient(Behaviour):
                 self._client.cancel_goal(self._client.cancel_callback)
             else:
                 self.feedback_message = "Preempted, but goal already finished."
+            # Publish feedback
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return
 
         if new_status == Status.SUCCESS:
             # action is finished proper. get ready for a next run.
             self._client.get_ready()
             self.feedback_message = "Action finished. Ready for next run."
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
 
         if new_status == Status.FAILURE:
             # action did not finish proper.
             # should be handled by the rest of the tree
             self.feedback_message = f"Action failed. Action Client state: {self._client.state}"
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return
 
 
 
     def update(self) -> Status:
         s = self._client.state
-        # print(f"Action client state: {s}")
-        # exit(0)
 
         # if it was cancelled, get the client ready for a new run for later
         if s == ActionClientState.CANCELLED:
             # change state to ready
             self.feedback_message = "Action cancelled. Ready for next run."
             self._client.get_ready()    
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
 
-        # # server is good to go
-        # print("I died here")
-        # exit(0)
         if s == ActionClientState.READY:
-            # mplan = self._get_plan()
             task_status = self._task_handler.get_current_task_status()
-            # self._logger.info(f"Task status: {task_status}")
             if task_status == "started" or task_status == "resumed":
                 self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."
                 self._task_handler.set_current_task_status("running")
+                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
                 
             mplan = self._task_handler.get_current_task_params()
             
             if mplan is None:
                 self.feedback_message = "No task to get a wp from..."
+                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
                 return Status.FAILURE
-            
-            # extract params
-            # self._logger.info(f"mplan: {mplan}")
-            param_dict = mplan["waypoint"]
-            msg_dict = {
-                "geopoint": {
-                    "latitude": param_dict["latitude"],
-                    "longitude": param_dict["longitude"],
-                    "altitude": param_dict["altitude"]
-                },
-            }
 
-            msg_str = json.dumps(msg_dict)
+            
+            #log the mission plan
+            self._logger.info(f"Mission Plan: {mplan}")
+
+            msg_str = json.dumps(mplan)
+
+            # extract params, this is specific to the geopoint server made by Tim
+            
+            # param_dict = mplan["waypoint"]
+            # msg_dict = {
+            #     "geopoint": {
+            #         "latitude": param_dict["latitude"],
+            #         "longitude": param_dict["longitude"],
+            #         "altitude": param_dict["altitude"]
+            #     },
+            # }
+            # msg_str = json.dumps(msg_dict)
+
 
             mission_msg = BaseAction.Goal()
             mission_msg.goal.data = msg_str
-            # self._logger.info(f"mission_msg: {mission_msg}")
             self._client.send_goal(mission_msg)
 
-            
             self._logger.info("yall I sent dat task")
+            self.feedback_message = "Goal sent to action client."
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
         
         if s in self._running_states:
-            # self._logger.info("boi")
             self.feedback_message = self._client.feedback_message
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
 
         if s in self._failure_states:
-            # self._logger.info("jump")
+            self.feedback_message = "Action client in failure state."
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.FAILURE
         
         if s in self._success_states:
-
-            # cancel the goal
-            # self._client.cancel_goal(self._client.cancel_callback)
+            self.feedback_message = "Action client succeeded."
+            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.SUCCESS
     
 
         self.feedback_message = f"Unexpected status:{s}?!"
+        self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
         return Status.FAILURE
 
 

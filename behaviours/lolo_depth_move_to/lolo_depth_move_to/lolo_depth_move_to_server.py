@@ -51,7 +51,7 @@ class DepthMoveToServer(SMARCActionServer):
         self._json_ops: DepthMoveToActionParsing = DepthMoveToActionParsing()
 
         self.declare_parameters()
-        self.vehicle = Lolo(robot_name=self._robot_name,
+        self.vehicle = Lolo(node=node, robot_name=self._robot_name,
                             limits_filename=self._vehicle_limits_filename)
 
 
@@ -312,6 +312,12 @@ class DepthMoveToServer(SMARCActionServer):
         d = self.compute_distance(pose_stamped, check_depth=False)
         tol_check = self._tol_check(d)
         while not tol_check:
+            # Check if we've been cancelled!
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client!")
+                goal_handle.canceled()
+                goal_reached = False
+                break
             # Check if we have timed out first.
             if self.timed_out(action_start_time, timeout):
                 self.logger.warning(f"Goal was not reached within the time limit of {timeout}s. Aborting goal.")
@@ -354,10 +360,7 @@ def main(args=None):
     action_type = ActionType(BaseAction)
     lolo_move_to = DepthMoveToServer(node, "auv_depth_move_to", action_type)
     executor = MultiThreadedExecutor()
-    # FIXME: I have no idea how this is supposed to be done, but it works...?
-    # FIXME: Maybe I should pass the same node handle to the virtual lolo?
     executor.add_node(node)
-    executor.add_node(lolo_move_to.vehicle)
     executor.spin()
 
 

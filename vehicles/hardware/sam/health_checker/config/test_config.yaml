@@ -1,0 +1,17 @@
+# Comment here
+my_dict_0:
+  key1:
+    - 2
+    - 2.5
+  key2:
+    - 1
+
+my_dict_1:
+  key1:
+    - value1
+    - value2
+    - value3
+  key2:
+    - valueA
+    - valueB
+    - valueC
