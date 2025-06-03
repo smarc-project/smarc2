@@ -25,7 +25,7 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32
 
-# from lolo_msgs.msg import Topics as LoloTopics
+from lolo_msgs.msg import Topics as LoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
 
 from ament_index_python.packages import get_package_share_directory
@@ -41,31 +41,29 @@ class SimpleRPMGoal(object):
                  altitude = None,
                  rpm = None,
                  timeout = None,
-                 tolerance = None,
-                 targetCourse = None):
+                 yaw_enu = None):
         self.x = x
         self.y = y
         self.depth = depth
         self.altitude = altitude
         self.rpm = rpm
         self.timeout = timeout
-        self.tolerance = tolerance
-        self.targetCourse = targetCourse
+        self.yaw_enu = yaw_enu
         self.goal_type = self.GOALTYPE_WAYPOINT
 
-        if(targetCourse is not None):
+        if(yaw_enu is not None):
             self.goal_type = self.GOALTYPE_COURSE
 
     @property
     def pos(self):
         return np.array([self.x, self.y, self.depth])
 
-class Lolo(Node):
+class Lolo():
 
-    def __init__(self, robot_name="lolo",
+    def __init__(self, node: Node, robot_name="lolo",
                  limits_filename="lolo_default_limits.yaml"):
-        super().__init__('virtual_lolo')
-        self.logger = self.get_logger()
+        self.node = node
+        self.logger = self.node.get_logger()
 
         # Rosparams.
         self.limits_filename = limits_filename
@@ -116,34 +114,37 @@ class Lolo(Node):
         self.desired_elevator_angle = 0
 
         # Navigation/INS feedback subscriber.
-        self.odom_topic = f"{self.robot_name}/{SmarcTopics.ODOM_TOPIC}"
-        self.create_subscription(Odometry, self.odom_topic, self.odometry_callback,
+        self.odom_topic = f"{SmarcTopics.ODOM_TOPIC}"
+        self.node.create_subscription(Odometry, self.odom_topic, self.odometry_callback,
                                  10)
         # Altitude subscriber.
-        self.create_subscription(Float32,
-                                 f"{self.robot_name}/{SmarcTopics.ALTITUDE_TOPIC}",
+        self.node.create_subscription(Float32,
+                                 f"{SmarcTopics.ALTITUDE_TOPIC}",
                                  self.altitude_callback, 10)
         # Absolute depth subscriber.
-        self.create_subscription(Float32,
-                                 f"{self.robot_name}/{SmarcTopics.DEPTH_TOPIC}",
+        self.node.create_subscription(Float32,
+                                 f"{SmarcTopics.DEPTH_TOPIC}",
                                  self.depth_callback, 10)
 
         # Thruster setpoint publishers.
         # TODO: Add this topics to LoloTopics.
-        self.thruster_pub = self.create_publisher(Float32,
-                                                  f"{self.robot_name}/ctrl/rpm_setpoint",
-                                                  10)
+        self.thruster_pub = self.node.create_publisher(Float32,
+                                                       f"{LoloTopics.RPM_SETPOINT}",
+                                                       10)
         # Orientation setpoint publishers.
-        self.yaw_pub = self.create_publisher(Float32,
-                                             f"{self.robot_name}/ctrl/yaw_setpoint",
-                                             10)
-        self.roll_pub = self.create_publisher(Float32,
-                                              f"{self.robot_name}/ctrl/roll_setpoint",
-                                              10)
-        self.depth_pub = self.create_publisher(Float32,
-                                               f"{self.robot_name}/ctrl/depth_setpoint",
-                                               10)
+        self.yaw_pub = self.node.create_publisher(Float32,
+                                                  f"{LoloTopics.YAW_SETPOINT}",
+                                                  10)
+        self.roll_pub = self.node.create_publisher(Float32,
+                                                   f"{LoloTopics.ROLL_SETPOINT}",
+                                                   10)
+        self.depth_pub = self.node.create_publisher(Float32,
+                                                    f"{LoloTopics.DEPTH_SETPOINT}",
+                                                    10)
 
+
+    def get_time(self):
+        return self.node.get_clock().now().nanoseconds * 1e-9
 
     def read_limits(self):
         """
@@ -171,9 +172,10 @@ class Lolo(Node):
 
         # Track how old the latest altitude measurement is.
         if self.altitude_age == None:
-            self.logger.warning("(LoloObject) Altitude has not been initialized.")
+            self.logger.warning("(LoloObject) Altitude has not been initialized.",
+                                throttle_duration_sec=10)
         else:
-            self.altitude_age = (self.get_clock().now().nanoseconds * 1e-9) - self.last_altitude_time
+            self.altitude_age = self.get_time() - self.last_altitude_time
 
         # Calculate and publish setpoints for controllers.
         self.control_wp()
@@ -191,7 +193,7 @@ class Lolo(Node):
             setpoint_msg.data = self.desired_yaw
             self.yaw_pub.publish(setpoint_msg)
         elif (self.goal.goal_type == self.goal.GOALTYPE_COURSE):
-            self.desired_yaw = self.goal.targetCourse
+            self.desired_yaw = self.goal.yaw_enu
             setpoint_msg.data = self.desired_yaw
             self.yaw_pub.publish(setpoint_msg)
         else:
@@ -220,8 +222,8 @@ class Lolo(Node):
         setpoint_msg.data = self.desired_roll
         self.roll_pub.publish(setpoint_msg)
 
-    def set_goal(self, x: float, y: float, depth: float, altitude: float,
-                 rpm: float, timeout: float) -> bool:
+    def set_goal(self, x=None, y=None, depth=None, altitude=None, rpm=None,
+                 yaw_enu=None, timeout=None) -> bool:
         """Checks whether the goal is withing the vehicle's limits and stores it.
 
             Args:
@@ -230,7 +232,8 @@ class Lolo(Node):
             Returns:
                 Boolean flag, true if the goal was within the vehicle limits.
         """
-        goal = SimpleRPMGoal(x, y, depth, altitude, rpm, timeout)
+        goal = SimpleRPMGoal(x=x, y=y, depth=depth, altitude=altitude,
+                             rpm=rpm, yaw_enu=yaw_enu, timeout=timeout)
 
         if self.goal_viable(goal):
             self.goal = goal
@@ -241,21 +244,22 @@ class Lolo(Node):
     def goal_viable(self, goal: SimpleRPMGoal) -> bool:
         """Checks ANY type of MoveToAction goal against Lolo's limits.
         """
-        dist_to_waypoint = np.linalg.norm([goal.x - self.x, goal.y - self.y])
-        if goal.rpm > self.limits['max_thruster_rpm']:
+        if goal.goal_type == goal.GOALTYPE_WAYPOINT:
+            dist_to_waypoint = np.linalg.norm([goal.x - self.x, goal.y - self.y])
+            if dist_to_waypoint > self.limits['max_waypoint_dist']:
+                self.logger.error(f"Goal's waypoint distance of {dist_to_waypoint} exceeds Lolo's limit of {self.limits['max_waypoint_dist']}.")
+                return False
+        elif goal.rpm > self.limits['max_thruster_rpm']:
             self.logger.error(f"Goal's RPMs of {goal.rpm} exceed Lolo's limit of {self.limits['max_thruster_rpm']}.")
             return False
         elif goal.depth > self.limits['max_depth']:
             self.logger.error(f"Goal's depth of {goal.depth} exceeds Lolo's limit of {self.limits['max_depth']}.")
             return False
         elif goal.altitude < self.limits['min_altitude']:
-            self.logger.error(f"Goal's altitude of {goal.altitude} exceeds Lolo's limit of {self.limits['min_altitude']}.")
+            self.logger.error(f"Goal's altitude of {goal.altitude} exceeds Lolo's minimum limit of {self.limits['min_altitude']}.")
             return False
         elif goal.timeout > self.limits['max_timeout_secs']:
             self.logger.error(f"Goal's timeout of {goal.timeout} exceeds Lolo's limit of {self.limits['max_timeout_secs']}.")
-            return False
-        elif dist_to_waypoint > self.limits['max_waypoint_dist']:
-            self.logger.error(f"Goal's waypoint distance of {dist_to_waypoint} exceeds Lolo's limit of {self.limits['max_waypoint_dist']}.")
             return False
 
         self.logger.info("Goal is within Lolo's limits!")
@@ -294,7 +298,7 @@ class Lolo(Node):
 
     def altitude_callback(self, msg: Float32) -> None:
         self.altitude = msg.data
-        self.last_altitude_time = self.get_clock().now().nanoseconds * 1e-9
+        self.last_altitude_time = self.get_time()
         self.altitude_age = 0.0
 
     def depth_callback(self, msg: Float32) -> None:
