@@ -128,6 +128,9 @@ class WaraPSTaskHandler:
 
         self._level_1_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._read_level_1_heartbeat_cb, 1)
 
+        # subscribe to ABORT topic
+        self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
+
 
         if "direct_execution" in self._wara_ps_dict["levels"]:
             self._direct_execution_info_data = {
@@ -147,8 +150,8 @@ class WaraPSTaskHandler:
         Returns the WaraPS dictionary that is used to handle the MQTT interactor.
         """
         return self._wara_ps_dict
-
-
+    
+    
     def lvl_2_heartbeat(self, now_time):
         """
         This method is called to publish the level 2 heartbeat.
@@ -717,6 +720,31 @@ class WaraPSTaskHandler:
             # log
             self._node.get_logger().error("No tasks executing")
             return None 
-# TODO:
-# if status paused, use action class and inside method "terminate" call the cancel method of the action server to cancel the action
-#
+
+    def _bigredbutton_cb(self, data: String):
+        """
+        This method is called when the big red button is pressed.
+        It will abort all tasks and set the aborted flag to True.
+        """
+        self._node.get_logger().info("Big Red Button pressed, aborting all tasks")
+        self.aborted_flag = True
+        # set all tasks executing to aborted
+        for task in self.tasks_executing:
+            task["status"] = WaraPSTaskStates.ABORTED.value
+            self.past_tasks.append(task)
+        
+        # clear the executing tasks list
+        self.tasks_executing = []
+
+        # publish the response
+        # create a response message
+        response_msg = {
+            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+            "response": "all tasks aborted",
+            "response-to": data.data
+        }
+        msg = String()
+        msg.data = json.dumps(response_msg)
+        self._wara_ps_exec_response_pub.publish(msg)
+        self._node.get_logger().info('Published Big Red Button response message')
+        return

@@ -49,5 +49,8 @@ string WARA_PS_TST_COMMAND_TOPIC = 'waraps/tst/command'
 string WARA_PS_TST_RESPONSE_TOPIC = 'waraps/tst/response'
 string WARA_PS_TST_FEEDBACK_TOPIC = 'waraps/tst/feedback'
 
+# WARA-PS Abort Topic
+string WARA_PS_ABORT_TOPIC = 'waraps/abort'
+
 # Action Server Heartbeat
 string WARA_PS_ACTION_SERVER_HB_TOPIC = 'waraps/action_server_heartbeat'

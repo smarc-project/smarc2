@@ -50,6 +50,7 @@
                 "exec/feedback",
                 
                 #lv3
+                'tst_execution_info',
                 "tst/response",
                 "tst/feedback",
 
@@ -60,4 +61,6 @@
                 "exec/command",
                 #lv3
                 "tst/command",
+                # ABORT
+                "abort",
               ]
