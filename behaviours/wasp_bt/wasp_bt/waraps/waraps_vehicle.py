@@ -163,6 +163,7 @@ class WaraPSVehicle():
 
         return True
     
+    
 def main(args=None):
     import rclpy
     from rclpy.node import Node

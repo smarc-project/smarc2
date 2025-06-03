@@ -6,6 +6,7 @@ from smarc_bt.vehicles.sensor import Sensor, SensorNames
 import json
 from copy import deepcopy
 import enum
+from std_srvs.srv import Trigger
 
 # TODO: move this to a common place
 class WaraPSTaskStates(enum.Enum):
@@ -32,6 +33,7 @@ class WaraPSCommandSignals(enum.Enum):
     ENOUGH = "$enough"
     PAUSE = "$pause"
     CONTINUE = "$continue"
+    CANCEL_ABORT = "$cancel_abort" 
 
     def __str__(self):
         return self.name
@@ -91,9 +93,7 @@ class WaraPSTaskHandler:
         self.tasks_executing = []
 
         self.aborted_flag = False
-
-        
-
+        self.emergency_flag = False
 
         # private: only this class should access this
         self._node = node
@@ -131,6 +131,9 @@ class WaraPSTaskHandler:
         # subscribe to ABORT topic
         self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
 
+        # subscribe to SMARC-wide abort topic
+        self._smarc_abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+
 
         if "direct_execution" in self._wara_ps_dict["levels"]:
             self._direct_execution_info_data = {
@@ -142,6 +145,13 @@ class WaraPSTaskHandler:
                 "tasks-available": [], # empty list, read from relevant topic in callback for action server subscriptions
                 "tasks-executing": self.tasks_executing,
             }
+
+        # Add the reset emergency service
+        self._reset_emergency_srv = self._node.create_service(
+            Trigger,
+            "reset_emergency",
+            self._reset_emergency_cb
+        )
 
     # read only task_handler.wara_ps_dict
     @property
@@ -490,19 +500,17 @@ class WaraPSTaskHandler:
             if command["signal"] == WaraPSCommandSignals.ABORT.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.ABORTED.value
-                    break
             elif command["signal"] == WaraPSCommandSignals.ENOUGH.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.ENOUGH.value
-                    break
             elif command["signal"] == WaraPSCommandSignals.PAUSE.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.PAUSED.value
-                    break
             elif command["signal"] == WaraPSCommandSignals.CONTINUE.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.RESUMED.value
-                    break
+            elif command["signal"] == WaraPSCommandSignals.CANCEL_ABORT.value:
+                self.emergency_flag = False
 
             valid_signals = [s.value for s in WaraPSCommandSignals]
             if command["signal"] not in valid_signals:
@@ -514,11 +522,14 @@ class WaraPSTaskHandler:
                     task = self.tasks_executing[i]
                     self.past_tasks.append(task)
                     self.tasks_executing.pop(i)
-                    
-                    # raise aborted flag
-                    self.aborted_flag = True
+                
+                # raise aborted flag
+                self.aborted_flag = True
 
-                    break
+                if command["signal"] == WaraPSCommandSignals.ABORT.value:
+                    self.emergency_flag = True
+
+
 
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
@@ -581,9 +592,6 @@ class WaraPSTaskHandler:
                     "description": task["description"] if "description" in task.keys() else "",
                 }
                 self.tasks_executing.append(task_dict)
-
-            
-
 
         return        
 
@@ -708,7 +716,7 @@ class WaraPSTaskHandler:
         It will abort all tasks and set the aborted flag to True.
         """
         self._node.get_logger().info("Big Red Button pressed, aborting all tasks")
-        self.aborted_flag = True
+        self.emergency_flag = True
         # set all tasks executing to aborted
         for task in self.tasks_executing:
             task["status"] = WaraPSTaskStates.ABORTED.value
@@ -729,3 +737,10 @@ class WaraPSTaskHandler:
         self._wara_ps_exec_response_pub.publish(msg)
         self._node.get_logger().info('Published Big Red Button response message')
         return
+
+    def _reset_emergency_cb(self, request, response):
+        self.emergency_flag = False
+        response.success = True
+        response.message = "Emergency flag set to False."
+        self._node.get_logger().info("Emergency flag reset to False by service call.")
+        return response

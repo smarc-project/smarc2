@@ -139,7 +139,7 @@ class A_ClearCurrentTask(VehicleBehaviour):
         self.feedback_message = "Cleared current task"
         return Status.RUNNING
 
-class A_AbortedFlagReset(VehicleBehaviour):
+class A_TaskAbortedFlagReset(VehicleBehaviour):
     def __init__(self, task_handler: WaraPSTaskHandler):
         super().__init__(self.__class__.__name__)
         self._task_handler = task_handler

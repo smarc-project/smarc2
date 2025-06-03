@@ -32,14 +32,15 @@ from .conditions import C_CheckMissionPlanState,\
                         C_MissionTimeoutOK,\
                         C_TaskIs,\
                         C_TaskStatus,\
-                        C_AbortedPreviousTask
+                        C_AbortedPreviousTask,\
+                        C_NoEmergencyAbortSignalDetected
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
                      A_ActionClient,\
                     A_JustChillFor,\
                     A_ClearTaskQueue,\
-                    A_AbortedFlagReset, \
+                    A_TaskAbortedFlagReset, \
                     A_Chilling,\
                      A_ClearCurrentTask
 
@@ -106,6 +107,16 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return safety_tree
+    
+    def _handle_emergency_tree(self):
+        """
+        A tree that handles emergency situations, such as aborting the mission
+        """
+        return Fallback("F_HandleEmergency", memory=False, children=[
+            C_NoEmergencyAbortSignalDetected(self._task_handler),
+            # chill for a bit
+            A_Chilling(self), # should be replaced with EmergencyAction from Li
+        ])
                     
     def _task_handler_tree(self):
         """
@@ -119,7 +130,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 # chill for a bit
                 # A_JustChillFor(self, 5.0),
                 # reset the aborted flag
-                A_AbortedFlagReset(self._task_handler),
+                A_TaskAbortedFlagReset(self._task_handler),
             ]),
 
             # is the current task a move to task? If so, do it
@@ -168,9 +179,11 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         children = [
             A_Heartbeat(self),
-            # A_ProcessBTCommand(self._mission_updater),
+            self._handle_emergency_tree(),
             # self._liveliness_tree(),
-            # self._safety_tree(),
+            
+            # self._safety_tree(), # should look at julian safety node topic
+
             # add the mission tree
             self._task_handler_tree(),
             # self._run_tree()
