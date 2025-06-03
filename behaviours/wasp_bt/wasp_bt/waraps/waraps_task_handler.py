@@ -299,11 +299,21 @@ class WaraPSTaskHandler:
         # parse the command
         command = json.loads(data.data)
         self._node.get_logger().info(f"Received command: {command}")
-        # check if the command is valid
-        if "command" not in command:
-            self._node.get_logger().error("Invalid command: missing 'command' key")
+
+        # Refuse starts or signals if emergency flag is up
+        if self.emergency_flag and command["command"] in ["start-task", "signal-task"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: emergency flag is up",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_exec_response_pub.publish(msg)
+            self._node.get_logger().warn("Rejected start/signal command due to emergency flag.")
             return
-        
+
         # handle ping command
         if command["command"] == "ping":
             # check if the command is valid
@@ -483,6 +493,20 @@ class WaraPSTaskHandler:
         # This function is called when a new TST command is received from the MQTT broker
         command = json.loads(data.data)
         self._node.get_logger().info(f"Received TST command: {command}")
+
+        # Refuse starts or signals if emergency flag is up
+        if self.emergency_flag and command["command"] in ["start-tst"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: emergency flag is up",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_tst_response_pub.publish(msg)
+            self._node.get_logger().warn("Rejected start TST command due to emergency flag.")
+            return
 
         # check if the command is valid
         if "command" not in command:
