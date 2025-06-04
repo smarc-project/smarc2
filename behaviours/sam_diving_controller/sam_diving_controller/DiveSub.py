@@ -96,8 +96,8 @@ class DiveSub():
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
         self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
-        self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_FB_TOPIC)
-        self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_FB_TOPIC)
+        self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC)
+        self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC)
         self.thrust_vector_fb = Subscriber(self._node, ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC)
 
         self.ctrl_synch_msg = ApproximateTimeSynchronizer(
@@ -107,7 +107,7 @@ class DiveSub():
         )
         self.ctrl_synch_msg.registerCallback(self._ctrl_synch_cb)
 
-        self._loginfo("Dive Controller Node started")
+        self._loginfo("Dive Subscriber Node started")
 
 
     # Internal methods
