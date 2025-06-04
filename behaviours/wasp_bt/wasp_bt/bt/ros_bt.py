@@ -21,7 +21,7 @@ from .i_has_clock import HasClock
 from .bb_keys import BBKeys
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
+from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
 
 
@@ -48,9 +48,10 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
-                 move_to_action: IActionClient,
-                 move_depth_action: IActionClient,
-                 now_seconds_func: typing.Callable
+                 now_seconds_func: typing.Callable,
+                 move_to_action: IActionClient = None,
+                 move_depth_action: IActionClient = None,
+                cruise_depth_action: IActionClient = None,
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -62,6 +63,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._bt = None
         self.move_to_action = move_to_action
         self.move_depth_action = move_depth_action
+        self.cruise_depth_action = cruise_depth_action
         self._now_seconds_func = now_seconds_func
 
         self._last_state_str = ""
@@ -120,6 +122,25 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             A_Chilling(self), # should be replaced with EmergencyAction from Li
         ])
                     
+    def _one_task_tree(self, task_name: str, action_client: IActionClient):
+        """
+        A tree that handles a single task type, such as move-to or depth-move-to
+        """
+        task_tree = Sequence(f"S_{task_name}", memory=False, children=[
+            C_TaskIs(self._task_handler, task_name),
+            Fallback("F_StatusCheck", memory=False, children=[
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.STARTED.value),
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.RESUMED.value),
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.RUNNING.value),
+            ]),
+            A_ActionClient(action_client, self._task_handler),
+            # when done, clear the task queue
+            A_ClearCurrentTask(self._task_handler),
+        ])
+
+        return task_tree
+
+
     def _task_handler_tree(self):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
@@ -136,38 +157,24 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             ]),
 
             # is the current task a move to task? If so, do it
-            Sequence("S_MoveTo", memory=False, children=[
-                C_TaskIs(self._task_handler, "move-to"),
-                Fallback("F_StatusCheck", memory=False, children=[
-                    C_TaskStatus(self._task_handler, "started"),
-                    C_TaskStatus(self._task_handler, "resumed"),
-                    C_TaskStatus(self._task_handler, "running"),
-                ]),
-                #TODO: need to handle task failure gracefully
-                A_ActionClient(self.move_to_action, self._task_handler),
-                # when done, clear the task queue
-                A_ClearCurrentTask(self._task_handler),
-                # A_ClearTaskQueue(self._task_handler),
-                ]),
+            # Sequence("S_MoveTo", memory=False, children=[
+            #     C_TaskIs(self._task_handler, "move-to"),
+            #     Fallback("F_StatusCheck", memory=False, children=[
+            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.STARTED),
+            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.RESUMED),
+            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.RUNNING),
+            #     ]),
+            #     #TODO: need to handle task failure gracefully
+            #     A_ActionClient(self.move_to_action, self._task_handler),
+            #     # when done, clear the task queue
+            #     A_ClearCurrentTask(self._task_handler),
+            #     # A_ClearTaskQueue(self._task_handler),
+            #     ]),
+            self._one_task_tree("move-to", self.move_to_action),
+            self._one_task_tree("auv-depth-move-to", self.move_depth_action),
+            self._one_task_tree("cruise-depth-at-heading", self.cruise_depth_action),
 
             #TODO: implement more tasks types
-            # is the current task a move path task? If so, do it
-
-            Sequence("S_DepthMoveTo", memory=False, children=[
-                C_TaskIs(self._task_handler, "auv-depth-move-to"),
-                Fallback("F_StatusCheck", memory=False, children=[
-                    C_TaskStatus(self._task_handler, "started"),
-                    C_TaskStatus(self._task_handler, "resumed"),
-                    C_TaskStatus(self._task_handler, "running"),
-                ]),
-                #TODO: need to handle task failure gracefully
-                A_ActionClient(self.move_depth_action, self._task_handler),
-                # when done, clear the task queue
-                A_ClearCurrentTask(self._task_handler),
-                # A_ClearTaskQueue(self._task_handler),
-                ]),
-
-
 
             # last type: just do nothing
             A_Chilling(self),
@@ -246,6 +253,7 @@ def wasp_bt():
     action_client_move_to = BTActionClient(node, "move_to", action_type)
     # for lolo, use the following line
     action_client_move_depth = BTActionClient(node, "auv_depth_move_to", action_type)
+    action_client_cruise_depth = BTActionClient(node, "cruise_depth_at_heading", action_type)
     
 
 
@@ -273,6 +281,7 @@ def wasp_bt():
             task_handler    = wara_ps_task_handler,
             move_to_action    = action_client_move_to,
             move_depth_action= action_client_move_depth,
+            cruise_depth_action = action_client_cruise_depth,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 

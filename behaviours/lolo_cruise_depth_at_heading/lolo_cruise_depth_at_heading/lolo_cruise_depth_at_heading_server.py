@@ -193,7 +193,7 @@ def main(args=None):
     node_name = "lolo_cruise_depth_at_heading_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    lolo_cruise_at = CruiseDepthHeadingServer(node, "auv_cruise_depth_at_heading", action_type)
+    lolo_cruise_at = CruiseDepthHeadingServer(node, "cruise_depth_at_heading", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
