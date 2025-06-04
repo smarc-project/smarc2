@@ -5,6 +5,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from .prob_grid_map import ProbabilisticGridMap 
 from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
+from math import dist
 
 
 ##############################################################################
@@ -101,8 +102,16 @@ class SearchPlannerController(Node):
             self.get_logger().info(f'Drone position = {[round(float(val),1) for val in self.drone_init_pos]}')
             self.get_logger().info(f'GPS ping (x,y) = {[round(float(val),1) for val in self.GPS_ping]}')
             self.initial_info.cancel()
-            self.planner.generate_waypoint(0.0, 0.0, self.planner.flight_height)
+            self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+
+    def check_drone_position(self):
+        x_odom, y_odom = self.planner.generate_waypoint(self.model_params["drone.init_pos"][0],
+                                           self.model_params["drone.init_pos"][1],
+                                           self.planner.flight_height)
+        if dist([x_odom, y_odom], self.model_params["drone.init_pos"]) < 0.5:
+            self.relocate_timer.cancel()
             self.init_done = True
+
 
 
     """ --- Management of path planner """

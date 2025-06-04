@@ -16,7 +16,7 @@ def generate_launch_description():
     'mode': 'sim', # 'sim', 'real'
     'path_planner': 'apf', # 'spiral', 'greedy', 'astar', 'apf'
     'sam.init_pos': [float(1277.0), float(1146.0)], # position to which sam will teleport (in map). User-defined, only useful in simulation
-    'drone.init_pos': [float(1297.0), float(1160.0),float(3)], # position to which drone will teleport (in odom). User-defined, only useful in simulation
+    'drone.init_pos': [float(5), float(5)], # position to which drone will move (in odom) at the beginning
 
     # --- common parameters to all path planners
     'initialization.time_delay': float(4),
@@ -78,8 +78,6 @@ def generate_launch_description():
     # --- Frame's names
     'frames.id.quadrotor_map': 'map_gt_gt',
     'frames.id.quadrotor_odom': 'Quadrotor/odom_gt',
-    'frames.id.auv_map': 'map_gt_gt',
-    'frames.id.auv_odom': 'Quadrotor/odom_gt',
 
     }
 
