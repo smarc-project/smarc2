@@ -324,7 +324,7 @@ class SMARCActionClient(abc.ABC):
         _goal_handle: internal handle to goal to help register callbacks as user needs them
     """
 
-    def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
+    def __init__(self, node: Node, action_name: str, action_type: ActionType, num_iters: int = 10, **kwargs):
         self._node: Node = node
         self.action_type = action_type
         self._client: ActionClient = ActionClient(
@@ -336,7 +336,7 @@ class SMARCActionClient(abc.ABC):
         self._action_name = action_name
         self._goal_handle: ClientGoalHandle | None = None
         self._state: ActionClientState = ActionClientState.DISCONNECTED
-        self._setup()
+        # self._setup(num_iters=num_iters)
 
     @property
     def state(self):
@@ -358,13 +358,24 @@ class SMARCActionClient(abc.ABC):
             err_str = traceback.format_exc()
             self._node.get_logger().error(f"[action-base] {err_str}")
 
-    def _setup(self):
+    def _setup(self, num_iters: int = 3):
         server_status = False
-        while not server_status:
+        iters = 0
+        while not server_status and iters < num_iters:
+            iters += 1
             self._node.get_logger().info("[action-base] Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
-        self._node.get_logger().info("[action-base] Server found.")
-        self.state = ActionClientState.READY
+        
+        if server_status:
+            self._node.get_logger().info("[action-base] Server found.")
+            self.state = ActionClientState.READY
+        else:
+            self._node.get_logger().error(
+                "[action-base] Server not found. Action client will not be able to send goals."
+            )
+            self.state = ActionClientState.DISCONNECTED
+        
+        return server_status
 
     def get_goal_success(self) -> ActionClientState:
         """Success response for proper client state updating."""
@@ -396,13 +407,13 @@ class SMARCActionClient(abc.ABC):
         status: GoalStatus = raw_result.status
         response = self.result_callback(result, status)
         valid_response = (
-            response is ActionClientState.DONE or response is ActionClientState.ERROR
+            response is ActionClientState.DONE or response is ActionClientState.ERROR or ActionClientState.CANCELLED
         )
         if valid_response:
             self.state = response
         else:
             err_str = "Provided return value from result callback must be either "
-            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR}. "
+            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR} or {ActionClientState.CANCELLED}.\n"
             err_str += f"Provided value is {response}"
             raise ValueError(err_str)
 
@@ -449,7 +460,7 @@ class SMARCActionClient(abc.ABC):
         """Implement callback to parse out the result of an action server task.
 
         Returns:
-            Must return ActionClientState.DONE or ActionClientState.ERROR for higher level state management
+            Must return ActionClientState.DONE ActionClientState.ERROR for higher level state management
             **Values can be accessed via `self.get_goal_success()` and `self.get_goal_error()`**
             Return values are checked at runtime.
         """

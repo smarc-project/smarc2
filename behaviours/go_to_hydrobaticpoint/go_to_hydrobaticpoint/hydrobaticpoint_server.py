@@ -1,5 +1,5 @@
 import traceback
-
+import time
 import numpy as np
 import rclpy
 from geodesy import utm
@@ -255,7 +255,11 @@ class HydropointServer(SMARCActionServer):
         #     f"Publishing to {self._setpoint_topic}, Setpoint"
         #     + self._str_posestamp(self.goal_base_link)
         # )
+        self.logger.info(f"Hydropoint sent: {hydropoint}")
+        # rate = self._node.create_rate()
 
+        # rate.sleep()
+        time.sleep(5)
         self._pub_setpoint.publish(hydropoint)
         self.feedback_loop(hydropoint, goal_handle)
 
