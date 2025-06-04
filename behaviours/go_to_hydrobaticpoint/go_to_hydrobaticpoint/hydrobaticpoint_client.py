@@ -45,9 +45,15 @@ class HydropointClient(SMARCActionClient):
         #     self.logger.info(f"Node {action_name} waiting for go_to_hydropoint server")
 
         self.logger.info(f"Node {action_name} connected to go_to_hydropoint server")
+
+
+    def run(self):
+        self.logger.info("Subscribing to mocap hydro point topic")
         self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
                                                              ControlTopics.MOCAP_HYDROPOINT,
                                                              self.mocap_hydro_cb, 1)
+
+
     def mocap_hydro_cb(self, mocap_goal: PoseStamped):
 
         if not self.goal_processed:
@@ -119,6 +125,7 @@ def main(args=None):
     node = Node(node_name)
     action_type = ActionType(BaseAction)
     setpoint = HydropointClient(node, "go_to_hydropoint", action_type)
+    setpoint.run()
     # setpoint._test_geopoint()
     rclpy.spin(node)
 
