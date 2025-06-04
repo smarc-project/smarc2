@@ -36,7 +36,7 @@ import numpy as np
 from math import cos, sin, pi, sqrt, tan, factorial, dist
 from .Astar import AStar
 
-class SimActions(Node):
+class InitializeActions(Node):
     """
     This class is instatiated in SIM to teleport SAM and create a pseudo GPS ping (SAM postion + noise)
      Args: 
@@ -53,15 +53,16 @@ class SimActions(Node):
         SearchPlannerController class (search_planner_controller.py).
 
     """
-    def __init__(self, name = 'sim_actions_node', params = None):
+    def __init__(self, name = 'init_actions', params = None):
         super().__init__(name)
 
         self.sam_pos = None
+        self.drone_position = None
         self.gps_ping = None
 
         if params:
-            self.drone_init_pos_sim = np.array(params["drone_initial_state.position"]) 
-            self.sam_init_position = params["sam.initial_state.position"]
+            self.drone_init_pos = np.array(params["drone.init_pos"]) 
+            self.sam_init_pos = params["sam.init_pos"]
             self.sam_pos_var= params["sam.initial_state.pos_variance"]
             self.flight_height= params["flight_height"]
         else:
@@ -75,13 +76,19 @@ class SimActions(Node):
         self.sam_odom_callback = self.create_subscription(
             msg_type = Odometry,
             callback= self.sam_odom_callback,
-            topic = '/sam_auv_v1/core/odom_gt',
+            topic = '/sam_auv_v1/smarc/odom',
             qos_profile= 10)
         self.gps_ping_geo = self.create_subscription(
             msg_type = GeoPoint,
             callback= self.gps_ping_geo_callback,
             topic = '/sam_auv_v1/smarc/latlon',
             qos_profile= 10)
+        self.drone_pos_sub = self.create_subscription(
+            msg_type = Odometry,
+            topic = '/Quadrotor/odom_gt',
+            callback = self.drone_odom_callback,
+            qos_profile= 10)
+        
 
         
     def teleport_sam(self):
@@ -92,22 +99,31 @@ class SimActions(Node):
         msg = PoseStamped()
         msg.header.frame_id = 'sam_auv_v1/odom_gt'
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.pose.position.x =  self.sam_init_position[0]
-        msg.pose.position.y =  self.sam_init_position[1]
+        msg.pose.position.x =  self.sam_init_pos[0]
+        msg.pose.position.y =  self.sam_init_pos[1]
         self.get_logger().info('Teleporting SAM ...')
         self.teleport_sam_publisher.publish(msg)
 
-    def create_GPS_ping(self) -> np.array :
+    def get_quadrotor_position(self):
+        """ Returns initial quadrotor position in map_gt"""
+        # if self.drone_position is not None:
+        #     self.drone_pos_sub.destroy()
+        return self.drone_position
+        
+
+    def get_GPSxy_ping(self) -> np.array :
         """ 
         Method that adds Gaussian noise to SAM's initial position, therefore it's in odom_gt frame.
         It's not a real GPS measurement.
         """
-        cov = [[self.sam_pos_var, 0], [0, self.sam_pos_var]]
-        X = np.random.multivariate_normal(self.sam_init_position[0:2], cov)
-        self.get_logger().info(f"SAM's position + noise: {round(float(X[0]), 2), round(float(X[1]),2)}")
+        if self.sam_pos is not None:
+            cov = [[self.sam_pos_var, 0], [0, self.sam_pos_var]]
+            X = np.random.multivariate_normal(self.sam_init_pos[0:2], cov)
+            #self.get_logger().info(f"SAM's position + noise: {round(float(X[0]), 2), round(float(X[1]),2)}")
+            return X
+        else: return None
         
-        return X
-    
+        
     def sam_odom_callback(self, msg):
         """ Retrieves SAM position (in map_gt frame)"""
         self.sam_pos = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y])
@@ -116,6 +132,9 @@ class SimActions(Node):
         """ Retrieves SAM GPS coordinates """
         self.gps_ping = msg
 
+    def drone_odom_callback(self, msg):
+        """ Retrieve drone position (map_gt)"""
+        self.drone_position = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
 
 """ --------------------- Parent path planner --------------------------------------"""
 class SearchPlanner(Node, ABC):
@@ -127,6 +146,7 @@ class SearchPlanner(Node, ABC):
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
         grid_map: object from ProbabilisticGridMap class 
+        drone_init_pos: quadrotor's initial position (currently given by odometry in map frame)
         
     Attributes (the relevant ones):
         path: list of points from which the next waypoint will be published
@@ -138,13 +158,13 @@ class SearchPlanner(Node, ABC):
     Notes:
 
     """
-    def __init__(self, name="pathplanner_parent", params = None, GPS_ping = None, grid_map = None):
+    def __init__(self, name="pathplanner_parent", params = None, grid_map = None, drone_init_pos = None):
         super().__init__(node_name = name)
-        self.get_logger().info('Search Planner initiated')
+        self.get_logger().info('Parent search planner initialized')
 
         self.params = params
-        self.GPS_ping = GPS_ping
         self.grid_map = grid_map
+        self.drone_init_pos = drone_init_pos
 
         self.path = None
         self.battery_state = None
@@ -164,10 +184,13 @@ class SearchPlanner(Node, ABC):
             self.flight_height = params["flight_height"]
             self.lat = params["look_ahead_time"]
             self.intermediate_dt = params["intermediate_dt"]
-            self.drone_init_pos_sim = params["drone_initial_state.position"]
+
             self.battery_discharge_rate = params['battery.discharge_rate']
             self.battery_threshold = params['battery.threshold']
             self.equivalent_drone_vel = params['battery.equivalent_drone_vel'] 
+
+            self.drone_map_frame_id = params['frames.id.quadrotor_map'] 
+            self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
         else:
             self.get_logger().error("No valid parameters received in Path Model")
 
@@ -181,7 +204,7 @@ class SearchPlanner(Node, ABC):
             qos_profile= 10)
         self.create_subscription(
             msg_type = Odometry,
-            topic = '/sam_auv_v1/core/odom_gt',
+            topic = '/sam_auv_v1/smarc/odom',
             callback = self.sam_odom_callback,
             qos_profile= 10)
         self.create_subscription(
@@ -206,25 +229,25 @@ class SearchPlanner(Node, ABC):
         if the battery's low (return to base) and true if everything's good"""
         pass
 
-    def generate_point(self, x, y, z):
+    def generate_waypoint(self, x, y, z):
         """ Method to publish a single waypoint for the drone"""
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = 'Quadrotor/odom_gt'
+        pose_msg.header.frame_id = self.drone_odom_frame_id
         pose_msg.pose.position.x = x
         pose_msg.pose.position.y = y
-        pose_msg.pose.position.z = z - self.drone_init_pos_sim[2] 
+        pose_msg.pose.position.z = z - self.drone_init_pos[2] 
         self.point_publisher.publish(pose_msg)
         
-    def transform_goal(self, x_goal, y_goal) -> Pose:
+    def transform_pose(self, x_goal, y_goal) -> Pose:
         # transform desired position (relative position) to odom frame
         t = self.tf_buffer.lookup_transform(
-            target_frame='Quadrotor/odom_gt',  
-            source_frame='map_gt',                 
+            target_frame=self.drone_odom_frame_id,  
+            source_frame=self.drone_map_frame_id,                 
             time=rclpy.time.Time() )
         goal = PointStamped()
         goal.header.stamp = t.header.stamp
-        goal.header.frame_id = 'map_gt'
+        goal.header.frame_id = self.drone_map_frame_id
         goal.point.x = x_goal
         goal.point.y = y_goal
         goal.point.z = self.flight_height 
@@ -276,12 +299,12 @@ class SearchPlanner(Node, ABC):
 
         path_msg = Path()
         path_msg.header.stamp = self.get_clock().now().to_msg()
-        path_msg.header.frame_id = 'Quadrotor/odom_gt'
+        path_msg.header.frame_id = self.drone_odom_frame_id
         path_msg.poses = []
         for i, position in enumerate(self.path):
             pose_msg = PoseStamped()
             pose_msg.header.stamp = path_msg.header.stamp
-            pose_msg.header.frame_id = 'Quadrotor/odom_gt'
+            pose_msg.header.frame_id = self.drone_odom_frame_id
             pose_msg.pose.position.x = position[0]
             pose_msg.pose.position.y = position[1]
             path_msg.poses.append(pose_msg)
@@ -310,11 +333,11 @@ class SearchPlanner(Node, ABC):
         pose_msg = PoseStamped()
         self.path.pop(0)
         if len(self.path) != 0:
-            pose_msg.header.frame_id = 'Quadrotor/odom_gt'
+            pose_msg.header.frame_id = self.drone_odom_frame_id
             pose_msg.header.stamp = self.get_clock().now().to_msg()
             pose_msg.pose.position.x = self.path[0][0]
             pose_msg.pose.position.y = self.path[0][1]
-            pose_msg.pose.position.z = self.flight_height - self.drone_init_pos_sim[2] 
+            pose_msg.pose.position.z = self.flight_height - self.drone_init_pos[2] 
             self.point_publisher.publish(pose_msg)
         self.wait_finished = True
         self.wait2publish_goal_timer.cancel()  
@@ -323,11 +346,11 @@ class SearchPlanner(Node, ABC):
     def return_to_base(self):
         """ Method called when the drone is running low on battery. It will go to odom frame's origin"""
         pose_msg = PoseStamped()
-        pose_msg.header.frame_id = 'Quadrotor/odom_gt'
+        pose_msg.header.frame_id = self.drone_odom_frame_id
         pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.pose.position.z = self.flight_height - self.drone_init_pos_sim[2]
+        pose_msg.pose.position.z = self.flight_height - self.drone_init_pos[2]
         self.point_publisher.publish(pose_msg)
-        odom_msg = self.transform_goal(self.drone_position[0], self.drone_position[1])
+        odom_msg = self.transform_pose(self.drone_position[0], self.drone_position[1])
         return odom_msg.position.x, odom_msg.position.y
 
         
@@ -354,7 +377,6 @@ class SpiralPathModel(SearchPlanner):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can be changed in the launch file
-        GPS_ping: see GPS_ping_rel in SearchPlanner class
         grid_map: an object from the ProbabilisticGridMap class. See prob_grid_map.py
 
     Attributes (the relevant ones):
@@ -363,9 +385,9 @@ class SpiralPathModel(SearchPlanner):
     Notes:
 
     """
-    def __init__(self, name="pathplanner_spiral", params = None, GPS_ping = None, grid_map = None):
-        super().__init__(name = name, params = params, GPS_ping = GPS_ping, grid_map = grid_map)
-        self.get_logger().info('spiral initiated')
+    def __init__(self, name="pathplanner_spiral", params = None, grid_map = None, drone_init_pos = None):
+        super().__init__(name = name, params = params, grid_map = grid_map, drone_init_pos = drone_init_pos)
+        self.get_logger().info('Spiral initialized')
       
         # get parameters 
         try:
@@ -390,10 +412,10 @@ class SpiralPathModel(SearchPlanner):
         consecutive spirals after that. The spiral radius increases consecutively and the spiral center moves according to 
         SAM's estimated velocity
         """
-        pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+        pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
         if self.path_needed:
             if self.phase == 'line':
-                self.path = [[pose_odom.position.x, pose_odom.position.y], self.GPS_ping]
+                self.path = [[pose_odom.position.x, pose_odom.position.y], self.grid_map.GPS_ping_odom]
                 self.phase = 'circle'
                 self.path_needed = False
             elif self.phase == 'circle':
@@ -404,8 +426,8 @@ class SpiralPathModel(SearchPlanner):
                 self.i = signs[np.argmax(np.matmul(np.array([vec1, vec2]), self.drone_vel))]
                 # generate circle points
                 theta = np.arange(0,self.i*(2*pi+self.delta_theta), self.i*self.delta_theta)
-                x = self.r*np.cos(theta) + self.GPS_ping[0]
-                y = self.r*np.sin(theta) + self.GPS_ping[1]
+                x = self.r*np.cos(theta) + self.grid_map.GPS_ping_odom[0]
+                y = self.r*np.sin(theta) + self.grid_map.GPS_ping_odom[1]
                 self.path = list(zip(x,y))
                 self.path_needed = False
                 self.phase = 'spiral'
@@ -421,8 +443,8 @@ class SpiralPathModel(SearchPlanner):
                 delta_r = self.r*(1-sqrt(np.linalg.norm(sam_vel)/self.sam_max_vel)) # radius increment accounting for sam velocity
                 r = np.linspace(self.R, self.R + delta_r, theta.shape[0])
                 self.R  += delta_r 
-                x = self.GPS_ping[0] + np.multiply(r, np.cos(theta)) + np.linspace(0, spiral_displacement[0], theta.shape[0]) + self.previous_spiral_displacement[0] 
-                y = self.GPS_ping[1] + np.multiply(r, np.sin(theta)) + np.linspace(0, spiral_displacement[1], theta.shape[0]) + self.previous_spiral_displacement[1] 
+                x = self.grid_map.GPS_ping_odom[0] + np.multiply(r, np.cos(theta)) + np.linspace(0, spiral_displacement[0], theta.shape[0]) + self.previous_spiral_displacement[0] 
+                y = self.grid_map.GPS_ping_odom[1] + np.multiply(r, np.sin(theta)) + np.linspace(0, spiral_displacement[1], theta.shape[0]) + self.previous_spiral_displacement[1] 
                 self.path = list(zip(x,y))
                 self.path_needed = False
                 self.previous_spiral_displacement = spiral_displacement
@@ -458,16 +480,15 @@ class GreedyPathModel(SearchPlanner):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
-        GPS_ping: see GPS_ping_rel in SearchPlanner class
         grid_map: an object from the ProbabilisticGridMap class. See prob_grid_map.py
 
     Attributes (the relevant ones):
 
     Notes:
     """
-    def __init__(self, name="pathplanner_greedy", params = None, GPS_ping = None, grid_map = None):
-        super().__init__(name = name, params = params, GPS_ping = GPS_ping, grid_map = grid_map)
-        self.get_logger().info('greedy planner initiated')
+    def __init__(self, name="pathplanner_greedy", params = None,  grid_map = None, drone_init_pos = None):
+        super().__init__(name = name, params = params, grid_map = grid_map, drone_init_pos = drone_init_pos)
+        self.get_logger().info('Greedy initialized')
 
         try:
             self.horizon = params['greedy.horizon_radius']
@@ -485,7 +506,7 @@ class GreedyPathModel(SearchPlanner):
             self.path_needed = False
 
             # get current position in odom and cell with highets prob in a given radius
-            pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+            pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
             start = [pose_odom.position.x, pose_odom.position.y]
             if self.horizon == -1:
                 idx = np.unravel_index(np.argmax(self.grid_map.prior, axis=None), self.grid_map.prior.shape) #  idx = [column index, row index]
@@ -518,7 +539,7 @@ class GreedyPathModel(SearchPlanner):
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
-                pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+                pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
                 self.publish_waypoint(self.distance_thresh, pose_odom)            
         
         else:
@@ -534,16 +555,15 @@ class AStarPathModel(SearchPlanner):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
-        GPS_ping: see GPS_ping_rel in SearchPlanner class
         grid_map: an object from the ProbabilisticGridMap class. See prob_grid_map.py
 
     Attributes (the relevant ones):
 
     Notes:
     """
-    def __init__(self, name="pathplanner_astar", params = None, GPS_ping = None, grid_map = None):
-        super().__init__(name = name, params = params, GPS_ping = GPS_ping, grid_map = grid_map)
-        self.get_logger().info('astar planner initiated')
+    def __init__(self, name="pathplanner_astar", params = None, grid_map = None, drone_init_pos = None):
+        super().__init__(name = name, params = params, grid_map = grid_map, drone_init_pos = drone_init_pos)
+        self.get_logger().info('A* initialized')
 
         # different initialization between astar and greedy (greedy inherits from astar class)
         try:
@@ -566,7 +586,7 @@ class AStarPathModel(SearchPlanner):
             self.path_needed = False
 
             # get current position in odom and cell with highets prob in a given radius
-            pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+            pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
             start = [pose_odom.position.x, pose_odom.position.y]
             if self.horizon == -1:
                 idx = np.unravel_index(np.argmax(self.grid_map.prior, axis=None), self.grid_map.prior.shape) #  idx = [column index, row index]
@@ -583,7 +603,6 @@ class AStarPathModel(SearchPlanner):
 
             # generate pseudo obstacles and plan path 
             goal = [self.grid_map.X[idx[0]][idx[1]], self.grid_map.Y[idx[0]][idx[1]]]
-            self.get_logger().info(f'Start = {start} and Goal = {goal}')
 
             ox, oy = self.create_pseudo_obstacles(prior = self.grid_map.prior, X = self.grid_map.X, Y = self.grid_map.Y, res = self.grid_map.resol,
                     corner_1 = [self.grid_map.X_min, self.grid_map.Y_min] , corner_2 = [self.grid_map.X_max, self.grid_map.Y_max], 
@@ -616,7 +635,7 @@ class AStarPathModel(SearchPlanner):
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
-                pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+                pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
                 self.publish_waypoint(self.distance_thresh, pose_odom)            
         
         else:
@@ -767,20 +786,18 @@ class APFPathModel(SearchPlanner):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
-        GPS_ping: see GPS_ping_rel in SearchPlanner class
         grid_map: an object from the ProbabilisticGridMap class. See prob_grid_map.py
 
     Attributes (the relevant ones):
 
     Notes:
     """
-    def __init__(self, name="pathplanner_apf", params = None, GPS_ping = None, grid_map = None):
+    def __init__(self, name="pathplanner_apf", params = None, grid_map = None, drone_init_pos = None):
         
-        super().__init__(name = name, params = params, GPS_ping = GPS_ping, grid_map = grid_map)
-        self.get_logger().info('Artificial Potential planner initiated')
+        super().__init__(name = name, params = params, grid_map = grid_map, drone_init_pos = drone_init_pos)
+        self.get_logger().info('APF initialized')
 
         try:
-            self.arf_lat = params['arf.look_ahead_time']
             self.ka = params['arf.k_attractive']
             self.kr = params['arf.k_repulsive']
             self.mass = params['arf.goal_distance_factor'] # we'll call it mass for simplicity but this factor doesn't have mass units
@@ -802,7 +819,7 @@ class APFPathModel(SearchPlanner):
         if self.path_needed:
             self.path_needed = False
             # get current position in odom and cell with highets prob in a given radius
-            pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+            pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
             start = np.array([pose_odom.position.x, pose_odom.position.y])
             if self.horizon == -1:
                 X, Y, prior = self.grid_map.X, self.grid_map.Y, self.grid_map.prior
@@ -834,7 +851,7 @@ class APFPathModel(SearchPlanner):
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
-                pose_odom = self.transform_goal(self.drone_position[0], self.drone_position[1])
+                pose_odom = self.transform_pose(self.drone_position[0], self.drone_position[1])
                 self.publish_waypoint(self.distance_thresh, pose_odom)            
         
         else:
@@ -859,13 +876,12 @@ class APFPathModel(SearchPlanner):
         # initialize vector field (3D array) and compute scaled probability array
         force_field = np.zeros((2,X.shape[0], X.shape[1]), dtype = float)
         scaled_prior = self.map_probabilities(prior)
-        self.get_logger().info(f' scaled_prior = {scaled_prior}')
 
         # compute attractive and repulsive forces and assign latter
         F_att = self.ka*(goal-start)/goal_dist**(exp-2)
         dists = np.sqrt((X-start[0])**2, (Y-start[1])**2) + 1e-6
         K = self.kr * m(scaled_prior, m(1/dists - 1/self.d_min, 1/dists**exp))
-        force_field = np.multiply(K, [start[0] - X, start[1] - Y])
+        force_field = -np.multiply(K, [start[0] - X, start[1] - Y])
 
         # limit force to avoid null resultant force (TODO: improve this to avoid local minima); distance threshold
         F_max = np.linalg.norm(F_att/(X.shape[0]*X.shape[1]))
@@ -876,14 +892,14 @@ class APFPathModel(SearchPlanner):
         # assign attractive force and compute resultant force
         force_field[0][goal_idx[0]][goal_idx[1]] = F_att[0]
         force_field[1][goal_idx[0]][goal_idx[1]] = F_att[1]
-        return np.sum(force_field, axis=(1,2)), dists[goal_idx[0]][goal_idx[1]]
+        Fr = np.sum(force_field, axis=(1,2))
+        return Fr, dists[goal_idx[0]][goal_idx[1]]
     
     def create_goal(self, Fr: np.array, vel:np.array, goal_distance: float) -> np.array:
         """ Computes goal in the direction of the resultant force. The displacement is proportional to the
         resultant of forces."""
         vel = max(self.equivalent_drone_vel, np.linalg.norm(vel))
         goal = (1/self.mass)* Fr
-        #goal = vel*self.arf_lat*Fr/np.linalg.norm(Fr)
         return goal
 
 
@@ -891,9 +907,8 @@ class APFPathModel(SearchPlanner):
         """ It maps the local prior to the interval [0,1], where the maximum probability will correspond to 0 and the minimum to 1"""
         log_prob = -np.log(prior+sys.float_info.min)
         min = np.min(log_prob) 
-        max = np.max(log_prob)   
-        slope = 1/(max - min)
-        return slope*(log_prob - min) 
+        max = np.max(log_prob) 
+        return (log_prob - min) /(max - min)
         
 if __name__ == "__main__":
     # TODO: define model while running standalone

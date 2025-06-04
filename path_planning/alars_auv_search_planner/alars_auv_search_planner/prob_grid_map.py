@@ -20,9 +20,10 @@ class ProbabilisticGridMap(Node):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
-        GPS_ping_odom: received SAM coordinates [x,y] in drone's odom frame 
+        GPS_ping: estimated SAM coordinates [x,y] in map frame 
 
     Attributes (the relevant ones):
+        GPS_ping_odom: estimated SAM coordinates [x,y] in odom frame. It's also used by spiral path planner (as attribute of this class)
         drone_pos_odom_gt: current drone's position in odom frame
         prior: 2D array in which each element corresponds to the estimatec probability of the corresponding cell of having SAM there
 
@@ -30,12 +31,13 @@ class ProbabilisticGridMap(Node):
 
     """
 
-    def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping_odom:np.array = None):
+    def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping:np.array = None):
         super().__init__(name)
-        self.get_logger().info('grid_map initiated')
+        self.get_logger().info('Grid map initialized')
     
+        self.GPS_ping = GPS_ping
+        self.GPS_ping_odom = None
         self.drone_pos_odom_gt = None
-        self.GPS_ping_odom = GPS_ping_odom
         self.prior = None
 
         self.tf_buffer = Buffer()
@@ -54,6 +56,10 @@ class ProbabilisticGridMap(Node):
 
             self.camera_fov = (pi/180)*params["camera_fov"]
             self.flight_height = params["flight_height"]
+
+            self.drone_map_frame_id = params['frames.id.quadrotor_map'] 
+            self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
+
         else:
             self.get_logger().error("No parameters received")
 
@@ -65,7 +71,7 @@ class ProbabilisticGridMap(Node):
             qos_profile= 10)
         self.create_subscription(
             msg_type= Odometry,
-            topic = '/sam_auv_v1/core/odom_gt',
+            topic = '/sam_auv_v1/smarc/odom',
             callback=self.sam_odom_callback,
             qos_profile= 10)  
         self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = '/Quadrotor/grid_map', qos_profile = 10)
@@ -79,14 +85,14 @@ class ProbabilisticGridMap(Node):
         It's then published for rviz visualization 
         """
 
-        # create grid map (position and time wise) as class attributes and ros msg 
+        # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
+        self.GPS_ping_odom = self.transform_point(self.GPS_ping)
         self.createMap(self.GPS_ping_odom) 
 
         # gaussian prior, scale probabilities to fit int -> viewing purposes only
-        self.prior = self.initiatePrior()
+        self.prior = self.initiatePrior(self.GPS_ping_odom)
         self.prior2grid_msg()        
         self.grid_map_pub.publish(self.map)
-        self.get_logger().info(f'Grid map initialized!') 
         
 
     def apply_bayes_filter(self) -> bool:
@@ -127,11 +133,11 @@ class ProbabilisticGridMap(Node):
         """
         # Transform sam velocity to odom frame #TODO: check frame of SAM's Odometry
         t = self.tf_buffer.lookup_transform(
-            target_frame='Quadrotor/odom_gt', 
-            source_frame='map_gt',                 
+            target_frame=self.drone_odom_frame_id, 
+            source_frame=self.drone_map_frame_id,                 
             time=rclpy.time.Time())
         vec = Vector3Stamped()
-        vec.header.frame_id = 'map_gt'
+        vec.header.frame_id = self.drone_map_frame_id
         vec.header.stamp = self.get_clock().now().to_msg()
         vec.vector.x = self.sam_vel[0]
         vec.vector.y = self.sam_vel[1]
@@ -276,7 +282,7 @@ class ProbabilisticGridMap(Node):
         """Publishes cell with highest probability for visualization purposes (rviz)"""
         idx = np.unravel_index(np.argmax(self.prior, axis=None), self.prior.shape)
         cell_coord = PointStamped()
-        cell_coord.header.frame_id = 'Quadrotor/odom_gt'
+        cell_coord.header.frame_id = self.drone_odom_frame_id
         cell_coord.header.stamp = self.get_clock().now().to_msg()
         cell_coord.point.x = self.X[idx[0]][idx[1]]
         cell_coord.point.y = self.Y[idx[0]][idx[1]]
@@ -288,21 +294,27 @@ class ProbabilisticGridMap(Node):
         data = self.prior[::-1].reshape(self.prior.shape[0]*self.prior.shape[1], 1).flatten().tolist() #[::-1] or not in prior
         data = self.map_probabilities(np.log10(np.array(data)+sys.float_info.min))
         self.map.data = [int(d) for d in data]
-
-
-    def map2odom(self, map_pose: PointStamped) -> PointStamped:
+    
+    def transform_point(self, point:list) -> np.array:
         """Convert points in map frame to odom frame"""
         t = self.tf_buffer.lookup_transform(
-            target_frame='Quadrotor/odom_gt', 
-            source_frame='map_gt',                 
-            time=rclpy.time.Time())
-        map_pose.header.stamp = t.header.stamp
-        return tf2_geometry_msgs.do_transform_point(map_pose, t)
+            target_frame=self.drone_odom_frame_id,  
+            source_frame=self.drone_map_frame_id,                 
+            time=rclpy.time.Time() )
+        goal = PointStamped()
+        goal.header.stamp = t.header.stamp
+        goal.header.frame_id = self.drone_map_frame_id
+        goal.point.x = point[0]
+        goal.point.y = point[1]
+        goal.point.z = self.flight_height 
+        new_goal = tf2_geometry_msgs.do_transform_point(goal, t)
+        self.get_logger().info(f'GPS ping in odom = {(round(float(new_goal.point.x),2), round(float(new_goal.point.y),2))}')
+
+        return np.array([new_goal.point.x, new_goal.point.y]) 
     
-    
-    def initiatePrior(self):
+    def initiatePrior(self, GPS_ping_odom:np.array):
         """ Initiate Gaussian prior in the odom_gt frame"""
-        prior = np.exp(-((self.X - self.GPS_ping_odom[0]) ** 2 + (self.Y - self.GPS_ping_odom[1]) ** 2) / self.variance  ** 2)
+        prior = np.exp(-((self.X - GPS_ping_odom[0]) ** 2 + (self.Y - GPS_ping_odom[1]) ** 2) / self.variance  ** 2)
         prior /= np.sum(prior)
         return prior
     
@@ -336,7 +348,7 @@ class ProbabilisticGridMap(Node):
         self.origin.orientation.w = 1.0
 
         self.map = OccupancyGrid()
-        self.map.header.frame_id = 'Quadrotor/odom_gt'
+        self.map.header.frame_id = self.drone_odom_frame_id
         self.map.header.stamp = self.get_clock().now().to_msg() 
         self.initial_map_time =  self.get_clock().now().nanoseconds
         self.map.info.width = self.Ncells_x
@@ -359,8 +371,8 @@ class ProbabilisticGridMap(Node):
 
         # transform to /Quadrotor/odom_gt
         t = self.tf_buffer.lookup_transform(
-            target_frame='Quadrotor/odom_gt', 
-            source_frame='map_gt',                 
+            target_frame=self.drone_odom_frame_id, 
+            source_frame=self.drone_map_frame_id,                 
             time=rclpy.time.Time(),
             timeout = Duration(seconds = 1))
         pose_map = PoseStamped()

@@ -1,14 +1,16 @@
 # Drone Search Planning 
 ## Overview
 This package is responsible for the implementation of the drone search planning algorithm, *i.e*, looking for SAM. As of now, it wasn't tested with the hardware and it's not properly integrated with the full system, but one can run it on SIM independently.
-For now, it contains two types of algorithms:
+For now, it contains 4 algorithms:
 - Spiral: The drone moves to the GPS ping and starts a spiral movement. Its radius increases over time and its center moves according
         to SAM velocity. This planner doesn't use the probabilistic grid map (no informative path planning).
-- Heuristic: These algorithms make use of a probabilistic grid map constructed via a Bayes Filter. The final point of each path is the point with highest probability in the map.
+- Heuristic: These algorithms make use of a probabilistic grid map constructed via a Bayes Filter. The goal point of each path is the point with highest probability in the map.
     - Pure Greedy: Each path consists of a straight line to the final point
-    -  A* based: The grid map is randomly populated with pseudo-obstacles. Cells with lower probability will be randomly chosen to define
+    - A* based: The grid map is randomly populated with pseudo-obstacles. Cells with lower probability will be randomly chosen to define
         line obstacles. The objective is to give priority to paths that pass through cells with higher probability. After defining the
         obstacles, the regular A* algorithm is run.
+    - Artificial Potential Field: The highest probability cell exerts an attractive force on the drone whereas the remaining cells exert a 
+        repulsive force, which is more intense for lower probability cells. The resultant force defines the movement direction.
 ## Dependencies (minimum)
 - ROS2 Humble
 - Python: 3.10.12
@@ -21,7 +23,7 @@ To run this package in standalone mode, open two terminals:
 ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
 ```
 ```
-ros2 launch search_planning search_planning_launch.py 
+ros2 launch alars_auv_search_planner search_planning_launch.py
 ```
 The launch file includes all parameters that may require fine-tuning, along with brief explanations for each.
 RVIZ2 is highly recommended in order to see the grid map and the planned path. 
@@ -50,7 +52,7 @@ In the simulator, go to the Quadrotor object (in Hierarchy) and set the paramete
 Don't forget to
 ```
 colcon build --symlink-install --packages-select search_planning 
-source install/setup.bash
+source install/setup.sh
 ```
 ## Maintainer
 Francisco Miranda, framir@kth.se

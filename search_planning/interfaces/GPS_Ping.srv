@@ -1,6 +1,0 @@
-# Request
-bool gps_ping
-
----
-# Response
-GeoPoint geopoint
