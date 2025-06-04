@@ -256,6 +256,22 @@ class A_ActionClient(Behaviour):
             return Status.RUNNING
 
         if s == ActionClientState.READY:
+
+            if self._task_handler.emergency_flag == True:
+                # we're in an emergency, define custom message for the emergency action server
+                self.feedback_message = "Emergency flag seen."
+                mplan = {
+                    "level": 1
+                }
+
+                msg_str = json.dumps(mplan)
+                mission_msg = BaseAction.Goal()
+                mission_msg.goal.data = msg_str
+                self._client.send_goal(mission_msg)
+                self._logger.info("Emergency action sent.")
+                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                return Status.RUNNING
+
             task_status = self._task_handler.get_current_task_status()
             if task_status == "started" or task_status == "resumed":
                 self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."

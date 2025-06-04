@@ -26,14 +26,24 @@ The proper functioning of this setup depends on the following packages:
 ## ROS Topics Produced
 - Everything under `/robot_name/waraps/` namespace, which is the main namespace for WARA-PS Agent API topics. These topics are piped through the MQTT bridge to the desired MQTT broker.
 
+## Quick Start
+To start the behaviour tree, you can use the `smarc2/scripts/smarc_bringups/scripts/quad_bringup.sh` or its equivalent for your specific vehicle. Remember to launch the `str_json_mqtt_bridge` first, as it is responsible for bridging the ROS topics to the MQTT topics.
 
-Use the following command to reset the emergency state of the robot if it has been triggered from either the GUI or the SMARC_ABORT ROS topic.
+Next, the launchfile for the behaviour tree will launch two separate nodes:
+- `wasp_bt`: This node is responsible for running the behaviour tree.
+- `waraps_vehicle`: This node is responsible for publushing data to ros topics namespaced under `/robot_name/waraps/`, which is the main namespace for WARA-PS Agent API topics.
+
+Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent.
+
+Next, inside the `ros_bt.py` file (found under `wasp_bt/bt/ros_bt.py`), you will need to tell the behaviour tree which action servers to use, which is done by simply adding the right action servers with their names to `action_client_dict` (line 238 or thereabouts), and defining an emergency action client (line 236 or thereabouts) that will be used to define how the vehicle behaves in case of an emergency. 
+
+Remember to start all the servers you want clients for!
+
+## Emergency Reset
+In case an emergency is thrown but you manage to resolve it, you can reset the emergency state of the vehicle by calling the `/robot_name/reset_emergency` service. This will allow the behaviour tree to continue running without being stuck in an emergency state.
 
 ```bash
 ros2 service call /$ROBOT_NAME/reset_emergency std_srvs/srv/Trigger```
-
-
-
 
 ## Disclaimer
 This package is under active development and may change significantly in the very near future. It is recommended to keep an eye on the repository for updates and changes. Feel free to contact the maintainers if you have any questions or suggestions.

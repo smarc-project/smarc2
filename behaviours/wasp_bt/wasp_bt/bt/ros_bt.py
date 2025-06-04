@@ -49,9 +49,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
                  now_seconds_func: typing.Callable,
-                 move_to_action: IActionClient = None,
-                 move_depth_action: IActionClient = None,
-                cruise_depth_action: IActionClient = None,
+                 emergency_action: IActionClient = None,
+                 action_client_dict: typing.Dict[str, IActionClient] = None,
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -61,10 +60,9 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self.move_to_action = move_to_action
-        self.move_depth_action = move_depth_action
-        self.cruise_depth_action = cruise_depth_action
+        self.action_client_dict = action_client_dict if action_client_dict is not None else {}
         self._now_seconds_func = now_seconds_func
+        self.emergency_action = emergency_action
 
         self._last_state_str = ""
 
@@ -118,8 +116,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         """
         return Fallback("F_HandleEmergency", memory=False, children=[
             C_NoEmergencyAbortSignalDetected(self._task_handler),
-            # chill for a bit
-            A_Chilling(self), # should be replaced with EmergencyAction from Li
+            A_Chilling(self) if self.emergency_action is None else A_ActionClient(self.emergency_action, self._task_handler),
         ])
                     
     def _one_task_tree(self, task_name: str, action_client: IActionClient):
@@ -141,47 +138,32 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         return task_tree
 
 
-    def _task_handler_tree(self):
+    def _task_handler_tree(self, action_clients_dict: typing.Dict[str, IActionClient] = None):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
         """
 
-        task_handler = Fallback("F_Task_Handler", memory=False, children=[
-            
-            Sequence("S_BreathAfterAborting", memory=False, children=[
+        task_children = [
+            # check if the previous task was aborted, if so, reset the flag
+            Sequence("S_BreatheAfterAbort", memory=False, children=[
                 C_AbortedPreviousTask(self._task_handler),
-                # chill for a bit
-                # A_JustChillFor(self, 5.0),
-                # reset the aborted flag
                 A_TaskAbortedFlagReset(self._task_handler),
             ]),
+        ]
 
-            # is the current task a move to task? If so, do it
-            # Sequence("S_MoveTo", memory=False, children=[
-            #     C_TaskIs(self._task_handler, "move-to"),
-            #     Fallback("F_StatusCheck", memory=False, children=[
-            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.STARTED),
-            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.RESUMED),
-            #         C_TaskStatus(self._task_handler, WaraPSTaskStates.RUNNING),
-            #     ]),
-            #     #TODO: need to handle task failure gracefully
-            #     A_ActionClient(self.move_to_action, self._task_handler),
-            #     # when done, clear the task queue
-            #     A_ClearCurrentTask(self._task_handler),
-            #     # A_ClearTaskQueue(self._task_handler),
-            #     ]),
-            self._one_task_tree("move-to", self.move_to_action),
-            self._one_task_tree("auv-depth-move-to", self.move_depth_action),
-            self._one_task_tree("cruise-depth-at-heading", self.cruise_depth_action),
+        # we will append the task trees to this list programmatically
+        if action_clients_dict is not None:
+            #TODO: implement this
+            # task_servers_dict has string keys that are the task names, and IActionClient values that are the action clients
+            for task_name, action_client in action_clients_dict.items():
+                task_tree = self._one_task_tree(task_name, action_client)
+                task_children.append(task_tree)
 
-            #TODO: implement more tasks types
+        # add the chill task
+        task_children.append(A_Chilling(self))
 
-            # last type: just do nothing
-            A_Chilling(self),
-            # succeed by default
-            # Success(),
-        ])
-
+        task_handler = Fallback("F_Task_Handler", memory=False, children=task_children)
+                                
         return task_handler
 
     def setup(self) -> bool:
@@ -194,7 +176,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             # self._safety_tree(), # should look at julian safety node topic
 
             # add the mission tree
-            self._task_handler_tree(),
+            self._task_handler_tree(self.action_client_dict),
             # self._run_tree()
         ]
 
@@ -248,14 +230,19 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
-    
-    # for drone, use the following line
-    action_client_move_to = BTActionClient(node, "move_to", action_type)
-    # for lolo, use the following line
-    action_client_move_depth = BTActionClient(node, "auv_depth_move_to", action_type)
-    action_client_cruise_depth = BTActionClient(node, "cruise_depth_at_heading", action_type)
-    
+        
+    # emergency action
+    # emergency_action_client = BTActionClient(node, "emergency_action", action_type)
+    emergency_action_client = None
 
+    # dictionary of remaining action clients
+    action_client_dict = {
+        "move-to": BTActionClient(node, "move_to", action_type),
+        
+        "auv-depth-move-to": BTActionClient(node, "auv_depth_move_to", action_type),
+        
+        "cruise-depth-at-heading": BTActionClient(node, "cruise_depth_at_heading", action_type),
+    }
 
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
@@ -279,20 +266,18 @@ def wasp_bt():
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
-            move_to_action    = action_client_move_to,
-            move_depth_action= action_client_move_depth,
-            cruise_depth_action = action_client_cruise_depth,
+            emergency_action = emergency_action_client,
+            action_client_dict = action_client_dict,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, action_client_move_to, agent
+        nonlocal bt, bt_str, node, action_client_dict, agent
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
-            # s += f"GOTOWP Client::\n{action_client_move_to.feedback_message}\n\n"
             s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
             s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
