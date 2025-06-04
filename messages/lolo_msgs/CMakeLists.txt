@@ -23,6 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/VescFeedback.msg"
   "msg/VolzServo.msg"
   "msg/Topics.msg"
+  "msg/Links.msg"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
  )
 

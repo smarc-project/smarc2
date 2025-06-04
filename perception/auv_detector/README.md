@@ -99,6 +99,29 @@ ros2 launch auv_detector estimator_detector.launch
 ```
 This is suitable when you need simultaneous estimation and detection.
 
+### 3. `estimator_detector_auto_winch.launch`
+This launch file starts both the `winch (auv_detector_auto_winch.py)` and `detector (KNN_2.py)` nodes defined in `setup.py`. It first detects the colors of the buoy, AUV, and rope, then calculates the UAV hooking point and direction vector.
+
+
+#### Usage
+Here is the tutorial video: https://youtu.be/SKjH3CmG864
+1. Open Unity and start the simulation.
+2. Click the `Game` tab, then click `Connect` in the upper-right corner.
+3. Open a terminal and run:
+
+```bash
+cd /colcon_ws/src/smarc2/scripts
+/colcon_ws/src/smarc2/scripts$ ./unity_ros_bridge.sh 
+```
+Open the second terminal.  
+
+```bash
+ros2 launch auv_detector estimator_detector_auto_winch.launch
+
+```
+This is Li-Fan's method, which simultaneously detects the rope and AUV, and suggests the UAV hooking point and flight direction.
+
+
 ---
 
 ## Tune Parameters
