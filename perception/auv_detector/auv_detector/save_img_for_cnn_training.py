@@ -47,8 +47,11 @@ class HSVDetectorNode(Node):
         cv2.namedWindow("Preview")
         #cv2.setMouseCallback("Preview", self.mouse_callback)
         
-        self.save_dir = "processed_img_for_cnn_training"
-        os.makedirs(self.save_dir, exist_ok=True)  # Create folder if it doesn't exist
+        self.save_dir_processed = "processed_img_for_cnn_training"
+        self.save_dir_original = "original_img_for_cnn_training"
+        os.makedirs(self.save_dir_processed, exist_ok=True)  # Create folder if it doesn't exist
+        os.makedirs(self.save_dir_original, exist_ok=True)
+
 
         setup_trackbars(self.range_filter)
 
@@ -91,8 +94,12 @@ class HSVDetectorNode(Node):
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             #filename = f"saved_{timestamp}.jpg"
-            filename = os.path.join(self.save_dir, f"saved_{timestamp}.jpg")
+            filename = os.path.join(self.save_dir_processed, f"processed_{timestamp}.jpg")
             cv2.imwrite(filename, self.last_preview)
+
+            filename_original = os.path.join(self.save_dir_original, f"original_{timestamp}.jpg")
+            cv2.imwrite(filename_original, self.cv2_img)
+
             self.get_logger().info(f"Image saved as {filename}")
             cv2.setTrackbarPos("Save_Image", "Trackbars", 0)  # Reset
 
@@ -118,10 +125,7 @@ def main(args=None):
                 cv2.imshow("Preview", preview)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-                elif cv2.waitKey(1) & 0xFF == ord('s'):
-                    if node.last_preview is not None:
-                        cv2.imwrite("saved_image.jpg", node.last_preview)
-                        node.get_logger().info("Image saved by keypress!")
+
 
         else:
             while rclpy.ok():
@@ -131,6 +135,16 @@ def main(args=None):
                     cv2.imshow("Preview", preview)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
+
+                    # too slow 
+                    # elif cv2.waitKey(1) & 0xFF == ord('s'):
+                    #     node.get_logger().info("click ssssss ")
+                    #     if node.last_preview is not None:
+                    #         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    #         filename = os.path.join(node.save_dir, f"saved_{timestamp}.jpg")
+                    #         cv2.imwrite(filename, node.last_preview)
+                    #         node.get_logger().info(f"Image saved by keypress as {filename}")
+        
     finally:
         node.destroy_node()
         rclpy.shutdown()
