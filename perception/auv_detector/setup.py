@@ -25,7 +25,10 @@ setup(
     entry_points={
         'console_scripts': [
 	        'estimator = auv_detector.auv_detector:main', 
+            'manual_hsv_detector = auv_detector.manual_hsv_detector:main', 
+            'winch = auv_detector.auv_detector_auto_winch:main', 
             'detector = auv_detector.KNN:main',
+            'detector_2 = auv_detector.KNN_2:main',
             'realdata = auv_detector.video_pipeline:main',
         ],
     },
