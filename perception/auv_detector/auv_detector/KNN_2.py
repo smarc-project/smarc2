@@ -15,6 +15,11 @@ from sklearn.neighbors import NearestNeighbors
 from collections import deque
 import heapq
 
+from tf2_ros import TransformListener, Buffer
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformException
+
+
 class KNN(Node):
     def __init__(self):
         super().__init__('k_nearest_neighbors')
@@ -68,6 +73,33 @@ class KNN(Node):
 
         self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
         #self.knn = cv2.createBackgroundSubtractorKNN(history=1000, dist2Threshold=10,detectShadows=False)
+
+
+        # Initialize the tf buffer and listener
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
+        # Use a timer to periodically check for transform
+        self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz
+
+        # Set parent and child frame
+        self.parent_frame = 'map_gt'
+        self.child_frame = 'Quadrotor/camera_gt'
+
+    def timer_callback(self):
+        try:
+            now = rclpy.time.Time()
+            trans: TransformStamped = self.tf_buffer.lookup_transform(
+                self.parent_frame,
+                self.child_frame,
+                now
+            )
+            pos = trans.transform.translation
+            self.get_logger().info(f"[{self.child_frame}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
+        except TransformException as e:
+            self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame}: {str(e)}')
+
+
 
     def declare_node_parameters(self):
         """
