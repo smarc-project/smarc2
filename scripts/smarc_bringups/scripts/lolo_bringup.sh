@@ -50,9 +50,10 @@ tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_
 
 tmux select-window -t $SESSION:2
 tmux select-pane -t $SESSION:2.0
-tmux split-window -h -t $SESSION:2.0      # Split horizontally: 2 panes side by side
-tmux split-window -v -t $SESSION:2.0      # Split left pane vertically
-tmux split-window -v -t $SESSION:2      # Split right pane vertically
+tmux split-window -h -t $SESSION:2.0      # Split window into left (2.0) and right (2.1)
+tmux split-window -v -t $SESSION:2.0      # Split left pane into top-left (2.0) and bottom-left (2.2)
+tmux split-window -v -t $SESSION:2.1      # Split right pane into top-right (2.1) and bottom-right (2.3)
+tmux select-layout -t $SESSION:2 tiled    # Arrange as a 2x2 grid
 
 # Run in top left pane of window 2 (servers)
 tmux select-pane -t $SESSION:2.0

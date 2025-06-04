@@ -185,14 +185,19 @@ class WaraPSTaskHandler:
         self._direct_execution_info_data["tasks-executing"] = list_of_running_tasks
 
         # drop tasks that have not been seen for a while (3 seconds)
+        popped_indices = []
         for i in range(len(self.tasks_available)):
             # self._node.get_logger().info(f"Checking task {i} with name {self.tasks_available[i]['name']}")
             task = self.tasks_available[i]
             # log (now_time - task["last_seen"])
             if float(now_time - task["last_seen"]) > 3.0:
                 # remove the task from the list of available tasks
-                self.tasks_available.pop(i)
+                popped_indices.append(i)
                 self._node.get_logger().info(f"Removed task {task['name']} from available at time {now_time}, last seen at {task['last_seen']}")
+
+        # remove the tasks from the list of available tasks
+        for i in reversed(popped_indices):
+            self.tasks_available.pop(i)
 
 
         self._direct_execution_info_data["tasks-available"] = self.tasks_available

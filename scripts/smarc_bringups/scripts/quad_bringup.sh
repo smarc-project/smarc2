@@ -47,7 +47,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "echo 'Not launching drone_dr dead_reckoning.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
 
 # option to make it just a node for the waraps agent without the bt
 # tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
