@@ -20,12 +20,10 @@ class SAMDivePub(IDivePub):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, param) -> None:
 
         self._node = node
-
-        # Get all the parameters
-        self.param = DivingModelParam(self._node).get_param()
+        self.param = param
 
         # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)

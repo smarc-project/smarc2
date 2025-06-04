@@ -5,7 +5,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 
-from smarc_mission_msgs.action import GotoWaypoint
+from smarc_mission_msgs.action import BaseAction
 from smarc_mission_msgs.msg import Topics as MissionTopics
 
 from geometry_msgs.msg import PoseStamped 
@@ -25,20 +25,22 @@ class DiveActionServerSub(DiveSub):
     """
     def __init__(self,
                  node: Node,
-                 dive_pub: IDivePub):
+                 dive_pub: IDivePub,
+                 param):
 
         self._node = node
         self._dive_pub = dive_pub
+        self.param = param
 
-        super().__init__(self._node, self._dive_pub)
+        super().__init__(self._node, self._dive_pub, self.param)
 
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)
 
         self._as = ActionServer(
             node = self._node,
-            action_type = GotoWaypoint,
-            action_name = MissionTopics.GOTO_WP_ACTION,
+            action_type = BaseAction,
+            action_name = 'move_to',
             goal_callback = self._goal_cb,
             execute_callback = self._execute_cb,
             cancel_callback = self._cancel_cb)
@@ -89,6 +91,8 @@ class DiveActionServerSub(DiveSub):
         self._waypoint_global.pose.orientation.z = wp.pose.orientation.z
         self._waypoint_global.pose.orientation.w = wp.pose.orientation.w
 
+        self._loginfo(f"Global WP frame: {self._waypoint_global.header.frame_id}")
+
         # TODO: Get the proper RPM from the waypoint
 
         self._received_waypoint = True
@@ -124,7 +128,8 @@ class DiveActionServerSub(DiveSub):
 
                 time.sleep(0.1)
             else:
-                self._loginfo("get distance is none?")
+                pass
+                #self._loginfo("get distance is none?")
 
         goal_handle.succeed()
         result.reached_waypoint = True

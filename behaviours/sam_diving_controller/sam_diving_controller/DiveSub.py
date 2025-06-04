@@ -39,10 +39,13 @@ class DiveSub():
     """
     def __init__(self,
                  node: Node,
-                 dive_pub: IDivePub):
+                 dive_pub: IDivePub,
+                 param):
 
         self._node = node
         self._dive_pub = dive_pub
+
+        self.param = param
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
@@ -53,7 +56,7 @@ class DiveSub():
         self._node.declare_parameter('acados_dir', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link'+ tf_suffix #'/base_link_gt'
+        self._robot_base_link = robot_name + '/base_link'+ tf_suffix
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
@@ -77,12 +80,12 @@ class DiveSub():
         self._received_states = False
 
         self._control_input = {} 
-        self._control_input['vbs'] = 0.0
-        self._control_input['lcg'] = 0.0
-        self._control_input['rpm1'] = 0.0
-        self._control_input['rpm2'] = 0.0
-        self._control_input['stern'] = 0.0
-        self._control_input['rudder'] = 0.0
+        self._control_input['vbs'] = self.param['vbs_u_neutral']
+        self._control_input['lcg'] = self.param['lcg_u_neutral']
+        self._control_input['rpm1'] = self.param['rpm_u_neutral']
+        self._control_input['rpm2'] = self.param['rpm_u_neutral']
+        self._control_input['stern'] = self.param['tv_u_neutral']
+        self._control_input['rudder'] = self.param['tv_u_neutral']
 
         self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)

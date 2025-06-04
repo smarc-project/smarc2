@@ -86,7 +86,7 @@ class PIDControl:
 
 class DiveControllerInterface:
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub =dive_sub 
@@ -98,6 +98,8 @@ class DiveControllerInterface:
         self._ref = None
         self._error = None
         self._input = None
+
+        self.param = param
 
     def _loginfo(self, s):
         self._node.get_logger().info(s)
@@ -190,16 +192,15 @@ class DiveControllerInterface:
 
 class DiveControllerPID(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
         self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
                                          Ki = self.param['vbs_pid_ki'],
@@ -338,16 +339,15 @@ class DiveControllerPID(DiveControllerInterface):
 
 class DepthJoyControllerPID(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
         self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
                                          Ki = self.param['vbs_pid_ki'],
@@ -478,17 +478,16 @@ class DepthJoyControllerPID(DiveControllerInterface):
 
 class DiveControllerMPC(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub 
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
         # FIXME: This needs to be fixed. Acados places the generated C files in
         # the current directory. So we litter the whole ros workspace with
         # them. Not good, but all attempts to force it to use a specific
