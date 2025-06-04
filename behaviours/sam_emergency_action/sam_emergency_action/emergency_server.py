@@ -15,13 +15,20 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import EmergencyAbort, BaseAction
+from smarc_mission_msgs.action import BaseAction
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, Topics
 from sam_msgs.msg import Topics as SamTopics
 from std_msgs.msg import String
 from typing import TypeVar
+import json
+from enum import Enum
 
 T = TypeVar("T")
+
+class EmergencyLevel(Enum):
+    """Enum for emergency levels."""
+    NO_EMERGENCY = 0
+    EMERGENCY = 1
 
 
 class EmergencyServer(SMARCActionServer):
@@ -163,6 +170,18 @@ class EmergencyServer(SMARCActionServer):
         result_msg.success = True
         return result_msg
 
+    def _parse_goal(self, goal_request: ActionType.Goal) -> EmergencyLevel:
+        """Parses the goal request and extracts the emergency level Enum."""
+        goal_msg = goal_request.goal
+        self.logger.info(f"Received goal request: {goal_msg}")
+        level_json = goal_msg.data
+        level_dict = json.loads(level_json)
+        emergency_level = level_dict["level"]
+        self.logger.info(f"Parsed emergency level: {emergency_level}")
+        emergency_level = int(emergency_level)
+        return EmergencyLevel(emergency_level)
+
+
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
         """Considers a goal validity and evaluates whether it should be accepted or not.
 
@@ -173,11 +192,12 @@ class EmergencyServer(SMARCActionServer):
             response: Either GoalResponse.Accept or GoalResponse.Reject
 
         """
-        emergency_level = goal_request.level
-        if emergency_level == EmergencyAbort.Goal.NO_EMERGENCY:
+        emergency_level = self._parse_goal(goal_request)
+
+        if emergency_level == EmergencyLevel.NO_EMERGENCY:
             self.logger.info("No emergency abort requested. Rejecting goal.")
             return GoalResponse.REJECT
-        elif emergency_level == EmergencyAbort.Goal.EMERGENCY:
+        elif emergency_level == EmergencyLevel.EMERGENCY:
             self.logger.info("Emergency abort requested.")
             return GoalResponse.ACCEPT
         else:
@@ -215,7 +235,7 @@ def main(args=None):
     rclpy.init(args=args)
     node_name = "emergency_server"
     node = rclpy.node.Node(node_name)
-    action_type = ActionType(EmergencyAbort)
+    action_type = ActionType(BaseAction)
     emergency_server = EmergencyServer(node, "emergency_action", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)

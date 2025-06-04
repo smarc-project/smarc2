@@ -25,7 +25,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Empty.action"
   "action/BaseAction.action"
   "action/GotoWaypoint.action"
-  "action/EmergencyAbort.action"
   "srv/DubinsPlan.srv"
   "srv/UTMLatLon.srv"
   DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
