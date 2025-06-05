@@ -91,6 +91,7 @@ string SVS_TOPIC = sensors/svs
 string CTD_RAW_TOPIC = sensors/ctd/raw
 string CTD_TOPIC = sensors/ctd
 
+string DO_RAW_REQUEST_TOPIC = sensors/do/raw_request
 string DO_RAW_TOPIC = sensors/do/raw
 string DO_TOPIC = sensors/do
 
