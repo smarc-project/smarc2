@@ -550,3 +550,7 @@ class SMARCActionClient(abc.ABC):
         )
 
         self._send_goal_future.add_done_callback(self._wrap_goal_response_callback)
+
+    def get_action_name(self) -> str:
+        """Returns the action name of the client."""
+        return self._action_name

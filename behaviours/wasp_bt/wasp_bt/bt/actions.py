@@ -17,6 +17,65 @@ from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
 
+class A_WaitForData(VehicleBehaviour):
+    def __init__(self,
+                 bt: HasClock,
+                 sensor_name: str):
+        name = name = f"{self.__class__.__name__}({sensor_name})"
+        super().__init__(bt, name)
+        self._bb = Blackboard()
+        self._sensor_name = sensor_name
+        self._first_tick_seconds = None
+
+
+    @property
+    def _now(self):
+        return self._bt.now_seconds
+
+    def update(self) -> Status:
+        if self._first_tick_seconds is None:
+            self._first_tick_seconds = self._now
+
+        sensor = self._bt.vehicle_container.vehicle_state[self._sensor_name]
+        
+        # has this sensor every gotten anything?
+        if sensor.last_update_seconds is None:
+            # nope
+            # are we letting it chill for a little?
+            initial_silence_seconds = self._bb.get(BBKeys.SENSOR_INITIAL_GRACE_PERIOD)
+            dt_since_first = self._now - self._first_tick_seconds
+            if dt_since_first < initial_silence_seconds:
+                # yeah, chill for a bit
+                self.feedback_message = f"{dt_since_first:.0f}/{initial_silence_seconds} of initial silence."
+                return Status.RUNNING
+            else:
+                # no, its been too long
+                self.feedback_message = f"Sensor dead?"
+                return Status.FAILURE
+
+        # it has gotten data at least once
+        # but how far behind is it?
+        allowed_silence_seconds = self._bb.get(BBKeys.SENSOR_SILENCE_PERIOD)
+        
+        dt = self._now - sensor.last_update_seconds 
+        if dt > allowed_silence_seconds:
+            # too far behind
+            self.feedback_message = f"{dt} > {allowed_silence_seconds}!"
+            return Status.FAILURE
+        
+        # not too far behind. we good.
+        self.feedback_message = f"{dt:.1f}s since last update"
+        return Status.SUCCESS
+
+class A_Abort(VehicleBehaviour):
+    def __init__(self, bt: HasVehicleContainer):
+        super().__init__(bt)
+
+    def update(self) -> Status:
+        self._bt.vehicle_container.abort()
+        self.feedback_message = "!! ABORTED !!"
+        return Status.SUCCESS
+
 
 class A_Chilling(VehicleBehaviour):
     """

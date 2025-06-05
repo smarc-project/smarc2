@@ -42,6 +42,7 @@ from .actions import A_Abort,\
                     A_ClearTaskQueue,\
                     A_TaskAbortedFlagReset, \
                     A_Chilling,\
+                    A_WaitForData,\
                      A_ClearCurrentTask
 
 class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
@@ -50,7 +51,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                  task_handler:WaraPSTaskHandler,
                  now_seconds_func: typing.Callable,
                  emergency_action: IActionClient = None,
-                 action_client_dict: typing.Dict[str, IActionClient] = None,
+                 action_client_list: typing.List[IActionClient] = None
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -60,7 +61,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self.action_client_dict = action_client_dict if action_client_dict is not None else {}
+        self.action_client_list = action_client_list if action_client_list is not None else []
         self._now_seconds_func = now_seconds_func
         self.emergency_action = emergency_action
 
@@ -114,10 +115,24 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         """
         A tree that handles emergency situations, such as aborting the mission
         """
-        return Fallback("F_HandleEmergency", memory=False, children=[
-            C_NoEmergencyAbortSignalDetected(self._task_handler),
-            A_Chilling(self) if self.emergency_action is None else A_ActionClient(self.emergency_action, self._task_handler),
-        ])
+
+        emergency_children = [C_NoEmergencyAbortSignalDetected(self._task_handler)]
+        if self.emergency_action is not None:
+            # if there is an emergency action given to us
+            # first, check if the action client is available
+            availability_check = self.emergency_action._setup(num_iters=2)
+            if not availability_check:
+                # if the action client is not available, we cannot run it
+                # we can just chill
+                emergency_children.append(A_Chilling(self))
+            else:
+                # if the action client is available, we can run it
+                emergency_children.append(A_ActionClient(self.emergency_action, self._task_handler))
+        else:
+            # if there is no emergency action, we can just chill
+            emergency_children.append(A_Chilling(self))
+
+        return Fallback("F_HandleEmergency", memory=False, children=emergency_children)
                     
     def _one_task_tree(self, task_name: str, action_client: IActionClient):
         """
@@ -138,7 +153,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         return task_tree
 
 
-    def _task_handler_tree(self, action_clients_dict: typing.Dict[str, IActionClient] = None):
+    def _task_handler_tree(self, action_client_list: typing.List[IActionClient] = None):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
         """
@@ -152,10 +167,22 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ]
 
         # we will append the task trees to this list programmatically
-        if action_clients_dict is not None:
+        if action_client_list is not None:
             #TODO: implement this
-            # task_servers_dict has string keys that are the task names, and IActionClient values that are the action clients
-            for task_name, action_client in action_clients_dict.items():
+            for action_client in action_client_list:
+
+                # first, check if the corresponding action server is available
+                availability_check = action_client._setup(num_iters = 2)
+
+                if not availability_check:
+                    # if the action client is not available, skip it
+                    continue
+
+                # if the action client is available, we can proceed
+
+                # parse the action client name to get the task name
+                task_name = action_client.get_action_name()
+
                 task_tree = self._one_task_tree(task_name, action_client)
                 task_children.append(task_tree)
 
@@ -176,7 +203,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             # self._safety_tree(), # should look at julian safety node topic
 
             # add the mission tree
-            self._task_handler_tree(self.action_client_dict),
+            self._task_handler_tree(self.action_client_list),
             # self._run_tree()
         ]
 
@@ -232,17 +259,15 @@ def wasp_bt():
     action_type = ActionType(BaseAction)
         
     # emergency action
-    # emergency_action_client = BTActionClient(node, "emergency_action", action_type)
-    emergency_action_client = None
+    emergency_action_client = BTActionClient(node, "emergency_action", action_type)
+    # emergency_action_client = None
 
-    # dictionary of remaining action clients
-    action_client_dict = {
-        "move-to": BTActionClient(node, "move_to", action_type),
-        
-        "auv-depth-move-to": BTActionClient(node, "auv_depth_move_to", action_type),
-        
-        "cruise-depth-at-heading": BTActionClient(node, "cruise_depth_at_heading", action_type),
-    }
+    # list of remaining action clients
+    action_client_list = [
+        BTActionClient(node, "move_to", action_type),
+        BTActionClient(node, "auv_depth_move_to", action_type),
+        BTActionClient(node, "cruise_depth_at_heading", action_type),
+    ]
 
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
@@ -267,14 +292,14 @@ def wasp_bt():
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
             emergency_action = emergency_action_client,
-            action_client_dict = action_client_dict,
+            action_client_list = action_client_list,
             now_seconds_func  = ros_seconds_float)
     bt.setup()
 
 
     bt_str = ""
     def print_bt():
-        nonlocal bt, bt_str, node, action_client_dict, agent
+        nonlocal bt, bt_str, node, action_client_list, agent
         new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
