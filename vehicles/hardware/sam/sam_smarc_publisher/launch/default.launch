@@ -5,6 +5,7 @@
     <param name="robot_name" value="$(var robot_name)"/>
     <param name="utm_zone" value="34" type="str"/>
     <param name="utm_band" value="V" type="str"/>
+    <param name="odom_frame" value="odom" type="str"/>
   </node>
 
 </launch>
