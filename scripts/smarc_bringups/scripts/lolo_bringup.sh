@@ -1,6 +1,7 @@
 #! /bin/bash
 ROBOT_NAME=lolo
 SESSION=${ROBOT_NAME}_bringup
+USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
@@ -25,7 +26,7 @@ tmux rename-window "controllers"
 tmux new-window -t $SESSION:1 -n 'bt'
 tmux rename-window "bt"
 # controllers that are "constantly running"
-tmux new-window -t $SESSION:2 -n 'auv_depth_move_to'
+tmux new-window -t $SESSION:2 -n 'servers'
 # connection to different GUIs
 tmux new-window -t $SESSION:3 -n 'gui'
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
@@ -46,10 +47,21 @@ tmux select-window -t $SESSION:0
 tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 tmux select-window -t $SESSION:2
+tmux select-pane -t $SESSION:2.0
+tmux split-window -h -t $SESSION:2.0      # Split window into left (2.0) and right (2.1)
+tmux split-window -v -t $SESSION:2.0      # Split left pane into top-left (2.0) and bottom-left (2.2)
+tmux split-window -v -t $SESSION:2.1      # Split right pane into top-right (2.1) and bottom-right (2.3)
+tmux select-layout -t $SESSION:2 tiled    # Arrange as a 2x2 grid
+
+# Run in top left pane of window 2 (servers)
+tmux select-pane -t $SESSION:2.0
 tmux send-keys "ros2 run lolo_depth_move_to server --ros-args -r __ns:=/$ROBOT_NAME" C-m
+# Run in top right pane of window 2 (servers)
+tmux select-pane -t $SESSION:2.1
+tmux send-keys "ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:=/$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
@@ -66,9 +78,9 @@ tmux select-window -t $SESSION:9
 
 tmux select-window -t $SESSION:10
 # To connect to our MQTT broker
-# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 " C-m
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m
 # For local testing: use defaults
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m 
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m 
 
 # Conditional launches, for sim-only or real-only things
 # the real sam's username is "sam" and lolo's "lolo".

@@ -371,7 +371,7 @@ class SMARCActionClient(abc.ABC):
             self.state = ActionClientState.READY
         else:
             self._node.get_logger().error(
-                "[action-base] Server not found. Action client will not be able to send goals."
+                f"[action-base] Server not found. Cannot send goals to {self._action_name}."
             )
             self.state = ActionClientState.DISCONNECTED
         
@@ -550,3 +550,7 @@ class SMARCActionClient(abc.ABC):
         )
 
         self._send_goal_future.add_done_callback(self._wrap_goal_response_callback)
+
+    def get_action_name(self) -> str:
+        """Returns the action name of the client."""
+        return self._action_name
