@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from geodesy.utm import fromMsg, UTMPoint
-from geometry_msgs.msg import PointStamped, Pose
+from geometry_msgs.msg import PointStamped, Pose, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import Float32
 from tf_transformations import euler_from_quaternion
@@ -18,14 +18,21 @@ def convert_latlon_to_utm(gp: GeoPoint) -> PointStamped:
     return ps
 
 
-def convert_utm_to_latlon(utm: PointStamped) -> GeoPoint:
+def convert_utm_to_latlon(utm: PointStamped | PoseStamped) -> GeoPoint:
     """
-    Convert a PointStamped in UTM coordinates to a GeoPoint.
+    Convert a PointStamped or PoseStamped in UTM coordinates to a GeoPoint.
     The header frame_id must be in the format "utm_<zone>_<band>".
     """
     utm_pt = UTMPoint()
-    utm_pt.easting = utm.point.x
-    utm_pt.northing = utm.point.y
+
+    if isinstance(utm, PoseStamped):
+        utm_point = utm.pose.position
+    elif isinstance(utm, PointStamped):
+        utm_point = utm.point
+    else:
+        raise TypeError("Input must be a PointStamped or PoseStamped.")
+    utm_pt.easting = utm_point.x
+    utm_pt.northing = utm_point.y
     _, zone, band = utm.header.frame_id.split("_")
     utm_pt.zone = int(zone)
     utm_pt.band = band

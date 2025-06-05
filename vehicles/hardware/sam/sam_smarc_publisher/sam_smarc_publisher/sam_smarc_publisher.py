@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 
+from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty, Int8, Float32
@@ -32,7 +34,7 @@ class SAMSMARCPublisher(Node):
         self._create_odom_pubsub()
 
     def _create_tf_listener(self):
-        self.declare_parameter('utm_zone', 34)
+        self.declare_parameter('utm_zone', '34')
         self.utm_zone = self.get_parameter('utm_zone').get_parameter_value().string_value
         self.declare_parameter('utm_band', 'V')
         self.utm_band = self.get_parameter('utm_band').get_parameter_value().string_value
@@ -52,7 +54,7 @@ class SAMSMARCPublisher(Node):
 
     def _create_bt_heartbeat_pubsub(self):
         self.bt_heartbeat_pub = self.create_publisher(Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10)
-        self.bt_heartbeat_sub = self.create_subscription(Empty, SamTopics.BT_HEARTBEAT_TOPIC, self.heartbeat_callback, 10)
+        self.bt_heartbeat_sub = self.create_subscription(Empty, SamTopics.HEARTBEAT_TOPIC, self.heartbeat_callback, 10)
 
     def heartbeat_callback(self, msg):
         self.bt_heartbeat_pub.publish(msg)
@@ -113,19 +115,24 @@ class SAMSMARCPublisher(Node):
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
 
         try:
-            utm_transform = self.tf_buffer.lookup_transform(self.utm_frame, self.odom_frame, msg.header.stamp)
-            transform_pose = do_transform_pose(msg.pose.pose, utm_transform)
+            timestamp = msg.header.stamp
+            self.get_logger().info(f'Transforming odometry from {self.odom_frame} to {self.utm_frame} at time {timestamp}')
+            utm_transform = self.tf_buffer.lookup_transform(self.utm_frame, self.odom_frame, timestamp)
 
-            compass_heading_msg = convert_enu_pose_to_heading(transform_pose)
+            transform_pose = PoseStamped()
+            transform_pose.pose = do_transform_pose(msg.pose.pose, utm_transform)
+            transform_pose.header.frame_id = self.utm_frame
+            transform_pose.header.stamp = timestamp
+
+            compass_heading_msg = convert_enu_pose_to_heading(transform_pose.pose)
             self.heading_pub.publish(compass_heading_msg)
 
-            latlon_msg = convert_utm_to_latlon(transform_pose.position)
+            latlon_msg = convert_utm_to_latlon(transform_pose)
             self.latlon_pub.publish(latlon_msg)
 
         except (LookupException, ConnectivityException, ExtrapolationException) as e:
             self.get_logger().error(f'Failed to transform odometry: {e}')
             return
-
 
 
 
