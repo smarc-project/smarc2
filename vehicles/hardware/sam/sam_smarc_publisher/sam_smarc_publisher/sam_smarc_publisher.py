@@ -18,7 +18,8 @@ from tf2_ros.transform_listener import TransformListener
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from tf2_geometry_msgs import do_transform_pose
 
-from smarc_utilities.georef_utils import convert_enu_pose_to_heading, convert_utm_to_latlon
+from smarc_utilities.georef_utils import (convert_enu_pose_to_heading, convert_utm_to_latlon,
+                                          compute_course_from_two_poses, compute_speed_from_two_poses)
 
 class SAMSMARCPublisher(Node):
     def __init__(self):
@@ -38,10 +39,12 @@ class SAMSMARCPublisher(Node):
         self.utm_zone = self.get_parameter('utm_zone').get_parameter_value().string_value
         self.declare_parameter('utm_band', 'V')
         self.utm_band = self.get_parameter('utm_band').get_parameter_value().string_value
-
         self.utm_frame = f'utm_{self.utm_zone}_{self.utm_band}'
         self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
-        self.odom_frame = 'odom'
+
+        self.declare_parameter('odom_frame', 'odom')
+        self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
+        self.get_logger().info(f'Using Odometry frame: {self.odom_frame}')
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
@@ -88,8 +91,8 @@ class SAMSMARCPublisher(Node):
         Creates subscription from Odometry data.
         Also create all publishers for SMaRC topics that are derived from the odometry data.
         """
-        self.prev_odom_msg = None
-        self.current_odom_msg = None
+        self.prev_pose_utm = None
+        self.current_pose_utm = None
         self.odom_sub = self.create_subscription(Odometry, DRTopics.DR_ODOM_TOPIC, self.odom_callback, 10)
 
         self.odom_pub = self.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
@@ -106,23 +109,23 @@ class SAMSMARCPublisher(Node):
         Callback for the Odometry topic. It publishes the odometry data to the SMaRC topic.
         It also publishes the heading, course, speed, depth and latitude/longitude.
         """
-        # Updaate Odom messages
-        self.prev_odom_msg = self.current_odom_msg
-        self.current_odom_msg = msg
-
         # Publish the odometry message
         self.odom_pub.publish(msg)
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
 
         try:
-            timestamp = msg.header.stamp
+            timestamp = msg.header.stamp #Time()
             self.get_logger().info(f'Transforming odometry from {self.odom_frame} to {self.utm_frame} at time {timestamp}')
             utm_transform = self.tf_buffer.lookup_transform(self.utm_frame, self.odom_frame, timestamp)
 
             transform_pose = PoseStamped()
             transform_pose.pose = do_transform_pose(msg.pose.pose, utm_transform)
             transform_pose.header.frame_id = self.utm_frame
-            transform_pose.header.stamp = timestamp
+            transform_pose.header.stamp = msg.header.stamp
+
+            # Update prev and current UTM poses
+            self.prev_pose_utm = self.current_pose_utm
+            self.current_pose_utm = transform_pose
 
             compass_heading_msg = convert_enu_pose_to_heading(transform_pose.pose)
             self.heading_pub.publish(compass_heading_msg)
@@ -130,10 +133,17 @@ class SAMSMARCPublisher(Node):
             latlon_msg = convert_utm_to_latlon(transform_pose)
             self.latlon_pub.publish(latlon_msg)
 
+            if self.current_pose_utm is not None and self.prev_pose_utm is not None:
+                course_msg = compute_course_from_two_poses(self.prev_pose_utm, self.current_pose_utm)
+                self.course_pub.publish(course_msg)
+                speed_msg = compute_speed_from_two_poses(self.prev_pose_utm, self.current_pose_utm)
+                self.speed_pub.publish(speed_msg)
+            else:
+                self.get_logger().warn('Previous or current pose is None, cannot compute course or speed.')
+
         except (LookupException, ConnectivityException, ExtrapolationException) as e:
             self.get_logger().error(f'Failed to transform odometry: {e}')
             return
-
 
 
 def main(args=None):
