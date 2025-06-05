@@ -120,7 +120,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         if self.emergency_action is not None:
             # if there is an emergency action given to us
             # first, check if the action client is available
-            availability_check = self.emergency_action._setup(num_iters=2)
+            availability_check = self.emergency_action._setup(num_iters=3)
             if not availability_check:
                 # if the action client is not available, we cannot run it
                 # we can just chill
@@ -172,7 +172,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             for action_client in action_client_list:
 
                 # first, check if the corresponding action server is available
-                availability_check = action_client._setup(num_iters = 2)
+                availability_check = action_client._setup(num_iters = 3)
 
                 if not availability_check:
                     # if the action client is not available, skip it
@@ -267,6 +267,8 @@ def wasp_bt():
         BTActionClient(node, "move_to", action_type),
         BTActionClient(node, "auv_depth_move_to", action_type),
         BTActionClient(node, "cruise_depth_at_heading", action_type),
+        # ADD NEW ACTION CLIENTS HERE
+        
     ]
 
     # Declare and get parameters with defaults

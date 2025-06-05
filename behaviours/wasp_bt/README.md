@@ -35,7 +35,7 @@ Next, the launchfile for the behaviour tree will launch two separate nodes:
 
 Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent.
 
-Next, inside the `ros_bt.py` file (found under `wasp_bt/bt/ros_bt.py`), you will need to tell the behaviour tree which action servers to use, which is done by simply adding the right action servers with their names to `action_client_dict` (line 238 or thereabouts), and defining an emergency action client (line 236 or thereabouts) that will be used to define how the vehicle behaves in case of an emergency. 
+Next, inside the `ros_bt.py` file (found under `wasp_bt/bt/ros_bt.py`), you will need to tell the behaviour tree which action servers to use, which is done by simply adding the right action clients to `action_client_list` (line 266 or thereabouts).
 
 Remember to start all the servers you want clients for!
 
