@@ -181,7 +181,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 # if the action client is available, we can proceed
 
                 # parse the action client name to get the task name
-                task_name = action_client.get_action_name()
+                task_name = action_client.get_action_name().replace("_", "-")
 
                 task_tree = self._one_task_tree(task_name, action_client)
                 task_children.append(task_tree)
