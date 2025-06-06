@@ -77,8 +77,8 @@ string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
 
 #Navigation
 string INS_ODOM_TOPIC = "ins_odom"
-string INS_RAW_TOPIC = "/ix/ins"
-string INS_IMU_TOPIC = "/standard/imu"
+string INS_RAW_TOPIC = "ix/ins"
+string INS_IMU_TOPIC = "standard/imu"
 
 
 #Sensors
