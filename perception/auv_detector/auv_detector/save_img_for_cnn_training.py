@@ -42,10 +42,12 @@ class HSVDetectorNode(Node):
         self.range_filter = "HSV"
 
         self.last_preview = None  # <-- NEW
+        self.points = []  # <-- NEW: store clicked points
+        self.clear_points = 0
 
         # Setup mouse callback for clicking "save" area
         cv2.namedWindow("Preview")
-        #cv2.setMouseCallback("Preview", self.mouse_callback)
+        cv2.setMouseCallback("Preview", self.mouse_callback)
         
         self.save_dir_processed = "processed_img_for_cnn_training"
         self.save_dir_original = "original_img_for_cnn_training"
@@ -72,6 +74,12 @@ class HSVDetectorNode(Node):
     #                 cv2.imwrite("saved_image.jpg", self.last_preview)
     #                 self.get_logger().info("Image saved by mouse click!")
 
+    def mouse_callback(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            if len(self.points) >= 2:
+                self.points = []  # Reset after two clicks
+            self.points.append((x, y))
+            self.get_logger().info(f"Clicked point: ({x}, {y})")  # <-- NEW
 
     def image_callback(self, msg):
         try:
@@ -89,6 +97,24 @@ class HSVDetectorNode(Node):
         # cv2.rectangle(preview, (10, 10), (110, 50), (0, 255, 0), -1)
         # cv2.putText(preview, "Save", (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
 
+        # Draw clicked points
+        # Draw clicked points with different colors
+        for idx, point in enumerate(self.points):
+            if idx == 0:
+                color = (0, 255, 255)  # yellow for first click (BGR format)
+                label = "P1"
+            elif idx == 1:
+                color = (0, 255, 0)  # Green for second click
+                label = "P2"
+            else:
+                color = (0, 255, 255)  # fallback, shouldn't happen
+                label = f"P{idx+1}"
+
+            cv2.circle(preview, point, 5, color, -1)
+            cv2.putText(preview, f"{label}: ({point[0]}, {point[1]})",
+                        (point[0] + 5, point[1] - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+
         self.last_preview = preview.copy()
 
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
@@ -102,6 +128,8 @@ class HSVDetectorNode(Node):
 
             self.get_logger().info(f"Image saved as {filename}")
             cv2.setTrackbarPos("Save_Image", "Trackbars", 0)  # Reset
+            self.points = []  # Reset after two clicks
+            # print(f"Image size: {self.cv2_img.shape}")  # Outputs (height, width, channels)  (480, 640, 3)
 
         return preview
 
