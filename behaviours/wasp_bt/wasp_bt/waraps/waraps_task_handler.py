@@ -569,6 +569,8 @@ class WaraPSTaskHandler:
                     task["status"] = WaraPSTaskStates.RESUMED.value
             elif command["signal"] == WaraPSCommandSignals.CANCEL_ABORT.value:
                 self.emergency_flag = False
+                self.mission_start_time = None
+                self.mission_timeout = None
 
             valid_signals = [s.value for s in WaraPSCommandSignals]
             if command["signal"] not in valid_signals:

@@ -56,7 +56,7 @@ if [ "$REALSIM" = "real" ]; then
     
     tmux new-window -t $SESSION:4 -n 'hardware1'
     tmux select-window -t $SESSION:4
-    tmux send-keys "ros2 launch lolo_drivers lolo_hardware1_launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+    tmux send-keys "ros2 launch lolo_drivers lolo_hardware1_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
     tmux new-window -t $SESSION:5 -n 'hardware2'
     tmux select-window -t $SESSION:5
     tmux send-keys "ros2 launch lolo_drivers lolo_hardware2_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
