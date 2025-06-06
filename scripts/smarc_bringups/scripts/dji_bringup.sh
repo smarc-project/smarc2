@@ -39,6 +39,10 @@ tmux rename-window "bt"
 tmux new-window -t $SESSION:4 -n 'mqtt_bridge'
 tmux rename-window "mqtt_bridge"
 
+# camera node
+tmux new-window -t $SESSION:5 -n 'cam'
+tmux rename-window "cam"
+
 
 # only launch if not the simulator
 if [ "$USE_SIM_TIME" = "True" ]; then
@@ -50,7 +54,7 @@ if [ "$USE_SIM_TIME" = "True" ]; then
 fi
 
 tmux select-window -t $SESSION:2
-# action servers when they exist
+#TODO action servers when they exist
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
@@ -62,6 +66,11 @@ else
     tmux send-keys "ros2 launch str_json_mqtt_bridge mqtt_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real" C-m
 fi
 
+# only launch if not the simulator
+if [ "$USE_SIM_TIME" = "True" ]; then
+    tmux select-window -t $SESSION:5
+    #TODO camera thingy here
+fi
 
 
 
