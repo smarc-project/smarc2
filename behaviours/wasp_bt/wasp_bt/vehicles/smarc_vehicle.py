@@ -4,7 +4,7 @@ from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
 
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Int8
 from geographic_msgs.msg import GeoPoint
 
 from std_msgs.msg import Empty, Bool
@@ -45,7 +45,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._abort_cb, 10)
 
         self._heartbeat_pub = node.create_publisher(Empty, Topics.BT_HEARTBEAT_TOPIC, 10)
-        self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
+        self._vehicle_healthy_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
 
     def current_time(self) -> float:
         sec, _ = self._node.get_clock().now().seconds_nanoseconds()
