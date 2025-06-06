@@ -93,7 +93,7 @@ class DjiCaptain():
         self._pos_latlon_pub = node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, qos_profile=10)
         self._battery_percent_pub = node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, qos_profile=10)
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
-
+        self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
 
         self._status_str_timer = node.create_timer(0.5,lambda: self.log(self.status_str))
 
@@ -245,7 +245,7 @@ class DjiCaptain():
         self._got_control = msg.control_auth == 1 and msg.device_mode == 4
 
     def _battery_callback(self, msg: BatteryState):
-        self._battery_percent = msg.percentage
+        self._battery_percent = msg.percentage*100
             
 
     def _position_fused_callback(self, msg: PositionFused):
@@ -297,7 +297,7 @@ class DjiCaptain():
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None:
-            self.log("Altitude or Home not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
             return
         
         if self._gps_point_in_home is None:
@@ -321,7 +321,7 @@ class DjiCaptain():
 
     def _rtk_cb(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None:
-            self.log("Altitude or Home not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
             return
         
         if self._rtk_point_in_home is None:
@@ -369,7 +369,9 @@ class DjiCaptain():
     
     def _publish_tf(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
-            self.log("Position, home or GPS not set, skipping TF publish.")
+            self.log(f"Position({self._base_pose_in_home is not None}),\
+home({self._home_point_in_utm is not None}) or GPS({self._gps_point_in_home is not None})\
+not set, skipping TF publish.")
             return
 
         tf_msg = TFMessage()
@@ -458,7 +460,9 @@ class DjiCaptain():
 
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
-            self.log("Position, home or GPS not set, skipping SMARC publish.")
+            self.log(f"Position({self._base_pose_in_home is not None}),\
+home({self._home_point_in_utm is not None}) or GPS({self._gps_point_in_home is not None})\
+not set, skipping SMaRC publish.")
             return
 
         odom = Odometry()
