@@ -21,7 +21,7 @@ from .i_has_clock import HasClock
 from .bb_keys import BBKeys
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
 from smarc_action_base.smarc_action_base import ActionType
 from wasp_bt.bt.client import BTActionClient
