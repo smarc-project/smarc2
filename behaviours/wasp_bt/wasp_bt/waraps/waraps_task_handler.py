@@ -278,6 +278,7 @@ class WaraPSTaskHandler:
                     WaraPSCommandSignals.CONTINUE.value
                 ],
                 "last_seen": now_time,
+                "ros_name": action_name,
             }
             self.tasks_available.append(task_dict)
 
@@ -773,3 +774,9 @@ class WaraPSTaskHandler:
         response.message = "Emergency flag set to False."
         self._node.get_logger().info("Emergency flag reset to False by service call.")
         return response
+    
+    def get_available_tasks(self):
+        """
+        Returns the list of available tasks.
+        """
+        return self.tasks_available
