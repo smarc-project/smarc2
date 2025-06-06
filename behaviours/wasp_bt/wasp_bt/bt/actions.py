@@ -12,7 +12,7 @@ from smarc_action_base.smarc_action_base import ActionClientState
 
 import json
 
-from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
 
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
@@ -68,14 +68,14 @@ class A_WaitForData(VehicleBehaviour):
         self.feedback_message = f"{dt:.1f}s since last update"
         return Status.SUCCESS
 
-class A_Abort(VehicleBehaviour):
-    def __init__(self, bt: HasVehicleContainer):
-        super().__init__(bt)
+# class A_Abort(VehicleBehaviour):
+#     def __init__(self, bt: HasVehicleContainer):
+#         super().__init__(bt)
 
-    def update(self) -> Status:
-        self._bt.vehicle_container.abort()
-        self.feedback_message = "!! ABORTED !!"
-        return Status.SUCCESS
+#     def update(self) -> Status:
+#         self._bt.vehicle_container.abort()
+#         self.feedback_message = "!! ABORTED !!"
+#         return Status.SUCCESS
 
 
 class A_Chilling(VehicleBehaviour):
@@ -210,11 +210,12 @@ class A_TaskAbortedFlagReset(VehicleBehaviour):
         return Status.SUCCESS
 
 class A_Abort(VehicleBehaviour):
-    def __init__(self, bt: HasVehicleContainer):
-        super().__init__(bt)
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self.task_handler = task_handler
 
     def update(self) -> Status:
-        self._bt.vehicle_container.abort()
+        self.task_handler.abort()
         self.feedback_message = "!! ABORTED !!"
         return Status.SUCCESS
 

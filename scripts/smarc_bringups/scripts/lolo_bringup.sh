@@ -1,7 +1,7 @@
 #! /bin/bash
 ROBOT_NAME=lolo
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=False
+USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
@@ -42,7 +42,14 @@ tmux send-keys "ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:
 # for the mqtt bridge.
 tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:3
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+
+if [ $REALSIM = "simulation" ]; then
+    # For local testing: use defaults
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+else
+    # To connect to our MQTT broker
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+fi
 
 # launch hardware drivers if REALSIM is set to real
 if [ "$REALSIM" = "real" ]; then
@@ -63,6 +70,15 @@ if [ "$REALSIM" = "real" ]; then
 
 else
     echo "Skipping hardware drivers launch in simulation mode."
+fi
+
+if [ "$USE_SIM_TIME" = "True" ]; then
+    # new window just publishing int8 0 to /lolo/smarc/vehicle_health
+    tmux new-window -t $SESSION:7 -n 'vehicle_health'
+    tmux select-window -t $SESSION:7
+    tmux send-keys "ros2 topic pub -r 1 /lolo/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
+else
+    echo "Skipping vehicle health publisher in real mode."
 fi
 
 # Set default window

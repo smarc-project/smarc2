@@ -37,7 +37,9 @@ from .conditions import C_CheckMissionPlanState,\
                         C_TaskIs,\
                         C_TaskStatus,\
                         C_AbortedPreviousTask,\
-                        C_NoEmergencyAbortSignalDetected
+                        C_NoEmergencyAbortSignalDetected,\
+                        C_VehicleHealthStatus,\
+                        C_LastHealthy
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
@@ -47,7 +49,7 @@ from .actions import A_Abort,\
                     A_TaskAbortedFlagReset, \
                     A_Chilling,\
                     A_WaitForData,\
-                     A_ClearCurrentTask
+                    A_ClearCurrentTask
 
 class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
@@ -92,7 +94,17 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return liveliness_tree
+    
+    def _health_tree(self):
+        health_checks = Fallback("S_Health_Checks", memory=False, children=[
+            # Fallback("F_Health_Status", memory=False, children=[
+            C_VehicleHealthStatus(self._task_handler),
+            C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
+            # ]),
+            A_Abort(self._task_handler),
+        ])
 
+        return health_checks                
  
     def _safety_tree(self):
         safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
@@ -226,6 +238,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             A_Heartbeat(self),
             self._handle_emergency_tree(),
             # self._liveliness_tree(),
+            self._health_tree(),
             
             # self._safety_tree(), # should look at julian safety node topic
 
@@ -374,10 +387,10 @@ def wasp_bt():
 
         if not is_bt_setup:
             # if the BT is not ticking, we can start it
-            if now_time - start_time > 2.0: # give 2 seconds for living action servers to provide a heartbeat to the WaraPSTaskHandler object
+            if now_time - start_time > 5.0: # give 5 seconds for living action servers to provide a heartbeat to the WaraPSTaskHandler object
                 need_bt_setup = True
             else:
-                node.get_logger().info(f"Waiting for action servers to provide heartbeat, current time: {now_time}, start time: {start_time}, diff: {now_time - start_time}")
+                node.get_logger().info(f"Launching WaraPS BT in {5.0 - (now_time - start_time):.2f} seconds...")
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 
