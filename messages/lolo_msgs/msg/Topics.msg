@@ -106,9 +106,9 @@ string DVL_TOPIC = sensors/dvl
 string FLS_WC_TOPIC = sensors/fls/watercolumn
 string FLS_IMAGE_TOPIC = sensors/fls/watercolumn/image
 
-string MBES_WC_TOPIC = sensors/fls/watercolumn
-string MBES_IMAGE_TOPIC = sensors/fls/watercolumn/image
-string MBES_BATHY_TOPIC = sensors/fls/bathymetry
-string MBES_BATHY_POINTCLOUD_TOPIC = sensors/fls/bathymetry/points
+string MBES_WC_TOPIC = sensors/mbes/watercolumn
+string MBES_IMAGE_TOPIC = sensors/mbes/watercolumn/image
+string MBES_BATHY_TOPIC = sensors/mbes/bathymetry
+string MBES_BATHY_POINTCLOUD_TOPIC = sensors/mbes/bathymetry/points
 
 string LEAK_TOPIC = "sensor/leak"
