@@ -43,7 +43,7 @@ class PSDKTopics(Enum):
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-        self._tf_ns = "Quadrotor/"
+        self._tf_ns = "QuadrotorCaptain/"
         
         self.READY_BATTERY_PERCENTAGE = 0.4
         self.READY_HEIGHT_ABOVE_GROUND = 3
@@ -81,7 +81,7 @@ class DjiCaptain():
        
 
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
-        self._tf_timer = node.create_timer(0.05, self._publish_tf)
+        self._tf_timer = node.create_timer(0.02, self._publish_tf)
 
         self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
@@ -208,6 +208,7 @@ class DjiCaptain():
         self._geo_altitude = msg.data
 
     def _height_above_ground_cb(self, msg: Float32):
+        if msg.data < 0: return
         self._height_above_ground = msg.data
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
@@ -259,7 +260,7 @@ class DjiCaptain():
             
         self._base_pose_in_home.pose.position.x = msg.position.x
         self._base_pose_in_home.pose.position.y = msg.position.y
-        self._base_pose_in_home.pose.position.z = msg.position.z - self._home_point_in_utm.point.z
+        self._base_pose_in_home.pose.position.z = msg.position.z
         self._base_pose_in_home.header.stamp = self.now_stamp
         
 
@@ -402,22 +403,19 @@ not set, skipping TF publish.")
         home_tf.transform.translation.y = self._home_point_in_utm.point.y
         home_tf.transform.translation.z = self._home_point_in_utm.point.z
         home_tf.transform.rotation.w = 1.0
+        tf_msg.transforms.append(home_tf)
 
         # Base in odom
         base_in_home = TransformStamped()
         base_in_home.header.stamp = now
         base_in_home.header.frame_id = self.ODOM_FRAME
         base_in_home.child_frame_id = self.BASE_FRAME
+        base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
         base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
         base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
         base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
-        base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
-
         tf_msg.transforms.append(base_in_home)
 
-        
-
-        tf_msg.transforms.append(home_tf)
 
         # GPS point in Home
         gps_tf = TransformStamped()
@@ -427,7 +425,7 @@ not set, skipping TF publish.")
         gps_tf.transform.translation.x = self._gps_point_in_home.point.x
         gps_tf.transform.translation.y = self._gps_point_in_home.point.y
         gps_tf.transform.translation.z = self._gps_point_in_home.point.z
-        gps_tf.transform.rotation.w = 1.0
+        tf_msg.transforms.append(gps_tf)
 
 
         # RTK point in odom
@@ -443,15 +441,14 @@ not set, skipping TF publish.")
             tf_msg.transforms.append(rtk_tf)
         
         
-        tf_msg.transforms.append(gps_tf)
 
         # ground in base
         ground_in_base = TransformStamped()
         ground_in_base.header.stamp = now
-        ground_in_base.header.frame_id = self.BASE_FRAME
+        ground_in_base.header.frame_id = self.ODOM_FRAME
         ground_in_base.child_frame_id = self._tf_ns + "ground"
-        ground_in_base.transform.translation.x = 0.0
-        ground_in_base.transform.translation.y = 0.0
+        ground_in_base.transform.translation.x = base_in_home.transform.translation.x
+        ground_in_base.transform.translation.y = base_in_home.transform.translation.y
         ground_in_base.transform.translation.z = -self._height_above_ground if self._height_above_ground is not None else 0.0
 
         tf_msg.transforms.append(ground_in_base)
