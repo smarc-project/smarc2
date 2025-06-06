@@ -188,7 +188,7 @@ def main(args=None):
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
     node.declare_parameter("levels", ["sensor", "direct_execution"])
-    node.declare_parameter("pulse_rate", 1)
+    node.declare_parameter("pulse_rate", 1.0) # Hz
     node.declare_parameter("domain", "simulation")
 
     agent_type = node.get_parameter("agent_type").value
