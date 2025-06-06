@@ -49,10 +49,12 @@ class HSVDetectorNode(Node):
         cv2.namedWindow("Preview")
         cv2.setMouseCallback("Preview", self.mouse_callback)
         
-        self.save_dir_processed = "processed_img_for_cnn_training"
-        self.save_dir_original = "original_img_for_cnn_training"
+        self.save_dir_processed = "for_cnn_training_processed_img"
+        self.save_dir_original = "for_cnn_training_original_img"
+        self.save_dir_points = "for_cnn_training_points"
         os.makedirs(self.save_dir_processed, exist_ok=True)  # Create folder if it doesn't exist
         os.makedirs(self.save_dir_original, exist_ok=True)
+        os.makedirs(self.save_dir_points, exist_ok=True)
 
 
         setup_trackbars(self.range_filter)
@@ -125,6 +127,16 @@ class HSVDetectorNode(Node):
 
             filename_original = os.path.join(self.save_dir_original, f"original_{timestamp}.jpg")
             cv2.imwrite(filename_original, self.cv2_img)
+
+            # Save each point in separate file
+            for idx, point in enumerate(self.points):
+                label = f"P{idx+1}"
+                txt_filename = os.path.join(self.save_dir_points, f"{label}_{timestamp}.txt")
+                with open(txt_filename, 'w') as f:
+                    # Save as: x y
+                    f.write(f"{point[0]} {point[1]}\n")
+
+                self.get_logger().info(f"Point {label} saved as {txt_filename}")
 
             self.get_logger().info(f"Image saved as {filename}")
             cv2.setTrackbarPos("Save_Image", "Trackbars", 0)  # Reset
