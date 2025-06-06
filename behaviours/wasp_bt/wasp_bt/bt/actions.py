@@ -16,6 +16,7 @@ from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler
 
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
+from wasp_bt.bt.client import BTActionClient
 
 class A_WaitForData(VehicleBehaviour):
     def __init__(self,
@@ -229,9 +230,9 @@ class A_Heartbeat(VehicleBehaviour):
             
 class A_ActionClient(Behaviour):
     def __init__(self,
-                 client: SMARCActionClient,
+                 client: BTActionClient,
                  task_handler: WaraPSTaskHandler):
-        super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
+        super().__init__(f"A_ActionClient({client.get_action_name()})")
         self._client = client
         self._task_handler = task_handler
 
@@ -367,7 +368,7 @@ class A_ActionClient(Behaviour):
             mission_msg.goal.data = msg_str
             self._client.send_goal(mission_msg)
 
-            self._logger.info("yall I sent dat task")
+            # self._logger.info("yall I sent dat task")
             self.feedback_message = "Goal sent to action client."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
@@ -380,6 +381,13 @@ class A_ActionClient(Behaviour):
         if s in self._failure_states:
             self.feedback_message = "Action client in failure state."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+            # reset the client to ready state
+            self._client.get_ready()
+
+            # remove the current task from the task handler
+            self._task_handler.clear_current_task()
+
             return Status.FAILURE
         
         if s in self._success_states:

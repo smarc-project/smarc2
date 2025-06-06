@@ -45,5 +45,15 @@ In case an emergency is thrown but you manage to resolve it, you can reset the e
 ```bash
 ros2 service call /$ROBOT_NAME/reset_emergency std_srvs/srv/Trigger```
 
+## Link to Demo Video
+We have prepared a demonstration video showcasing the WASP Behaviour Tree in action. This video provides an overview of the system, its integration with the WARA-PS Agent API, and a walkthrough of the main features.
+
+[![Watch the demo](https://img.youtube.com/vi/0_u3yiqz02/0.jpg)](https://play.kth.se/media/Shekhar+Devm+Upadhyay%27s+Personal+Meeting+Room/0_u3yiqz02)
+
+You can watch the demo here:  
+[Shekhar Devm Upadhyay's Personal Meeting Room (KTH Play)](https://play.kth.se/media/Shekhar+Devm+Upadhyay%27s+Personal+Meeting+Room/0_u3yiqz02)
+
+We hope this helps you get started and provides valuable insights into the capabilities of this package!
+
 ## Disclaimer
 This package is under active development and may change significantly in the very near future. It is recommended to keep an eye on the repository for updates and changes. Feel free to contact the maintainers if you have any questions or suggestions.

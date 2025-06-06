@@ -46,9 +46,6 @@ tmux new-window -t $SESSION:10 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:0
 tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME" C-m
 
-tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
-
 tmux select-window -t $SESSION:2
 tmux select-pane -t $SESSION:2.0
 tmux split-window -h -t $SESSION:2.0      # Split window into left (2.0) and right (2.1)
@@ -78,13 +75,15 @@ tmux select-window -t $SESSION:9
 
 tmux select-window -t $SESSION:10
 # To connect to our MQTT broker
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m
 # For local testing: use defaults
-# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m 
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM" C-m 
 
-# Conditional launches, for sim-only or real-only things
-# the real sam's username is "sam" and lolo's "lolo".
-# So we can switch on that.
+# Launch the wasp_bt LAST, to give action servers time to start publishing heartbeats
+tmux select-window -t $SESSION:1
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+
+
 
 # Set default window
 tmux select-window -t $SESSION:1
