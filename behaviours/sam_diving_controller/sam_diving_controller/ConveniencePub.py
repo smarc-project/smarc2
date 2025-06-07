@@ -46,14 +46,6 @@ class ConveniencePub(IDivePub):
     def _loginfo(self, s):
         self._node.get_logger().info(s)
 
-    def update(self) -> None:
-        self._update_state()
-        self._update_ref()
-        self._update_error()
-        self._update_input()
-        self._update_waypoint()
-        self._print_state()
-
 
     def _update_state(self) -> None:
         self._state_msg = self._dive_controller.get_state()
@@ -166,4 +158,13 @@ class ConveniencePub(IDivePub):
 
         self._loginfo(s)
         self._previous_print = s
+
+
+    def update(self) -> None:
+        self._update_state()
+        self._update_ref()
+        self._update_error()
+        self._update_input()
+        self._update_waypoint()
+        #self._print_state()
 

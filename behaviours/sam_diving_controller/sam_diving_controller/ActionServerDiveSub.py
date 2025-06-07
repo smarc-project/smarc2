@@ -65,7 +65,6 @@ class DiveActionServerSub(DiveSub):
         self._hb_msg.data = self.parsed_action_name
 
 
-        self._waypoint = None
         self._goal_frame = None
         self._goal_handle = None
 
@@ -132,17 +131,20 @@ class DiveActionServerSub(DiveSub):
 
         self._save_wp(self._waypoint_point)
 
-        # NOTE: Check for distance or so to reject the goal
+        # TODO: Check for distance or so to reject the goal
+        # Reject when desired altitude is positive
 
         #self._goal_frame = self._waypoint.pose.header.frame_id
 
+        # FIXME: These are hardcoded. Change them to parameters
         if desired_speed.lower() == "fast":
-            self._requested_rpm = 1500
+            self._requested_rpm = 1500.0
         elif desired_speed.lower() == "normal":
-            self._requested_rpm = 1000
+            self._requested_rpm = 1000.0
         else:
-            self._requested_rpm = 500
+            self._requested_rpm = 500.0
 
+        # FIXME: This is hard coded. Change it to be a parameter
         self._goal_tolerance = 2.0 #self._waypoint.goal_tolerance    # Not there anymore
 
         goal_msg_str = f'Frame: {self._waypoint_global.header.frame_id}\
@@ -156,7 +158,6 @@ class DiveActionServerSub(DiveSub):
     
 
     def _save_wp(self, wp):
-        # FIXME: Update with new action server/client structure
         self._waypoint_global = PoseStamped()
         self._waypoint_global.header.stamp = wp.header.stamp
         self._waypoint_global.header.frame_id = wp.header.frame_id
@@ -169,8 +170,6 @@ class DiveActionServerSub(DiveSub):
         self._waypoint_global.pose.orientation.w = 1.0
 
         self._loginfo(f"Global WP frame: {self._waypoint_global.header.frame_id}")
-
-        # TODO: Get the proper RPM from the waypoint
 
         self._received_waypoint = True
 
@@ -210,12 +209,10 @@ class DiveActionServerSub(DiveSub):
                 time.sleep(0.1)
             else:
                 pass
-                #self._loginfo("get distance is none?")
 
         goal_handle.succeed()
-        result.reached_waypoint = True
-        self._waypoint.travel_rpm = 0.0
-        self._requested_rpm = self._waypoint.travel_rpm
+        result.success = True
+        self._requested_rpm = 0.0
         self.set_mission_state(MissionStates.COMPLETED, "AS")
 
         return result

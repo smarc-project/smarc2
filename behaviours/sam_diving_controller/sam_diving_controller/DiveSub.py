@@ -121,7 +121,7 @@ class DiveSub():
     def _wp_cb(self, wp):
         self._waypoint_global = wp
 
-        # TODO: Get the proper RPM from the waypoint
+        # NOTE: RPMs are now "fast", "standard", "slow"
         self._requested_rpm = 500
         self._received_waypoint = True
 

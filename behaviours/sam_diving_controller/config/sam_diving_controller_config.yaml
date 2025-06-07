@@ -15,7 +15,7 @@
     lcg_pid_ki: 5.0
     lcg_pid_kd: 1.0
     lcg_pid_kaw: 1.0
-    lcg_u_neutral: 5.0
+    lcg_u_neutral: 50.0
     lcg_u_min: 0.0
     lcg_u_max: 100.0
     tv_pid_kp: 0.5
@@ -32,7 +32,7 @@
     yaw_u_neutral: 0.0
     yaw_u_min: -0.122173
     yaw_u_max: 0.122173
-    rpm_u_neutral: 0
-    rpm_u_min: -400
-    rpm_u_max: 1500
+    rpm_u_neutral: 0.0
+    rpm_u_min: -400.0
+    rpm_u_max: 1500.0
     max_dive_pitch: 0.349

@@ -327,6 +327,14 @@ class DiveControllerPID(DiveControllerInterface):
 
             yaw_error = heading_setpoint - current_heading
 
+        s_ctrl = ""
+        s_ctrl += f"current depth: {current_depth}\n"
+        s_ctrl += f"depth setpoint: {depth_setpoint}\n"
+        s_ctrl += f"depth error: {depth_error}\n"
+        s_ctrl += f"VBS: {u_vbs}\n"
+
+        self._loginfo(s_ctrl)
+
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
