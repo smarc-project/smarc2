@@ -253,6 +253,10 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(abort_msg)
                 self._wara_ps_tst_feedback_pub.publish(msg)
                 return False
+            elif self.tasks_executing == []: # no tasks are executing
+                # in the case that a mission was initiated and completed within time, reset mission timer to Nones
+                self.mission_start_time = None
+                self.mission_timeout = None
     
         return True
     
