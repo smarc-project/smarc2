@@ -43,13 +43,13 @@ Next, the launchfile for the behaviour tree will launch two separate nodes:
 - `wasp_bt`: This node is responsible for running the behaviour tree.
 - `waraps_vehicle`: This node is responsible for publushing data to ros topics namespaced under `/robot_name/waraps/`, which is the main namespace for WARA-PS Agent API topics.
 
-Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent.
-
-Next, inside the `ros_bt.py` file (found under `wasp_bt/bt/ros_bt.py`), you will need to tell the behaviour tree which action servers to use, which is done by simply adding the right action clients to `action_client_list` (line 266 or thereabouts).
+Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent, and for the behaviour tree to have subtrees for handling those tasks.
 
 Remember to start all the servers you want clients for!
 
-## Emergency Reset
+## Emergency Action and Reset
+The Behaviour Tree expects an emergency action to be running under the `/robot_name/emergency_action` topic. This action is responsible for handling emergency situations, such as when the vehicle is in an unsafe state or needs to stop immediately. If not found, the behaviour tree default to "doing nothing" in case of an emergency.
+
 In case an emergency is thrown but you manage to resolve it, you can reset the emergency state of the vehicle by calling the `/robot_name/reset_emergency` service. This will allow the behaviour tree to continue running without being stuck in an emergency state.
 
 ```bash
