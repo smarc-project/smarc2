@@ -40,14 +40,16 @@ tmux select-pane -t $SESSION:2.1
 tmux send-keys "ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
 tmux select-pane -t $SESSION:2.2
 tmux send-keys "ros2 run lolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+tmux select-pane -t $SESSION:2.3
+tmux send-keys "ros2 run lolo_loiter server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
 
 # for the mqtt bridge.
 tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:3
 
-if [ $REALSIM = "real" ]; then
+if [ $REALSIM = "simulation" ]; then
     # For broker on the real robot
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME broker_addr:=192.168.1.100 broker_port:=1883" C-m
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
 else
     # To connect to our MQTT broker
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
