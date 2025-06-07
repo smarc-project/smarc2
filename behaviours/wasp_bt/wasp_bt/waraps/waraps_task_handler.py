@@ -715,12 +715,11 @@ class WaraPSTaskHandler:
             self.mission_start_time = self.current_time()
             
             # extract the mission timout from "params" key in tst
-            if "params" in command["tst"].keys() and "mission-timeout" in command["tst"]["params"].keys():
-                self.mission_timeout = command["tst"]["params"]["mission-timeout"]
-                self._node.get_logger().info(f"Mission timeout set to {self.mission_timeout} seconds")
+            if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
+                self.mission_timeout = command["tst"]["params"]["timeout"]
             else:
                 self.mission_timeout = 1800 # default mission timeout
-            self._node.get_logger().info(f"Default Mission timeout set to {self.mission_timeout} seconds")
+            self._node.get_logger().info(f"Mission timeout set to {self.mission_timeout} seconds")
 
             # extract the list of tasks from the command. They're the children of the tst key
             if "children" not in command["tst"]:
