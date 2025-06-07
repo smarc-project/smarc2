@@ -1,6 +1,6 @@
 from typing import Type
 from rclpy.node import Node
-from std_msgs.msg import String, Int8
+from std_msgs.msg import String, Int8, Empty
 from smarc_msgs.msg import Topics
 from smarc_bt.vehicles.sensor import Sensor, SensorNames
 import json
@@ -138,7 +138,7 @@ class WaraPSTaskHandler:
         self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
 
         # subscribe to SMARC-wide abort topic
-        self._smarc_abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
 
         # subscribe to smarc health topic
         self._vehicle_health_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_cb, 10)
@@ -831,7 +831,7 @@ class WaraPSTaskHandler:
         }
         msg = String()
         msg.data = json.dumps(response_msg)
-        self._wara_ps_exec_response_pub.publish(msg)
+        self._wara_ps_tst_response_pub.publish(msg)
         self._node.get_logger().info('Published Big Red Button response message')
         return
     

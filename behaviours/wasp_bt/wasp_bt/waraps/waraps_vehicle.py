@@ -98,58 +98,70 @@ class WaraPSVehicle():
         self._wara_ps_sensor_info_pub.publish(msg)
 
                                     
-        position_msg = {
-            "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] is not None else 0,
-            "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] is not None else 0,
-            # "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
-            "altitude": self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0,
-            "type": "GeoPoint"
-        }
-        msg = String()
-        msg.data = json.dumps(position_msg)
-        self._wara_ps_position_pub.publish(msg)
-        # self._node.get_logger().info('Published Position message')
+        try:
+            position_msg = {
+                "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'],
+                "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'],
+                # "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
+                "altitude": self._vehicle_state[SensorNames.ALTITUDE][0],
+                "type": "GeoPoint"
+            }
+            msg = String()
+            msg.data = json.dumps(position_msg)
+            self._wara_ps_position_pub.publish(msg)
+            # self._node.get_logger().info('Published Position message')
+        except Exception:
+            self._node.get_logger().error("Failed to publish position data. Check if the vehicle state has valid position data.")
+            
 
 
         #TODO: this stuff is strings, but wara-ps expects floats. Our json bridge only handles strings. Github Issue exists for this.
 
         # 3. publish course data
-        course_msg = String()
-        course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}" if self._vehicle_state[SensorNames.COURSE_DEG][0] is not None else "0.0"
-        # float
-        self._wara_ps_course_pub.publish(course_msg)
-        # self._node.get_logger().info('Published Course message')
+        try:
+            course_msg = String()
+            course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}"
+            self._wara_ps_course_pub.publish(course_msg)
+            # self._node.get_logger().info('Published Course message')
+        except Exception:
+            pass
 
         # 3.5 publish heading data
-        heading_msg = String()
-        heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}" if self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0] is not None else "0.0"
-        # float
-        self._wara_ps_heading_pub.publish(heading_msg)
-        # self._node.get_logger().info('Published Heading message')
+        try:
+            heading_msg = String()
+            heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}"
+            # float
+            self._wara_ps_heading_pub.publish(heading_msg)
+            # self._node.get_logger().info('Published Heading message')
+        except Exception:
+            pass
         
         # 4. publish speed data
-        speed_msg = String()
-        speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
-        # speed_msg.data = "0.0
-        # float
-        self._wara_ps_speed_pub.publish(speed_msg)
-        # self._node.get_logger().info('Published Speed message')
+        try:
+            speed_msg = String()
+            speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
+            # speed_msg.data = "0.0
+            # float
+            self._wara_ps_speed_pub.publish(speed_msg)
+            # self._node.get_logger().info('Published Speed message')
+        except:
+            pass
 
         # computation to get roll and pitch from orientation quaternion
 
-        # 5. publish roll data
-        roll_msg = String()
-        roll_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']}"
-        # float
-        self._wara_ps_roll_pub.publish(roll_msg)
-        # self._node.get_logger().info('Published Roll message')
+        # # 5. publish roll data
+        # roll_msg = String()
+        # roll_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']}"
+        # # float
+        # self._wara_ps_roll_pub.publish(roll_msg)
+        # # self._node.get_logger().info('Published Roll message')
 
-        # 6. publish pitch data
-        pitch_msg = String()
-        pitch_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']}"
-        # float
-        self._wara_ps_pitch_pub.publish(pitch_msg)
-        # self._node.get_logger().info('Published Pitch message')
+        # # 6. publish pitch data
+        # pitch_msg = String()
+        # pitch_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']}"
+        # # float
+        # self._wara_ps_pitch_pub.publish(pitch_msg)
+        # # self._node.get_logger().info('Published Pitch message')
 
         # 7. publish depth data
         depth_msg = String()
