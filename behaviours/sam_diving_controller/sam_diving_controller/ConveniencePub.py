@@ -34,6 +34,7 @@ class ConveniencePub(IDivePub):
         self._waypoint = None
         self._waypoint_msg = None
         self._goal_tolerance = None
+        self._dive_mode = None
 
         self._node = node
         self._dive_sub = dive_sub
@@ -124,6 +125,7 @@ class ConveniencePub(IDivePub):
         if self._input_msg is None:
             s += f"No inputs yet\n"
         else:
+            s += f"Dive Mode: {self._dive_controller.get_dive_mode()}\n"
             s += f"Actuators:\n"
             s += f"   VBS: {self._input_msg.vbs:.3f}, "\
                  f"LCG: {self._input_msg.lcg:.3f}, "\

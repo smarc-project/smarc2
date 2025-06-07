@@ -9,21 +9,26 @@ from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 
+from sam_diving_controller.IDivePub import ActuatorStates
+
 from .ParamUtils import DivingModelParam
 
 try:
-    from .IDivePub import IDivePub
+    from .IDivePub import IDivePub, MissionStates
 except:
-    from IDivePub import IDivePub
+    from IDivePub import IDivePub, MissionStates
 
 class SAMDivePub(IDivePub):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
-    def __init__(self, node: Node, param) -> None:
+    def __init__(self, node: Node, dive_sub, param) -> None:
 
         self._node = node
+        self._dive_sub = dive_sub
         self.param = param
+
+        self._actuator_state = None
 
         # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
@@ -48,6 +53,9 @@ class SAMDivePub(IDivePub):
         self._thrust_vector_msg.thruster_horizontal_radians = self.param['tv_u_neutral']
         self._t1_msg.rpm = self.param['rpm_u_neutral']
         self._t2_msg.rpm = self.param['rpm_u_neutral']
+
+    def _loginfo(self, s):
+        self._node.get_logger().info(s)
 
 
     def set_vbs(self, vbs: float) -> None:
@@ -83,15 +91,42 @@ class SAMDivePub(IDivePub):
         self._joy_tv_msg.data = float(u_tv_ver)
 
 
+    def set_actuator_states(self, actuator_state, node_name):
+
+        old_state = self._actuator_state
+        self._actuator_state = actuator_state
+
+        if self._actuator_state != old_state:
+            self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {self._actuator_state}")
+
+    def get_actuator_states(self):
+        return self._actuator_state
+
+
     def update(self) -> None:
         """
         Publish all actuator values
         """
-        self._vbs_pub.publish(self._vbs_msg)
-        self._lcg_pub.publish(self._lcg_msg)
-        self._rpm1_pub.publish(self._t1_msg)
-        self._rpm2_pub.publish(self._t2_msg)
-        self._thrust_vector_pub.publish(self._thrust_vector_msg)
+
+        if self._actuator_state == ActuatorStates.DISENGAGED:
+            self._loginfo(f"Actuators disengaged")
+            return
+        
+        if self._actuator_state == ActuatorStates.NEUTRAL:
+            self._vbs_pub.publish(self._vbs_msg)
+            self._lcg_pub.publish(self._lcg_msg)
+            self._rpm1_pub.publish(self._t1_msg)
+            self._rpm2_pub.publish(self._t2_msg)
+            self._thrust_vector_pub.publish(self._thrust_vector_msg)
+
+            self.set_actuator_states(ActuatorStates.DISENGAGED, "DP")
+
+        else:
+            self._vbs_pub.publish(self._vbs_msg)
+            self._lcg_pub.publish(self._lcg_msg)
+            self._rpm1_pub.publish(self._t1_msg)
+            self._rpm2_pub.publish(self._t2_msg)
+            self._thrust_vector_pub.publish(self._thrust_vector_msg)
 
     def joy_update(self):
         """

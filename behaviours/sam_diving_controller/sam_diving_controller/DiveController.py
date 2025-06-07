@@ -10,7 +10,7 @@ import csv
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 from .ParamUtils import DivingModelParam
-from .IDivePub import MissionStates
+from .IDivePub import MissionStates, ActuatorStates
 
 from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
 from smarc_modelling.control.control import *
@@ -98,6 +98,7 @@ class DiveControllerInterface:
         self._ref = None
         self._error = None
         self._input = None
+        self._dive_mode = None
 
         self.param = param
 
@@ -113,23 +114,29 @@ class DiveControllerInterface:
         Setting all actuators to neutral.
         """
 
-        u_vbs_neutral = self.param['vbs_u_neutral']
-        u_lcg_neutral = self.param['lcg_u_neutral']
-        u_tv_hor_neutral = self.param['tv_u_neutral']
-        u_tv_ver_neutral = self.param['tv_u_neutral']
-        u_rpm_neutral = self.param['rpm_u_neutral']
+        actuator_state = self._dive_pub.get_actuator_states()
 
-        self._dive_pub.set_vbs(u_vbs_neutral)
-        self._dive_pub.set_lcg(u_lcg_neutral)
-        self._dive_pub.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-        self._dive_pub.set_rpm(u_rpm_neutral, u_rpm_neutral)
+        if actuator_state == ActuatorStates.ENGAGED:
+            u_vbs_neutral = self.param['vbs_u_neutral']
+            u_lcg_neutral = self.param['lcg_u_neutral']
+            u_tv_hor_neutral = self.param['tv_u_neutral']
+            u_tv_ver_neutral = self.param['tv_u_neutral']
+            u_rpm_neutral = self.param['rpm_u_neutral']
 
-        self._input = ControlInput()
-        self._input.vbs = u_vbs_neutral
-        self._input.lcg = u_lcg_neutral
-        self._input.thrustervertical = u_tv_ver_neutral
-        self._input.thrusterhorizontal = u_tv_hor_neutral
-        self._input.thrusterrpm = float(u_rpm_neutral)
+            self._dive_pub.set_vbs(u_vbs_neutral)
+            self._dive_pub.set_lcg(u_lcg_neutral)
+            self._dive_pub.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._dive_pub.set_rpm(u_rpm_neutral, u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
+
+            self._dive_pub.set_actuator_states(ActuatorStates.NEUTRAL, "DC")
+
 
     def _set_actuators_emergency(self):
         """
@@ -188,6 +195,9 @@ class DiveControllerInterface:
 
     def get_input(self):
         return self._input
+
+    def get_dive_mode(self):
+        return self._dive_mode
 
 
 class DiveControllerPID(DiveControllerInterface):
@@ -255,6 +265,9 @@ class DiveControllerPID(DiveControllerInterface):
             self._set_actuators_neutral()
             return
 
+        # Engage actuators in case they were off before.
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
         # Get setpoints
         depth_setpoint = self._dive_sub.get_depth_setpoint()
         pitch_setpoint = self._dive_sub.get_pitch_setpoint()
@@ -263,10 +276,12 @@ class DiveControllerPID(DiveControllerInterface):
         rpm_setpoint = self._dive_sub.get_rpm_setpoint()
 
         # Get current states
-        self._current_state = self._dive_sub.get_states()
+        self._current_state = self._dive_sub.get_states() # FIXME: why do we use this to begin with?
         current_depth = self._dive_sub.get_depth()
         current_pitch = self._dive_sub.get_pitch()
         current_heading = self._dive_sub.get_heading()
+
+        #self._loginfo(f"state: {self._current_state}, depth: {current_depth}, pitch: {current_pitch}, heading: {current_heading}")
 
         if not self._dive_sub.has_waypoint():
             return
@@ -275,16 +290,18 @@ class DiveControllerPID(DiveControllerInterface):
             self._loginfo("No depth setpoint yet")
             return
 
+        # FIXME: We might need this again
         #distance = self._dive_sub.get_distance()
         #goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         # Sketchy minus signs...
+        # FIXME: Check that the depths are handled correctly. 
         depth_setpoint *= -1
         current_depth *= -1
 
         # Choose active vs. static diving based on dive pitch angle
         if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
-            self._loginfo("Active Diving")
+            self._dive_mode = "Active Diving"
             pitch_setpoint = dive_pitch_setpoint
 
             u_rpm = rpm_setpoint # FIXME: rpm1 and rpm2 can be set individually
@@ -298,7 +315,7 @@ class DiveControllerPID(DiveControllerInterface):
             depth_error = depth_setpoint - current_depth
 
         else:
-            self._loginfo("Static Diving")
+            self._dive_mode = "Static Diving"
             u_rpm = self.param['rpm_u_neutral']
             u_tv_ver_raw = self.param['tv_u_neutral']
             u_tv_hor_raw = self.param['tv_u_neutral']

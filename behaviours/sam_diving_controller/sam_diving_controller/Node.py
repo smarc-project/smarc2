@@ -134,8 +134,8 @@ def action_server():
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
     param = DivingModelParam(node).get_param()
-    dive_pub = SAMDivePub(node, param)
-    dive_sub = DiveActionServerSub(node, dive_pub, param)
+    dive_sub = DiveActionServerSub(node, param)
+    dive_pub = SAMDivePub(node, dive_sub, param)
     dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)

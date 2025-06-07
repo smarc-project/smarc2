@@ -39,11 +39,9 @@ class DiveSub():
     """
     def __init__(self,
                  node: Node,
-                 dive_pub: IDivePub,
                  param):
 
         self._node = node
-        self._dive_pub = dive_pub
 
         self.param = param
 
@@ -94,18 +92,18 @@ class DiveSub():
         self.pitch_sub = node.create_subscription(msg_type=Imu, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
 
         # Synch subscribers here 
-        self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
-        self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
-        self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC)
-        self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC)
-        self.thrust_vector_fb = Subscriber(self._node, ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC)
+        #self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
+        #self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
+        #self.rpm1_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC)
+        #self.rpm2_fb = Subscriber(self._node, ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC)
+        #self.thrust_vector_fb = Subscriber(self._node, ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC)
 
-        self.ctrl_synch_msg = ApproximateTimeSynchronizer(
-            [self.vbs_fb, self.lcg_fb, self.rpm1_fb, self.rpm2_fb, self.thrust_vector_fb],
-            queue_size = 100,
-            slop = 0.0001
-        )
-        self.ctrl_synch_msg.registerCallback(self._ctrl_synch_cb)
+        #self.ctrl_synch_msg = ApproximateTimeSynchronizer(
+        #    [self.vbs_fb, self.lcg_fb, self.rpm1_fb, self.rpm2_fb, self.thrust_vector_fb],
+        #    queue_size = 100,
+        #    slop = 0.0001
+        #)
+        #self.ctrl_synch_msg.registerCallback(self._ctrl_synch_cb)
 
         self._loginfo("Dive Subscriber Node started")
 

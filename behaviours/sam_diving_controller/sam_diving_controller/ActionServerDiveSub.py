@@ -14,6 +14,7 @@ from smarc_msgs.msg import Topics as SMaRCTopics
 from smarc_utilities.georef_utils import convert_latlon_to_utm
 
 from geometry_msgs.msg import PoseStamped 
+from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import String
 
 try:
@@ -35,14 +36,12 @@ class DiveActionServerSub(DiveSub):
     # - add heartbeat
     def __init__(self,
                  node: Node,
-                 dive_pub: IDivePub,
                  param):
 
         self._node = node
-        self._dive_pub = dive_pub
         self.param = param
 
-        super().__init__(self._node, self._dive_pub, self.param)
+        super().__init__(self._node, self.param)
 
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)
@@ -117,21 +116,21 @@ class DiveActionServerSub(DiveSub):
 
         self.set_mission_state(MissionStates.RECEIVED, "AS")
 
-        self._goal_handle = goal_handle
-        fmt_dict = json.loads(goal_handle.data)
+        self._goal_handle = goal_handle.goal
+        fmt_dict = json.loads(goal_handle.goal.data)
         geopoint = GeoPoint()
         geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
         geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
         geopoint.altitude = float(fmt_dict["waypoint"]["altitude"])
         
-        desired_speed = float(fmt_dict["speed"])    # NOTE: This is a string "fast" or "slow"
+        desired_speed = fmt_dict["speed"]    # NOTE: This is a string "fast" or "slow"
 
-        self._waypoint_global = convert_latlon_to_utm(geopoint)
+        self._waypoint_point = convert_latlon_to_utm(geopoint)
 
         # Check z and altitude.
-        self._waypoint_global.point.z = geopoint.altitude
+        self._waypoint_point.point.z = geopoint.altitude
 
-        self._save_wp(self._waypoint_global)
+        self._save_wp(self._waypoint_point)
 
         # NOTE: Check for distance or so to reject the goal
 
@@ -146,9 +145,9 @@ class DiveActionServerSub(DiveSub):
 
         self._goal_tolerance = 2.0 #self._waypoint.goal_tolerance    # Not there anymore
 
-        goal_msg_str = f'Frame: {self._waypoint.pose.header.frame_id}\
-                         pos x: {self._waypoint.pose.pose.position.x}\
-                         pos y: {self._waypoint.pose.pose.position.y}'
+        goal_msg_str = f'Frame: {self._waypoint_global.header.frame_id}\
+                         pos x: {self._waypoint_global.pose.position.x}\
+                         pos y: {self._waypoint_global.pose.position.y}'
 
         self._loginfo(goal_msg_str)
 
@@ -164,10 +163,10 @@ class DiveActionServerSub(DiveSub):
         self._waypoint_global.pose.position.x = wp.point.x
         self._waypoint_global.pose.position.y = wp.point.y
         self._waypoint_global.pose.position.z = wp.point.z
-        self._waypoint_global.pose.orientation.x = 0
-        self._waypoint_global.pose.orientation.y = 0
-        self._waypoint_global.pose.orientation.z = 0
-        self._waypoint_global.pose.orientation.w = 1
+        self._waypoint_global.pose.orientation.x = 0.0
+        self._waypoint_global.pose.orientation.y = 0.0
+        self._waypoint_global.pose.orientation.z = 0.0
+        self._waypoint_global.pose.orientation.w = 1.0
 
         self._loginfo(f"Global WP frame: {self._waypoint_global.header.frame_id}")
 
@@ -182,6 +181,9 @@ class DiveActionServerSub(DiveSub):
 
         result = BaseAction.Result()
         fb_msg = BaseAction.Feedback()
+
+        str_msg = String()
+        fmt_dict = {}
 
         while True:
             if self._mission_state == MissionStates.RECEIVED:
@@ -200,8 +202,9 @@ class DiveActionServerSub(DiveSub):
                     self._loginfo(f"Mission complete. Distance:{distance} <= Tolerance:{self._goal_tolerance}")
                     break
                 
-                fb_msg.feedback_message = f"Distance to waypoint: {distance:.2f}"
-                fb_msg.distance_remaining = distance
+                fmt_dict["distance_remaining"] = distance 
+                str_msg.data = json.dumps(fmt_dict)
+                fb_msg.feedback = str_msg
                 goal_handle.publish_feedback(fb_msg)
 
                 time.sleep(0.1)
@@ -222,13 +225,6 @@ class DiveActionServerSub(DiveSub):
         self._loginfo("Cancelled")
 
         self.set_mission_state(MissionStates.CANCELLED, "AS")
-
-        self._dive_pub.set_vbs(0)
-        self._dive_pub.set_lcg(50)
-        self._dive_pub.set_thrust_vector(0.0, 0.0) 
-        self._dive_pub.set_rpm(0, 0)
-
-        self._loginfo("Everything set to neutral")
 
         return CancelResponse.ACCEPT
 
