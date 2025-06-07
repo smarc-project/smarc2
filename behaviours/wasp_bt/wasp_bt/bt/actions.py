@@ -12,7 +12,7 @@ from smarc_action_base.smarc_action_base import ActionClientState
 
 import json
 
-from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
@@ -284,8 +284,10 @@ class A_ActionClient(Behaviour):
             if self._client.state in self._running_states:
                 self.feedback_message = "Preempted, cancelling goal"
                 self._client.cancel_goal(self._client.cancel_callback)
+                self._task_handler.set_current_task_status(WaraPSTaskStates.ABORTED)
             else:
                 self.feedback_message = "Preempted, but goal already finished."
+            
             # Publish feedback
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return
