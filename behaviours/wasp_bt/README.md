@@ -22,6 +22,8 @@ The proper functioning of this setup depends on the following packages:
 - Everything under `/robot_name/smarc2/` namespace, which is the main namespace for vehicle-agnostic topics.
 - Action Servers need to publish their "heartbeat" to the WARA_PS_ACTION_SERVER_HB_TOPIC for the tasks to show up as available on the MQTT agent.
 
+**NOTE:** The WARA-PS agent will only report data to the MQTT broker if the SMaRC topics are being published by the vehicle. So remember to make a publisher that fills out the SMaRC topics.
+
 
 ## ROS Topics Produced
 - Everything under `/robot_name/waraps/` namespace, which is the main namespace for WARA-PS Agent API topics. These topics are piped through the MQTT bridge to the desired MQTT broker.
