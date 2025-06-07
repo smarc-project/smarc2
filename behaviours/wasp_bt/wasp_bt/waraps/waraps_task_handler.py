@@ -622,7 +622,7 @@ class WaraPSTaskHandler:
                 }
                 msg = String()
                 msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
+                self._wara_ps_tst_response_pub.publish(msg)
                 return
                 
             # start mission timer

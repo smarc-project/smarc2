@@ -10,19 +10,22 @@ This package is mainly split into three components:
 - waraps (the wrapper for the WARA-PS Agent API)
 
 ## Usage
-Your best friend when trying to understand how to use this package is the `smarc2/scripts/smarc_bringups/scripts/quad_bringup.sh` script. It tells you exactly which launch files to investigate and duplicate, and which parameters to change to get the desired behaviour.
+Your best friend when trying to understand how to use this package is the `smarc2/scripts/smarc_bringups/scripts/lolo_bringup.sh` script. It tells you exactly which launch files to investigate and duplicate, and which parameters to change to get the desired behaviour.
 
 ## Dependencies
 The proper functioning of this setup depends on the following packages:
 - `str_json_mqtt_bridge` (inside utilities)
-- `smarc2_msgs` (inside messages, mainly used for common topic definitions for smarc vehicles)
+- `smarc_msgs` (inside messages, mainly used for common topic definitions for smarc vehicles)
 
 
 ## ROS Topics Needed
-- Everything under `/robot_name/smarc2/` namespace, which is the main namespace for vehicle-agnostic topics.
+- Everything under `/robot_name/smarc/` namespace, which is the main namespace for vehicle-agnostic topics.
 - Action Servers need to publish their "heartbeat" to the WARA_PS_ACTION_SERVER_HB_TOPIC for the tasks to show up as available on the MQTT agent.
 
 **NOTE:** The WARA-PS agent will only report data to the MQTT broker if the SMaRC topics are being published by the vehicle. So remember to make a publisher that fills out the SMaRC topics.
+
+### HEALTH TOPIC
+The Behavior Tree has a health subtree that listens to the output of the vehicle health node on SMaRCTopics.VEHICLE_HEALTH_TOPIC. If you don't have a vehicle health node running, refer to the `smarc2/scripts/smarc_bringups/scripts/lolo_bringup.sh` script for a way to "fake" the vehicle health node. This is necessary for the behaviour tree to function properly, as it relies on the health status of the vehicle to make decisions. Not recommended on a real vehicle.
 
 
 ## ROS Topics Produced
@@ -31,21 +34,27 @@ The proper functioning of this setup depends on the following packages:
 ## Quick Start
 To start the behaviour tree, you can use the `smarc2/scripts/smarc_bringups/scripts/quad_bringup.sh` or its equivalent for your specific vehicle. Remember to launch the `str_json_mqtt_bridge` first, as it is responsible for bridging the ROS topics to the MQTT topics.
 
+If using the local MQTT broker settings (refer to the bringup), remember to spin up a locally hosted MQTT broker. You may need to install Mosquitto.
+```bash
+mosquitto -p 1889
+```
+
 Next, the launchfile for the behaviour tree will launch two separate nodes:
 - `wasp_bt`: This node is responsible for running the behaviour tree.
 - `waraps_vehicle`: This node is responsible for publushing data to ros topics namespaced under `/robot_name/waraps/`, which is the main namespace for WARA-PS Agent API topics.
 
-Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent.
-
-Next, inside the `ros_bt.py` file (found under `wasp_bt/bt/ros_bt.py`), you will need to tell the behaviour tree which action servers to use, which is done by simply adding the right action clients to `action_client_list` (line 266 or thereabouts).
+Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent, and for the behaviour tree to have subtrees for handling those tasks.
 
 Remember to start all the servers you want clients for!
 
-## Emergency Reset
+## Emergency Action and Reset
+The Behaviour Tree expects an emergency action to be running under the `/robot_name/emergency_action` topic. This action is responsible for handling emergency situations, such as when the vehicle is in an unsafe state or needs to stop immediately. If not found, the behaviour tree default to "doing nothing" in case of an emergency.
+
 In case an emergency is thrown but you manage to resolve it, you can reset the emergency state of the vehicle by calling the `/robot_name/reset_emergency` service. This will allow the behaviour tree to continue running without being stuck in an emergency state.
 
 ```bash
-ros2 service call /$ROBOT_NAME/reset_emergency std_srvs/srv/Trigger```
+ros2 service call /$ROBOT_NAME/reset_emergency std_srvs/srv/Trigger
+```
 
 ## Link to Demo Video
 We have prepared a demonstration video showcasing the WASP Behaviour Tree in action. This video provides an overview of the system, its integration with the WARA-PS Agent API, and a walkthrough of the main features.

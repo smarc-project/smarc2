@@ -1,12 +1,12 @@
 #! /bin/bash
 ROBOT_NAME=lolo
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=True
+USE_SIM_TIME=False
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 LEVELS="['sensor','direct_execution']"
-PULSE_RATE=0.5
+PULSE_RATE=0.5 # Hz
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     REALSIM=simulation
@@ -72,7 +72,7 @@ else
     echo "Skipping hardware drivers launch in simulation mode."
 fi
 
-if [ "$USE_SIM_TIME" = "True" ]; then
+if [ "$USE_SIM_TIME" = "False" ]; then
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
     tmux new-window -t $SESSION:7 -n 'vehicle_health'
     tmux select-window -t $SESSION:7
