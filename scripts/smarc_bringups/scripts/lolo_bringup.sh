@@ -38,6 +38,8 @@ tmux select-pane -t $SESSION:2.0
 tmux send-keys "ros2 run lolo_depth_move_to server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
 tmux select-pane -t $SESSION:2.1
 tmux send-keys "ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+tmux select-pane -t $SESSION:2.2
+tmux send-keys "ros2 run lolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
 
 # for the mqtt bridge.
 tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
