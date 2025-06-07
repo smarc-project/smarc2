@@ -41,8 +41,8 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
         
-        self._abort_pub = node.create_publisher(String, Topics.ABORT_TOPIC, 10)
-        self._abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._abort_cb, 10)
+        self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
+        self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
 
         self._heartbeat_pub = node.create_publisher(Empty, Topics.BT_HEARTBEAT_TOPIC, 10)
         self._vehicle_healthy_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
