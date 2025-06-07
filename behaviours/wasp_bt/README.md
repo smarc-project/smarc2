@@ -15,11 +15,11 @@ Your best friend when trying to understand how to use this package is the `smarc
 ## Dependencies
 The proper functioning of this setup depends on the following packages:
 - `str_json_mqtt_bridge` (inside utilities)
-- `smarc2_msgs` (inside messages, mainly used for common topic definitions for smarc vehicles)
+- `smarc_msgs` (inside messages, mainly used for common topic definitions for smarc vehicles)
 
 
 ## ROS Topics Needed
-- Everything under `/robot_name/smarc2/` namespace, which is the main namespace for vehicle-agnostic topics.
+- Everything under `/robot_name/smarc/` namespace, which is the main namespace for vehicle-agnostic topics.
 - Action Servers need to publish their "heartbeat" to the WARA_PS_ACTION_SERVER_HB_TOPIC for the tasks to show up as available on the MQTT agent.
 
 **NOTE:** The WARA-PS agent will only report data to the MQTT broker if the SMaRC topics are being published by the vehicle. So remember to make a publisher that fills out the SMaRC topics.
@@ -33,6 +33,11 @@ The Behavior Tree has a health subtree that listens to the output of the vehicle
 
 ## Quick Start
 To start the behaviour tree, you can use the `smarc2/scripts/smarc_bringups/scripts/quad_bringup.sh` or its equivalent for your specific vehicle. Remember to launch the `str_json_mqtt_bridge` first, as it is responsible for bridging the ROS topics to the MQTT topics.
+
+If using the local MQTT broker settings (refer to the bringup), remember to spin up a locally hosted MQTT broker. You may need to install Mosquitto.
+```bash
+mosquitto -p 1889
+```
 
 Next, the launchfile for the behaviour tree will launch two separate nodes:
 - `wasp_bt`: This node is responsible for running the behaviour tree.

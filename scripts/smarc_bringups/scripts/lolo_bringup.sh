@@ -6,7 +6,7 @@ USE_SIM_TIME=True
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 LEVELS="['sensor','direct_execution']"
-PULSE_RATE=0.5
+PULSE_RATE=0.5 # Hz
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     REALSIM=simulation
