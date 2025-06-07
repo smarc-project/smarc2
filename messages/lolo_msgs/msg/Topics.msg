@@ -1,8 +1,8 @@
 # This file defines all the topics used on lolo
 # The goal is to have a single location that all cpp/py scripts can easily access
 
-# Example
-# string EXAMPLE_TOPIC = 'example_topic'
+# Lolo Abort
+string LOLO_ABORT = 'abort'
 
 # PID controllers setpoints. All Float32s.
 string YAW_SETPOINT = "ctrl/yaw_setpoint"
