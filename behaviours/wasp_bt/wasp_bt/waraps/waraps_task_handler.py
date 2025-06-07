@@ -486,18 +486,104 @@ class WaraPSTaskHandler:
             
             # check if the task is available
             if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
-                self._node.get_logger().error("Invalid start-task command: task not available")
 
-                # send response
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not available",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
+                if command["task"]["name"] == "custom-task":
+                    # Custom task handling, if the task is not in the available tasks, we can still start it
+                    # This is a special case where the task is not predefined but is sent by the user
+                    self._node.get_logger().info("WARNING: Custom task started.")
+
+                    try:
+                        command["task"]["name"] = command["task"]["params"]["action-name"]
+                    except Exception as e:
+                        self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task not available",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    
+                    # check if the action name is valid
+                    if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
+                        self._node.get_logger().error("Invalid start-task command: custom task action name not available")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task not available",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    
+                    # if the task is available, we can start it
+                    self._node.get_logger().info(f"Starting custom task: {command['task']['name']}")
+                    # check if the task-uuid is already in the executing tasks
+                    if any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing):
+                        self._node.get_logger().error("Invalid start-task command: task already executing")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task already executing",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    # if the task is not already executing, we can start it
+                    # add the task to the executing tasks list
+                    task_dict = {
+                        "task-uuid": command["task-uuid"],
+                        "task": command["task"],
+                        "status": WaraPSTaskStates.STARTED.value,
+                        "description": command["task"]["description"] if "description" in command["task"].keys() else "",
+                    }
+                    self.tasks_executing.append(task_dict)
+
+                    # publish the feedback
+                    feedback_msg = {
+                        "agent-uuid": self.wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "task-uuid": command["task-uuid"],
+                        "task": command["task"],
+                        "status": WaraPSTaskStates.STARTED.value,
+                    }
+                    msg = String()
+                    msg.data = json.dumps(feedback_msg)
+                    self._wara_ps_exec_response_pub.publish(msg)
+
+                    self._node.get_logger().info('Published Start Task response message')
+
+
+
+
+
+
+
+
+                else:
+                    # Handle invalid task types
+                    self._node.get_logger().error("Invalid start-task command: task not available")
+
+                    # send response
+                    response_msg = {
+                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "response": "task not available",
+                        "response-to": command["com-uuid"]
+                    }
+                    msg = String()
+                    msg.data = json.dumps(response_msg)
+                    self._wara_ps_exec_response_pub.publish(msg)
                 return
 
 
