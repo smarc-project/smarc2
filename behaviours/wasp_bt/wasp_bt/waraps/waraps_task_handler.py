@@ -299,7 +299,7 @@ class WaraPSTaskHandler:
         # parsed_action_name = "move-to"
 
         # if this action server is not already in the list of available tasks, add it
-        if parsed_action_name not in [task["name"] for task in self.tasks_available]:
+        if parsed_action_name not in [task["name"] for task in self.tasks_available] and "emergency" not in parsed_action_name: # don't want to make emergency action triggerable by user
             # add the action server to the list of available tasks
             task_dict = {
                 "name": parsed_action_name,

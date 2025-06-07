@@ -192,7 +192,10 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         for i in range(len(tasks_available)):
             # we will wait for the next task to be available
             ros_task_name = tasks_available[i]["ros_name"]
-            ros_task_names.append(ros_task_name)
+            
+            # only append to the list of available task if it's not the emergency task. We don't want emergency to be available to the user in the task handler tree.
+            if "emergency" not in ros_task_name:
+                ros_task_names.append(ros_task_name)
             
         # self._task_handler._node.get_logger().info(f"Available tasks: {ros_task_names}")
 

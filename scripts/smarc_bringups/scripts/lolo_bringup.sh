@@ -43,16 +43,11 @@ tmux send-keys "ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:
 tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:3
 
-if [ $REALSIM = "real" ]; then
-    # For broker on the real robot
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME broker_addr:=192.168.1.100 broker_port:=1883" C-m
-else
-    # To connect to our MQTT broker
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+# To connect to our MQTT broker
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
 
-    # For local testing: use defaults
-    # tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
-fi
+# For local testing: use defaults
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
 
 # launch hardware drivers if REALSIM is set to real
 if [ "$REALSIM" = "real" ]; then
@@ -79,7 +74,7 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
     tmux new-window -t $SESSION:7 -n 'vehicle_health'
     tmux select-window -t $SESSION:7
-    tmux send-keys "ros2 topic pub -r 1 /lolo/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
+    tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 else
     echo "Skipping vehicle health publisher in real mode."
 fi
