@@ -210,11 +210,6 @@ class C_VehicleHealthStatus(Behaviour):
         # update the health status from the task handler
         self._health_status = self._wara_ps_task_handler.health_status
 
-        # time check: redundancy check, if the health status has not been updated in a while
-        if self._wara_ps_task_handler.current_time() - self._wara_ps_task_handler.health_last_time > 5.0:
-            self.feedback_message = "Vehicle health has not been updated in a while. Aborting!"
-            return Status.FAILURE
-
         if self._health_status == Topics.VEHICLE_HEALTH_READY:
             self.feedback_message = f"Vehicle health status is {self._health_status}"
             return Status.SUCCESS

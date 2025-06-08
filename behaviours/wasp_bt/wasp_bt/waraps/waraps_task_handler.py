@@ -889,7 +889,7 @@ class WaraPSTaskHandler:
             # self._node.get_logger().info('Published Feedback message')
         else:
             # log
-            self._node.get_logger().error("No tasks executing")
+            # self._node.get_logger().error("No tasks executing")
             return None 
 
     def _bigredbutton_cb(self, data: String):

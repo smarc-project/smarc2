@@ -333,6 +333,7 @@ class A_ActionClient(Behaviour):
                 self._client.send_goal(mission_msg)
                 self._logger.info("Emergency action sent.")
                 self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                
                 return Status.RUNNING
 
             task_status = self._task_handler.get_current_task_status()

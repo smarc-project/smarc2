@@ -96,11 +96,11 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         return liveliness_tree
     
     def _health_tree(self):
-        health_checks = Fallback("S_Health_Checks", memory=False, children=[
-            # Fallback("F_Health_Status", memory=False, children=[
-            C_VehicleHealthStatus(self._task_handler),
-            C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
-            # ]),
+        health_checks = Fallback("F_Health_Handler", memory=False, children=[
+            Sequence("S_Health_Status", memory=False, children=[
+                C_VehicleHealthStatus(self._task_handler),
+                C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
+            ]),
             A_Abort(self._task_handler),
         ])
 
@@ -354,7 +354,6 @@ def wasp_bt():
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
             s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
-            s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str
 
