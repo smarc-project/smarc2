@@ -150,20 +150,20 @@ class WaraPSVehicle():
 
                                     
         try:
-            position_msg = {
-                "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'],
-                "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'],
-                # "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
-                "altitude": self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0,
-                # "altitude_reference": "WGS84",
-                "type": "GeoPoint"
-            }
-
-            
-            msg = String()
-            msg.data = json.dumps(position_msg)
-            self._wara_ps_position_pub.publish(msg)
-            # self._node.get_logger().info('Published Position message')
+            lat = self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat']
+            lon = self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon']
+            alt = self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0
+            if lat is not None and lon is not None and alt is not None:
+                position_msg = {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "altitude": alt,
+                    "type": "GeoPoint"
+                }
+                msg = String()
+                msg.data = json.dumps(position_msg)
+                self._wara_ps_position_pub.publish(msg)
+                # self._node.get_logger().info('Published Position message')
         except Exception:
             self._node.get_logger().error("Failed to publish position data. Check if the vehicle state has valid position data.")
             
@@ -173,9 +173,9 @@ class WaraPSVehicle():
 
         # 3. publish course data
         try:
-            course_msg = String()
-            course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}"
-            self._wara_ps_course_pub.publish(course_msg)
+            c = self._vehicle_state[SensorNames.COURSE_DEG][0]
+            if c != None:
+                self._wara_ps_course_pub.publish(String(data=f"{c}"))
             # self._node.get_logger().info('Published Course message')
         except Exception:
             pass
@@ -183,20 +183,18 @@ class WaraPSVehicle():
         # 3.5 publish heading data
         try:
             heading_msg = String()
-            heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}"
-            # float
-            self._wara_ps_heading_pub.publish(heading_msg)
+            h = self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]
+            if h != None:
+                self._wara_ps_heading_pub.publish(String(data=f"{h}"))
             # self._node.get_logger().info('Published Heading message')
         except Exception:
             pass
         
         # 4. publish speed data
         try:
-            speed_msg = String()
-            speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
-            # speed_msg.data = "0.0
-            # float
-            self._wara_ps_speed_pub.publish(speed_msg)
+            s = self._vehicle_state[SensorNames.SPEED][0]
+            if s != None:
+                self._wara_ps_speed_pub.publish(String)
             # self._node.get_logger().info('Published Speed message')
         except:
             pass
@@ -218,13 +216,14 @@ class WaraPSVehicle():
         # # self._node.get_logger().info('Published Pitch message')
 
         # 7. publish depth data
-        depth_msg = String()
         try:
-            depth_msg.data = f"{self._vehicle_state[SensorNames.DEPTH][0]}"
+            d = self._vehicle_state[SensorNames.DEPTH][0]
+            if d != None:
+                self._wara_ps_depth_pub.publish(String(data=f"{d}"))
         except:
-            depth_msg.data = "-1"
+            pass
         # float
-        self._wara_ps_depth_pub.publish(depth_msg)
+        
         # self._node.get_logger().info('Published Depth message')            
 
         return True
