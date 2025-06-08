@@ -14,7 +14,7 @@ def generate_launch_description():
 
     robot_ns_launch_arg = DeclareLaunchArgument(
         'robot_name',
-        default_value='lolo_auv_v1'
+        default_value='lolo'
     )
 
     odom_splitter_node = Node(
