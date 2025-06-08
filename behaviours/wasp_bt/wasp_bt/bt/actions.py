@@ -12,10 +12,11 @@ from smarc_action_base.smarc_action_base import ActionClientState
 
 import json
 
-from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
 from smarc_mission_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
+from wasp_bt.bt.client import BTActionClient
 
 class A_WaitForData(VehicleBehaviour):
     def __init__(self,
@@ -66,15 +67,18 @@ class A_WaitForData(VehicleBehaviour):
         # not too far behind. we good.
         self.feedback_message = f"{dt:.1f}s since last update"
         return Status.SUCCESS
+    
+    def terminate(self, new_status: Status) -> None:
+        self.feedback_message = None
 
-class A_Abort(VehicleBehaviour):
-    def __init__(self, bt: HasVehicleContainer):
-        super().__init__(bt)
+# class A_Abort(VehicleBehaviour):
+#     def __init__(self, bt: HasVehicleContainer):
+#         super().__init__(bt)
 
-    def update(self) -> Status:
-        self._bt.vehicle_container.abort()
-        self.feedback_message = "!! ABORTED !!"
-        return Status.SUCCESS
+#     def update(self) -> Status:
+#         self._bt.vehicle_container.abort()
+#         self.feedback_message = "!! ABORTED !!"
+#         return Status.SUCCESS
 
 
 class A_Chilling(VehicleBehaviour):
@@ -95,7 +99,7 @@ class A_Chilling(VehicleBehaviour):
     def terminate(self, new_status: Status) -> None:
         if new_status == Status.INVALID:
             # action is finished proper. 
-            self.feedback_message = "Chillin' is OVER. I got work to do!"
+            self.feedback_message = None
         return
 
     
@@ -173,7 +177,6 @@ class A_JustChillFor(VehicleBehaviour):
             self._elapsed_time = 0
             self._duration = self._duration
 
-
         return
     
 class A_ClearTaskQueue(VehicleBehaviour):
@@ -197,6 +200,9 @@ class A_ClearCurrentTask(VehicleBehaviour):
         self._task_handler.clear_current_task()
         self.feedback_message = "Cleared current task"
         return Status.RUNNING
+    
+    def terminate(self, new_status):
+        self.feedback_message = None
 
 class A_TaskAbortedFlagReset(VehicleBehaviour):
     def __init__(self, task_handler: WaraPSTaskHandler):
@@ -208,12 +214,19 @@ class A_TaskAbortedFlagReset(VehicleBehaviour):
         self.feedback_message = "Aborted flag reset"
         return Status.SUCCESS
 
+    def terminate(self, new_status: Status) -> None:
+        if new_status == Status.SUCCESS:
+            # action is finished proper. 
+            self.feedback_message = None
+        return
+
 class A_Abort(VehicleBehaviour):
-    def __init__(self, bt: HasVehicleContainer):
-        super().__init__(bt)
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        super().__init__(self.__class__.__name__)
+        self.task_handler = task_handler
 
     def update(self) -> Status:
-        self._bt.vehicle_container.abort()
+        self.task_handler.abort()
         self.feedback_message = "!! ABORTED !!"
         return Status.SUCCESS
 
@@ -229,9 +242,12 @@ class A_Heartbeat(VehicleBehaviour):
             
 class A_ActionClient(Behaviour):
     def __init__(self,
-                 client: SMARCActionClient,
+                 client: BTActionClient,
+                 bt: HasClock,
                  task_handler: WaraPSTaskHandler):
-        super().__init__(f"{self.__class__.__name__}({client.__class__.__name__})")
+        super().__init__(f"A_ActionClient({client.get_action_name()})")
+        
+        self._bt = bt
         self._client = client
         self._task_handler = task_handler
 
@@ -258,6 +274,8 @@ class A_ActionClient(Behaviour):
             ActionClientState.CANCELLING
         ]
 
+        self.last_feedback_time = None
+
         self._logger = self._client._node.get_logger()
             
 
@@ -280,17 +298,17 @@ class A_ActionClient(Behaviour):
         if new_status == Status.INVALID:
             # Only try to cancel if the goal is still active
             if self._client.state in self._running_states:
-                self.feedback_message = "Preempted, cancelling goal"
+                self.feedback_message = "Preempted by higher priority in tree, cancelling goal"
                 self._client.cancel_goal(self._client.cancel_callback)
+                self._task_handler.set_current_task_status(WaraPSTaskStates.ABORTED)
             else:
-                self.feedback_message = "Preempted, but goal already finished."
+                self.feedback_message = f"Preempted with Action Client state: {self._client.state}"
+            
             # Publish feedback
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
-            return
 
-        if new_status == Status.SUCCESS:
+        elif new_status == Status.SUCCESS:
             # action is finished proper. get ready for a next run.
-            self._client.get_ready()
             self.feedback_message = "Action finished. Ready for next run."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
 
@@ -299,11 +317,23 @@ class A_ActionClient(Behaviour):
             # should be handled by the rest of the tree
             self.feedback_message = f"Action failed. Action Client state: {self._client.state}"
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
-            return
+
+        # reset the client to ready state
+        self._client.get_ready()
+
+        return
 
 
 
     def update(self) -> Status:
+
+        current_time = self._bt.now_seconds
+        if self.last_feedback_time is None:
+            self.last_feedback_time = current_time
+
+        # log current and last feedback time
+        # self._logger.debug(f"Current time: {current_time}, Last feedback time: {self.last_feedback_time}")
+
         s = self._client.state
 
         # if it was cancelled, get the client ready for a new run for later
@@ -328,20 +358,30 @@ class A_ActionClient(Behaviour):
                 mission_msg.goal.data = msg_str
                 self._client.send_goal(mission_msg)
                 self._logger.info("Emergency action sent.")
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
+                
                 return Status.RUNNING
 
             task_status = self._task_handler.get_current_task_status()
             if task_status == "started" or task_status == "resumed":
                 self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."
                 self._task_handler.set_current_task_status("running")
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:    
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
                 
             mplan = self._task_handler.get_current_task_params()
             
             if mplan is None:
                 self.feedback_message = "No task to get a wp from..."
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
                 return Status.FAILURE
 
             
@@ -367,19 +407,26 @@ class A_ActionClient(Behaviour):
             mission_msg.goal.data = msg_str
             self._client.send_goal(mission_msg)
 
-            self._logger.info("yall I sent dat task")
+            # self._logger.info("yall I sent dat task")
             self.feedback_message = "Goal sent to action client."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
         
         if s in self._running_states:
             self.feedback_message = self._client.feedback_message
-            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+            if current_time - self.last_feedback_time > 1.0:
+            # publish feedback every second
+                self.last_feedback_time = current_time
+                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
 
         if s in self._failure_states:
-            self.feedback_message = "Action client in failure state."
+            self.feedback_message = f"Action client in failure state: {s}. Check logs for more info."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+            # remove the current task from the task handler
+            self._task_handler.clear_current_task()
+
             return Status.FAILURE
         
         if s in self._success_states:

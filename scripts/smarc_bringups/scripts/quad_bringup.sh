@@ -6,7 +6,6 @@ USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
-LEVELS="['sensor','direct_execution']"
 PULSE_RATE=1
 LINK_SUFFIX=_gt
 
@@ -48,14 +47,6 @@ tmux select-window -t $SESSION:0
 # tmux send-keys "ros2 launch drone_dr dead_reckoning.launch robot_name:=$ROBOT_NAME" C-m
 tmux send-keys "echo 'Not launching drone_dr dead_reckoning.launch until someone fixes it!'" C-m
 
-tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
-
-# option to make it just a node for the waraps agent without the bt
-# tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
-
-
-
 #TODO: change this to the quadrotor action server
 tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint.launch" C-m
@@ -79,9 +70,14 @@ tmux select-window -t $SESSION:10
 # For local testing: use defaults
 tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation" C-m 
 
-# Conditional launches, for sim-only or real-only things
-# the real sam's username is "sam" and lolo's "lolo".
-# So we can switch on that.
+# Launch the wasp_bt LAST, to give action servers time to start publishing heartbeats
+tmux select-window -t $SESSION:1
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+
+# option to make it just a node for the waraps agent without the bt
+
+# tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE" C-m
+
 
 # Set default window
 tmux select-window -t $SESSION:1

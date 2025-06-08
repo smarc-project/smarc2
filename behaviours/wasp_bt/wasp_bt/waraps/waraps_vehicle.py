@@ -32,6 +32,22 @@ class WaraPSVehicle():
 
         self._wara_ps_sensor_info_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_INFO_TOPIC, 10)
 
+        # subscribe to level 2 wara-ps topics to get info rfrom the task handler
+        self._direct_exec_sub = node.create_subscription(
+            String,
+            Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC,
+            self._direct_exec_callback,
+            10
+        )
+        self._tst_exec_sub = node.create_subscription(
+            String,
+            Topics.WARA_PS_TST_EXEC_INFO_TOPIC,
+            self._tst_exec_callback,
+            10
+        )
+
+        self.exec_last_time = 0.0
+        self.tst_last_time = 0.0
 
 
         self._wara_ps_dict = wara_ps_dict
@@ -72,12 +88,47 @@ class WaraPSVehicle():
         Returns the WaraPS dictionary that is used to handle the MQTT interactor.
         """
         return self._wara_ps_dict
+    
+    def _direct_exec_callback(self, msg: String):
+        """
+        If any message is received on the direct execution topic, this means the vehicle must include "direct_execution" in the levels.
+        """
+
+        self.exec_last_time = self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
+
+
+        if "direct_execution" not in self._wara_ps_dict["levels"]:
+            self._wara_ps_dict["levels"].append("direct_execution")
+            self._logger.info("Added 'direct_execution' to WaraPS levels and sensor data provided.")
+        return
+    
+    def _tst_exec_callback(self, msg: String):
+        """
+        If any message is received on the task execution topic, this means the vehicle must include "task_execution" in the levels.
+        """
+
+        self.tst_last_time = self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
+
+        if "tst_execution" not in self._wara_ps_dict["levels"]:
+            self._wara_ps_dict["levels"].append("tst_execution")
+            self._logger.info("Added 'task_execution' to WaraPS levels and sensor data provided.")
+        return
 
     def wara_ps_heartbeat(self, now_time):
+
+        # time check
+        if (now_time - self.exec_last_time) > 10.0:
+            if "direct_execution" in self._wara_ps_dict["levels"]:
+                self._wara_ps_dict["levels"].remove("direct_execution")
+                self._logger.info("Removed 'direct_execution' from WaraPS levels due to inactivity.")
+        if (now_time - self.tst_last_time) > 10.0:
+            if "tst_execution" in self._wara_ps_dict["levels"]:
+                self._wara_ps_dict["levels"].remove("tst_execution")
+                self._logger.info("Removed 'task_execution' from WaraPS levels due to inactivity.")
         
         # update the heartbeat data
         self._heartbeat_data["stamp"] = now_time
-        
+        self._heartbeat_data["levels"] = self._wara_ps_dict["levels"]
         # publish the heartbeat data
         msg = String()
         msg.data = json.dumps(self._heartbeat_data)
@@ -98,58 +149,71 @@ class WaraPSVehicle():
         self._wara_ps_sensor_info_pub.publish(msg)
 
                                     
-        position_msg = {
-            "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'] is not None else 0,
-            "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] if self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'] is not None else 0,
-            # "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
-            "altitude": self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0,
-            "type": "GeoPoint"
-        }
-        msg = String()
-        msg.data = json.dumps(position_msg)
-        self._wara_ps_position_pub.publish(msg)
-        # self._node.get_logger().info('Published Position message')
+        try:
+            position_msg = {
+                "latitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat'],
+                "longitude": self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon'],
+                # "altitude": -self._vehicle_state[SensorNames.DEPTH][0] if self._vehicle_state[SensorNames.DEPTH][0] is not None else 0,
+                "altitude": self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0,
+                # "altitude_reference": "WGS84",
+                "type": "GeoPoint"
+            }
+            msg = String()
+            msg.data = json.dumps(position_msg)
+            self._wara_ps_position_pub.publish(msg)
+            # self._node.get_logger().info('Published Position message')
+        except Exception:
+            self._node.get_logger().error("Failed to publish position data. Check if the vehicle state has valid position data.")
+            
 
 
         #TODO: this stuff is strings, but wara-ps expects floats. Our json bridge only handles strings. Github Issue exists for this.
 
         # 3. publish course data
-        course_msg = String()
-        course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}" if self._vehicle_state[SensorNames.COURSE_DEG][0] is not None else "0.0"
-        # float
-        self._wara_ps_course_pub.publish(course_msg)
-        # self._node.get_logger().info('Published Course message')
+        try:
+            course_msg = String()
+            course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}"
+            self._wara_ps_course_pub.publish(course_msg)
+            # self._node.get_logger().info('Published Course message')
+        except Exception:
+            pass
 
         # 3.5 publish heading data
-        heading_msg = String()
-        heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}" if self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0] is not None else "0.0"
-        # float
-        self._wara_ps_heading_pub.publish(heading_msg)
-        # self._node.get_logger().info('Published Heading message')
+        try:
+            heading_msg = String()
+            heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}"
+            # float
+            self._wara_ps_heading_pub.publish(heading_msg)
+            # self._node.get_logger().info('Published Heading message')
+        except Exception:
+            pass
         
         # 4. publish speed data
-        speed_msg = String()
-        speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
-        # speed_msg.data = "0.0
-        # float
-        self._wara_ps_speed_pub.publish(speed_msg)
-        # self._node.get_logger().info('Published Speed message')
+        try:
+            speed_msg = String()
+            speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
+            # speed_msg.data = "0.0
+            # float
+            self._wara_ps_speed_pub.publish(speed_msg)
+            # self._node.get_logger().info('Published Speed message')
+        except:
+            pass
 
         # computation to get roll and pitch from orientation quaternion
 
-        # 5. publish roll data
-        roll_msg = String()
-        roll_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']}"
-        # float
-        self._wara_ps_roll_pub.publish(roll_msg)
-        # self._node.get_logger().info('Published Roll message')
+        # # 5. publish roll data
+        # roll_msg = String()
+        # roll_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']}"
+        # # float
+        # self._wara_ps_roll_pub.publish(roll_msg)
+        # # self._node.get_logger().info('Published Roll message')
 
-        # 6. publish pitch data
-        pitch_msg = String()
-        pitch_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']}"
-        # float
-        self._wara_ps_pitch_pub.publish(pitch_msg)
-        # self._node.get_logger().info('Published Pitch message')
+        # # 6. publish pitch data
+        # pitch_msg = String()
+        # pitch_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']}"
+        # # float
+        # self._wara_ps_pitch_pub.publish(pitch_msg)
+        # # self._node.get_logger().info('Published Pitch message')
 
         # 7. publish depth data
         depth_msg = String()
@@ -187,12 +251,11 @@ def main(args=None):
 
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
-    node.declare_parameter("levels", ["sensor", "direct_execution"])
-    node.declare_parameter("pulse_rate", 1)
+    node.declare_parameter("pulse_rate", 1.0) # Hz
     node.declare_parameter("domain", "simulation")
 
     agent_type = node.get_parameter("agent_type").value
-    levels = node.get_parameter("levels").value
+    levels = ["sensor"]
     pulse_rate = node.get_parameter("pulse_rate").value
     robot_name = node.get_parameter("robot_name").value if node.has_parameter("robot_name") else "sam0"
 
