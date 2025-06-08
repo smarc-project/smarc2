@@ -11,7 +11,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import argparse
 from datetime import datetime
 from std_msgs.msg import Float32MultiArray
-
+from collections import deque
 
 # HSV  buoy [16 0 255]  ~ [25 152 255]  orange color
 # HSV  auv  [0 55 153] ~ [195 97 254]  yellow color
@@ -61,6 +61,8 @@ class HSVDetectorNode(Node):
         os.makedirs(self.save_dir_original, exist_ok=True)
         os.makedirs(self.save_dir_points, exist_ok=True)
 
+
+        self.rope_img_buffer = deque(maxlen=5)
 
         setup_trackbars(self.range_filter)
 
@@ -214,7 +216,7 @@ class HSVDetectorNode(Node):
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-        cv2.imshow('HSV_auv', preview_auv)
+        #cv2.imshow('HSV_auv', preview_auv)
 
 
 
@@ -256,9 +258,65 @@ class HSVDetectorNode(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
 
-        cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
+        #cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
 
 
+        #########################################################################################   rope
+
+        # HSV filter for rope
+        lower_rope = np.array([3, 146, 82])  # manual hsv detector
+        upper_rope = np.array([13, 255, 245])
+        hsv_thresh_rope = cv2.inRange(imghsv, lower_rope, upper_rope)
+        preview_rope = cv2.bitwise_and(image, image, mask=hsv_thresh_rope)
+        preview_rope_2 = preview_rope.copy()
+        preview_rope_3 = preview_rope.copy()
+        cv2.imshow('HSV_rope', preview_rope)
+
+        # Rope Reconstruction method 4 ---- multi frames
+        self.rope_img_buffer.append(preview_rope_3)
+        for img_tmp in self.rope_img_buffer:
+            preview_rope_3 = cv2.add(preview_rope_3, img_tmp)
+        cv2.imshow("N frames rope detect", preview_rope_3)
+
+
+       
+
+        # Apply dilation to connect fragmented rope segments
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin
+        rope_dilated = cv2.dilate(preview_rope_3, kernel, iterations=1)
+        # Use this dilated result for binary mask and grid processing
+        rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
+        _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+        cv2.imshow("Dilation", rope_bin)
+
+        # Curve fitting 
+
+        # Get coordinates of white pixels (rope)
+        ys, xs = np.where(rope_bin == 255)
+        if len(xs) >= 3:   # if rope exist
+            # Fit a 2nd or 3rd degree polynomial (x = f(y) or y = f(x))
+            coeffs = np.polyfit(xs, ys, deg=3)  # Try deg=2 or 3   # can be changed by distance
+            poly_func = np.poly1d(coeffs)
+            # Generate smoothed rope line
+            x_fit_rope = np.linspace(min(xs), max(xs), 100)
+            y_fit_rope = poly_func(x_fit_rope)
+            
+            for x, y in zip(x_fit_rope.astype(int), y_fit_rope.astype(int)):
+                cv2.circle(preview_rope_2, (x, y), 1, (0, 255, 0), -1)
+            
+            #center_x_rope = int(np.mean(x_fit_rope))
+            #center_y_rope = int(np.mean(y_fit_rope))
+
+            center_x_rope = int(x_fit_rope[50])
+            center_y_rope = int(y_fit_rope[50])
+            cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
+
+            cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            cv2.imshow("Curve Fitting", preview_rope_2)
+
+
+        ######################################################################################### 
         # save images 
 
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
