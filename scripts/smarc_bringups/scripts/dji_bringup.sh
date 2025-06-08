@@ -6,8 +6,7 @@ USE_SIM_TIME=False
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
-LEVELS="['sensor','direct_execution','tst_execution']"
-PULSE_RATE=1
+PULSE_RATE=10.0
 
 # create a tmux session with a name
 tmux -2 new-session -d -s $SESSION
@@ -64,7 +63,7 @@ tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=geopoint_setpoint" C-m
 
 tmux select-window -t $SESSION:3
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 tmux select-window -t $SESSION:4
 if [ "$USE_SIM_TIME" = "True" ]; then

@@ -52,9 +52,9 @@ class DjiCaptain():
         self._node = node
         self._tf_ns = "Quadrotor/"
         
-        self.READY_BATTERY_PERCENTAGE = 0.4
+        self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
-        self.ERROR_BATTERY_PERCENTAGE = 0.15
+        self.ERROR_BATTERY_PERCENTAGE = 15
         self.ERROR_HEIGHT_ABOVE_GROUND = 1
         # this is the idle RPM/current for the ESCs, below this we consider the vehicle not flying
         self.NUM_PROPS = 4 # because the esc message always has 8 fields...
@@ -219,11 +219,15 @@ class DjiCaptain():
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
         
-        s += f"\n  Got Control: {self._got_control}\n"
-        s += f"  Flying: {self._flying}\n"
-        # s += f"  Carrying Payload: {self._carrying_payload}\n"
-        s += f"  Smarc Topics: {self._smarc_pub_status}\n"
+        s += f"\n  Smarc Topics: {self._smarc_pub_status}\n"
         s += f"  TF: {self._tf_pub_status}\n"
+
+        s += f"\n  Got Control: {self._got_control}\n"
+        if self._base_pose_in_home is None: 
+            s+= "  Flying: Unknown (base pose not set)\n"
+        else:
+            s += f"  Flying: {self._flying} ({self._base_pose_in_home.pose.position.z:.3f} >? {self.READY_HEIGHT_ABOVE_GROUND})\n"
+        # s += f"  Carrying Payload: {self._carrying_payload}\n"
         if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
             s += f"  Vehicle Health: READY\n"
         elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
@@ -569,8 +573,8 @@ def format_pose_stamped(pose: PoseStamped|None) -> str:
             pose.pose.orientation.z,
             pose.pose.orientation.w
         ])
-        return f"(roll={math.degrees(rpy[0]):.3f}, pitch={math.degrees(rpy[1]):.3f}, yaw={math.degrees(rpy[2]):.3f}, " \
-               f"x={pose.pose.position.x:.3f}, y={pose.pose.position.y:.3f}, z={pose.pose.position.z:.3f}, " \
+        return f"(x={pose.pose.position.x:.3f}, y={pose.pose.position.y:.3f}, z={pose.pose.position.z:.3f}, " \
+               f"roll={math.degrees(rpy[0]):.3f}, pitch={math.degrees(rpy[1]):.3f}, yaw={math.degrees(rpy[2]):.3f}, " \
                f"frame_id={pose.header.frame_id})"
         
 def format_vector3_stamped(vec: Vector3Stamped|None) -> str:
