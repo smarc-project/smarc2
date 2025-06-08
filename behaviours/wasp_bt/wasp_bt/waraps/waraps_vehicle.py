@@ -158,6 +158,8 @@ class WaraPSVehicle():
                 # "altitude_reference": "WGS84",
                 "type": "GeoPoint"
             }
+
+            
             msg = String()
             msg.data = json.dumps(position_msg)
             self._wara_ps_position_pub.publish(msg)
