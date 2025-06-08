@@ -10,6 +10,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import argparse
 from datetime import datetime
+from std_msgs.msg import Float32MultiArray
 
 
 # HSV  buoy [16 0 255]  ~ [25 152 255]  orange color
@@ -52,6 +53,10 @@ class HSVDetectorNode(Node):
         self.save_dir_processed = "for_cnn_training_processed_img"
         self.save_dir_original = "for_cnn_training_original_img"
         self.save_dir_points = "for_cnn_training_points"
+        # buoy 
+        # rope 
+        # auv
+        # buoy-rope-auv
         os.makedirs(self.save_dir_processed, exist_ok=True)  # Create folder if it doesn't exist
         os.makedirs(self.save_dir_original, exist_ok=True)
         os.makedirs(self.save_dir_points, exist_ok=True)
@@ -118,6 +123,58 @@ class HSVDetectorNode(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
         self.last_preview = preview.copy()
+
+
+        #########################################################################################  buoy
+        imghsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype("float32")
+        # HSV filter for buoy
+        lower_orange = np.array([16, 0, 255])  # manual hsv detector
+        upper_orange = np.array([25, 152, 255])
+        hsv_thresh_buoy = cv2.inRange(imghsv, lower_orange, upper_orange)
+        preview_buoy = cv2.bitwise_and(image, image, mask=hsv_thresh_buoy)
+        #cv2.imshow('HSV_buoy', preview_buoy)
+
+        # Find contours
+        contours, _ = cv2.findContours(hsv_thresh_buoy, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find largest contour
+        max_area = 0
+        max_contour = None
+        center_buoy = None
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area > max_area:
+                max_area = area
+                max_contour = cnt
+
+        # Draw largest contour and show area
+        if max_contour is not None:
+            # Draw the contour
+            # cv2.drawContours(preview_buoy, [max_contour], -1, (0, 255, 0), 1)
+
+            # Get center
+            M = cv2.moments(max_contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                #center_buoy = (cx, cy)
+                center_buoy = np.array([cx, cy])
+
+                buoy_position_msg = Float32MultiArray()
+                buoy_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the point
+                #self.get_logger().info(f"detect buoy")
+
+                cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        #cv2.imshow('HSV_buoy', preview_buoy) ok 
+        #########################################################################################
+
+
+        # save images 
 
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
