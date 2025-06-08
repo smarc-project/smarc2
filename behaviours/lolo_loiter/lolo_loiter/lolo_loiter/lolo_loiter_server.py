@@ -263,11 +263,6 @@ class LoiterServer(SMARCActionServer):
         loiter_goal = self._json_ops.decode(goal_request, ActMsg.GOAL)
         self.logger.info(f"Recieved Loiter goal with parameters:\n {loiter_goal}")
 
-        # I think the goal should be sent in the robots nav frame?
-        #pose_stamped_utm_frame = self.convert_to_utm(loiter_goal.geopoint)
-        #pose_stamped_nav_frame = self.transform_goal(pose_stamped=pose_stamped_utm_frame,
-        #                                             override_target=self.target_frame)
-
         # Send the goal to the vehicle and check if it passed the check.
         if not self.send_goal_to_vehicle(loiter_goal):
             err_str = "Rejecting goal. Goal does not fulfill vehicle limits"
