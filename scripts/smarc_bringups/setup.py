@@ -3,6 +3,7 @@ import glob, os
 
 package_name = 'smarc_bringups'
 
+
 setup(
     name=package_name,
     version='0.0.0',
@@ -26,7 +27,5 @@ setup(
         'console_scripts': [
         ],
     },
-    scripts=[
-        "scripts/sam_bringup.sh"
-    ]
+    scripts=glob.glob('scripts/*.sh')
 )

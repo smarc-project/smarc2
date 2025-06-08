@@ -9,6 +9,7 @@ from rclpy.executors import MultiThreadedExecutor
 
 
 from std_msgs.msg import Float32, Int8
+from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, Joy, BatteryState
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TwistStamped, Pose, PoseStamped, TransformStamped, QuaternionStamped, PointStamped, Vector3Stamped
@@ -37,6 +38,12 @@ class PSDKTopics(Enum):
     VELOCTY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
     ANGULAR_RATE_GND_FSD= WRAPPER_NS + "angular_rate_ground_fused"
     ESC_DATA            = WRAPPER_NS + "esc_data"
+    RC                  = WRAPPER_NS + "rc"
+
+    TAKE_CONTROL_SRV    = WRAPPER_NS + "obtain_ctrl_authority"
+    RELEASE_CONTROL_SRV = WRAPPER_NS + "release_ctrl_authority"
+    TAKEOFF_SRV         = WRAPPER_NS + "takeoff"
+    LAND_SRV            = WRAPPER_NS + "land"
 
 
 
@@ -146,7 +153,6 @@ class DjiCaptain():
             self._geo_alt_cb,
             qos_profile=10)
 
-        
         node.create_subscription(
             ControlMode,
             PSDKTopics.CONTROL_MODE.value,
@@ -177,6 +183,18 @@ class DjiCaptain():
             lambda msg: setattr(self, "_esc_data", msg),
             qos_profile=10)
         
+        node.create_subscription(
+            Joy,
+            PSDKTopics.RC.value,
+            self._rc_cb,
+            qos_profile=10)
+        
+        # services to take and give-up control + take-off and land
+        # call service: obtain/release_ctrl_authority
+        self._take_control_srv = node.create_client(Trigger, PSDKTopics.TAKE_CONTROL_SRV.value)
+        self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV.value)
+        self._takeoff_srv = node.create_client(Trigger, PSDKTopics.TAKEOFF_SRV.value)
+        self._land_srv = node.create_client(Trigger, PSDKTopics.LAND_SRV.value)
         
 
 
@@ -222,6 +240,15 @@ class DjiCaptain():
 
     def _geo_alt_cb(self, msg: Float32):
         self._geo_altitude = msg.data
+
+
+    def _rc_cb(self, msg: Joy):
+        # if RC is touched by user, we give up control
+        if msg.axes[0] != 0.0 or msg.axes[1] != 0.0 or msg.axes[2] != 0.0 or msg.axes[3] != 0.0:
+            self.log("RC touched, giving up control.")
+            self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
+                lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
+            )
 
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
@@ -505,6 +532,7 @@ class DjiCaptain():
         base_in_utm.point.y = self._base_pose_in_home.pose.position.y + self._home_point_in_utm.point.y
         base_in_utm.point.z = self._base_pose_in_home.pose.position.z + self._home_point_in_utm.point.z
         base_in_geopoint = convert_utm_to_latlon(base_in_utm)
+        base_in_geopoint.altitude = self._base_pose_in_home.pose.position.z
         self._pos_latlon_pub.publish(base_in_geopoint)
         self._altitude_pub.publish(Float32(data=self._base_pose_in_home.pose.position.z))
 
