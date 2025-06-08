@@ -53,6 +53,8 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
 
     def abort(self):
         self._abort_pub.publish(Empty())
+        self._vehicle_state.abort()
+        self._log(f"Vehicle {self._robot_name} aborted.")
         return True
 
     def heartbeat(self):
