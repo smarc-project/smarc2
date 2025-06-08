@@ -6,6 +6,8 @@ from enum import Enum
 
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.time import Time, Duration
+from tf2_ros import Buffer, TransformListener
 
 
 from std_msgs.msg import Float32, Int8
@@ -19,13 +21,15 @@ from tf2_msgs.msg import TFMessage
 from psdk_interfaces.msg import PositionFused, ControlMode, EscData, EscStatusIndividual
 from smarc_msgs.msg import Topics as SmarcTopics
 
+
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
 from tf_transformations import euler_from_quaternion
+from tf2_geometry_msgs import do_transform_pose_stamped
 
 
 class PSDKTopics(Enum):
     # these are hardcoded topics in PSDK bridge...
-    WRAPPER_NS = "/Quadrotor/wrapper/psdk_ros2/"
+    WRAPPER_NS = "wrapper/psdk_ros2/"
     
     GPS_POSITION        = WRAPPER_NS + "gps_position"
     POSITION_FUSED      = WRAPPER_NS + "position_fused"
@@ -50,7 +54,10 @@ class PSDKTopics(Enum):
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-        self._tf_ns = "Quadrotor/"
+        self._TF_NS = "Quadrotor/" #TODO take as rosparam...
+        self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
+        self._move_to_setpoint : PoseStamped | None = None
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 # seconds, how long we keep the move to setpoint before we consider it stale
         
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -65,10 +72,11 @@ class DjiCaptain():
         self.ESC_NO_PAYLOAD_RPM_MAX = 3000
 
         self.UTM_FRAME = "utm"
-        self.ODOM_FRAME = self._tf_ns + "odom"
-        self.MAP_FRAME = self._tf_ns + "map"
-        self.BASE_FRAME = self._tf_ns + "base_link"
-        self.HOME_FRAME = self._tf_ns + "home_point"
+        self.ODOM_FRAME = self._TF_NS + "odom"
+        self.MAP_FRAME = self._TF_NS + "map"
+        self.BASE_FRAME = self._TF_NS + "base_link"
+        self.HOME_FRAME = self._TF_NS + "home_point"
+        self._utm_labeled_frame : str | None = None
 
 
         self._base_pose_in_home : PoseStamped | None = None
@@ -91,7 +99,6 @@ class DjiCaptain():
         self._carrying_payload : bool = False
         self._battery_percent : float | None = None
 
-        self._utm_labeled_frame : str | None = None
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
@@ -116,6 +123,9 @@ class DjiCaptain():
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
 
+
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
 
         node.create_subscription(
             NavSatFix,
@@ -188,6 +198,13 @@ class DjiCaptain():
             PSDKTopics.RC.value,
             self._rc_cb,
             qos_profile=10)
+
+        node.create_subscription(
+            PoseStamped,
+            self.MOVE_TO_SETPOINT_TOPIC,
+            self._move_to_setpoint_callback,
+            qos_profile=10)
+
         
         # services to take and give-up control + take-off and land
         # call service: obtain/release_ctrl_authority
@@ -246,8 +263,36 @@ class DjiCaptain():
         self._geo_altitude = msg.data
 
 
+    def _move_to_setpoint_callback(self, msg: PoseStamped):
+        # check if the message is too old
+        if (self.now_stamp.sec - msg.header.stamp.sec) + \
+           (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+            self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
+            self._move_to_setpoint = None
+            return
+
+        if msg.header.frame_id != self.ODOM_FRAME:
+            try:
+                tf = self._tf_buffer.lookup_transform(
+                    self.ODOM_FRAME, 
+                    msg.header.frame_id, 
+                    Time(seconds=0),
+                    timeout=Duration(seconds=1)
+                )
+                self._move_to_setpoint = do_transform_pose_stamped(msg, tf)
+            except Exception as e:
+                self.log(f"Failed to transform move to setpoint from {msg.header.frame_id} to {self.ODOM_FRAME}: {e}")
+                self._move_to_setpoint = None
+                return
+        else:
+            self._move_to_setpoint = msg
+        self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
+
+
     def _rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
+        if not self._got_control: return
+
         if msg.axes[0] != 0.0 or msg.axes[1] != 0.0 or msg.axes[2] != 0.0 or msg.axes[3] != 0.0:
             self.log("RC touched, giving up control.")
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
@@ -433,7 +478,7 @@ class DjiCaptain():
 
         self._tf_pub_status = f"Published at {now.sec}.{now.nanosec} sec"
 
-        # 0 transforms for home -> map, home -> odom
+        # 0 transforms for home -> map, home -> odom, utm_z_b -> utm
         # for compatibility with other systems
         # and so we can use "odom" for all things that relate to home point
         map_in_home = TransformStamped()
@@ -447,6 +492,12 @@ class DjiCaptain():
         odom_in_home.header.frame_id = self.HOME_FRAME
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
+
+        utms = TransformStamped()
+        utms.header.stamp = now
+        utms.header.frame_id = self._utm_labeled_frame
+        utms.child_frame_id = self.UTM_FRAME
+        tf_msg.transforms.append(utms)
 
         # Home point in UTM
         home_tf = TransformStamped()
@@ -475,7 +526,7 @@ class DjiCaptain():
         gps_tf = TransformStamped()
         gps_tf.header.stamp = now
         gps_tf.header.frame_id = self.ODOM_FRAME
-        gps_tf.child_frame_id = self._tf_ns + "gps_point"
+        gps_tf.child_frame_id = self._TF_NS + "gps_point"
         gps_tf.transform.translation.x = self._gps_point_in_home.point.x
         gps_tf.transform.translation.y = self._gps_point_in_home.point.y
         gps_tf.transform.translation.z = self._gps_point_in_home.point.z
@@ -487,13 +538,22 @@ class DjiCaptain():
             rtk_tf = TransformStamped()
             rtk_tf.header.stamp = now
             rtk_tf.header.frame_id = self.ODOM_FRAME
-            rtk_tf.child_frame_id = self._tf_ns + "rtk_point"
+            rtk_tf.child_frame_id = self._TF_NS + "rtk_point"
             rtk_tf.transform.translation.x = self._rtk_point_in_home.point.x
             rtk_tf.transform.translation.y = self._rtk_point_in_home.point.y
             rtk_tf.transform.translation.z = self._rtk_point_in_home.point.z
             rtk_tf.transform.rotation.w = 1.0
             tf_msg.transforms.append(rtk_tf)
         
+        if self._move_to_setpoint is not None:
+            move_to_setpoint_tf = TransformStamped()
+            move_to_setpoint_tf.header.stamp = now
+            move_to_setpoint_tf.header.frame_id = self._move_to_setpoint.header.frame_id
+            move_to_setpoint_tf.child_frame_id = self._TF_NS + "move_to_setpoint"
+            move_to_setpoint_tf.transform.translation.x = self._move_to_setpoint.pose.position.x
+            move_to_setpoint_tf.transform.translation.y = self._move_to_setpoint.pose.position.y
+            move_to_setpoint_tf.transform.translation.z = self._move_to_setpoint.pose.position.z
+            tf_msg.transforms.append(move_to_setpoint_tf)
 
         self._tf_pub.publish(tf_msg)
 

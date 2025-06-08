@@ -60,7 +60,7 @@ fi
 
 
 tmux select-window -t $SESSION:2
-tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=geopoint_setpoint" C-m
+tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
 
 tmux select-window -t $SESSION:3
 tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
