@@ -348,7 +348,12 @@ class SMARCActionClient(abc.ABC):
             # saving previous state for logger output
             prev_state = self._state
             self._state = _validate_state(val)
-            name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            
+            # if the action_name is not an absolute path, prepend the namespace
+            if not self._action_name.startswith("/"):
+                name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            else:
+                name = self._action_name
             if prev_state != self._state:
                 self._node.get_logger().info(
                     f"[action-base] Client State ({name}) transitioned from {prev_state} to {self._state}"

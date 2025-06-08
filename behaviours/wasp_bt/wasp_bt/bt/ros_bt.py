@@ -21,7 +21,11 @@ from .i_has_clock import HasClock
 from .bb_keys import BBKeys
 from ..mission.i_action_client import IActionClient
 
-from ..waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
+from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
+
+from smarc_action_base.smarc_action_base import ActionType
+from wasp_bt.bt.client import BTActionClient
+from smarc_mission_msgs.action import BaseAction
 
 
 
@@ -33,7 +37,9 @@ from .conditions import C_CheckMissionPlanState,\
                         C_TaskIs,\
                         C_TaskStatus,\
                         C_AbortedPreviousTask,\
-                        C_NoEmergencyAbortSignalDetected
+                        C_NoEmergencyAbortSignalDetected,\
+                        C_VehicleHealthStatus,\
+                        C_LastHealthy
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
@@ -43,15 +49,15 @@ from .actions import A_Abort,\
                     A_TaskAbortedFlagReset, \
                     A_Chilling,\
                     A_WaitForData,\
-                     A_ClearCurrentTask
+                    A_ClearCurrentTask
 
 class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def __init__(self,
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
                  now_seconds_func: typing.Callable,
-                 emergency_action: IActionClient = None,
-                 action_client_list: typing.List[IActionClient] = None
+                 emergency_action: BTActionClient = None,
+                 action_client_list: typing.List[BTActionClient] = None
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -61,7 +67,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._vehicle_container = vehicle_container
         self._task_handler = task_handler
         self._bt = None
-        self.action_client_list = action_client_list if action_client_list is not None else []
+        self.action_client_list = action_client_list
         self._now_seconds_func = now_seconds_func
         self.emergency_action = emergency_action
 
@@ -88,7 +94,17 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         ])
 
         return liveliness_tree
+    
+    def _health_tree(self):
+        health_checks = Fallback("F_Health_Handler", memory=False, children=[
+            Sequence("S_Health_Status", memory=False, children=[
+                C_VehicleHealthStatus(self._task_handler),
+                C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
+            ]),
+            A_Abort(self._task_handler),
+        ])
 
+        return health_checks                
  
     def _safety_tree(self):
         safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
@@ -166,9 +182,35 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             ]),
         ]
 
+
+        # create a action_client_list from the heartbeats of action clients, as stored by the WaraPSTaskHandler
+
+        tasks_available = self._task_handler.get_available_tasks()
+
+        ros_task_names = []
+
+        for i in range(len(tasks_available)):
+            # we will wait for the next task to be available
+            ros_task_name = tasks_available[i]["ros_name"]
+            
+            # only append to the list of available task if it's not the emergency task. We don't want emergency to be available to the user in the task handler tree.
+            if "emergency" not in ros_task_name:
+                ros_task_names.append(ros_task_name)
+            
+        # self._task_handler._node.get_logger().info(f"Available tasks: {ros_task_names}")
+
+        # if action_client_list is None, we will use the action clients from the WaraPSTaskHandler
+        if action_client_list == None:
+            action_type = ActionType(BaseAction)
+            
+            action_client_list = [BTActionClient(self._task_handler._node, ros_task_name, action_type) for ros_task_name in ros_task_names]
+
+
         # we will append the task trees to this list programmatically
         if action_client_list is not None:
             #TODO: implement this
+            self._task_handler._node.get_logger().info(f"Action clients: {[ac.get_action_name() for ac in action_client_list]}")
+
             for action_client in action_client_list:
 
                 # first, check if the corresponding action server is available
@@ -180,8 +222,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
                 # if the action client is available, we can proceed
 
-                # parse the action client name to get the task name
-                task_name = action_client.get_action_name().replace("_", "-")
+                # parse the action client name to get the task name according to the WaraPS naming convention
+                task_name = action_client.get_action_name().split('/')[-1].replace("_", "-")
 
                 task_tree = self._one_task_tree(task_name, action_client)
                 task_children.append(task_tree)
@@ -199,6 +241,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             A_Heartbeat(self),
             self._handle_emergency_tree(),
             # self._liveliness_tree(),
+            self._health_tree(),
             
             # self._safety_tree(), # should look at julian safety node topic
 
@@ -268,17 +311,18 @@ def wasp_bt():
         BTActionClient(node, "auv_depth_move_to", action_type),
         BTActionClient(node, "cruise_depth_at_heading", action_type),
         # ADD NEW ACTION CLIENTS HERE
-        
+
     ]
+
+    # action_client_list = None
 
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
-    node.declare_parameter("levels", ["sensor", "direct_execution"])
-    node.declare_parameter("pulse_rate", 1)
+    node.declare_parameter("pulse_rate", 1.0) # Hz
     node.declare_parameter("domain", "simulation")
 
     agent_type = node.get_parameter("agent_type").value
-    levels = node.get_parameter("levels").value
+    levels = ["sensor", "direct_execution", "tst_execution"]
     pulse_rate = node.get_parameter("pulse_rate").value
     robot_name = node.get_parameter("robot_name").value if node.has_parameter("robot_name") else "sam0"
 
@@ -294,9 +338,12 @@ def wasp_bt():
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
             emergency_action = emergency_action_client,
-            action_client_list = action_client_list,
+            # action_client_list = action_client_list,
+            # the commented out line above means that you're listening for available tasks from the WaraPSTaskHandler. You can also provide a list of action clients to use if you like.
             now_seconds_func  = ros_seconds_float)
-    bt.setup()
+    # bt.setup()
+    need_bt_setup = False
+    is_bt_setup = False
 
 
     bt_str = ""
@@ -306,28 +353,45 @@ def wasp_bt():
         if new_str != bt_str:
             s = f"\nBT::\n{new_str}\n"
             s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
-            s += f"Vehicle::\nAborted:{agent.vehicle_state.aborted}\nHealthy:{agent.vehicle_state.vehicle_healthy}\n"
             node.get_logger().info(s)
             bt_str = new_str
 
 
     def update():
-        nonlocal bt
-        bt.tick()
-        print_bt()
+        nonlocal bt, is_bt_setup, need_bt_setup
+
+        if not is_bt_setup and need_bt_setup:
+            bt.setup()
+            is_bt_setup = True
+            need_bt_setup = False
+
+        if is_bt_setup:
+            bt.tick()
+            print_bt()
         
     node.create_timer(0.1, update)
     # node.create_timer(0.5, print_bt)
 
+    start_time = None
+
     def wara_ps_lvl_2_comms():
-        nonlocal wara_ps_task_handler
+        nonlocal wara_ps_task_handler, need_bt_setup, start_time, node
 
         # get the current time
         now_time = ros_seconds_float()
+        if start_time is None:
+            start_time = now_time
         # task execution info
         wara_ps_task_handler.lvl_2_heartbeat(now_time)
         # tst execution info
         wara_ps_task_handler.lvl_3_heartbeat(now_time)
+
+        if not is_bt_setup:
+            # if the BT is not ticking, we can start it
+            if now_time - start_time > 5.0: # give 5 seconds for living action servers to provide a heartbeat to the WaraPSTaskHandler object
+                need_bt_setup = True
+            else:
+                node.get_logger().info(f"Launching WaraPS BT in {5.0 - (now_time - start_time):.2f} seconds...")
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 

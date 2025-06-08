@@ -1,6 +1,6 @@
 from typing import Type
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import String, Int8, Empty
 from smarc_msgs.msg import Topics
 from smarc_bt.vehicles.sensor import Sensor, SensorNames
 import json
@@ -84,6 +84,9 @@ class WaraPSTaskHandler:
         It is the job of this interactor to listen and publish to the relevant ROS topics connected to the MQTT bridge, and handle WARA-PS actions.
         """
 
+        # private: only this class should access this
+        self._node = node
+
         # public: outsiders can access this        
         self._wara_ps_dict = wara_ps_dict
         self._robot_name = wara_ps_dict["name"]
@@ -94,9 +97,12 @@ class WaraPSTaskHandler:
 
         self.aborted_flag = False
         self.emergency_flag = False
+        self.health_status = Topics.VEHICLE_HEALTH_ERROR
+        
+        self.health_last_time = self.current_time()
 
-        # private: only this class should access this
-        self._node = node
+        self.mission_start_time = None
+        self.mission_timeout = None
 
 
         
@@ -132,7 +138,10 @@ class WaraPSTaskHandler:
         self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
 
         # subscribe to SMARC-wide abort topic
-        self._smarc_abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+
+        # subscribe to smarc health topic
+        self._vehicle_health_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_cb, 10)
 
 
         if "direct_execution" in self._wara_ps_dict["levels"]:
@@ -225,7 +234,30 @@ class WaraPSTaskHandler:
         msg.data = json.dumps(self._direct_execution_info_data)
         self._wara_ps_tst_exec_info_pub.publish(msg)
         # self._node.get_logger().info('Published TST Execution Info message')
-        
+
+        # ABORT IF MISSION TIMOUT HAS BEEN EXCEEDED
+        # do this only if there is a mission running
+        if self.mission_start_time is not None and self.mission_timeout is not None and self.emergency_flag is False:
+            if self.current_time() - self.mission_start_time > self.mission_timeout:
+                self._node.get_logger().warn(f"Mission timeout exceeded. Aborting mission.")
+                # set emergency flag
+                self.emergency_flag = True
+                # publish abort command
+                abort_msg = {
+                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                    "com-uuid": "",
+                    "response": "mission timeout exceeded",
+                    "response-to": ""
+                }
+                msg = String()
+                msg.data = json.dumps(abort_msg)
+                self._wara_ps_tst_feedback_pub.publish(msg)
+                return False
+            elif self.tasks_executing == []: # no tasks are executing
+                # in the case that a mission was initiated and completed within time, reset mission timer to Nones
+                self.mission_start_time = None
+                self.mission_timeout = None
+    
         return True
     
     def _read_level_1_heartbeat_cb(self, data: String):
@@ -267,7 +299,7 @@ class WaraPSTaskHandler:
         # parsed_action_name = "move-to"
 
         # if this action server is not already in the list of available tasks, add it
-        if parsed_action_name not in [task["name"] for task in self.tasks_available]:
+        if parsed_action_name not in [task["name"] for task in self.tasks_available] and "emergency" not in parsed_action_name: # don't want to make emergency action triggerable by user
             # add the action server to the list of available tasks
             task_dict = {
                 "name": parsed_action_name,
@@ -278,6 +310,7 @@ class WaraPSTaskHandler:
                     WaraPSCommandSignals.CONTINUE.value
                 ],
                 "last_seen": now_time,
+                "ros_name": action_name,
             }
             self.tasks_available.append(task_dict)
 
@@ -453,18 +486,104 @@ class WaraPSTaskHandler:
             
             # check if the task is available
             if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
-                self._node.get_logger().error("Invalid start-task command: task not available")
 
-                # send response
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not available",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
+                if command["task"]["name"] == "custom-task":
+                    # Custom task handling, if the task is not in the available tasks, we can still start it
+                    # This is a special case where the task is not predefined but is sent by the user
+                    self._node.get_logger().info("WARNING: Custom task started.")
+
+                    try:
+                        command["task"]["name"] = command["task"]["params"]["action-name"]
+                    except Exception as e:
+                        self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task not available",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    
+                    # check if the action name is valid
+                    if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
+                        self._node.get_logger().error("Invalid start-task command: custom task action name not available")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task not available",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    
+                    # if the task is available, we can start it
+                    self._node.get_logger().info(f"Starting custom task: {command['task']['name']}")
+                    # check if the task-uuid is already in the executing tasks
+                    if any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing):
+                        self._node.get_logger().error("Invalid start-task command: task already executing")
+                        # send response
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "task already executing",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_exec_response_pub.publish(msg)
+                        return
+                    # if the task is not already executing, we can start it
+                    # add the task to the executing tasks list
+                    task_dict = {
+                        "task-uuid": command["task-uuid"],
+                        "task": command["task"],
+                        "status": WaraPSTaskStates.STARTED.value,
+                        "description": command["task"]["description"] if "description" in command["task"].keys() else "",
+                    }
+                    self.tasks_executing.append(task_dict)
+
+                    # publish the feedback
+                    feedback_msg = {
+                        "agent-uuid": self.wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "task-uuid": command["task-uuid"],
+                        "task": command["task"],
+                        "status": WaraPSTaskStates.STARTED.value,
+                    }
+                    msg = String()
+                    msg.data = json.dumps(feedback_msg)
+                    self._wara_ps_exec_response_pub.publish(msg)
+
+                    self._node.get_logger().info('Published Start Task response message')
+
+
+
+
+
+
+
+
+                else:
+                    # Handle invalid task types
+                    self._node.get_logger().error("Invalid start-task command: task not available")
+
+                    # send response
+                    response_msg = {
+                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "response": "task not available",
+                        "response-to": command["com-uuid"]
+                    }
+                    msg = String()
+                    msg.data = json.dumps(response_msg)
+                    self._wara_ps_exec_response_pub.publish(msg)
                 return
 
 
@@ -540,6 +659,8 @@ class WaraPSTaskHandler:
                     task["status"] = WaraPSTaskStates.RESUMED.value
             elif command["signal"] == WaraPSCommandSignals.CANCEL_ABORT.value:
                 self.emergency_flag = False
+                self.mission_start_time = None
+                self.mission_timeout = None
 
             valid_signals = [s.value for s in WaraPSCommandSignals]
             if command["signal"] not in valid_signals:
@@ -587,9 +708,19 @@ class WaraPSTaskHandler:
                 }
                 msg = String()
                 msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
+                self._wara_ps_tst_response_pub.publish(msg)
                 return
+                
+            # start mission timer
+            self.mission_start_time = self.current_time()
             
+            # extract the mission timout from "params" key in tst
+            if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
+                self.mission_timeout = command["tst"]["params"]["timeout"]
+            else:
+                self.mission_timeout = 1800 # default mission timeout
+            self._node.get_logger().info(f"Mission timeout set to {self.mission_timeout} seconds")
+
             # extract the list of tasks from the command. They're the children of the tst key
             if "children" not in command["tst"]:
                 self._node.get_logger().error("Invalid start-tst command: missing 'children' key in 'tst'")
@@ -623,6 +754,28 @@ class WaraPSTaskHandler:
                 self.tasks_executing.append(task_dict)
 
         return        
+    
+    def _vehicle_health_cb(self, data: Int8):
+        """
+        This method is called when a new vehicle health message is received.
+        It is used to update the WaraPS dictionary with the latest data.
+        """
+        # log the time of the last health status update
+        self.health_last_time = self.current_time()
+
+        vehicle_health_status = data.data
+        
+        # update the health status
+        if vehicle_health_status == Topics.VEHICLE_HEALTH_READY:
+            self.health_status = Topics.VEHICLE_HEALTH_READY
+            # self._node.get_logger().info("Vehicle health status: OK")
+        elif vehicle_health_status == Topics.VEHICLE_HEALTH_WAITING:
+            self.health_status = Topics.VEHICLE_HEALTH_WAITING
+            # self._node.get_logger().warn("Vehicle health status: WARNING")
+        elif vehicle_health_status == Topics.VEHICLE_HEALTH_ERROR:
+            self.health_status = Topics.VEHICLE_HEALTH_ERROR
+            # self._node.get_logger().error("Vehicle health status: ERROR")
+        
 
 
     def clear_task_queue(self):
@@ -736,7 +889,7 @@ class WaraPSTaskHandler:
             # self._node.get_logger().info('Published Feedback message')
         else:
             # log
-            self._node.get_logger().error("No tasks executing")
+            # self._node.get_logger().error("No tasks executing")
             return None 
 
     def _bigredbutton_cb(self, data: String):
@@ -763,9 +916,17 @@ class WaraPSTaskHandler:
         }
         msg = String()
         msg.data = json.dumps(response_msg)
-        self._wara_ps_exec_response_pub.publish(msg)
+        self._wara_ps_tst_response_pub.publish(msg)
         self._node.get_logger().info('Published Big Red Button response message')
         return
+    
+    def abort(self):
+        """
+        This method is called to abort all tasks and set the aborted flag to True.
+        It is used to handle the big red button press.
+        """
+        self._bigredbutton_cb(String(data="Big Red Button pressed"))
+        return True
 
     def _reset_emergency_cb(self, request, response):
         self.emergency_flag = False
@@ -773,3 +934,15 @@ class WaraPSTaskHandler:
         response.message = "Emergency flag set to False."
         self._node.get_logger().info("Emergency flag reset to False by service call.")
         return response
+    
+    def get_available_tasks(self):
+        """
+        Returns the list of available tasks.
+        """
+        return self.tasks_available
+    
+    def current_time(self):
+        """
+        Returns the current time in seconds.
+        """
+        return self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
