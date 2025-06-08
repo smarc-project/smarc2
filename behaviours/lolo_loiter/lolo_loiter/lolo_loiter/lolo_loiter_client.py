@@ -94,13 +94,13 @@ class LoiterClient(SMARCActionClient):
     def _test_loiter(self):
         """For testing geopoint setting."""
         goal = LoiterGoal()
-        geopoint = GeoPoint()
-        geopoint.latitude = 58.830426
-        geopoint.longitude = 17.652015
-        goal.geopoint = geopoint
-        goal.target_depth = 0.00
-        goal.min_altitude = 20.0
-        goal.rpm = 500
+        # geopoint = GeoPoint()
+        # geopoint.latitude = self.vehicle.pos_x
+        # geopoint.longitude = self.vehicle.pos_y
+        # goal.geopoint = geopoint
+        # goal.target_depth = -1.00
+        # goal.min_altitude = 5.0
+        # goal.rpm = 300
         goal.timeout = 600
         self.logger.info(f"Sending Loiter goal:\n{goal}")
         self.send_loiter(goal)
