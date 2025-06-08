@@ -79,7 +79,9 @@ if [ "$USE_SIM_TIME" = "True" ]; then
     tmux select-window -t $SESSION:7
     tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 else
-    echo "Skipping vehicle health publisher in real mode."
+    tmux new-window -t $SESSION:7 -n 'vehicle_health'
+    tmux select-window -t $SESSION:7
+    tmux send-keys "ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
 fi
 
 # Set default window
