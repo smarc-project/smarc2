@@ -22,7 +22,8 @@ string POS_LATLON_TOPIC = 'smarc/latlon' #geopoint
 string BATTERY_PERCENT_TOPIC = 'smarc/battery_percent' #batterystate
 string DEPTH_TOPIC = 'smarc/depth' #float32
 string ALTITUDE_TOPIC = 'smarc/altitude' #float32
-#TODO: add topics for roll/pitch and make git issue on smarc2
+string ROLL_TOPIC = 'smarc/roll' #float32
+string PITCH_TOPIC = 'smarc/pitch' #float32
 
 ################
 # WARA-PS Topics

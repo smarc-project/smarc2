@@ -1,11 +1,10 @@
 #! /bin/bash
 ROBOT_NAME=lolo
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=False
+USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
-LEVELS="['sensor','direct_execution']"
 PULSE_RATE=0.5 # Hz
 
 if [ "$USE_SIM_TIME" = "True" ]; then
@@ -23,7 +22,7 @@ tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_na
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'servers'
@@ -48,10 +47,10 @@ tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:3
 
 # To connect to our MQTT broker
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
 
 # For local testing: use defaults
-# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
 
 # launch hardware drivers if REALSIM is set to real
 if [ "$REALSIM" = "real" ]; then
@@ -74,7 +73,7 @@ else
     echo "Skipping hardware drivers launch in simulation mode."
 fi
 
-if [ "$USE_SIM_TIME" = "False" ]; then
+if [ "$USE_SIM_TIME" = "True" ]; then
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
     tmux new-window -t $SESSION:7 -n 'vehicle_health'
     tmux select-window -t $SESSION:7

@@ -33,9 +33,9 @@ class CruiseDepthHeadingActionParsing:
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
             goal = CruiseDepthHeadingGoal()
-            goal.heading = float(fmt_dict["target_heading"]["heading"])
-            goal.target_depth = float(fmt_dict["target_depth"]["depth"])
-            goal.min_altitude = float(fmt_dict["min_altitude"]["altitude"])
+            goal.heading = float(fmt_dict["target_heading"])
+            goal.target_depth = float(fmt_dict["target_depth"])
+            goal.min_altitude = float(fmt_dict["min_altitude"])
             goal.rpm = float(fmt_dict["rpm"])
             goal.timeout = float(fmt_dict["timeout"])
             return goal
