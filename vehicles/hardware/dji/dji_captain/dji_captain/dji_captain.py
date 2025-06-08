@@ -43,7 +43,7 @@ class PSDKTopics(Enum):
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-        self._tf_ns = "QuadrotorCaptain/"
+        self._tf_ns = "Quadrotor/"
         
         self.READY_BATTERY_PERCENTAGE = 0.4
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -86,7 +86,8 @@ class DjiCaptain():
 
         self._utm_labeled_frame : str | None = None
 
-
+        topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
@@ -105,6 +106,8 @@ class DjiCaptain():
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
 
         self._status_str_timer = node.create_timer(0.5,lambda: self.log(self.status_str))
+        self._tf_pub_status = "Not published yet"
+        self._smarc_pub_status = "Not published yet"
 
 
         node.create_subscription(
@@ -200,7 +203,9 @@ class DjiCaptain():
         
         s += f"\n  Got Control: {self._got_control}\n"
         s += f"  Flying: {self._flying}\n"
-        s += f"  Carrying Payload: {self._carrying_payload}\n"
+        # s += f"  Carrying Payload: {self._carrying_payload}\n"
+        s += f"  Smarc Topics: {self._smarc_pub_status}\n"
+        s += f"  TF: {self._tf_pub_status}\n"
         if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
             s += f"  Vehicle Health: READY\n"
         elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
@@ -388,14 +393,14 @@ class DjiCaptain():
     
     def _publish_tf(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
-            self.log(f"Position({self._base_pose_in_home is not None}),\
-home({self._home_point_in_utm is not None}) or GPS({self._gps_point_in_home is not None})\
-not set, skipping TF publish.")
             return
+        
 
         tf_msg = TFMessage()
         tf_msg.transforms = []
         now = self.now_stamp
+
+        self._tf_pub_status = f"Published at {now.sec}.{now.nanosec} sec"
 
         # 0 transforms for home -> map, home -> odom
         # for compatibility with other systems
@@ -463,10 +468,9 @@ not set, skipping TF publish.")
 
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
-            self.log(f"Position({self._base_pose_in_home is not None}),\
-home({self._home_point_in_utm is not None}) or GPS({self._gps_point_in_home is not None})\
-not set, skipping SMaRC publish.")
             return
+        
+        self._smarc_pub_status = f"Published at {self.now_stamp.sec}.{self.now_stamp.nanosec} sec"
 
         odom = Odometry()
         odom.header.stamp = self.now_stamp
