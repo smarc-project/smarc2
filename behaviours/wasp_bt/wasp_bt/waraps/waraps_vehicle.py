@@ -158,10 +158,13 @@ class WaraPSVehicle():
                 # "altitude_reference": "WGS84",
                 "type": "GeoPoint"
             }
-            msg = String()
-            msg.data = json.dumps(position_msg)
-            self._wara_ps_position_pub.publish(msg)
-            # self._node.get_logger().info('Published Position message')
+
+            # check for validity
+            if (position_msg["latitude"] is not None and position_msg["longitude"] is not None):
+                msg = String()
+                msg.data = json.dumps(position_msg)
+                self._wara_ps_position_pub.publish(msg)
+                # self._node.get_logger().info('Published Position message')
         except Exception:
             self._node.get_logger().error("Failed to publish position data. Check if the vehicle state has valid position data.")
             
@@ -173,8 +176,10 @@ class WaraPSVehicle():
         try:
             course_msg = String()
             course_msg.data = f"{self._vehicle_state[SensorNames.COURSE_DEG][0]}"
-            self._wara_ps_course_pub.publish(course_msg)
-            # self._node.get_logger().info('Published Course message')
+
+            if course_msg.data is not None:
+                self._wara_ps_course_pub.publish(course_msg)
+                # self._node.get_logger().info('Published Course message')
         except Exception:
             pass
 
@@ -183,8 +188,9 @@ class WaraPSVehicle():
             heading_msg = String()
             heading_msg.data = f"{self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]}"
             # float
-            self._wara_ps_heading_pub.publish(heading_msg)
-            # self._node.get_logger().info('Published Heading message')
+            if heading_msg.data is not None:
+                self._wara_ps_heading_pub.publish(heading_msg)
+                # self._node.get_logger().info('Published Heading message')
         except Exception:
             pass
         
@@ -194,8 +200,9 @@ class WaraPSVehicle():
             speed_msg.data = f"{self._vehicle_state[SensorNames.SPEED][0]}"
             # speed_msg.data = "0.0
             # float
-            self._wara_ps_speed_pub.publish(speed_msg)
-            # self._node.get_logger().info('Published Speed message')
+            if speed_msg.data is not None:
+                self._wara_ps_speed_pub.publish(speed_msg)
+                # self._node.get_logger().info('Published Speed message')
         except:
             pass
 
@@ -217,13 +224,11 @@ class WaraPSVehicle():
 
         # 7. publish depth data
         depth_msg = String()
-        try:
-            depth_msg.data = f"{self._vehicle_state[SensorNames.DEPTH][0]}"
-        except:
-            depth_msg.data = "-1"
+        depth_msg.data = f"{self._vehicle_state[SensorNames.DEPTH][0]}"
         # float
-        self._wara_ps_depth_pub.publish(depth_msg)
-        # self._node.get_logger().info('Published Depth message')            
+        if depth_msg.data is not None:
+            self._wara_ps_depth_pub.publish(depth_msg)
+            # self._node.get_logger().info('Published Depth message')            
 
         return True
     
