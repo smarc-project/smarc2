@@ -171,7 +171,92 @@ class HSVDetectorNode(Node):
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         #cv2.imshow('HSV_buoy', preview_buoy) ok 
-        #########################################################################################
+        #########################################################################################  auv
+
+
+        # HSV filter for sam auv
+        lower_yellow = np.array([0, 55, 153])  # manual hsv detector
+        upper_yellow = np.array([195, 97, 254])
+        hsv_thresh_auv = cv2.inRange(imghsv, lower_yellow, upper_yellow)
+        preview_auv = cv2.bitwise_and(image, image, mask=hsv_thresh_auv)
+        preview_auv_2 = preview_auv.copy()
+        #cv2.imshow('HSV_auv', preview_auv)
+        
+        # Find contours
+        contours, _ = cv2.findContours(hsv_thresh_auv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find largest contour
+        max_area = 0
+        max_contour = None
+        center_auv = None
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area > max_area:
+                max_area = area
+                max_contour = cnt
+
+        # Draw largest contour and show area
+        if max_contour is not None:
+            # Draw the contour
+            # cv2.drawContours(preview_auv, [max_contour], -1, (0, 255, 0), 1)
+
+            # Get center
+            M = cv2.moments(max_contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                #center_auv = (cx,cy)
+                center_auv = np.array([cx, cy])
+                cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+        cv2.imshow('HSV_auv', preview_auv)
+
+
+
+        # Missle-Shape detector Parameters
+        min_area = 300
+        min_aspect_ratio = 2.5  # Tune this: 2.5 means at least 2.5x longer than wide
+        best_contour = None
+        best_ratio = 0
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < min_area:
+                continue
+
+            # Fit rotated rectangle to get aspect ratio
+            rect = cv2.minAreaRect(cnt)
+            width, height = rect[1]
+
+            if width == 0 or height == 0:
+                continue
+
+            aspect_ratio = max(width, height) / min(width, height)
+
+            if aspect_ratio > min_aspect_ratio and aspect_ratio > best_ratio:
+                best_ratio = aspect_ratio
+                best_contour = cnt
+
+        # Draw best contour if found
+        if best_contour is not None:
+            rect = cv2.minAreaRect(best_contour)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(preview_auv_2, [box], 0, (0, 255, 0), 2)
+
+            # Get center from rect
+            center = tuple(map(int, rect[0]))
+            cv2.circle(preview_auv_2, center, 3, (0, 0, 255), -1)
+            cv2.putText(preview_auv_2, f"AUV W/H: {best_ratio:.2f}", (center[0] + 10, center[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+
+        cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
 
 
         # save images 
