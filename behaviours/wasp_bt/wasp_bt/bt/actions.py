@@ -243,8 +243,11 @@ class A_Heartbeat(VehicleBehaviour):
 class A_ActionClient(Behaviour):
     def __init__(self,
                  client: BTActionClient,
+                 bt: HasClock,
                  task_handler: WaraPSTaskHandler):
         super().__init__(f"A_ActionClient({client.get_action_name()})")
+        
+        self._bt = bt
         self._client = client
         self._task_handler = task_handler
 
@@ -270,6 +273,8 @@ class A_ActionClient(Behaviour):
             ActionClientState.RUNNING,
             ActionClientState.CANCELLING
         ]
+
+        self.last_feedback_time = None
 
         self._logger = self._client._node.get_logger()
             
@@ -321,6 +326,14 @@ class A_ActionClient(Behaviour):
 
 
     def update(self) -> Status:
+
+        current_time = self._bt.now_seconds
+        if self.last_feedback_time is None:
+            self.last_feedback_time = current_time
+
+        # log current and last feedback time
+        # self._logger.debug(f"Current time: {current_time}, Last feedback time: {self.last_feedback_time}")
+
         s = self._client.state
 
         # if it was cancelled, get the client ready for a new run for later
@@ -345,7 +358,10 @@ class A_ActionClient(Behaviour):
                 mission_msg.goal.data = msg_str
                 self._client.send_goal(mission_msg)
                 self._logger.info("Emergency action sent.")
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
                 
                 return Status.RUNNING
 
@@ -353,13 +369,19 @@ class A_ActionClient(Behaviour):
             if task_status == "started" or task_status == "resumed":
                 self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."
                 self._task_handler.set_current_task_status("running")
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:    
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
                 
             mplan = self._task_handler.get_current_task_params()
             
             if mplan is None:
                 self.feedback_message = "No task to get a wp from..."
-                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+
+                if current_time - self.last_feedback_time > 1.0:
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    self.last_feedback_time = current_time
                 return Status.FAILURE
 
             
@@ -392,11 +414,14 @@ class A_ActionClient(Behaviour):
         
         if s in self._running_states:
             self.feedback_message = self._client.feedback_message
-            self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+            if current_time - self.last_feedback_time > 1.0:
+            # publish feedback every second
+                self.last_feedback_time = current_time
+                self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
 
         if s in self._failure_states:
-            self.feedback_message = "Action client in failure state."
+            self.feedback_message = f"Action client in failure state: {s}. Check logs for more info."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
 
             # remove the current task from the task handler
