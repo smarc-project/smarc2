@@ -219,7 +219,7 @@ class LoiterServer(SMARCActionServer):
         loiter_goal = self._json_ops.decode(goal_handle.request.goal, ActMsg.GOAL)
         self.vehicle.update()
         pose_stamped_nav_frame = PoseStamped()
-        pose_stamped_nav_frame.header.frame_id = self.vehicle.navigation_frame  
+        pose_stamped_nav_frame.header.frame_id = self.vehicle.navigation_frame
         pose_stamped_nav_frame.pose.position.x = self.vehicle.pos_x
         pose_stamped_nav_frame.pose.position.y = self.vehicle.pos_y
         result_msg.success = self.feedback_loop(
@@ -306,7 +306,7 @@ class LoiterServer(SMARCActionServer):
         goal_reached = True
 
         timed_out = self.timed_out(action_start_time, timeout)
-        while not timed_out:    
+        while not timed_out:
             # Check if we've been cancelled!
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client!")
@@ -320,13 +320,13 @@ class LoiterServer(SMARCActionServer):
                 self.logger.info(f"Moved too far away from the point around which we loiter, distance: {d} m. Moving closer now.")
 
             time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)  # now
-            
+
             time_until_done = timeout - (time_now - action_start_time)
             feedback.feedback = self._json_ops.encode(float(time_until_done))
             self.logger.info(f"Loitering for {time_until_done} more seconds.")
             goal_handle.publish_feedback(feedback)
-            
-            rate.sleep()    
+
+            rate.sleep()
 
             timed_out = self.timed_out(action_start_time, timeout)
 
@@ -352,7 +352,7 @@ def main(args=None):
     node_name = "lolo_loiter_server"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    lolo_loiter = LoiterServer(node, "auv_loiter", action_type)
+    lolo_loiter = LoiterServer(node, "loiter", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
