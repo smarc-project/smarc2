@@ -26,9 +26,5 @@ setup(
         'console_scripts': [
         ],
     },
-    scripts=[
-        "scripts/sam_bringup.sh",
-        "scripts/lolo_bringup.sh",
-        "scripts/quad_bringup.sh",
-    ]
+    scripts = glob.glob('scripts/*')
 )

@@ -6,7 +6,6 @@ USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
-LEVELS="['sensor','direct_execution']"
 PULSE_RATE=1
 LINK_SUFFIX=_gt
 
@@ -73,11 +72,11 @@ tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name
 
 # Launch the wasp_bt LAST, to give action servers time to start publishing heartbeats
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 # option to make it just a node for the waraps agent without the bt
 
-# tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE" C-m
+# tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE" C-m
 
 
 # Set default window
