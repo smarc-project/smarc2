@@ -1,4 +1,3 @@
-
 import numpy as np
 import rclpy
 from geodesy import utm
@@ -218,31 +217,33 @@ class LoiterServer(SMARCActionServer):
         self.logger.debug(f"{goal_handle.request}")
         result_msg = self.action_type.Result
         loiter_goal = self._json_ops.decode(goal_handle.request.goal, ActMsg.GOAL)
-        pose_stamped_utm_frame = self.convert_to_utm(loiter_goal.geopoint)
-        pose_stamped_nav_frame = self.transform_goal(pose_stamped=pose_stamped_utm_frame,
-                                                     override_target=self.target_frame)
-
-        result_msg.success = self.feedback_loop(pose_stamped_nav_frame,
-                                                goal_handle,
-                                                int(loiter_goal.timeout))
-
+        self.vehicle.update()
+        pose_stamped_nav_frame = PoseStamped()
+        pose_stamped_nav_frame.header.frame_id = self.vehicle.navigation_frame  
+        pose_stamped_nav_frame.pose.position.x = self.vehicle.pos_x
+        pose_stamped_nav_frame.pose.position.y = self.vehicle.pos_y
+        result_msg.success = self.feedback_loop(
+            pose_stamped_nav_frame,
+            goal_handle,
+            int(loiter_goal.timeout)
+        )
         return result_msg
 
-    def send_goal_to_vehicle(self, pose: PoseStamped, goal):
+    def send_goal_to_vehicle(self, goal):
         """Sends the goal to the vehicle object (only lolo is supported atm).
 
         Args:
-            pose: target's pose in the vehicle's navigation frame.
             goal: LoiterGoal instance.
 
         Returns:
             Boolean flag, true if the goal was accepted successfully.
         """
-        return self.vehicle.set_goal(x=pose.pose.position.x,
-                                    y=pose.pose.position.y,
-                                    depth=goal.target_depth,
-                                    altitude=goal.min_altitude,
-                                    rpm=goal.rpm,
+        self.vehicle.update()
+        return self.vehicle.set_goal(x=self.vehicle.pos_x,
+                                    y=self.vehicle.pos_y,
+                                    depth=-1.00,
+                                    altitude=5.0,
+                                    rpm=float(300),
                                     timeout=goal.timeout)
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
@@ -262,13 +263,8 @@ class LoiterServer(SMARCActionServer):
         loiter_goal = self._json_ops.decode(goal_request, ActMsg.GOAL)
         self.logger.info(f"Recieved Loiter goal with parameters:\n {loiter_goal}")
 
-        # I think the goal should be sent in the robots nav frame?
-        pose_stamped_utm_frame = self.convert_to_utm(loiter_goal.geopoint)
-        pose_stamped_nav_frame = self.transform_goal(pose_stamped=pose_stamped_utm_frame,
-                                                     override_target=self.target_frame)
-
         # Send the goal to the vehicle and check if it passed the check.
-        if not self.send_goal_to_vehicle(pose_stamped_nav_frame, loiter_goal):
+        if not self.send_goal_to_vehicle(loiter_goal):
             err_str = "Rejecting goal. Goal does not fulfill vehicle limits"
             self.logger.error(err_str)
             return GoalResponse.REJECT
@@ -288,7 +284,8 @@ class LoiterServer(SMARCActionServer):
         self.vehicle.reset_goal()
         return CancelResponse.ACCEPT
 
-    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle,
+    def feedback_loop(self,  pose_stamped: PoseStamped,
+                      goal_handle: ServerGoalHandle,
                       timeout: int) -> bool:
         """Abstracted feedback loop where tolerance checks are conducted.
 
