@@ -20,7 +20,7 @@ class ProbabilisticGridMap(Node):
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
-        GPS_ping: estimated SAM coordinates [x,y] in map frame 
+        GPS_ping: PointStamped with GPS coordinates in any frame (as long as it's connected to Quadrotor/odom_gt) 
 
     Attributes (the relevant ones):
         GPS_ping_odom: estimated SAM coordinates [x,y] in odom frame. It's also used by spiral path planner (as attribute of this class)
@@ -31,7 +31,7 @@ class ProbabilisticGridMap(Node):
 
     """
 
-    def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping:np.array = None):
+    def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping:PointStamped = None):
         super().__init__(name)
         self.get_logger().info('Grid map initialized')
     
@@ -87,6 +87,7 @@ class ProbabilisticGridMap(Node):
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
         self.GPS_ping_odom = self.transform_point(self.GPS_ping)
+        self.get_logger().info(f'Received GPS ping in odom (x,y) = {round(float(self.GPS_ping_odom[0]),2), round(float(self.GPS_ping_odom[1]),2)}')
         self.createMap(self.GPS_ping_odom) 
 
         # gaussian prior, scale probabilities to fit int -> viewing purposes only
@@ -295,22 +296,21 @@ class ProbabilisticGridMap(Node):
         data = self.map_probabilities(np.log10(np.array(data)+sys.float_info.min))
         self.map.data = [int(d) for d in data]
     
-    def transform_point(self, point:list) -> np.array:
+    def transform_point(self, point:PointStamped) -> np.array:
         """Convert points in map frame to odom frame"""
         t = self.tf_buffer.lookup_transform(
-            target_frame=self.drone_odom_frame_id,  
-            source_frame=self.drone_map_frame_id,                 
+            target_frame = self.drone_odom_frame_id,  
+            source_frame = point.header.frame_id,                 
             time=rclpy.time.Time() )
-        goal = PointStamped()
-        goal.header.stamp = t.header.stamp
-        goal.header.frame_id = self.drone_map_frame_id
-        goal.point.x = point[0]
-        goal.point.y = point[1]
-        goal.point.z = self.flight_height 
-        new_goal = tf2_geometry_msgs.do_transform_point(goal, t)
-        self.get_logger().info(f'GPS ping in odom = {(round(float(new_goal.point.x),2), round(float(new_goal.point.y),2))}')
-
-        return np.array([new_goal.point.x, new_goal.point.y]) 
+        # goal = PointStamped()
+        # goal.header.stamp = t.header.stamp
+        # goal.header.frame_id = self.drone_map_frame_id
+        # goal.point.x = point[0]
+        # goal.point.y = point[1]
+        # goal.point.z = self.flight_height 
+        new_point = tf2_geometry_msgs.do_transform_point(point, t)
+        self.get_logger().info(f"GPS ping in quadrotor's odom = {(round(float(new_point.point.x),2), round(float(new_point.point.y),2))}")
+        return np.array([new_point.point.x, new_point.point.y]) 
     
     def initiatePrior(self, GPS_ping_odom:np.array):
         """ Initiate Gaussian prior in the odom_gt frame"""

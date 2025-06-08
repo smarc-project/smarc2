@@ -2,10 +2,12 @@
 import sys
 import rclpy
 from rclpy.node import Node
-from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 from .prob_grid_map import ProbabilisticGridMap 
 from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
 from math import dist
+from smarc_mission_msgs.srv import DronePath, InitAUVSearch
+from geometry_msgs.msg import PoseArray, Pose, PointStamped
 
 
 ##############################################################################
@@ -35,6 +37,14 @@ class SearchPlannerController(Node):
         self.get_params() 
         self.sim_commands = InitializeActions(params = self.model_params)
 
+        # services initialization
+        self.init_search_srv = self.create_service(srv_type = InitAUVSearch,
+                                       srv_name = 'init_auv_search',
+                                       callback = self.init_search_srv_callback)
+        self.get_path = self.create_service(srv_type = DronePath,
+                                       srv_name = 'get_quadrotor_path',
+                                       callback = self.get_path_srv_callback)
+
         # initialize flags and counters to manage path planner and grid map timers
         self.path_node_time_count = 0
         self.gridmap_node_time_count = 0
@@ -56,7 +66,8 @@ class SearchPlannerController(Node):
         # teleport SAM (sim) and initialize GPS ping and drone position
         self.drone_init_pos = None
         self.GPS_ping = None
-        self.sim_commands.teleport_sam()
+        if self.model_params['mode'] == 'sim':
+            self.sim_commands.teleport_sam()
 
         # initialize planner and grid map but without GPS ping and drone position; move drone to flight height (solely vertically)
         self.grid_map = ProbabilisticGridMap(params = self.model_params)
@@ -72,6 +83,30 @@ class SearchPlannerController(Node):
         else:
             self.get_logger().error('Incorrect path planner label! Check launch file')
 
+    def init_search_srv_callback(self, request, response):
+        """ Stores the GPS_ping and desired quadrotor initial position, which will trigger path generation in respective timer."""
+        self.GPS_ping = request.gps
+        self.drone_init_pos = self.planner.transform_point(request.quadrotor_ipos)
+        response.success = True
+        return response
+
+    def get_path_srv_callback(self, request, response):
+        """ Generates path and converts to PoseArray"""
+        if request.data:
+            _ , path = self.planner.generate_path() 
+            path_msg = PoseArray()
+            pose_list = []
+            for i, position in enumerate(path):
+                pose = Pose()
+                pose.position.x = position[0]
+                pose.position.y = position[1]
+                pose.position.z = self.model_params["flight_height"]
+                pose_list.append(pose)
+            path_msg.poses = pose_list
+            response.path = path_msg 
+            return response
+        else: return None
+
 
     """ --- Management of drone initial position and GPS ping retrievals """
 
@@ -84,31 +119,33 @@ class SearchPlannerController(Node):
         """ 
         Attempts to retrieve the GPS ping and the quadrotor's position in map_gt until both are != None. The
         planner will only be executed when these variables are retrieved, which is triggered by the flag init_done.
+
+        If initial drone position is defined, the search planner will wait for the drone until it's sufficiently close
+        to that position. Otherwise (position.<coordinate> == None), the search planner won't wait.
         """
-        if self.drone_init_pos is None:
-            self.drone_init_pos = self.sim_commands.get_quadrotor_position()
-
-        if self.GPS_ping is None:
+        if not self.initial_info.is_canceled():
             if self.model_params['mode'] == 'sim':
-                self.GPS_ping = self.sim_commands.get_GPSxy_ping()
-            else:
-                #TODO: handle real GPS
-                self.GPS_ping = [0,0]
+                if self.drone_init_pos is None:
+                    self.drone_init_pos = self.sim_commands.get_init_quadrotor_position()
 
-        if self.drone_init_pos is not None and self.GPS_ping is not None:
-            self.planner.drone_init_pos = self.drone_init_pos
-            self.grid_map.GPS_ping = self.GPS_ping
+                if self.GPS_ping is None:
+                    self.GPS_ping = self.sim_commands.get_GPSxy_ping()
 
-            self.get_logger().info(f'Drone position = {[round(float(val),1) for val in self.drone_init_pos]}')
-            self.get_logger().info(f'GPS ping (x,y) = {[round(float(val),1) for val in self.GPS_ping]}')
-            self.initial_info.cancel()
-            self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+            if self.drone_init_pos is not None and self.GPS_ping is not None:
+                self.initial_info.cancel()
+                self.grid_map.GPS_ping = self.GPS_ping
+                self.get_logger().info(f'Received GPS ping (x,y) = {round(float(self.GPS_ping.point.x),2), round(float(self.GPS_ping.point.y),2)}')
+                if None in (self.drone_init_pos.point.x, self.drone_init_pos.point.y,  self.drone_init_pos.point.z):
+                    self.init_done = True
+                else:
+                    self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
 
     def check_drone_position(self):
-        x_odom, y_odom = self.planner.generate_waypoint(self.model_params["drone.init_pos"][0],
-                                           self.model_params["drone.init_pos"][1],
-                                           self.planner.flight_height)
-        if dist([x_odom, y_odom], self.model_params["drone.init_pos"]) < 0.5:
+        """ Continously publish initial waypoint and checking distance"""
+        x_odom, y_odom = self.planner.generate_waypoint(self.drone_init_pos.point.x,
+                                        self.drone_init_pos.point.y,
+                                        self.drone_init_pos.point.z)
+        if dist([x_odom, y_odom], [self.drone_init_pos.point.x, self.drone_init_pos.point.y]) < 0.5:
             self.relocate_timer.cancel()
             self.init_done = True
 
@@ -135,7 +172,8 @@ class SearchPlannerController(Node):
                     return
                 self.callback_running = True
                 try:
-                    if not self.planner.generate_path():
+                    safe_path, _ = self.planner.generate_path()
+                    if not safe_path:
                         self.path_timer.cancel()
                         self.return_to_base()
 
@@ -215,7 +253,7 @@ class SearchPlannerController(Node):
             'arf.horizon_radius': self.get_parameter("arf.horizon_radius").value,
             
             "sam.initial_state.pos_variance": self.get_parameter("sam.initial_state.pos_variance").value,
-            'sam.vel_variance': self.get_parameter('sam_.vel_variance').value,
+            'sam.vel_variance': self.get_parameter('sam.vel_variance').value,
             'sam.max_floating_vel': self.get_parameter('sam.max_floating_vel').value, 
 
             "grid_map.workspace.width": self.get_parameter("grid_map.workspace.width").value,
@@ -238,6 +276,16 @@ class SearchPlannerController(Node):
         
 
 def main():
+    """ 
+    Function that initiates the appropriate timers (grid map, path generation). The difference between 'mode' = 'real'
+    and 'mode' = 'sim' resides on the triggering flag and sam teleportation. 
+    
+    In 'sim', it's assumed the user wants to test the pkg standalone. Hence, as soon this file is launched, 
+    SAM is teleported and the search planning initiates. 
+    
+    In 'real', the user has to request the initialization and the path generation via service. Check readme for + info
+    """
+
     rclpy.init(args=sys.argv)
     controller = SearchPlannerController()
     executor = MultiThreadedExecutor()
@@ -245,15 +293,23 @@ def main():
     executor.add_node(controller.sim_commands)
     executor.add_node(controller.planner)
     executor.add_node(controller.planner.grid_map)
-    controller.run_path_planner()
+
+    # timer that continously checks if we have the GPS ping and in that case corresponding flag (init_done) is set to true
+    controller.get_initial_info() 
+
+    # if flag is true, these timers trigger search planning, otherwise nothing happens. In 'sim', the path is automatically
+    # generated over and over again. In 'real', it's the service request that triggers path generation
     controller.run_grid_map()
-    controller.get_initial_info()
+    if controller.model_params['mode'] == 'sim':
+        controller.run_path_planner()
+
     try:
         while True and rclpy.ok() and not controller.simulation_finished:
             executor.spin_once()
     except KeyboardInterrupt:
         return
     pass
+    
 
 
 if __name__ == '__main__':

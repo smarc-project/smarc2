@@ -13,13 +13,13 @@ def generate_launch_description():
     params = {
 
     # --- choose path planner and vehicles' initial positions
-    'mode': 'sim', # 'sim', 'real'
-    'path_planner': 'apf', # 'spiral', 'greedy', 'astar', 'apf'
-    'sam.init_pos': [float(1277.0), float(1146.0)], # position to which sam will teleport (in map). User-defined, only useful in simulation
+    'mode': 'real', # If 'sim', it's assumed the user wants to test the pkg standalone. If 'real', appropriate service requests have to be made
+    'path_planner': 'apf', # 'spiral', 'greedy', 'astar', 'apf' -> path planner type, read documentation/readme
+    'sam.init_pos': [float(1270.0), float(1146.0)], # position to which sam will teleport (in map). User-defined, only useful in  'sim'
     'drone.init_pos': [float(5), float(5)], # position to which drone will move (in odom) at the beginning
 
     # --- common parameters to all path planners
-    'initialization.time_delay': float(4),
+    'initialization.time_delay': float(1), # time between node execution and grid map initialization (in seconds)
     'flight_height': 6.0,
     'camera_fov': 82.0,
     'intermediate_dt': float(2.0), # dt between path points in case drones gets too unstable.
@@ -43,11 +43,11 @@ def generate_launch_description():
     # --- Artificial Potential Field (ARF) parameters
     #'arf.look_ahead_time': 5, # different from regular lat: it will say how far the waypoint is from current position, not a distance threshold!
     'arf.k_attractive': 100, # k constant for attractive potential field (bigger -> goal will attract more)
-    'arf.k_repulsive': 85, # k constant for repulsive potential field (bigger -> neighbouring cells will repulse more)
-    'arf.goal_distance_factor': 90, # factor to determine how far is the goal (bigger factor -> smaller acceleration by resultant of forces -> closer goal). Think of it as mass
+    'arf.k_repulsive': 70, # k constant for repulsive potential field (bigger -> neighbouring cells will repulse more)
+    'arf.goal_distance_factor': 70, # factor to determine how far is the goal (bigger factor -> smaller acceleration by resultant of forces -> closer goal). Think of it as mass
     'arf.d_min': 2, # (minimum) distance threshold to define which cells will exert repulsive force
-    'arf.d_max': 25, # (maximum) distance threshold to define which cells will exert repulsive force
-    'arf.horizon_radius': float(50), # arf planner picks the highest-probability cell within radius x; -1 uses full workspace
+    'arf.d_max': 30, # (maximum) distance threshold to define which cells will exert repulsive force
+    'arf.horizon_radius': float(20), # arf planner picks the highest-probability cell within radius x; -1 uses full workspace
 
     # --- + SAM configs
     'sam.initial_state.pos_variance': 10, # variance considered when sampling the pseudo GPS ping (sam position + noise)
