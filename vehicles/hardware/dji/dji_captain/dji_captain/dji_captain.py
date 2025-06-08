@@ -15,7 +15,7 @@ from geometry_msgs.msg import TwistStamped, Pose, PoseStamped, TransformStamped,
 from geographic_msgs.msg import GeoPoint
 from tf2_msgs.msg import TFMessage
 
-from psdk_interfaces.msg import PositionFused, ControlMode
+from psdk_interfaces.msg import PositionFused, ControlMode, EscData, EscStatusIndividual
 from smarc_msgs.msg import Topics as SmarcTopics
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
@@ -32,11 +32,11 @@ class PSDKTopics(Enum):
     HOME_POINT          = WRAPPER_NS + "home_point"
     HOME_POINT_ALTITUDE = WRAPPER_NS + "home_point_altitude"
     ALTITUDE            = WRAPPER_NS + "altitude_sea_level"
-    HEIGHT_ABOVE_GROUND = WRAPPER_NS + "height_above_ground"
     CONTROL_MODE        = WRAPPER_NS + "control_mode"
     BATTERY             = WRAPPER_NS + "battery" 
     VELOCTY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
     ANGULAR_RATE_GND_FSD= WRAPPER_NS + "angular_rate_ground_fused"
+    ESC_DATA            = WRAPPER_NS + "esc_data"
 
 
 
@@ -46,9 +46,16 @@ class DjiCaptain():
         self._tf_ns = "QuadrotorCaptain/"
         
         self.READY_BATTERY_PERCENTAGE = 0.4
-        self.READY_HEIGHT_ABOVE_GROUND = 3
+        self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 0.15
         self.ERROR_HEIGHT_ABOVE_GROUND = 1
+        # this is the idle RPM/current for the ESCs, below this we consider the vehicle not flying
+        self.NUM_PROPS = 4 # because the esc message always has 8 fields...
+        self.ESC_IDLE_RPM = 1000  
+        self.ESC_IDLE_CURRENT = 200
+        # if things are below these values, we probably have no payload
+        self.ESC_NO_PAYLOAD_CURRENT_MAX = 3000
+        self.ESC_NO_PAYLOAD_RPM_MAX = 3000
 
         self.UTM_FRAME = "utm"
         self.ODOM_FRAME = self._tf_ns + "odom"
@@ -66,13 +73,15 @@ class DjiCaptain():
         self._vehicle_health = Int8()
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
 
+        self._esc_data : EscData | None = None
+
         self._geo_altitude : float | None = None
         self._heading_deg : float | None = None
         self._course_deg : float | None = None
-        self._height_above_ground : float | None = None
 
         self._got_control : bool = False
         self._flying : bool = False
+        self._carrying_payload : bool = False
         self._battery_percent : float | None = None
 
         self._utm_labeled_frame : str | None = None
@@ -134,11 +143,6 @@ class DjiCaptain():
             self._geo_alt_cb,
             qos_profile=10)
 
-        node.create_subscription(
-            Float32,
-            PSDKTopics.HEIGHT_ABOVE_GROUND.value,
-            self._height_above_ground_cb,
-            qos_profile=10)
         
         node.create_subscription(
             ControlMode,
@@ -164,6 +168,12 @@ class DjiCaptain():
             self._angular_rate_ground_callback,
             qos_profile=10)
         
+        node.create_subscription(
+            EscData,
+            PSDKTopics.ESC_DATA.value,
+            lambda msg: setattr(self, "_esc_data", msg),
+            qos_profile=10)
+        
         
 
 
@@ -186,16 +196,17 @@ class DjiCaptain():
         s += f"  Geo Altitude: {self._geo_altitude}\n"
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
-        s += f"  Height Above Ground: {self._height_above_ground}\n"
-        s += f"  Battery Percent: {self._battery_percent}\n"
+        s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
         
         s += f"\n  Got Control: {self._got_control}\n"
+        s += f"  Flying: {self._flying}\n"
+        s += f"  Carrying Payload: {self._carrying_payload}\n"
         if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
-            s += f"  Vehicle Health: READY (flying:{self._flying})\n"
+            s += f"  Vehicle Health: READY\n"
         elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
-            s += f"  Vehicle Health: ERROR (flying:{self._flying})\n"
+            s += f"  Vehicle Health: ERROR\n"
         else:
-            s += f"  Vehicle Health: WAITING (flying:{self._flying})\n"
+            s += f"  Vehicle Health: WAITING\n"
 
 
         return s
@@ -207,9 +218,6 @@ class DjiCaptain():
     def _geo_alt_cb(self, msg: Float32):
         self._geo_altitude = msg.data
 
-    def _height_above_ground_cb(self, msg: Float32):
-        if msg.data < 0: return
-        self._height_above_ground = msg.data
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
         if self._velocity_ground is None:
@@ -342,27 +350,37 @@ class DjiCaptain():
         
     def _publish_vehicle_health(self):
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
+        
+        if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None or self._esc_data is None:
+            self._vehicle_health_pub.publish(self._vehicle_health)
+            return
 
         position_ok = self._home_point_in_utm is not None and self._base_pose_in_home is not None
         gps_ok = self._gps_point_in_home is not None and self._home_point_in_utm is not None
         battery_ok = self._battery_percent is not None and self._battery_percent > self.READY_BATTERY_PERCENTAGE
-        height_ok = self._height_above_ground is not None and self._height_above_ground > self.READY_HEIGHT_ABOVE_GROUND
+        height_ok = self._base_pose_in_home.pose.position.z > self.READY_HEIGHT_ABOVE_GROUND
         control_ok = self._got_control
 
         if all([position_ok, gps_ok, battery_ok, height_ok, control_ok]):
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
 
 
+        # collect all the rpms and currents into lists
+        #TODO use the currents/speed to determine if we are carrying a payload eventually.
+        speeds = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
+        # currents = [esc.current for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
+        # check if all of the rpms are above the idle rpm
+        speeds_flying = all(rpm > self.ESC_IDLE_RPM for rpm in speeds)
+        self._flying = speeds_flying and height_ok
+
+
+
         if self._flying:
             battery_error = self._battery_percent is not None and self._battery_percent < self.ERROR_BATTERY_PERCENTAGE
-            height_error = self._height_above_ground is not None and self._height_above_ground < self.ERROR_HEIGHT_ABOVE_GROUND
+
             if battery_error:
                 self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_ERROR
                 self.log(f"BATTERY BELOW LIMIT: {self._battery_percent:.2f} < {self.ERROR_BATTERY_PERCENTAGE:.2f}")
-
-            if height_error:
-                self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_ERROR
-                self.log(f"HEIGHT BELOW LIMIT: {self._height_above_ground:.2f} < {self.ERROR_HEIGHT_ABOVE_GROUND:.2f}")
 
 
         self._vehicle_health_pub.publish(self._vehicle_health)
@@ -440,18 +458,6 @@ not set, skipping TF publish.")
             rtk_tf.transform.rotation.w = 1.0
             tf_msg.transforms.append(rtk_tf)
         
-        
-
-        # ground in base
-        ground_in_base = TransformStamped()
-        ground_in_base.header.stamp = now
-        ground_in_base.header.frame_id = self.ODOM_FRAME
-        ground_in_base.child_frame_id = self._tf_ns + "ground"
-        ground_in_base.transform.translation.x = base_in_home.transform.translation.x
-        ground_in_base.transform.translation.y = base_in_home.transform.translation.y
-        ground_in_base.transform.translation.z = -self._height_above_ground if self._height_above_ground is not None else 0.0
-
-        tf_msg.transforms.append(ground_in_base)
 
         self._tf_pub.publish(tf_msg)
 
@@ -496,6 +502,8 @@ not set, skipping SMaRC publish.")
         base_in_utm.point.z = self._base_pose_in_home.pose.position.z + self._home_point_in_utm.point.z
         base_in_geopoint = convert_utm_to_latlon(base_in_utm)
         self._pos_latlon_pub.publish(base_in_geopoint)
+        self._altitude_pub.publish(Float32(data=self._base_pose_in_home.pose.position.z))
+
 
         if self._heading_deg is not None:
             self._heading_pub.publish(Float32(data=self._heading_deg))
@@ -512,10 +520,7 @@ not set, skipping SMaRC publish.")
 
         if self._battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self._battery_percent))
-            
-        if self._height_above_ground is not None:
-            self._altitude_pub.publish(Float32(data=self._height_above_ground))
-
+                        
         
 
 def format_point_stamped(point: PointStamped|None) -> str:
