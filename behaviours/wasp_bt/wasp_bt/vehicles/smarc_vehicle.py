@@ -4,7 +4,7 @@ from rclpy.node import Node
 import tf2_ros
 from tf_transformations import euler_from_quaternion
 
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Int8
 from geographic_msgs.msg import GeoPoint
 
 from std_msgs.msg import Empty, Bool
@@ -41,11 +41,11 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
         
-        self._abort_pub = node.create_publisher(String, Topics.ABORT_TOPIC, 10)
-        self._abort_sub = node.create_subscription(String, Topics.ABORT_TOPIC, self._abort_cb, 10)
+        self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
+        self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
 
         self._heartbeat_pub = node.create_publisher(Empty, Topics.BT_HEARTBEAT_TOPIC, 10)
-        self._vehicle_healthy_sub = node.create_subscription(Bool, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
+        self._vehicle_healthy_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_healthy_cb, 10)
 
     def current_time(self) -> float:
         sec, _ = self._node.get_clock().now().seconds_nanoseconds()
@@ -53,6 +53,8 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
 
     def abort(self):
         self._abort_pub.publish(Empty())
+        self._vehicle_state.abort()
+        self._log(f"Vehicle {self._robot_name} aborted.")
         return True
 
     def heartbeat(self):

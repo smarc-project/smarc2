@@ -1,5 +1,6 @@
 import rclpy
 from action_msgs.msg import GoalStatus
+from geographic_msgs.msg import GeoPoint
 from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
 from smarc_action_base.smarc_action_base import (
@@ -10,12 +11,12 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 
-from lolo_cruise_depth_at_heading.cruise_depth_at_heading_goal import CruiseDepthHeadingGoal
-from lolo_cruise_depth_at_heading.action_parsing import ActionSubMsg as ActMsg
-from lolo_cruise_depth_at_heading.action_parsing import CruiseDepthHeadingActionParsing
+from lolo_loiter.loiter_goal import LoiterGoal
+from lolo_loiter.action_parsing import ActionSubMsg as ActMsg
+from lolo_loiter.action_parsing import LoiterActionParsing
 
 
-class CruiseDepthHeadingClient(SMARCActionClient):
+class LoiterClient(SMARCActionClient):
     """Client for sending Geopoint message requests to vehicles.
 
     Attributes:
@@ -32,7 +33,7 @@ class CruiseDepthHeadingClient(SMARCActionClient):
         super().__init__(node, action_name, action_type)
         self.logger = self._node.get_logger()
         self.declare_parameters()
-        self._json_ops = CruiseDepthHeadingActionParsing()
+        self._json_ops = LoiterActionParsing()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
 
     def declare_parameters(self):
@@ -68,47 +69,50 @@ class CruiseDepthHeadingClient(SMARCActionClient):
             response: receives CancelGoal action msg
         """
         if len(response.goals_canceling) > 0:
-            self.logger.info("Successfully canceled goal.")
+            self.logger.info("Successfully cancelled goal.")
         else:
-            self.logger.info("Unsuccessfully canceled goal.")
+            self.logger.info("Unsuccessfully cancelled goal.")
 
     def cancel_geopoint(self):
         """Interacts with action server to cancel action.
 
         Returns:
-            Boolean where true signifies a goal was successfully canceled. False if not true.
+            Boolean where true signifies a goal was successfully cancelled. False if not true.
 
         """
         self.cancel_goal(self.cancel_callback)
 
-    def send_cruise_at(self, cruise_at_goal: CruiseDepthHeadingGoal):
+    def send_loiter(self, loiter_goal: LoiterGoal):
         """Request geopoint be sent to server.
 
         Interface for external usage of client.
         """
         goal_msg = BaseAction.Goal()
-        goal_msg.goal = self._json_ops.encode(cruise_at_goal)
+        goal_msg.goal = self._json_ops.encode(loiter_goal)
         self.send_goal(goal_msg)
 
-    def _test_cruise_at(self):
+    def _test_loiter(self):
         """For testing geopoint setting."""
-        goal = CruiseDepthHeadingGoal()
-        goal.heading = 0.0
-        goal.target_depth = 50.0
+        goal = LoiterGoal()
+        geopoint = GeoPoint()
+        geopoint.latitude = 58.830426
+        geopoint.longitude = 17.652015
+        goal.geopoint = geopoint
+        goal.target_depth = 0.00
         goal.min_altitude = 20.0
-        goal.rpm = 1000
-        goal.timeout = 120
-        self.logger.info(f"Sending CruiseDepthHeading goal:\n{goal}")
-        self.send_cruise_at(goal)
+        goal.rpm = 500
+        goal.timeout = 600
+        self.logger.info(f"Sending Loiter goal:\n{goal}")
+        self.send_loiter(goal)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "lolo_cruise_at_heading_client"
+    node_name = "lolo_loiter_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = CruiseDepthHeadingClient(node, "cruise_depth_at_heading", action_type)
-    setpoint._test_cruise_at()
+    setpoint = LoiterClient(node, "auv_loiter", action_type)
+    setpoint._test_loiter()
     rclpy.spin(node)
 
 
