@@ -29,19 +29,6 @@
             <param name="elev_sp_top" value="ctrl/elevator_pid/setpoint"/>
         </node>
 
-	<node pkg="sam_dead_reckoning" exec="depth_node" name="depth_node" output="screen">
-	     <param name="robot_name" value="$(var robot_name)" />
-	     <param name="simulation" value="false" />
-	     <param name="use_sim_time" value="false" />
-	</node>
-
-
-	<node name="diving" pkg="sam_diving_controller" exec="joy_depth" output="screen">
-		<param name="robot_name" value="$(var robot_name)"/>
-		<param name="tf_suffix" value="$(var tf_suffix)"/>
-		<param from="$(var control_yaml)"/>
-	</node>
- 
     
        
     </group>
