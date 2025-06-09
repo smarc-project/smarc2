@@ -33,7 +33,7 @@ class LoiterActionParsing:
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
             goal = LoiterGoal()
-            goal.timeout = float(fmt_dict["loiter"]["timeout"])
+            goal.timeout = float(fmt_dict["timeout"])
             return goal
         elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["time_remaining"])
@@ -46,8 +46,7 @@ class LoiterActionParsing:
         str_msg = String()
         fmt_dict = {}
         if isinstance(val, (LoiterGoal,)):
-            fmt_dict["loiter"] = {}
-            fmt_dict["loiter"]["timeout"] = val.timeout
+            fmt_dict["timeout"] = val.timeout
         elif isinstance(val, (float,)):
             fmt_dict["time_remaining"] = val
         else:
