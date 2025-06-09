@@ -5,7 +5,7 @@ from rclpy.time import Time
 from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Empty, Int8, Float32
+from std_msgs.msg import Empty, Int8, Float32, Float64
 
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_msgs.msg import DVL
@@ -30,6 +30,8 @@ class SAMSMARCPublisher(Node):
         self._create_abort_pubsub()
         self._create_bt_heartbeat_pubsub()
         self._create_altitude_pubsub()
+        self._create_roll_pubsub()
+        self._create_pitch_pubsub()
         self._create_battery_status_pubsub()
 
         self._create_odom_pubsub()
@@ -86,6 +88,20 @@ class SAMSMARCPublisher(Node):
         """
         self.altitude_pub.publish(Float32(data=msg.altitude))
 
+    def _create_roll_pubsub(self):
+        self.roll_pub = self.create_publisher(Float32, SmarcTopics.ROLL_TOPIC, 10)
+        self.roll_sub = self.create_subscription(Float64, DRTopics.DR_ROLL_TOPIC, self.roll_callback, 10)
+
+    def roll_callback(self, msg):
+        self.roll_pub.publish(Float32(data=msg.data))
+
+    def _create_pitch_pubsub(self):
+        self.pitch_pub = self.create_publisher(Float32, SmarcTopics.PITCH_TOPIC, 10)
+        self.pitch_sub = self.create_subscription(Float64, DRTopics.DR_PITCH_TOPIC, self.pitch_callback, 10)
+
+    def pitch_callback(self, msg):
+        self.pitch_pub.publish(Float32(data=msg.data))
+
     def _create_odom_pubsub(self):
         """
         Creates subscription from Odometry data.
@@ -100,7 +116,6 @@ class SAMSMARCPublisher(Node):
         self.latlon_pub = self.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10)
         self.heading_pub = self.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, 10)
 
-        #TODO: Publish course and speed
         self.course_pub = self.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, 10)
         self.speed_pub = self.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
 
