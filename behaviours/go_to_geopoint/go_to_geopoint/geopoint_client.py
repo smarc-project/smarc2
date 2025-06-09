@@ -95,9 +95,8 @@ class GeopointClient(SMARCActionClient):
     def _test_geopoint(self):
         """For testing geopoint setting."""
         geopoint = GeoPoint()
-        # https://awsm-tools.com/utm-to-lat-long?form%5Beasting%5D=652698.125&form%5Bnorthing%5D=6524250.5&form%5Bzone%5D=33&form%5Bband%5D=V&form%5Bellipsoid%5D=WGS+84
         geopoint.latitude = 58.850281
-        geopoint.longitude = 17.674866
+        geopoint.longitude = 17.676
         geopoint.altitude = 10.0
         self.logger.info(f"Sending geopoint {geopoint}")
         self.send_geopoint(geopoint)
@@ -109,8 +108,9 @@ def main(args=None):
     node = Node(node_name)
     action_type = ActionType(BaseAction)
     setpoint = GeopointClient(node, "go_to_setpoint", action_type)
-    setpoint._test_geopoint()
+    # setpoint._test_geopoint()
     rclpy.spin(node)
+
 
 
 if __name__ == "__main__":

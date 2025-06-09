@@ -70,6 +70,7 @@ class teleop(Node):
         #self.elev_sp_pub = self.create_publisher( Float64,ControlTopics.ELEV_SP_TOP, qos_profile=1)
         self.thrrust1_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER1_CMD_TOPIC,  qos_profile=1)
         self.thrrust2_pub = self.create_publisher(ThrusterRPM,Topics.THRUSTER2_CMD_TOPIC,  qos_profile=1)
+        self.thrust_rpms_pub = self.create_publisher(ThrusterRPMs, 'core/thruster_rpms_cmd', qos_profile=1)
         self.vector_pub = self.create_publisher(ThrusterAngles,Topics.THRUST_VECTOR_CMD_TOPIC,  qos_profile=1)
 
         # Subscribers
@@ -99,7 +100,7 @@ class teleop(Node):
         Callback function for the joystick subscriber
         """
 
-        RPM_MAX = 1500
+        RPM_MAX = 800
         RAD_MAX = 0.1
         RPM_LINEAR_STEP_SIZE = 1/15
 
@@ -127,8 +128,10 @@ class teleop(Node):
             y_cmd = max(min(y_cmd, 0.1), -0.1)  # Elevator boundaries
             # elev_cmd = self.elev_effort if self.assisted_driving_enabled else y_cmd
 
+            self.rpm_msg.header.stamp = self.get_clock().now().to_msg()
             self.rpm_msg.thruster_1_rpm = int(rpm_cmd)
             self.rpm_msg.thruster_2_rpm = int(rpm_cmd)
+            self.vec_msg.header.stamp = self.get_clock().now().to_msg() 
             self.vec_msg.thruster_horizontal_radians = - x_cmd
             self.vec_msg.thruster_vertical_radians = y_cmd
 
@@ -141,6 +144,7 @@ class teleop(Node):
             self.thrrust1_pub.publish(rpm_msg)
             rpm_msg.rpm = self.rpm_msg.thruster_2_rpm
             self.thrrust2_pub.publish(rpm_msg)    
+            self.thrust_rpms_pub.publish(self.rpm_msg)  # NOTE: This contains RPM1, RPM2, and a stamp!
             
             zero = self.rpm_msg.thruster_1_rpm == 0
             

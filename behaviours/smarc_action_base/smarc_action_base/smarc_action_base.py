@@ -2,7 +2,8 @@ import abc
 import traceback
 from functools import partial
 import enum
-from typing import Any
+import threading
+from typing import Any, Callable
 
 from action_msgs.msg import GoalStatus
 from action_msgs.srv import CancelGoal
@@ -11,6 +12,7 @@ from action_msgs.srv import CancelGoal
 from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
 from rclpy.task import Future
 from rclpy.type_support import check_for_type_support
@@ -153,16 +155,21 @@ class SMARCActionServer(abc.ABC):
             self.action_type.ros_type,
             action_name,
             self.execution_callback,
+            callback_group=ReentrantCallbackGroup(),
             **kwargs,
         )
         self._heartbeat_topic = heartbeat_topic
         self._server.register_goal_callback(self._wrap_goal_callback)
         self._server.register_cancel_callback(self._wrap_cancel_callback)
+        self._server.register_handle_accepted_callback(self._handle_accepted_callback)
         self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
         self._hb_pub = self._node.create_publisher(String, heartbeat_topic, 5)
         self._hb_msg = String()
-        # TODO: NEED TO PARSE Namespace here
         self._hb_msg.data = self.parsed_action_name
+
+        # Multiple goal handling
+        self._goal_lock = threading.Lock()
+        self._base_goal_handle: None | ServerGoalHandle = None
 
     def _heartbeat_cb(self):
         """Sends out topic to Wara-PS on specified heartbeat timer cadence."""
@@ -175,6 +182,34 @@ class SMARCActionServer(abc.ABC):
             self._parsed_action_name = self._construct_hb_msg()
         return self._parsed_action_name
 
+    @property
+    def is_valid_goal(self) -> bool:
+        """Returns valid goal status. If goal is None, returns False."""
+
+        self._node.get_logger().debug(f"[action-base] Checking goal validity (trying lock)")
+        # blocking threads from writing as goal is checked
+        with self._goal_lock:
+            return self._no_lock_is_valid_goal
+
+    @property
+    def _no_lock_is_valid_goal(self) -> bool:
+        """Returns valid goal status. If goal is None, returns False.
+
+        No lock exists otherwise you are recursively calling a lock creating a *deadlock*
+
+        **If you don't know how locks work or why we need them DON'T use this property**
+
+        """
+        if self._base_goal_handle is None:
+            return False
+        # TODO: (Tim) Validate this OR versus AND
+        if (
+            not self._base_goal_handle.is_active
+            or self._base_goal_handle.is_cancel_requested
+        ):
+            return False
+        return True
+
     def _construct_hb_msg(self) -> str:
         """Constructs heartbeat message with proper namespace.
 
@@ -185,51 +220,62 @@ class SMARCActionServer(abc.ABC):
         namespace = self._node.get_namespace()
         msg_str = combine_ns_and_action(namespace, self._action_name)
         self._node.get_logger().info(
-            f"Parsed out action server name for Wara-PS: {msg_str}"
+            f"[action-base] Parsed out action server name for Wara-PS: {msg_str}"
         )
         return msg_str
 
-    @abc.abstractmethod
-    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+    def _handle_accepted_callback(self, goal_handle: ServerGoalHandle):
+        """Handles multithreaded goal acceptance.
+
+        Acquires lock and adds goal into accepted list. It will abort any old goals it is running if a new one comes in.
+
+        Best reference for this: https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_server/examples_rclpy_minimal_action_server/server_single_goal.py
         """
-        Primary execution callback.
 
-        Here your action server will do most of the heavy lifting of computing whatever it needs to.
+        self._node.get_logger().debug(f"[action-base] Accepted goal validity (trying lock)")
+        with self._goal_lock:
+            self._node.get_logger().debug(f"[action-base] Accepted goal validity (has lock)")
+            # This server only allows one goal at a time
+            self._base_goal_handle = goal_handle
+            if not self._no_lock_is_valid_goal:
+                self._node.get_logger().info("[action-base] Aborting previous goal")
 
-        Returns:
-            result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
-        """
-        pass
+                # TODO: (Tim) If there are issues with goals not canceling correctly you may need to 
+                # call some form of cancel of callback here on the user end to cancel this goal
+                # TLDR from previous warning:
+                # How does this need to cancel the current goal if a new goal comes in. It might not
+                # Overwriting this goal handle immediately will do what to the old execution callback?
 
-    def _wrap_cancel_callback(self, goal_handle) -> CancelResponse:
+                # Abort the existing goal
+                self._base_goal_handle.abort()
+            self._base_goal_handle = goal_handle
+        self._base_goal_handle.execute()
+        return
+
+    def _wrap_cancel_callback(self, goal_handle:ServerGoalHandle) -> CancelResponse:
         """Wraps user callback in try and except to prevent failed cancellation requests due to exceptions."""
         try:
-            return self.cancel_callback(goal_handle)
+            usr_return = self.cancel_callback(goal_handle)
+            return usr_return
         except Exception as err:
             logger = self._node.get_logger()
             trace = traceback.format_exc()
-            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
+            err_str = f"[action-base] User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + trace)
             return CancelResponse.REJECT
 
-    @abc.abstractmethod
-    def cancel_callback(self, goal_handle) -> CancelResponse:
-        """
-        Implement goal cancel logic in this method.
-
-        Return:
-            cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
-        """
-        pass
-
     def _wrap_goal_callback(self, goal_request) -> GoalResponse:
         """Wraps user callback in try and except to prevent failed goal requests not responding due to exceptions."""
+        if self.is_valid_goal:
+            self._node.get_logger().debug(f"[action-base] Rejecting goal request as current goal is running")
+            return GoalResponse.REJECT
+
         try:
             return self.goal_callback(goal_request)
         except Exception as err:
             logger = self._node.get_logger()
             trace = traceback.format_exc()
-            err_str = f"User provided callback failed with exception. See exception below:\n{err}\n"
+            err_str = f"[action-base] User provided callback failed with exception. See exception below:\n{err}\n"
             logger.error(err_str + str(trace))
             return GoalResponse.REJECT
 
@@ -243,6 +289,31 @@ class SMARCActionServer(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """
+        Primary execution callback.
+
+        Here your action server will do most of the heavy lifting of computing whatever it needs to.
+
+        WARN: Ensure every iteration in the execution callback and feedback loop you check if the is_valid_goal()
+            ROS does not natively cancel these execution callbacks
+
+        Returns:
+            result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
+        """
+        pass
+
+    @abc.abstractmethod
+    def cancel_callback(self, goal_handle) -> CancelResponse:
+        """
+        Implement goal cancel logic in this method.
+
+        Return:
+            cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
+        """
+        pass
+
 
 class SMARCActionClient(abc.ABC):
     """Action client base class.
@@ -253,7 +324,7 @@ class SMARCActionClient(abc.ABC):
         _goal_handle: internal handle to goal to help register callbacks as user needs them
     """
 
-    def __init__(self, node: Node, action_name: str, action_type: ActionType, **kwargs):
+    def __init__(self, node: Node, action_name: str, action_type: ActionType, num_iters: int = 10, **kwargs):
         self._node: Node = node
         self.action_type = action_type
         self._client: ActionClient = ActionClient(
@@ -265,7 +336,7 @@ class SMARCActionClient(abc.ABC):
         self._action_name = action_name
         self._goal_handle: ClientGoalHandle | None = None
         self._state: ActionClientState = ActionClientState.DISCONNECTED
-        self._setup()
+        # self._setup(num_iters=num_iters)
 
     @property
     def state(self):
@@ -274,21 +345,42 @@ class SMARCActionClient(abc.ABC):
     @state.setter
     def state(self, val):
         try:
+            # saving previous state for logger output
+            prev_state = self._state
             self._state = _validate_state(val)
-            name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
-            self._node.get_logger().info(f"Client State ({name}) is {self._state}")
+            
+            # if the action_name is not an absolute path, prepend the namespace
+            if not self._action_name.startswith("/"):
+                name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            else:
+                name = self._action_name
+            if prev_state != self._state:
+                self._node.get_logger().info(
+                    f"[action-base] Client State ({name}) transitioned from {prev_state} to {self._state}"
+                )
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
-            self._node.get_logger().error(f"{err_str}")
+            self._node.get_logger().error(f"[action-base] {err_str}")
 
-    def _setup(self):
+    def _setup(self, num_iters: int = 3):
         server_status = False
-        while not server_status:
-            self._node.get_logger().info("Waiting for server to start.")
+        iters = 0
+        while not server_status and iters < num_iters:
+            iters += 1
+            self._node.get_logger().info("[action-base] Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
-        self._node.get_logger().info("Server found.")
-        self.state = ActionClientState.READY
+        
+        if server_status:
+            self._node.get_logger().info("[action-base] Server found.")
+            self.state = ActionClientState.READY
+        else:
+            self._node.get_logger().error(
+                f"[action-base] Server not found. Cannot send goals to {self._action_name}."
+            )
+            self.state = ActionClientState.DISCONNECTED
+        
+        return server_status
 
     def get_goal_success(self) -> ActionClientState:
         """Success response for proper client state updating."""
@@ -307,15 +399,26 @@ class SMARCActionClient(abc.ABC):
 
     def _wrap_result_callback(self, future: Future):
         """Simplifies result response callback extracting values from future."""
-        result: ActionResult = future.result().result
-        status: GoalStatus = future.result().status
+        raw_result: ActionResult = future.result()
+        if raw_result is None:
+            # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
+            # otherwise the callback would not be called
+            self._node.get_logger().error(
+                f"[action-base] Result or status is none and should not be ({raw_result})"
+            )
+            self.state = ActionClientState.ERROR
+            return
+        result: ActionResult = raw_result.result
+        status: GoalStatus = raw_result.status
         response = self.result_callback(result, status)
-        valid_response = response is ActionClientState.DONE or response is ActionClientState.ERROR
+        valid_response = (
+            response is ActionClientState.DONE or response is ActionClientState.ERROR or ActionClientState.CANCELLED
+        )
         if valid_response:
             self.state = response
         else:
             err_str = "Provided return value from result callback must be either "
-            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR}. "
+            err_str += f"{ActionClientState.DONE} or {ActionClientState.ERROR} or {ActionClientState.CANCELLED}.\n"
             err_str += f"Provided value is {response}"
             raise ValueError(err_str)
 
@@ -325,6 +428,12 @@ class SMARCActionClient(abc.ABC):
         Does preemptive checking on goal success to setup future callbacks.
         """
         self._goal_handle = future.result()
+        if self._goal_handle is None:
+            self.state = ActionClientState.ERROR
+            return
+        self._node.get_logger().debug(
+            f"[action-base] Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}"
+        )
         if self._goal_handle.accepted:
             self.state = ActionClientState.ACCEPTED
             self._get_result()
@@ -356,7 +465,7 @@ class SMARCActionClient(abc.ABC):
         """Implement callback to parse out the result of an action server task.
 
         Returns:
-            Must return ActionClientState.DONE or ActionClientState.ERROR for higher level state management
+            Must return ActionClientState.DONE ActionClientState.ERROR for higher level state management
             **Values can be accessed via `self.get_goal_success()` and `self.get_goal_error()`**
             Return values are checked at runtime.
         """
@@ -369,42 +478,62 @@ class SMARCActionClient(abc.ABC):
             goal_handle: handle provided in `goal_response_callback`.
 
         """
-        self._result_future = self._goal_handle.get_result_async()
+        if self._goal_handle is not None:
+            self._result_future = self._goal_handle.get_result_async()
+        else:
+            raise ValueError(
+                "Goal handle is of type None. This should not be the case."
+            )
         self._result_future.add_done_callback(self._wrap_result_callback)
 
-    def _wrap_cancel_callback(self, user_callback: callable, future: Future):
+    def _wrap_cancel_callback(self, user_callback: Callable[..., Any], future: Future):
         """Wrapper for user's provided callback function.
 
         Formulated based off buried ROS documentation.
             ROS Buried Docs:
-                Response from CancelGoal is a Cancel Response with fileds:
+                Response from CancelGoal is a Cancel Response with fields:
                     - goals_canceling
-                    - goal_info
+                    - return_code
 
         Sources:
         - https://github.com/ros2/examples/blob/master/rclpy/actions/minimal_action_client/examples_rclpy_minimal_action_client/client_cancel.py
+        Cancel Goal Documentation Link
         - https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
-        result: ActionResult = future.result()
+        result: ActionResult | None = future.result()
+        if result is None:
+            # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
+            # otherwise the callback would not be called
+            self._node.get_logger().error(
+                "[action-base] Future result is None which should not occur with callback setup."
+            )
+            self.state = ActionClientState.ERROR
+            return
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
+        self._node.get_logger().debug(f"[action-base] {result}")
         if len(result.goals_canceling) > 0:
             self.state = ActionClientState.CANCELLED
+        else:
+            self._node.get_logger().debug(
+                "[action-base] smarc_action_base client goal failed to cancel."
+            )
         user_callback(result)
 
-    def cancel_goal(self, callback: callable):
+    def cancel_goal(self, usr_callback: Callable[..., Any]):
         """Sends goal cancellation and setups up cancellation callback for caller.
 
         The callback function provided accepts the CancelGoal Response object.
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
+            self._node.get_logger().debug(f"[action-base] Cancelling goal in smarc_action_base.")
             self.state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
-            func = partial(self._wrap_cancel_callback, callback)
+            func = partial(self._wrap_cancel_callback, usr_callback)
             future.add_done_callback(func)
         else:
             self._node.get_logger().debug(
-                "No goal present to cancel. Skipping cancellation."
+                "[action-base] No goal present to cancel. Skipping cancellation."
             )
 
     def send_goal(self, goal_msg: ActionGoal):
@@ -426,3 +555,7 @@ class SMARCActionClient(abc.ABC):
         )
 
         self._send_goal_future.add_done_callback(self._wrap_goal_response_callback)
+
+    def get_action_name(self) -> str:
+        """Returns the action name of the client."""
+        return self._action_name

@@ -1,0 +1,23 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="robot_name" default="Quadrotor"/>
+  <arg name="target_frame" default="odom"/>
+  <arg name="distance_frame" default="base_link"/>
+  <arg name="distance_frame_suffix" default=""/>
+  <arg name="frame_suffix" default=""/>
+  <arg name="setpoint_tolerance" default="0.25"/>
+  <arg name="setpoint_topic" default="go_to_setpoint"/>
+  <arg name="goal_threshold" default="10.0"/>
+
+  <!-- Node for the Geopoint Server -->
+  <node name="geopoint_server" pkg="go_to_geopoint" exec="server" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="target_frame" value="$(var target_frame)"/>
+    <param name="distance_frame" value="$(var distance_frame)"/>
+    <param name="distance_frame_suffix" value="$(var distance_frame_suffix)"/>
+    <param name="frame_suffix" value="$(var frame_suffix)"/>
+    <param name="setpoint_tolerance" value="$(var setpoint_tolerance)"/>
+    <param name="setpoint_topic" value="$(var setpoint_topic)"/>
+    <param name="goal_threshold" value="$(var goal_threshold)"/>
+  </node>
+</launch>

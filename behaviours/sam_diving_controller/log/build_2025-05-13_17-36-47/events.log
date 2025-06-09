@@ -1,0 +1,150 @@
+[0.000000] (-) TimerEvent: {}
+[0.000500] (-) JobUnselected: {'identifier': 'auv_detector'}
+[0.000875] (-) JobUnselected: {'identifier': 'brov2heavy_description'}
+[0.001102] (-) JobUnselected: {'identifier': 'dead_reckoning_msgs'}
+[0.001318] (-) JobUnselected: {'identifier': 'drone_dr'}
+[0.001399] (-) JobUnselected: {'identifier': 'drone_msgs'}
+[0.001468] (-) JobUnselected: {'identifier': 'dubins_planner'}
+[0.001546] (-) JobUnselected: {'identifier': 'dv_sss_driver'}
+[0.001623] (-) JobUnselected: {'identifier': 'dvl_driver'}
+[0.001698] (-) JobUnselected: {'identifier': 'go_to_geopoint'}
+[0.001774] (-) JobUnselected: {'identifier': 'go_to_hydrobaticpoint'}
+[0.001850] (-) JobUnselected: {'identifier': 'hula_description'}
+[0.001910] (-) JobUnselected: {'identifier': 'hydrobatic_localization'}
+[0.001983] (-) JobUnselected: {'identifier': 'labust_msgs'}
+[0.002057] (-) JobUnselected: {'identifier': 'labust_nanomodem'}
+[0.002118] (-) JobUnselected: {'identifier': 'lcat_msgs'}
+[0.002178] (-) JobUnselected: {'identifier': 'lolo_description'}
+[0.002250] (-) JobUnselected: {'identifier': 'lolo_msgs'}
+[0.002322] (-) JobUnselected: {'identifier': 'mqtt_bridge'}
+[0.002381] (-) JobUnselected: {'identifier': 'nmea_navsat_driver'}
+[0.002442] (-) JobUnselected: {'identifier': 'nocs_acoustic_network'}
+[0.002515] (-) JobUnselected: {'identifier': 'ros2_python_examples'}
+[0.002588] (-) JobUnselected: {'identifier': 'ros_babel_fish'}
+[0.002647] (-) JobUnselected: {'identifier': 'ros_babel_fish_test_msgs'}
+[0.002707] (-) JobUnselected: {'identifier': 'ros_tcp_endpoint'}
+[0.002780] (-) JobUnselected: {'identifier': 'sam_basic_controllers'}
+[0.002853] (-) JobUnselected: {'identifier': 'sam_dead_reckoning'}
+[0.002926] (-) JobUnselected: {'identifier': 'sam_description'}
+[0.002987] (-) JobUnselected: {'identifier': 'sam_drivers'}
+[0.003045] (-) JobUnselected: {'identifier': 'sam_graph_slam_2_msgs'}
+[0.003135] (-) JobUnselected: {'identifier': 'sam_joy_teleop'}
+[0.003209] (-) JobUnselected: {'identifier': 'sam_joy_xbox'}
+[0.003282] (-) JobUnselected: {'identifier': 'sam_msgs'}
+[0.003356] (-) JobUnselected: {'identifier': 'sam_path_planning'}
+[0.003415] (-) JobUnselected: {'identifier': 'sam_uavcan_bridge'}
+[0.003486] (-) JobUnselected: {'identifier': 'sbg_driver'}
+[0.003561] (-) JobUnselected: {'identifier': 'smarc_acomms'}
+[0.003634] (-) JobUnselected: {'identifier': 'smarc_acomms_client'}
+[0.003695] (-) JobUnselected: {'identifier': 'smarc_acomms_client_msgs'}
+[0.003755] (-) JobUnselected: {'identifier': 'smarc_acomms_msgs'}
+[0.003815] (-) JobUnselected: {'identifier': 'smarc_action_base'}
+[0.003891] (-) JobUnselected: {'identifier': 'smarc_bringups'}
+[0.003966] (-) JobUnselected: {'identifier': 'smarc_bt'}
+[0.004040] (-) JobUnselected: {'identifier': 'smarc_control_msgs'}
+[0.004101] (-) JobUnselected: {'identifier': 'smarc_mission_msgs'}
+[0.004176] (-) JobUnselected: {'identifier': 'smarc_msgs'}
+[0.004238] (-) JobUnselected: {'identifier': 'smarc_nocs_adhock_stack_bridge_nm3'}
+[0.004313] (-) JobUnselected: {'identifier': 'smarc_nodered'}
+[0.004386] (-) JobUnselected: {'identifier': 'sss_viewer'}
+[0.004446] (-) JobUnselected: {'identifier': 'stim300'}
+[0.004509] (-) JobUnselected: {'identifier': 'str_json_mqtt_bridge'}
+[0.004602] (-) JobUnselected: {'identifier': 'tf_convenience_topics'}
+[0.004666] (-) JobUnselected: {'identifier': 'uavcan_ros_msgs'}
+[0.004729] (-) JobUnselected: {'identifier': 'ublox'}
+[0.004807] (-) JobUnselected: {'identifier': 'ublox_gps'}
+[0.004891] (-) JobUnselected: {'identifier': 'ublox_msgs'}
+[0.004957] (-) JobUnselected: {'identifier': 'ublox_serialization'}
+[0.005084] (-) JobUnselected: {'identifier': 'utm_latlon_converter'}
+[0.005151] (-) JobUnselected: {'identifier': 'watertank_description'}
+[0.005191] (-) JobUnselected: {'identifier': 'watertank_utils'}
+[0.005232] (-) JobUnselected: {'identifier': 'workshopfun'}
+[0.005290] (sam_diving_controller) JobQueued: {'identifier': 'sam_diving_controller', 'dependencies': OrderedDict()}
+[0.005341] (sam_diving_controller) JobStarted: {'identifier': 'sam_diving_controller'}
+[0.099369] (-) TimerEvent: {}
+[0.199889] (-) TimerEvent: {}
+[0.300421] (-) TimerEvent: {}
+[0.401016] (-) TimerEvent: {}
+[0.501624] (-) TimerEvent: {}
+[0.602208] (-) TimerEvent: {}
+[0.702773] (-) TimerEvent: {}
+[0.803368] (-) TimerEvent: {}
+[0.903965] (-) TimerEvent: {}
+[1.004507] (-) TimerEvent: {}
+[1.105080] (-) TimerEvent: {}
+[1.205578] (-) TimerEvent: {}
+[1.306067] (-) TimerEvent: {}
+[1.406509] (-) TimerEvent: {}
+[1.506900] (-) TimerEvent: {}
+[1.607291] (-) TimerEvent: {}
+[1.707679] (-) TimerEvent: {}
+[1.808060] (-) TimerEvent: {}
+[1.908448] (-) TimerEvent: {}
+[2.008846] (-) TimerEvent: {}
+[2.109254] (-) TimerEvent: {}
+[2.209621] (-) TimerEvent: {}
+[2.309978] (-) TimerEvent: {}
+[2.410299] (-) TimerEvent: {}
+[2.510748] (-) TimerEvent: {}
+[2.611302] (-) TimerEvent: {}
+[2.711893] (-) TimerEvent: {}
+[2.812316] (-) TimerEvent: {}
+[2.912882] (-) TimerEvent: {}
+[3.013431] (-) TimerEvent: {}
+[3.114013] (-) TimerEvent: {}
+[3.179770] (sam_diving_controller) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'develop', '--editable', '--build-directory', '/home/orin/colcon_ws/build/sam_diving_controller/build', '--no-deps', 'symlink_data'], 'cwd': '/home/orin/colcon_ws/build/sam_diving_controller', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'TMUX': '/tmp/tmux-1000/default,6699,1', 'USER': 'orin', 'SSH_CLIENT': '192.168.2.144 48734 22', 'LC_TIME': 'sv_SE.UTF-8', 'XDG_SESSION_TYPE': 'tty', 'SHLVL': '2', 'LD_LIBRARY_PATH': '/usr/local/lib:/usr/local/cuda-12.2/lib64:/usr/local/lib:/home/orin/colcon_ws/install/ublox_gps/lib:/home/orin/colcon_ws/install/ublox_msgs/lib:/home/orin/colcon_ws/install/uavcan_ros_msgs/lib:/home/orin/colcon_ws/install/smarc_control_msgs/lib:/home/orin/colcon_ws/install/sbg_driver/lib:/home/orin/colcon_ws/install/sam_msgs/lib:/home/orin/colcon_ws/install/smarc_msgs/lib:/home/orin/colcon_ws/install/smarc_mission_msgs/lib:/home/orin/colcon_ws/install/smarc_acomms_msgs/lib:/home/orin/colcon_ws/install/smarc_acomms_client_msgs/lib:/home/orin/colcon_ws/install/sam_graph_slam_2_msgs/lib:/home/orin/colcon_ws/install/ros_babel_fish_test_msgs/lib:/home/orin/colcon_ws/install/ros_babel_fish/lib:/home/orin/colcon_ws/install/nocs_acoustic_network/lib:/home/orin/colcon_ws/install/lolo_msgs/lib:/home/orin/colcon_ws/install/lcat_msgs/lib:/home/orin/colcon_ws/install/labust_msgs/lib:/home/orin/colcon_ws/install/drone_msgs/lib:/home/orin/colcon_ws/install/dead_reckoning_msgs/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-12.2/lib64:', 'MOTD_SHOWN': 'pam', 'HOME': '/home/orin', 'OLDPWD': '/home/orin/colcon_ws/src/smarc2/behaviours/sam_diving_controller/sam_diving_controller', 'TERM_PROGRAM_VERSION': '3.2a', 'SSH_TTY': '/dev/pts/0', 'JETSON_L4T': '36.3.0', 'ROS_PYTHON_VERSION': '3', 'JETSON_MODEL': 'NVIDIA Jetson AGX Orin Developer Kit', 'LC_MONETARY': 'sv_SE.UTF-8', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLCON_PREFIX_PATH': '/home/orin/colcon_ws/install', 'ROS_DISTRO': 'humble', 'LOGNAME': 'orin', 'JETSON_MODULE': 'NVIDIA Jetson AGX Orin', 'JETSON_SERIAL_NUMBER': '1421722060834', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'ROS_SUPER_CLIENT': 'TRUE', 'TERM': 'screen', 'XDG_SESSION_ID': '8', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/home/orin/.local/bin:/usr/local/cuda-12.2/bin:/home/orin/.local/bin:/opt/ros/humble/bin:/usr/local/cuda-12.2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'FASTRTPS_DEFAULT_PROFILES_FILE': '/home/orin/dont_touch/custom_fastdds_profiles.xml', 'LC_ADDRESS': 'sv_SE.UTF-8', 'XDG_RUNTIME_DIR': '/run/user/1000', 'LANG': 'en_US.UTF-8', 'LC_TELEPHONE': 'sv_SE.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'JETSON_SOC': 'tegra234', 'TERM_PROGRAM': 'tmux', 'ROS_DOMAIN_ID': '1', 'AMENT_PREFIX_PATH': '/home/orin/colcon_ws/install/workshopfun:/home/orin/colcon_ws/install/watertank_utils:/home/orin/colcon_ws/install/watertank_description:/home/orin/colcon_ws/install/utm_latlon_converter:/home/orin/colcon_ws/install/ublox:/home/orin/colcon_ws/install/ublox_gps:/home/orin/colcon_ws/install/ublox_msgs:/home/orin/colcon_ws/install/ublox_serialization:/home/orin/colcon_ws/install/sam_uavcan_bridge:/home/orin/colcon_ws/install/uavcan_ros_msgs:/home/orin/colcon_ws/install/tf_convenience_topics:/home/orin/colcon_ws/install/str_json_mqtt_bridge:/home/orin/colcon_ws/install/stim300:/home/orin/colcon_ws/install/sss_viewer:/home/orin/colcon_ws/install/smarc_nodered:/home/orin/colcon_ws/install/smarc_nocs_adhock_stack_bridge_nm3:/home/orin/colcon_ws/install/sam_path_planning:/home/orin/colcon_ws/install/smarc_control_msgs:/home/orin/colcon_ws/install/smarc_acomms:/home/orin/colcon_ws/install/sbg_driver:/home/orin/colcon_ws/install/sam_joy_xbox:/home/orin/colcon_ws/install/sam_drivers:/home/orin/colcon_ws/install/sam_basic_controllers:/home/orin/colcon_ws/install/hydrobatic_localization:/home/orin/colcon_ws/install/dv_sss_driver:/home/orin/colcon_ws/install/sam_msgs:/home/orin/colcon_ws/install/lolo_description:/home/orin/colcon_ws/install/go_to_hydrobaticpoint:/home/orin/colcon_ws/install/go_to_geopoint:/home/orin/colcon_ws/install/smarc_msgs:/home/orin/colcon_ws/install/smarc_mission_msgs:/home/orin/colcon_ws/install/smarc_bt:/home/orin/colcon_ws/install/smarc_bringups:/home/orin/colcon_ws/install/smarc_action_base:/home/orin/colcon_ws/install/smarc_acomms_client:/home/orin/colcon_ws/install/smarc_acomms_msgs:/home/orin/colcon_ws/install/smarc_acomms_client_msgs:/home/orin/colcon_ws/install/sam_joy_teleop:/home/orin/colcon_ws/install/sam_graph_slam_2_msgs:/home/orin/colcon_ws/install/sam_diving_controller:/home/orin/colcon_ws/install/sam_description:/home/orin/colcon_ws/install/sam_dead_reckoning:/home/orin/colcon_ws/install/ros_tcp_endpoint:/home/orin/colcon_ws/install/ros_babel_fish_test_msgs:/home/orin/colcon_ws/install/ros_babel_fish:/home/orin/colcon_ws/install/ros2_python_examples:/home/orin/colcon_ws/install/nocs_acoustic_network:/home/orin/colcon_ws/install/nmea_navsat_driver:/home/orin/colcon_ws/install/mqtt_bridge:/home/orin/colcon_ws/install/lolo_msgs:/home/orin/colcon_ws/install/lcat_msgs:/home/orin/colcon_ws/install/labust_nanomodem:/home/orin/colcon_ws/install/labust_msgs:/home/orin/colcon_ws/install/hula_description:/home/orin/colcon_ws/install/dvl_driver:/home/orin/colcon_ws/install/dubins_planner:/home/orin/colcon_ws/install/drone_msgs:/home/orin/colcon_ws/install/drone_dr:/home/orin/colcon_ws/install/dead_reckoning_msgs:/home/orin/colcon_ws/install/brov2heavy_description:/home/orin/colcon_ws/install/auv_detector:/opt/ros/humble', 'SHELL': '/bin/bash', 'LC_NAME': 'sv_SE.UTF-8', 'ROS_DISCOVERY_SERVER': '192.168.2.92:11811', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'LC_MEASUREMENT': 'sv_SE.UTF-8', 'LC_IDENTIFICATION': 'sv_SE.UTF-8', 'JETSON_CUDA_ARCH_BIN': '8.7', 'PWD': '/home/orin/colcon_ws/build/sam_diving_controller', 'SSH_CONNECTION': '192.168.2.144 58468 192.168.2.92 22', 'XDG_DATA_DIRS': '/usr/share/gnome:/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/orin/colcon_ws/build/sam_diving_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/orin/colcon_ws/install/sam_diving_controller/lib/python3.10/site-packages:/home/orin/colcon_ws/build/workshopfun:/home/orin/colcon_ws/install/workshopfun/lib/python3.10/site-packages:/home/orin/colcon_ws/build/watertank_utils:/home/orin/colcon_ws/install/watertank_utils/lib/python3.10/site-packages:/home/orin/colcon_ws/build/watertank_description:/home/orin/colcon_ws/install/watertank_description/lib/python3.10/site-packages:/home/orin/colcon_ws/build/utm_latlon_converter:/home/orin/colcon_ws/install/utm_latlon_converter/lib/python3.10/site-packages:/home/orin/colcon_ws/install/ublox_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/uavcan_ros_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/str_json_mqtt_bridge:/home/orin/colcon_ws/install/str_json_mqtt_bridge/lib/python3.10/site-packages:/home/orin/colcon_ws/install/sss_viewer/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/smarc_nodered:/home/orin/colcon_ws/install/smarc_nodered/lib/python3.10/site-packages:/home/orin/colcon_ws/build/sam_path_planning:/home/orin/colcon_ws/install/sam_path_planning/lib/python3.10/site-packages:/home/orin/colcon_ws/install/smarc_control_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/sbg_driver/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/sam_joy_xbox:/home/orin/colcon_ws/install/sam_joy_xbox/lib/python3.10/site-packages:/home/orin/colcon_ws/build/sam_drivers:/home/orin/colcon_ws/install/sam_drivers/lib/python3.10/site-packages:/home/orin/colcon_ws/install/sam_basic_controllers/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/sam_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/go_to_hydrobaticpoint:/home/orin/colcon_ws/install/go_to_hydrobaticpoint/lib/python3.10/site-packages:/home/orin/colcon_ws/build/go_to_geopoint:/home/orin/colcon_ws/install/go_to_geopoint/lib/python3.10/site-packages:/home/orin/colcon_ws/install/smarc_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/smarc_mission_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/smarc_bt:/home/orin/colcon_ws/install/smarc_bt/lib/python3.10/site-packages:/home/orin/colcon_ws/build/smarc_bringups:/home/orin/colcon_ws/install/smarc_bringups/lib/python3.10/site-packages:/home/orin/colcon_ws/build/smarc_action_base:/home/orin/colcon_ws/install/smarc_action_base/lib/python3.10/site-packages:/home/orin/colcon_ws/install/smarc_acomms_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/smarc_acomms_client_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/sam_joy_teleop:/home/orin/colcon_ws/install/sam_joy_teleop/lib/python3.10/site-packages:/home/orin/colcon_ws/install/sam_graph_slam_2_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/sam_diving_controller:/home/orin/colcon_ws/install/sam_diving_controller/lib/python3.10/site-packages:/home/orin/colcon_ws/build/sam_dead_reckoning:/home/orin/colcon_ws/install/sam_dead_reckoning/lib/python3.10/site-packages:/home/orin/colcon_ws/build/ros_tcp_endpoint:/home/orin/colcon_ws/install/ros_tcp_endpoint/lib/python3.10/site-packages:/home/orin/colcon_ws/install/ros_babel_fish_test_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/ros2_python_examples:/home/orin/colcon_ws/install/ros2_python_examples/lib/python3.10/site-packages:/home/orin/colcon_ws/build/nmea_navsat_driver/src:/home/orin/colcon_ws/install/nmea_navsat_driver/lib/python3.10/site-packages:/home/orin/colcon_ws/build/mqtt_bridge:/home/orin/colcon_ws/install/mqtt_bridge/lib/python3.10/site-packages:/home/orin/colcon_ws/install/lolo_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/lcat_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/install/labust_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/hula_description:/home/orin/colcon_ws/install/hula_description/lib/python3.10/site-packages:/home/orin/colcon_ws/build/dvl_driver:/home/orin/colcon_ws/install/dvl_driver/lib/python3.10/site-packages:/home/orin/colcon_ws/build/dubins_planner:/home/orin/colcon_ws/install/dubins_planner/lib/python3.10/site-packages:/home/orin/colcon_ws/install/drone_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/drone_dr:/home/orin/colcon_ws/install/drone_dr/lib/python3.10/site-packages:/home/orin/colcon_ws/install/dead_reckoning_msgs/local/lib/python3.10/dist-packages:/home/orin/colcon_ws/build/brov2heavy_description:/home/orin/colcon_ws/install/brov2heavy_description/lib/python3.10/site-packages:/home/orin/colcon_ws/build/auv_detector:/home/orin/colcon_ws/install/auv_detector/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'LC_NUMERIC': 'sv_SE.UTF-8', 'LC_PAPER': 'sv_SE.UTF-8', 'COLCON': '1', 'TMUX_PANE': '%2', 'JETSON_JETPACK': '6.0', 'CMAKE_PREFIX_PATH': '/home/orin/colcon_ws/install/ublox:/home/orin/colcon_ws/install/ublox_gps:/home/orin/colcon_ws/install/ublox_msgs:/home/orin/colcon_ws/install/ublox_serialization:/home/orin/colcon_ws/install/sam_uavcan_bridge:/home/orin/colcon_ws/install/uavcan_ros_msgs:/home/orin/colcon_ws/install/tf_convenience_topics:/home/orin/colcon_ws/install/stim300:/home/orin/colcon_ws/install/sss_viewer:/home/orin/colcon_ws/install/smarc_nocs_adhock_stack_bridge_nm3:/home/orin/colcon_ws/install/smarc_control_msgs:/home/orin/colcon_ws/install/smarc_acomms:/home/orin/colcon_ws/install/sbg_driver:/home/orin/colcon_ws/install/sam_basic_controllers:/home/orin/colcon_ws/install/hydrobatic_localization:/home/orin/colcon_ws/install/dv_sss_driver:/home/orin/colcon_ws/install/sam_msgs:/home/orin/colcon_ws/install/lolo_description:/home/orin/colcon_ws/install/smarc_msgs:/home/orin/colcon_ws/install/smarc_mission_msgs:/home/orin/colcon_ws/install/smarc_acomms_client:/home/orin/colcon_ws/install/smarc_acomms_msgs:/home/orin/colcon_ws/install/smarc_acomms_client_msgs:/home/orin/colcon_ws/install/sam_graph_slam_2_msgs:/home/orin/colcon_ws/install/sam_description:/home/orin/colcon_ws/install/ros_babel_fish_test_msgs:/home/orin/colcon_ws/install/ros_babel_fish:/home/orin/colcon_ws/install/nocs_acoustic_network:/home/orin/colcon_ws/install/lolo_msgs:/home/orin/colcon_ws/install/lcat_msgs:/home/orin/colcon_ws/install/labust_nanomodem:/home/orin/colcon_ws/install/labust_msgs:/home/orin/colcon_ws/install/drone_msgs:/home/orin/colcon_ws/install/dead_reckoning_msgs', 'JETSON_P_NUMBER': 'p3701-0000'}, 'shell': False}
+[3.214131] (-) TimerEvent: {}
+[3.314668] (-) TimerEvent: {}
+[3.415444] (-) TimerEvent: {}
+[3.516055] (-) TimerEvent: {}
+[3.616650] (-) TimerEvent: {}
+[3.717433] (-) TimerEvent: {}
+[3.818194] (-) TimerEvent: {}
+[3.918835] (-) TimerEvent: {}
+[4.019613] (-) TimerEvent: {}
+[4.120188] (-) TimerEvent: {}
+[4.220928] (-) TimerEvent: {}
+[4.321634] (-) TimerEvent: {}
+[4.422366] (-) TimerEvent: {}
+[4.522987] (-) TimerEvent: {}
+[4.525524] (sam_diving_controller) StdoutLine: {'line': b'running develop\n'}
+[4.623312] (-) TimerEvent: {}
+[4.724119] (-) TimerEvent: {}
+[4.824952] (-) TimerEvent: {}
+[4.925746] (-) TimerEvent: {}
+[5.026539] (-) TimerEvent: {}
+[5.127167] (-) TimerEvent: {}
+[5.227977] (-) TimerEvent: {}
+[5.328637] (-) TimerEvent: {}
+[5.335829] (sam_diving_controller) StdoutLine: {'line': b'running egg_info\n'}
+[5.428971] (-) TimerEvent: {}
+[5.430989] (sam_diving_controller) StdoutLine: {'line': b'writing sam_diving_controller.egg-info/PKG-INFO\n'}
+[5.496109] (sam_diving_controller) StdoutLine: {'line': b'writing dependency_links to sam_diving_controller.egg-info/dependency_links.txt\n'}
+[5.529060] (-) TimerEvent: {}
+[5.629705] (-) TimerEvent: {}
+[5.687874] (sam_diving_controller) StdoutLine: {'line': b'writing entry points to sam_diving_controller.egg-info/entry_points.txt\n'}
+[5.730010] (-) TimerEvent: {}
+[5.816355] (sam_diving_controller) StdoutLine: {'line': b'writing requirements to sam_diving_controller.egg-info/requires.txt\n'}
+[5.830105] (-) TimerEvent: {}
+[5.880687] (sam_diving_controller) StdoutLine: {'line': b'writing top-level names to sam_diving_controller.egg-info/top_level.txt\n'}
+[5.930432] (-) TimerEvent: {}
+[6.009557] (sam_diving_controller) StdoutLine: {'line': b"reading manifest file 'sam_diving_controller.egg-info/SOURCES.txt'\n"}
+[6.019165] (sam_diving_controller) StdoutLine: {'line': b"writing manifest file 'sam_diving_controller.egg-info/SOURCES.txt'\n"}
+[6.030517] (-) TimerEvent: {}
+[6.131016] (-) TimerEvent: {}
+[6.182062] (sam_diving_controller) StdoutLine: {'line': b'running build_ext\n'}
+[6.182615] (sam_diving_controller) StdoutLine: {'line': b'Creating /home/orin/colcon_ws/install/sam_diving_controller/lib/python3.10/site-packages/sam-diving-controller.egg-link (link to .)\n'}
+[6.183830] (sam_diving_controller) StdoutLine: {'line': b'Installing action_client_node script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.184298] (sam_diving_controller) StdoutLine: {'line': b'Installing action_server_diving script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.184643] (sam_diving_controller) StdoutLine: {'line': b'Installing action_server_node script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.184996] (sam_diving_controller) StdoutLine: {'line': b'Installing joy_depth script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.185327] (sam_diving_controller) StdoutLine: {'line': b'Installing manual_diving script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.185570] (sam_diving_controller) StdoutLine: {'line': b'Installing setpoint script to /home/orin/colcon_ws/install/sam_diving_controller/lib/sam_diving_controller\n'}
+[6.185797] (sam_diving_controller) StdoutLine: {'line': b'\n'}
+[6.186017] (sam_diving_controller) StdoutLine: {'line': b'Installed /home/orin/colcon_ws/build/sam_diving_controller\n'}
+[6.186234] (sam_diving_controller) StdoutLine: {'line': b'running symlink_data\n'}
+[6.231327] (-) TimerEvent: {}
+[6.283978] (sam_diving_controller) CommandEnded: {'returncode': 0}
+[6.331034] (sam_diving_controller) JobEnded: {'identifier': 'sam_diving_controller', 'rc': 0}
+[6.333186] (-) TimerEvent: {}
+[6.333492] (-) EventReactorShutdown: {}

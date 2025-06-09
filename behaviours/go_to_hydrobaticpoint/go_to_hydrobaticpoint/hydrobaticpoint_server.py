@@ -1,5 +1,5 @@
 import traceback
-
+import time
 import numpy as np
 import rclpy
 from geodesy import utm
@@ -37,13 +37,12 @@ class HydropointServer(SMARCActionServer):
     """
 
     def __init__(
-        self, node: Node, action_name, action_type: ActionType, task_name: str
+        self, node: Node, action_name, action_type: ActionType,
     ):
         super().__init__(
             node,
             action_name,
             action_type,
-            task_name,
             SmarcTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
         )
         self.logger = node.get_logger()
@@ -97,30 +96,31 @@ class HydropointServer(SMARCActionServer):
             ),
         ).value
 
-        self._setpoint_topic = node.declare_parameter(
-            "setpoint_topic",
-            "go_to_setpoint",
-            ParameterDescriptor(
-                description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
-            ),
-        ).value
+        # self._setpoint_topic = node.declare_parameter(
+        #     "setpoint_topic",
+        #     "go_to_setpoint",
+        #     ParameterDescriptor(
+        #         description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
+        #     ),
+        # ).value
 
         self._goal_threshold = (
             node.declare_parameter(
                 "goal_threshold",
                 10,
                 ParameterDescriptor(
-                    description="Distance threshold in kilometers where a goal should be rejected. (Euclidean Norm)"
+                    description="Distance threshold in meters where a goal should be rejected. (Euclidean Norm)"
                 ),
             ).value
-            * KM_TO_METER
         )
 
         self.target_frame = (
             f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
         )
+        self.logger.info(f"Target frame {self.target_frame}")
 
         self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
+        self.logger.info(f"Distance frame {self.distance_frame}")
 
     @staticmethod
     def _str_posestamp(pose: PoseStamped):
@@ -234,31 +234,16 @@ class HydropointServer(SMARCActionServer):
         Returns:
             A populated ActionResult message
         """
-        # self.logger.info("Executing callback")
-        # self.logger.info(f"{goal_handle.request}")
         result_msg = self.action_type.Result
         hydropoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
-        pose_stamped = hydropoint
-        try:
-            self.goal_base_link = self.transform_goal(pose_stamped)
-            self.logger.debug(
-                f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
-            )
-        except TransformException as err:
-            self.logger.error(
-                f"Failed to transform goal target frame {self.target_frame} from source {self._source_frame}.\n\t Tf2 exception error {err}"
-            )
-            goal_handle.abort()
+        self.logger.info(f"Hydropoint sent: {hydropoint}")
+        time.sleep(5)
+        self._pub_setpoint.publish(hydropoint)
+        status = self.feedback_loop(hydropoint, goal_handle)
+        if status == "cancelled":
+            self.logger.info("Goal was cancelled by client.")
             result_msg.success = False
             return result_msg
-        self.logger.info(
-            f"Publishing to {self._setpoint_topic}, Setpoint"
-            + self._str_posestamp(self.goal_base_link)
-        )
-
-        self._pub_setpoint.publish(self.goal_base_link.pose)
-        self.feedback_loop(pose_stamped, goal_handle)
-
         result_msg.success = True
         return result_msg
 
@@ -329,23 +314,27 @@ class HydropointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client.")
+                goal_handle.canceled()
+                self.publish_stop_setpoint()
+                return "cancelled"
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
             self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
-
         rate.destroy()
-        return
+        return "done"
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node_name = "hydropoint_server"
+    node_name = "auv_hydrobatic_move_to"
     node = rclpy.node.Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = HydropointServer(node, "go_to_hydropoint", action_type, "move-to")
+    setpoint = HydropointServer(node, "go_to_hydropoint", action_type)
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
