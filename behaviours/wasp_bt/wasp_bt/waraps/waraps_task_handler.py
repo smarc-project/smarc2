@@ -719,10 +719,7 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(response_msg)
                 self._wara_ps_tst_response_pub.publish(msg)
                 return
-                
-            # start mission timer
-            self.mission_start_time = self.current_time()
-            
+                            
             # extract the mission timout from "params" key in tst
             if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
                 self.mission_timeout = command["tst"]["params"]["timeout"]
@@ -748,6 +745,7 @@ class WaraPSTaskHandler:
             tasks = command["tst"]["children"]
 
             # inject common params into each tasks params
+            tasks_to_start = []
             for task in tasks:
                 if "params" not in task:
                     task["params"] = {}
@@ -760,7 +758,27 @@ class WaraPSTaskHandler:
                     "status": WaraPSTaskStates.STARTED.value,
                     "description": task["description"] if "description" in task.keys() else "",
                 }
-                self.tasks_executing.append(task_dict)
+
+                # check that the tasks are all available on the vehicle
+                if task["name"] not in [t["name"] for t in self.tasks_available]:
+                    self._node.get_logger().error(f"Invalid start-tst command: task {task['name']} not available")
+                    response_msg = {
+                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "response": f"Rejected: Task {task['name']} not available",
+                        "response-to": command["com-uuid"]
+                    }
+                    msg = String()
+                    msg.data = json.dumps(response_msg)
+                    self._wara_ps_tst_response_pub.publish(msg)
+                    return
+                
+                tasks_to_start.append(task_dict)
+                
+            # self.tasks_executing.append(task_dict)
+            self.tasks_executing.extend(tasks_to_start)
+            # start mission timer
+            self.mission_start_time = self.current_time()
 
         return        
     
