@@ -37,6 +37,3 @@
 	url = https://gitr.sys.kth.se/smarc-project/dji_psdk_wrapper.git
 	branch = smarc
 
-[submodule "utilities/serial_ping_pkg"]
-	path = utilities/serial_ping_pkg
-	url = https://github.com/NinjaTuna007/serial_ping_pkg.git
