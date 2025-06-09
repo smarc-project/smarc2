@@ -335,7 +335,11 @@ class WaraPSTaskHandler:
     def _exec_command_cb(self, data: String):
         # this function is called when a new command is received from the MQTT broker
         # parse the command
-        command = json.loads(data.data)
+        try:
+            command = json.loads(data.data)
+        except json.JSONDecodeError as e:
+            self._node.get_logger().error(f"The received command is not a valid JSON: {e}")
+
         self._node.get_logger().info(f"Received command: {command}")
 
         # Refuse starts or signals if emergency flag is up
@@ -615,7 +619,12 @@ class WaraPSTaskHandler:
     
     def _tst_command_cb(self, data: String):
         # This function is called when a new TST command is received from the MQTT broker
-        command = json.loads(data.data)
+        try:
+            command = json.loads(data.data)
+        except json.JSONDecodeError as e:
+            self._node.get_logger().error(f"The received TST command is not a valid JSON: {e}")
+            return
+        
         self._node.get_logger().info(f"Received TST command: {command}")
 
         # Refuse starts or signals if emergency flag is up

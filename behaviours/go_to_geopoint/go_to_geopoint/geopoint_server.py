@@ -206,7 +206,8 @@ class GeopointServer(SMARCActionServer):
             #     "Position after transform:" + self._str_posestamp(pose_transformed)
             # )
         except TransformException as err:
-            err_str = "Failed to compute transform when computing distance to target"
+            err_str = f"Failed to compute transform when computing distance to target. In: {pose_stamped.header.frame_id} to {self.distance_frame}.\n"
+            self.logger.error(err_str)
             raise TransformException(err_str) from err
 
         pose_delta = pose_transformed.pose
@@ -267,6 +268,8 @@ class GeopointServer(SMARCActionServer):
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
+            self.goal_base_link.pose.position.z = geopoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
+
             self.logger.debug(
                 f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
             )
@@ -311,10 +314,11 @@ class GeopointServer(SMARCActionServer):
         geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
         self.logger.info(f"Received UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
+        pose_stamped.pose.position.z = geo_setpoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
-            err_str = "Could not successfully compute transform. Rejecting goal!\n"
+            err_str = "Could not successfully compute distance!. Rejecting goal!\n"
             exec_up = TransformException(err_str)
             exec_up.__cause__ = err
             # Adding error message to traceback for debug log.

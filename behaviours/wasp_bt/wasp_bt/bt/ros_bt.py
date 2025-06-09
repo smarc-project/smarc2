@@ -143,7 +143,13 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 emergency_children.append(A_Chilling(self))
             else:
                 # if the action client is available, we can run it
-                emergency_children.append(A_ActionClient(self.emergency_action, self._task_handler))
+                emergency_children.append(
+                    A_ActionClient(
+                        self.emergency_action, 
+                        bt = self,
+                        task_handler = self._task_handler
+                    )
+                )
         else:
             # if there is no emergency action, we can just chill
             emergency_children.append(A_Chilling(self))
@@ -161,7 +167,13 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 C_TaskStatus(self._task_handler, WaraPSTaskStates.RESUMED.value),
                 C_TaskStatus(self._task_handler, WaraPSTaskStates.RUNNING.value),
             ]),
-            A_ActionClient(action_client, self._task_handler),
+
+            # run the action client
+            A_ActionClient(
+                action_client,
+                bt = self,
+                task_handler = self._task_handler
+            ),
             # when done, clear the task queue
             A_ClearCurrentTask(self._task_handler),
         ])
