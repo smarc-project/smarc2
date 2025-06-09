@@ -43,7 +43,7 @@ class HasWaraPSTaskHandler:
     This class is used to mark a class as having an MQTT interactor. This is used to make sure that the class has the methods that are needed for the MQTT interactor to work.
     """
     def __init__(self):
-        self._wara_ps_task_handler = None
+        self._task_handler = None
         self._wara_ps_dict = None
         self._robot_name = None
 
@@ -99,7 +99,7 @@ class WaraPSTaskHandler:
         self.emergency_flag = False
         self.health_status = Topics.VEHICLE_HEALTH_ERROR
         
-        self.health_last_time = self.current_time()
+        self.health_last_time = None
 
         self.mission_start_time = None
         self.mission_timeout = None
