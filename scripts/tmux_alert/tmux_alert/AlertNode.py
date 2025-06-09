@@ -22,6 +22,10 @@ class TmuxAlertNode():
         self.state_sub = node.create_subscription(msg_type=BatteryState, topic='core/battery_status', callback=self._battery_cb, qos_profile=10)
         self.leak_sub = node.create_subscription(msg_type=Leak, topic='core/leak_fb', callback=self._leak_cb, qos_profile=10)
 
+        self._sound_file_dir = node.declare_parameter( name = 'sound_file', value = '')
+
+        self._sound_file = node.get_parameter('sound_file').get_parameter_value().string_value
+
         # Register shutdown cleanup
         atexit.register(self.reset_all_tmux_panes)
         signal.signal(signal.SIGINT, self.handle_signal)
@@ -138,14 +142,15 @@ class TmuxAlertNode():
 
 
     def play_sound(self):
-        sound_file = "/home/parallels/ros2_ws/src/smarc2/scripts/tmux_alert/resource/siren-alert-96052.mp3"
+        #sound_file = "/home/parallels/ros2_ws/src/smarc2/scripts/tmux_alert/resource/siren-alert-96052.mp3"
+        print(f"sound file:{self._sound_file}")
         try:
             subprocess.Popen([
                 "ffplay",
                 "-nodisp",
                 "-autoexit",
                 "-loglevel", "quiet",  # suppress console output
-                sound_file
+                self._sound_file
             ])
         except Exception as e:
             self.get_logger().error(f"Failed to play sound: {e}")
