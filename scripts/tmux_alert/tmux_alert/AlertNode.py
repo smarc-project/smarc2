@@ -23,7 +23,6 @@ class TmuxAlertNode():
         self.leak_sub = node.create_subscription(msg_type=Leak, topic='core/leak_fb', callback=self._leak_cb, qos_profile=10)
 
         self._sound_file_dir = node.declare_parameter( name = 'sound_file', value = '')
-
         self._sound_file = node.get_parameter('sound_file').get_parameter_value().string_value
 
         # Register shutdown cleanup
