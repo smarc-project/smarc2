@@ -52,7 +52,16 @@ class HSVDetectorNode(Node):
         
         self.save_dir_processed = "for_cnn_training_processed_img"
         self.save_dir_original = "for_cnn_training_original_img"
-        self.save_dir_points = "for_cnn_training_points"
+        self.save_dir_points = "for_cnn_training_points"     # predction's ground truth = output 
+
+        self.save_dir_buoy = "for_cnn_training_buoy"
+        self.save_dir_auv = "for_cnn_training_auv"
+        self.save_dir_rope = "for_cnn_training_rope"
+        self.save_dir_rope_fitting = "for_cnn_training_rope_fitting"
+        self.save_dir_combined = "for_cnn_training_combined" # buoy rope auv
+
+        self.save_dir_buoy_position = "for_cnn_buoy_position"
+        self.save_dir_auv_position = "for_cnn_auv_position"
         # buoy 
         # rope 
         # auv
@@ -61,6 +70,14 @@ class HSVDetectorNode(Node):
         os.makedirs(self.save_dir_original, exist_ok=True)
         os.makedirs(self.save_dir_points, exist_ok=True)
 
+        os.makedirs(self.save_dir_buoy, exist_ok=True)  # Create folder if it doesn't exist
+        os.makedirs(self.save_dir_auv, exist_ok=True)
+        os.makedirs(self.save_dir_rope, exist_ok=True)
+        os.makedirs(self.save_dir_rope_fitting, exist_ok=True)  
+        os.makedirs(self.save_dir_combined, exist_ok=True)  
+
+        os.makedirs(self.save_dir_buoy_position, exist_ok=True)
+        os.makedirs(self.save_dir_auv_position, exist_ok=True)
 
         self.rope_img_buffer = deque(maxlen=10)
 
@@ -167,12 +184,14 @@ class HSVDetectorNode(Node):
                 buoy_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the point
                 #self.get_logger().info(f"detect buoy")
 
+                cx_buoy = cx
+                cy_buoy = cy
                 cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
 
                 # Put area text
-                cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        #cv2.imshow('HSV_buoy', preview_buoy) ok 
+                cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        
+        cv2.imshow('HSV_buoy', preview_buoy)  
         #########################################################################################  auv
 
 
@@ -212,11 +231,13 @@ class HSVDetectorNode(Node):
                 center_auv = np.array([cx, cy])
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
-                # Put area text
-                cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                cx_auv = cx
+                cy_auv = cy
 
-        #cv2.imshow('HSV_auv', preview_auv)
+                # Put area text
+                cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+        cv2.imshow('HSV_auv', preview_auv)
 
 
 
@@ -270,7 +291,7 @@ class HSVDetectorNode(Node):
         preview_rope = cv2.bitwise_and(image, image, mask=hsv_thresh_rope)
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
-        cv2.imshow('HSV_rope', preview_rope)
+        #cv2.imshow('HSV_rope', preview_rope)
 
         # Rope Reconstruction method 4 ---- multi frames
         self.rope_img_buffer.append(preview_rope_3)
@@ -287,7 +308,7 @@ class HSVDetectorNode(Node):
         # Use this dilated result for binary mask and grid processing
         rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
-        cv2.imshow("Dilation", rope_bin)
+        #cv2.imshow("Dilation", rope_bin)
 
         #contours, _ = cv2.findContours(rope_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         #cv2.drawContours(preview_rope_2, contours, -1, (0,255,0), 2)
@@ -312,7 +333,7 @@ class HSVDetectorNode(Node):
 
             center_x_rope = int(x_fit_rope[50])
             center_y_rope = int(y_fit_rope[50])
-            cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
+            #cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
 
             # cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
             #                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
@@ -320,6 +341,16 @@ class HSVDetectorNode(Node):
 
 
         ######################################################################################### 
+
+        # Just add the filtered images directly
+        combined_preview = cv2.add(preview_buoy, preview_auv)
+        combined_preview = cv2.add(combined_preview, preview_rope_3)
+
+        # Show the combined result
+        cv2.imshow('Combined_HSV', combined_preview)
+
+        ######################################################################################### 
+
         # save images 
 
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
@@ -330,6 +361,44 @@ class HSVDetectorNode(Node):
 
             filename_original = os.path.join(self.save_dir_original, f"original_{timestamp}.jpg")
             cv2.imwrite(filename_original, self.cv2_img)
+
+
+
+            # self.save_dir_buoy = "for_cnn_training_buoy"
+            filename_buoy = os.path.join(self.save_dir_buoy, f"buoy_{timestamp}.jpg")
+            cv2.imwrite(filename_buoy, preview_buoy)
+            
+            # self.save_dir_auv = "for_cnn_training_auv"
+            filename_auv = os.path.join(self.save_dir_auv, f"auv_{timestamp}.jpg")
+            cv2.imwrite(filename_auv, preview_auv)
+
+            # self.save_dir_rope = "for_cnn_training_rope"
+            filename_rope = os.path.join(self.save_dir_rope, f"rope_{timestamp}.jpg")
+            cv2.imwrite(filename_rope, preview_rope_3)
+
+            # self.save_dir_rope_fitting = "for_cnn_training_rope_fitting"preview_rope_2
+            filename_rope_fitting = os.path.join(self.save_dir_rope_fitting, f"rope_fitting_{timestamp}.jpg")
+            cv2.imwrite(filename_rope_fitting, preview_rope_2)
+
+            # self.save_dir_combined = "for_cnn_training_combined" # buoy rope auv
+            filename_combined = os.path.join(self.save_dir_combined, f"combined_{timestamp}.jpg")
+            cv2.imwrite(filename_combined, combined_preview)
+
+
+
+
+            # self.save_dir_buoy_position = "for_cnn_buoy_position"
+            txt_buoy = os.path.join(self.save_dir_buoy_position, f"buoy_position_{timestamp}.txt")
+            with open(txt_buoy, 'w') as f:
+                    # Save as: x y
+                    f.write(f"{cx_buoy} {cy_buoy}\n")
+            # self.save_dir_auv_position = "for_cnn_auv_position"
+            txt_auv = os.path.join(self.save_dir_auv_position, f"auv_position_{timestamp}.txt")
+            with open(txt_auv, 'w') as f:
+                    # Save as: x y
+                    f.write(f"{cx_auv} {cy_auv}\n")
+
+
 
             # Save each point in separate file
             for idx, point in enumerate(self.points):
