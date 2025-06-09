@@ -186,10 +186,10 @@ class HSVDetectorNode(Node):
 
                 cx_buoy = cx
                 cy_buoy = cy
-                cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
+                #cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
 
                 # Put area text
-                cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                #cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         
         cv2.imshow('HSV_buoy', preview_buoy)  
         #########################################################################################  auv
@@ -229,13 +229,13 @@ class HSVDetectorNode(Node):
                 cy = int(M["m01"] / M["m00"])
                 #center_auv = (cx,cy)
                 center_auv = np.array([cx, cy])
-                cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
+                #cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
                 cx_auv = cx
                 cy_auv = cy
 
                 # Put area text
-                cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                #cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
 
