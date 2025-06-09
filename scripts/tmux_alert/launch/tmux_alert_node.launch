@@ -1,0 +1,13 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+    <arg name="sound_dir" default="$(find-pkg-share tmux_alert)/resource/siren-alert-96052.mp3"/>
+
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+       <node name="tmux_alert_node" pkg="tmux_alert" exec="tmux_alert" output="screen">
+	<param name="sound_file" value="$(var sound_dir)"/>
+       </node>
+    </group>
+
+</launch>

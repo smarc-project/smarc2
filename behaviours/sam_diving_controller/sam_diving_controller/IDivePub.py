@@ -38,3 +38,15 @@ class MissionStates(enum.Enum):
                 MissionStates.CANCELLED,
                 MissionStates.STOPPED,
                 MissionStates.NONE]
+
+
+class ActuatorStates(enum.Enum):
+    """
+    Enum for actuator states to check if they've been set to neutral for publishing once before taking hands off.
+    """
+    NEUTRAL = "NEUTRAL"
+    ENGAGED = "ENGAGED"
+    DISENGAGED = "DISENGAGED"
+
+    def __str__(self):
+        return self.name

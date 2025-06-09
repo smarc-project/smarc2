@@ -10,7 +10,7 @@ import csv
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 from .ParamUtils import DivingModelParam
-from .IDivePub import MissionStates
+from .IDivePub import MissionStates, ActuatorStates
 
 from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
 from smarc_modelling.control.control import *
@@ -86,7 +86,7 @@ class PIDControl:
 
 class DiveControllerInterface:
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub =dive_sub 
@@ -98,6 +98,9 @@ class DiveControllerInterface:
         self._ref = None
         self._error = None
         self._input = None
+        self._dive_mode = None
+
+        self.param = param
 
     def _loginfo(self, s):
         self._node.get_logger().info(s)
@@ -111,23 +114,29 @@ class DiveControllerInterface:
         Setting all actuators to neutral.
         """
 
-        u_vbs_neutral = self.param['vbs_u_neutral']
-        u_lcg_neutral = self.param['lcg_u_neutral']
-        u_tv_hor_neutral = self.param['tv_u_neutral']
-        u_tv_ver_neutral = self.param['tv_u_neutral']
-        u_rpm_neutral = self.param['rpm_u_neutral']
+        actuator_state = self._dive_pub.get_actuator_states()
 
-        self._dive_pub.set_vbs(u_vbs_neutral)
-        self._dive_pub.set_lcg(u_lcg_neutral)
-        self._dive_pub.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
-        self._dive_pub.set_rpm(u_rpm_neutral, u_rpm_neutral)
+        if actuator_state == ActuatorStates.ENGAGED:
+            u_vbs_neutral = self.param['vbs_u_neutral']
+            u_lcg_neutral = self.param['lcg_u_neutral']
+            u_tv_hor_neutral = self.param['tv_u_neutral']
+            u_tv_ver_neutral = self.param['tv_u_neutral']
+            u_rpm_neutral = self.param['rpm_u_neutral']
 
-        self._input = ControlInput()
-        self._input.vbs = u_vbs_neutral
-        self._input.lcg = u_lcg_neutral
-        self._input.thrustervertical = u_tv_ver_neutral
-        self._input.thrusterhorizontal = u_tv_hor_neutral
-        self._input.thrusterrpm = float(u_rpm_neutral)
+            self._dive_pub.set_vbs(u_vbs_neutral)
+            self._dive_pub.set_lcg(u_lcg_neutral)
+            self._dive_pub.set_thrust_vector(u_tv_hor_neutral, -u_tv_ver_neutral)
+            self._dive_pub.set_rpm(u_rpm_neutral, u_rpm_neutral)
+
+            self._input = ControlInput()
+            self._input.vbs = u_vbs_neutral
+            self._input.lcg = u_lcg_neutral
+            self._input.thrustervertical = u_tv_ver_neutral
+            self._input.thrusterhorizontal = u_tv_hor_neutral
+            self._input.thrusterrpm = float(u_rpm_neutral)
+
+            self._dive_pub.set_actuator_states(ActuatorStates.NEUTRAL, "DC")
+
 
     def _set_actuators_emergency(self):
         """
@@ -187,19 +196,21 @@ class DiveControllerInterface:
     def get_input(self):
         return self._input
 
+    def get_dive_mode(self):
+        return self._dive_mode
+
 
 class DiveControllerPID(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
         self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
                                          Ki = self.param['vbs_pid_ki'],
@@ -254,6 +265,9 @@ class DiveControllerPID(DiveControllerInterface):
             self._set_actuators_neutral()
             return
 
+        # Engage actuators in case they were off before.
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
         # Get setpoints
         depth_setpoint = self._dive_sub.get_depth_setpoint()
         pitch_setpoint = self._dive_sub.get_pitch_setpoint()
@@ -262,10 +276,12 @@ class DiveControllerPID(DiveControllerInterface):
         rpm_setpoint = self._dive_sub.get_rpm_setpoint()
 
         # Get current states
-        self._current_state = self._dive_sub.get_states()
+        self._current_state = self._dive_sub.get_states() # FIXME: why do we use this to begin with?
         current_depth = self._dive_sub.get_depth()
         current_pitch = self._dive_sub.get_pitch()
         current_heading = self._dive_sub.get_heading()
+
+        #self._loginfo(f"state: {self._current_state}, depth: {current_depth}, pitch: {current_pitch}, heading: {current_heading}")
 
         if not self._dive_sub.has_waypoint():
             return
@@ -274,16 +290,18 @@ class DiveControllerPID(DiveControllerInterface):
             self._loginfo("No depth setpoint yet")
             return
 
+        # FIXME: We might need this again
         #distance = self._dive_sub.get_distance()
         #goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         # Sketchy minus signs...
+        # FIXME: Check that the depths are handled correctly. 
         depth_setpoint *= -1
         current_depth *= -1
 
         # Choose active vs. static diving based on dive pitch angle
         if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
-            self._loginfo("Active Diving")
+            self._dive_mode = "Active Diving"
             pitch_setpoint = dive_pitch_setpoint
 
             u_rpm = rpm_setpoint # FIXME: rpm1 and rpm2 can be set individually
@@ -297,7 +315,7 @@ class DiveControllerPID(DiveControllerInterface):
             depth_error = depth_setpoint - current_depth
 
         else:
-            self._loginfo("Static Diving")
+            self._dive_mode = "Static Diving"
             u_rpm = self.param['rpm_u_neutral']
             u_tv_ver_raw = self.param['tv_u_neutral']
             u_tv_hor_raw = self.param['tv_u_neutral']
@@ -308,6 +326,14 @@ class DiveControllerPID(DiveControllerInterface):
             u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
 
             yaw_error = heading_setpoint - current_heading
+
+        s_ctrl = ""
+        s_ctrl += f"current depth: {current_depth}\n"
+        s_ctrl += f"depth setpoint: {depth_setpoint}\n"
+        s_ctrl += f"depth error: {depth_error}\n"
+        s_ctrl += f"VBS: {u_vbs}\n"
+
+        self._loginfo(s_ctrl)
 
 
         self._dive_pub.set_vbs(u_vbs)
@@ -338,16 +364,15 @@ class DiveControllerPID(DiveControllerInterface):
 
 class DepthJoyControllerPID(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
         self._depth_vbs_pid = PIDControl(Kp = self.param['vbs_pid_kp'],
                                          Ki = self.param['vbs_pid_ki'],
@@ -405,6 +430,11 @@ class DepthJoyControllerPID(DiveControllerInterface):
         # Sketchy minus signs...
         depth_setpoint *= -1.0
         current_depth *= -1.0
+
+        # This is due to the fact that we want to move the LCG forward when
+        # having a negative real pitch error.
+        pitch_setpoint *= -1.0
+        current_pitch *= -1.0
 
         # Choose active vs. static diving based on dive pitch angle
         s = f"Control States:\n"
@@ -473,17 +503,16 @@ class DepthJoyControllerPID(DiveControllerInterface):
 
 class DiveControllerMPC(DiveControllerInterface):
 
-    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
+    def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub 
         self._dive_pub = dive_pub  
         self._dt = rate
+        self.param = param
 
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-
-        self.param = DivingModelParam(self._node).get_param()
         # FIXME: This needs to be fixed. Acados places the generated C files in
         # the current directory. So we litter the whole ros workspace with
         # them. Not good, but all attempts to force it to use a specific
