@@ -8,11 +8,7 @@
 # Control topics
 ########################
 # States
-<<<<<<< HEAD
-string STATES = 'dr/odom' # Type: Odometry
-=======
 string STATES = 'smarc/odom' # Type: Odometry
->>>>>>> origin/humble
 string DEPTH = 'dr/depth' # Type: Float64
 string PITCH = 'core/imu' # Type: 
 
