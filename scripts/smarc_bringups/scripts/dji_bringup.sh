@@ -75,7 +75,7 @@ fi
 # only launch if not the simulator
 if [ "$USE_SIM_TIME" = "False" ]; then
     tmux select-window -t $SESSION:5
-    tmux send-keys "echo 'Webcam->ROS node goes here when it exists'" C-m
+    tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args --remap __ns:/$ROBOT_NAME/gimbal_camera" C-m
 fi
 
 
