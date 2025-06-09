@@ -64,8 +64,9 @@ if [ "$REALSIM" = "real" ]; then
     tmux new-window -t $SESSION:6 -n 'hardware3'
     tmux select-window -t $SESSION:6
     tmux send-keys "ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
-
-
+    tmux new-window -t $SESSION:7 -n 'usbl_interface'
+    tmux select-window -t $SESSION:7
+    tmux send-keys "ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
     
     echo "Launching hardware drivers in real mode."
 
@@ -75,11 +76,14 @@ fi
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
-    tmux new-window -t $SESSION:7 -n 'vehicle_health'
-    tmux select-window -t $SESSION:7
+    tmux new-window -t $SESSION:8 -n 'vehicle_health'
+    tmux select-window -t $SESSION:8
     tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 else
-    echo "Skipping vehicle health publisher in sim mode."
+    tmux new-window -t $SESSION:8 -n 'vehicle_health'
+    tmux select-window -t $SESSION:8
+    #tmux send-keys "ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
+    tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 fi
 
 # Set default window
