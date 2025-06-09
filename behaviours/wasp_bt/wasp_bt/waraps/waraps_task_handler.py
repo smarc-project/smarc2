@@ -20,6 +20,7 @@ class WaraPSTaskStates(enum.Enum):
     ENOUGH = "enough"
     ABORTED = "aborted"
     ERROR = "error"
+    FINISHED = "finished"
 
 
     def __str__(self):
@@ -816,6 +817,10 @@ class WaraPSTaskHandler:
         Clears the current task.
         """
         if len(self.tasks_executing) > 0:
+
+            # change status of the current task to FINISHED
+            self.tasks_executing[0]["status"] = WaraPSTaskStates.FINISHED.value
+
             self.tasks_executing.pop(0)
         else:
             # log
