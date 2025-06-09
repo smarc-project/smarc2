@@ -226,10 +226,11 @@ class A_Abort(VehicleBehaviour):
         self.task_handler = task_handler
 
     def update(self) -> Status:
+        # if self.task_handler.aborted_flag == False:
         self.task_handler.abort()
+    
         self.feedback_message = "!! ABORTED !!"
         return Status.SUCCESS
-
     
 class A_Heartbeat(VehicleBehaviour):
     def __init__(self, bt: HasVehicleContainer):

@@ -1,7 +1,11 @@
 #! /bin/bash
 ROBOT_NAME=sam0
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=False
+USE_SIM_TIME=True
+
+AGENT_TYPE=subsurface
+PULSE_RATE=0.5 # Hz
+
 
 # create a tmux session with a name
 tmux -2 new-session -d -s $SESSION
@@ -52,10 +56,11 @@ tmux send-keys "ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_N
 
 # Mostly static stuff that wont be giving much feedback
 tmux select-window -t $SESSION:8
-tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 
 tmux select-window -t $SESSION:9
-tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
+# tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch sam_emergency_action sam_emergency_action.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:10
 # To connect to our MQTT broker
@@ -65,7 +70,7 @@ tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_add
 
 # Launch the wasp_bt LAST, to give action servers time to start publishing heartbeats
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME link_suffix:=$LINK_SUFFIX agent_type:=$AGENT_TYPE levels:=$LEVELS pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 USERNAME=$(whoami)
 if [ $USERNAME != "sam" ]

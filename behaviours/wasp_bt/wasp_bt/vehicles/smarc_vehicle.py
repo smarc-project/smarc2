@@ -11,7 +11,7 @@ from std_msgs.msg import Empty, Bool
 from std_msgs.msg import String
 from sensor_msgs.msg import NavSatFix, BatteryState
 from smarc_msgs.msg import Topics
-
+from nav_msgs.msg import Odometry
 from typing import Type
 
 from .vehicle import IVehicleState, IVehicleStateContainer
@@ -40,6 +40,8 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._battery_sub = node.create_subscription(String, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
+
+        self._odom_sub = node.create_subscription(Odometry, Topics.ODOM_TOPIC, self._odom_cb, 10)
         
         self._abort_pub = node.create_publisher(Empty, Topics.ABORT_TOPIC, 10)
         self._abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._abort_cb, 10)
@@ -92,6 +94,16 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
     def _battery_cb(self, data: BatteryState):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], sec)
+
+    def _odom_cb(self, data: Odometry):
+
+        # read rpy from odometry message
+        orientation = data.pose.pose.orientation
+        rpy = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        sec = self.current_time()
+        # self._vehicle_state.update_sensor(SensorNames.POSITION, [data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z], sec)
+        self._vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, [rpy[0], rpy[1], rpy[2]], sec)
+
         
     def _log(self, s:str):
         self._node.get_logger().info(s)
@@ -106,24 +118,3 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
     
     def __getitem__(self, key:str) -> Sensor:
         return self._vehicle_state[key]
-
-
-
-def test_ros_vehicle():
-    import sys, rclpy
-    try:
-        from vehicle import VehicleState
-    except:
-        from .vehicle import VehicleState
-
-    rclpy.init(args=sys.argv)
-    node = rclpy.create_node("test_ros_vehicle")
-    v = GenericSMaRCVehicle(node, VehicleState)
-
-    def update():
-        nonlocal v
-        print(v)
-
-    node.create_timer(0.5, update)
-    rclpy.spin(node)
-
