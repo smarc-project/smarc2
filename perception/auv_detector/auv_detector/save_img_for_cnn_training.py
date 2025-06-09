@@ -62,7 +62,7 @@ class HSVDetectorNode(Node):
         os.makedirs(self.save_dir_points, exist_ok=True)
 
 
-        self.rope_img_buffer = deque(maxlen=5)
+        self.rope_img_buffer = deque(maxlen=10)
 
         setup_trackbars(self.range_filter)
 
@@ -289,6 +289,9 @@ class HSVDetectorNode(Node):
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
         cv2.imshow("Dilation", rope_bin)
 
+        #contours, _ = cv2.findContours(rope_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #cv2.drawContours(preview_rope_2, contours, -1, (0,255,0), 2)
+
         # Curve fitting 
 
         # Get coordinates of white pixels (rope)
@@ -311,8 +314,8 @@ class HSVDetectorNode(Node):
             center_y_rope = int(y_fit_rope[50])
             cv2.circle(preview_rope_2, (center_x_rope, center_y_rope), 5, (0, 255, 0), 1) # rope center
 
-            cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            # cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
+            #                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
             cv2.imshow("Curve Fitting", preview_rope_2)
 
 
