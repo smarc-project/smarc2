@@ -348,7 +348,12 @@ class SMARCActionClient(abc.ABC):
             # saving previous state for logger output
             prev_state = self._state
             self._state = _validate_state(val)
-            name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            
+            # if the action_name is not an absolute path, prepend the namespace
+            if not self._action_name.startswith("/"):
+                name = combine_ns_and_action(self._node.get_namespace(), self._action_name)
+            else:
+                name = self._action_name
             if prev_state != self._state:
                 self._node.get_logger().info(
                     f"[action-base] Client State ({name}) transitioned from {prev_state} to {self._state}"
@@ -371,7 +376,7 @@ class SMARCActionClient(abc.ABC):
             self.state = ActionClientState.READY
         else:
             self._node.get_logger().error(
-                "[action-base] Server not found. Action client will not be able to send goals."
+                f"[action-base] Server not found. Cannot send goals to {self._action_name}."
             )
             self.state = ActionClientState.DISCONNECTED
         
@@ -550,3 +555,7 @@ class SMARCActionClient(abc.ABC):
         )
 
         self._send_goal_future.add_done_callback(self._wrap_goal_response_callback)
+
+    def get_action_name(self) -> str:
+        """Returns the action name of the client."""
+        return self._action_name

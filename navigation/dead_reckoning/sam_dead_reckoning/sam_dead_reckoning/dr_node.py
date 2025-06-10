@@ -61,7 +61,7 @@ class VehicleDR(Node):
         self.robot_name = self.get_parameter("robot_name").value
         # === Frames ===
         self.map_frame = self.get_parameter("map_frame").value
-        self.utm_frame = self.get_parameter("utm_frame").value
+        # self.utm_frame = self.get_parameter("utm_frame").value
         self.odom_frame = f"{self.robot_name}/odom"
         self.base_frame = f"{self.robot_name}/{SamLinks.BASE_LINK}"
         self.base_frame_2d = f"{self.robot_name}/{SamLinks.BASE_LINK_2D}"
@@ -77,7 +77,6 @@ class VehicleDR(Node):
         self.listener = TransformListener(self.tf_buffer, self)
         self.static_tf_bc = tf2_ros.StaticTransformBroadcaster(self)
         self.br = tf2_ros.TransformBroadcaster(self)
-        self.transformStamped = TransformStamped()
 
         self.t_prev = self.get_clock().now()  # rclpy.Time was rospy.Time, rospy.Time.now()
         self.pose_prev = [0.] * 6
@@ -193,7 +192,7 @@ class VehicleDR(Node):
         # === Frames ===
         # self.declare_parameter("odom_frame", default_robot_name+"/odom")  # changed
         self.declare_parameter("map_frame", "map")
-        self.declare_parameter("utm_frame", "utm")
+        # self.declare_parameter("utm_frame", "utm")
 
         # self.declare_parameter("base_frame_2d", f"{default_robot_name}_base_link_2d")
         # self.declare_parameter("dvl_frame", f"{default_robot_name}_dvl_link")
@@ -208,7 +207,9 @@ class VehicleDR(Node):
         self.thrust_cmd = thrust_cmd_msg
 
     def gps_cb(self, gps_msg):
-        self.get_logger().info("GPS received")
+
+        self.get_logger().info("Odom GPS received")
+        
         try:
             world_transform = self.tf_buffer.lookup_transform(target_frame=self.odom_frame,
                                                               source_frame=self.map_frame,
@@ -225,10 +226,8 @@ class VehicleDR(Node):
 
         except (LookupException, ConnectivityException):
 
-            self.get_logger().info("Setting goal point")
-
             goal_point = PointStamped()
-            goal_point.header.frame_id = self.utm_frame
+            goal_point.header.frame_id = gps_msg.header.frame_id
             # Check if this is the correct stamp
             goal_point.header.stamp = rcl_time_to_stamp(self.get_clock().now())  # rospy.Time(0)
             goal_point.point.x = gps_msg.pose.pose.position.x
@@ -248,7 +247,8 @@ class VehicleDR(Node):
                     euler = euler_from_quaternion(
                         [self.init_quat.x, self.init_quat.y, self.init_quat.z, self.init_quat.w])
                     quat = quaternion_from_euler(0., 0., euler[2])  # -0.3 for feb_24 with floatsam
-
+                    
+                    self.transformStamped = TransformStamped()
                     self.transformStamped.transform.translation.x = gps_map.point.x
                     self.transformStamped.transform.translation.y = gps_map.point.y
                     self.transformStamped.transform.translation.z = 0.
@@ -259,13 +259,12 @@ class VehicleDR(Node):
                     self.transformStamped.header.frame_id = self.map_frame
                     self.transformStamped.child_frame_id = self.odom_frame
                     self.transformStamped.header.stamp = rcl_time_to_stamp(self.get_clock().now())
-                    self.static_tf_bc.sendTransform(self.transformStamped)
                     self.map_2_odom_initialized = True
                     # self.gps_sub.unregister()
                     self.destroy_subscription(self.gps_sub)
 
             except (LookupException, ConnectivityException, ExtrapolationException):
-                self.get_logger().info("DR: Transform to utm-->map not available yet")
+                self.get_logger().info(f"DR: Transform {gps_msg.header.frame_id} --> {self.map_frame} not available yet")
             pass
 
         # Is there a depth sensor? If so, AUV.
@@ -288,7 +287,8 @@ class VehicleDR(Node):
             self.get_logger().warn("Assuming surface vehicle")
 
     def dr_timer(self):
-        # Determine actual period of timer
+        
+        # Determine actual period of timer 
         dr_current_time = rcl_time_to_secs(self.get_clock().now())
         if self.dr_last_time is None:
             self.dr_measured_period = 0
@@ -300,6 +300,8 @@ class VehicleDR(Node):
         start_time_dbg = python_time.time()
 
         if self.map_2_odom_initialized and self.stim_initialized:
+
+            self.static_tf_bc.sendTransform(self.transformStamped)
 
             pose_t = np.concatenate([self.pos_t, self.rot_t])  # Catch latest estimate from IMU
             rot_vel_t = self.vel_rot  # TODO: rn this keeps the last vels even if the IMU dies
@@ -550,7 +552,9 @@ def main(args=None, namespace=None):
         rclpy.spin(dr_node)
     except KeyboardInterrupt:
         pass
-
+    finally:
+        dr_node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main(namespace="sam0")
