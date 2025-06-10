@@ -32,8 +32,6 @@ class SAMSMARCPublisher(Node):
         self._create_abort_pubsub()
         self._create_bt_heartbeat_pubsub()
         self._create_altitude_pubsub()
-        self._create_roll_pubsub()
-        self._create_pitch_pubsub()
         self._create_battery_status_pubsub()
 
         self._create_odom_pubsub()
@@ -88,20 +86,6 @@ class SAMSMARCPublisher(Node):
         Callback for the DVL topic. It publishes the altitude to the SMaRC topic.
         """
         self.altitude_pub.publish(Float32(data=msg.altitude))
-
-    def _create_roll_pubsub(self):
-        self.roll_pub = self.create_publisher(Float32, SmarcTopics.ROLL_TOPIC, 10)
-        self.roll_sub = self.create_subscription(Float64, DRTopics.DR_ROLL_TOPIC, self.roll_callback, 10)
-
-    def roll_callback(self, msg):
-        self.roll_pub.publish(Float32(data=msg.data))
-
-    def _create_pitch_pubsub(self):
-        self.pitch_pub = self.create_publisher(Float32, SmarcTopics.PITCH_TOPIC, 10)
-        self.pitch_sub = self.create_subscription(Float64, DRTopics.DR_PITCH_TOPIC, self.pitch_callback, 10)
-
-    def pitch_callback(self, msg):
-        self.pitch_pub.publish(Float32(data=msg.data))
 
     def _create_odom_pubsub(self):
         """
