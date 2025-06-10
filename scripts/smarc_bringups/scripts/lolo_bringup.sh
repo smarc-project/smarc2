@@ -1,7 +1,7 @@
 #! /bin/bash
 ROBOT_NAME=lolo
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=True
+USE_SIM_TIME=False
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
@@ -82,8 +82,7 @@ if [ "$USE_SIM_TIME" = "True" ]; then
 else
     tmux new-window -t $SESSION:8 -n 'vehicle_health'
     tmux select-window -t $SESSION:8
-    #tmux send-keys "ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
-    tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
+    tmux send-keys "ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
 fi
 
 # Set default window
