@@ -70,7 +70,7 @@ def joy_depth():
     """
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DivingNode")
+    node = rclpy.create_node("JoyDivingNode")
 
     node.declare_parameter('dive_pub_rate', 0.1)
     node.declare_parameter('dive_controller_rate', 0.1)
@@ -85,9 +85,10 @@ def joy_depth():
 
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
-    dive_pub = SAMDivePub(node)
-    dive_sub = DiveSub(node, dive_pub) 
-    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, dive_controller_rate)
+    param = DivingModelParam(node).get_param()
+    dive_sub = DiveSub(node, param) 
+    dive_pub = SAMDivePub(node, dive_sub, param)
+    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     #convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
@@ -118,7 +119,7 @@ def joy_depth():
 def action_server():
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DivingNode")
+    node = rclpy.create_node("ActionServerDivingNode")
 
     node.declare_parameter('dive_pub_rate', 0.1)
     node.declare_parameter('dive_controller_rate', 0.1)
