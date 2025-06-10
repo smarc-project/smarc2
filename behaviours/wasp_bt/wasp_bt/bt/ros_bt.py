@@ -39,7 +39,8 @@ from .conditions import C_CheckMissionPlanState,\
                         C_AbortedPreviousTask,\
                         C_NoEmergencyAbortSignalDetected,\
                         C_VehicleHealthStatus,\
-                        C_LastHealthy
+                        C_LastHealthy,\
+                        C_HasHeardFromVehicleHealth
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
@@ -98,8 +99,10 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
     def _health_tree(self):
         health_checks = Fallback("F_Health_Handler", memory=False, children=[
             Sequence("S_Health_Status", memory=False, children=[
-                C_VehicleHealthStatus(self._task_handler),
+                C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health has been heard from in the last 10 seconds
                 C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
+                C_VehicleHealthStatus(self._task_handler),
+
             ]),
             A_Abort(self._task_handler),
         ])

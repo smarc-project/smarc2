@@ -88,11 +88,11 @@ class DiveToWaypointActionClient():
             return
 
         waypoint = PoseStamped()
-        waypoint.header.frame_id = 'sam0/odom_gt'
+        waypoint.header.frame_id = 'sam_auv_v1/odom_gt'
         waypoint.header.stamp = self.rcl_time_to_stamp(self._node.get_clock().now())
-        waypoint.pose.position.x = 50.0
-        waypoint.pose.position.y = 0.0
-        waypoint.pose.position.z = 0.0
+        waypoint.pose.position.x = 0.0
+        waypoint.pose.position.y = 5.0
+        waypoint.pose.position.z = -10.0
         waypoint.pose.orientation.x = 0.0
         waypoint.pose.orientation.y = 0.0
         waypoint.pose.orientation.z = 0.0
@@ -150,7 +150,7 @@ def main():
     ac.send_goal()
 
     # To test the cancel callback
-    node.create_timer(5.0, ac.cancel_goal)
+    #node.create_timer(5.0, ac.cancel_goal)
 
     rclpy.spin(node)
     ac._loginfo("spin")
