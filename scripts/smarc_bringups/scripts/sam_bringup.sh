@@ -1,5 +1,6 @@
 #! /bin/bash
-ROBOT_NAME=sam0
+# Set LOCAL_ROBOT_NAME in your bashrc
+ROBOT_NAME=$LOCAL_ROBOT_NAME
 SESSION=${ROBOT_NAME}_bringup
 
 # create a tmux session with a name
@@ -40,7 +41,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "echo 'Not launching sam_dead_reckoning sam_dr_launch.launch until someone fixes it!'" C-m
 
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch smarc_bt smarc_bt.launch robot_name:=$ROBOT_NAME link_suffix:=_gt" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME" C-m
 
 tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch sam_diving_controller actionserver.launch robot_name:=$ROBOT_NAME" C-m
@@ -59,11 +60,9 @@ tmux send-keys "ros2 launch sam_description sam_description.launch robot_name:=$
 tmux select-window -t $SESSION:9
 tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
 
+# Set your MQTT Broker IP and Port in your bashrc
 tmux select-window -t $SESSION:10
-# To connect to our MQTT broker
-# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 " C-m
-# For local testing: use defaults
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME" C-m
 
 # Conditional launches, for sim-only or real-only things
 # the real sam's username is "sam" and lolo's "lolo".
