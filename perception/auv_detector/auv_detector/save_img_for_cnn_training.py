@@ -354,63 +354,67 @@ class HSVDetectorNode(Node):
         # save images 
 
         if cv2.getTrackbarPos("Save_Image", "Trackbars") == 1:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            #filename = f"saved_{timestamp}.jpg"
-            filename = os.path.join(self.save_dir_processed, f"processed_{timestamp}.jpg")
-            cv2.imwrite(filename, self.last_preview)
+            if len(self.points) == 2:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                #filename = f"saved_{timestamp}.jpg"
+                filename = os.path.join(self.save_dir_processed, f"processed_{timestamp}.jpg")
+                cv2.imwrite(filename, self.last_preview)
 
-            filename_original = os.path.join(self.save_dir_original, f"original_{timestamp}.jpg")
-            cv2.imwrite(filename_original, self.cv2_img)
-
-
-
-            # self.save_dir_buoy = "for_cnn_training_buoy"
-            filename_buoy = os.path.join(self.save_dir_buoy, f"buoy_{timestamp}.jpg")
-            cv2.imwrite(filename_buoy, preview_buoy)
-            
-            # self.save_dir_auv = "for_cnn_training_auv"
-            filename_auv = os.path.join(self.save_dir_auv, f"auv_{timestamp}.jpg")
-            cv2.imwrite(filename_auv, preview_auv)
-
-            # self.save_dir_rope = "for_cnn_training_rope"
-            filename_rope = os.path.join(self.save_dir_rope, f"rope_{timestamp}.jpg")
-            cv2.imwrite(filename_rope, preview_rope_3)
-
-            # self.save_dir_rope_fitting = "for_cnn_training_rope_fitting"preview_rope_2
-            filename_rope_fitting = os.path.join(self.save_dir_rope_fitting, f"rope_fitting_{timestamp}.jpg")
-            cv2.imwrite(filename_rope_fitting, preview_rope_2)
-
-            # self.save_dir_combined = "for_cnn_training_combined" # buoy rope auv
-            filename_combined = os.path.join(self.save_dir_combined, f"combined_{timestamp}.jpg")
-            cv2.imwrite(filename_combined, combined_preview)
+                filename_original = os.path.join(self.save_dir_original, f"original_{timestamp}.jpg")
+                cv2.imwrite(filename_original, self.cv2_img)
 
 
 
+                # self.save_dir_buoy = "for_cnn_training_buoy"
+                filename_buoy = os.path.join(self.save_dir_buoy, f"buoy_{timestamp}.jpg")
+                cv2.imwrite(filename_buoy, preview_buoy)
+                
+                # self.save_dir_auv = "for_cnn_training_auv"
+                filename_auv = os.path.join(self.save_dir_auv, f"auv_{timestamp}.jpg")
+                cv2.imwrite(filename_auv, preview_auv)
 
-            # self.save_dir_buoy_position = "for_cnn_buoy_position"
-            txt_buoy = os.path.join(self.save_dir_buoy_position, f"buoy_position_{timestamp}.txt")
-            with open(txt_buoy, 'w') as f:
-                    # Save as: x y
-                    f.write(f"{cx_buoy} {cy_buoy}\n")
-            # self.save_dir_auv_position = "for_cnn_auv_position"
-            txt_auv = os.path.join(self.save_dir_auv_position, f"auv_position_{timestamp}.txt")
-            with open(txt_auv, 'w') as f:
-                    # Save as: x y
-                    f.write(f"{cx_auv} {cy_auv}\n")
+                # self.save_dir_rope = "for_cnn_training_rope"
+                filename_rope = os.path.join(self.save_dir_rope, f"rope_{timestamp}.jpg")
+                cv2.imwrite(filename_rope, preview_rope_3)
+
+                # self.save_dir_rope_fitting = "for_cnn_training_rope_fitting"preview_rope_2
+                filename_rope_fitting = os.path.join(self.save_dir_rope_fitting, f"rope_fitting_{timestamp}.jpg")
+                cv2.imwrite(filename_rope_fitting, preview_rope_2)
+
+                # self.save_dir_combined = "for_cnn_training_combined" # buoy rope auv
+                filename_combined = os.path.join(self.save_dir_combined, f"combined_{timestamp}.jpg")
+                cv2.imwrite(filename_combined, combined_preview)
 
 
 
-            # Save each point in separate file
-            for idx, point in enumerate(self.points):
-                label = f"P{idx+1}"
-                txt_filename = os.path.join(self.save_dir_points, f"{label}_{timestamp}.txt")
-                with open(txt_filename, 'w') as f:
-                    # Save as: x y
-                    f.write(f"{point[0]} {point[1]}\n")
 
-                self.get_logger().info(f"Point {label} saved as {txt_filename}")
+                # self.save_dir_buoy_position = "for_cnn_buoy_position"
+                txt_buoy = os.path.join(self.save_dir_buoy_position, f"buoy_position_{timestamp}.txt")
+                with open(txt_buoy, 'w') as f:
+                        # Save as: x y
+                        f.write(f"{cx_buoy} {cy_buoy}\n")
+                # self.save_dir_auv_position = "for_cnn_auv_position"
+                txt_auv = os.path.join(self.save_dir_auv_position, f"auv_position_{timestamp}.txt")
+                with open(txt_auv, 'w') as f:
+                        # Save as: x y
+                        f.write(f"{cx_auv} {cy_auv}\n")
 
-            self.get_logger().info(f"Image saved as {filename}")
+
+
+                # Save each point in separate file
+                for idx, point in enumerate(self.points):
+                    label = f"P{idx+1}"
+                    txt_filename = os.path.join(self.save_dir_points, f"{label}_{timestamp}.txt")
+                    with open(txt_filename, 'w') as f:
+                        # Save as: x y
+                        f.write(f"{point[0]} {point[1]}\n")
+
+                    self.get_logger().info(f"Point {label} saved as {txt_filename}")
+
+                self.get_logger().info(f"Image saved as {filename}")
+            else:
+                self.get_logger().info(f"Image has not been annotated yet")
+
             cv2.setTrackbarPos("Save_Image", "Trackbars", 0)  # Reset
             self.points = []  # Reset after two clicks
             # print(f"Image size: {self.cv2_img.shape}")  # Outputs (height, width, channels)  (480, 640, 3)
