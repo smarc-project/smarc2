@@ -122,7 +122,7 @@ class A_JustChillFor(VehicleBehaviour):
     def setup(self, timeout: int = 1) -> None:
         self._start_time = None
         self._duration = self._duration
-        self._task_handler.set_current_task_status("started")
+        self._task_handler.set_current_task_status(WaraPSTaskStates.STARTED.value)
         self.feedback_message = "Task started. Waiting for task to finish..."
         return True
 
@@ -133,15 +133,15 @@ class A_JustChillFor(VehicleBehaviour):
         # handle status signals
         latest_status = self._task_handler.get_current_task_status()
         
-        if latest_status == "started" or latest_status == "resumed":
+        if latest_status == WaraPSTaskStates.STARTED.value or latest_status == WaraPSTaskStates.RESUMED.value:
             
-            self._task_handler.set_current_task_status("running")
+            self._task_handler.set_current_task_status(WaraPSTaskStates.RUNNING.value)
             self._start_time = self._bt.now_seconds
 
             if self.paused:
                 self.paused = False
             
-        if latest_status == "paused":
+        if latest_status == WaraPSTaskStates.PAUSED.value:
             self.feedback_message = "Task paused. Waiting for resume..."
             # set duration
             if not self.paused:
@@ -150,13 +150,13 @@ class A_JustChillFor(VehicleBehaviour):
                 self.paused = True
             return Status.RUNNING
         
-        elif latest_status == "aborted" or latest_status == "enough":
+        elif latest_status == WaraPSTaskStates.ABORTED.value or latest_status == WaraPSTaskStates.ENOUGH.value:
             self.feedback_message = "Task cancelled. Removing from Task Queue..."
             # remove task from queue
             self._task_handler.clear_task_queue()
             return Status.SUCCESS
         
-        if latest_status == "running":
+        if latest_status == WaraPSTaskStates.RUNNING.value:
             dt = self._bt.now_seconds - self._start_time
             if dt > self._duration:
                 self.feedback_message = f"I've been chillin for {self._elapsed_time + dt:.1f}s. Chillin' is OVER. Gimme some work!"
@@ -169,7 +169,7 @@ class A_JustChillFor(VehicleBehaviour):
         if new_status == Status.SUCCESS:
             # action is finished proper. 
             self.feedback_message = "Task finished!"
-            self._task_handler.set_current_task_status("finished")
+            self._task_handler.set_current_task_status(WaraPSTaskStates.FINISHED.value)
             self._task_handler.clear_task_queue()
 
             # reset everything
@@ -301,7 +301,6 @@ class A_ActionClient(Behaviour):
             if self._client.state in self._running_states:
                 self.feedback_message = "Preempted by higher priority in tree, cancelling goal"
                 self._client.cancel_goal(self._client.cancel_callback)
-                self._task_handler.set_current_task_status(WaraPSTaskStates.ABORTED)
             else:
                 self.feedback_message = f"Preempted with Action Client state: {self._client.state}"
             
