@@ -79,7 +79,7 @@ class RosToMqtt:
         # before sending it
         # otherwise, the string is likely coming from json.dumps put into a ros string, where double quotes become single quotes
         # so we convert the ros string to a python dict, then convert that to a json string
-        # self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
+        self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
         if(msg.data[0] == "'" or msg.data[0] == '"'):
             json_str = msg.data[1:-1] # remove the single quotes so the inner string is a valid json string
         else:
@@ -94,7 +94,7 @@ class RosToMqtt:
                 self._rosnode.get_logger().error(f"Error converting to json: {e}, non-json type: {type(json_obj)}")
                 return
 
-        # self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {json_str}")
+        self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {json_str}")
         self._mqttclient.publish(self._mqtt_topic, json_str)
 
     def on_reconnect(self):
