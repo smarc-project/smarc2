@@ -203,7 +203,7 @@ class Lolo():
         setpoint_msg = Float32()
         #set setpoint for depth based on depth setpoint or altitude
         self.desired_depth = min(self.goal.depth, (self.depth+self.altitude) - self.goal.altitude) if self.goal.altitude is not None and self.altitude is not None else self.goal.depth
-        setpoint_msg.data = self.desired_depth
+        setpoint_msg.data = float(self.desired_depth)
         self.depth_pub.publish(setpoint_msg)
         # TODO: should we control how we want to use the vertical thrusters here?
         # e.g. if goal.rpm < config.min_dive_rpm: do something smart to keep the depth.
@@ -211,7 +211,7 @@ class Lolo():
     def control_speed(self):
         setpoint_msg = Float32()
         #set setpoints for RPM based on speed setpoint
-        self.desired_rpm = self.goal.rpm
+        self.desired_rpm = float(self.goal.rpm)
         setpoint_msg.data = self.desired_rpm
         self.thruster_pub.publish(setpoint_msg)
 
