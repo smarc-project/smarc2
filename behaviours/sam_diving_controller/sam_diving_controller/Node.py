@@ -10,6 +10,13 @@ from .ActionServerDiveSub import DiveActionServerSub
 from .DiveSub import DiveSub
 from .DiveController import DepthJoyControllerPID, DiveControllerPID, DiveControllerMPC 
 from .ConveniencePub import ConveniencePub
+from smarc_action_base.smarc_action_base import (
+    ActionResult,
+    ActionType,
+    SMARCActionServer,
+)
+from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.msg import Topics as SMaRCTopics
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -135,7 +142,9 @@ def action_server():
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
     param = DivingModelParam(node).get_param()
-    dive_sub = DiveActionServerSub(node, param)
+    action_type = ActionType(BaseAction)
+    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
+    dive_sub = DiveActionServerSub(node, "move_to", action_type, param, heartbeat_topic)
     dive_pub = SAMDivePub(node, dive_sub, param)
     dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 

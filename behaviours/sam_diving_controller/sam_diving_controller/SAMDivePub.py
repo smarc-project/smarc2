@@ -111,7 +111,7 @@ class SAMDivePub(IDivePub):
         """
 
         if self._actuator_state == ActuatorStates.DISENGAGED:
-            self._loginfo(f"Actuators disengaged")
+            #self._loginfo(f"Actuators disengaged")
             return
         
         if self._actuator_state == ActuatorStates.NEUTRAL:
