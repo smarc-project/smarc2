@@ -146,6 +146,7 @@ class SAMSMARCPublisher(Node):
             self.heading_pub.publish(compass_heading_msg)
 
             latlon_msg = convert_utm_to_latlon(transform_pose)
+            latlon_msg.altitude = -1.
             self.latlon_pub.publish(latlon_msg)
 
             if self.current_pose_utm is not None and self.prev_pose_utm is not None:
