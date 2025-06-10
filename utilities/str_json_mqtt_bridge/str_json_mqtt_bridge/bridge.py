@@ -79,7 +79,7 @@ class RosToMqtt:
         # before sending it
         # otherwise, the string is likely coming from json.dumps put into a ros string, where double quotes become single quotes
         # so we convert the ros string to a python dict, then convert that to a json string
-        self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
+        # self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
         if(msg.data[0] == "'" or msg.data[0] == '"'):
             json_str = msg.data[1:-1] # remove the single quotes so the inner string is a valid json string
         else:
@@ -94,8 +94,18 @@ class RosToMqtt:
                 self._rosnode.get_logger().error(f"Error converting to json: {e}, non-json type: {type(json_obj)}")
                 return
 
-        self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {json_str}")
+        # self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {json_str}")
         self._mqttclient.publish(self._mqtt_topic, json_str)
+
+    def on_reconnect(self):
+        self._rosnode.get_logger().info(f"Re-subscribing to {self._ros_topic} after reconnect")
+        # no need to unsubscribe, ros topics are persistent and will not be removed
+        self._rosnode.create_subscription(String, self._ros_topic, self._ros_cb, 10)
+
+    def on_disconnect(self):
+        self._rosnode.get_logger().info(f"Unsubscribing from {self._ros_topic} on disconnect")
+        # no need to unsubscribe, ros topics are persistent and will not be removed
+        self._rosnode.destroy_subscription(self._ros_topic)
 
 
 class MqttToRos:
@@ -115,6 +125,15 @@ class MqttToRos:
         self._rosnode.get_logger().info(f"{self._mqtt_topic}-->{self._ros_topic}: {ros_msg.data}")
         self._rospub.publish(ros_msg)
 
+    def on_reconnect(self):
+        self._rosnode.get_logger().info(f"Re-subscribing to {self._mqtt_topic} after reconnect")
+        self._mqttclient.subscribe(self._mqtt_topic)
+        self._mqttclient.message_callback_add(self._mqtt_topic, self._mqtt_cb)
+
+    def on_disconnect(self):
+        self._rosnode.get_logger().info(f"Unsubscribing from {self._mqtt_topic} on disconnect")
+        self._mqttclient.unsubscribe(self._mqtt_topic)
+        self._mqttclient.message_callback_remove(self._mqtt_topic)
 
 class WaraMQTTNode:
     def __init__(self, node: rclpy.node.Node):
@@ -174,14 +193,25 @@ class WaraMQTTNode:
             self._mqtt_client.disconnect()
             self._mqtt_client.loop_stop()
 
-        self._mqtt_client.destroy_node()
+        # destroy the node
+        self.node.destroy_node()
 
 
     def _on_connect(self, client, userdata, flags, response_code):
         self.node.get_logger().info('MQTT connected')
+        # re-subscribe to MQTT topics
+        for bridge in self.mqtt_to_ros_bridges:
+            bridge.on_reconnect()
+        for bridge in self.ros_to_mqtt_bridges:
+            bridge.on_reconnect()
 
     def _on_disconnect(self, client, userdata, response_code):
         self.node.get_logger().info('MQTT disconnected')
+        # unsubscribe from MQTT topics
+        for bridge in self.mqtt_to_ros_bridges:
+            bridge.on_disconnect()
+        for bridge in self.ros_to_mqtt_bridges:
+            bridge.on_disconnect()
 
 
 def main(args=None):
