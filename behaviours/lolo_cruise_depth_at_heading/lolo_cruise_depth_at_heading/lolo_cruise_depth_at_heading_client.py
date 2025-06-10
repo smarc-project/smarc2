@@ -107,7 +107,7 @@ def main(args=None):
     node_name = "lolo_cruise_at_heading_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = CruiseDepthHeadingClient(node, "auv_cruise_depth_at_heading", action_type)
+    setpoint = CruiseDepthHeadingClient(node, "cruise_depth_at_heading", action_type)
     setpoint._test_cruise_at()
     rclpy.spin(node)
 

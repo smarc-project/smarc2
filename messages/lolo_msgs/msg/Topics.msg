@@ -1,8 +1,8 @@
 # This file defines all the topics used on lolo
 # The goal is to have a single location that all cpp/py scripts can easily access
 
-# Example
-# string EXAMPLE_TOPIC = 'example_topic'
+# Lolo Abort
+string LOLO_ABORT = 'abort'
 
 # PID controllers setpoints. All Float32s.
 string YAW_SETPOINT = "ctrl/yaw_setpoint"
@@ -73,12 +73,15 @@ string EXTENDED_BATTERY_2_TOPIC = "extended/battery2"
 #Communication
 string SATELITE_RECEIVED_TOPIC = "communication/satelite_received"
 string USBL_RECEIVED_TOPIC = "communication/usbl/received"
+string USBL_TRANSMIT_TOPIC = "communication/usbl/transmit"
 string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
+string USBL_CUSTOM_CMD_TOPIC = "communication/usbl/custom_command"
+
 
 #Navigation
 string INS_ODOM_TOPIC = "ins_odom"
-string INS_RAW_TOPIC = "/ix/ins"
-string INS_IMU_TOPIC = "/standard/imu"
+string INS_RAW_TOPIC = "ix/ins"
+string INS_IMU_TOPIC = "standard/imu"
 
 
 #Sensors
@@ -91,6 +94,7 @@ string SVS_TOPIC = sensors/svs
 string CTD_RAW_TOPIC = sensors/ctd/raw
 string CTD_TOPIC = sensors/ctd
 
+string DO_RAW_REQUEST_TOPIC = sensors/do/raw_request
 string DO_RAW_TOPIC = sensors/do/raw
 string DO_TOPIC = sensors/do
 
@@ -105,9 +109,13 @@ string DVL_TOPIC = sensors/dvl
 string FLS_WC_TOPIC = sensors/fls/watercolumn
 string FLS_IMAGE_TOPIC = sensors/fls/watercolumn/image
 
-string MBES_WC_TOPIC = sensors/fls/watercolumn
-string MBES_IMAGE_TOPIC = sensors/fls/watercolumn/image
-string MBES_BATHY_TOPIC = sensors/fls/bathymetry
-string MBES_BATHY_POINTCLOUD_TOPIC = sensors/fls/bathymetry/points
+string MBES_WC_TOPIC = sensors/mbes/watercolumn
+string MBES_IMAGE_TOPIC = sensors/mbes/watercolumn/image
+string MBES_BATHY_TOPIC = sensors/mbes/bathymetry
+string MBES_BATHY_POINTCLOUD_TOPIC = sensors/mbes/bathymetry/points
+
+string USBL_CORRECTION_TOPIC = "sensors/usbl/correction"
+# Measured USBL position of Lolo wrt to the topside unit in a local ENU frame.
+string USBL_RELATIVE_TOPIC = "sensors/usbl/relative_pose"
 
 string LEAK_TOPIC = "sensor/leak"
