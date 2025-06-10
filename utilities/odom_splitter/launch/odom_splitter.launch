@@ -1,0 +1,8 @@
+<launch>
+    <arg name="robot_name" default="lolo"/>
+
+    <node pkg="odom_splitter" exec="odom_splitter" name="odom_splitter" output="screen" namespace="$(var robot_name)">
+        <param name="robot_name" value="$(var robot_name)"/>
+    </node>
+
+</launch>

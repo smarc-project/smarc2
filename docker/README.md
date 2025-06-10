@@ -71,7 +71,7 @@ cd smarc2
 # check out the image
 docker images
 # make a container out of the image that runs bash interactively by default
-docker run -it smarc2/base
+docker run -it --network=host -p 10000 smarc2/base
 # you are now inside the container, which by default is in colcon_ws
 cd src/smarc2/simulation/binaries/SMaRCUnityStandard
 ./smarc_unity_standard_linux.x86_64 -nographics -batchmode
@@ -79,6 +79,7 @@ cd src/smarc2/simulation/binaries/SMaRCUnityStandard
 # you can Ctrl-C to kill it
 # you can Ctrl-D to detach from it
 ```
+
 
 #### Terminal 2
 ```bash

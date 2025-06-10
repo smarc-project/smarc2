@@ -12,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
         (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
     ],
     install_requires=['setuptools'],
@@ -24,7 +25,11 @@ setup(
     entry_points={
         'console_scripts': [
 	        'estimator = auv_detector.auv_detector:main', 
+            'manual_hsv_detector = auv_detector.manual_hsv_detector:main', 
+            'winch = auv_detector.auv_detector_auto_winch:main', 
             'detector = auv_detector.KNN:main',
+            'detector_2 = auv_detector.KNN_2:main',
+            'realdata = auv_detector.video_pipeline:main',
         ],
     },
 )

@@ -1,0 +1,66 @@
+/**:
+    ros__parameters:
+        mqtt:
+            client:
+                protocol: 4      # MQTTv311
+            connection:
+                host: localhost # these are set in the launch file, so we could have args from outside
+                port: 1889
+                keepalive: 30
+            # tls:
+            #     tls_insecure:
+            #     ca_certs:
+            #     certfile:
+            #     keyfile:
+            #     cert_reqs:
+            #     tls_version:
+            #     ciphers:
+            # account:
+            #     username:
+            #     password:
+            # message:
+            #     max_inflight_messages:
+            #     max_queued_messages:
+            #     message_rery:
+            # will:
+            #     topic:
+            #     payload:
+            #     qos:
+            #     retain:
+            #     properties:
+            namespace: "waraps/unit/subsurface/simulation/sam_test"
+            # ros namespacing should be done in the launch file
+            # each string here will be a topic on both sides, under their respective namespaces
+            to_mqtt:
+              [
+                #lv1
+                "heartbeat",
+                "sensor_info",
+                "sensor/position",
+                "sensor/heading",
+                "sensor/course",
+                "sensor/speed",
+                "sensor/roll",
+                "sensor/pitch",
+                "sensor/depth",
+
+                #lv2
+                "direct_execution_info",
+                "exec/response",
+                "exec/feedback",
+                
+                #lv3
+                'tst_execution_info',
+                "tst/response",
+                "tst/feedback",
+
+              ]
+            to_ros:
+              [
+                #lv2
+                "exec/command",
+                #lv3
+                "tst/command",
+                # ABORT
+                "abort",
+              ]

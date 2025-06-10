@@ -1,0 +1,25 @@
+---
+/*/detector_node:
+  ros__parameters:
+    knn: 
+        lowerbound: 180  # Replace with 180 for simulation if needed
+    data association:
+        aspect_upper_bound: 0.4
+    sam : 
+        threshold: 0  # Replace with 5 for realdata if needed
+        min_area: 50  # Replace with 50 for simulation if needed
+        color_rgb: [91, 96, 71]
+    buoy :
+        threshold: 15
+        color_rgb: [255, 107, 4]
+    name:
+        auv_name: 'sam'
+        buoy_name: 'buoy'
+    vision: 
+        min_area_filter: 50
+        max_area_filter: 3000
+        best_fit_degree: 3
+    realdata:
+        topic: 'realdata/camera/image'
+        enabled: True  # Set to true for real data
+    # realdata_path: '/home/schnizzle/Downloads/real_sam_data.MP4'

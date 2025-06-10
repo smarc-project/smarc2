@@ -1,0 +1,5 @@
+std_msgs/Header header
+
+geometry_msgs/PoseStamped wp
+geometry_msgs/Twist velocities
+smarc_control_msgs/SamControl nominal_control

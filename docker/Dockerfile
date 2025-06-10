@@ -23,7 +23,11 @@ RUN apt update && apt upgrade -y \
 ARG UID=1000
 ARG GID=1000
 ARG USERNAME=smarc2user
-RUN adduser --quiet --disabled-password --gecos '' --uid ${UID:=1000} --uid ${GID:=1000} ${USERNAME}
+RUN adduser --quiet --disabled-password --gecos '' --uid ${UID:=1000} --uid ${GID:=1000} ${USERNAME} \
+&& usermod -aG sudo ${USERNAME}
+
+# Allow the user to use sudo without a password
+RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 WORKDIR /home/${USERNAME}
 

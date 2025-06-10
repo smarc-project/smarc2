@@ -1,0 +1,10 @@
+<launch>
+  <arg name="robot_name" default="sam"/>
+
+  <node name="sam_smarc_publisher" pkg="sam_smarc_publisher" exec="sam_smarc_publisher" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="utm_zone" value="34" type="str"/>
+    <param name="utm_band" value="V" type="str"/>
+  </node>
+
+</launch>

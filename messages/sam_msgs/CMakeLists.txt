@@ -12,13 +12,18 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(smarc_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Links.msg"
   "msg/ThrusterAngles.msg"
   "msg/ThrusterRPMs.msg"
+  "msg/JoyButtons.msg"
   "msg/Topics.msg"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
+  "msg/DualThrusterRPM.msg"
+  "msg/DualThrusterFeedback.msg"
+  "msg/SensorStatus.msg"
+  DEPENDENCIES geometry_msgs sensor_msgs std_msgs smarc_msgs
  )
 
 if(BUILD_TESTING)
