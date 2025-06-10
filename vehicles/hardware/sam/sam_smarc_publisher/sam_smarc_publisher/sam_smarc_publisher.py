@@ -25,6 +25,8 @@ class SAMSMARCPublisher(Node):
     def __init__(self):
         super().__init__('sam_smarc_publisher')
         self.get_logger().info('SAM SMaRC Publisher Node has been started.')
+        self.declare_parameter('robot_name', 'sam')
+        self.robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
         self._create_tf_listener()
 
         self._create_abort_pubsub()
@@ -44,9 +46,8 @@ class SAMSMARCPublisher(Node):
         self.utm_frame = f'utm_{self.utm_zone}_{self.utm_band}'
         self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
 
-        self.declare_parameter('odom_frame', 'odom')
-        self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
-        self.get_logger().info(f'Using Odometry frame: {self.odom_frame}')
+        self.odom_frame = f'{self.robot_name}/odom'
+        self.get_logger().info(f'Using odom frame: {self.odom_frame}')
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
@@ -129,8 +130,7 @@ class SAMSMARCPublisher(Node):
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
 
         try:
-            timestamp = msg.header.stamp #Time()
-            self.get_logger().info(f'Transforming odometry from {self.odom_frame} to {self.utm_frame} at time {timestamp}')
+            timestamp = msg.header.stamp
             utm_transform = self.tf_buffer.lookup_transform(self.utm_frame, self.odom_frame, timestamp)
 
             transform_pose = PoseStamped()
