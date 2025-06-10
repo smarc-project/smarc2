@@ -33,12 +33,7 @@ class LoiterActionParsing:
         fmt_dict = json.loads(serialized_fmt.data)
         if component is ActionSubMsg.GOAL:
             goal = LoiterGoal()
-            goal.geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
-            goal.geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
-            goal.target_depth = float(fmt_dict["waypoint"]["target_depth"])
-            goal.min_altitude = float(fmt_dict["waypoint"]["min_altitude"])
-            goal.rpm = float(fmt_dict["waypoint"]["rpm"])
-            goal.timeout = float(fmt_dict["waypoint"]["timeout"])
+            goal.timeout = float(fmt_dict["timeout"])
             return goal
         elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["time_remaining"])
@@ -51,13 +46,7 @@ class LoiterActionParsing:
         str_msg = String()
         fmt_dict = {}
         if isinstance(val, (LoiterGoal,)):
-            fmt_dict["waypoint"] = {}
-            fmt_dict["waypoint"]["latitude"] = val.geopoint.latitude
-            fmt_dict["waypoint"]["longitude"] = val.geopoint.longitude
-            fmt_dict["waypoint"]["target_depth"] = val.target_depth
-            fmt_dict["waypoint"]["min_altitude"] = val.min_altitude
-            fmt_dict["waypoint"]["rpm"] = val.rpm
-            fmt_dict["waypoint"]["timeout"] = val.timeout
+            fmt_dict["timeout"] = val.timeout
         elif isinstance(val, (float,)):
             fmt_dict["time_remaining"] = val
         else:
