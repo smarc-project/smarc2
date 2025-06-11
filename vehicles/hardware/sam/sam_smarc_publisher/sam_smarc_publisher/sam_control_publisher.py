@@ -82,7 +82,7 @@ class SAMStandardControlPublisher(Node):
         Converts ThrusterRPM to Float32 and publishes to standard topic.
         """
         std_msg = Float32()
-        std_msg.data = msg.rpm
+        std_msg.data = float(msg.rpm)
         self.thruster1_pub.publish(std_msg)
 
     def thruster2_callback(self, msg):
@@ -91,7 +91,7 @@ class SAMStandardControlPublisher(Node):
         Converts ThrusterRPM to Float32 and publishes to standard topic.
         """
         std_msg = Float32()
-        std_msg.data = msg.rpm
+        std_msg.data = float(msg.rpm)
         self.thruster2_pub.publish(std_msg)
 
     def thrust_vector_callback(self, msg):

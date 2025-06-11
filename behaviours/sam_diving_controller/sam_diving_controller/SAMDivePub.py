@@ -76,8 +76,8 @@ class SAMDivePub(IDivePub):
         """
         Set RPMs
         """
-        self._t1_msg.rpm = rpm1
-        self._t2_msg.rpm = rpm2
+        self._t1_msg.rpm = int(rpm1)
+        self._t2_msg.rpm = int(rpm2)
 
     def set_thrust_vector(self, horizontal_tv: float, vertical_tv: float) -> None:
         """
