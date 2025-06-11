@@ -81,6 +81,7 @@ class DjiCaptain():
 
         self._base_pose_in_home : PoseStamped | None = None
         self._home_point_in_utm : PointStamped | None = None
+        self._home_geo_altitude : float | None = None
         self._gps_point_in_home : PointStamped | None = None
         self._rtk_point_in_home : PointStamped | None = None
         self._velocity_ground : Vector3Stamped | None = None
@@ -101,6 +102,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = ["/Quadrotor/  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -232,6 +234,7 @@ class DjiCaptain():
         s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
         s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
         s += f"  Geo Altitude: {self._geo_altitude}\n"
+        s += f"  Home Geo Altitude: {self._home_geo_altitude}\n"
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
@@ -378,15 +381,16 @@ class DjiCaptain():
         utm = convert_latlon_to_utm(gp)
         self._home_point_in_utm.point.x = utm.point.x
         self._home_point_in_utm.point.y = utm.point.y
+        self._home_point_in_utm.point.z = 0.0
         self._home_point_in_utm.header.stamp = self.now_stamp
 
     def _home_point_altitude_callback(self, msg: Float32):
         if self._home_point_in_utm is None: return
-        self._home_point_in_utm.point.z = msg.data
+        self._home_geo_altitude = msg.data
 
 
     def _gps_callback(self, msg: NavSatFix):
-        if self._geo_altitude is None or self._home_point_in_utm is None:
+        if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
             self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
             return
         
@@ -401,7 +405,7 @@ class DjiCaptain():
         utm = convert_latlon_to_utm(gp)
         self._gps_point_in_home.point.x = utm.point.x - self._home_point_in_utm.point.x
         self._gps_point_in_home.point.y = utm.point.y - self._home_point_in_utm.point.y
-        self._gps_point_in_home.point.z = self._geo_altitude - self._home_point_in_utm.point.z
+        self._gps_point_in_home.point.z = self._geo_altitude - self._home_geo_altitude
         self._gps_point_in_home.header.stamp = self.now_stamp
 
         if self._utm_labeled_frame is None:
@@ -410,7 +414,7 @@ class DjiCaptain():
 
 
     def _rtk_cb(self, msg: NavSatFix):
-        if self._geo_altitude is None or self._home_point_in_utm is None:
+        if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
             self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
             return
         
@@ -425,7 +429,7 @@ class DjiCaptain():
         utm = convert_latlon_to_utm(gp)
         self._rtk_point_in_home.point.x = utm.point.x - self._home_point_in_utm.point.x
         self._rtk_point_in_home.point.y = utm.point.y - self._home_point_in_utm.point.y
-        self._rtk_point_in_home.point.z = self._geo_altitude - self._home_point_in_utm.point.z
+        self._rtk_point_in_home.point.z = self._geo_altitude - self._home_geo_altitude
         self._rtk_point_in_home.header.stamp = self.now_stamp
 
         
@@ -587,14 +591,13 @@ class DjiCaptain():
 
         # we need current position in latlon
         # so we first need to convert our odom-frame position to UTM
-        if self._home_point_in_utm is None or self._base_pose_in_home is None:
+        if self._home_point_in_utm is None or self._base_pose_in_home is None or self._home_geo_altitude is None:
             self.log("Home point or base pose not set, cannot publish latlon position.")
             return
         base_in_utm = PointStamped()
         base_in_utm.header.frame_id = self._utm_labeled_frame
         base_in_utm.point.x = self._base_pose_in_home.pose.position.x + self._home_point_in_utm.point.x
         base_in_utm.point.y = self._base_pose_in_home.pose.position.y + self._home_point_in_utm.point.y
-        base_in_utm.point.z = self._base_pose_in_home.pose.position.z + self._home_point_in_utm.point.z
         base_in_geopoint = convert_utm_to_latlon(base_in_utm)
         base_in_geopoint.altitude = self._base_pose_in_home.pose.position.z
         self._pos_latlon_pub.publish(base_in_geopoint)

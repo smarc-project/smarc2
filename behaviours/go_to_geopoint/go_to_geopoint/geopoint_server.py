@@ -268,7 +268,6 @@ class GeopointServer(SMARCActionServer):
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
-            self.goal_base_link.pose.position.z = geopoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
 
             self.logger.debug(
                 f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
@@ -314,7 +313,6 @@ class GeopointServer(SMARCActionServer):
         geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
         self.logger.info(f"Received UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
-        pose_stamped.pose.position.z = geo_setpoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
