@@ -5,6 +5,23 @@
 # It is assumed that the nodes will namespace as needed.
 
 ####################
+# Health-related topics
+####################
+string ABORT_TOPIC = 'core/abort'
+string HEARTBEAT_TOPIC = 'core/heartbeat'
+string VEHICLE_HEALTH_TOPIC = 'core/vehicle_health'
+
+####################
+# Actuator commands for SIM
+####################
+string STD_VBS_CMD_TOPIC = 'core/standard/vbs_cmd'
+string STD_LCG_CMD_TOPIC = 'core/standard/lcg_cmd'
+string STD_THRUSTER1_CMD_TOPIC = 'core/standard/thruster1_cmd'
+string STD_THRUSTER2_CMD_TOPIC = 'core/standard/thruster2_cmd'
+string STD_THRUST_VECTOR_YAW_CMD_TOPIC = 'core/standard/thrust_vector_yaw_cmd'
+string STD_THRUST_VECTOR_PITCH_CMD_TOPIC = 'core/standard/thrust_vector_pitch_cmd'
+
+####################
 # Actuator commands
 ####################
 string VBS_CMD_TOPIC = 'core/vbs_cmd'
@@ -12,6 +29,7 @@ string LCG_CMD_TOPIC = 'core/lcg_cmd'
 string THRUSTER1_CMD_TOPIC = 'core/thruster1_cmd'
 string THRUSTER2_CMD_TOPIC = 'core/thruster2_cmd'
 string THRUST_VECTOR_CMD_TOPIC = 'core/thrust_vector_cmd'
+
 string THRUST_VECTOR_YAW_CMD_TOPIC = 'core/thrust_vector_yaw_cmd'
 string THRUST_VECTOR_PITCH_CMD_TOPIC = 'core/thrust_vector_pitch_cmd'
 string DEPTH_TOPIC = 'core/depth20_pressure'
