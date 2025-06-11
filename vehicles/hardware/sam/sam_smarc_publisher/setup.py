@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'sam_smarc_publisher = sam_smarc_publisher.sam_smarc_publisher:main',
+            'sam_control_publisher = sam_smarc_publisher.sam_control_publisher:main',
         ],
     },
 )
