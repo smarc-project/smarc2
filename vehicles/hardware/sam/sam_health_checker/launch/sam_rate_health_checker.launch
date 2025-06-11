@@ -9,7 +9,7 @@
     <param name="battery_min_capacity" value="0.25" />
 
     <param name="initial_timeout_time_sec" value="30.0" />
-    <param name="timeout_time_sec" value="10.0" />
+    <param name="timeout_time_sec" value="15.0" />
 
     <param name="verbose" value="True" />
 

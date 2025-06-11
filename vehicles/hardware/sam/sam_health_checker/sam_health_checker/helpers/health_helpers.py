@@ -28,7 +28,7 @@ class TopicRateMonitor:
         self.node = node
         self.topics_dict = topics_dict  # { topic_name: [message_type, desired_rate]}
         self.window_size = window_size
-        self.timout_time_sec = timeout_time_sec
+        self.timeout_time_sec = timeout_time_sec
         self.report_interval = report_interval
 
         self.verbose = verbose
@@ -108,6 +108,9 @@ class TopicRateMonitor:
         return True
 
     def determine_fault(self):
+        if self.fault:
+            return True
+
         for topic_name, msg_info in self.topics_dict.items():
             msg_type, msg_rate = msg_info
             times = self.timestamps[topic_name]
@@ -116,6 +119,14 @@ class TopicRateMonitor:
                     self.node.get_logger().info(f"[{topic_name}] Waiting for data...")
                 continue
 
+            # Check for timeout
+            now = self.node.get_clock().now().nanoseconds/1e9
+            if now - self.timestamps[topic_name][0] > self.timeout_time_sec:
+                self.fault = True
+                self.node.get_logger().warn(f"Fault: timeout on {topic_name}")
+                return True
+
+            # Check frequency
             intervals = [t2 - t1 for t1, t2 in zip(times, list(times)[1:])]
             if intervals:
                 avg_rate = 1.0 / (sum(intervals) / len(intervals))
@@ -124,6 +135,7 @@ class TopicRateMonitor:
                     self.node.get_logger().info(f"[{topic_name}] Rate: {avg_rate:.2f} Hz / {msg_rate:.2f} Hz")
 
                 if avg_rate < msg_rate:
+                    self.node.get_logger().warn(f"Fault: rate fault on {topic_name}")
                     self.fault = True
                     return True
 
