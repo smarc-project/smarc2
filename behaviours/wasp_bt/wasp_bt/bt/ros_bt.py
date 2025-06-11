@@ -383,17 +383,17 @@ def wasp_bt():
 
         if is_bt_setup:
             bt.tick()
-            bt_tip = bt._bt.root.tip()
             print_bt()
         
     node.create_timer(0.1, update)
     # node.create_timer(0.5, print_bt)
 
     def publish_bt_tip():
-        nonlocal bt, node, wara_ps_task_handler, bt_tip
+        nonlocal bt, node, wara_ps_task_handler
 
         # publish the BT tip to the WaraPS task handler
         if is_bt_setup:
+            bt_tip = bt._bt.root.tip()
             if bt_tip is not None:
                 # parse the tip to a string
                 tip_str = f"{bt_tip.name} ({bt_tip.status})"
