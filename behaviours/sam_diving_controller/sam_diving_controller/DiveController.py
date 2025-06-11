@@ -250,6 +250,8 @@ class DiveControllerPID(DiveControllerInterface):
         """
         mission_state = self._dive_sub.get_mission_state()
 
+        #self._loginfo_once(f"DC: {mission_state}")
+
         if mission_state == MissionStates.RECEIVED:
             self._loginfo_once("Mission Received")
             self._set_actuators_neutral()
@@ -327,13 +329,13 @@ class DiveControllerPID(DiveControllerInterface):
 
             yaw_error = heading_setpoint - current_heading
 
-        s_ctrl = ""
-        s_ctrl += f"current depth: {current_depth}\n"
-        s_ctrl += f"depth setpoint: {depth_setpoint}\n"
-        s_ctrl += f"depth error: {depth_error}\n"
-        s_ctrl += f"VBS: {u_vbs}\n"
+        #s_ctrl = ""
+        #s_ctrl += f"current depth: {current_depth}\n"
+        #s_ctrl += f"depth setpoint: {depth_setpoint}\n"
+        #s_ctrl += f"depth error: {depth_error}\n"
+        #s_ctrl += f"VBS: {u_vbs}\n"
 
-        self._loginfo(s_ctrl)
+        #self._loginfo(s_ctrl)
 
 
         self._dive_pub.set_vbs(u_vbs)
