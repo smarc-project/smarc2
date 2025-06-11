@@ -2,6 +2,7 @@
 
 import time 
 import json
+import threading
 
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -17,6 +18,35 @@ from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import String
 
+import traceback
+from functools import partial
+import enum
+import threading
+from typing import Any, Callable
+
+from action_msgs.msg import GoalStatus
+from action_msgs.srv import CancelGoal
+
+# ROS Imports
+from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
+from rclpy.action.client import ClientGoalHandle
+from rclpy.action.server import ServerGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.node import Node
+from rclpy.task import Future
+from rclpy.type_support import check_for_type_support
+from rosidl_parser.definition import Action
+from std_msgs.msg import String
+
+from smarc_action_base.smarc_ros_types import ActionFeedback, ActionGoal, ActionResult
+
+from smarc_action_base.smarc_action_base import (
+    ActionResult,
+    ActionType,
+    SMARCActionServer,
+)
+
+
 try:
     from .DiveSub import DiveSub
     from .IDivePub import IDivePub, MissionStates
@@ -25,98 +55,80 @@ except:
     from IDivePub import IDivePub, MissionStates
 
 
-class DiveActionServerSub(DiveSub):
-    """
-    A controller example that implements an action server to allow
-    another node to control its execution, params, etc.
-    """
-    # FIXME: Updating to new action server structure
-    # - Change action type to BaseAction
-    # - add json parser
-    # - add heartbeat
-    def __init__(self,
-                 node: Node,
-                 param):
+class DiveActionServerSub(SMARCActionServer, DiveSub):
+    """Action Server base class
 
-        self._node = node
+    Attributes:
+        action_type: Action type for retrieving empty Goal, Feedback, and Result messages
+    """
+
+    def __init__(
+        self,
+        node: Node,
+        action_name: str,
+        action_type: ActionType,
+        param, 
+        heartbeat_topic: str,
+        heartbeat_period: float = 1,
+        **kwargs,
+    ):
+        """Action Server base class initialization function
+
+        Args:
+            node: ros2 node
+            action_name: name of action client/server in ros
+            action_type: ros2 message action type
+            heartbeat_topic: Wara-PS heartbeat topic (can be found in smarc_msgs Topics.msg file)
+            heartbeat_period: period in seconds of heartbeat timer
+        """
         self.param = param
+        self._node = node
 
-        super().__init__(self._node, self.param)
-
-        # We get the waypoint from the action server instead
-        node.destroy_subscription(self.waypoint_sub)
-
-        self._as = ActionServer(
-            node = self._node,
-            action_type = BaseAction,
-            action_name = 'move_to',
-            goal_callback = self._goal_cb,
-            execute_callback = self._execute_cb,
-            cancel_callback = self._cancel_cb)
-
-        self._parsed_action_name: str | None = None
-        self._action_name = 'move_to'
-
-        heartbeat_period = 1
-        self._heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
-        self._hb_timer = self._node.create_timer(heartbeat_period, self._heartbeat_cb)
-        self._hb_pub = self._node.create_publisher(String, self._heartbeat_topic, 5)
-        self._hb_msg = String()
-        self._hb_msg.data = self.parsed_action_name
-
+        SMARCActionServer.__init__(self,
+            node,
+            action_name,
+            action_type,
+            SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+        )
+        DiveSub.__init__(self,self._node, self.param)
 
         self._goal_frame = None
         self._goal_handle = None
 
         self._loginfo("Dive Action Server started")
 
-    def _heartbeat_cb(self):
-        """Sends out topic to Wara-PS on specified heartbeat timer cadence."""
-        self._hb_pub.publish(self._hb_msg)
-        
-        
-    @property
-    def parsed_action_name(self):
-        """Action name with namespace included."""
-        if self._parsed_action_name is None:
-            self._parsed_action_name = self._construct_hb_msg()
-        return self._parsed_action_name
 
-    
-    def _construct_hb_msg(self) -> str:
-        """Constructs heartbeat message with proper namespace.
 
-            Some documentation that maybe useful: <https://design.ros2.org/articles/actions.html>
-        Returns:
-            heartbeat message prepended with namespace
+
+    def _save_wp(self, wp):
+        self._waypoint_global = PoseStamped()
+        self._waypoint_global.header.stamp = wp.header.stamp
+        self._waypoint_global.header.frame_id = wp.header.frame_id
+        self._waypoint_global.pose.position.x = wp.point.x
+        self._waypoint_global.pose.position.y = wp.point.y
+        self._waypoint_global.pose.position.z = wp.point.z
+        self._waypoint_global.pose.orientation.x = 0.0
+        self._waypoint_global.pose.orientation.y = 0.0
+        self._waypoint_global.pose.orientation.z = 0.0
+        self._waypoint_global.pose.orientation.w = 1.0
+
+        self._loginfo(f"Global WP frame: {self._waypoint_global.header.frame_id}")
+
+        self._received_waypoint = True
+
+    def goal_callback(self, goal_request) -> GoalResponse:
         """
-        namespace = self._node.get_namespace()
-        msg_str = self.combine_ns_and_action(namespace, self._action_name)
-        self._node.get_logger().info(
-            f"[action-base] Parsed out action server name for Wara-PS: {msg_str}"
-        )
-        return msg_str
+        Implement goal acceptance or rejection logic in this callback method.
 
-    def combine_ns_and_action(self, namespace: str, action_name: str):
-        """Constructs heartbeat message with proper namespace.
-
-            Some documentation that maybe useful: <https://design.ros2.org/articles/actions.html>
-        Returns:
-            heartbeat message prepended with namespace
+        Return:
+            goal_response: GoalResponse.ACCEPT or GoalResponse.REJECT
         """
-        if namespace == "/":
-            namespace = ""
-        msg_str = f"{namespace}/{action_name}"
-        return msg_str
-
-    def _goal_cb(self, goal_handle):
-
         self._loginfo("Goal received")
 
         self.set_mission_state(MissionStates.RECEIVED, "AS")
 
-        self._goal_handle = goal_handle.goal
-        fmt_dict = json.loads(goal_handle.goal.data)
+        self._goal_handle = goal_request.goal
+        fmt_dict = json.loads(goal_request.goal.data)
         geopoint = GeoPoint()
         geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
         geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
@@ -155,27 +167,19 @@ class DiveActionServerSub(DiveSub):
 
 
         return GoalResponse.ACCEPT
-    
 
-    def _save_wp(self, wp):
-        self._waypoint_global = PoseStamped()
-        self._waypoint_global.header.stamp = wp.header.stamp
-        self._waypoint_global.header.frame_id = wp.header.frame_id
-        self._waypoint_global.pose.position.x = wp.point.x
-        self._waypoint_global.pose.position.y = wp.point.y
-        self._waypoint_global.pose.position.z = wp.point.z
-        self._waypoint_global.pose.orientation.x = 0.0
-        self._waypoint_global.pose.orientation.y = 0.0
-        self._waypoint_global.pose.orientation.z = 0.0
-        self._waypoint_global.pose.orientation.w = 1.0
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """
+        Primary execution callback.
 
-        self._loginfo(f"Global WP frame: {self._waypoint_global.header.frame_id}")
+        Here your action server will do most of the heavy lifting of computing whatever it needs to.
 
-        self._received_waypoint = True
+        WARN: Ensure every iteration in the execution callback and feedback loop you check if the is_valid_goal()
+            ROS does not natively cancel these execution callbacks
 
-
-    async def _execute_cb(self, goal_handle:ServerGoalHandle) -> BaseAction.Result:
-
+        Returns:
+            result: A populated `self.action_type.Result` or more generically a ROS ActionType.Result()
+        """
         self._loginfo("Executing...")
 
         result = BaseAction.Result()
@@ -185,16 +189,24 @@ class DiveActionServerSub(DiveSub):
         fmt_dict = {}
 
         while True:
+            if self._mission_state == MissionStates.CANCELLED:
+                goal_handle.canceled()
+                result.success = False
+                return result
+
             if self._mission_state == MissionStates.RECEIVED:
+                self._loginfo(f"AS: received")
                 self.update()
                 self.set_mission_state(MissionStates.ACCEPTED, "AS")
 
             if self.get_distance() is not None:
                 distance = self.get_distance()
+                self._loginfo(f"AS: got distance")
 
                 if self._mission_state == MissionStates.ACCEPTED\
                     and distance > self._goal_tolerance:
                     self.set_mission_state(MissionStates.RUNNING, "AS")
+                    self._loginfo(f"AS: running")
 
                 if distance <= self._goal_tolerance\
                     and self._mission_state == MissionStates.RUNNING:
@@ -218,13 +230,17 @@ class DiveActionServerSub(DiveSub):
         return result
 
 
-    def _cancel_cb(self, goal_handle:ServerGoalHandle):
+    def cancel_callback(self, goal_handle) -> CancelResponse:
+        """
+        Implement goal cancel logic in this method.
+
+        Return:
+            cancel_response: CancelResponse.ACCEPT or CancelResponse.REJECT
+        """
         self._loginfo("Cancelled")
 
         self.set_mission_state(MissionStates.CANCELLED, "AS")
 
         return CancelResponse.ACCEPT
 
-    def set_feedback_msg(self,msg):
-        return msg
 

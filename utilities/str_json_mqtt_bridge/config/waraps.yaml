@@ -54,6 +54,9 @@
                 "tst/response",
                 "tst/feedback",
 
+                # smarc bt
+                "sensor/bt",
+
               ]
             to_ros:
               [

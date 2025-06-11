@@ -5,6 +5,13 @@
 # It is assumed that the nodes will namespace as needed.
 
 ####################
+# Health-related topics
+####################
+string ABORT_TOPIC = 'core/abort'
+string HEARTBEAT_TOPIC = 'core/heartbeat'
+string VEHICLE_HEALTH_TOPIC = 'core/vehicle_health'
+
+####################
 # Actuator commands
 ####################
 string VBS_CMD_TOPIC = 'core/vbs_cmd'

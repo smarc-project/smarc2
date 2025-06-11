@@ -2,7 +2,7 @@
   <!--Launch file for testing the INS -> ODOM, map_odom_initializer_node is used to define odom's fixed transform -->
   <arg name="robot_name" default="lolo" />
 
-  <node pkg="health_checker" exec="lolo_value_health_node" name="lolo_value_health_node" output="screen" namespace="$(var robot_name)">
+  <node pkg="health_checker" exec="sam_rate_health_node" name="sam_rate_health_node" output="screen" namespace="$(var robot_name)">
   </node>
 
 </launch>
