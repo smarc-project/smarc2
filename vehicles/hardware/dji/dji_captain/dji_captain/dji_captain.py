@@ -7,6 +7,7 @@ from enum import Enum
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.time import Time, Duration
+from rclpy.timer import Timer
 from tf2_ros import Buffer, TransformListener
 
 
@@ -14,7 +15,7 @@ from std_msgs.msg import Float32, Int8
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, Joy, BatteryState
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import TwistStamped, Pose, PoseStamped, TransformStamped, QuaternionStamped, PointStamped, Vector3Stamped
+from geometry_msgs.msg import TwistStamped, Pose, PoseStamped, TransformStamped, QuaternionStamped, PointStamped, Vector3Stamped, Quaternion
 from geographic_msgs.msg import GeoPoint
 from tf2_msgs.msg import TFMessage
 
@@ -23,7 +24,7 @@ from smarc_msgs.msg import Topics as SmarcTopics
 
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
-from tf_transformations import euler_from_quaternion
+from tf_transformations import euler_from_quaternion, quaternion_from_euler
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 
@@ -49,6 +50,8 @@ class PSDKTopics(Enum):
     TAKEOFF_SRV         = WRAPPER_NS + "takeoff"
     LAND_SRV            = WRAPPER_NS + "land"
 
+    FLU_JOY             = WRAPPER_NS + "flight_control_setpoint_FLUvelocity_yawrate"
+
 
 
 class DjiCaptain():
@@ -57,7 +60,10 @@ class DjiCaptain():
         self._TF_NS = "Quadrotor/" #TODO take as rosparam...
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self._move_to_setpoint : PoseStamped | None = None
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self._joy_timer : None | Timer = None
+        self.JOY_MAX = 0.1 #TODO should be rosparam
+        self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
         
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -75,11 +81,13 @@ class DjiCaptain():
         self.ODOM_FRAME = self._TF_NS + "odom"
         self.MAP_FRAME = self._TF_NS + "map"
         self.BASE_FRAME = self._TF_NS + "base_link"
+        self.BASE_FLAT_FRAME = self._TF_NS + "base_flat_link"
         self.HOME_FRAME = self._TF_NS + "home_point"
         self._utm_labeled_frame : str | None = None
 
 
         self._base_pose_in_home : PoseStamped | None = None
+        self._base_pose_flat_in_home : PoseStamped | None = None
         self._home_point_in_utm : PointStamped | None = None
         self._home_geo_altitude : float | None = None
         self._gps_point_in_home : PointStamped | None = None
@@ -243,6 +251,7 @@ class DjiCaptain():
         s += f"  TF: {self._tf_pub_status}\n"
 
         s += f"\n  Got Control: {self._got_control}\n"
+        s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)}\n"
         if self._base_pose_in_home is None: 
             s+= "  Flying: Unknown (base pose not set)\n"
         else:
@@ -289,7 +298,61 @@ class DjiCaptain():
                 return
         else:
             self._move_to_setpoint = msg
+
         self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
+        
+        if self._joy_timer is None:
+            self._joy_timer = self._node.create_timer(0.1, self._move_with_joy)
+            self.log("Joy timer started to move with joy.")
+
+
+
+    def _move_with_joy(self):
+        def cancel_joy_timer():
+            if self._joy_timer is not None:
+                self._joy_timer.cancel()
+                self._joy_timer = None
+                self.log("Joy timer cancelled.")
+
+        if self._move_to_setpoint is None:
+            self.log("No move to setpoint set, cannot move with joy.")
+            return
+        
+        # if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
+        #    (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+        #     self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
+        #     self._move_to_setpoint = None
+        #     cancel_joy_timer()
+        #     return
+        
+        if not self._got_control:
+            self.log("Not got control, cannot move with joy.")
+            cancel_joy_timer()
+            return
+        
+        tf_diff = self._tf_buffer.lookup_transform(
+            target_frame = self.BASE_FLAT_FRAME,
+            source_frame = self._move_to_setpoint.header.frame_id,
+            time=Time(seconds=0),
+            timeout=Duration(seconds=1))
+        
+        target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
+        d_forw = target_in_base.pose.position.x
+        d_left = target_in_base.pose.position.y
+        d_updn = target_in_base.pose.position.z # we like mirrors around a point
+
+        d_forw = max(min(d_forw, self.JOY_MAX), -self.JOY_MAX)
+        d_left = max(min(d_left, self.JOY_MAX), -self.JOY_MAX)
+        d_updn = max(min(d_updn, self.JOY_MAX), -self.JOY_MAX)
+
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = [d_forw, d_left, d_updn, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.buttons = []
+
+        self._joy_pub.publish(joy_msg)
+
+
 
 
     def _rc_cb(self, msg: Joy):
@@ -346,26 +409,39 @@ class DjiCaptain():
             self.log("Home point not set, cannot process position fused message.")
             return
         
-        if self._base_pose_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
+            self._base_pose_flat_in_home = PoseStamped()
+            self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
             
         self._base_pose_in_home.pose.position.x = msg.position.x
         self._base_pose_in_home.pose.position.y = msg.position.y
         self._base_pose_in_home.pose.position.z = msg.position.z
         self._base_pose_in_home.header.stamp = self.now_stamp
+
+        self._base_pose_flat_in_home.pose.position = self._base_pose_in_home.pose.position
+        self._base_pose_flat_in_home.header.stamp = self._base_pose_in_home.header.stamp
         
 
     def _attitude_callback(self, msg: QuaternionStamped):
         # the attitude is in ENU by psdk definition, so we need to convert it to NED (compasses use this...)
         # and the use the z component as heading
-        if self._base_pose_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
+            self._base_pose_flat_in_home = PoseStamped()
+            self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
 
         rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
         self._base_pose_in_home.pose.orientation = msg.quaternion
+
+        rpy_enu_flat = [0, 0, rpy_enu[2]]  # we want a frame without roll and pitch for control reasons
+        flat_quat = Quaternion()
+        flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(*rpy_enu_flat)
+        self._base_pose_flat_in_home.pose.orientation = flat_quat
+
         
 
     def _home_point_callback(self, msg: NavSatFix):
@@ -472,10 +548,6 @@ class DjiCaptain():
             
     
     def _publish_tf(self):
-        if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
-            return
-        
-
         tf_msg = TFMessage()
         tf_msg.transforms = []
         now = self.now_stamp
@@ -497,44 +569,61 @@ class DjiCaptain():
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
 
-        utms = TransformStamped()
-        utms.header.stamp = now
-        utms.header.frame_id = self._utm_labeled_frame
-        utms.child_frame_id = self.UTM_FRAME
-        tf_msg.transforms.append(utms)
+        if self._utm_labeled_frame is not None:
+            utms = TransformStamped()
+            utms.header.stamp = now
+            utms.header.frame_id = self._utm_labeled_frame
+            utms.child_frame_id = self.UTM_FRAME
+            tf_msg.transforms.append(utms)
 
-        # Home point in UTM
-        home_tf = TransformStamped()
-        home_tf.header.stamp = now
-        home_tf.header.frame_id = self.UTM_FRAME
-        home_tf.child_frame_id = self.HOME_FRAME
-        home_tf.transform.translation.x = self._home_point_in_utm.point.x
-        home_tf.transform.translation.y = self._home_point_in_utm.point.y
-        home_tf.transform.translation.z = self._home_point_in_utm.point.z
-        home_tf.transform.rotation.w = 1.0
-        tf_msg.transforms.append(home_tf)
-
-        # Base in odom
-        base_in_home = TransformStamped()
-        base_in_home.header.stamp = now
-        base_in_home.header.frame_id = self.ODOM_FRAME
-        base_in_home.child_frame_id = self.BASE_FRAME
-        base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
-        base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
-        base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
-        base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
-        tf_msg.transforms.append(base_in_home)
+        if self._home_point_in_utm is not None:
+            # Home point in UTM
+            home_tf = TransformStamped()
+            home_tf.header.stamp = now
+            home_tf.header.frame_id = self.UTM_FRAME
+            home_tf.child_frame_id = self.HOME_FRAME
+            home_tf.transform.translation.x = self._home_point_in_utm.point.x
+            home_tf.transform.translation.y = self._home_point_in_utm.point.y
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z
+            tf_msg.transforms.append(home_tf)
 
 
-        # GPS point in Home
-        gps_tf = TransformStamped()
-        gps_tf.header.stamp = now
-        gps_tf.header.frame_id = self.ODOM_FRAME
-        gps_tf.child_frame_id = self._TF_NS + "gps_point"
-        gps_tf.transform.translation.x = self._gps_point_in_home.point.x
-        gps_tf.transform.translation.y = self._gps_point_in_home.point.y
-        gps_tf.transform.translation.z = self._gps_point_in_home.point.z
-        tf_msg.transforms.append(gps_tf)
+        if self._base_pose_in_home is not None:
+            # Base in odom
+            base_in_home = TransformStamped()
+            base_in_home.header.stamp = now
+            base_in_home.header.frame_id = self.ODOM_FRAME
+            base_in_home.child_frame_id = self.BASE_FRAME
+            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
+            base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
+            base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
+            base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
+            tf_msg.transforms.append(base_in_home)
+
+
+        if self._base_pose_flat_in_home is not None:
+            # base flat in odom
+            base_flat_in_home = TransformStamped()
+            base_flat_in_home.header.stamp = now
+            base_flat_in_home.header.frame_id = self.ODOM_FRAME
+            base_flat_in_home.child_frame_id = self.BASE_FLAT_FRAME
+            base_flat_in_home.transform.rotation = self._base_pose_flat_in_home.pose.orientation
+            base_flat_in_home.transform.translation.x = self._base_pose_flat_in_home.pose.position.x
+            base_flat_in_home.transform.translation.y = self._base_pose_flat_in_home.pose.position.y
+            base_flat_in_home.transform.translation.z = self._base_pose_flat_in_home.pose.position.z
+            tf_msg.transforms.append(base_flat_in_home)
+
+
+        if self._gps_point_in_home is not None:
+            # GPS point in Home
+            gps_tf = TransformStamped()
+            gps_tf.header.stamp = now
+            gps_tf.header.frame_id = self.ODOM_FRAME
+            gps_tf.child_frame_id = self._TF_NS + "gps_point"
+            gps_tf.transform.translation.x = self._gps_point_in_home.point.x
+            gps_tf.transform.translation.y = self._gps_point_in_home.point.y
+            gps_tf.transform.translation.z = self._gps_point_in_home.point.z
+            tf_msg.transforms.append(gps_tf)
 
 
         # RTK point in odom
