@@ -90,8 +90,8 @@ def load_annotations(image_folder, annotation_folder):
 # ===== 4. Training Script =====
 def main():
     # Paths
-    image_folder = "for_cnn_training_combined"
-    annotation_folder = "for_cnn_training_points"
+    image_folder = "for_cnn_training_combined_from_dema"
+    annotation_folder = "for_cnn_training_points_from_dema"
 
     # Load real annotations
     annotations = load_annotations(image_folder, annotation_folder)
@@ -106,7 +106,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Training loop
-    for epoch in range(10):
+    for epoch in range(100):
         running_loss = 0.0
         for images, targets in dataloader:
             optimizer.zero_grad()
