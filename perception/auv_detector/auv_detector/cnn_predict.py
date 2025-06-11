@@ -46,10 +46,9 @@ class AnchorPointPredictor(Node):
         )
         self.bridge = CvBridge()
         self.model = AnchorPointCNN()
-        self.model.load_state_dict(torch.load('anchor_point_cnn.pth'))
+        self.model.load_state_dict(torch.load('anchor_point_cnn.pth', map_location=torch.device('cpu')))
         self.model.eval()
 
-        # Resize and normalize same as training
         self.input_size = (224, 224)
         self.orig_size = (640, 480)
         self.transform = transforms.Compose([
@@ -61,8 +60,9 @@ class AnchorPointPredictor(Node):
         try:
             # Convert ROS image to OpenCV
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            original_image = cv_image.copy()
 
-            # Preprocess
+            # Preprocess for CNN
             pil_image = PILImage.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
             input_tensor = self.transform(pil_image).unsqueeze(0)
 
@@ -70,12 +70,22 @@ class AnchorPointPredictor(Node):
             with torch.no_grad():
                 output = self.model(input_tensor).squeeze().numpy()
 
-            # Unnormalize to original image size
+            # Rescale to original image size
             x_scale = self.orig_size[0] / self.input_size[0]
             y_scale = self.orig_size[1] / self.input_size[1]
             x1, y1, x2, y2 = output
             x1, y1 = int(x1 * x_scale), int(y1 * y_scale)
             x2, y2 = int(x2 * x_scale), int(y2 * y_scale)
+
+            # Draw predicted points
+            cv2.circle(original_image, (x1, y1), 6, (0, 255, 0), -1)  # P1: Green
+            cv2.circle(original_image, (x2, y2), 6, (0, 0, 255), -1)  # P2: Red
+            cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+            # Show image with overlay
+            cv2.imshow("Anchor Points Prediction", original_image)
+            cv2.waitKey(1)
 
             self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
 
@@ -89,6 +99,7 @@ def main(args=None):
     rclpy.spin(predictor)
     predictor.destroy_node()
     rclpy.shutdown()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()

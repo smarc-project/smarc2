@@ -1,4 +1,5 @@
 import os
+import glob
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -56,16 +57,44 @@ class AnchorPointDataset(Dataset):
 
         return image, target
 
-# ===== 3. Training Script =====
-def main():
-    # Example dummy annotation list (replace with real)
-    annotations = [
-        ("img1.jpg", [100, 120, 300, 350]),
-        ("img2.jpg", [90, 140, 280, 330])
-    ]
+# ===== 3. Function to load annotations =====
+def load_annotations(image_folder, annotation_folder):
+    image_files = glob.glob(os.path.join(image_folder, "combined_*.jpg"))
+    annotations = []
 
+    for img_path in image_files:
+        img_filename = os.path.basename(img_path)
+        # extract timestamp part
+        base_id = img_filename.replace("combined_", "").replace(".jpg", "")
+
+        # corresponding annotation files
+        p1_file = os.path.join(annotation_folder, f"P1_{base_id}.txt")
+        p2_file = os.path.join(annotation_folder, f"P2_{base_id}.txt")
+
+        if not os.path.isfile(p1_file) or not os.path.isfile(p2_file):
+            print(f"Warning: Missing annotation for {img_filename}, skipping.")
+            continue
+
+        # Read coordinates
+        with open(p1_file, 'r') as f1:
+            x1, y1 = map(float, f1.read().strip().split())
+        with open(p2_file, 'r') as f2:
+            x2, y2 = map(float, f2.read().strip().split())
+
+        # Add to annotation list
+        annotations.append((img_filename, [x1, y1, x2, y2]))
+
+    print(f"Total loaded samples: {len(annotations)}")
+    return annotations
+
+# ===== 4. Training Script =====
+def main():
     # Paths
-    image_folder = "./images"  # replace with your actual path
+    image_folder = "for_cnn_training_combined"
+    annotation_folder = "for_cnn_training_points"
+
+    # Load real annotations
+    annotations = load_annotations(image_folder, annotation_folder)
 
     # Dataset & Dataloader
     dataset = AnchorPointDataset(image_folder, annotations)
