@@ -101,9 +101,7 @@ class A_Chilling(VehicleBehaviour):
             # action is finished proper. 
             self.feedback_message = None
         return
-
-    
-    
+        
 class A_JustChillFor(VehicleBehaviour):
     def __init__(self, bt: HasClock, task_handler: WaraPSTaskHandler, duration: float):
         name = f"{self.__class__.__name__}({duration})Seconds"
