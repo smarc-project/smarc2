@@ -25,7 +25,7 @@ class control_mixer(Node):
 
         #Mixer gain parameters
         self.pitch_gain = 1
-        self.yaw_gain = 800 #~+-300RPM
+        self.yaw_gain = 1200
         self.rpm_deadband = 50
 
         self.yaw_actuation_msg = Float32()
@@ -54,6 +54,7 @@ class control_mixer(Node):
         self.lastrpm_time = 0
         self.lastsurge_time = 0
         self.lastdepth_time = 0
+        self.lastdepth_setpoint_time = 0
 
         #last input values
         self.pitch_actuation = 0
@@ -62,6 +63,7 @@ class control_mixer(Node):
         self.rpm_actuation = 0
         self.vehicle_surge = 0
         self.depth = 0
+        self.depth_setpoint = 0
 
         #Control inputs.
         self.create_subscription(Float32, f"{LoloTopics.YAW_ACTUATION}",
@@ -72,6 +74,9 @@ class control_mixer(Node):
                                  self.pitch_cb, 1)
         self.create_subscription(Float32, f"{LoloTopics.RPM_SETPOINT}",
                                  self.rpm_cb, 1)
+        self.create_subscription(Float32, f"{LoloTopics.DEPTH_SETPOINT}",
+                                 self.depth_setpoint_cb, 1)
+
 
         #Vehicle feedback.
         self.create_subscription(Float32, f"{ControlTopics.CONTROL_SURGE_RATE_TOPIC}",
@@ -100,6 +105,18 @@ class control_mixer(Node):
         self.elevator_pub = self.create_publisher(Float32,
                                                   f"{LoloTopics.ELEVATOR_CMD}", 1)
 
+        self.vertical_front_port = self.create_publisher(Float32,
+                                                  f"{LoloTopics.ELEVATOR_CMD}", 1)
+
+        self.vertical_thruster_back_port_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_BACK_PORT_CMD}",1)
+        self.vertical_thruster_back_strb_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_BACK_STRB_CMD}",1)
+        self.vertical_thruster_front_port_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_FRONT_PORT_CMD}",1)
+        self.vertical_thruster_front_strb_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_FRONT_STRB_CMD}",1)
+
 
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
@@ -110,6 +127,9 @@ class control_mixer(Node):
 
     def depth_cb(self, msg):
         self.depth = msg.data
+    def depth_setpoint_cb(self,msg):
+        self.depth_setpoint = msg.data
+        self.lastdepth_setpoint_time = self.time_now()
     def pitch_cb(self,msg):
         self.pitch_actuation = msg.data
         self.lastpitch_time = self.time_now()
@@ -125,6 +145,7 @@ class control_mixer(Node):
     def surge_cb(self,msg):
         self.vehicle_surge = msg.data
         self.lastsurge_time = self.time_now()
+    
 
     def update(self):
         now = self.time_now()
@@ -136,6 +157,19 @@ class control_mixer(Node):
         #Thrusters
         thruster_port = None
         thruster_strb = None
+
+        #Depth (Vertical thrusters)
+        if now - self.lastdepth_setpoint_time < 1 and now-self.lastdepth_time < 1:
+            if(self.depth_setpoint > self.depth):
+                if(self.depth < 0.75 and self.depth_setpoint > 0):
+                    #Publish vertical thruster data
+                    vertical_thruster_msg = Float32()
+                    vertical_thruster_msg.data = 2000.0
+                    
+                    #self.vertical_thruster_back_port_pub.publish(vertical_thruster_msg)
+                    #self.vertical_thruster_back_strb_pub.publish(vertical_thruster_msg)
+                    self.vertical_thruster_front_port_pub.publish(vertical_thruster_msg)
+                    self.vertical_thruster_front_strb_pub.publish(vertical_thruster_msg)
 
         #yaw
         self.yaw_error_bucket = max(0, self.yaw_error_bucket-self.yaw_error_bucket_leak)
@@ -187,7 +221,7 @@ class control_mixer(Node):
             fadeout_scaling = max(0, min(1, fadeout_scaling))
 
         if self.depth > 0.5:
-            rospy.loginfo_throttle(1,"fadeout scaling applied: " + str(fadeout_scaling))
+            #rospy.loginfo_throttle(1,"fadeout scaling applied: " + str(fadeout_scaling))
             if thruster_port is not None:
                 thruster_port *= fadeout_scaling
             if thruster_strb is not None:
