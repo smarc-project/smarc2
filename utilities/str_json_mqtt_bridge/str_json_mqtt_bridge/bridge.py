@@ -69,8 +69,8 @@ class RosToMqtt:
         self._mqttclient = mqttclient
         self._ros_topic = topic
         self._mqtt_topic = f"{mqtt_namespace}/{topic}"
-        self._rosnode.create_subscription(String, topic, self._ros_cb, 10)
-        self._rosnode.get_logger().info(f"ROS->MQTT: {self._ros_topic}->{self._mqtt_topic}")
+        # self._rosnode.create_subscription(String, topic, self._ros_cb, 10)
+        # self._rosnode.get_logger().info(f"ROS->MQTT: {self._ros_topic}->{self._mqtt_topic}")
 
     def _ros_cb(self, msg: String):
         # We do this clownshow because ros strings can not contain valid json string inside
@@ -98,6 +98,7 @@ class RosToMqtt:
         self._mqttclient.publish(self._mqtt_topic, json_str)
 
     def on_reconnect(self):
+        """ Re-subscribes to the ROS topic after a reconnect """
         self._rosnode.get_logger().info(f"Re-subscribing to {self._ros_topic} after reconnect")
         # no need to unsubscribe, ros topics are persistent and will not be removed
         self._rosnode.create_subscription(String, self._ros_topic, self._ros_cb, 10)
@@ -115,9 +116,9 @@ class MqttToRos:
         self._ros_topic = topic
         self._rospub = self._rosnode.create_publisher(String, self._ros_topic, 10)
         self._mqtt_topic = f"{mqtt_namespace}/{topic}"
-        self._mqttclient.subscribe(self._mqtt_topic)
-        self._mqttclient.message_callback_add(self._mqtt_topic, self._mqtt_cb)
-        self._rosnode.get_logger().info(f"MQTT->ROS: {self._mqtt_topic}->{self._ros_topic}")
+        # self._mqttclient.subscribe(self._mqtt_topic)
+        # self._mqttclient.message_callback_add(self._mqtt_topic, self._mqtt_cb)
+        # self._rosnode.get_logger().info(f"MQTT->ROS: {self._mqtt_topic}->{self._ros_topic}")
 
     def _mqtt_cb(self, client: mqtt.Client, userdata: typing.Dict, mqtt_msg: mqtt.MQTTMessage):
         ros_msg = String()
@@ -126,6 +127,7 @@ class MqttToRos:
         self._rospub.publish(ros_msg)
 
     def on_reconnect(self):
+        """ Re-subscribes to the MQTT topic after a reconnect """
         self._rosnode.get_logger().info(f"Re-subscribing to {self._mqtt_topic} after reconnect")
         self._mqttclient.subscribe(self._mqtt_topic)
         self._mqttclient.message_callback_add(self._mqtt_topic, self._mqtt_cb)

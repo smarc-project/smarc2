@@ -108,7 +108,11 @@ class WaraPSTaskHandler:
 
         
         # Publishers for Level 2 WARA-PS topics
-        self._wara_ps_direct_execution_info_pub = node.create_publisher(String, Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10)
+        self._wara_ps_direct_execution_info_pub = node.create_publisher(String, Topics.
+        WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10)
+
+        # Publishers for Level 1 WARA-PS topic: executing_tasks
+        self._wara_ps_task_list_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC, 10)
 
         self._wara_ps_exec_response_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_RESPONSE_TOPIC, 10)
         self._wara_ps_exec_feedback_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_FEEDBACK_TOPIC, 10)
@@ -120,9 +124,8 @@ class WaraPSTaskHandler:
         self._wara_ps_tst_response_pub = node.create_publisher(String, Topics.WARA_PS_TST_RESPONSE_TOPIC, 10)
         self._wara_ps_tst_feedback_pub = node.create_publisher(String, Topics.WARA_PS_TST_FEEDBACK_TOPIC, 10)
 
-
-        # subscribe to Level 1 heartbeat to trigger direct_execution_info
-        # self._wara_ps_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._publish_direct_execution_info_cb, 10)
+        # publishers for smarc-bt head
+        self._smarc_bt_tip_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_BT_TOPIC, 10)
 
 
         # Subscriptions for WARA-PS command topics
@@ -133,6 +136,7 @@ class WaraPSTaskHandler:
         # Subscriptions to action Server topics
         self._wara_ps_action_server_sub = node.create_subscription(String, Topics.WARA_PS_ACTION_SERVER_HB_TOPIC, self._action_hb_callback, 10)
 
+        # Subscriptions for WARA-PS heartbeat topics
         self._level_1_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._read_level_1_heartbeat_cb, 1)
 
         # subscribe to ABORT topic
@@ -218,6 +222,11 @@ class WaraPSTaskHandler:
         msg.data = json.dumps(self._direct_execution_info_data)
         self._wara_ps_direct_execution_info_pub.publish(msg)
         # self._node.get_logger().info('Published Direct Execution Info message')
+
+        # publish executing tasks
+        msg = String()
+        msg.data = json.dumps(self.tasks_executing)
+        self._wara_ps_task_list_pub.publish(msg)
         
         return True    
     
@@ -357,7 +366,7 @@ class WaraPSTaskHandler:
             self._node.get_logger().warn("Rejected start/signal command due to emergency flag.")
             return
         # refuse start or signal if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_OK) and command["command"] in ["start-task", "signal-task"]:
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task", "signal-task"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -656,7 +665,7 @@ class WaraPSTaskHandler:
             return
         
         # Refuse starts or signals if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_OK) and command["command"] in ["start-tst", "signal-unit"]:
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-tst", "signal-unit"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -1005,3 +1014,21 @@ class WaraPSTaskHandler:
         Returns the current time in seconds.
         """
         return self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
+    
+
+    def publish_bt_tip(self, tip: str):
+        """
+        Publishes the BT head to the MQTT broker.
+        This is used to inform the WaraPS that the BT is ready to receive commands.
+        """
+
+        # use self._smarc_bt_head_pub to publish the head
+        tip_msg = {
+            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+            "tip": tip
+        }
+        msg = String()
+        msg.data = json.dumps(tip_msg)
+        self._smarc_bt_tip_pub.publish(msg)
+        # self._node.get_logger().info(f'Published BT head: {head}')
+        return

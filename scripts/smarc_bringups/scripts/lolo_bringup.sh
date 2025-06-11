@@ -6,6 +6,7 @@ USE_SIM_TIME=True
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
+CONTEXT=waraps # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     REALSIM=simulation
@@ -47,7 +48,7 @@ tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux select-window -t $SESSION:3
 
 # To connect to our MQTT broker
-tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
 
 # For local testing: use defaults
 # tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m

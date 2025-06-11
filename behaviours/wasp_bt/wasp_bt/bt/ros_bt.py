@@ -360,6 +360,7 @@ def wasp_bt():
     need_bt_setup = False
     is_bt_setup = False
 
+    bt_tip = None
 
     bt_str = ""
     def print_bt():
@@ -382,10 +383,25 @@ def wasp_bt():
 
         if is_bt_setup:
             bt.tick()
+            bt_tip = bt._bt.root.tip()
             print_bt()
         
     node.create_timer(0.1, update)
     # node.create_timer(0.5, print_bt)
+
+    def publish_bt_tip():
+        nonlocal bt, node, wara_ps_task_handler, bt_tip
+
+        # publish the BT tip to the WaraPS task handler
+        if is_bt_setup:
+            if bt_tip is not None:
+                # parse the tip to a string
+                tip_str = f"{bt_tip.name} ({bt_tip.status})"
+                # publish the tip to the WaraPS task handler
+                wara_ps_task_handler.publish_bt_tip(tip_str)
+        else:
+            node.get_logger().info("BT is not setup yet, cannot publish tip.")
+    node.create_timer(0.5, publish_bt_tip) 
 
     start_time = None
 
