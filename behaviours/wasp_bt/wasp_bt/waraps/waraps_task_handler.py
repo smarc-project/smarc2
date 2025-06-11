@@ -344,7 +344,7 @@ class WaraPSTaskHandler:
         self._node.get_logger().info(f"Received command: {command}")
 
         # Refuse starts or signals if emergency flag is up
-        if self.emergency_flag and command["command"] in ["start-task", "signal-task"]:
+        if (self.emergency_flag) and command["command"] in ["start-task", "signal-task"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -355,6 +355,19 @@ class WaraPSTaskHandler:
             msg.data = json.dumps(response_msg)
             self._wara_ps_exec_response_pub.publish(msg)
             self._node.get_logger().warn("Rejected start/signal command due to emergency flag.")
+            return
+        # refuse start or signal if health status is not ok
+        if (self.health_status != Topics.VEHICLE_HEALTH_OK) and command["command"] in ["start-task", "signal-task"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: vehicle health status is not ok",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_exec_response_pub.publish(msg)
+            self._node.get_logger().warn(f"Rejected start/signal command due to vehicle health status: {self.health_status}.")
             return
 
         # handle ping command
@@ -640,6 +653,20 @@ class WaraPSTaskHandler:
             msg.data = json.dumps(response_msg)
             self._wara_ps_tst_response_pub.publish(msg)
             self._node.get_logger().warn("Rejected start TST command due to emergency flag.")
+            return
+        
+        # Refuse starts or signals if health status is not ok
+        if (self.health_status != Topics.VEHICLE_HEALTH_OK) and command["command"] in ["start-tst", "signal-unit"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: vehicle health status is not ok",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_tst_response_pub.publish(msg)
+            self._node.get_logger().warn(f"Rejected start TST command due to vehicle health status: {self.health_status}.")
             return
 
         # check if the command is valid
