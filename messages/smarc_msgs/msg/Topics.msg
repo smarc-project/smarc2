@@ -35,6 +35,8 @@ string WARA_PS_SENSOR_SPEED_TOPIC = 'waraps/sensor/speed'
 string WARA_PS_SENSOR_DEPTH_TOPIC = 'waraps/sensor/depth'
 string WARA_PS_SENSOR_ROLL_TOPIC = 'waraps/sensor/roll'
 string WARA_PS_SENSOR_PITCH_TOPIC = 'waraps/sensor/pitch'
+string WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC = 'waraps/sensor/executing_tasks'
+string WARA_PS_SENSOR_BT_TOPIC = 'waraps/sensor/bt'
 
 ## Level 2
 string WARA_PS_DIRECT_EXECUTION_INFO_TOPIC = 'waraps/direct_execution_info'

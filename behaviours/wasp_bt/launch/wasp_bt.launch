@@ -4,7 +4,7 @@
     <!-- Set to _gt if you want to use the ground truth from the sim -->
     <arg name="link_suffix" default=""/>
     <arg name="agent_type" default="air"/>
-    <arg name="pulse_rate" default="1"/>
+    <arg name="pulse_rate" default="1.0"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
