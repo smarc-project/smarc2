@@ -60,8 +60,8 @@ class TopicRateMonitor:
 
     def _make_callback(self, topic_name):
         def subscriber_callback(msg):
-            if self.verbose:
-                self.node.get_logger().info(f"Subscription callback: {topic_name}")
+            # if self.verbose:
+            #     self.node.get_logger().info(f"Subscription callback: {topic_name}")
             self.timestamps[topic_name].append(self.node.get_clock().now().nanoseconds/1e9)
         return subscriber_callback
 
@@ -121,11 +121,11 @@ class TopicRateMonitor:
                 avg_rate = 1.0 / (sum(intervals) / len(intervals))
 
                 if self.verbose:
-                    self.node.get_logger().info(f"[{topic_name}] Rate: {avg_rate:.2f} Hz")
+                    self.node.get_logger().info(f"[{topic_name}] Rate: {avg_rate:.2f} Hz / {msg_rate:.2f} Hz")
 
-                    if avg_rate < msg_rate:
-                        self.fault = True
-                        return True
+                if avg_rate < msg_rate:
+                    self.fault = True
+                    return True
 
         return False
 

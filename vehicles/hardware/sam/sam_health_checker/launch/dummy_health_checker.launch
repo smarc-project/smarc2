@@ -1,0 +1,8 @@
+<launch>
+  <!--Launch file for testing the INS -> ODOM, map_odom_initializer_node is used to define odom's fixed transform -->
+  <arg name="robot_name" default="sam" />
+
+  <node pkg="sam_health_checker" exec="dummy_health_node" name="dummy_health_node" output="screen" namespace="$(var robot_name)">
+  </node>
+
+</launch>
