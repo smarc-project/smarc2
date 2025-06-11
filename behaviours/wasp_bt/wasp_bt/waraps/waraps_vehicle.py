@@ -202,18 +202,22 @@ class WaraPSVehicle():
         # computation to get roll and pitch from orientation quaternion
 
         # # 5. publish roll data
-        # roll_msg = String()
-        # roll_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']}"
-        # # float
-        # self._wara_ps_roll_pub.publish(roll_msg)
-        # # self._node.get_logger().info('Published Roll message')
+        try:
+            roll = self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']
+            if roll != None:
+                self._wara_ps_roll_pub.publish(String(data=f"{roll}"))
+            # self._node.get_logger().info('Published Roll message')
+        except Exception:
+            pass
 
-        # # 6. publish pitch data
-        # pitch_msg = String()
-        # pitch_msg.data = f"{self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']}"
-        # # float
-        # self._wara_ps_pitch_pub.publish(pitch_msg)
-        # # self._node.get_logger().info('Published Pitch message')
+        # 6. publish pitch data
+        try: 
+            pitch = self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']
+            if pitch != None:
+                self._wara_ps_pitch_pub.publish(String(data=f"{pitch}"))
+            # self._node.get_logger().info('Published Pitch message')
+        except Exception:
+            pass
 
         # 7. publish depth data
         try:

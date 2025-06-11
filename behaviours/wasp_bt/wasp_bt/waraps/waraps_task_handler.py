@@ -20,6 +20,7 @@ class WaraPSTaskStates(enum.Enum):
     ENOUGH = "enough"
     ABORTED = "aborted"
     ERROR = "error"
+    FINISHED = "finished"
 
 
     def __str__(self):
@@ -43,7 +44,7 @@ class HasWaraPSTaskHandler:
     This class is used to mark a class as having an MQTT interactor. This is used to make sure that the class has the methods that are needed for the MQTT interactor to work.
     """
     def __init__(self):
-        self._wara_ps_task_handler = None
+        self._task_handler = None
         self._wara_ps_dict = None
         self._robot_name = None
 
@@ -99,7 +100,7 @@ class WaraPSTaskHandler:
         self.emergency_flag = False
         self.health_status = Topics.VEHICLE_HEALTH_ERROR
         
-        self.health_last_time = self.current_time()
+        self.health_last_time = None
 
         self.mission_start_time = None
         self.mission_timeout = None
@@ -719,10 +720,7 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(response_msg)
                 self._wara_ps_tst_response_pub.publish(msg)
                 return
-                
-            # start mission timer
-            self.mission_start_time = self.current_time()
-            
+                            
             # extract the mission timout from "params" key in tst
             if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
                 self.mission_timeout = command["tst"]["params"]["timeout"]
@@ -748,6 +746,7 @@ class WaraPSTaskHandler:
             tasks = command["tst"]["children"]
 
             # inject common params into each tasks params
+            tasks_to_start = []
             for task in tasks:
                 if "params" not in task:
                     task["params"] = {}
@@ -760,7 +759,27 @@ class WaraPSTaskHandler:
                     "status": WaraPSTaskStates.STARTED.value,
                     "description": task["description"] if "description" in task.keys() else "",
                 }
-                self.tasks_executing.append(task_dict)
+
+                # check that the tasks are all available on the vehicle
+                if task["name"] not in [t["name"] for t in self.tasks_available]:
+                    self._node.get_logger().error(f"Invalid start-tst command: task {task['name']} not available")
+                    response_msg = {
+                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                        "com-uuid": command["com-uuid"],
+                        "response": f"Rejected: Task {task['name']} not available",
+                        "response-to": command["com-uuid"]
+                    }
+                    msg = String()
+                    msg.data = json.dumps(response_msg)
+                    self._wara_ps_tst_response_pub.publish(msg)
+                    return
+                
+                tasks_to_start.append(task_dict)
+                
+            # self.tasks_executing.append(task_dict)
+            self.tasks_executing.extend(tasks_to_start)
+            # start mission timer
+            self.mission_start_time = self.current_time()
 
         return        
     
@@ -798,6 +817,10 @@ class WaraPSTaskHandler:
         Clears the current task.
         """
         if len(self.tasks_executing) > 0:
+
+            # change status of the current task to FINISHED
+            self.tasks_executing[0]["status"] = WaraPSTaskStates.FINISHED.value
+
             self.tasks_executing.pop(0)
         else:
             # log

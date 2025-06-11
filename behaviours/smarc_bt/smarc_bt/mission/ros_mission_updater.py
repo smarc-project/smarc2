@@ -68,9 +68,7 @@ class ROSMissionUpdater(IBBMissionUpdater):
                                                             MissionTopics.MISSION_CONTROL_TOPIC,
                                                             self._mission_control_cb,
                                                             10)
- 
-        
-
+                
     def _mission_control_cb(self, msg:MissionControl):
         self._latest_mission_control_msg = msg
 

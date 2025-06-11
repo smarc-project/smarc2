@@ -1,7 +1,9 @@
 <launch>
   <arg name="robot_name" default="lolo"/>
   <arg name="robot_urdf" default="lolo_auv.urdf"/>
-  <arg name="prefix" default="$(var robot_name)/"/>
+<!--   <arg name="prefix" default="$(var robot_name)/"/> -->
+  <!-- No prefix required, handled by the URDF   -->
+  <arg name="prefix" default=""/>
 
   <group>
     <push-ros-namespace namespace="$(var robot_name)"/>

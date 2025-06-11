@@ -73,7 +73,10 @@ string EXTENDED_BATTERY_2_TOPIC = "extended/battery2"
 #Communication
 string SATELITE_RECEIVED_TOPIC = "communication/satelite_received"
 string USBL_RECEIVED_TOPIC = "communication/usbl/received"
+string USBL_TRANSMIT_TOPIC = "communication/usbl/transmit"
 string USBL_RECEIVED_CHR_TOPIC = "communication/usbl/received/chr"
+string USBL_CUSTOM_CMD_TOPIC = "communication/usbl/custom_command"
+
 
 #Navigation
 string INS_ODOM_TOPIC = "ins_odom"
@@ -110,5 +113,9 @@ string MBES_WC_TOPIC = sensors/mbes/watercolumn
 string MBES_IMAGE_TOPIC = sensors/mbes/watercolumn/image
 string MBES_BATHY_TOPIC = sensors/mbes/bathymetry
 string MBES_BATHY_POINTCLOUD_TOPIC = sensors/mbes/bathymetry/points
+
+string USBL_CORRECTION_TOPIC = "sensors/usbl/correction"
+# Measured USBL position of Lolo wrt to the topside unit in a local ENU frame.
+string USBL_RELATIVE_TOPIC = "sensors/usbl/relative_pose"
 
 string LEAK_TOPIC = "sensor/leak"

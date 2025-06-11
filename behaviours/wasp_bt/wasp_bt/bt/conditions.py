@@ -282,3 +282,25 @@ class C_TaskStatus(Behaviour):
         else:
             self.feedback_message = f"Current task status is {current_executing_tasks[0]['status']}"
             return Status.FAILURE
+        
+class C_HasHeardFromVehicleHealth(Behaviour):
+    """
+    An action that keeps "running" until a parameter on the task handler is true.
+    """
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        
+        """
+        Returns S if the vehicle health has been received
+        """
+        self._task_handler = task_handler
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+        self.feedback_message = ""
+
+    def update(self) -> Status:
+        if self._task_handler.health_last_time is not None:
+            self.feedback_message = "Vehicle health received."
+            return Status.SUCCESS
+        else:
+            self.feedback_message = "Waiting for vehicle health to be published..."
+            return Status.RUNNING
