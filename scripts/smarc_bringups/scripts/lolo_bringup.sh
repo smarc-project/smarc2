@@ -66,7 +66,10 @@ if [ "$REALSIM" = "real" ]; then
     tmux send-keys "ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
     tmux new-window -t $SESSION:7 -n 'usbl_interface'
     tmux select-window -t $SESSION:7
-    tmux send-keys "ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+    tmux send-keys "ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME" C-m
+    tmux new-window -t $SESSION:8 -n 'flir_camera'
+    tmux select-window -t $SESSION:8
+    tmux send-keys "ros2 launch lolo_drivers spinnaker_camera_launch.py camera_type:=blackfly_s serial:="'23182955'" gev_scps_packet_size:=9000"
     
     echo "Launching hardware drivers in real mode."
 
@@ -76,14 +79,19 @@ fi
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
-    tmux new-window -t $SESSION:8 -n 'vehicle_health'
-    tmux select-window -t $SESSION:8
+    tmux new-window -t $SESSION:9 -n 'vehicle_health'
+    tmux select-window -t $SESSION:9
     tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
 else
-    tmux new-window -t $SESSION:8 -n 'vehicle_health'
-    tmux select-window -t $SESSION:8
+    tmux new-window -t $SESSION:9 -n 'vehicle_health'
+    tmux select-window -t $SESSION:9
     tmux send-keys "ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
 fi
+
+# Logging window.
+tmux new-window -t $SESSION:10 -n 'logging'
+tmux select-window -t $SESSION:10
+
 
 # Set default window
 tmux select-window -t $SESSION:1
