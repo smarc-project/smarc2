@@ -43,6 +43,7 @@
                 "sensor/roll",
                 "sensor/pitch",
                 "sensor/depth",
+                "sensor/executing_tasks",
 
                 #lv2
                 "direct_execution_info",
