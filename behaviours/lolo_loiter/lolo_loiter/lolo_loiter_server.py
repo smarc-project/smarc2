@@ -22,6 +22,8 @@ from lolo_loiter.action_parsing import ActionSubMsg as ActMsg
 from lolo_loiter.action_parsing import LoiterActionParsing
 from virtual_lolo.lolo import Lolo
 
+MIN_ALTITUDE = 1
+SURFACE_DEPTH = -1
 
 class LoiterServer(SMARCActionServer):
     """Action point server to handle Loiter messages.
@@ -179,7 +181,7 @@ class LoiterServer(SMARCActionServer):
         Returns:
             tol_check (bool): true if vehicle is within zone
         """
-        if delta > self.vehicle.limits["goal_tolerance_plane"]:
+        if delta > self.vehicle.limits["loiter_goal_tolerance"]:
             return False
         else:
             return True
@@ -241,9 +243,9 @@ class LoiterServer(SMARCActionServer):
         self.vehicle.update()
         return self.vehicle.set_goal(x=self.vehicle.pos_x,
                                     y=self.vehicle.pos_y,
-                                    depth=-1.00,
-                                    altitude=5.0,
-                                    rpm=float(300),
+                                    depth=float(SURFACE_DEPTH),
+                                    altitude=float(MIN_ALTITUDE),
+                                    rpm=float(self.vehicle.limits["loiter_rpm"]),
                                     timeout=goal.timeout)
 
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:

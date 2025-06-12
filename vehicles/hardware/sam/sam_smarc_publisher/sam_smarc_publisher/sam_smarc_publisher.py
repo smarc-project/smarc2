@@ -71,10 +71,22 @@ class SAMSMARCPublisher(Node):
         self.vehicle_health_pub.publish(msg)
 
     def _create_battery_status_pubsub(self):
-        self.battery_percent_pub = self.create_publisher(BatteryState, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
+        self.battery_percent_pub = self.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self.battery_status_sub = self.create_subscription(BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self.battery_status_callback, 10)
     
     def battery_status_callback(self, msg):
+
+        # extract the battery percentage from the BatteryState message
+        if msg.percentage is not None:
+            battery_percentage = msg.percentage * 100.0
+        else:
+            # don't publish if percentage is not available
+            self.get_logger().warn('Battery percentage not available, not publishing.')
+            return
+        # create a Float32 message to publish
+        msg = Float32()
+        msg.data = battery_percentage
+        # self.get_logger().info(f'Publishing battery percentage: {battery_percentage}%')
         self.battery_percent_pub.publish(msg)
 
     def _create_altitude_pubsub(self):
