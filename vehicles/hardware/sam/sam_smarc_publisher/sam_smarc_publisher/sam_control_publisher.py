@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32
-from smarc_msgs.msg import PercentStamped, ThrusterRPM, ThrusterFeedback
+from std_msgs.msg import Float32, Bool
+from smarc_msgs.msg import PercentStamped, ThrusterRPM, ThrusterFeedback, Leak
 from sam_msgs.msg import ThrusterAngles
 from sam_msgs.msg import Topics as SamTopics
 
@@ -97,6 +97,26 @@ class SAMStandardControlPublisher(Node):
         self.lcg_feedback_pub = self.create_publisher(PercentStamped, SamTopics.LCG_FB_TOPIC, 10)
         self.thruster1_feedback_pub = self.create_publisher(ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC, 10)
         self.thruster2_feedback_pub = self.create_publisher(ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC, 10)
+
+        ##############################################################################
+        # Other SAM topic translations
+        ##############################################################################
+        self.leak_sub = self.create_subscription(
+            Leak,
+            SamTopics.LEAK_TOPIC,
+            self.leak_callback,
+            10
+        )
+        self.leak_pub = self.create_publisher(Bool, SamTopics.STD_LEAK_TOPIC, 10)
+
+    def leak_callback(self, msg):
+        """
+        Callback for Leak messages.
+        Converts Leak to Bool and publishes to standard topic.
+        """
+        std_msg = Bool()
+        std_msg.data = msg.value
+        self.leak_pub.publish(std_msg)
 
     
     def vbs_callback(self, msg):
