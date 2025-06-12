@@ -18,7 +18,13 @@ fi
 
 tmux -2 new-session -d -s $SESSION -n 'controllers'
 tmux select-window -t $SESSION:0
+tmux select-pane -t $SESSION:0.0
+tmux split-window -v -t $SESSION:0.0
+tmux select-layout -t $SESSION:0 tiled
+tmux select-pane -t $SESSION:0.0
 tmux send-keys "ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+tmux select-pane -t $SESSION:0.1
+tmux send-keys "ros2 launch lolo_description lolo_description.launch" C-m
 
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
@@ -64,13 +70,13 @@ if [ "$REALSIM" = "real" ]; then
     tmux send-keys "ros2 launch lolo_drivers lolo_hardware2_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
     tmux new-window -t $SESSION:6 -n 'hardware3'
     tmux select-window -t $SESSION:6
-    tmux send-keys "ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+    tmux send-keys "ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
     tmux new-window -t $SESSION:7 -n 'usbl_interface'
     tmux select-window -t $SESSION:7
     tmux send-keys "ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME" C-m
     tmux new-window -t $SESSION:8 -n 'flir_camera'
     tmux select-window -t $SESSION:8
-    tmux send-keys "ros2 launch lolo_drivers spinnaker_camera_launch.py camera_type:=blackfly_s serial:="'23182955'" gev_scps_packet_size:=9000"
+    tmux send-keys "ros2 launch lolo_drivers spinnaker_camera_node_launch.py camera_type:=blackfly_s serial:="'23182955'" gev_scps_packet_size:=9000"
     
     echo "Launching hardware drivers in real mode."
 
