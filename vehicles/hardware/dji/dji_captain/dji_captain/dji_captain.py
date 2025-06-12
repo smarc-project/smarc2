@@ -11,7 +11,7 @@ from rclpy.timer import Timer
 from tf2_ros import Buffer, TransformListener
 
 
-from std_msgs.msg import Float32, Int8
+from std_msgs.msg import Float32, Int8, String
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, Joy, BatteryState
 from nav_msgs.msg import Odometry
@@ -129,7 +129,8 @@ class DjiCaptain():
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
 
-        self._status_str_timer = node.create_timer(0.5,lambda: self.log(self.status_str))
+        self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
+        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(self.status_str))
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
 
@@ -222,6 +223,70 @@ class DjiCaptain():
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV.value)
         self._takeoff_srv = node.create_client(Trigger, PSDKTopics.TAKEOFF_SRV.value)
         self._land_srv = node.create_client(Trigger, PSDKTopics.LAND_SRV.value)
+
+
+        while True:
+            commands = "Commands:\n"
+            commands += "  1: Take control  \n"
+            commands += "  2: Release control\n"
+            commands += "  3: Take off\n"
+            commands += "  4: Land\n"
+            commands += "  5: Print status (also available on $ROBOT_NAME/captain_status topic) \n"
+            try:
+                self.log(commands)
+                n = int(input("Enter number for command: \n"))
+                if n == 1: #Take control
+                    if not self._take_control_srv.wait_for_service(timeout_sec=5.0):
+                        self.log("Take control service not available...")
+                        continue
+                    future = self._take_control_srv.call_async(Trigger.Request())
+                    future.add_done_callback(
+                        lambda f: self.log(f"Take control service called, success: {f.result().success}, message: {f.result().message}")
+                    )
+                elif n == 2: #Release control
+                    if not self._release_control_srv.wait_for_service(timeout_sec=5.0):
+                        self.log("Release control service not available...")
+                        continue
+                    future = self._release_control_srv.call_async(Trigger.Request())
+                    future.add_done_callback(
+                        lambda f: self.log(f"Release control service called, success: {f.result().success}, message: {f.result().message}")
+                    )
+                elif n == 3: #Take off
+                    if self._got_control is False:
+                        self.log("You must take control first!")
+                        continue
+                    n2 = input("Are you sure you want to take-off? (y/[N]): ")
+                    if n2.lower() != 'y':
+                        self.log("Takeoff cancelled.")
+                        continue
+                    if not self._takeoff_srv.wait_for_service(timeout_sec=5.0):
+                        self.log("Take off service not available...")
+                        continue
+                    future = self._takeoff_srv.call_async(Trigger.Request())
+                    future.add_done_callback(
+                        lambda f: self.log(f"Take off service called, success: {f.result().success}, message: {f.result().message}")
+                    )
+                elif n == 4: #Land
+                    if self._got_control is False:
+                        self.log("You must take control first!")
+                        continue
+                    n2 = input("Are you sure you want to land? (y/[N]): ")
+                    if n2.lower() != 'y':
+                        self.log("Landing cancelled.")
+                        continue
+                    if not self._land_srv.wait_for_service(timeout_sec=5.0):
+                        self.log("Land service not available...")
+                        continue
+                    future = self._land_srv.call_async(Trigger.Request())
+                    future.add_done_callback(
+                        lambda f: self.log(f"Land service called, success: {f.result().success}, message: {f.result().message}")
+                    )
+                elif n == 5: #Print status
+                    self.log(self.status_str)
+            except:
+                self.log(f"Invalid input:{input}, please enter a number.")
+                continue
+            
         
 
 
@@ -269,6 +334,7 @@ class DjiCaptain():
     
     def log(self, msg: str):
         self._node.get_logger().info(msg)
+
 
 
     def _geo_alt_cb(self, msg: Float32):
