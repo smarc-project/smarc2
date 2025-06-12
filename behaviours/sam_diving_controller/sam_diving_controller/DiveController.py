@@ -278,7 +278,7 @@ class DiveControllerPID(DiveControllerInterface):
         rpm_setpoint = self._dive_sub.get_rpm_setpoint()
 
         # Get current states
-        self._current_state = self._dive_sub.get_states() # FIXME: why do we use this to begin with?
+        self._current_state = self._dive_sub.get_states()
         current_depth = self._dive_sub.get_depth()
         current_pitch = self._dive_sub.get_pitch()
         current_heading = self._dive_sub.get_heading()
@@ -292,12 +292,7 @@ class DiveControllerPID(DiveControllerInterface):
             self._loginfo("No depth setpoint yet")
             return
 
-        # FIXME: We might need this again
-        #distance = self._dive_sub.get_distance()
-        #goal_tolerance = self._dive_sub.get_goal_tolerance()
-
         # Sketchy minus signs...
-        # FIXME: Check that the depths are handled correctly. 
         depth_setpoint *= -1
         current_depth *= -1
 
@@ -306,7 +301,7 @@ class DiveControllerPID(DiveControllerInterface):
             self._dive_mode = "Active Diving"
             pitch_setpoint = dive_pitch_setpoint
 
-            u_rpm = rpm_setpoint # FIXME: rpm1 and rpm2 can be set individually
+            u_rpm = rpm_setpoint 
             u_vbs_raw = self.param['vbs_u_neutral']
             u_lcg_raw = self.param['lcg_u_neutral']
             u_vbs = u_vbs_raw

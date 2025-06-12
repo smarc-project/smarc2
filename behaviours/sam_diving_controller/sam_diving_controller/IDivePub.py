@@ -29,6 +29,7 @@ class MissionStates(enum.Enum):
     NONE = "NONE"
     ACCEPTED = "ACCEPTED"
     CANCELLED = "CANCELED"
+    REJECTED = "REJECTED"
 
     def __str__(self):
         return self.name
