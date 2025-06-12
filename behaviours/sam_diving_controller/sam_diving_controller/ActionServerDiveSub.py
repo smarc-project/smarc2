@@ -98,8 +98,6 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
         self._loginfo("Dive Action Server started")
 
 
-
-
     def _save_wp(self, wp):
         self._waypoint_global = PoseStamped()
         self._waypoint_global.header.stamp = wp.header.stamp
@@ -132,39 +130,29 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
         geopoint = GeoPoint()
         geopoint.latitude = float(fmt_dict["waypoint"]["latitude"])
         geopoint.longitude = float(fmt_dict["waypoint"]["longitude"])
-        geopoint.altitude = float(fmt_dict["waypoint"]["altitude"])
+        geopoint.altitude = 0.0 #float(fmt_dict["waypoint"]["altitude"])
+        self._target_rpm = float(fmt_dict["waypoint"]["rpm"])
+        self._target_depth = float(fmt_dict["waypoint"]["target_depth"])
+        self._goal_tolerance = float(fmt_dict["waypoint"]["tolerance"])
         
-        desired_speed = fmt_dict["speed"]    # NOTE: This is a string "fast" or "slow"
-
         self._waypoint_point = convert_latlon_to_utm(geopoint)
 
-        # Check z and altitude.
-        self._waypoint_point.point.z = geopoint.altitude
+        if self._target_depth < 0:
+            self.set_mission_state(MissionStates.REJECTED, "AS")
+            err_str = f"Target depth {self._target_depth} < 0. SAM can't fly"
+            self._node.get_logger().error(err_str)
+            return GoalResponse.REJECT
+
+        self._waypoint_point.point.z = -self._target_depth
 
         self._save_wp(self._waypoint_point)
 
-        # TODO: Check for distance or so to reject the goal
-        # Reject when desired altitude is positive
-
-        #self._goal_frame = self._waypoint.pose.header.frame_id
-
-        # FIXME: These are hardcoded. Change them to parameters
-        if desired_speed.lower() == "fast":
-            self._requested_rpm = 1500.0
-        elif desired_speed.lower() == "normal":
-            self._requested_rpm = 1000.0
-        else:
-            self._requested_rpm = 500.0
-
-        # FIXME: This is hard coded. Change it to be a parameter
-        self._goal_tolerance = 2.0 #self._waypoint.goal_tolerance    # Not there anymore
+        self._requested_rpm = self._target_rpm
 
         goal_msg_str = f'Frame: {self._waypoint_global.header.frame_id}\
                          pos x: {self._waypoint_global.pose.position.x}\
                          pos y: {self._waypoint_global.pose.position.y}'
-
         self._loginfo(goal_msg_str)
-
 
         return GoalResponse.ACCEPT
 

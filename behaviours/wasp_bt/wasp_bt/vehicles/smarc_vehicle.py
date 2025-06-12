@@ -37,7 +37,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._gps_sub = node.create_subscription(GeoPoint, Topics.POS_LATLON_TOPIC, self._gps_cb, 10)
         self._heading_sub = node.create_subscription(Float32, Topics.HEADING_TOPIC, self._heading_cb, 10)
         self._course_sub = node.create_subscription(Float32, Topics.COURSE_TOPIC, self._course_cb, 10)
-        self._battery_sub = node.create_subscription(String, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
+        self._battery_sub = node.create_subscription(Float32, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
 

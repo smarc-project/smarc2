@@ -104,7 +104,7 @@ def main(args=None):
     node_name = "lolo_loiter_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = LoiterClient(node, "auv_loiter", action_type)
+    setpoint = LoiterClient(node, "loiter", action_type)
     setpoint._test_loiter()
     rclpy.spin(node)
 

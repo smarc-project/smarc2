@@ -7,4 +7,8 @@
     <param name="utm_band" value="V" type="str"/>
   </node>
 
+  <node name="sam_control_publisher" pkg="sam_smarc_publisher" exec="sam_control_publisher" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)"/>
+  </node>
+
 </launch>

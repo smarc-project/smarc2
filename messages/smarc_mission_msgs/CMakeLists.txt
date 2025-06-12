@@ -27,6 +27,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/GotoWaypoint.action"
   "srv/DubinsPlan.srv"
   "srv/UTMLatLon.srv"
+  "srv/GeoFenceChecker.srv"
   DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
  )
 
