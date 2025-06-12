@@ -121,8 +121,8 @@ class ConveniencePub(IDivePub):
             s += f"Actuators:\n"
             s += f"   VBS: {self._input_msg.vbs:.3f}, "\
                  f"LCG: {self._input_msg.lcg:.3f}, "\
-                 f"TV ver: {self._input_msg.thrustervertical:.3f}, "\
-                 f"TV hor: {self._input_msg.thrusterhorizontal:.3f}, "\
+                 f"TV stern: {self._input_msg.thrustervertical:.3f}, "\
+                 f"TV rudder: {self._input_msg.thrusterhorizontal:.3f}, "\
                  f"RPM: {self._input_msg.thrusterrpm:.3f}\n"
 
         if self._waypoint_msg is None:
