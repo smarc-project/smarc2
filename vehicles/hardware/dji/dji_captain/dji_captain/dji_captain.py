@@ -58,13 +58,14 @@ class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
         self._TF_NS = "Quadrotor/" #TODO take as rosparam...
-        self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
+        
         self._move_to_setpoint : PoseStamped | None = None
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self._joy_timer : None | Timer = None
-        self.JOY_MAX = 0.4 #TODO should be rosparam
         self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
         
+        self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.JOY_MAX = 0.4
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
@@ -232,6 +233,7 @@ class DjiCaptain():
             commands += "  3: Take off\n"
             commands += "  4: Land\n"
             commands += "  5: Print status (also available on $ROBOT_NAME/captain_status topic) \n"
+            commands += "  9: Set max joy to (DANGEROUS, DONT USE UNLESS YOUR NAME STARTS WITH O)\n"
             try:
                 self.log(commands)
                 n = int(input("Enter number for command: \n"))
@@ -283,6 +285,10 @@ class DjiCaptain():
                     )
                 elif n == 5: #Print status
                     self.log(self.status_str)
+                elif n == 9: # set max joy
+                    self.JOY_MAX = float(input("Enter new max joy value: ") or "0")
+                    self.log(f"Set max joy to {self.JOY_MAX:.2f} (m/s?)")
+
             except:
                 self.log(f"Invalid input:{input}, please enter a number.")
                 continue
