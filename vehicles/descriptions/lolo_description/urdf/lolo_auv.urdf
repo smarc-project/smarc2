@@ -170,7 +170,7 @@
     <child link="lolo/gps_link"/>
   </joint>
   <joint name="lolo/mbes_joint" type="fixed">
-    <origin rpy="3.14159 1.53589 0" xyz="-.751 -0.0155 0.084"/>
+    <origin rpy="0 0 0" xyz="-.751 -0.0155 0.084"/>
     <parent link="lolo/base_link"/>
     <child link="lolo/mbes_link"/>
   </joint>

@@ -21,7 +21,7 @@ max_depth: 750 # [m]
 
 # Absolute minimum altitude from the
 # seafloor allowed.
-min_altitude: 5 # [m]
+min_altitude: 1 # [m]
 
 # Absolute maximum RPMs for horizontal
 # thrusters allowed.
@@ -31,3 +31,8 @@ max_thruster_rpm: 1000 # [rpm]
 # thrusters allowed.
 max_vert_thruster_rpm: 2500 # [rpm]
 
+# Loiter action RPMs.
+loiter_rpm: 200 # [rpm]
+
+# Loiter goal tolerance radius.
+loiter_goal_tolerance: 7.5 # [m]
