@@ -131,7 +131,7 @@ class DjiCaptain():
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
 
         self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
-        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(self.status_str))
+        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
 
@@ -233,6 +233,7 @@ class DjiCaptain():
             commands += "  3: Take off\n"
             commands += "  4: Land\n"
             commands += "  5: Print status (also available on $ROBOT_NAME/captain_status topic) \n"
+            commands += "  8: EXIT \n"
             commands += "  9: Set max joy to (DANGEROUS, DONT USE UNLESS YOUR NAME STARTS WITH O)\n"
             try:
                 self.log(commands)
@@ -285,6 +286,9 @@ class DjiCaptain():
                     )
                 elif n == 5: #Print status
                     self.log(self.status_str)
+                elif n == 8:
+                    self.log("Exiting captain")
+                    break
                 elif n == 9: # set max joy
                     self.JOY_MAX = float(input("Enter new max joy value: ") or "0")
                     self.log(f"Set max joy to {self.JOY_MAX:.2f} (m/s?)")
