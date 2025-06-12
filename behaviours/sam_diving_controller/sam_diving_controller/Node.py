@@ -144,7 +144,7 @@ def action_server():
     param = DivingModelParam(node).get_param()
     action_type = ActionType(BaseAction)
     heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
-    dive_sub = DiveActionServerSub(node, "move_to", action_type, param, heartbeat_topic)
+    dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
     dive_pub = SAMDivePub(node, dive_sub, param)
     dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
