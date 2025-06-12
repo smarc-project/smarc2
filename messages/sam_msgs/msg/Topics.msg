@@ -21,6 +21,12 @@ string STD_THRUSTER2_CMD_TOPIC = 'core/standard/thruster2_cmd'
 string STD_THRUST_VECTOR_YAW_CMD_TOPIC = 'core/standard/thrust_vector_yaw_cmd'
 string STD_THRUST_VECTOR_PITCH_CMD_TOPIC = 'core/standard/thrust_vector_pitch_cmd'
 
+# Feedback topics
+string STD_VBS_FB_TOPIC = 'core/standard/vbs_fb'
+string STD_LCG_FB_TOPIC = 'core/standard/lcg_fb'
+string STD_THRUSTER1_FB_TOPIC = 'core/standard/thruster1_fb'
+string STD_THRUSTER2_FB_TOPIC = 'core/standard/thruster2_fb'
+
 ####################
 # Actuator commands
 ####################
