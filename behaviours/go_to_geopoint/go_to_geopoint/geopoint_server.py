@@ -375,6 +375,8 @@ class GeopointServer(SMARCActionServer):
                 return "invalid"
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
+            self.goal_base_link.header.stamp = self._node.get_clock().now().to_msg()
+            self._pub_setpoint.publish(self.goal_base_link)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)

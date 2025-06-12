@@ -78,7 +78,7 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux new-window -t $SESSION:4 -n 'cam'
     tmux rename-window "cam"
     tmux select-window -t $SESSION:4
-    tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args --remap __ns:/$ROBOT_NAME/gimbal_camera" C-m
+    tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args --remap __ns:=/$ROBOT_NAME/gimbal_camera" C-m
 fi
 
 
