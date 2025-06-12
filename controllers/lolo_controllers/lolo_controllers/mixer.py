@@ -127,6 +127,7 @@ class control_mixer(Node):
 
     def depth_cb(self, msg):
         self.depth = msg.data
+        self.lastdepth_time = self.time_now()
     def depth_setpoint_cb(self,msg):
         self.depth_setpoint = msg.data
         self.lastdepth_setpoint_time = self.time_now()
@@ -164,7 +165,7 @@ class control_mixer(Node):
                 if(self.depth < 0.75 and self.depth_setpoint > 0):
                     #Publish vertical thruster data
                     vertical_thruster_msg = Float32()
-                    vertical_thruster_msg.data = 2000.0
+                    vertical_thruster_msg.data = -2000.0
                     
                     #self.vertical_thruster_back_port_pub.publish(vertical_thruster_msg)
                     #self.vertical_thruster_back_strb_pub.publish(vertical_thruster_msg)
