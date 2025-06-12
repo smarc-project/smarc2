@@ -39,7 +39,7 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux send-keys "ros2 run dji_captain dji_captain --ros-args --remap __ns:=/$ROBOT_NAME" C-m
 
     tmux select-pane -t $SESSION:0.2
-    tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status" C-m
+    tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
     # tmux select-pane -t $SESSION:0.3
 fi
