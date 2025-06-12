@@ -52,7 +52,7 @@ tmux rename-window "cam"
 # only launch if not the simulator
 if [ "$USE_SIM_TIME" = "False" ]; then
     tmux select-window -t $SESSION:0
-    tmux send-keys "ros2 launch psdk_ros2_bridge psdk_ros2_bridge.launch" C-m
+    tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py" C-m
     
     tmux select-window -t $SESSION:1
     tmux send-keys "ros2 run dji_captain dji_captain --ros-args --remap __ns:=/$ROBOT_NAME" C-m
@@ -69,7 +69,7 @@ tmux select-window -t $SESSION:4
 if [ "$USE_SIM_TIME" = "True" ]; then
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation" C-m
 else
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real" C-m
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884" C-m
 fi
 
 # only launch if not the simulator

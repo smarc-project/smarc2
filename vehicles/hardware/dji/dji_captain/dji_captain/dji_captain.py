@@ -62,7 +62,7 @@ class DjiCaptain():
         self._move_to_setpoint : PoseStamped | None = None
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self._joy_timer : None | Timer = None
-        self.JOY_MAX = 0.1 #TODO should be rosparam
+        self.JOY_MAX = 0.4 #TODO should be rosparam
         self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
         
         self.READY_BATTERY_PERCENTAGE = 40
@@ -318,12 +318,12 @@ class DjiCaptain():
             self.log("No move to setpoint set, cannot move with joy.")
             return
         
-        # if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
-        #    (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
-        #     self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
-        #     self._move_to_setpoint = None
-        #     cancel_joy_timer()
-        #     return
+        if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
+           (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+            self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
+            self._move_to_setpoint = None
+            cancel_joy_timer()
+            return
         
         if not self._got_control:
             self.log("Not got control, cannot move with joy.")
