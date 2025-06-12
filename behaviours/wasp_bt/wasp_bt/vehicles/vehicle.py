@@ -100,8 +100,7 @@ class VehicleState(IVehicleState):
         
         self._battery = Sensor(SensorNames.BATTERY,
                                VehicleState.ABSOLUTE,
-                               2,
-                               ["V", "%"])
+                               1)
         
         self._vehicle_healthy = Sensor(SensorNames.VEHICLE_HEALTHY,
                                        VehicleState.ABSOLUTE,
@@ -203,7 +202,7 @@ if __name__ == "__main__":
     v.update_sensor(SensorNames.ORIENTATION_EULER, [1,2,3], 0)
     v.update_sensor(SensorNames.GLOBAL_POSITION, [1,2], 0)
     v.update_sensor(SensorNames.GLOBAL_HEADING_DEG, [1], 0)
-    v.update_sensor(SensorNames.BATTERY, [1,2], 0)
+    v.update_sensor(SensorNames.BATTERY, [1], 0)
     v.update_sensor(SensorNames.ALTITUDE, [1], 0)
     v.update_sensor(SensorNames.LEAK, [False], 0)
     v.update_sensor(SensorNames.VBS, [1], 0)
