@@ -93,7 +93,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
 
     def _battery_cb(self, data: BatteryState):
         sec = self.current_time()
-        self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], sec)
+        self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.data], sec)
 
     def _odom_cb(self, data: Odometry):
 
