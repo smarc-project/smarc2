@@ -144,6 +144,7 @@ class KNN(Node):
     def listener_callback(self, msg):
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        cv_image_noted = cv_image.copy()
         # cv_image = self.enhance_saturation(cv_image, saturation_factor=1.5) TODO : increase saturation and see if results improve
         #enhance saturation values
         sat_factor = 1
@@ -205,6 +206,14 @@ class KNN(Node):
                 # Put area text
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                
+
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(cv_image_noted, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
         #cv2.imshow('HSV_buoy', preview_buoy)
 
         #########################################################################################  auv
@@ -246,12 +255,17 @@ class KNN(Node):
                 center_auv = np.array([cx, cy])
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
                 auv_position_msg = Float32MultiArray()
                 auv_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the AUV
                 self.auv_pub.publish(auv_position_msg)
 
                 # Put area text
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                
+                cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
@@ -444,7 +458,6 @@ class KNN(Node):
         #     cv2.line(preview_rope_3, path_px[i-1], path_px[i], (0, 255, 0), 2)
         # cv2.imshow("Grid-Based Rope Path Reconstructed", preview_rope_3)
 
-
         #########################################################################################
 
         # Just add the filtered images directly
@@ -456,7 +469,12 @@ class KNN(Node):
 
             middle_position_msg = Float32MultiArray()
             middle_position_msg.data = [float(center_between_auv_and_buoy[0]), float(center_between_auv_and_buoy[1])]  # Publish the coordinates of the middle point between auv and buoy
-            self.middle_pub.publish(middle_position_msg)    
+            self.middle_pub.publish(middle_position_msg) 
+
+            cx = int(center_between_auv_and_buoy[0])  
+            cy = int(center_between_auv_and_buoy[1])  
+            cv2.circle(cv_image_noted, (cx, cy), 5, (0, 0, 255), -1) 
+            cv2.putText(cv_image_noted, f"Middle Point", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
             
             direction_between_auv_and_buoy =  center_auv - center_buoy
             direction_between_auv_and_buoy = direction_between_auv_and_buoy / np.linalg.norm(direction_between_auv_and_buoy)  # Normalize
@@ -511,6 +529,7 @@ class KNN(Node):
 
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
+        cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
         #########################################################################################
 
         # Apply the connected component filtering
