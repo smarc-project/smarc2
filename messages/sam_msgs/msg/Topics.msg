@@ -10,6 +10,7 @@
 string ABORT_TOPIC = 'core/abort'
 string HEARTBEAT_TOPIC = 'core/heartbeat'
 string VEHICLE_HEALTH_TOPIC = 'core/vehicle_health'
+string STD_LEAK_TOPIC = 'core/standard/leak'
 
 ####################
 # Actuator commands for SIM
