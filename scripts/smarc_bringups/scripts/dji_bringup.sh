@@ -78,10 +78,10 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux new-window -t $SESSION:4 -n 'cam'
     tmux rename-window "cam"
     tmux select-window -t $SESSION:4
-    tmux split-window -h -t $SESSION:0.0
-    tmux select-pane -t $SESSION:0.0
+    tmux split-window -h -t $SESSION:4.0
+    tmux select-pane -t $SESSION:4.0
     tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args --remap __ns:=/$ROBOT_NAME/gimbal_camera" C-m
-    tmux select-pane -t $SESSION:0.1
+    tmux select-pane -t $SESSION:4.1
     tmux send-keys "ros2 launch auv_detector estimator_detector_field_test.launch" C-m
 fi
 
