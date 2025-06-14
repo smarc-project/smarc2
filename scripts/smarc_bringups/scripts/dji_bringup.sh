@@ -17,20 +17,20 @@ tmux -2 new-session -d -s $SESSION
 # C-b <NUM> will change to the tab.
 # default window is 0
 
-# PSDK_ROS2_BRIDGE
-tmux new-window -t $SESSION:0 -n 'Captains'
-tmux rename-window "Captains"
-# split the first window into two panes
-tmux split-window -h -t $SESSION:0.0      # Split window into left (0.0) and right (0.1)
-tmux split-window -v -t $SESSION:0.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
-tmux split-window -v -t $SESSION:0.1      # Split right pane into top-right (0.1) and bottom-right (0.3)
-tmux select-layout -t $SESSION:0 tiled    # Arrange as a 2x2 grid
-# 0.0 | 0.1
-# ----+----
-# 0.2 | 0.3
 
 # only launch if not the simulator
 if [ "$USE_SIM_TIME" = "False" ]; then
+    # PSDK_ROS2_BRIDGE
+    tmux new-window -t $SESSION:0 -n 'Captains'
+    tmux rename-window "Captains"
+    # split the first window into two panes
+    tmux split-window -h -t $SESSION:0.0      # Split window into left (0.0) and right (0.1)
+    tmux split-window -v -t $SESSION:0.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
+    tmux split-window -v -t $SESSION:0.1      # Split right pane into top-right (0.1) and bottom-right (0.3)
+    tmux select-layout -t $SESSION:0 tiled    # Arrange as a 2x2 grid
+    # 0.0 | 0.1
+    # ----+----
+    # 0.2 | 0.3
     tmux select-window -t $SESSION:0
     tmux select-pane -t $SESSION:0.0
     tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py" C-m
@@ -78,7 +78,11 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux new-window -t $SESSION:4 -n 'cam'
     tmux rename-window "cam"
     tmux select-window -t $SESSION:4
+    tmux split-window -h -t $SESSION:0.0
+    tmux select-pane -t $SESSION:0.0
     tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args --remap __ns:=/$ROBOT_NAME/gimbal_camera" C-m
+    tmux select-pane -t $SESSION:0.1
+    tmux send-keys "ros2 launch auv_detector estimator_detector_field_test.launch" C-m
 fi
 
 
