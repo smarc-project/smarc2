@@ -44,6 +44,7 @@ class KNN(Node):
         self.realdata_topic = self.get_parameter("realdata.topic").value
         self.realdata = self.get_parameter("realdata.enabled").value
         # self.realdata_path = self.get_parameter("realdata.path").value
+        self.SHOW_DEBUG = self.get_parameter("show_debug").value
 
         # Initialization (in __init__ or once)
         self.rope_img_buffer = deque(maxlen=5)
@@ -138,6 +139,8 @@ class KNN(Node):
         self.declare_parameter("realdata.topic", P.REALDATA_TOPIC)
         self.declare_parameter("realdata.enabled", P.REALDATA)
         # self.declare_parameter("realdata_path", P.REALDATA_PATH)
+
+        self.declare_parameter("show_debug", False)  # Show debug images in separate windows
 
 
         
@@ -254,7 +257,7 @@ class KNN(Node):
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-        cv2.imshow('HSV_auv', preview_auv)
+        if self.SHOW_DEBUG: cv2.imshow('HSV_auv', preview_auv)
 
 
 
@@ -296,7 +299,7 @@ class KNN(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
 
-        cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
+        if self.SHOW_DEBUG: cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
         #########################################################################################   rope
 
         # HSV filter for rope
@@ -306,7 +309,7 @@ class KNN(Node):
         preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
-        cv2.imshow('HSV_rope', preview_rope)
+        if self.SHOW_DEBUG: cv2.imshow('HSV_rope', preview_rope)
 
 
         # Rope Reconstruction method 1 
@@ -435,7 +438,7 @@ class KNN(Node):
 
             cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-            cv2.imshow("Curve Fitting", preview_rope_2)
+            if self.SHOW_DEBUG: cv2.imshow("Curve Fitting", preview_rope_2)
         # grid-based search require fully connection 
         # path_px = self.grid_path_from_rope(preview_rope_3, center_buoy, center_auv, cell_size=5)
 
@@ -509,7 +512,7 @@ class KNN(Node):
             self.target_pub.publish(target_position_msg) 
 
         # Show the combined result
-        cv2.imshow('Combined_HSV', combined_preview)
+        if self.SHOW_DEBUG: cv2.imshow('Combined_HSV', combined_preview)
         #########################################################################################
 
         # Apply the connected component filtering
