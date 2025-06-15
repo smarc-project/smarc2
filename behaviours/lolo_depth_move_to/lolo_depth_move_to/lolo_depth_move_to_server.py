@@ -179,7 +179,7 @@ class DepthMoveToServer(SMARCActionServer):
         Returns:
             tol_check (bool): true if vehicle is within zone
         """
-        if delta > min(tolerance, self.vehicle.limits["goal_tolerance_plane"]):
+        if delta > max(tolerance, self.vehicle.limits["goal_tolerance_plane"]):
             return False
         else:
             return True
@@ -329,7 +329,7 @@ class DepthMoveToServer(SMARCActionServer):
 
             # TODO: Should we consider the depth error as well?!
             d = self.compute_distance(pose_stamped, check_depth=False)
-            tol_check = self._tol_check(d)
+            tol_check = self._tol_check(d, tol_radius)
             self.logger.info(f"\nWaypoint reached: {tol_check}\nDistance: {d} m.",
                              throttle_duration_sec=10)
 

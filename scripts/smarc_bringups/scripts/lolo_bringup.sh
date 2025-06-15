@@ -6,7 +6,7 @@ USE_SIM_TIME=False
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
-CONTEXT=waraps # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
+CONTEXT=lolo # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
 
 BT_LOG_MODE=compact # can be 'compact' or 'verbose'
 
