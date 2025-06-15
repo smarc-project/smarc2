@@ -1,0 +1,7 @@
+#request
+geometry_msgs/PointStamped gps
+
+geometry_msgs/PointStamped quadrotor_ipos
+---
+#response
+bool success
