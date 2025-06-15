@@ -2,7 +2,12 @@
 ROBOT_NAME=Quadrotor
 SESSION=${ROBOT_NAME}_bringup
 
-USE_SIM_TIME=False
+if [ whoami | grep -q "alars"]; then
+    USE_SIM_TIME=False
+else
+    USE_SIM_TIME=True
+fi
+
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
@@ -17,12 +22,13 @@ tmux -2 new-session -d -s $SESSION
 # C-b <NUM> will change to the tab.
 # default window is 0
 
-
+tmux new-window -t $SESSION:0 -n 'Captains'
+tmux rename-window "Captains"
 # only launch if not the simulator
 if [ "$USE_SIM_TIME" = "False" ]; then
     # PSDK_ROS2_BRIDGE
-    tmux new-window -t $SESSION:0 -n 'Captains'
-    tmux rename-window "Captains"
+    
+    tmux select-window -t $SESSION:0
     # split the first window into two panes
     tmux split-window -h -t $SESSION:0.0      # Split window into left (0.0) and right (0.1)
     tmux split-window -v -t $SESSION:0.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
@@ -31,7 +37,6 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     # 0.0 | 0.1
     # ----+----
     # 0.2 | 0.3
-    tmux select-window -t $SESSION:0
     tmux select-pane -t $SESSION:0.0
     tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py" C-m
     
@@ -42,6 +47,9 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
     # tmux select-pane -t $SESSION:0.3
+else
+    tmux select-window -t $SESSION:0
+    tmux send-keys "ros2 topic pub /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 \"data: 0\" -r 5" C-m
 fi
 
 
