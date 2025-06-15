@@ -284,6 +284,7 @@ def wasp_bt():
     from ..vehicles.smarc_vehicle import GenericSMaRCVehicle
     from ..vehicles.vehicle import VehicleState, UnderwaterVehicleState
     from wasp_bt.bt.client import BTActionClient
+    from smarc_msgs.msg import Topics
 
     from go_to_geopoint.geopoint_client import GeopointClient
 
@@ -311,6 +312,9 @@ def wasp_bt():
         secs, nsecs = node.get_clock().now().seconds_nanoseconds()
         return float(secs) + float(nsecs) * 1e-9
 
+
+    bt_status_pub = node.create_publisher(String, Topics.BT_STATUS_TOPIC, qos_profile=10)
+
     
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
@@ -330,7 +334,6 @@ def wasp_bt():
     ]
 
     # action_client_list = None
-
     # Declare and get parameters with defaults
     node.declare_parameter("agent_type", "air")
     node.declare_parameter("pulse_rate", 1.0) # Hz
@@ -349,6 +352,10 @@ def wasp_bt():
             "pulse_rate": pulse_rate,
         }
     
+    # declare the parameter for printing bt (mode)
+    node.declare_parameter("bt_log_mode", "verbose") # can be "verbose" or "compact"
+    bt_log_mode = node.get_parameter("bt_log_mode").value
+
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
@@ -361,17 +368,38 @@ def wasp_bt():
     is_bt_setup = False
 
     bt_tip = None
+    old_bt_tip = None
 
     bt_str = ""
-    def print_bt():
-        nonlocal bt, bt_str, node, action_client_list, agent
-        new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
-        if new_str != bt_str:
-            s = f"\nBT::\n{new_str}\n"
-            s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
-            node.get_logger().info(s)
-            bt_str = new_str
+    def print_bt(mode: str = "verbose"): # can be "verbose" or "compact"
+        nonlocal bt, bt_str, node, action_client_list, agent, wara_ps_task_handler, bt_tip, old_bt_tip
 
+        if mode == "verbose":
+            new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
+            if new_str != bt_str:
+                s = f"\nBT::\n{new_str}\n"
+                s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
+                node.get_logger().info(s)
+                bt_str = new_str
+            return
+        elif mode == "compact":
+            # print a compact version of the BT
+            # log that you're here
+            # node.get_logger().info("Printing compact BT...")
+            new_str = pt.display.ascii_tree(bt._bt.root, show_status=True)
+            if new_str != bt_str:
+
+                new_tip = bt._bt.root.tip()
+                if  old_bt_tip is None or new_tip!= old_bt_tip:
+                    old_bt_tip = new_tip
+                    s = f"\nBT::\n{new_str}\n"
+                    bt_str = new_str
+
+                    s+= f"WARA PS Task Handler::\n{wara_ps_task_handler}\n"
+                    node.get_logger().info(s)
+            return
+
+            
 
     def update():
         nonlocal bt, is_bt_setup, need_bt_setup
@@ -383,7 +411,7 @@ def wasp_bt():
 
         if is_bt_setup:
             bt.tick()
-            print_bt()
+            print_bt(mode=bt_log_mode)
         
     node.create_timer(0.1, update)
     # node.create_timer(0.5, print_bt)
@@ -401,7 +429,20 @@ def wasp_bt():
                 wara_ps_task_handler.publish_bt_tip(tip_str)
         else:
             node.get_logger().info("BT is not setup yet, cannot publish tip.")
-    node.create_timer(0.5, publish_bt_tip) 
+    
+    node.create_timer(1, publish_bt_tip) 
+    
+    def pub_bt_status():
+        nonlocal bt_status_pub, bt, node, is_bt_setup
+        
+        if not is_bt_setup:
+            # node.get_logger().warn("BT is not setup yet, cannot publish status.")
+            return
+        # publish the BT status to the BT_STATUS_TOPIC
+        bt_status_pub.publish(String(data=pt.display.ascii_tree(bt._bt.root, show_status=True)))
+
+    # create a timer to publish the BT status to BT_STATUS_TOPIC
+    status_str_timer = node.create_timer(0.1,pub_bt_status)
 
     start_time = None
 
