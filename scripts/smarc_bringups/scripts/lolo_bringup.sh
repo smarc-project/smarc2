@@ -8,6 +8,8 @@ AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
 CONTEXT=waraps # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
 
+BT_LOG_MODE=compact # can be 'compact' or 'verbose'
+
 if [ "$USE_SIM_TIME" = "True" ]; then
     REALSIM=simulation
     LINK_SUFFIX="_gt"
@@ -29,7 +31,7 @@ tmux send-keys "sleep 2; ros2 launch lolo_description lolo_description.launch" C
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
 tmux select-window -t $SESSION:1
-tmux send-keys "sleep 5; ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'servers'
