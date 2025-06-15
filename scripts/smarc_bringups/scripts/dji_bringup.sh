@@ -84,7 +84,20 @@ tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux rename-window "mqtt_bridge"
 tmux select-window -t $SESSION:3
 if [ "$USE_SIM_TIME" = "True" ]; then
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation" C-m
+    tmux new-window -t $SESSION:0 -n 'ROS2Bridge'
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation broker_addr:=localhost broker_port:=1889 context:=alars" C-m
+    tmux select-window -t $SESSION:0
+    # tmux send-keys "chmod 755 ../unity_ros_bridge.sh" C-m
+    # tmux send-keys "../unity_ros_bridge.sh" C-m
+    tmux new-window -t $SESSION:4 -n 'vehicle_health'
+    tmux select-window -t $SESSION:4
+    tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
+    tmux new-window -t $SESSION:5 -n 'bash'
+    tmux new-window -t $SESSION:6 -n 'flight1'
+    tmux select-window -t $SESSION:6
+    tmux send-keys "ros2 run alars rescuepoint_server --ros-args -p use_sim_time:=$USE_SIM_TIME --remap __ns:=/$ROBOT_NAME" C-m
+
+    # tmux send-keys "ros2 launch smarc_nodered smarc_nodered.launch robot_name:=$ROBOT_NAME" C-m
 else
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
 fi
@@ -111,10 +124,3 @@ tmux select-window -t $SESSION:0
 tmux select-pane -t $SESSION:0.1
 # attach to the new session
 tmux -2 attach-session -t $SESSION
-
-
-
-
-
-
-

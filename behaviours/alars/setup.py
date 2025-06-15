@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             "search_and_track_auv_action = alars.SearchAndTrackAuvAction:main"
+            "rescuepoint_server= alars.rescuepoint_server:main",
         ],
     },
 )
