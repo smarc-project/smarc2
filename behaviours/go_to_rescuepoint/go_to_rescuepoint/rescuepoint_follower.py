@@ -25,15 +25,18 @@ class WaypointFollower(Node):
         self.num_steps                          = 400   # number of tau‐law waypoints (less waypoints between drone and target-> more speed)
         self.dt                                 = 0.05  # time interval [s] between waypoint publishes (higher dt -> less speed)
         self.fly_to_start_point_velocity        = 15.0  # m/s to go from drone's current position to the starting point of the approach trajectory 
-        self.vertical_height_offset             = 0.3   # CHANGE WHILE GROUND TESTING, final vertical offset [m] above the water surface, clearance height, 
+        self.vertical_height_offset             = 3     # CHANGE WHILE GROUND TESTING, final vertical offset [m] above the water surface, clearance height, 
         self.rope_proximity_threshold           = 1.0   # m to consider “close to rope" to start the FLAT APPROACH
         self.flat_forward_distance              = 4.0   # m to go forward horizontally to catch the rope
-        self.flat_forward_velocity              = 1.0   # m/s horizontal constant flat-forward velocity
         self.horizontal_distance_from_target    = -10.0 # m horizontally how far from the  rope you want to start the pick up approach 
         self.vertical_distance_from_target      = 7.0   # m vertically how far from the  rope you want to start the pick up approach 
         self.incline_distance                   = 10.0  # m to ascend along incline direction after picking up the sam
         self.incline_angle_degree               = 30    # deg to ascend along incline direction after picking up the sam
-
+        self.target_index_offset                = 5     #TODO: Arbitrary
+        self.next_threshold_curve               =  1    #TODO: Arbitrary
+        self.target_threshold_curve             = .1    #TODO: Arbitrary
+        self.flat_forward_threshold             = .1    #TODO: Arbitrary
+        self.incline_threshold                  = .1    #TODO: Arbitrary
 
         ###  PARAMETERS "MIGHT NEEDED" TO BE CHANGED WHILE DEPLOYING IN THE REAL DRONE  ###
         self.tau_trajectory_starting_threshold  = 0.2   # m to consider “arrived” at starting point of tau-trajectory
@@ -56,25 +59,24 @@ class WaypointFollower(Node):
         self.reached_start              = False  # have we driven to pickup_traj_start_point?
         self.waypoints                  = []     # tau‐law trajectory waypoints
         self.step_index                 = 0      # index for tau waypoints
+        self.target_index               = self.target_index_offset      # index for point the drone moves towards
 
         # --- FORWARD (flat) PHASE STATE ---
         self.forward_phase              = False  # have we switched to flat after tau?
         self.flat_direction             = None   # unit vector of horizontal motion
-        self.flat_traveled              = 0.0    # distance traveled in flat phase
 
         # --- INCLINE PHASE STATE ---
         self.incline_phase              = False  # have we switched to incline?
         self.incline_direction          = None   # unit vector of incline motion
-        self.incline_traveled           = 0.0    # distance traveled along incline
 
         # Subscribers for SAM and quad odometry
         self.sub_sam  = self.create_subscription(
-            Odometry, '/sam_auv_v1/core/odom_gt', self.sam_cb, 10)
+            Odometry, '/sam_auv_v1/smarc/odom', self.sam_cb, 10)
         self.sub_quad = self.create_subscription(
             Odometry, '/Quadrotor/odom_gt',    self.quad_cb, 10)
 
         # Publisher for waypoint setpoints
-        self.wp_pub = self.create_publisher(PoseStamped, '/setpoint_position', 10)
+        self.wp_pub = self.create_publisher(PoseStamped, '/Quadrotor/move_to_setpoint', 10)  # CHANGE THE TOPIC if u need  
         
         # Timer to call timer_callback at rate 1/dt
         self.timer = self.create_timer(self.dt, self.timer_callback)
@@ -216,55 +218,64 @@ class WaypointFollower(Node):
 
         # 4. Phase 2: publish tau‐law trajectory or switch to flat phase
         if not self.forward_phase and self.step_index < len(self.waypoints):
-            current_pos = self.waypoints[self.step_index]
+            current_pos = self.quad_pose
+            target_pos = self.waypoints[self.target_index]
+            next_pos = self.waypoints[self.step_index + 1]
             final_pos   = self.waypoints[-1]
             dist_to_sam = np.linalg.norm(current_pos - final_pos)
             if dist_to_sam <= self.rope_proximity_threshold:
                 # switch to flat phase
                 self.forward_phase = True
-                prev = self.waypoints[max(0, self.step_index-1)]
-                flat_vec = current_pos - prev
+                flat_vec = self.waypoints[-1] - self.waypoints[-2]
                 flat_vec[2] = 0.0
                 self.flat_direction = flat_vec / np.linalg.norm(flat_vec)
-                self.flat_traveled  = 0.0
-                self.flat_base_point = current_pos.copy()  # <- anchor for flat & incline phase
-
+                self.flat_final = current_pos + self.flat_direction * self.flat_forward_distance
 
                 self.get_logger().info(
-                    f'Within {self.rope_proximity_threshold} m of SAM — switching to flat phase, '
-                    f'flat_forward_velocity={self.flat_forward_velocity} m/s')
+                    f'Within {self.rope_proximity_threshold} m of SAM — switching to flat phase, ')
             else:
                 # continue tau trajectory
+                target_distance = np.linalg.norm(target_pos - current_pos)
+                next_distance = np.linalg.norm(next_pos - current_pos)
+                if(next_distance < self.next_threshold_curve):
+                    self.step_index += 1
+                    self.target_index += 1
+                    
+                elif(target_distance < self.target_threshold_curve ):
+                    self.step_index += self.target_index_offset
+                    self.target_index += self.target_index_offset
+                
+
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self.get_clock().now().to_msg()
                 pose_msg.header.frame_id = 'map'
-                pose_msg.pose.position.x = float(current_pos[0])
-                pose_msg.pose.position.y = float(current_pos[1])
-                pose_msg.pose.position.z = float(current_pos[2])
+                pose_msg.pose.position.x = float(target_pos[0])
+                pose_msg.pose.position.y = float(target_pos[1])
+                pose_msg.pose.position.z = float(target_pos[2])
                 self.wp_pub.publish(pose_msg)
 
                 self.get_logger().info(
-                    f'Published waypoint {self.step_index+1}/{len(self.waypoints)}: {current_pos}')
-                self.step_index += 1
+                    f'Published waypoint {self.step_index+1}/{len(self.waypoints)}: {self.target_index}')
+                self.get_logger().info(
+                    f'target distance: {target_distance} next distance: {next_distance}')
             return
 
         # 5. Phase 3: Flat Phase: move straight ahead at constant flat_forward_velocity
-        if self.forward_phase and not self.incline_phase and self.flat_traveled < self.flat_forward_distance:
-            step_len = self.flat_forward_velocity * self.dt
-            next_pt = self.flat_base_point + self.flat_direction * self.flat_traveled
-            self.flat_traveled += step_len
+        if self.forward_phase and not self.incline_phase and self.flat_forward_distance > self.flat_forward_threshold:
+            
+            self.flat_forward_distance = np.linalg.norm(self.quad_pose - self.flat_final)
 
 
             pose_msg = PoseStamped()
             pose_msg.header.stamp = self.get_clock().now().to_msg()
             pose_msg.header.frame_id = 'map'
-            pose_msg.pose.position.x = float(next_pt[0])
-            pose_msg.pose.position.y = float(next_pt[1])
-            pose_msg.pose.position.z = float(next_pt[2])
+            pose_msg.pose.position.x = float(self.flat_final[0])
+            pose_msg.pose.position.y = float(self.flat_final[1])
+            pose_msg.pose.position.z = float(self.flat_final[2])
             self.wp_pub.publish(pose_msg)
 
             self.get_logger().info(
-                f'Flat phase: traveled {self.flat_traveled:.2f}/{self.flat_forward_distance} m')
+                f'Flat phase: Distance Remaining {self.flat_forward_distance:.2f} m Waiting for {self.flat_forward_threshold:.2f} m')
             return
 
         # 6. Phase 4: Incline Phase: ascend at 45° with flat_forward_velocity
@@ -275,26 +286,23 @@ class WaypointFollower(Node):
             v = math.sin(incline_angle_rad)
             vec3D = np.array([self.flat_direction[0]*h, self.flat_direction[1]*h, v]) 
             self.incline_direction = vec3D / np.linalg.norm(vec3D)
-            self.incline_traveled  = 0.0
+            self.incline_final = self.quad_pose + self.incline_distance * self.incline_direction
             self.incline_phase     = True
             self.get_logger().info('Starting incline phase at 45°')
 
-        if self.incline_phase and self.incline_traveled < self.incline_distance:
-            step_len = self.flat_forward_velocity * self.dt
-            start_point = self.flat_base_point + self.flat_direction * self.flat_forward_distance
-            next_pt = start_point + self.incline_direction * self.incline_traveled
-            self.incline_traveled += step_len
+        if self.incline_phase and self.incline_distance > self.incline_threshold:
+            self.incline_distance = np.linalg.norm(self.quad_pose - self.incline_final)
 
             pose_msg = PoseStamped()
             pose_msg.header.stamp = self.get_clock().now().to_msg()
             pose_msg.header.frame_id = 'map'
-            pose_msg.pose.position.x = float(next_pt[0])
-            pose_msg.pose.position.y = float(next_pt[1])
-            pose_msg.pose.position.z = float(next_pt[2])
+            pose_msg.pose.position.x = float(self.incline_final[0])
+            pose_msg.pose.position.y = float(self.incline_final[1])
+            pose_msg.pose.position.z = float(self.incline_final[2])
             self.wp_pub.publish(pose_msg)
 
             self.get_logger().info(
-                f'Incline Phase: travelled {self.incline_traveled:.2f}/{self.incline_distance} m')
+                f'Incline Phase: Distance Remaining {self.incline_distance:.2f} m Waiting for {self.incline_threshold:.2f} m')
             return
 
         # 7. All done
