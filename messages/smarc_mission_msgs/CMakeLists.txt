@@ -29,6 +29,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/UTMLatLon.srv"
   "srv/DronePath.srv"
   "srv/InitAUVSearch.srv"
+  "srv/GeoFenceChecker.srv"
   DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
  )
 

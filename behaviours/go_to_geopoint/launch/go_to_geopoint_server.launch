@@ -3,8 +3,8 @@
   <arg name="robot_name" default="Quadrotor"/>
   <arg name="target_frame" default="odom"/>
   <arg name="distance_frame" default="base_link"/>
-  <arg name="distance_frame_suffix" default="_gt"/>
-  <arg name="frame_suffix" default="_gt"/>
+  <arg name="distance_frame_suffix" default=""/>
+  <arg name="frame_suffix" default=""/>
   <arg name="setpoint_tolerance" default="0.25"/>
   <arg name="setpoint_topic" default="go_to_setpoint"/>
   <arg name="goal_threshold" default="10.0"/>

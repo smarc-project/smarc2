@@ -7,7 +7,6 @@
   <xacro:property name="front_prop" value="file://$(find sam_description)/mesh/SAM_FRONTPROP.dae"/>
   <xacro:property name="back_prop" value="file://$(find sam_description)/mesh/SAM_BACKPROP.dae"/>
 
-
   <xacro:macro name="sam_auv" params="debug">
   <!-- Links. -->
   <link name="base_link">

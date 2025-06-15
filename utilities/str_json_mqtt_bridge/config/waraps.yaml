@@ -6,7 +6,7 @@
             connection:
                 host: localhost # these are set in the launch file, so we could have args from outside
                 port: 1889
-                keepalive: 60
+                keepalive: 30
             # tls:
             #     tls_insecure:
             #     ca_certs:
@@ -43,6 +43,7 @@
                 "sensor/roll",
                 "sensor/pitch",
                 "sensor/depth",
+                "sensor/executing_tasks",
 
                 #lv2
                 "direct_execution_info",
@@ -53,6 +54,9 @@
                 'tst_execution_info',
                 "tst/response",
                 "tst/feedback",
+
+                # smarc bt
+                "sensor/bt",
 
               ]
             to_ros:

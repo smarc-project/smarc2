@@ -13,7 +13,7 @@ class DivingModelParam():
         self._node.declare_parameter('vbs_pid_ki', 5.0)
         self._node.declare_parameter('vbs_pid_kd', 1.0)
         self._node.declare_parameter('vbs_pid_kaw', 1.0)
-        self._node.declare_parameter('vbs_u_neutral', 50.0)
+        self._node.declare_parameter('vbs_u_neutral', 55.0)
         self._node.declare_parameter('vbs_u_min', 0.0)
         self._node.declare_parameter('vbs_u_max', 100.0)
         self._node.declare_parameter('vbs_u_emergency', 0.0)
@@ -22,12 +22,12 @@ class DivingModelParam():
         self._node.declare_parameter('lcg_pid_ki', 5.0)
         self._node.declare_parameter('lcg_pid_kd', 1.0)
         self._node.declare_parameter('lcg_pid_kaw', 1.0)
-        self._node.declare_parameter('lcg_u_neutral', 50.0)
+        self._node.declare_parameter('lcg_u_neutral', 75.0)
         self._node.declare_parameter('lcg_u_min', 0.0)
         self._node.declare_parameter('lcg_u_max', 100.0)
         self._node.declare_parameter('lcg_u_emergency', 50.0)
 
-        self._node.declare_parameter('tv_pid_kp', 2.5)
+        self._node.declare_parameter('tv_pid_kp', 1.0)
         self._node.declare_parameter('tv_pid_ki', 0.25)
         self._node.declare_parameter('tv_pid_kd', 0.5)
         self._node.declare_parameter('tv_pid_kaw', 1.0)
@@ -44,10 +44,10 @@ class DivingModelParam():
         self._node.declare_parameter('yaw_u_min', -0.122173)
         self._node.declare_parameter('yaw_u_max', 0.122173)
 
-        self._node.declare_parameter('rpm_u_neutral', 0.0)
-        self._node.declare_parameter('rpm_u_min', -400.0)
-        self._node.declare_parameter('rpm_u_max', 1500.0)
-        self._node.declare_parameter('rpm_u_emergency', 0.0)
+        self._node.declare_parameter('rpm_u_neutral', 0)
+        self._node.declare_parameter('rpm_u_min', -400)
+        self._node.declare_parameter('rpm_u_max', 800)
+        self._node.declare_parameter('rpm_u_emergency', 0)
 
         self._node.declare_parameter('max_dive_pitch', 0.349)
 
@@ -90,10 +90,10 @@ class DivingModelParam():
         param['yaw_u_min'] = self._node.get_parameter('yaw_u_min').get_parameter_value().double_value
         param['yaw_u_max'] = self._node.get_parameter('yaw_u_max').get_parameter_value().double_value
 
-        param['rpm_u_neutral'] = self._node.get_parameter('rpm_u_neutral').get_parameter_value().double_value
-        param['rpm_u_min'] = self._node.get_parameter('rpm_u_min').get_parameter_value().double_value
-        param['rpm_u_max'] = self._node.get_parameter('rpm_u_max').get_parameter_value().double_value
-        param['rpm_u_emergency'] = self._node.get_parameter('rpm_u_emergency').get_parameter_value().double_value
+        param['rpm_u_neutral'] = self._node.get_parameter('rpm_u_neutral').get_parameter_value().integer_value
+        param['rpm_u_min'] = self._node.get_parameter('rpm_u_min').get_parameter_value().integer_value
+        param['rpm_u_max'] = self._node.get_parameter('rpm_u_max').get_parameter_value().integer_value
+        param['rpm_u_emergency'] = self._node.get_parameter('rpm_u_emergency').get_parameter_value().integer_value
 
         param['max_dive_pitch'] = self._node.get_parameter('max_dive_pitch').get_parameter_value().double_value
 
