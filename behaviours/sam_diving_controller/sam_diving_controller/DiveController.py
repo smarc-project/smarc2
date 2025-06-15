@@ -307,17 +307,17 @@ class DiveControllerPID(DiveControllerInterface):
             u_vbs = u_vbs_raw
             u_lcg = u_lcg_raw
 
-            u_tv_hor, yaw_error, u_tv_hor_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
-            u_tv_ver, pitch_error, u_tv_ver_raw = self._pitch_tv_pid.get_control(current_pitch, pitch_setpoint, self._dt)
+            u_tv_rudder, yaw_error, u_tv_rudder_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
+            u_tv_stern, pitch_error, u_tv_stern_raw = self._pitch_tv_pid.get_control(current_pitch, pitch_setpoint, self._dt)
             depth_error = depth_setpoint - current_depth
 
         else:
             self._dive_mode = "Static Diving"
             u_rpm = self.param['rpm_u_neutral']
-            u_tv_ver_raw = self.param['tv_u_neutral']
-            u_tv_hor_raw = self.param['tv_u_neutral']
-            u_tv_ver = u_tv_ver_raw
-            u_tv_hor = u_tv_hor_raw
+            u_tv_stern_raw = self.param['tv_u_neutral']
+            u_tv_rudder_raw = self.param['tv_u_neutral']
+            u_tv_stern = u_tv_stern_raw
+            u_tv_rudder = u_tv_rudder_raw
 
             u_vbs, depth_error, u_vbs_raw = self._depth_vbs_pid.get_control(current_depth, depth_setpoint, self._dt)
             u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
@@ -335,7 +335,7 @@ class DiveControllerPID(DiveControllerInterface):
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
-        self._dive_pub.set_thrust_vector(u_tv_hor, -u_tv_ver) 
+        self._dive_pub.set_thrust_vector(u_tv_rudder, -u_tv_stern) 
         self._dive_pub.set_rpm(u_rpm, u_rpm) 
 
         # Convenience Topics
@@ -352,8 +352,8 @@ class DiveControllerPID(DiveControllerInterface):
         self._input = ControlInput()
         self._input.vbs = u_vbs
         self._input.lcg = u_lcg
-        self._input.thrustervertical = u_tv_ver
-        self._input.thrusterhorizontal = u_tv_hor
+        self._input.thrustervertical = -u_tv_stern
+        self._input.thrusterhorizontal = u_tv_rudder
         self._input.thrusterrpm = float(u_rpm)
 
         return

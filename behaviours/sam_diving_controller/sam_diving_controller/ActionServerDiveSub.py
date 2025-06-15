@@ -189,7 +189,6 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
 
             if self.get_distance() is not None:
                 distance = self.get_distance()
-                self._loginfo(f"AS: got distance")
 
                 if self._mission_state == MissionStates.ACCEPTED\
                     and distance > self._goal_tolerance:
