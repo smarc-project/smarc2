@@ -2,7 +2,12 @@
 ROBOT_NAME=Quadrotor
 SESSION=${ROBOT_NAME}_bringup
 
-USE_SIM_TIME=True
+if [ whoami | grep -q "alars"]; then
+    USE_SIM_TIME=False
+else
+    USE_SIM_TIME=True
+fi
+
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
