@@ -23,7 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "search_auv_action = alars.search_auv_action:main"
+            "search_auv_action = alars.search_auv_action:main",
+            "rescuepoint_server= alars.rescuepoint_server:main",
         ],
     },
 )
