@@ -2,13 +2,10 @@ import rclpy
 import json
 
 from collections.abc import Callable
-from enum import Enum
 
 from rclpy.action import CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
-from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from rclpy.timer import Timer
 
 from smarc_action_base.smarc_action_base import (
     ActionResult,
@@ -47,7 +44,7 @@ class GentlerActionServer(SMARCActionServer):
 
 
     def goal_callback(self, goal_request) -> GoalResponse:
-        return  GoalResponse.ACCEPT if self.on_goal_received(json.loads(goal_request.goal)) else GoalResponse.REJECT
+        return  GoalResponse.ACCEPT if self._on_goal_received(json.loads(goal_request.goal.data)) else GoalResponse.REJECT
 
 
     def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
@@ -69,13 +66,17 @@ class GentlerActionServer(SMARCActionServer):
                 feedback_msg.feedback.data = self._give_feedback()
                 goal_handle.publish_feedback(feedback_msg)
             else:
-                result_msg.result.data = loop_status
+                result_msg.success = loop_status
                 rate.destroy()
+                if result_msg.success:
+                    goal_handle.succeed()
+                else:
+                    goal_handle.abort()
                 return result_msg
             
             rate.sleep()
         
-        result_msg.result.data = False
+        result_msg.success = False
         goal_handle.canceled()
         return result_msg
 
