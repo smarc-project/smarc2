@@ -61,13 +61,18 @@ class SearchAndTrackAuvAction():
         
         self._auv_detection_sub = self._node.create_subscription(
             PointStamped,
-            SmarcTopics.AUV_DETECTION,
+            "alars_detection/auv",
             self._auv_detection_callback,
             10)
         
     @property
     def now_stamp(self):
         return self._node.get_clock().now().to_msg()
+    
+
+    def _auv_detection_callback(self, msg: PointStamped):
+        #TODO
+        pass
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -137,18 +142,34 @@ class SearchAndTrackAuvAction():
     
 
     def _prepare_loop(self) -> None:
+        if self._search_center_odom is None:
+            self._node.get_logger().error("Search center not set, cannot start action")
+            return
         self._current_setpoint_odom: PoseStamped = PoseStamped()
         self._current_setpoint_odom.pose.position.x = self._search_center_odom.point.x
         self._current_setpoint_odom.pose.position.y = self._search_center_odom.point.y
         self._current_setpoint_odom.pose.position.z = self._search_center_odom.point.z
         self._current_setpoint_odom.header = self._search_center_odom.header
         
+
     def _update_current_setpoint_on_spiral(self):
+        if self._spiral_position is None:
+            self._spiral_position = 0
+
+        if self._search_center_odom is None:
+            self.log("Search center not set, cannot update spiral position")
+            return
+        
         spiral_x, spiral_y = point_on_spiral(self._spiral_position, base_radius=self.POINT_REACHED_DISTANCE, arm_distance=self.SPIRAL_ARM_DISTANCE)
         self._current_setpoint_odom.pose.position.x = spiral_x + self._search_center_odom.point.x
         self._current_setpoint_odom.pose.position.y = spiral_y + self._search_center_odom.point.y
 
+
     def _loop_inner(self) -> bool | None:
+        if self._search_center_odom is None:
+            self.log("Search center not set, cannot continue action")
+            return False
+        
         tf = self._tf_buffer.lookup_transform(
             self.BASE_FRAME, 
             self._current_setpoint_odom.header.frame_id, 
@@ -188,7 +209,7 @@ class SearchAndTrackAuvAction():
         return self._feedback_str
 
 
-def point_on_spiral(T_rad:float, base_radius=0, arm_distance=1) -> tuple[float, float]:
+def point_on_spiral(T_rad:float, base_radius:float=0, arm_distance:float=1) -> tuple[float, float]:
     r = base_radius + arm_distance * T_rad
     x = r * math.cos(T_rad)
     y = r * math.sin(T_rad)
