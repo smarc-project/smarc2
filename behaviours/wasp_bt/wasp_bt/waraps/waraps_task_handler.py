@@ -105,6 +105,9 @@ class WaraPSTaskHandler:
         self.mission_start_time = None
         self.mission_timeout = None
 
+        self.mission_status = None
+
+        self.mission_command = None
 
         
         # Publishers for Level 2 WARA-PS topics
@@ -143,7 +146,7 @@ class WaraPSTaskHandler:
         self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
 
         # subscribe to SMARC-wide abort topic
-        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._emptybigredbutton_cb, 10)
 
         # subscribe to smarc health topic
         self._vehicle_health_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_cb, 10)
@@ -756,6 +759,9 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(response_msg)
                 self._wara_ps_tst_response_pub.publish(msg)
                 return
+            
+            # set mission command
+            self.mission_command = command
                             
             # extract the mission timout from "params" key in tst
             if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
@@ -904,6 +910,13 @@ class WaraPSTaskHandler:
         else:
             self._node.get_logger().error("No tasks executing")
             return None
+    
+    def set_mission_status(self, status: str):
+        """
+        Sets the status of the current mission.
+        """
+        self.mission_command["status"] = status
+        
         
     def move_task_to_past(self):
         """
@@ -959,6 +972,28 @@ class WaraPSTaskHandler:
             # log
             # self._node.get_logger().error("No tasks executing")
             return None 
+        
+    def publish_feedback_to_tst(self, feedback: str):
+        """
+        Publishes feedback to the TST.
+        """
+        if len(self.tasks_executing) > 0:
+            # create a feedback message
+            feedback_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "tst-uuid": self.mission_command["tst"]["tst-uuid"],
+                "task-uuid": self.tasks_executing[0]["task-uuid"],
+                "feedback": feedback,
+                "status": self.tasks_executing[0]["status"]
+            }
+            msg = String()
+            msg.data = json.dumps(feedback_msg)
+            self._wara_ps_tst_feedback_pub.publish(msg)
+            # self._node.get_logger().info('Published TST Feedback message')
+        else:
+            # log
+            # self._node.get_logger().error("No tasks executing")
+            return None
 
     def _bigredbutton_cb(self, data: String):
         """
@@ -987,6 +1022,23 @@ class WaraPSTaskHandler:
         self._wara_ps_tst_response_pub.publish(msg)
         self._node.get_logger().info('Published Big Red Button response message')
         return
+    
+    def _emptybigredbutton_cb(self, data: Empty):
+        """
+        same as above, but no feedback to be sent.
+        """
+        self._node.get_logger().info("Big Red Button pressed, aborting all tasks")
+        self.emergency_flag = True
+        # set all tasks executing to aborted
+        for task in self.tasks_executing:
+            task["status"] = WaraPSTaskStates.ABORTED.value
+            self.past_tasks.append(task)
+
+        # clear the executing tasks list
+        self.tasks_executing = []
+
+        # publish the response
+        return True
     
     def abort(self):
         """
