@@ -59,6 +59,7 @@ class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
         self._TF_NS = "Quadrotor/" #TODO take as rosparam...
+        self.declare_node_parameters()
         
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
