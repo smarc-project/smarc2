@@ -87,7 +87,22 @@ class KNN(Node):
         #self.child_frame = 'Quadrotor/camera_gt'
         self.child_frame = 'Quadrotor/winch_link'
 
+        self.child_frame_hook = 'Quadrotor/Hook'  # Use the hook frame here
+
     def timer_callback(self):
+
+        try:
+            now = rclpy.time.Time()
+            trans: TransformStamped = self.tf_buffer.lookup_transform(
+                self.parent_frame,
+                self.child_frame_hook,
+                now
+            )
+            pos = trans.transform.translation
+            self.get_logger().info(f"[{self.child_frame_hook}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
+        except TransformException as e:
+            self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame_hook}: {str(e)}')
+
         try:
             now = rclpy.time.Time()
             trans: TransformStamped = self.tf_buffer.lookup_transform(
