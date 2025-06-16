@@ -2,7 +2,7 @@
 ROBOT_NAME=Quadrotor
 SESSION=${ROBOT_NAME}_bringup
 
-if [ whoami | grep -q "alars"]; then
+if [[ "$(whoami)" == *"alars"* ]]; then
     USE_SIM_TIME=False
     MAP_FRAME=$ROBOT_NAME/map
 else
