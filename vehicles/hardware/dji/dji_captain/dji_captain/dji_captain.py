@@ -114,13 +114,10 @@ class DjiCaptain():
         self._carrying_payload : bool = False
         self._battery_percent : float | None = None
 
-        self.prev_joy_left : float | None = None
-        self.prev_joy_forw : float | None = None
-        self.prev_joy_vert : float | None = None
-        self.kP_horiz: float | None = None
-        self.deriv_limit_horiz: float | None = None
-        self.kP_vert: float | None = None
-        self.deriv_limit_vert: float | None = None
+        self.prev_joy_vec : np.ndarray | None = None
+        self.joy_deriv : np.ndarray | None = None
+        self.kP: float | None = None
+        self.deriv_limit: float | None = None
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
@@ -352,6 +349,15 @@ class DjiCaptain():
         else:
             s += f"  Vehicle Health: WAITING\n"
 
+        if self.prev_joy_vec is not None:
+            s += f"\nJoystick position being sent: forw: {self.prev_joy_vec[0]}, left: {self.prev_joy_vec[1]}, up: {self.prev_joy_vec[2]}\n"
+        else:
+            s += f"\nNo Joystick position being sent.\n"
+        if self.joy_deriv is not None:
+            s += f"Joystick derivative: forw: {self.joy_deriv[0]}, left: {self.joy_deriv[1]}, up: {self.joy_deriv[2]}\n"
+        else:
+            s += f"No Joystick derivative\n"
+
 
         return s
     
@@ -406,23 +412,19 @@ class DjiCaptain():
                     velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
                     velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
                     velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
-                    self.prev_joy_forw = velocity_as_pose_stamped_base_flat.pose.position.x
-                    self.prev_joy_left = velocity_as_pose_stamped_base_flat.pose.position.y
-                    self.prev_joy_vert = velocity_as_pose_stamped_base_flat.pose.position.z
+                    self.prev_joy_vec = np.array([velocity_as_pose_stamped_base_flat.pose.position.x, \
+                                                  velocity_as_pose_stamped_base_flat.pose.position.y, \
+                                                  velocity_as_pose_stamped_base_flat.pose.position.z])
                 else:
-                    self.prev_joy_forw = 0
-                    self.prev_joy_left = 0
-                    self.prev_joy_vert = 0
+                    self.prev_joy_vec = np.array([0.0, 0.0, 0.0])
                 
             except Exception as e:
                 self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
                 self._move_to_setpoint = None
                 return
                 
-            self.kP_horiz = self._node.get_parameter("p_gain_horiz").value
-            self.deriv_limit_horiz = self._node.get_parameter("horiz_deriv_limit").value
-            self.kP_vert = self._node.get_parameter("p_gain_vert").value
-            self.deriv_limit_vert = self._node.get_parameter("vert_deriv_limit").value
+            self.kP = self._node.get_parameter("p_gain").value
+            self.deriv_limit = self._node.get_parameter("deriv_limit").value
             self._joy_timer = self._node.create_timer(self.JOY_PERIOD, self._move_with_joy)
             self.log("Joy timer started to move with joy.")
 
@@ -434,13 +436,10 @@ class DjiCaptain():
             if self._joy_timer is not None:
                 self._joy_timer.cancel()
                 self._joy_timer = None
-                self.prev_joy_forw = None
-                self.prev_joy_left = None
-                self.prev_joy_vert = None
-                self.kP_horiz = None
-                self.deriv_limit_horiz = None
-                self.kP_vert = None
-                self.deriv_limit_vert = None
+                self.prev_joy_vec = None
+                self.joy_deriv = None
+                self.kP = None
+                self.deriv_limit = None
                 self.log("Joy timer cancelled.")
 
         if self._move_to_setpoint is None:
@@ -459,12 +458,12 @@ class DjiCaptain():
             cancel_joy_timer()
             return
         
-        if self.kP_vert is None or self.kP_horiz is None or self.deriv_limit_horiz is None or self.deriv_limit_vert is None:
+        if self.kP is None or self.deriv_limit is None:
             self.log("PID gains or limits not set, cannot move with joy.")
             cancel_joy_timer()
             return
         
-        if self.prev_joy_forw is None or self.prev_joy_left is None or self.prev_joy_vert is None:
+        if self.prev_joy_vec is None:
             self.log("previous conditions not set, cannot move with joy.")
             cancel_joy_timer()
             return
@@ -479,38 +478,31 @@ class DjiCaptain():
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
-
-        j_forw = max(min(self.kP_horiz * e_forw, self.JOY_MAX), -self.JOY_MAX)
-        j_forw_deriv = (j_forw - self.prev_joy_forw) / self.JOY_PERIOD
-        if(np.abs(j_forw_deriv) > self.deriv_limit_horiz):
-            j_forw =  max(min(self.prev_joy_forw + np.sign(j_forw_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
         
-        j_left = max(min(self.kP_horiz * e_left, self.JOY_MAX), -self.JOY_MAX)
-        j_left_deriv = (j_left - self.prev_joy_left) / self.JOY_PERIOD
-        if(np.abs(j_left_deriv) > self.deriv_limit_horiz):
-            j_left =  max(min(self.prev_joy_left + np.sign(j_left_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+        e_vec = np.array([e_forw, e_left, e_updn])
+        e_mag = np.linalg.norm(e_vec)
+        e_dir = e_vec / e_mag
 
-        j_vert = max(min(self.kP_vert * e_updn, self.JOY_MAX), -self.JOY_MAX)
-        j_vert_deriv = (j_vert - self.prev_joy_vert) / self.JOY_PERIOD
-        if(np.abs(j_vert_deriv) > self.deriv_limit_vert):
-            j_vert =  max(min(self.prev_joy_vert + np.sign(j_vert_deriv) * self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+        j_vec = max(min(self.kP * e_mag, self.JOY_MAX), -self.JOY_MAX) * e_dir
+        self.joy_deriv = (j_vec - self.prev_joy_vec) / self.JOY_PERIOD
+        if(np.linalg.norm(self.joy_deriv) > self.deriv_limit):
+            j_vec = (self.prev_joy_vec + self.joy_deriv / np.linalg.norm(self.joy_deriv) * self.deriv_limit)
 
-        self.prev_joy_vert = j_vert
-        self.prev_joy_forw = j_forw
-        self.prev_joy_left = j_left
+        if(np.linalg.norm(j_vec) > self.JOY_MAX):
+            j_vec = j_vec / np.linalg.norm(j_vec) * self.JOY_MAX
+
+        self.prev_joy_vec = j_vec
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [j_forw, j_left, j_vert, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [j_vec[0], j_vec[1], j_vec[2], 0.0]  # Assuming axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._joy_pub.publish(joy_msg)
 
     def declare_node_parameters(self):
-        self._node.declare_parameter("p_gain_horiz", 2.5)
-        self._node.declare_parameter("p_gain_vert", 2.5)
-        self._node.declare_parameter("horiz_deriv_limit", .4)
-        self._node.declare_parameter("vert_deriv_limit", .4)
+        self._node.declare_parameter("p_gain", 2.5)
+        self._node.declare_parameter("deriv_limit", .4)
 
     def _rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
