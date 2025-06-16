@@ -64,7 +64,7 @@ class DjiCaptain():
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
         self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
-        self._joy_ramp_time : float = 1.0
+        self._joy_ramp_time : float = 5.0
         self._setpoint_received_at : float|None = None
         
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
