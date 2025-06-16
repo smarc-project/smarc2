@@ -68,7 +68,7 @@ class DjiCaptain():
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_MAX = 0.4
-        self.JOY_PERIOD = .1
+        self.JOY_PERIOD = .01
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
@@ -126,7 +126,7 @@ class DjiCaptain():
        
 
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
-        self._tf_timer = node.create_timer(0.02, self._publish_tf)
+        self._tf_timer = node.create_timer(0.01, self._publish_tf)
 
         self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
