@@ -321,7 +321,7 @@ class KNN(Node):
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
         cv2.imshow('HSV_rope', preview_rope)
-
+        center_x_rope = None
 
         # Rope Reconstruction method 1 
         # # Step 1: Find rope points
@@ -514,18 +514,19 @@ class KNN(Node):
             
 
             # Draw heading
-            arrow_start_point = (target_u, target_v)
-            arrow_end_point = (center_x_rope, center_y_rope)
-            cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
+            if center_x_rope is not None:
+                arrow_start_point = (target_u, target_v)
+                arrow_end_point = (center_x_rope, center_y_rope)
+                cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
 
-            # Final 3D heading in camera frame
-            heading_x = (center_x_rope - cam_x) * cam_Z / fx
-            heading_y = (center_y_rope - cam_y) * cam_Z / fy
+                # Final 3D heading in camera frame
+                heading_x = (center_x_rope - cam_x) * cam_Z / fx
+                heading_y = (center_y_rope - cam_y) * cam_Z / fy
 
-            # Publish Target
-            target_position_msg = Float32MultiArray()
-            target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
-            self.target_pub.publish(target_position_msg) 
+                # Publish Target
+                target_position_msg = Float32MultiArray()
+                target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
+                self.target_pub.publish(target_position_msg) 
 
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
