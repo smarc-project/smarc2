@@ -483,17 +483,17 @@ class DjiCaptain():
         j_forw = max(min(self.kP_horiz * e_forw, self.JOY_MAX), -self.JOY_MAX)
         j_forw_deriv = (j_forw - self.prev_joy_forw) / self.JOY_PERIOD
         if(np.abs(j_forw_deriv) > self.deriv_limit_horiz):
-            j_forw =  max(min(self.prev_joy_forw + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+            j_forw =  max(min(self.prev_joy_forw + np.sign(j_forw_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
         
         j_left = max(min(self.kP_horiz * e_left, self.JOY_MAX), -self.JOY_MAX)
         j_left_deriv = (j_left - self.prev_joy_left) / self.JOY_PERIOD
         if(np.abs(j_left_deriv) > self.deriv_limit_horiz):
-            j_left =  max(min(self.prev_joy_left + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+            j_left =  max(min(self.prev_joy_left + np.sign(j_left_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
 
         j_vert = max(min(self.kP_vert * e_updn, self.JOY_MAX), -self.JOY_MAX)
         j_vert_deriv = (j_vert - self.prev_joy_vert) / self.JOY_PERIOD
         if(np.abs(j_vert_deriv) > self.deriv_limit_vert):
-            j_vert =  max(min(self.prev_joy_vert + self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+            j_vert =  max(min(self.prev_joy_vert + np.sign(j_vert_deriv) * self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
 
         self.prev_joy_vert = j_vert
         self.prev_joy_forw = j_forw
