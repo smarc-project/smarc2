@@ -349,14 +349,14 @@ class DjiCaptain():
         else:
             s += f"  Vehicle Health: WAITING\n"
 
-        if self.prev_joy_vec is not None:
-            s += f"\nJoystick position being sent: forw: {self.prev_joy_vec[0]}, left: {self.prev_joy_vec[1]}, up: {self.prev_joy_vec[2]}\n"
-        else:
-            s += f"\nNo Joystick position being sent.\n"
-        if self.joy_deriv is not None:
-            s += f"Joystick derivative: forw: {self.joy_deriv[0]}, left: {self.joy_deriv[1]}, up: {self.joy_deriv[2]}\n"
-        else:
-            s += f"No Joystick derivative\n"
+        # if self.prev_joy_vec is not None:
+        #     s += f"\nJoystick position being sent: forw: {self.prev_joy_vec[0]}, left: {self.prev_joy_vec[1]}, up: {self.prev_joy_vec[2]}\n"
+        # else:
+        #     s += f"\nNo Joystick position being sent.\n"
+        # if self.joy_deriv is not None:
+        #     s += f"Joystick derivative: forw: {self.joy_deriv[0]}, left: {self.joy_deriv[1]}, up: {self.joy_deriv[2]}\n"
+        # else:
+        #     s += f"No Joystick derivative\n"
 
 
         return s
@@ -478,30 +478,34 @@ class DjiCaptain():
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
+
+        j_forw = max(min(e_forw, self.JOY_MAX), -self.JOY_MAX)
+        j_left = max(min(e_left, self.JOY_MAX), -self.JOY_MAX)
+        j_updn = max(min(e_updn, self.JOY_MAX), -self.JOY_MAX)
         
-        e_vec = np.array([e_forw, e_left, e_updn])
-        e_mag = np.linalg.norm(e_vec)
-        e_dir = e_vec / e_mag
+        # e_vec = np.array([e_forw, e_left, e_updn])
+        # e_mag = np.linalg.norm(e_vec)
+        # e_dir = e_vec / e_mag
 
-        j_vec = max(min(self.kP * e_mag, self.JOY_MAX), -self.JOY_MAX) * e_dir
-        self.joy_deriv = (j_vec - self.prev_joy_vec) / self.JOY_PERIOD
-        if(np.linalg.norm(self.joy_deriv) > self.deriv_limit):
-            j_vec = (self.prev_joy_vec + self.joy_deriv / np.linalg.norm(self.joy_deriv) * self.deriv_limit)
+        # j_vec = max(min(self.kP * e_mag, self.JOY_MAX), -self.JOY_MAX) * e_dir
+        # self.joy_deriv = (j_vec - self.prev_joy_vec) / self.JOY_PERIOD
+        # if(np.linalg.norm(self.joy_deriv) > self.deriv_limit):
+        #     j_vec = (self.prev_joy_vec + self.joy_deriv / np.linalg.norm(self.joy_deriv) * self.deriv_limit)
 
-        if(np.linalg.norm(j_vec) > self.JOY_MAX):
-            j_vec = j_vec / np.linalg.norm(j_vec) * self.JOY_MAX
+        # if(np.linalg.norm(j_vec) > self.JOY_MAX):
+        #     j_vec = j_vec / np.linalg.norm(j_vec) * self.JOY_MAX
 
-        self.prev_joy_vec = j_vec
-        if(np.abs(j_vec[0] < .02)):
-            j_vec[0] = 0.0
-        if(np.abs(j_vec[1] < .02)):
-            j_vec[1] = 0.0
-        if(np.abs(j_vec[2] < .02)):
-            j_vec[2] = 0.0
+        # self.prev_joy_vec = j_vec
+        # if(np.abs(j_vec[0] < .02)):
+        #     j_vec[0] = 0.0
+        # if(np.abs(j_vec[1] < .02)):
+        #     j_vec[1] = 0.0
+        # if(np.abs(j_vec[2] < .02)):
+        #     j_vec[2] = 0.0
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [j_vec[0], j_vec[1], j_vec[2], 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [j_forw, j_left, j_updn, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._joy_pub.publish(joy_msg)
@@ -520,7 +524,7 @@ class DjiCaptain():
                 lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
             )
         
-        self.log(f"RC buttons: {msg.buttons}")
+        # self.log(f"RC buttons: {msg.buttons}")
 
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
