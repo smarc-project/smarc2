@@ -67,6 +67,7 @@ class DjiCaptain():
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_MAX = 0.4
+        self.JOY_PERIOD = .1
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
@@ -117,9 +118,9 @@ class DjiCaptain():
         self.prev_joy_vert : float | None = None
         self.prev_joy_time : Time | None = None
         self.kP_horiz: float | None = None
-        self.kD_horiz: float | None = None
+        self.deriv_limit_horiz: float | None = None
         self.kP_vert: float | None = None
-        self.kD_vert: float | None = None
+        self.deriv_limit_vert: float | None = None
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
@@ -419,10 +420,10 @@ class DjiCaptain():
                 return
                 
             self.kP_horiz = self._node.get_parameter("p_gain_horiz").value
-            self.kD_horiz = self._node.get_parameter("d_gain_horiz").value
+            self.deriv_limit_horiz = self._node.get_parameter("horiz_deriv_limit").value
             self.kP_vert = self._node.get_parameter("p_gain_vert").value
-            self.kD_vert = self._node.get_parameter("d_gain_vert").value
-            self._joy_timer = self._node.create_timer(0.1, self._move_with_joy)
+            self.deriv_limit_vert = self._node.get_parameter("vert_deriv_limit").value
+            self._joy_timer = self._node.create_timer(self.JOY_PERIOD, self._move_with_joy)
             self.log("Joy timer started to move with joy.")
 
 
@@ -438,9 +439,9 @@ class DjiCaptain():
                 self.prev_joy_vert = None
                 self.prev_joy_time = None
                 self.kP_horiz = None
-                self.kD_horiz = None
+                self.deriv_limit_horiz = None
                 self.kP_vert = None
-                self.kD_vert = None
+                self.deriv_limit_vert = None
                 self.log("Joy timer cancelled.")
 
         if self._move_to_setpoint is None:
@@ -470,25 +471,24 @@ class DjiCaptain():
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        j_forw = self.kP_horiz * e_forw
-        j_forw_deriv = (j_forw - self.prev_joy_forw) / (self.now_stamp.seconds + self.now_stamp.nanosec - self.prev_joy_time.seconds - self.prev_joy_time.nanoseconds)
-        j_forw = j_forw - self.kD_horiz * j_forw_deriv
-        j_forw = max(min(j_forw, self.JOY_MAX), -self.JOY_MAX)
+        j_forw = max(min(self.kP_horiz * e_forw, self.JOY_MAX), -self.JOY_MAX)
+        j_forw_deriv = (j_forw - self.prev_joy_forw) / self.JOY_PERIOD
+        if(math.abs(j_forw_deriv) > self.deriv_limit_horiz):
+            j_forw =  max(min(self.prev_joy_forw + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
         
-        j_left = self.kP_horiz * e_left
-        j_left_deriv = (j_left - self.prev_joy_left) / (self.now_stamp.seconds + self.now_stamp.nanosec - self.prev_joy_time.seconds - self.prev_joy_time.nanoseconds)
-        j_left = j_left - self.kD_horiz * j_left_deriv
-        j_left = max(min(j_left, self.JOY_MAX), -self.JOY_MAX)
+        j_left = max(min(self.kP_horiz * e_left, self.JOY_MAX), -self.JOY_MAX)
+        j_left_deriv = (j_left - self.prev_joy_left) / self.JOY_PERIOD
+        if(math.abs(j_left_deriv) > self.deriv_limit_horiz):
+            j_left =  max(min(self.prev_joy_left + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
 
-        j_vert = self.kP_vert * e_updn
-        j_vert_deriv = (j_vert - self.prev_joy_vert) / (self.now_stamp.seconds + self.now_stamp.nanosec - self.prev_joy_time.seconds - self.prev_joy_time.nanoseconds)
-        j_vert = j_vert - self.kD_vert * j_vert_deriv
-        j_vert = max(min(j_vert, self.JOY_MAX), -self.JOY_MAX)
+        j_vert = max(min(self.kP_vert * e_updn, self.JOY_MAX), -self.JOY_MAX)
+        j_vert_deriv = (j_vert - self.prev_joy_vert) / self.JOY_PERIOD
+        if(math.abs(j_vert_deriv) > self.deriv_limit_vert):
+            j_vert =  max(min(self.prev_joy_vert + self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
 
         self.prev_joy_vert = j_vert
         self.prev_joy_forw = j_forw
         self.prev_joy_left = j_left
-        self.prev_joy_time = self.now_stamp
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
@@ -498,10 +498,10 @@ class DjiCaptain():
         self._joy_pub.publish(joy_msg)
 
     def declare_node_parameters(self):
-        self._node.declare_parameter("p_gain_horiz", 0.0)
-        self._node.declare_parameter("d_gain_horiz", 0.0)
-        self._node.declare_parameter("p_gain_vert", 0.0)
-        self._node.declare_parameter("d_gain_vert", 0.0)
+        self._node.declare_parameter("p_gain_horiz", 2.5)
+        self._node.declare_parameter("p_gain_vert", 2.5)
+        self._node.declare_parameter("horiz_deriv_limit", .4)
+        self._node.declare_parameter("vert_deriv_limit", .4)
 
     def _rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
