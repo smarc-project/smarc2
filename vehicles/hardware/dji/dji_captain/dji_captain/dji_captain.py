@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import rclpy, sys, math
+import numpy as np
 from enum import Enum
 
 
@@ -66,6 +67,7 @@ class DjiCaptain():
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_MAX = 0.4
+        self.JOY_PERIOD = .1
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
@@ -83,12 +85,14 @@ class DjiCaptain():
         self.MAP_FRAME = self._TF_NS + "map"
         self.BASE_FRAME = self._TF_NS + "base_link"
         self.BASE_FLAT_FRAME = self._TF_NS + "base_flat_link"
+        self.BASE_ENU_FRAME = self._TF_NS + "base_ENU_link"
         self.HOME_FRAME = self._TF_NS + "home_point"
         self._utm_labeled_frame : str | None = None
 
 
         self._base_pose_in_home : PoseStamped | None = None
         self._base_pose_flat_in_home : PoseStamped | None = None
+        self._base_ENU_in_home : PoseStamped | None = None
         self._home_point_in_utm : PointStamped | None = None
         self._home_geo_altitude : float | None = None
         self._gps_point_in_home : PointStamped | None = None
@@ -108,6 +112,15 @@ class DjiCaptain():
         self._flying : bool = False
         self._carrying_payload : bool = False
         self._battery_percent : float | None = None
+
+        self.prev_joy_left : float | None = None
+        self.prev_joy_forw : float | None = None
+        self.prev_joy_vert : float | None = None
+        self.prev_joy_time : Time | None = None
+        self.kP_horiz: float | None = None
+        self.deriv_limit_horiz: float | None = None
+        self.kP_vert: float | None = None
+        self.deriv_limit_vert: float | None = None
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
@@ -378,8 +391,41 @@ class DjiCaptain():
         self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         
         if self._joy_timer is None:
-            self._joy_timer = self._node.create_timer(0.1, self._move_with_joy)
+            try:
+                tf = self._tf_buffer.lookup_transform(
+                    target_frame=self.BASE_ENU_FRAME,
+                    source_frame=self.BASE_FLAT_FRAME,
+                    time=Time(seconds=0),
+                    timeout=Duration(seconds=1)
+                )
+                velocity_as_pose_stamped = PoseStamped()
+                velocity_as_pose_stamped.header.frame_id = self.BASE_ENU_FRAME
+                velocity_as_pose_stamped.header.stamp = self.now_stamp
+                if(self._velocity_ground is not None):
+                    velocity_as_pose_stamped.pose.position.x = self._velocity_ground.vector.x
+                    velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
+                    velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
+                    velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
+                    self.prev_joy_forw = velocity_as_pose_stamped_base_flat.pose.position.x
+                    self.prev_joy_left = velocity_as_pose_stamped_base_flat.pose.position.y
+                    self.prev_joy_vert = velocity_as_pose_stamped_base_flat.pose.position.z
+                else:
+                    self.prev_joy_forw = 0
+                    self.prev_joy_left = 0
+                    self.prev_joy_vert = 0
+                self.prev_joy_time = self.now_stamp
+            except Exception as e:
+                self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
+                self._move_to_setpoint = None
+                return
+                
+            self.kP_horiz = self._node.get_parameter("p_gain_horiz").value
+            self.deriv_limit_horiz = self._node.get_parameter("horiz_deriv_limit").value
+            self.kP_vert = self._node.get_parameter("p_gain_vert").value
+            self.deriv_limit_vert = self._node.get_parameter("vert_deriv_limit").value
+            self._joy_timer = self._node.create_timer(self.JOY_PERIOD, self._move_with_joy)
             self.log("Joy timer started to move with joy.")
+
 
 
 
@@ -388,6 +434,14 @@ class DjiCaptain():
             if self._joy_timer is not None:
                 self._joy_timer.cancel()
                 self._joy_timer = None
+                self.prev_joy_forw = None
+                self.prev_joy_left = None
+                self.prev_joy_vert = None
+                self.prev_joy_time = None
+                self.kP_horiz = None
+                self.deriv_limit_horiz = None
+                self.kP_vert = None
+                self.deriv_limit_vert = None
                 self.log("Joy timer cancelled.")
 
         if self._move_to_setpoint is None:
@@ -413,23 +467,41 @@ class DjiCaptain():
             timeout=Duration(seconds=1))
         
         target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
-        d_forw = target_in_base.pose.position.x
-        d_left = target_in_base.pose.position.y
-        d_updn = target_in_base.pose.position.z # we like mirrors around a point
+        e_forw = target_in_base.pose.position.x # error about each axis
+        e_left = target_in_base.pose.position.y
+        e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        d_forw = max(min(d_forw, self.JOY_MAX), -self.JOY_MAX)
-        d_left = max(min(d_left, self.JOY_MAX), -self.JOY_MAX)
-        d_updn = max(min(d_updn, self.JOY_MAX), -self.JOY_MAX)
+        j_forw = max(min(self.kP_horiz * e_forw, self.JOY_MAX), -self.JOY_MAX)
+        j_forw_deriv = (j_forw - self.prev_joy_forw) / self.JOY_PERIOD
+        if(math.abs(j_forw_deriv) > self.deriv_limit_horiz):
+            j_forw =  max(min(self.prev_joy_forw + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+        
+        j_left = max(min(self.kP_horiz * e_left, self.JOY_MAX), -self.JOY_MAX)
+        j_left_deriv = (j_left - self.prev_joy_left) / self.JOY_PERIOD
+        if(math.abs(j_left_deriv) > self.deriv_limit_horiz):
+            j_left =  max(min(self.prev_joy_left + self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+
+        j_vert = max(min(self.kP_vert * e_updn, self.JOY_MAX), -self.JOY_MAX)
+        j_vert_deriv = (j_vert - self.prev_joy_vert) / self.JOY_PERIOD
+        if(math.abs(j_vert_deriv) > self.deriv_limit_vert):
+            j_vert =  max(min(self.prev_joy_vert + self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+
+        self.prev_joy_vert = j_vert
+        self.prev_joy_forw = j_forw
+        self.prev_joy_left = j_left
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [d_forw, d_left, d_updn, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [j_forw, j_left, j_vert, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._joy_pub.publish(joy_msg)
 
-
-
+    def declare_node_parameters(self):
+        self._node.declare_parameter("p_gain_horiz", 2.5)
+        self._node.declare_parameter("p_gain_vert", 2.5)
+        self._node.declare_parameter("horiz_deriv_limit", .4)
+        self._node.declare_parameter("vert_deriv_limit", .4)
 
     def _rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
@@ -485,11 +557,13 @@ class DjiCaptain():
             self.log("Home point not set, cannot process position fused message.")
             return
         
-        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_ENU_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
+            self._base_ENU_in_home = PoseStamped()
+            self._base_ENU_in_home.header.frame_id = self.ODOM_FRAME
             
         self._base_pose_in_home.pose.position.x = msg.position.x
         self._base_pose_in_home.pose.position.y = msg.position.y
@@ -498,16 +572,20 @@ class DjiCaptain():
 
         self._base_pose_flat_in_home.pose.position = self._base_pose_in_home.pose.position
         self._base_pose_flat_in_home.header.stamp = self._base_pose_in_home.header.stamp
+        self._base_ENU_in_home.pose.position = self._base_pose_in_home.pose.position
+        self._base_ENU_in_home.header.stamp = self._base_pose_in_home.header.stamp
         
 
     def _attitude_callback(self, msg: QuaternionStamped):
         # the attitude is in ENU by psdk definition, so we need to convert it to NED (compasses use this...)
         # and the use the z component as heading
-        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_ENU_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
+            self._base_ENU_in_home = PoseStamped()
+            self._base_ENU_in_home.header.frame_id = self.ODOM_FRAME
 
         rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
@@ -517,6 +595,11 @@ class DjiCaptain():
         flat_quat = Quaternion()
         flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(*rpy_enu_flat)
         self._base_pose_flat_in_home.pose.orientation = flat_quat
+        rpy_enu_flat_no_yaw = [0, 0, 0]
+        ENU_quat = Quaternion()
+        ENU_quat.x, ENU_quat.y, ENU_quat.z, ENU_quat.w = quaternion_from_euler(*rpy_enu_flat_no_yaw)
+        self._base_ENU_in_home.pose.orientation = ENU_quat
+
 
         
 
@@ -688,6 +771,18 @@ class DjiCaptain():
             base_flat_in_home.transform.translation.y = self._base_pose_flat_in_home.pose.position.y
             base_flat_in_home.transform.translation.z = self._base_pose_flat_in_home.pose.position.z
             tf_msg.transforms.append(base_flat_in_home)
+
+        if self._base_ENU_in_home is not None:
+            # base ENU in odom
+            base_ENU_in_home = TransformStamped()
+            base_ENU_in_home.header.stamp = now
+            base_ENU_in_home.header.frame_id = self.ODOM_FRAME
+            base_ENU_in_home.child_frame_id = self.BASE_ENU_FRAME
+            base_ENU_in_home.transform.rotation = self._base_pose_ENU_in_home.pose.orientation
+            base_ENU_in_home.transform.translation.x = self._base_pose_ENU_in_home.pose.position.x
+            base_ENU_in_home.transform.translation.y = self._base_pose_ENU_in_home.pose.position.y
+            base_ENU_in_home.transform.translation.z = self._base_pose_ENU_in_home.pose.position.z
+            tf_msg.transforms.append(base_ENU_in_home)
 
 
         if self._gps_point_in_home is not None:
