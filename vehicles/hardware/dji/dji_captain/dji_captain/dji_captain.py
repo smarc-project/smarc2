@@ -68,7 +68,7 @@ class DjiCaptain():
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_MAX = 0.4
-        self.JOY_PERIOD = .01
+        self.JOY_PERIOD = .1
         self.READY_BATTERY_PERCENTAGE = 40
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
@@ -492,6 +492,12 @@ class DjiCaptain():
             j_vec = j_vec / np.linalg.norm(j_vec) * self.JOY_MAX
 
         self.prev_joy_vec = j_vec
+        if(np.abs(j_vec[0] < .02)):
+            j_vec[0] = 0.0
+        if(np.abs(j_vec[1] < .02)):
+            j_vec[1] = 0.0
+        if(np.abs(j_vec[2] < .02)):
+            j_vec[2] = 0.0
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
