@@ -67,9 +67,9 @@ class DjiCaptain():
         
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
-        self.JOY_MAX = 0.4
+        self.JOY_MAX = 0.8
         self.JOY_PERIOD = .1
-        self.READY_BATTERY_PERCENTAGE = 40
+        self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
         self.ERROR_HEIGHT_ABOVE_GROUND = 1
@@ -479,9 +479,9 @@ class DjiCaptain():
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        j_forw = max(min(e_forw, self.JOY_MAX), -self.JOY_MAX)
-        j_left = max(min(e_left, self.JOY_MAX), -self.JOY_MAX)
-        j_updn = max(min(e_updn, self.JOY_MAX), -self.JOY_MAX)
+        j_forw = max(min(.5 * e_forw, self.JOY_MAX), -self.JOY_MAX)
+        j_left = max(min(.5 * e_left, self.JOY_MAX), -self.JOY_MAX)
+        j_updn = max(min(.5 * e_updn, self.JOY_MAX), -self.JOY_MAX)
         
         # e_vec = np.array([e_forw, e_left, e_updn])
         # e_mag = np.linalg.norm(e_vec)
