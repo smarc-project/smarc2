@@ -425,6 +425,7 @@ class DjiCaptain():
             if self._joy_timer is not None:
                 self._joy_timer.cancel()
                 self._joy_timer = None
+                self._setpoint_received_at = None
                 self.log("Joy timer cancelled.")
 
         if self._move_to_setpoint is None or self._setpoint_received_at is None:
