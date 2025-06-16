@@ -366,6 +366,17 @@ class DjiCaptain():
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
             self._move_to_setpoint = None
             return
+        
+        # Check if the new setpoint is the same as the current one
+        if self._move_to_setpoint is not None:
+            curr = self._move_to_setpoint.pose.position
+            new = msg.pose.position
+            if abs(curr.x - new.x) > 1e-6 and \
+               abs(curr.y - new.y) > 1e-6 and \
+               abs(curr.z - new.z) > 1e-6:
+                self.log(f"New move to setpoint received: {format_pose_stamped(msg)}")
+                self._setpoint_received_at = time.time()
+                
 
         if msg.header.frame_id != self.ODOM_FRAME:
             try:
