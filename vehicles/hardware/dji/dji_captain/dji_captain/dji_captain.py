@@ -521,6 +521,8 @@ class DjiCaptain():
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
                 lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
             )
+        
+        self.log(f"RC buttons: {msg.buttons}")
 
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
