@@ -48,7 +48,8 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux select-pane -t $SESSION:0.2
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
-    # tmux select-pane -t $SESSION:0.3
+    tmux select-pane -t $SESSION:0.3
+    tmix send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
 else
     tmux select-window -t $SESSION:0
     tmux send-keys "ros2 topic pub /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 \"data: 0\" -r 5" C-m
