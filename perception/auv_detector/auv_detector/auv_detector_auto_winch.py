@@ -5,6 +5,7 @@ import numpy as np
 from auv_detector.model_ekf import EKFModel_ImageFeedback
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped, PointStamped, Pose
+from geometry_msgs.msg import PoseStamped
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
 from sensor_msgs.msg import CameraInfo
@@ -48,9 +49,15 @@ class AUVPositionEstimator(Node):
 
         self.auv_position_publisher = self.create_publisher(Odometry, f"/{self.robot_name}/{DroneTopics.AUV_RELATIVE_POSITION_TOPIC}", 10)
 
-        self.quadrotor_setpoint_publisher = self.create_publisher(Pose, f"/{self.robot_name}/go_to_setpoint", 10)  # absolute position
+        self.quadrotor_setpoint_publisher = self.create_publisher(PoseStamped, f"/{self.robot_name}/go_to_setpoint", 10)  # absolute position
         # ros2 topic pub /Quadrotor/go_to_setpoint geometry_msgs/msg/Pose "{position: {x: 0.0, y: 0.0, z: -3.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}"
 
+        #ros2 topic pub /Quadrotor/go_to_setpoint geometry_msgs/msg/PoseStamped "header:
+                        # frame_id: 'odom'
+                        # stamp: {sec: 0, nanosec: 0}
+                        # pose:
+                        # position: {x: 0.0, y: 0.0, z: -3.0}
+                        # orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}"
         self.winch_publisher = self.create_publisher(Float32MultiArray, f"/winch_control_test", 10)
         self.timer = self.create_timer(1.0, self.timer_callback)  # Publish every 1 second
 
@@ -68,6 +75,17 @@ class AUVPositionEstimator(Node):
         self.winch_count = 0
         self.winch_completed = False
         self.CatchStartTime = 0
+
+        self.diving_x = 0.0
+        self.diving_y = 0.0
+        self.heading_x = 0.0
+        self.heading_y = 0.0
+        self.heading_x_fixed = 0.0
+        self.heading_y_fixed = 0.0
+        self.K_inv = None
+        self.rope_extend_time = 14
+        self.uav_heading_time = 8
+        self.uav_heading_flag = 0
 
     def declare_node_parameters(self):
         self.declare_parameter("robot_name", "Quadrotor")
@@ -109,20 +127,20 @@ class AUVPositionEstimator(Node):
             #self.get_logger().info(f"check enter estimate relative position")
             self.estimate_relative_position()
     def target_cb(self, msg: Float32MultiArray):
-        diving_x, diving_y, heading_x, heading_y = msg.data[0], msg.data[1], msg.data[2], msg.data[3]
-        self.get_logger().info(f"diving point: {diving_x:.2f}, {diving_y:.2f}, {self.depth:.2f}")
-        self.get_logger().info(f"heading point:{heading_x:.2f}, {heading_y:.2f}")
+        self.diving_x, self.diving_y, self.heading_x, self.heading_y = msg.data[0], msg.data[1], msg.data[2], msg.data[3]
+        self.get_logger().info(f"diving point: {self.diving_x:.2f}, {self.diving_y:.2f}, {self.depth:.2f}")
+        self.get_logger().info(f"heading point:{self.heading_x:.2f}, {self.heading_y:.2f}")
 
-        self.publish_quadrotor_setpoint([diving_x,diving_y,0.0])
-
+        #self.publish_quadrotor_setpoint([diving_x,diving_y,7.0])
 
     def estimate_relative_position(self):
         observation = self.image_point.copy()
         observation[2] = self.depth
         if not self.first_measurement:
-            self.X_auv_relative = self.get_first_measured_state(observation)
-            self.kf_auv.initialize_state(self.X_auv_relative, self.Q_auv_relative, self.R_auv_relative, self.P_auv_relative, self.R_cam_to_link)
-            self.first_measurement = True
+            if self.K_inv is not None and self.depth  is not None:
+                self.X_auv_relative = self.get_first_measured_state(observation)
+                self.kf_auv.initialize_state(self.X_auv_relative, self.Q_auv_relative, self.R_auv_relative, self.P_auv_relative, self.R_cam_to_link)
+                self.first_measurement = True
         else:
             self.X_auv_relative, self.P_auv_relative = self.kf_auv.estimate(observation, self.R_cam_to_link, feedback_image=True)
             if self.check_distance_gt:
@@ -140,16 +158,17 @@ class AUVPositionEstimator(Node):
         if self.X_auv_relative is not None:
             auv_rel_position = self.X_auv_relative[:3]
             self.publish_auv_position(auv_rel_position)
-            self.publish_tf(auv_rel_position)
+            #self.publish_tf(auv_rel_position)
             #self.get_logger().info(f"check enter quadrotor publih setpoints--------------: {auv_rel_position}")
-            if self.buoy_detect_count < 5:
-                self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
+            if self.buoy_detect_count < 300:
+                #self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
                 self.buoy_detect_count += 1
                 self.get_logger().info(f"UAV is aiming--------------buoy_detect_count: {self.buoy_detect_count}")
+                self.publish_quadrotor_setpoint([self.diving_x, self.diving_y, 0.0])
                 # publisher hook 
             else:
-                #self.winch_extend = True
-                self.winch_extend = False # just tracking now
+                self.winch_extend = True
+                #self.winch_extend = False # just tracking now
 
             # elif self.buoy_detect_count < 20:
             #     msg = Float32MultiArray()
@@ -180,19 +199,36 @@ class AUVPositionEstimator(Node):
             #         self.winch_publisher.publish(msg)
             #         self.get_logger().info(f'Winch retrieving --------: {msg.data}, Time: {Tp}')
             if self.winch_extend == True:
-                if self.winch_count < 14:
+                if self.winch_count < self.rope_extend_time:
                     msg = Float32MultiArray()
                     # Example: publish a test command [position, velocity]
-                    msg.data = [7.0, 0.5]
+                    msg.data = [6.85, 0.5]
                     self.winch_publisher.publish(msg)
-                    self.get_logger().info(f'Winch extending --------: {msg.data}')
-                    self.winch_count += 1
-                elif self.winch_count < 28:
+                    self.get_logger().info(f'Winch extending --------: {self.winch_count*msg.data[1]:.2f} meter')
+
+
+                elif self.winch_count < self.rope_extend_time+self.uav_heading_time:
+
+                    if self.uav_heading_flag == 0:
+                        self.uav_heading_flag = 1  # only record once
+                        #self.heading_x_fixed = -3*self.heading_x
+                        #self.heading_y_fixed = 3*self.heading_y
+                        self.heading_x_fixed = -1.05*self.heading_x
+                        self.heading_y_fixed = 1.05*self.heading_y
+                        # self.heading_x_fixed = 2*(self.heading_x-self.diving_x) + self.heading_x
+                        # self.heading_y_fixed = 2*(self.heading_y-self.diving_y) + self.heading_y
+
+                    self.publish_quadrotor_setpoint([self.heading_x_fixed, self.heading_y_fixed, 0.0])
+                    self.get_logger().info(f'UAV is moving x to--------: {self.heading_x_fixed:.2f}') 
+                    self.get_logger().info(f'UAV is moving y to--------: {self.heading_y_fixed:.2f}')
+
+                elif self.winch_count < self.rope_extend_time*2 + self.uav_heading_time:
                     msg = Float32MultiArray() 
                     msg.data = [0.1, 0.5]
                     self.winch_publisher.publish(msg)
-                    self.get_logger().info(f'Winch retrieving  --------: {msg.data}')
-                    self.winch_count += 1
+                    self.get_logger().info(f'Winch retrieving  --------: { 7- (6.85)*(self.winch_count -self.rope_extend_time-self.uav_heading_time)/self.rope_extend_time:.2f} meter')
+                
+                self.winch_count += 1
 
                 
 
@@ -251,13 +287,30 @@ class AUVPositionEstimator(Node):
         msg.pose.pose.orientation.w = 1.0
         self.auv_position_publisher.publish(msg)
 
+    # def publish_quadrotor_setpoint(self, position):
+    #     pose_msg = Pose()
+    #     pose_msg.position.x = position[0]
+    #     pose_msg.position.y = position[1]
+    #     pose_msg.position.z = position[2]
+    #     pose_msg.orientation.w = 1.0  # No rotation for now
+    #     self.quadrotor_setpoint_publisher.publish(pose_msg)
+
     def publish_quadrotor_setpoint(self, position):
-        pose_msg = Pose()
-        pose_msg.position.x = position[0]
-        pose_msg.position.y = position[1]
-        pose_msg.position.z = position[2]
-        pose_msg.orientation.w = 1.0  # No rotation for now
-        self.quadrotor_setpoint_publisher.publish(pose_msg)
+        pose_stamped_msg = PoseStamped()
+        
+        # Set header
+        pose_stamped_msg.header.frame_id = "odom"  # Replace with "base_link" or "" if needed
+        pose_stamped_msg.header.stamp = self.get_clock().now().to_msg()  # Use ROS2 clock
+
+        # Set pose
+        pose_stamped_msg.pose.position.x = position[0]
+        pose_stamped_msg.pose.position.y = position[1]
+        pose_stamped_msg.pose.position.z = position[2]
+        pose_stamped_msg.pose.orientation.w = 1.0  # No rotation (identity quaternion)
+
+        # Publish
+        self.quadrotor_setpoint_publisher.publish(pose_stamped_msg)
+
 
 def main(args=None):
     rclpy.init(args=args)

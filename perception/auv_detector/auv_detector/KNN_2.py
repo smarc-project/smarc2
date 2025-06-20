@@ -79,41 +79,41 @@ class KNN(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        # Use a timer to periodically check for transform
-        self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz
+    #     # Use a timer to periodically check for transform
+    #     self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz
 
-        # Set parent and child frame
-        self.parent_frame = 'map_gt'
-        #self.child_frame = 'Quadrotor/camera_gt'
-        self.child_frame = 'Quadrotor/winch_link'
+    #     # Set parent and child frame
+    #     self.parent_frame = 'map_gt'
+    #     #self.child_frame = 'Quadrotor/camera_gt'
+    #     self.child_frame = 'Quadrotor/winch_link'
 
-        self.child_frame_hook = 'Quadrotor/Hook'  # Use the hook frame here
+    #     self.child_frame_hook = 'Quadrotor/Hook'  # Use the hook frame here
 
-    def timer_callback(self):
+    # def timer_callback(self):
 
-        try:
-            now = rclpy.time.Time()
-            trans: TransformStamped = self.tf_buffer.lookup_transform(
-                self.parent_frame,
-                self.child_frame_hook,
-                now
-            )
-            pos = trans.transform.translation
-            self.get_logger().info(f"[{self.child_frame_hook}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
-        except TransformException as e:
-            self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame_hook}: {str(e)}')
+    #     try:
+    #         now = rclpy.time.Time()
+    #         trans: TransformStamped = self.tf_buffer.lookup_transform(
+    #             self.parent_frame,
+    #             self.child_frame_hook,
+    #             now
+    #         )
+    #         pos = trans.transform.translation
+    #         self.get_logger().info(f"[{self.child_frame_hook}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
+    #     except TransformException as e:
+    #         self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame_hook}: {str(e)}')
 
-        try:
-            now = rclpy.time.Time()
-            trans: TransformStamped = self.tf_buffer.lookup_transform(
-                self.parent_frame,
-                self.child_frame,
-                now
-            )
-            pos = trans.transform.translation
-            self.get_logger().info(f"[{self.child_frame}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
-        except TransformException as e:
-            self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame}: {str(e)}')
+    #     try:
+    #         now = rclpy.time.Time()
+    #         trans: TransformStamped = self.tf_buffer.lookup_transform(
+    #             self.parent_frame,
+    #             self.child_frame,
+    #             now
+    #         )
+    #         pos = trans.transform.translation
+    #         self.get_logger().info(f"[{self.child_frame}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
+    #     except TransformException as e:
+    #         self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame}: {str(e)}')
 
 
 
@@ -144,6 +144,7 @@ class KNN(Node):
     def listener_callback(self, msg):
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        cv_image_noted = cv_image.copy()
         # cv_image = self.enhance_saturation(cv_image, saturation_factor=1.5) TODO : increase saturation and see if results improve
         #enhance saturation values
         sat_factor = 1
@@ -156,7 +157,7 @@ class KNN(Node):
         cv_image = imgrgb
         # Apply the MOG2 algorithm to get the foreground mask
         foreground_mask = self.knn.apply(cv_image)
-        cv2.imshow('KNN', foreground_mask)
+        #cv2.imshow('KNN', foreground_mask)
 
         #########################################################################################  buoy
 
@@ -204,6 +205,13 @@ class KNN(Node):
                 # Put area text
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(cv_image_noted, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            
         #cv2.imshow('HSV_buoy', preview_buoy)
 
         #########################################################################################  auv
@@ -245,8 +253,13 @@ class KNN(Node):
                 center_auv = np.array([cx, cy])
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
                 # Put area text
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+                cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
@@ -301,7 +314,7 @@ class KNN(Node):
         preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
-        cv2.imshow('HSV_rope', preview_rope)
+        #cv2.imshow('HSV_rope', preview_rope)
         center_x_rope = None
 
 
@@ -405,7 +418,7 @@ class KNN(Node):
         # Use this dilated result for binary mask and grid processing
         rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
-        cv2.imshow("Dilation", rope_bin)
+        #cv2.imshow("Dilation", rope_bin)
 
         # Curve fitting 
 
@@ -503,6 +516,7 @@ class KNN(Node):
 
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
+        cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
         #########################################################################################
 
         # Apply the connected component filtering
@@ -511,7 +525,7 @@ class KNN(Node):
         avg_rgb = cv2.mean(masked_image, mask=filtered_mask)
         #self.get_logger().info(f"average rgb : {avg_rgb}")  #BGR
         # # Display the mask from KNN
-        cv2.imshow('Detected Foreground', filtered_mask)
+        #cv2.imshow('Detected Foreground', filtered_mask)
         cv2.waitKey(1)
         # Apply morphological operations to remove noise and fill gaps
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -523,7 +537,7 @@ class KNN(Node):
 
         debug_contour_img = cv_image.copy()
         cv2.drawContours(debug_contour_img, large_contours, -1, (0, 255, 0), 2)  # green contours
-        cv2.imshow("Large Contours", debug_contour_img)
+        #cv2.imshow("Large Contours", debug_contour_img)
 
 
         for cnt in large_contours:
