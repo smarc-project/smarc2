@@ -13,6 +13,27 @@ We use `tmux` to create tabs and launch things in, for all the reasons `tmux` is
 In general, these bash scripts should take minimal number of arguments, if any.
 If a large number of args are needed, maybe use a `config.yaml` filename to pass as an arg instead.
 
+### sam_bringup.sh
+
+Launches everything related to SAM. Add the following lines to your .bashrc and restart your terminal. 
+
+```bash
+export LOCAL_ROBOT_NAME=<your sam name>
+
+# Local MQTT Broker with mosquitto
+export LOCAL_MQTT_BROKER_IP=<your local ip>
+export LOCAL_MQTT_BROKER_PORT=<your local port>
+
+# WARA-PS MQTT Broker
+#export LOCAL_MQTT_BROKER_IP=20.240.40.232·
+#export LOCAL_MQTT_BROKER_PORT=1884
+```
+This allows us to change the bringup as we see fit without having to worry
+about individual setups regarding MQTT and the robot name. If you want to use
+the WARA-PS MQTT Broker instead, use uncomment the last two lines instead.
+
+In the beginning of the script, you can set whether you're on SAM or not.
+
 
 ## TMUX Cheatsheet
 - `C-x` means "press control and `x`" at the same time. If its `C-X`, then its "Control Shift x".
