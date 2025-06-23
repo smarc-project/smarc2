@@ -6,6 +6,10 @@ Each of the following directories also include more detailed readmes within.
 [This document](/documentation/Installing%20ROS2.md) has step-by-step instructions to get things running.
 
 
+## [Making a new Action for a robot? Check this example out](/behaviours/alars/alars/SuperSimpleActionServer.py)
+[This example](/behaviours/alars/alars/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 
+It works with [the bt](./behaviours/wasp_bt/launch/wasp_bt.launch) out of the box.
+
 ## Stuff in this repo
 
 > Add more directories as needed.
