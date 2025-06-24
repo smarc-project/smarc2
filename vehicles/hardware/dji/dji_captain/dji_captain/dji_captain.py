@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import rclpy, sys, math
+import rclpy, sys, math, time
 import numpy as np
 from enum import Enum
 
@@ -64,12 +64,14 @@ class DjiCaptain():
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
         self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
+        self._joy_ramp_time : float = 5.0
+        self._setpoint_received_at : float|None = None
         
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
-        self.JOY_MAX = 0.4
+        self.JOY_MAX = 0.8
         self.JOY_PERIOD = .1
-        self.READY_BATTERY_PERCENTAGE = 40
+        self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
         self.ERROR_HEIGHT_ABOVE_GROUND = 1
@@ -114,14 +116,6 @@ class DjiCaptain():
         self._carrying_payload : bool = False
         self._battery_percent : float | None = None
 
-        self.prev_joy_left : float | None = None
-        self.prev_joy_forw : float | None = None
-        self.prev_joy_vert : float | None = None
-        self.kP_horiz: float | None = None
-        self.deriv_limit_horiz: float | None = None
-        self.kP_vert: float | None = None
-        self.deriv_limit_vert: float | None = None
-
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         topics = ["/Quadrotor/  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
@@ -129,7 +123,7 @@ class DjiCaptain():
        
 
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
-        self._tf_timer = node.create_timer(0.02, self._publish_tf)
+        self._tf_timer = node.create_timer(0.01, self._publish_tf)
 
         self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
@@ -353,6 +347,7 @@ class DjiCaptain():
             s += f"  Vehicle Health: WAITING\n"
 
 
+
         return s
     
     def log(self, msg: str):
@@ -371,6 +366,17 @@ class DjiCaptain():
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
             self._move_to_setpoint = None
             return
+        
+        # Check if the new setpoint is the same as the current one
+        if self._move_to_setpoint is not None:
+            curr = self._move_to_setpoint.pose.position
+            new = msg.pose.position
+            if abs(curr.x - new.x) > 1e-6 and \
+               abs(curr.y - new.y) > 1e-6 and \
+               abs(curr.z - new.z) > 1e-6:
+                self.log(f"New move to setpoint received: {format_pose_stamped(msg)}")
+                self._setpoint_received_at = time.time()
+                
 
         if msg.header.frame_id != self.ODOM_FRAME:
             try:
@@ -406,24 +412,20 @@ class DjiCaptain():
                     velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
                     velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
                     velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
-                    self.prev_joy_forw = velocity_as_pose_stamped_base_flat.pose.position.x
-                    self.prev_joy_left = velocity_as_pose_stamped_base_flat.pose.position.y
-                    self.prev_joy_vert = velocity_as_pose_stamped_base_flat.pose.position.z
+                    self.prev_joy_vec = np.array([velocity_as_pose_stamped_base_flat.pose.position.x, \
+                                                  velocity_as_pose_stamped_base_flat.pose.position.y, \
+                                                  velocity_as_pose_stamped_base_flat.pose.position.z])
                 else:
-                    self.prev_joy_forw = 0
-                    self.prev_joy_left = 0
-                    self.prev_joy_vert = 0
+                    self.prev_joy_vec = np.array([0.0, 0.0, 0.0])
                 
             except Exception as e:
                 self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
                 self._move_to_setpoint = None
                 return
                 
-            self.kP_horiz = self._node.get_parameter("p_gain_horiz").value
-            self.deriv_limit_horiz = self._node.get_parameter("horiz_deriv_limit").value
-            self.kP_vert = self._node.get_parameter("p_gain_vert").value
-            self.deriv_limit_vert = self._node.get_parameter("vert_deriv_limit").value
+
             self._joy_timer = self._node.create_timer(self.JOY_PERIOD, self._move_with_joy)
+            self._setpoint_received_at = time.time()
             self.log("Joy timer started to move with joy.")
 
 
@@ -434,16 +436,10 @@ class DjiCaptain():
             if self._joy_timer is not None:
                 self._joy_timer.cancel()
                 self._joy_timer = None
-                self.prev_joy_forw = None
-                self.prev_joy_left = None
-                self.prev_joy_vert = None
-                self.kP_horiz = None
-                self.deriv_limit_horiz = None
-                self.kP_vert = None
-                self.deriv_limit_vert = None
+                self._setpoint_received_at = None
                 self.log("Joy timer cancelled.")
 
-        if self._move_to_setpoint is None:
+        if self._move_to_setpoint is None or self._setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             return
         
@@ -458,16 +454,7 @@ class DjiCaptain():
             self.log("Not got control, cannot move with joy.")
             cancel_joy_timer()
             return
-        
-        if self.kP_vert is None or self.kP_horiz is None or self.deriv_limit_horiz is None or self.deriv_limit_vert is None:
-            self.log("PID gains or limits not set, cannot move with joy.")
-            cancel_joy_timer()
-            return
-        
-        if self.prev_joy_forw is None or self.prev_joy_left is None or self.prev_joy_vert is None:
-            self.log("previous conditions not set, cannot move with joy.")
-            cancel_joy_timer()
-            return
+
         
         tf_diff = self._tf_buffer.lookup_transform(
             target_frame = self.BASE_FLAT_FRAME,
@@ -480,37 +467,39 @@ class DjiCaptain():
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        j_forw = max(min(self.kP_horiz * e_forw, self.JOY_MAX), -self.JOY_MAX)
-        j_forw_deriv = (j_forw - self.prev_joy_forw) / self.JOY_PERIOD
-        if(np.abs(j_forw_deriv) > self.deriv_limit_horiz):
-            j_forw =  max(min(self.prev_joy_forw + np.sign(j_forw_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
+        err = np.array([e_forw, e_left, e_updn])
+        now = time.time()
+        time_diff = now - self._setpoint_received_at
+        if time_diff < self._joy_ramp_time:
+            time_diff_mult = (time_diff / self._joy_ramp_time)
+        else:
+            time_diff_mult = 1.0
+        err_mag = np.linalg.norm(err) * time_diff_mult
+
+        if np.linalg.norm(err) > err_mag and np.linalg.norm(err) > 0:
+            err = err / np.linalg.norm(err) * err_mag
+
+        # Limit the magnitude to JOY_MAX
+        err = err * 0.7 #TODO make this actually competent
+
+        err_norm = np.linalg.norm(err)
+        if err_norm > self.JOY_MAX and err_norm > 0:
+            err = err / err_norm * self.JOY_MAX
+
+        j_forw, j_left, j_updn = err.tolist()
         
-        j_left = max(min(self.kP_horiz * e_left, self.JOY_MAX), -self.JOY_MAX)
-        j_left_deriv = (j_left - self.prev_joy_left) / self.JOY_PERIOD
-        if(np.abs(j_left_deriv) > self.deriv_limit_horiz):
-            j_left =  max(min(self.prev_joy_left + np.sign(j_left_deriv) * self.deriv_limit_horiz * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
-
-        j_vert = max(min(self.kP_vert * e_updn, self.JOY_MAX), -self.JOY_MAX)
-        j_vert_deriv = (j_vert - self.prev_joy_vert) / self.JOY_PERIOD
-        if(np.abs(j_vert_deriv) > self.deriv_limit_vert):
-            j_vert =  max(min(self.prev_joy_vert + np.sign(j_vert_deriv) * self.deriv_limit_vert * self.JOY_PERIOD, self.JOY_MAX), -self.JOY_MAX)
-
-        self.prev_joy_vert = j_vert
-        self.prev_joy_forw = j_forw
-        self.prev_joy_left = j_left
+        
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [j_forw, j_left, j_vert, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [j_forw, j_left, j_updn, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._joy_pub.publish(joy_msg)
 
     def declare_node_parameters(self):
-        self._node.declare_parameter("p_gain_horiz", 2.5)
-        self._node.declare_parameter("p_gain_vert", 2.5)
-        self._node.declare_parameter("horiz_deriv_limit", .4)
-        self._node.declare_parameter("vert_deriv_limit", .4)
+        self._node.declare_parameter("p_gain", 2.5)
+        self._node.declare_parameter("deriv_limit", .4)
 
     def _rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
@@ -521,6 +510,8 @@ class DjiCaptain():
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
                 lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
             )
+        
+        # self.log(f"RC buttons: {msg.buttons}")
 
 
     def _velocity_ground_callback(self, msg: Vector3Stamped):
