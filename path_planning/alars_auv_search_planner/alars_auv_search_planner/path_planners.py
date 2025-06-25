@@ -67,18 +67,15 @@ class InitializeActions(Node):
             self.sam_init_pos = params["sam.init_pos"]
             self.sam_pos_var= params["sam.initial_state.pos_variance"]
             self.flight_height = params["flight_height"]
-            self.drone_map_frame_id = params['frames.id.quadrotor_map'] 
+            self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
+            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
         else:
             self.get_logger().error("No valid parameters received in SearchPlanner node")
 
         self.teleport_sam_publisher = self.create_publisher(
             msg_type = PoseStamped,
             topic = '/sam_auv_v1/teleport',
-            qos_profile= 10)
-        self.teleport_sam_publisher = self.create_publisher(
-            msg_type = PoseStamped,
-            topic = '/Quadrotor/teleport',
             qos_profile= 10)
         
         self.sam_odom_callback = self.create_subscription(
@@ -105,7 +102,7 @@ class InitializeActions(Node):
         in SAM's odom frame.
         """
         msg = PoseStamped()
-        msg.header.frame_id = 'sam_auv_v1/odom_gt'
+        msg.header.frame_id = self.drone_odom_frame_id # CHECK
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position.x =  self.sam_init_pos[0]
         msg.pose.position.y =  self.sam_init_pos[1]
@@ -130,13 +127,16 @@ class InitializeActions(Node):
         It's not a real GPS measurement.
         """
         if self.sam_pos is not None:
-            cov = [[self.sam_pos_var, 0], [0, self.sam_pos_var]]
+            cov = [[self.sam_pos_var, 0], [0, self.sam_pos_var]] #TODO: change to sam_pos
             X = np.random.multivariate_normal(self.sam_init_pos[0:2], cov)
             GPS_ping = PointStamped()
             GPS_ping.header.stamp = self.get_clock().now().to_msg()
-            GPS_ping.header.frame_id = self.drone_map_frame_id 
+            GPS_ping.header.frame_id = self.map_frame_id 
             GPS_ping.point.x = X[0]
             GPS_ping.point.y = X[1]
+            # TODO: remove later
+            GPS_ping.point.x = 1270.0
+            GPS_ping.point.y = 1165.0
             return GPS_ping
         else: return None
         
@@ -187,6 +187,7 @@ class SearchPlanner(Node, ABC):
         self.battery_state = None
         self.drone_position = PointStamped()
         self.drone_vel = None
+        self.sam_position = PointStamped()
         self.sam_vel = None
         self.distance_thresh = 0.1
 
@@ -206,8 +207,9 @@ class SearchPlanner(Node, ABC):
             self.battery_threshold = params['battery.threshold']
             self.equivalent_drone_vel = params['battery.equivalent_drone_vel'] 
 
-            self.drone_map_frame_id = params['frames.id.quadrotor_map'] 
+            self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
+            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
         else:
             self.get_logger().error("No valid parameters received in Path Model")
 
@@ -238,6 +240,10 @@ class SearchPlanner(Node, ABC):
             msg_type = Path,
             topic = '/Quadrotor/path',
             qos_profile= 10)
+        self.sam_pos_publisher = self.create_publisher( # visualization purposes only
+            msg_type = PointStamped,
+            topic = '/sam_auv_v1/position',
+            qos_profile= 10)
         
 
     @abstractmethod     
@@ -264,7 +270,7 @@ class SearchPlanner(Node, ABC):
         # transform desired position (relative position) to odom frame
         t = self.tf_buffer.lookup_transform(
             target_frame = self.drone_odom_frame_id,  
-            source_frame = point.header.frame_id, #point.header.frame_id, #self.drone_map_frame_id,                 
+            source_frame = point.header.frame_id, #point.header.frame_id, #self.map_frame_id,                 
             time=rclpy.time.Time() )
         return tf2_geometry_msgs.do_transform_point(point, t)
     
@@ -303,7 +309,6 @@ class SearchPlanner(Node, ABC):
 
     def publish_path(self) -> None:
         """ Publish path for visualization in rviz """
-        self.get_logger().info(f'Path = {self.path}')
         path_msg = Path()
         path_msg.header.stamp = self.get_clock().now().to_msg()
         path_msg.header.frame_id = self.drone_odom_frame_id
@@ -364,16 +369,21 @@ class SearchPlanner(Node, ABC):
         return odom_position.point.x, odom_position.point.y
 
         
-    def drone_odom_callback(self, msg):
-        """ Retrieve drone position (map_gt)"""
-        self.drone_position.point =  msg.pose.pose.position #np.array([msg.pose.pose.position.x, msg.pose.pose.position.y])
+    def drone_odom_callback(self, msg: Odometry):
+        """ Retrieve drone position (currently odometry gives in map_gt)"""
+        self.drone_position.point =  msg.pose.pose.position 
         self.drone_position.header.stamp = self.get_clock().now().to_msg()
-        self.drone_position.header.frame_id = self.drone_map_frame_id #msg.header.frame_id -> check if i can use this one
+        self.drone_position.header.frame_id = msg.header.frame_id 
         self.drone_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
 
-    def sam_odom_callback(self, msg):
-        """ Retrieve SAM's velocity from odometry"""
+    def sam_odom_callback(self, msg: Odometry):
+        """ Retrieve SAM's velocity from odometry and publish it's position for visualization purposes"""
         self.sam_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
+        self.sam_position.point = msg.pose.pose.position
+        self.sam_position.header = msg.header
+        self.sam_pos_publisher.publish(self.sam_position)
+
+
 
     def drone_battery_callback(self, msg):
         """ Retrieve current battery percentage"""
@@ -867,7 +877,7 @@ class APFPathModel(SearchPlanner):
 
             # if mode = real, the next path is generated as soon service receives request. If mode = sim, we use distance feeback to
             # determine when to publish next path
-            if self.params['mode'] == 'real': self.path_needed = True 
+            self.path_needed = True if self.params['mode'] == 'real' else False
         
 
         elif not self.path_needed and not self.path_completed:

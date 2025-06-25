@@ -13,9 +13,9 @@ def generate_launch_description():
     params = {
 
     # --- choose path planner and vehicles' initial positions
-    'mode': 'real', # If 'sim', it's assumed the user wants to test the pkg standalone. If 'real', appropriate service requests have to be made
+    'mode': 'sim', # If 'sim', it's assumed the user wants to test the pkg standalone. If 'real', appropriate service requests have to be made
     'path_planner': 'apf', # 'spiral', 'greedy', 'astar', 'apf' -> path planner type, read documentation/readme
-    'sam.init_pos': [float(1270.0), float(1146.0)], # position to which sam will teleport (in map). User-defined, only useful in  'sim'
+    'sam.init_pos': [float(1260.0), float(1150.0)], # position to which sam will teleport (in map). User-defined, only useful in  'sim'
     'drone.init_pos': [float(5), float(5)], # position to which drone will move (in odom) at the beginning
 
     # --- common parameters to all path planners
@@ -25,7 +25,7 @@ def generate_launch_description():
     'intermediate_dt': float(2.0), # dt between path points in case drones gets too unstable.
     # lat [s] × velocity sets the waypoint distance threshold. Recommended values for distance cap = 1: 
     # Spiral = 0.6, Greedy = 3, A* = 2.
-    'look_ahead_time': float(2), 
+    'look_ahead_time': float(1), 
 
     # --- Spiral planner parameters
     'spiral.vel_factor': 1.0, # the spiral center will move x times faster than AUV. Turn it to 0 to make a static spiral
@@ -76,8 +76,9 @@ def generate_launch_description():
     # 'drone_initial_state.orientation': [-3.285610546299722e-06, -2.3353104552370496e-06, -0.3826446831226349, -0.923895537853241], #x,y,z,w
 
     # --- Frame's names
-    'frames.id.quadrotor_map': 'map_gt_gt',
-    'frames.id.quadrotor_odom': 'Quadrotor/odom_gt',
+    'frames.id.map': 'map_gt',
+    'frames.id.quadrotor_odom': 'Quadrotor/odom',
+    'frames.id.sam_odom': 'sam_auv_v1/odom',
 
     }
 

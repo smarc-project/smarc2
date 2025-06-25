@@ -103,6 +103,8 @@ class SearchPlannerController(Node):
                 pose.position.z = self.model_params["flight_height"]
                 pose_list.append(pose)
             path_msg.poses = pose_list
+            path_msg.header.frame_id = self.model_params['frames.id.quadrotor_odom']
+            path_msg.header.stamp = self.get_clock().now().to_msg()
             response.path = path_msg 
             return response
         else: return None
@@ -268,8 +270,9 @@ class SearchPlannerController(Node):
             "battery.threshold": self.get_parameter("battery.threshold").value,
             "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value,
 
-            'frames.id.quadrotor_map': self.get_parameter('frames.id.quadrotor_map').value,
+            'frames.id.map': self.get_parameter('frames.id.map').value,
             'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
+            'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value
 
 
         }

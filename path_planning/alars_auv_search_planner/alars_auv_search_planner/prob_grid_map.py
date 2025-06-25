@@ -42,6 +42,8 @@ class ProbabilisticGridMap(Node):
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.drone_position = PointStamped()
+        self.sam_vel = Vector3Stamped()
 
         if params:
 
@@ -57,8 +59,9 @@ class ProbabilisticGridMap(Node):
             self.camera_fov = (pi/180)*params["camera_fov"]
             self.flight_height = params["flight_height"]
 
-            self.drone_map_frame_id = params['frames.id.quadrotor_map'] 
+            self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
+            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
 
         else:
             self.get_logger().error("No parameters received")
@@ -86,7 +89,7 @@ class ProbabilisticGridMap(Node):
         """
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
-        self.GPS_ping_odom = self.transform_point(self.GPS_ping)
+        self.GPS_ping_odom, _ = self.transform_point(self.GPS_ping)
         self.get_logger().info(f'Received GPS ping in odom (x,y) = {round(float(self.GPS_ping_odom[0]),2), round(float(self.GPS_ping_odom[1]),2)}')
         self.createMap(self.GPS_ping_odom) 
 
@@ -132,18 +135,8 @@ class ProbabilisticGridMap(Node):
         The kernel is a 3*3 matrix with bigger values on the elements that are aligned with SAM's velocity direction.
         Eg: if SAM's velocity = (0,1), then the top-central element of the kernel will be significantly high
         """
-        # Transform sam velocity to odom frame #TODO: check frame of SAM's Odometry
-        t = self.tf_buffer.lookup_transform(
-            target_frame=self.drone_odom_frame_id, 
-            source_frame=self.drone_map_frame_id,                 
-            time=rclpy.time.Time())
-        vec = Vector3Stamped()
-        vec.header.frame_id = self.drone_map_frame_id
-        vec.header.stamp = self.get_clock().now().to_msg()
-        vec.vector.x = self.sam_vel[0]
-        vec.vector.y = self.sam_vel[1]
-        result = tf2_geometry_msgs.do_transform_vector3(vec, t)
-        sam_vel_odom = [result.vector.x, result.vector.y]
+
+        sam_vel_odom = self.transform_vector(self.sam_vel)
 
         # Compute weights by mapping SAM's velocity to closest base vector and retrieving most appropriate kernel
         (q, Q) = self.compute_kernel_coeff(sam_vel=np.linalg.norm(sam_vel_odom), 
@@ -244,32 +237,33 @@ class ProbabilisticGridMap(Node):
         the "projected radius" (which depends on height of flight and camer FOV).
         
         """
-        if self.drone_pos_odom_gt is not None:
-            x_cells, y_cells = [], []
-            x, y = self.drone_pos_odom_gt.pose.position.x, self.drone_pos_odom_gt.pose.position.y
-            detection_radius = tan(self.camera_fov/2)*self.drone_pos_odom_gt.pose.position.z
-            xc_cell, yc_cell = self.find_cell(x_coord = x, y_coord = y) # drone's current cell
+        
+        x_cells, y_cells = [], []
+        drone_pos_odom, height = self.transform_point(self.drone_position)
+        x, y = drone_pos_odom[0], drone_pos_odom[1]
+        detection_radius = tan(self.camera_fov/2)*height
+        xc_cell, yc_cell = self.find_cell(x_coord = x, y_coord = y) # drone's current cell
 
-            # create a mask around current cell to avoid iterate over full workspace
-            encirclements = int(detection_radius/self.resol)+1
-            base_mask = np.ix_(np.arange(yc_cell-encirclements,yc_cell+encirclements+1,1), np.arange(xc_cell-encirclements,xc_cell+encirclements+1,1))
+        # create a mask around current cell to avoid iterate over full workspace
+        encirclements = int(detection_radius/self.resol)+1
+        base_mask = np.ix_(np.arange(yc_cell-encirclements,yc_cell+encirclements+1,1), np.arange(xc_cell-encirclements,xc_cell+encirclements+1,1))
 
-            # remove cells that lie outside the workspace
-            base_mask_y_filtered = np.extract((0 <= base_mask[0]) & (base_mask[0] <= self.Ncells_y -1), base_mask[0])
-            base_mask_x_filtered = np.extract((0 <= base_mask[1]) & (base_mask[1] <= self.Ncells_x -1), base_mask[1])
-            base_mask_filtered = (base_mask_y_filtered.reshape(base_mask_y_filtered.shape[0],1), base_mask_x_filtered )
-            
-            # apply distance and time criteria
-            sub_X, sub_Y, sub_Time = self.X[base_mask_filtered], self.Y[base_mask_filtered], self.map_Time[base_mask_filtered]
-            condition_mask = (
-                ((np.power(sub_X - x, 2) + np.power(sub_Y - y, 2)) < detection_radius ** 2)
-                & ((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin)
-            )
-            condition_rows, condition_cols = np.where(condition_mask)
-            rows = condition_rows + yc_cell-encirclements
-            columns = condition_cols + xc_cell-encirclements
+        # remove cells that lie outside the workspace
+        base_mask_y_filtered = np.extract((0 <= base_mask[0]) & (base_mask[0] <= self.Ncells_y -1), base_mask[0])
+        base_mask_x_filtered = np.extract((0 <= base_mask[1]) & (base_mask[1] <= self.Ncells_x -1), base_mask[1])
+        base_mask_filtered = (base_mask_y_filtered.reshape(base_mask_y_filtered.shape[0],1), base_mask_x_filtered )
+        
+        # apply distance and time criteria
+        sub_X, sub_Y, sub_Time = self.X[base_mask_filtered], self.Y[base_mask_filtered], self.map_Time[base_mask_filtered]
+        condition_mask = (
+            ((np.power(sub_X - x, 2) + np.power(sub_Y - y, 2)) < detection_radius ** 2)
+            & ((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin)
+        )
+        condition_rows, condition_cols = np.where(condition_mask)
+        rows = condition_rows + yc_cell-encirclements
+        columns = condition_cols + xc_cell-encirclements
 
-            return rows, columns
+        return rows, columns
 
     def find_cell(self, x_coord, y_coord):
         """ Maps (x,y) coordinates to cell coordinates """
@@ -302,15 +296,18 @@ class ProbabilisticGridMap(Node):
             target_frame = self.drone_odom_frame_id,  
             source_frame = point.header.frame_id,                 
             time=rclpy.time.Time() )
-        # goal = PointStamped()
-        # goal.header.stamp = t.header.stamp
-        # goal.header.frame_id = self.drone_map_frame_id
-        # goal.point.x = point[0]
-        # goal.point.y = point[1]
-        # goal.point.z = self.flight_height 
         new_point = tf2_geometry_msgs.do_transform_point(point, t)
-        self.get_logger().info(f"GPS ping in quadrotor's odom = {(round(float(new_point.point.x),2), round(float(new_point.point.y),2))}")
-        return np.array([new_point.point.x, new_point.point.y]) 
+        return np.array([new_point.point.x, new_point.point.y]), new_point.point.z
+    
+    def transform_vector(self, vector:Vector3Stamped) -> np.array:
+        """Convert points in map frame to odom frame"""
+        t = self.tf_buffer.lookup_transform(
+            target_frame = self.drone_odom_frame_id,  
+            source_frame = vector.header.frame_id,                 
+            time=rclpy.time.Time() )
+        new_vector = tf2_geometry_msgs.do_transform_vector3(vector, t)
+        sam_vel_odom = [new_vector.vector.x, new_vector.vector.y]
+        return np.array(sam_vel_odom) 
     
     def initiatePrior(self, GPS_ping_odom:np.array):
         """ Initiate Gaussian prior in the odom_gt frame"""
@@ -365,25 +362,16 @@ class ProbabilisticGridMap(Node):
         slope = (new_max - new_min)/(max - min)
         return np.int8(slope*(data - max) + new_max)
 
-
-    def drone_odom_callback(self, msg):
-        """ Retrieve drone position (in map_gt) and tranform to init_drone_frame and to Quadrotor/odom_gt (for occupancy grid)"""
-
-        # transform to /Quadrotor/odom_gt
-        t = self.tf_buffer.lookup_transform(
-            target_frame=self.drone_odom_frame_id, 
-            source_frame=self.drone_map_frame_id,                 
-            time=rclpy.time.Time(),
-            timeout = Duration(seconds = 1))
-        pose_map = PoseStamped()
-        pose_map.header.stamp = t.header.stamp
-        pose_map.header.frame_id = msg.header.frame_id # should be map_gt
-        pose_map.pose = msg.pose.pose
-        self.drone_pos_odom_gt = tf2_geometry_msgs.do_transform_pose_stamped(pose_map, t)
-
  
-    def sam_odom_callback(self, msg):
+    def sam_odom_callback(self, msg:Odometry):
         """ Retrieve SAM position (map_gt)"""
-        self.sam_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
-        #self.get_logger().info(f'SAM velocity: {self.sam_vel}')
+        self.sam_vel.vector.x = msg.twist.twist.linear.x 
+        self.sam_vel.vector.y = msg.twist.twist.linear.y
+        self.sam_vel.vector.z = msg.twist.twist.linear.z 
+        self.sam_vel.header = msg.header #np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
+
+    def drone_odom_callback(self, msg: Odometry):
+        """ Retrieve drone position (map_gt)"""
+        self.drone_position.point = msg.pose.pose.position
+        self.drone_position.header = msg.header
 
