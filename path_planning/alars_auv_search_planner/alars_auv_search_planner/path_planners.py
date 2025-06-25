@@ -65,8 +65,8 @@ class InitializeActions(Node):
         if params:
             self.drone_init_xy = params["drone.init_pos"]
             self.sam_init_pos = params["sam.init_pos"]
-            self.sam_pos_var= params["sam.initial_state.pos_variance"]
-            self.flight_height = params["flight_height"]
+            self.sam_pos_var= params["sam.init_pos_variance"]
+            self.flight_height = params["drone.flight_height"]
             self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
             self.sam_odom_frame_id = params['frames.id.sam_odom'] 
@@ -134,9 +134,6 @@ class InitializeActions(Node):
             GPS_ping.header.frame_id = self.map_frame_id 
             GPS_ping.point.x = X[0]
             GPS_ping.point.y = X[1]
-            # TODO: remove later
-            GPS_ping.point.x = 1270.0
-            GPS_ping.point.y = 1165.0
             return GPS_ping
         else: return None
         
@@ -198,10 +195,10 @@ class SearchPlanner(Node, ABC):
 
         if params:        
             self.planner_type = params["path_planner"]
-            self.camera_fov = params["camera_fov"]
-            self.flight_height = params["flight_height"]
-            self.lat = params["look_ahead_time"]
-            self.intermediate_dt = params["intermediate_dt"]
+            self.camera_fov = params["drone.camera_fov"]
+            self.flight_height = params["drone.flight_height"]
+            self.lat = params["drone.look_ahead_time"]
+            self.intermediate_dt = params["drone.intermediate_dt"]
 
             self.battery_discharge_rate = params['battery.discharge_rate']
             self.battery_threshold = params['battery.threshold']
@@ -234,7 +231,7 @@ class SearchPlanner(Node, ABC):
         
         self.point_publisher = self.create_publisher(
             msg_type = PoseStamped,
-            topic = '/Quadrotor/go_to_setpoint',
+            topic = '/Quadrotor/move_to_setpoint',
             qos_profile= 10)
         self.path_publisher = self.create_publisher( # visualization purposes only
             msg_type = Path,

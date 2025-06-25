@@ -58,6 +58,9 @@ class SearchPlannerController(Node):
         # calculate necessary timer calls (counts) to perform a task. Planner will only start when the update in the grid map is
         # ready to be applied (otherwise the drone will start moving but the cells' probabilities won't be updated)
         self.path_update_dt = 0.2 # it's not that relevant, therefore there isn't need to be in the launch file
+        print(self.model_params['mode'])
+        print(self.model_params['drone.init_pos'])
+        print(self.model_params['initialization.time_delay'])
         self.grid_update_dt = self.model_params['grid_map.update.rate']
         self.countsToInitializeMap =  int(self.model_params['initialization.time_delay']/self.grid_update_dt) + 1
         self.countsToUpdateMap = self.countsToInitializeMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
@@ -100,7 +103,7 @@ class SearchPlannerController(Node):
                 pose = Pose()
                 pose.position.x = position[0]
                 pose.position.y = position[1]
-                pose.position.z = self.model_params["flight_height"]
+                pose.position.z = self.model_params["drone.flight_height"]
                 pose_list.append(pose)
             path_msg.poses = pose_list
             path_msg.header.frame_id = self.model_params['frames.id.quadrotor_odom']
@@ -228,14 +231,13 @@ class SearchPlannerController(Node):
         self.model_params = {
             "mode": self.get_parameter("mode").value,
             "path_planner": self.get_parameter("path_planner").value,
-            "drone.init_pos": self.get_parameter("drone.init_pos").value,
-            "sam.init_pos": self.get_parameter("sam.init_pos").value,
-
             'initialization.time_delay': self.get_parameter("initialization.time_delay").value,
-            "flight_height": self.get_parameter("flight_height").value,
-            "camera_fov": self.get_parameter("camera_fov").value,
-            "look_ahead_time": self.get_parameter("look_ahead_time").value,
-            "intermediate_dt": self.get_parameter("intermediate_dt").value,
+
+            "drone.init_pos": self.get_parameter("drone.init_pos").value,
+            "drone.flight_height": self.get_parameter("drone.flight_height").value,
+            "drone.camera_fov": self.get_parameter("drone.camera_fov").value,
+            "drone.look_ahead_time": self.get_parameter("drone.look_ahead_time").value,
+            "drone.intermediate_dt": self.get_parameter("drone.intermediate_dt").value,
 
             "spiral.vel_factor": self.get_parameter("spiral.vel_factor").value,
             "spiral.dtheta": self.get_parameter("spiral.dtheta").value,
@@ -254,7 +256,8 @@ class SearchPlannerController(Node):
             'arf.d_max': self.get_parameter("arf.d_max").value,
             'arf.horizon_radius': self.get_parameter("arf.horizon_radius").value,
             
-            "sam.initial_state.pos_variance": self.get_parameter("sam.initial_state.pos_variance").value,
+            "sam.init_pos": self.get_parameter("sam.init_pos").value,
+            "sam.init_pos_variance": self.get_parameter("sam.init_pos_variance").value,
             'sam.vel_variance': self.get_parameter('sam.vel_variance').value,
             'sam.max_floating_vel': self.get_parameter('sam.max_floating_vel').value, 
 

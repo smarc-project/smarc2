@@ -56,8 +56,8 @@ class ProbabilisticGridMap(Node):
             self.beta = params["grid_map.update.true_detection_rate"]
             self.time_margin = params["grid_map.update.time_margin"]*1e9 #nanoseconds
 
-            self.camera_fov = (pi/180)*params["camera_fov"]
-            self.flight_height = params["flight_height"]
+            self.camera_fov = (pi/180)*params["drone.camera_fov"]
+            self.flight_height = params["drone.flight_height"]
 
             self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
