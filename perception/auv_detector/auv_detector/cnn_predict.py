@@ -13,6 +13,7 @@ import numpy as np
 import cv2
 from PIL import Image as PILImage
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Int32MultiArray
 from collections import deque
 
 # ==== CNN Definition (same as in training file) ====
@@ -40,6 +41,10 @@ class AnchorPointCNN(nn.Module):
 class AnchorPointPredictor(Node):
     def __init__(self):
         super().__init__('anchor_point_predictor')
+
+        # Publisher for CNN predictions
+        self.cnn_pub = self.create_publisher(Int32MultiArray, "alars_detection/cnn_predict", 10)
+
         self.subscription = self.create_subscription(
             Image,
             '/Quadrotor/core/fpcamera/image',
@@ -299,6 +304,11 @@ class AnchorPointPredictor(Node):
             cv2.circle(original_image, (x2, y2), 6, (0, 0, 255), -1)  # P2: Red
             cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+
+            cnn_predict_msg = Int32MultiArray()
+            cnn_predict_msg.data = [x1, y1, x2, y2]  # Publish the center and radius of Hough circle
+            self.cnn_pub.publish(cnn_predict_msg)
 
             # Show image with overlay
             cv2.imshow("Anchor Points Prediction", original_image)
