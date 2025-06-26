@@ -67,8 +67,12 @@ class KNN(Node):
         # self.foreground_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_foreground', 10)
         # self.detection_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_detection', 10)
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
+        self.auv_pub = self.create_publisher(Float32MultiArray, f"alars_detection/auv", 10)
+        self.hough_pub = self.create_publisher(Float32MultiArray, f"alars_detection/hough_circle", 10)
+        
         self.sam_lowest_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.SAM_LOWEST_POINT_ESTIMATE_TOPIC}", 10)
         
+                
         self.target_pub = self.create_publisher(Float32MultiArray, f"/target", 10)  # [diving x, diving y, heading x, heading y]
 
         self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
@@ -255,6 +259,10 @@ class KNN(Node):
 
                 cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
 
+                auv_position_msg = Float32MultiArray()
+                auv_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the AUV
+                self.auv_pub.publish(auv_position_msg)
+
                 # Put area text
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
@@ -420,6 +428,30 @@ class KNN(Node):
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
         #cv2.imshow("Dilation", rope_bin)
 
+        # Detect Hough circles
+        circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
+                                param1=70, param2=25, minRadius=10, maxRadius=100)
+
+ 
+        if circles is not None:
+            circles = np.uint16(np.around(circles[0]))  # Flatten to shape (N, 3)
+
+            # Find the biggest circle (with max radius)
+            biggest_circle = max(circles, key=lambda c: c[2])  # c = (cx, cy, radius)
+            cx, cy, r = biggest_circle
+
+            # Optional: Draw the biggest circle for visualization
+            cv2.circle(rope_dilated, (cx, cy), r, (0, 255, 0), 2)   # Draw the circle
+            cv2.circle(rope_dilated, (cx, cy), 2, (0, 0, 255), 3)   # Draw the center
+
+            # publish center and radius
+ 
+            hough_position_msg = Float32MultiArray()
+            hough_position_msg.data = [float(cx), float(cy), float(r)]  # Publish the center and radius of Hough circle
+            self.hough_pub.publish(hough_position_msg)
+
+        cv2.imshow("Hough Circle", rope_dilated)
+
         # Curve fitting 
 
         # Get coordinates of white pixels (rope)
@@ -481,13 +513,13 @@ class KNN(Node):
             dx = (perp[0] * cam_Z) / fx
             dy = (perp[1] * cam_Z) / fy
 
-            # Scale to get 0.2m offset distance
+            # Scale to get 0.2m offset distance   # to prevent hook overlap or hit the rope
             scale = 0.2 / np.sqrt(dx**2 + dy**2)
             offset_x = dx * scale
             offset_y = dy * scale
 
             # Final 3D target in camera frame
-            target_camera = [X_center + offset_x, Y_center + offset_y, cam_Z]
+            target_camera = [X_center + offset_x, Y_center + offset_y, cam_Z]   
             #self.get_logger().info(f"Hook diving point-------------: {target_camera}")
 
             # Display into camera

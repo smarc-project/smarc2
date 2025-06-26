@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, Float32
+from std_msgs.msg import Int32MultiArray
 import numpy as np
 from auv_detector.model_ekf import EKFModel_ImageFeedback
 from nav_msgs.msg import Odometry
@@ -13,6 +14,8 @@ import tf2_ros
 import tf2_geometry_msgs
 from rclpy.executors import MultiThreadedExecutor
 import time
+import math
+
 
 class AUVPositionEstimator(Node):
     def __init__(self):
@@ -46,6 +49,9 @@ class AUVPositionEstimator(Node):
         self.create_subscription(Float32MultiArray, f"/{self.robot_name}/{DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", self.buoy_cb, 10)
         self.create_subscription(Float32, f"/{self.robot_name}/{DroneTopics.DEPTH_TOPIC}", self.depth_cb, 10)
         self.create_subscription(Float32MultiArray, f"/target", self.target_cb, 10)
+        self.create_subscription(Float32MultiArray, f"alars_detection/auv", self.auv_cb, 10)
+        self.create_subscription(Float32MultiArray, f"alars_detection/hough_circle", self.hough_cb, 10)
+        self.create_subscription(Int32MultiArray, f"/alars_detection/cnn_predict", self.cnn_cb, 10)
 
         self.auv_position_publisher = self.create_publisher(Odometry, f"/{self.robot_name}/{DroneTopics.AUV_RELATIVE_POSITION_TOPIC}", 10)
 
@@ -87,6 +93,27 @@ class AUVPositionEstimator(Node):
         self.uav_heading_time = 8
         self.uav_heading_flag = 0
 
+        self.auv_pixel_x = 0
+        self.auv_pixel_y = 0
+        self.buoy_pixel_x = 0
+        self.buoy_pixel_y = 0
+
+        self.hough_x = 0
+        self.hough_y = 0
+        self.hough_r = 0
+
+        self.cnn_p1_x =0
+        self.cnn_p1_y =0
+        self.cnn_p2_x =0
+        self.cnn_p2_y =0
+
+        self.cnn_count = 0
+
+        self.cnn_heading_x = 0
+        self.cnn_heading_y = 0
+
+
+
     def declare_node_parameters(self):
         self.declare_parameter("robot_name", "Quadrotor")
         self.declare_parameter("frame_suffix", "")
@@ -120,12 +147,25 @@ class AUVPositionEstimator(Node):
         self.depth = -msg.data
 
     def buoy_cb(self, msg: Float32MultiArray):
+        self.buoy_pixel_x , self.buoy_pixel_y = msg.data[0], msg.data[1]
         u, v = msg.data[0], msg.data[1]
         self.image_point = np.array([u, v, 1])
         #self.get_logger().info(f"enter buoy call back!!!!!-------------------------enter buoy call back!!!!!")
         if self.image_point is not None:
             #self.get_logger().info(f"check enter estimate relative position")
             self.estimate_relative_position()
+
+    def auv_cb(self, msg: Float32MultiArray):
+        self.auv_pixel_x, self.auv_pixel_y = msg.data[0], msg.data[1]
+        
+    def hough_cb(self, msg: Float32MultiArray):
+        self.hough_x, self.hough_y, self.hough_r = msg.data[0], msg.data[1], msg.data[2]
+        #self.get_logger().info(f"hough_cb detection !!!!!")
+
+    def cnn_cb(self, msg: Int32MultiArray):
+        #self.get_logger().info(f"CNN received detection !!!!!")
+        self.cnn_p1_x, self.cnn_p1_y, self.cnn_p2_x, self.cnn_p2_y = msg.data[0], msg.data[1], msg.data[2], msg.data[3]
+
     def target_cb(self, msg: Float32MultiArray):
         self.diving_x, self.diving_y, self.heading_x, self.heading_y = msg.data[0], msg.data[1], msg.data[2], msg.data[3]
         self.get_logger().info(f"diving point: {self.diving_x:.2f}, {self.diving_y:.2f}, {self.depth:.2f}")
@@ -163,8 +203,41 @@ class AUVPositionEstimator(Node):
             if self.buoy_detect_count < 300:
                 #self.publish_quadrotor_setpoint(auv_rel_position)  # New line  Tracking
                 self.buoy_detect_count += 1
-                self.get_logger().info(f"UAV is aiming--------------buoy_detect_count: {self.buoy_detect_count}")
-                self.publish_quadrotor_setpoint([self.diving_x, self.diving_y, 0.0])
+
+                distance_between_auv_and_buoy = math.sqrt((self.buoy_pixel_x - self.auv_pixel_x)**2 + (self.buoy_pixel_y - self.auv_pixel_y)**2)
+                self.get_logger().info(f"UAV is aiming--------------buoy_detect_count: {self.buoy_detect_count}, distance between AUV and buoy: {distance_between_auv_and_buoy:.2f}")
+                
+
+                if distance_between_auv_and_buoy < 80:   # consider aiminng cnn point average 60 
+                    # published 
+                    
+
+                    distance_between_hough_and_CnnPredict = np.sqrt((self.cnn_p1_x - self.hough_x)**2 + (self.cnn_p1_y  - self.hough_y)**2)
+                    self.get_logger().info(f"UAV is aiming CNN point --- P1_dist:{distance_between_hough_and_CnnPredict:.2f} should < Hough_R:{self.hough_r:.2f} ")
+                    
+                    
+                    # Assume camera intrinsics
+                    fx, fy = 369.5, 415.69 # focus
+                    cam_x, cam_y = 320, 240 # pixels
+                    cam_Z = 7.0  # e.g., quadrotor height (meter)
+
+                    # Final 3D heading in camera frame
+                    cnn_diving_x = (self.hough_x - cam_x) * cam_Z / fx
+                    cnn_diving_y = (self.hough_y - cam_y) * cam_Z / fy
+
+                    self.publish_quadrotor_setpoint([cnn_diving_x, cnn_diving_y, 0.0])
+                    
+                    if distance_between_hough_and_CnnPredict < self.hough_r:
+                        # valid prediction collect three time and save values
+                        self.cnn_count += 1 
+
+                        if self.cnn_count >= 3:   # record 3 times, decide use CNN 
+                            # Final 3D heading in camera frame
+                            self.cnn_heading_x  = (self.cnn_p2_x  - cam_x) * cam_Z / fx
+                            self.cnn_heading_y  = (self.cnn_p2_y  - cam_y) * cam_Z / fy
+                else:
+                    self.publish_quadrotor_setpoint([self.diving_x, self.diving_y, 0.0])
+
                 # publisher hook 
             else:
                 self.winch_extend = True
@@ -209,6 +282,13 @@ class AUVPositionEstimator(Node):
 
                 elif self.winch_count < self.rope_extend_time+self.uav_heading_time:
 
+                    # if CNN prediction workd 
+                    if self.cnn_count > 3 and self.uav_heading_flag == 0:
+                        self.uav_heading_flag = 1  # only record once
+                        self.heading_x_fixed = self.cnn_heading_x
+                        self.heading_y_fixed = self.cnn_heading_y
+
+
                     if self.uav_heading_flag == 0:
                         self.uav_heading_flag = 1  # only record once
                         #self.heading_x_fixed = -3*self.heading_x
@@ -219,8 +299,13 @@ class AUVPositionEstimator(Node):
                         # self.heading_y_fixed = 2*(self.heading_y-self.diving_y) + self.heading_y
 
                     self.publish_quadrotor_setpoint([self.heading_x_fixed, self.heading_y_fixed, 0.0])
-                    self.get_logger().info(f'UAV is moving x to--------: {self.heading_x_fixed:.2f}') 
-                    self.get_logger().info(f'UAV is moving y to--------: {self.heading_y_fixed:.2f}')
+
+                    if self.cnn_count > 3:
+                        self.get_logger().info(f'UAV is moving x to--CNN---: {self.heading_x_fixed:.2f}') 
+                        self.get_logger().info(f'UAV is moving y to--CNN---: {self.heading_y_fixed:.2f}')
+                    else:
+                        self.get_logger().info(f'UAV is moving x to--------: {self.heading_x_fixed:.2f}') 
+                        self.get_logger().info(f'UAV is moving y to--------: {self.heading_y_fixed:.2f}')
 
                 elif self.winch_count < self.rope_extend_time*2 + self.uav_heading_time:
                     msg = Float32MultiArray() 
