@@ -1,14 +1,14 @@
 # Search planning parameters
-A brief explanation of parameter:
+A brief explanation of each parameter:
 
 ## Launch arguments (params that are changed regularly)
 
 | **Parameter**    | **Description**                                                                                                                |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `mode`           | If `sim`, it's assumed the user wants to test the package standalone. If `real`, appropriate service requests have to be made. |
-| `path_planner`   | `spiral`, `greedy`, `astar`, or `apf` → Path planner type. See documentation for details.                                      |
+| `path_planner`   | `spiral`, `greedy`, `astar`, or `apf` → Path planner type. See code documentation for details.                                      |
 | `sam.init_pos`   | Position to which SAM will teleport (in map). User-defined, only useful in `sim`.                                              |
-| `drone.init_pos` | Position to which the drone will move (in `odom`) at the beginning.                                                            |
+| `drone.init_pos` | Position to which the drone will move (in `odom`) at the beginning. User-defined, only useful in `sim`.                                                             |
 
 ## Drone params
 | **Parameter**               | **Description**                                                                                                        |
@@ -22,7 +22,7 @@ A brief explanation of parameter:
 ## Spiral params
 | **Parameter**       | **Description**                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------- |
-| `spiral.vel_factor` | The spiral center will move `x` times faster than the AUV. Set to `0` for a static spiral.     |
+| `spiral.vel_factor` | The spiral center will move `x` times faster than the AUV. Set to `0` for a static spiral center.     |
 | `spiral.dtheta`     | Angle increment between spiral points in radians. Smaller values = denser spiral. (e.g., π/6). |
 
 ## Greedy params
@@ -58,11 +58,11 @@ A brief explanation of parameter:
 ## Grid map params
 | **Parameter**                         | **Description**                                                      |
 | ------------------------------------- | -------------------------------------------------------------------- |
-| `grid_map.workspace.width`            | Width of the grid map (in meters).                                   |
-| `grid_map.workspace.height`           | Height of the grid map (in meters).                                  |
+| `grid_map.workspace.width`            | Width of the grid map (in meters). Only useful in `sim`.                                      |
+| `grid_map.workspace.height`           | Height of the grid map (in meters). Only useful in `sim`.                                  |
 | `grid_map.workspace.resol`            | Grid cell resolution (in meters per cell).                           |
 | `grid_map.workspace.variance`         | Gaussian variance used in the initial grid distribution.             |
-| `grid_map.update.rate`                | Bayes Filter update frequency (Hz).                                  |
+| `grid_map.update.rate`                | Bayes Filter update period (s).                                  |
 | `grid_map.update.true_detection_rate` | Probability of a true positive in the Bayes Filter.                  |
 | `grid_map.update.time_margin`         | Prevents re-updating of recently updated cells (within `x` seconds). |
 
