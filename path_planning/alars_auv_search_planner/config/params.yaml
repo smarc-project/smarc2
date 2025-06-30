@@ -5,7 +5,7 @@
 
     sam:
       init_pos: [1260.0, 1150.0]
-      init_pos_variance: 10
+      init_pos_variance: 0.1
       vel_variance: 4.0
       max_floating_vel: 2.0
 

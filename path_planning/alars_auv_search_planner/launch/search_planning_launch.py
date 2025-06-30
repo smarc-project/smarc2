@@ -7,9 +7,9 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
 
     # ---- frequently changed params as launch arguments ...
-    mode_arg = DeclareLaunchArgument('mode', default_value='sim')
-    path_planner_arg = DeclareLaunchArgument('path_planner', default_value='apf')
-    sam_init_pos_arg = DeclareLaunchArgument('sam_init_pos', default_value='[1260.0, 1150.0]')
+    mode_arg = DeclareLaunchArgument('mode', default_value='real')
+    path_planner_arg = DeclareLaunchArgument('path_planner', default_value='spiral')
+    sam_init_pos_arg = DeclareLaunchArgument('sam_init_pos', default_value='[1297.0, 1153.0]')
     drone_init_pos_arg = DeclareLaunchArgument('drone_init_pos', default_value='[5.0, 5.0]')
 
     # ... and as node params
