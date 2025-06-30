@@ -15,11 +15,11 @@
 	<param name="acados_dir" value="$(var acados_dir)"/>
        </node>
 
-       <node name="diving_setpoint" pkg="sam_diving_controller" exec="setpoint" output="screen">
+       <!-- <node name="diving_setpoint" pkg="sam_diving_controller" exec="setpoint" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
         <param from="$(var control_yaml)"/>
-       </node>
+       </node> -->
        
     </group>
 
