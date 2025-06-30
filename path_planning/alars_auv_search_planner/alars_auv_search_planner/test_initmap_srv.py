@@ -27,8 +27,8 @@ class TestSrv(Node):
         gps.altitude = 1.1628758907318115 #11.1628758907318115
         
         self.req.gps = gps
-
         self.req.radius = 100.0
+        self.req.altitude = 7.5
 
         self.future = self.init_gridmap_client.call_async(self.req)
         rclpy.spin_until_future_complete(self, self.future)

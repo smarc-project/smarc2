@@ -89,10 +89,11 @@ class SearchPlannerController(Node):
         self.drone_init_pos = PointStamped()
         self.drone_init_pos.header.frame_id = self.model_params['frames.id.quadrotor_odom']      
 
-        # get search radius (range) convert GPS ping to correct coordinates
+        # get search radius (range) and altitude #TODO; convert GPS ping to correct coordinates
         self.grid_map.w = self.grid_map.h = 2*request.radius
-        self.GPS_ping_utm = convert_latlon_to_utm(request.gps)
-        self.GPS_ping = self.planner.transform_point(self.GPS_ping_utm, self.model_params['frames.id.map'])
+        self.planner.flight_height = self.planner.grid_map.flight_height = request.altitude
+        GPS_ping_utm = convert_latlon_to_utm(request.gps)
+        self.GPS_ping = self.planner.transform_point(GPS_ping_utm, self.model_params['frames.id.map'])
         response.success = True
 
         # (re)initialize planner (including grid map)
@@ -285,7 +286,9 @@ class SearchPlannerController(Node):
 
             'frames.id.map': self.get_parameter('frames.id.map').value,
             'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
-            'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value
+            'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value,
+
+            'topics.move_drone': self.get_parameter('topics.move_drone').value
 
 
         }
