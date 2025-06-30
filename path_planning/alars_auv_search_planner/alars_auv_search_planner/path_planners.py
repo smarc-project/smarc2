@@ -232,7 +232,7 @@ class SearchPlanner(Node, ABC):
         
         self.point_publisher = self.create_publisher(
             msg_type = PoseStamped,
-            topic = '/Quadrotor/move_to_setpoint',
+            topic = params['topics.move_drone'], 
             qos_profile= 10)
         self.path_publisher = self.create_publisher( # visualization purposes only
             msg_type = Path,

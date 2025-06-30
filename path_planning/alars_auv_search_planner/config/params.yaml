@@ -62,3 +62,6 @@
         map: "map_gt"
         quadrotor_odom: "Quadrotor/odom"
         sam_odom: "sam_auv_v1/odom"
+    
+    topics:
+      move_drone: "/Quadrotor/move_to_setpoint"
