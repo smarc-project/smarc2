@@ -121,6 +121,7 @@ class SAMDivePub(IDivePub):
             self._lcg_pub.publish(self._lcg_msg)
             self._rpm1_pub.publish(self._t1_msg)
             self._rpm2_pub.publish(self._t2_msg)
+            self.thrust_rpms_pub.publish(self.rpm_msg)
             self._thrust_vector_pub.publish(self._thrust_vector_msg)
 
             self.set_actuator_states(ActuatorStates.DISENGAGED, "DP")
@@ -130,6 +131,7 @@ class SAMDivePub(IDivePub):
             self._lcg_pub.publish(self._lcg_msg)
             self._rpm1_pub.publish(self._t1_msg)
             self._rpm2_pub.publish(self._t2_msg)
+            self.thrust_rpms_pub.publish(self.rpm_msg)
             self._thrust_vector_pub.publish(self._thrust_vector_msg)
 
     def joy_update(self):

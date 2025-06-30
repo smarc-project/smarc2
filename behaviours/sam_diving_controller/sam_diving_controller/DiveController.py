@@ -527,19 +527,18 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input = None
 
         # Extract the CasADi model
-        sam = SAM_casadi(dt=0.1)
+        sam = SAM_casadi(dt=self._dt)
 
         # Declare counter
         self.i = 0
 
         # create ocp object to formulate the OCP
-        Ts = 0.1            # Sampling time
-        self.N_horizon = 10 # Prediction horizon
-        self.nmpc = NMPC(sam, Ts, self.N_horizon, update_solver_settings=build)
+        self.N_horizon = 12 # Prediction horizon
+        self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
         
-        self.ref_is_traj = True
+        self.ref_is_traj = False
         difficulty = 'easy'
         if self.ref_is_traj:
             # load trajectory - Replace with your actual file path
@@ -561,7 +560,6 @@ class DiveControllerMPC(DiveControllerInterface):
             Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
 
-        
         # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
         self._initialized = False
         self._init_state = np.zeros(13)  #self._dive_sub.get_states()
@@ -595,7 +593,6 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
-        self._loginfo(f"HELLOOOO:  {self._initialized} {self.ref_is_traj}")
         if not self._initialized and self.ref_is_traj == True:
             # Declare the initial state based on where the robot is right now
             tmp = self._dive_sub.get_states()
@@ -650,8 +647,6 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
             self._initialized = True
-            self._loginfo(f"After init upd:  {self._initialized} {self.ref_is_traj}")
-
 
         elif self.ref_is_traj == False:
             mission_state = self._dive_sub.get_mission_state()
@@ -677,7 +672,7 @@ class DiveControllerMPC(DiveControllerInterface):
             dive_pitch_setpoint = self._dive_sub.get_dive_pitch()
             # heading_setpoint = self._dive_sub.get_heading_setpoint() # Not implemented
             rpm_setpoint = self._dive_sub.get_rpm_setpoint()
-
+            self._loginfo(f"depth_setpoint: {depth_setpoint}\npitch_setpoint: {pitch_setpoint}\ndive_pitch_setpoint: {dive_pitch_setpoint}\nrpm_setpoint: {rpm_setpoint}")
             # Get current states
             #self._current_state = self._dive_sub.get_states()
             current_depth = self._dive_sub.get_depth()
@@ -848,12 +843,12 @@ class DiveControllerMPC(DiveControllerInterface):
         # self._error.yaw =  0.#yaw_error
         # self._error.heading =  0.#current_heading
 
-            self._input = ControlInput()
-            self._input.vbs = u_vbs
-            self._input.lcg = u_lcg
-            self._input.thrustervertical = u_stern
-            self._input.thrusterhorizontal = u_rudder
-            self._input.thrusterrpm = float(u_rpm1)
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
+        self._input.thrustervertical = u_stern
+        self._input.thrusterhorizontal = u_rudder
+        self._input.thrusterrpm = float(u_rpm1)
 
         self.i += 1
 

@@ -197,7 +197,8 @@ def action_server():
     heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
     dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
     dive_pub = SAMDivePub(node, dive_sub, param)
-    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
+    #dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
+    dive_controller = DiveControllerMPC(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
