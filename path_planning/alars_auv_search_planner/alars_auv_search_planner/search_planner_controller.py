@@ -3,12 +3,12 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from .prob_grid_map import ProbabilisticGridMap 
-from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
 from math import dist
 from smarc_mission_msgs.srv import DronePath, InitAUVSearch
 from geometry_msgs.msg import PoseArray, Pose, PointStamped
-
+from .prob_grid_map import ProbabilisticGridMap 
+from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
+from smarc_utilities.georef_utils import convert_latlon_to_utm
 
 ##############################################################################
 # TODO
@@ -58,9 +58,6 @@ class SearchPlannerController(Node):
         # calculate necessary timer calls (counts) to perform a task. Planner will only start when the update in the grid map is
         # ready to be applied (otherwise the drone will start moving but the cells' probabilities won't be updated)
         self.path_update_dt = 0.2 # it's not that relevant, therefore there isn't need to be in the launch file
-        print(self.model_params['mode'])
-        print(self.model_params['drone.init_pos'])
-        print(self.model_params['initialization.time_delay'])
         self.grid_update_dt = self.model_params['grid_map.update.rate']
         self.countsToInitializeMap =  int(self.model_params['initialization.time_delay']/self.grid_update_dt) + 1
         self.countsToUpdateMap = self.countsToInitializeMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
@@ -74,23 +71,33 @@ class SearchPlannerController(Node):
 
         # initialize planner and grid map but without GPS ping and drone position; move drone to flight height (solely vertically)
         self.grid_map = ProbabilisticGridMap(params = self.model_params)
-
-        if self.model_params['path_planner'] == 'spiral':
-            self.planner = SpiralPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'greedy':
-            self.planner = GreedyPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'astar':
-            self.planner = AStarPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'apf':
-            self.planner = APFPathModel(params = self.model_params, grid_map = self.grid_map)
-        else:
-            self.get_logger().error('Incorrect path planner label! Check launch file')
+        planner_dict = {'spiral': SpiralPathModel,
+                        'greedy': GreedyPathModel,
+                        'astar': AStarPathModel,
+                        'apf': APFPathModel}
+        try:
+            self.planner = planner_dict[self.model_params['path_planner']](params = self.model_params, grid_map = self.grid_map)
+        except:
+            self.get_logger().error('Incorrect path planner label! Check launch and README files')
 
     def init_search_srv_callback(self, request, response):
-        """ Stores the GPS_ping and desired quadrotor initial position, which will trigger path generation in respective timer."""
-        self.GPS_ping = request.gps
-        self.drone_init_pos = self.planner.transform_point(request.quadrotor_ipos)
+        """ 
+        Stores the GPS_ping (after transforming it to map) and desired quadrotor initial position, 
+        which will trigger path generation in respective timer.
+        """
+        # if activated by client, quadrotor doesn't perform initial movement (assigning purposes only)
+        self.drone_init_pos = PointStamped()
+        self.drone_init_pos.header.frame_id = self.model_params['frames.id.quadrotor_odom']      
+
+        # get search radius (range) convert GPS ping to correct coordinates
+        self.grid_map.w = self.grid_map.h = 2*request.radius
+        self.GPS_ping_utm = convert_latlon_to_utm(request.gps)
+        self.GPS_ping = self.planner.transform_point(self.GPS_ping_utm, self.model_params['frames.id.map'])
         response.success = True
+
+        # (re)initialize planner (including grid map)
+        self.grid_map.GPS_ping = self.GPS_ping
+        self.planner.reinitialize_planner()
         return response
 
     def get_path_srv_callback(self, request, response):
@@ -142,8 +149,11 @@ class SearchPlannerController(Node):
                 self.get_logger().info(f'Received GPS ping (x,y) = {round(float(self.GPS_ping.point.x),2), round(float(self.GPS_ping.point.y),2)}')
                 if None in (self.drone_init_pos.point.x, self.drone_init_pos.point.y,  self.drone_init_pos.point.z):
                     self.init_done = True
-                else:
-                    self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+                else: # create timer to relocate drone (valid only in mode = sim)
+                    if self.model_params['mode'] == 'sim':
+                        self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+                    else:
+                        self.init_done = True
 
     def check_drone_position(self):
         """ Continously publish initial waypoint and checking distance"""

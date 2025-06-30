@@ -35,6 +35,7 @@ from tf2_ros import Buffer, TransformListener
 import numpy as np
 from math import cos, sin, pi, sqrt, tan, factorial, dist
 from .Astar import AStar
+from .prob_grid_map import ProbabilisticGridMap
 
 class InitializeActions(Node):
     """
@@ -173,7 +174,7 @@ class SearchPlanner(Node, ABC):
     Notes:
 
     """
-    def __init__(self, name="pathplanner_parent", params = None, grid_map = None):
+    def __init__(self, name="pathplanner_parent", params = None, grid_map:ProbabilisticGridMap = None):
         super().__init__(node_name = name)
         self.get_logger().info('Parent search planner initialized')
 
@@ -263,10 +264,11 @@ class SearchPlanner(Node, ABC):
         current_pos_odom = self.transform_point(self.drone_position)
         return current_pos_odom.point.x, current_pos_odom.point.y
         
-    def transform_point(self, point:PointStamped) -> PointStamped:
+    def transform_point(self, point:PointStamped, frame:str = None) -> PointStamped:
+        if frame is None: frame =  self.drone_odom_frame_id
         # transform desired position (relative position) to odom frame
         t = self.tf_buffer.lookup_transform(
-            target_frame = self.drone_odom_frame_id,  
+            target_frame = frame,  
             source_frame = point.header.frame_id, #point.header.frame_id, #self.map_frame_id,                 
             time=rclpy.time.Time() )
         return tf2_geometry_msgs.do_transform_point(point, t)
@@ -364,6 +366,18 @@ class SearchPlanner(Node, ABC):
         self.point_publisher.publish(pose_msg)
         odom_position = self.transform_point(self.drone_position)
         return odom_position.point.x, odom_position.point.y
+    
+    def reinitialize_planner(self):
+        """ 
+        Reinitializes grid map and planner state (called when client makes requests a new service and 
+        the search planning has to be reinitiated without destroying the node)
+        """
+        if self.params['path_planner'] == 'spiral': self.phase = 'line'
+        self.path_needed = True
+        self.path_completed = False
+        self.wait_finished = True
+        self.grid_map.initiate_grid_map()
+        
 
         
     def drone_odom_callback(self, msg: Odometry):

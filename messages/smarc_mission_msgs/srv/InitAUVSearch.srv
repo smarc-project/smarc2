@@ -1,7 +1,8 @@
-#request
-geometry_msgs/PointStamped gps
+#request 
+geographic_msgs/GeoPoint gps
 
-geometry_msgs/PointStamped quadrotor_ipos
+float64 radius 
+
 ---
 #response
 bool success
