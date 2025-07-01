@@ -90,7 +90,6 @@ class ProbabilisticGridMap(Node):
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
         self.GPS_ping_odom, _ = self.transform_point(self.GPS_ping)
-        self.get_logger().info(f'Received GPS ping in odom (x,y) = {round(float(self.GPS_ping_odom[0]),2), round(float(self.GPS_ping_odom[1]),2)}')
         self.createMap(self.GPS_ping_odom) 
 
         # gaussian prior, scale probabilities to fit int -> viewing purposes only
