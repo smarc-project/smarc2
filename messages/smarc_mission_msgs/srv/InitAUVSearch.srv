@@ -3,7 +3,7 @@ geographic_msgs/GeoPoint gps
 
 float64 radius 
 
-float64 altitude
+float64 initial_altitude
 
 ---
 #response

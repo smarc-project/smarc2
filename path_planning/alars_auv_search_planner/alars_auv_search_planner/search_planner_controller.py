@@ -91,7 +91,7 @@ class SearchPlannerController(Node):
 
         # get search radius (range) and altitude #TODO; convert GPS ping to correct coordinates
         self.grid_map.w = self.grid_map.h = 2*request.radius
-        self.planner.flight_height = self.planner.grid_map.flight_height = request.altitude
+        self.planner.flight_height = self.planner.grid_map.flight_height = request.initial_altitude + request.gps.altitude
         GPS_ping_utm = convert_latlon_to_utm(request.gps)
         self.GPS_ping = self.planner.transform_point(GPS_ping_utm, self.model_params['frames.id.map'])
         response.success = True
