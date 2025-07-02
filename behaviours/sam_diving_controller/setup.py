@@ -29,6 +29,7 @@ setup(
             'action_server_diving = sam_diving_controller.Node:action_server',
             'setpoint = sam_diving_controller.SetpointNode:main',
             'joy_depth = sam_diving_controller.JoyNode:joy_depth'
+            #'joy_depth = sam_diving_controller.Node:joy_depth'
         ],
     },
 )

@@ -169,6 +169,8 @@ class DiveControllerInterface:
             return None
 
         state = ControlState()
+        state.header.frame_id = self._current_state.header.frame_id
+        state.header.stamp = self._current_state.header.stamp
         state.pose.x = self._current_state.pose.pose.position.x
         state.pose.y = self._current_state.pose.pose.position.y
         state.pose.z = self._current_state.pose.pose.position.z
@@ -276,14 +278,15 @@ class DiveControllerPID(DiveControllerInterface):
         dive_pitch_setpoint = self._dive_sub.get_dive_pitch()
         heading_setpoint = self._dive_sub.get_heading_setpoint()
         rpm_setpoint = self._dive_sub.get_rpm_setpoint()
+        waypoint_odom = self._dive_sub.get_odom_waypoint()
+        waypoint_global = self._dive_sub.get_waypoint()
 
         # Get current states
         self._current_state = self._dive_sub.get_states()
         current_depth = self._dive_sub.get_depth()
         current_pitch = self._dive_sub.get_pitch()
         current_heading = self._dive_sub.get_heading()
-
-        #self._loginfo(f"state: {self._current_state}, depth: {current_depth}, pitch: {current_pitch}, heading: {current_heading}")
+        current_distance = self._dive_sub.get_distance()
 
         if not self._dive_sub.has_waypoint():
             return
@@ -292,14 +295,34 @@ class DiveControllerPID(DiveControllerInterface):
             self._loginfo("No depth setpoint yet")
             return
 
+        # Debug prints
+        s = ''
+        s += f'state: x: {self._current_state.pose.pose.position.x:.3f}'
+        s += f' y: {self._current_state.pose.pose.position.y:.3f}'
+        s += f' z: {self._current_state.pose.pose.position.z:.3f}\n'
+        s += f'wp odom: x: {waypoint_odom.position.x:.3f}'
+        s += f' y: {waypoint_odom.position.y:.3f}'
+        s += f' z: {waypoint_odom.position.z:.3f}'
+        s += f'wp global: x: {waypoint_global.pose.position.x:.3f}'
+        s += f' y: {waypoint_global.pose.position.y:.3f}'
+        s += f' z: {waypoint_global.pose.position.z:.3f}'
+
+        self._loginfo(s)
+
         # Sketchy minus signs...
         depth_setpoint *= -1
         current_depth *= -1
 
+        depth_error = depth_setpoint - current_depth
+
         # Choose active vs. static diving based on dive pitch angle
-        if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
+        #if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
+
+        # Choose active vs. static diving based on depth error, needed when
+        # doing look ahead diving with fixed look ahead distance
+        if np.abs(depth_error) <= 0.5:
             self._dive_mode = "Active Diving"
-            pitch_setpoint = dive_pitch_setpoint
+            pitch_setpoint = dive_pitch_setpoint 
 
             u_rpm = rpm_setpoint 
             u_vbs_raw = self.param['vbs_u_neutral']
@@ -324,35 +347,33 @@ class DiveControllerPID(DiveControllerInterface):
 
             yaw_error = heading_setpoint - current_heading
 
-        #s_ctrl = ""
-        #s_ctrl += f"current depth: {current_depth}\n"
-        #s_ctrl += f"depth setpoint: {depth_setpoint}\n"
-        #s_ctrl += f"depth error: {depth_error}\n"
-        #s_ctrl += f"VBS: {u_vbs}\n"
-
-        #self._loginfo(s_ctrl)
-
+        # Sketchy minus sign for the stern steering because we need a positive
+        # steering angle when compensating for a negative pitch
+        u_tv_stern = -u_tv_stern
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
-        self._dive_pub.set_thrust_vector(u_tv_rudder, -u_tv_stern) 
+        self._dive_pub.set_thrust_vector(u_tv_rudder, u_tv_stern) 
         self._dive_pub.set_rpm(u_rpm, u_rpm) 
 
         # Convenience Topics
         self._ref = ControlReference()
         self._ref.z = depth_setpoint
         self._ref.pitch = pitch_setpoint
+        self._ref.x = waypoint_odom.position.x
+        self._ref.y = waypoint_odom.position.y
 
         self._error = ControlError()
         self._error.z = depth_error
         self._error.pitch = pitch_error
         self._error.yaw = yaw_error
         self._error.heading = current_heading
+        self._error.distance = current_distance
 
         self._input = ControlInput()
         self._input.vbs = u_vbs
         self._input.lcg = u_lcg
-        self._input.thrustervertical = -u_tv_stern
+        self._input.thrustervertical = u_tv_stern
         self._input.thrusterhorizontal = u_tv_rudder
         self._input.thrusterrpm = float(u_rpm)
 
@@ -431,6 +452,7 @@ class DepthJoyControllerPID(DiveControllerInterface):
         # This is due to the fact that we want to move the LCG forward when
         # having a negative real pitch error.
 
+        # FIXME: This probably shouldn't be there now. The IMU is fixed
         pitch_setpoint *= -1.0
         current_pitch *= -1.0
 
