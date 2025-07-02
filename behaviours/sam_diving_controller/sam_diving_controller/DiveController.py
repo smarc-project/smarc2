@@ -118,7 +118,7 @@ class DiveControllerInterface:
         actuator_state = self._dive_pub.get_actuator_states()
 
         if actuator_state == ActuatorStates.ENGAGED:
-            u_vbs_neutral = self.param['vbs_u_neutral']
+            u_vbs_neutral = self.param['vbs_u_neutral'] 
             u_lcg_neutral = self.param['lcg_u_neutral']
             u_tv_hor_neutral = self.param['tv_u_neutral']
             u_tv_ver_neutral = self.param['tv_u_neutral']
@@ -538,7 +538,7 @@ class DiveControllerMPC(DiveControllerInterface):
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
         
-        self.ref_is_traj = False
+        self.ref_is_traj = True
         difficulty = 'easy'
         if self.ref_is_traj:
             # load trajectory - Replace with your actual file path
@@ -649,6 +649,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._initialized = True
 
         elif self.ref_is_traj == False:
+            self.Nsim = 1 # TODO:fix the Nsim issue. This is to trick the print statement in the loginfo
             mission_state = self._dive_sub.get_mission_state()
 
             if mission_state == MissionStates.RECEIVED:
@@ -666,62 +667,63 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._set_actuators_neutral()
                 return
 
-            # Get setpoints
-            depth_setpoint = self._dive_sub.get_depth_setpoint()
-            pitch_setpoint = self._dive_sub.get_pitch_setpoint()
-            dive_pitch_setpoint = self._dive_sub.get_dive_pitch()
-            # heading_setpoint = self._dive_sub.get_heading_setpoint() # Not implemented
-            rpm_setpoint = self._dive_sub.get_rpm_setpoint()
-            self._loginfo(f"depth_setpoint: {depth_setpoint}\npitch_setpoint: {pitch_setpoint}\ndive_pitch_setpoint: {dive_pitch_setpoint}\nrpm_setpoint: {rpm_setpoint}")
-            # Get current states
-            #self._current_state = self._dive_sub.get_states()
-            current_depth = self._dive_sub.get_depth()
-            current_pitch = self._dive_sub.get_pitch()
-            current_heading = self._dive_sub.get_heading()
-
+        # Engage actuators in case they were off before.
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+        
+        self._loginfo(f"initialized {self._initialized}")
+        if self.ref_is_traj == False:
+            
             if not self._dive_sub.has_waypoint():
-                return
-
-            if depth_setpoint is None:
-                self._loginfo("No depth setpoint yet")
+                self._loginfo(f"No waypoint available")
                 return
             
-            if not self._initialized:
-                self.Nsim = np.inf
-                self._init_state = self._dive_sub.get_states()
-                self._init_control = self._dive_sub.get_control_input()
-                self._loginfo(f"init state: {self._init_state}")
-                self.x0 = np.zeros(19)
-                self.x0[0] = self._init_state.pose.pose.position.x
-                self.x0[1] = self._init_state.pose.pose.position.y
-                self.x0[2] = self._init_state.pose.pose.position.z 
-                self.x0[3] = self._init_state.pose.pose.orientation.w
-                self.x0[4] = self._init_state.pose.pose.orientation.x
-                self.x0[5] = self._init_state.pose.pose.orientation.y
-                self.x0[6] = self._init_state.pose.pose.orientation.z
-                self.x0[7] = self._init_state.twist.twist.linear.x
-                self.x0[8] = self._init_state.twist.twist.linear.y
-                self.x0[9] = self._init_state.twist.twist.linear.z
-                self.x0[10] = self._init_state.twist.twist.angular.x
-                self.x0[11] = self._init_state.twist.twist.angular.y
-                self.x0[12] = self._init_state.twist.twist.angular.z
-                self.x0[13] = self._init_control['vbs']
-                self.x0[14] = self._init_control['lcg']
-                self.x0[15] = self._init_control['stern']
-                self.x0[16] = self._init_control['rudder']
-                self.x0[17] = self._init_control['rpm1']
-                self.x0[18] = self._init_control['rpm2']
-                # Run the MPC setup
-                self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
+            self._init_state = self._dive_sub.get_states()
+            self._init_control = self._dive_sub.get_control_input()
+            self._loginfo(f"init state: {self._init_state}")
+            self.x0 = np.zeros(19)
+            self.x0[0] = self._init_state.pose.pose.position.x
+            self.x0[1] = self._init_state.pose.pose.position.y
+            self.x0[2] = self._init_state.pose.pose.position.z 
+            self.x0[3] = self._init_state.pose.pose.orientation.w
+            self.x0[4] = self._init_state.pose.pose.orientation.x
+            self.x0[5] = self._init_state.pose.pose.orientation.y
+            self.x0[6] = self._init_state.pose.pose.orientation.z
+            self.x0[7] = self._init_state.twist.twist.linear.x
+            self.x0[8] = self._init_state.twist.twist.linear.y
+            self.x0[9] = self._init_state.twist.twist.linear.z
+            self.x0[10] = self._init_state.twist.twist.angular.x
+            self.x0[11] = self._init_state.twist.twist.angular.y
+            self.x0[12] = self._init_state.twist.twist.angular.z
+            self.x0[13] = self._init_control['vbs']
+            self.x0[14] = self._init_control['lcg']
+            self.x0[15] = self._init_control['stern']
+            self.x0[16] = self._init_control['rudder']
+            self.x0[17] = self._init_control['rpm1']
+            self.x0[18] = self._init_control['rpm2']
+            # Run the MPC setup
+            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
 
-                # Initialize the state and control vector as David does
-                for stage in range(self.N_horizon + 1):
-                    self.ocp_solver.set(stage, "x", self.x0)
-                for stage in range(self.N_horizon):
-                    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-                # Get setpoints
-                waypoint = self._dive_sub.get_waypoint()
-                self._initialized = True
+            # Initialize the state and control vector as David does
+            for stage in range(self.N_horizon+1):
+                print(stage)
+                self.ocp_solver.set(stage, "x", self.x0)
+            for stage in range(self.N_horizon):
+                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
+
+            # Get Waypoint information
+            self._loginfo("Getting waypoint information")
+            waypoint = self._dive_sub.get_waypoint()
+            waypoint_x = waypoint.pose.position.x
+            waypoint_y = waypoint.pose.position.y
+            waypoint_z = waypoint.pose.position.z
+            waypoint_q_w = waypoint.pose.orientation.w
+            waypoint_q_x = waypoint.pose.orientation.x
+            waypoint_q_y = waypoint.pose.orientation.y
+            waypoint_q_z = waypoint.pose.orientation.z
+            rpm_setpoint = self._dive_sub.get_rpm_setpoint()
+
+
+            self._initialized = True
 
         # Get current states
         self._current_state = self._dive_sub.get_states()
@@ -748,13 +750,63 @@ class DiveControllerMPC(DiveControllerInterface):
         x_current[17] = self._current_control['rpm1']
         x_current[18] = self._current_control['rpm2']
             
-        # # FIXME: This is for debugging only!
-        if self.i < self.Nsim:
-            # extract the sub-trajectory to track under the prediction horizon
-            if self.i <= (self.Nsim - self.N_horizon):
-                self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+        # # FIXME: Only for trajectory tracking of length Nsim, edit this to fit waypoints too
+        if self.ref_is_traj:
+            if self.i < self.Nsim:
+                # extract the sub-trajectory to track under the prediction horizon
+                if self.i <= (self.Nsim - self.N_horizon):
+                    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+                else:
+                    self.ref = self.trajectory[self.i:, :]
+
+                # Update reference vector
+                # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
+                # set the following waypoints in the horizon to the last waypoint of the trajectory
+                for stage in range(self.N_horizon):
+                    if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
+                        self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
+                    else:
+                        self.ocp_solver.set(stage, "p", self.ref[stage,:])
+
+                # Set the terminal state reference to the value at N_horizon
+                self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
+
+                # Set current state
+                self.ocp_solver.set(0, "lbx", x_current)
+                self.ocp_solver.set(0, "ubx", x_current)
+
+                # solve ocp and get next control input
+                status = self.ocp_solver.solve()
+
+                # simulate system
+                self.simU = self.ocp_solver.get(0, "u")
+                mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
+
+                # TODO: Check that the outputs fit the actual actuators - X_current is two timestep behind?
+                u_vbs = mpc_solution[13]
+                u_lcg = mpc_solution[14]
+                u_stern = mpc_solution[15] 
+                u_rudder = mpc_solution[16]
+                u_rpm1 = mpc_solution[17]
+                u_rpm2 = mpc_solution[18]
+
             else:
-                self.ref = self.trajectory[self.i:, :]
+                self.i = self.Nsim-1 # so it stays here and read the sim data from last step
+                u_vbs = self.prev_vbs
+                u_lcg = self.prev_lcg
+                u_stern = 0.0
+                u_rudder = 0.0
+                u_rpm1 = 0.0
+                u_rpm2 = 0.0
+        else:
+            self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
+            self.ref[:, 0] = waypoint_x
+            self.ref[:, 1] = waypoint_y
+            self.ref[:, 2] = waypoint_z
+            self.ref[:, 3] = waypoint_q_w
+            self.ref[:, 4] = waypoint_q_x
+            self.ref[:, 5] = waypoint_q_y
+            self.ref[:, 6] = waypoint_q_z
 
             # Update reference vector
             # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
@@ -767,14 +819,15 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Set the terminal state reference to the value at N_horizon
             self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
-    
+
+
             # Set current state
             self.ocp_solver.set(0, "lbx", x_current)
             self.ocp_solver.set(0, "ubx", x_current)
 
             # solve ocp and get next control input
             status = self.ocp_solver.solve()
-    
+
             # simulate system
             self.simU = self.ocp_solver.get(0, "u")
             mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
@@ -788,18 +841,8 @@ class DiveControllerMPC(DiveControllerInterface):
             u_rpm1 = mpc_solution[17]
             u_rpm2 = mpc_solution[18]
 
-            self.prev_vbs = u_vbs
-            self.prev_lcg = u_lcg
-
-        else:
-            self.i = self.Nsim-1 # so it stays here and read the sim data from last step
-
-            u_vbs = self.prev_vbs
-            u_lcg = self.prev_lcg
-            u_stern = 0.0
-            u_rudder = 0.0
-            u_rpm1 = 0.0
-            u_rpm2 = 0.0
+        self.prev_vbs = u_vbs
+        self.prev_lcg = u_lcg
 
         s = f"\nMPC Check step {self.i}/{self.Nsim}: \n"
         s += "Linear:\n"
