@@ -360,7 +360,7 @@ class GeopointServer(SMARCActionServer):
             pose_stamped: target location
             goal_handle: passed in to enable feedback publishing
         """
-        rate = self._node.create_rate(2)
+        rate = self._node.create_rate(10)
         d = self.compute_distance(pose_stamped)
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
