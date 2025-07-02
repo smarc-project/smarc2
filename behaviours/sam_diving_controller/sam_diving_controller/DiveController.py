@@ -593,6 +593,15 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
+
+        # Get the init. states msg
+        self._init_state = self._dive_sub.get_states()
+        self._init_control = self._dive_sub.get_control_input()
+
+        # Get the current states msg
+        self._current_state = self._dive_sub.get_states()
+        self._current_control = self._dive_sub.get_control_input()
+
         if not self._initialized and self.ref_is_traj == True:
             # Declare the initial state based on where the robot is right now
             tmp = self._dive_sub.get_states()
@@ -600,29 +609,8 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo(f"tmp: {tmp}")
                 self._loginfo_once("Waiting for states")
                 return
-
-            self._init_state = self._dive_sub.get_states()
-            self._init_control = self._dive_sub.get_control_input()
-            self.x0 = np.zeros(19)
-            self.x0[0] = self._init_state.pose.pose.position.x
-            self.x0[1] = self._init_state.pose.pose.position.y
-            self.x0[2] = self._init_state.pose.pose.position.z 
-            self.x0[3] = self._init_state.pose.pose.orientation.w
-            self.x0[4] = self._init_state.pose.pose.orientation.x
-            self.x0[5] = self._init_state.pose.pose.orientation.y
-            self.x0[6] = self._init_state.pose.pose.orientation.z
-            self.x0[7] = self._init_state.twist.twist.linear.x
-            self.x0[8] = self._init_state.twist.twist.linear.y
-            self.x0[9] = self._init_state.twist.twist.linear.z
-            self.x0[10] = self._init_state.twist.twist.angular.x
-            self.x0[11] = self._init_state.twist.twist.angular.y
-            self.x0[12] = self._init_state.twist.twist.angular.z
-            self.x0[13] = self._init_control['vbs']
-            self.x0[14] = self._init_control['lcg']
-            self.x0[15] = self._init_control['stern']
-            self.x0[16] = self._init_control['rudder']
-            self.x0[17] = self._init_control['rpm1']
-            self.x0[18] = self._init_control['rpm2']
+            
+            self.x0 = self.get_init_state(self._init_state, self._init_control)
 
             # Match the starting position in unity with the one from the trajectory.
             self.trajectory[:,0] +=  self.x0[0] - self.trajectory[0,0]
@@ -675,29 +663,7 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo(f"No waypoint available")
                 return
             
-            self._init_state = self._dive_sub.get_states()
-            self._init_control = self._dive_sub.get_control_input()
-            self._loginfo(f"init state: {self._init_state}")
-            self.x0 = np.zeros(19)
-            self.x0[0] = self._init_state.pose.pose.position.x
-            self.x0[1] = self._init_state.pose.pose.position.y
-            self.x0[2] = self._init_state.pose.pose.position.z 
-            self.x0[3] = self._init_state.pose.pose.orientation.w
-            self.x0[4] = self._init_state.pose.pose.orientation.x
-            self.x0[5] = self._init_state.pose.pose.orientation.y
-            self.x0[6] = self._init_state.pose.pose.orientation.z
-            self.x0[7] = self._init_state.twist.twist.linear.x
-            self.x0[8] = self._init_state.twist.twist.linear.y
-            self.x0[9] = self._init_state.twist.twist.linear.z
-            self.x0[10] = self._init_state.twist.twist.angular.x
-            self.x0[11] = self._init_state.twist.twist.angular.y
-            self.x0[12] = self._init_state.twist.twist.angular.z
-            self.x0[13] = self._init_control['vbs']
-            self.x0[14] = self._init_control['lcg']
-            self.x0[15] = self._init_control['stern']
-            self.x0[16] = self._init_control['rudder']
-            self.x0[17] = 1e-6 #self._init_control['rpm1']
-            self.x0[18] = 1e-6 #self._init_control['rpm2']
+            self.x0 = self.get_init_state(self._init_state, self._init_control, is_trajectory=False)
 
             # Run the MPC setup
             self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
@@ -723,31 +689,9 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self._initialized = True
 
-        # Get current states
-        self._current_state = self._dive_sub.get_states()
-        self._current_control = self._dive_sub.get_control_input()
+        # Get the current state
+        x_current = self.get_current_state(self._current_state, self._current_control)
 
-        x_current = np.zeros(19)
-        x_current[0] = self._current_state.pose.pose.position.x
-        x_current[1] = self._current_state.pose.pose.position.y
-        x_current[2] = self._current_state.pose.pose.position.z 
-        x_current[3] = self._current_state.pose.pose.orientation.w
-        x_current[4] = self._current_state.pose.pose.orientation.x
-        x_current[5] = self._current_state.pose.pose.orientation.y
-        x_current[6] = self._current_state.pose.pose.orientation.z
-        x_current[7] = self._current_state.twist.twist.linear.x
-        x_current[8] = self._current_state.twist.twist.linear.y
-        x_current[9] = self._current_state.twist.twist.linear.z
-        x_current[10] = self._current_state.twist.twist.angular.x
-        x_current[11] = self._current_state.twist.twist.angular.y
-        x_current[12] = self._current_state.twist.twist.angular.z
-        x_current[13] = self._current_control['vbs']
-        x_current[14] = self._current_control['lcg']
-        x_current[15] = self._current_control['stern']
-        x_current[16] = self._current_control['rudder']
-        x_current[17] = self._current_control['rpm1']
-        x_current[18] = self._current_control['rpm2']
-            
         # # FIXME: Only for trajectory tracking of length Nsim, edit this to fit waypoints too
         if self.ref_is_traj:
             if self.i < self.Nsim:
@@ -886,5 +830,62 @@ class DiveControllerMPC(DiveControllerInterface):
         self.i += 1
 
         return
+    
+    def get_init_state(self, state_msg, control_msg, is_trajectory=True):
+        """
+        Returns the initial state of the controller as the state vector x (numpy array)
+        """
+        x0 = np.zeros(19)
+        x0[0] = state_msg.pose.pose.position.x
+        x0[1] = state_msg.pose.pose.position.y
+        x0[2] = state_msg.pose.pose.position.z 
+        x0[3] = state_msg.pose.pose.orientation.w
+        x0[4] = state_msg.pose.pose.orientation.x
+        x0[5] = state_msg.pose.pose.orientation.y
+        x0[6] = state_msg.pose.pose.orientation.z
+        x0[7] = state_msg.twist.twist.linear.x
+        x0[8] = state_msg.twist.twist.linear.y
+        x0[9] = state_msg.twist.twist.linear.z
+        x0[10] = state_msg.twist.twist.angular.x
+        x0[11] = state_msg.twist.twist.angular.y
+        x0[12] = state_msg.twist.twist.angular.z
+        x0[13] = control_msg['vbs']
+        x0[14] = control_msg['lcg']
+        x0[15] = control_msg['stern']
+        x0[16] = control_msg['rudder']
+        if is_trajectory:
+            x0[17] = control_msg['rpm1']
+            x0[18] = control_msg['rpm2']
+        else:
+            x0[17] = 1e-6 
+            x0[18] = 1e-6 
+        return x0
+    
+    def get_current_state(self, state_msg, control_msg):
+        """
+        Returns the current state of the controller as the state vector x (numpy array)
+        """
+        x_current = np.zeros(19)
+        x_current[0] = state_msg.pose.pose.position.x
+        x_current[1] = state_msg.pose.pose.position.y
+        x_current[2] = state_msg.pose.pose.position.z 
+        x_current[3] = state_msg.pose.pose.orientation.w
+        x_current[4] = state_msg.pose.pose.orientation.x
+        x_current[5] = state_msg.pose.pose.orientation.y
+        x_current[6] = state_msg.pose.pose.orientation.z
+        x_current[7] = state_msg.twist.twist.linear.x
+        x_current[8] = state_msg.twist.twist.linear.y
+        x_current[9] = state_msg.twist.twist.linear.z
+        x_current[10] = state_msg.twist.twist.angular.x
+        x_current[11] = state_msg.twist.twist.angular.y
+        x_current[12] = state_msg.twist.twist.angular.z
+        x_current[13] = control_msg['vbs']
+        x_current[14] = control_msg['lcg']
+        x_current[15] = control_msg['stern']
+        x_current[16] = control_msg['rudder']
+        x_current[17] = control_msg['rpm1']
+        x_current[18] = control_msg['rpm2']
+        
+        return x_current
 
 # TODO: Write unit tests here that do one loop of everything
