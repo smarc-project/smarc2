@@ -2,7 +2,8 @@ import sys
 import rclpy
 from rclpy.node import Node
 from smarc_mission_msgs.srv import DronePath, InitAUVSearch
-from geometry_msgs.msg import PointStamped, PoseArray
+from geometry_msgs.msg import PointStamped
+from geographic_msgs.msg import GeoPoint
 
 
 class TestSrv(Node):
@@ -20,19 +21,14 @@ class TestSrv(Node):
         # Define GPS ping and initial drone position
         self.req = InitAUVSearch.Request()
 
-        gps = PointStamped()
-        gps.header.stamp = self.get_clock().now().to_msg()
-        gps.header.frame_id = 'map_gt_gt'
-        gps.point.x = 1268.0
-        gps.point.y = 1150.0
+        gps = GeoPoint()
+        gps.latitude = 58.85058132601718 #58.85028132601718
+        gps.longitude = 17.67416659875381 #17.67486659875381
+        gps.altitude = 4.5 #11.1628758907318115
+        
         self.req.gps = gps
-
-        quadrotor_ipos = PointStamped()
-        quadrotor_ipos.header.stamp = self.get_clock().now().to_msg()
-        quadrotor_ipos.header.frame_id = 'Quadrotor/odom_gt'
-        quadrotor_ipos.point.x = 2.0
-        quadrotor_ipos.point.y = 2.0
-        self.req.quadrotor_ipos = quadrotor_ipos
+        self.req.radius = 100.0
+        self.req.initial_altitude = 1.0
 
         self.future = self.init_gridmap_client.call_async(self.req)
         rclpy.spin_until_future_complete(self, self.future)
