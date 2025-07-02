@@ -55,6 +55,7 @@ class DiveSub():
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self._robot_base_link = robot_name + '/base_link'+ tf_suffix
+        self._odom_link = robot_name + '/odom'
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
@@ -65,6 +66,7 @@ class DiveSub():
         self._goal_tolerance = None
         self._waypoint_global = None
         self._waypoint_body = None
+        self._waypoint_odom = None
         self._received_waypoint = False
         self._joy_depth = None
         self._depth = None
@@ -189,6 +191,15 @@ class DiveSub():
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
 
+        try:
+            self._tf_odom_link = self._tf_buffer.lookup_transform(self._odom_link,
+                                                                  self._waypoint_global.header.frame_id,
+                                                                  rclpy.time.Time(seconds=0))
+        except Exception as ex:
+            self._loginfo(
+                f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
+            return
+
 
     def _transform_wp(self):
         if self._waypoint_global is None:
@@ -197,8 +208,8 @@ class DiveSub():
         if self._tf_base_link is None:
             return
 
+        self._waypoint_odom = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_odom_link)
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
-
 
     # Get methods
     def get_depth_setpoint(self):
@@ -301,6 +312,9 @@ class DiveSub():
 
     def get_waypoint(self):
         return self._waypoint_global
+
+    def get_odom_waypoint(self):
+        return self._waypoint_odom
 
     def get_goal_tolerance(self):
 

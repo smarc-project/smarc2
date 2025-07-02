@@ -603,7 +603,6 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self._init_state = self._dive_sub.get_states()
             self._init_control = self._dive_sub.get_control_input()
-            self._loginfo(f"init state: {self._init_state}")
             self.x0 = np.zeros(19)
             self.x0[0] = self._init_state.pose.pose.position.x
             self.x0[1] = self._init_state.pose.pose.position.y
@@ -670,8 +669,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
         
-        self._loginfo(f"initialized {self._initialized}")
-        if self.ref_is_traj == False:
+        if not self.ref_is_traj:
             
             if not self._dive_sub.has_waypoint():
                 self._loginfo(f"No waypoint available")
@@ -698,30 +696,30 @@ class DiveControllerMPC(DiveControllerInterface):
             self.x0[14] = self._init_control['lcg']
             self.x0[15] = self._init_control['stern']
             self.x0[16] = self._init_control['rudder']
-            self.x0[17] = self._init_control['rpm1']
-            self.x0[18] = self._init_control['rpm2']
+            self.x0[17] = 1e-6 #self._init_control['rpm1']
+            self.x0[18] = 1e-6 #self._init_control['rpm2']
+
             # Run the MPC setup
             self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
 
             # Initialize the state and control vector as David does
             for stage in range(self.N_horizon+1):
-                print(stage)
                 self.ocp_solver.set(stage, "x", self.x0)
             for stage in range(self.N_horizon):
                 self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
             # Get Waypoint information
+            waypoint = self._dive_sub.get_odom_waypoint()
             self._loginfo("Getting waypoint information")
-            waypoint = self._dive_sub.get_waypoint()
-            waypoint_x = waypoint.pose.position.x
-            waypoint_y = waypoint.pose.position.y
-            waypoint_z = waypoint.pose.position.z
-            waypoint_q_w = waypoint.pose.orientation.w
-            waypoint_q_x = waypoint.pose.orientation.x
-            waypoint_q_y = waypoint.pose.orientation.y
-            waypoint_q_z = waypoint.pose.orientation.z
+            self._loginfo(f"Waypoint: {waypoint}")
+            waypoint_x = waypoint.position.x
+            waypoint_y = waypoint.position.y
+            waypoint_z = waypoint.position.z
+            waypoint_q_w = waypoint.orientation.w
+            waypoint_q_x = waypoint.orientation.x
+            waypoint_q_y = waypoint.orientation.y
+            waypoint_q_z = waypoint.orientation.z
             rpm_setpoint = self._dive_sub.get_rpm_setpoint()
-
 
             self._initialized = True
 
@@ -857,7 +855,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         self._loginfo(s)
 
-
+        # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
         self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
@@ -877,15 +875,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.pitch = euler_angles[1]
             self._ref.yaw   = euler_angles[2]
 
-        # self._error = ControlError()
-        # self._error.x = self.ref[0,2] - x_current[2]
-        # self._error.z = self.ref[0,2] - x_current[2]
-        # self._error.z = self.ref[0,2] - x_current[2]
-        # # TODO: Finish this. Use euler_from_quaternion(quaternion) to do the conversion.
-        # self._error.pitch = 0.# pitch_error
-        # self._error.yaw =  0.#yaw_error
-        # self._error.heading =  0.#current_heading
-
+        # Set control input
         self._input = ControlInput()
         self._input.vbs = u_vbs
         self._input.lcg = u_lcg
