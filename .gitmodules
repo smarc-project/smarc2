@@ -55,3 +55,4 @@
 [submodule "external_equipment/PlayStation-JoyInterface-ROS2"]
 	path = external_equipment/PlayStation-JoyInterface-ROS2
 	url = https://github.com/HarvestX/PlayStation-JoyInterface-ROS2
+	branch = humble
