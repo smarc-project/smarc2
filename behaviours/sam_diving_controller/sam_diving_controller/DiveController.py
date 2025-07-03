@@ -538,7 +538,7 @@ class DiveControllerMPC(DiveControllerInterface):
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
         
-        self.ref_is_traj = True
+        self.ref_is_traj = False
         difficulty = 'easy'
         if self.ref_is_traj:
             # load trajectory - Replace with your actual file path
@@ -555,15 +555,12 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Declare duration of sim. 
             self.Nsim = (self.trajectory.shape[0])         # The sim length should be equal to the number of waypoints
-            self.x0 = self.trajectory[0] 
-                    # Augment the trajectory and control input r0.0eference 
+            # Augment the trajectory and control input r0.0eference 
             Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
 
         # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
         self._initialized = False
-        self._init_state = np.zeros(13)  #self._dive_sub.get_states()
-        self._init_control = np.zeros(6) #self._dive_sub.get_control_input()
 
         self._loginfo("Dive Controller created")
 
@@ -594,10 +591,6 @@ class DiveControllerMPC(DiveControllerInterface):
         This is where all the magic happens.
         """
 
-        # Get the init. states msg
-        self._init_state = self._dive_sub.get_states()
-        self._init_control = self._dive_sub.get_control_input()
-
         # Get the current states msg
         self._current_state = self._dive_sub.get_states()
         self._current_control = self._dive_sub.get_control_input()
@@ -610,12 +603,12 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo_once("Waiting for states")
                 return
             
-            self.x0 = self.get_init_state(self._init_state, self._init_control)
+            x0 = self.get_init_state(self._current_state, self._current_control)
 
             # Match the starting position in unity with the one from the trajectory.
-            self.trajectory[:,0] +=  self.x0[0] - self.trajectory[0,0]
-            self.trajectory[:,1] +=  self.x0[1] - self.trajectory[0,1]
-            self.trajectory[:,2] +=  self.x0[2] - self.trajectory[0,2]
+            self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
+            self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
+            self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
 
             # Match the starting orientation with the one from the trajectory
             for index, waypoint in enumerate(self.trajectory):
@@ -625,11 +618,12 @@ class DiveControllerMPC(DiveControllerInterface):
                 q_new = [q_new[3], q_new[0], q_new[1], q_new[2]] #Convert back to w,x,y,z
                 self.trajectory[index, 3:7] = q_new
             # Run the MPC setup
-            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
+
+            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
 
             # Initialize the state and control vector as David does
             for stage in range(self.N_horizon + 1):
-                self.ocp_solver.set(stage, "x", self.x0)
+                self.ocp_solver.set(stage, "x", x0)
             for stage in range(self.N_horizon):
                 self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
@@ -663,14 +657,14 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo(f"No waypoint available")
                 return
             
-            self.x0 = self.get_init_state(self._init_state, self._init_control, is_trajectory=False)
+            x0 = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
 
             # Run the MPC setup
-            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
+            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
 
             # Initialize the state and control vector as David does
             for stage in range(self.N_horizon+1):
-                self.ocp_solver.set(stage, "x", self.x0)
+                self.ocp_solver.set(stage, "x", x0)
             for stage in range(self.N_horizon):
                 self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
@@ -835,31 +829,31 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         Returns the initial state of the controller as the state vector x (numpy array)
         """
-        x0 = np.zeros(19)
-        x0[0] = state_msg.pose.pose.position.x
-        x0[1] = state_msg.pose.pose.position.y
-        x0[2] = state_msg.pose.pose.position.z 
-        x0[3] = state_msg.pose.pose.orientation.w
-        x0[4] = state_msg.pose.pose.orientation.x
-        x0[5] = state_msg.pose.pose.orientation.y
-        x0[6] = state_msg.pose.pose.orientation.z
-        x0[7] = state_msg.twist.twist.linear.x
-        x0[8] = state_msg.twist.twist.linear.y
-        x0[9] = state_msg.twist.twist.linear.z
-        x0[10] = state_msg.twist.twist.angular.x
-        x0[11] = state_msg.twist.twist.angular.y
-        x0[12] = state_msg.twist.twist.angular.z
-        x0[13] = control_msg['vbs']
-        x0[14] = control_msg['lcg']
-        x0[15] = control_msg['stern']
-        x0[16] = control_msg['rudder']
+        x = np.zeros(19)
+        x[0] = state_msg.pose.pose.position.x
+        x[1] = state_msg.pose.pose.position.y
+        x[2] = state_msg.pose.pose.position.z 
+        x[3] = state_msg.pose.pose.orientation.w
+        x[4] = state_msg.pose.pose.orientation.x
+        x[5] = state_msg.pose.pose.orientation.y
+        x[6] = state_msg.pose.pose.orientation.z
+        x[7] = state_msg.twist.twist.linear.x
+        x[8] = state_msg.twist.twist.linear.y
+        x[9] = state_msg.twist.twist.linear.z
+        x[10] = state_msg.twist.twist.angular.x
+        x[11] = state_msg.twist.twist.angular.y
+        x[12] = state_msg.twist.twist.angular.z
+        x[13] = control_msg['vbs']
+        x[14] = control_msg['lcg']
+        x[15] = control_msg['stern']
+        x[16] = control_msg['rudder']
         if is_trajectory:
-            x0[17] = control_msg['rpm1']
-            x0[18] = control_msg['rpm2']
+            x[17] = control_msg['rpm1']
+            x[18] = control_msg['rpm2']
         else:
-            x0[17] = 1e-6 
-            x0[18] = 1e-6 
-        return x0
+            x[17] = 1e-6 
+            x[18] = 1e-6 
+        return x
     
     def get_current_state(self, state_msg, control_msg):
         """
