@@ -507,8 +507,7 @@ class DiveControllerMPC(DiveControllerInterface):
         self.param = param 
         self._dt = rate
 
-
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
+        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
         # FIXME: This needs to be fixed. Acados places the generated C files in
         # the current directory. So we litter the whole ros workspace with
@@ -641,8 +640,6 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Get Waypoint information
             waypoint = self._dive_sub.get_odom_waypoint()
-            self._loginfo("Getting waypoint information")
-            self._loginfo(f"Waypoint: {waypoint}")
             waypoint_x = waypoint.position.x
             waypoint_y = waypoint.position.y
             waypoint_z = waypoint.position.z
@@ -671,7 +668,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self._initialized = True
                     
-        # TODO: RESTRUCTURING UNTIL HERE - Continue below
+        # TODO: RESTRUCTURED UNTIL THIS LINE - Continue below
 
         # Get the current state
         x_current = self.get_current_state(self._current_state, self._current_control)
