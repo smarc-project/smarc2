@@ -730,6 +730,8 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ref[:, 4] = waypoint_q_x
             self.ref[:, 5] = waypoint_q_y
             self.ref[:, 6] = waypoint_q_z
+            self.ref[:, 17] = rpm_setpoint
+            self.ref[:, 18] = rpm_setpoint
 
             # Update reference vector
             # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
