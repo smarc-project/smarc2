@@ -591,18 +591,30 @@ class DiveControllerMPC(DiveControllerInterface):
         This is where all the magic happens.
         """
 
-        # Get the current states msg
+        mission_state = self._dive_sub.get_mission_state()
+        if mission_state == MissionStates.RECEIVED:
+            self._loginfo_once("Mission Received")
+            self._set_actuators_neutral()
+            return
+
+        if mission_state == MissionStates.COMPLETED:
+            self._loginfo_once("Mission Complete")
+            self._set_actuators_neutral()
+            return
+
+        if mission_state == MissionStates.CANCELLED:
+            self._loginfo_once("Mission Cancelled")
+            self._set_actuators_neutral()
+            return
+
+        # Engage actuators in case they were off before.
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
+        # Get the current states
         self._current_state = self._dive_sub.get_states()
         self._current_control = self._dive_sub.get_control_input()
 
-        if not self._initialized and self.ref_is_traj == True:
-            # Declare the initial state based on where the robot is right now
-            tmp = self._dive_sub.get_states()
-            while tmp is None:
-                self._loginfo(f"tmp: {tmp}")
-                self._loginfo_once("Waiting for states")
-                return
-            
+        if self.ref_is_traj:
             x0 = self.get_init_state(self._current_state, self._current_control)
 
             # Match the starting position in unity with the one from the trajectory.
@@ -617,56 +629,15 @@ class DiveControllerMPC(DiveControllerInterface):
                 q_new = q_new.as_quat()
                 q_new = [q_new[3], q_new[0], q_new[1], q_new[2]] #Convert back to w,x,y,z
                 self.trajectory[index, 3:7] = q_new
-            # Run the MPC setup
 
-            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
-
-            # Initialize the state and control vector as David does
-            for stage in range(self.N_horizon + 1):
-                self.ocp_solver.set(stage, "x", x0)
-            for stage in range(self.N_horizon):
-                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-
-            self._initialized = True
-
-        elif self.ref_is_traj == False:
+        elif not self.ref_is_traj:
             self.Nsim = 1 # TODO:fix the Nsim issue. This is to trick the print statement in the loginfo
-            mission_state = self._dive_sub.get_mission_state()
 
-            if mission_state == MissionStates.RECEIVED:
-                self._loginfo_once("Mission Received")
-                self._set_actuators_neutral()
-                return
-
-            if mission_state == MissionStates.COMPLETED:
-                self._loginfo_once("Mission Complete")
-                self._set_actuators_neutral()
-                return
-
-            if mission_state == MissionStates.CANCELLED:
-                self._loginfo_once("Mission Cancelled")
-                self._set_actuators_neutral()
-                return
-
-        # Engage actuators in case they were off before.
-        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
-        
-        if not self.ref_is_traj:
-            
             if not self._dive_sub.has_waypoint():
                 self._loginfo(f"No waypoint available")
                 return
             
             x0 = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
-
-            # Run the MPC setup
-            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
-
-            # Initialize the state and control vector as David does
-            for stage in range(self.N_horizon+1):
-                self.ocp_solver.set(stage, "x", x0)
-            for stage in range(self.N_horizon):
-                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
             # Get Waypoint information
             waypoint = self._dive_sub.get_odom_waypoint()
@@ -681,7 +652,26 @@ class DiveControllerMPC(DiveControllerInterface):
             waypoint_q_z = waypoint.orientation.z
             rpm_setpoint = self._dive_sub.get_rpm_setpoint()
 
+        if not self._initialized:
+            # Declare the initial state based on where the robot is right now
+            tmp = self._dive_sub.get_states()
+            while tmp is None:
+                self._loginfo(f"tmp: {tmp}")
+                self._loginfo_once("Waiting for states")
+                return
+            
+            # Run the MPC setup
+            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
+
+            # Initialize the state and control vector as David does
+            for stage in range(self.N_horizon + 1):
+                self.ocp_solver.set(stage, "x", x0)
+            for stage in range(self.N_horizon):
+                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
+
             self._initialized = True
+                    
+        # TODO: RESTRUCTURING UNTIL HERE - Continue below
 
         # Get the current state
         x_current = self.get_current_state(self._current_state, self._current_control)
