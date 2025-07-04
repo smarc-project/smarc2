@@ -514,9 +514,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # them. Not good, but all attempts to force it to use a specific
         # directory failed so far.
 
-        # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False # NOTE: Don't change until the previous fixme is resolved.
-        self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
+
 
         # Convenience Topics
         self._current_state = None
@@ -525,17 +523,24 @@ class DiveControllerMPC(DiveControllerInterface):
         self._error = None
         self._input = None
 
-        # Extract the CasADi model
-        sam = SAM_casadi(dt=self._dt)
-
         # Declare counter
         self.i = 0
+
+        # Extract the CasADi model
+        sam = SAM_casadi(dt=self._dt)
+        
+        # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
+        build = False # NOTE: Don't change until the previous fixme is resolved.
+        self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
 
         # create ocp object to formulate the OCP
         self.N_horizon = 12 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
+
+        # Run the MPC setup
+        self.ocp_solver, self.integrator = self.nmpc.setup()
         
         self.ref_is_traj = False
         difficulty = 'easy'
@@ -656,9 +661,6 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo(f"tmp: {tmp}")
                 self._loginfo_once("Waiting for states")
                 return
-            
-            # Run the MPC setup
-            self.ocp_solver, self.integrator = self.nmpc.setup(x0)
 
             # Initialize the state and control vector as David does
             for stage in range(self.N_horizon + 1):
