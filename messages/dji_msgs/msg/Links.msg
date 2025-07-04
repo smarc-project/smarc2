@@ -3,10 +3,12 @@
 # Most are published by the dji_captain node
 #
 
-string ODOM = 'odom'
 string UTM = 'utm'
+string MAP = 'map'
+string ODOM = 'odom'
+string HOME_POINT = 'home_point'
+
 string BASE_LINK = 'base_link'
 string BASE_FLAT = 'base_flat_link'
 string BASE_ENU = 'base_ENU_link'
-string HOME_POINT = 'home_point'
 
