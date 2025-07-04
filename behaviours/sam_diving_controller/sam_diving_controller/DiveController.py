@@ -528,9 +528,9 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Extract the CasADi model
         sam = SAM_casadi(dt=self._dt)
-        
+
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False # NOTE: Don't change until the previous fixme is resolved.
+        build = True # NOTE: Don't change until the previous fixme is resolved.
         self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
 
         # create ocp object to formulate the OCP
@@ -648,11 +648,14 @@ class DiveControllerMPC(DiveControllerInterface):
             waypoint_x = waypoint.position.x
             waypoint_y = waypoint.position.y
             waypoint_z = waypoint.position.z
-            waypoint_q_w = waypoint.orientation.w
-            waypoint_q_x = waypoint.orientation.x
-            waypoint_q_y = waypoint.orientation.y
-            waypoint_q_z = waypoint.orientation.z
-            rpm_setpoint = self._dive_sub.get_rpm_setpoint()
+
+            # For heading
+            heading = np.arctan2(waypoint_y-x0[1], waypoint_x-x0[0])
+            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
+            waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
+            waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
+            waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
+            waypoint_q_z = waypoint_q[3] #waypoint.orientation.z
 
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
@@ -732,8 +735,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ref[:, 4] = waypoint_q_x
             self.ref[:, 5] = waypoint_q_y
             self.ref[:, 6] = waypoint_q_z
-            self.ref[:, 17] = rpm_setpoint
-            self.ref[:, 18] = rpm_setpoint
+
 
             # Update reference vector
             # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
