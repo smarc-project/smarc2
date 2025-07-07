@@ -530,7 +530,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = True # NOTE: Don't change until the previous fixme is resolved.
+        build = False # NOTE: Don't change until the previous fixme is resolved.
         self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
 
         # create ocp object to formulate the OCP
