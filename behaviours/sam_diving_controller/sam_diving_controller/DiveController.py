@@ -509,13 +509,6 @@ class DiveControllerMPC(DiveControllerInterface):
 
         super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
-        # FIXME: This needs to be fixed. Acados places the generated C files in
-        # the current directory. So we litter the whole ros workspace with
-        # them. Not good, but all attempts to force it to use a specific
-        # directory failed so far.
-
-
-
         # Convenience Topics
         self._current_state = None
         self._current_control = None
@@ -532,6 +525,10 @@ class DiveControllerMPC(DiveControllerInterface):
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
         build = False # NOTE: Don't change until the previous fixme is resolved.
         self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
+        # FIXME: This needs to be fixed. Acados places the generated C files in
+        # the current directory. So we litter the whole ros workspace with
+        # them. Not good, but all attempts to force it to use a specific
+        # directory failed so far.
 
         # create ocp object to formulate the OCP
         self.N_horizon = 12 # Prediction horizon
@@ -640,7 +637,7 @@ class DiveControllerMPC(DiveControllerInterface):
             if not self._dive_sub.has_waypoint():
                 self._loginfo(f"No waypoint available")
                 return
-            
+
             x0 = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
 
             # Get Waypoint information
@@ -650,7 +647,9 @@ class DiveControllerMPC(DiveControllerInterface):
             waypoint_z = waypoint.position.z
 
             # For heading
-            heading = np.arctan2(waypoint_y-x0[1], waypoint_x-x0[0])
+            if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
+                self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
+            heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
             waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
             waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
             waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
