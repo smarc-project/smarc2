@@ -8,7 +8,7 @@
 # Control topics
 ########################
 # States
-string STATES = 'core/odom_gt' # Type: Odometry
+string STATES = 'smarc/odom' # Type: Odometry
 string DEPTH = 'dr/depth' # Type: Float64
 string PITCH = 'core/imu' # Type: 
 
@@ -17,10 +17,6 @@ string DEPTH_SETPOINT = 'ctrl/depth_setpoint' # Type: Float64
 string PITCH_SETPOINT = 'ctrl/pitch_setpoint' # Type: Float64
 string WAYPOINT = 'ctrl/waypoint' # Type: PoseWithCovarianceStamped
 string TRAJ_MPC = 'ctrl/traj_mpc' # Type: smarc_control_msgs/TrajectoryMPC
-
-# Mocap
-string MOCAP_HYDROPOINT = '/mocap/hula/pose' # Type: PoseStamped
-string MOCAP_STATE = '/mocap/sam_mocap/odom' # Type: Odometry
 
 # Convenience Topics
 string STATES_CONV = 'ctrl/conv/states' # Type: ControlState
@@ -39,4 +35,11 @@ string TELEOP_ENABLE = 'teleop/enable'
 string ASSIST_ENABLE = 'teleop/drive_assist_enable'
 string ELEVATOR_PID_CTRL = 'ctrl/elevator_pid/ctrl_effort'
 
-
+# Convenience topics published by the utilities/odom_splitter node.
+string CONTROL_YAW_TOPIC = "ctrl/yaw"              # Float32
+string CONTROL_YAW_RATE_TOPIC = "ctrl/yawrate"     # Float32
+string CONTROL_PITCH_TOPIC = "ctrl/pitch"          # Float32
+string CONTROL_PITCH_RATE_TOPIC = "ctrl/pitchrate" # Float32
+string CONTROL_ROLL_TOPIC = "ctrl/roll"            # Float32
+string CONTROL_ROLL_RATE_TOPIC = "ctrl/rollrate"   # Float32
+string CONTROL_SURGE_RATE_TOPIC = "ctrl/surgerate" # Float32

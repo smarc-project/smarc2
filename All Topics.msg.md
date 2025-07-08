@@ -108,6 +108,13 @@
 -  TELEOP_ENABLE :  'teleop/enable'
 -  ASSIST_ENABLE :  'teleop/drive_assist_enable'
 -  ELEVATOR_PID_CTRL :  'ctrl/elevator_pid/ctrl_effort'
+-  CONTROL_YAW_TOPIC :  "ctrl/yaw"              
+-  CONTROL_YAW_RATE_TOPIC :  "ctrl/yawrate"     
+-  CONTROL_PITCH_TOPIC :  "ctrl/pitch"          
+-  CONTROL_PITCH_RATE_TOPIC :  "ctrl/pitchrate" 
+-  CONTROL_ROLL_TOPIC :  "ctrl/roll"            
+-  CONTROL_ROLL_RATE_TOPIC :  "ctrl/rollrate"   
+-  CONTROL_SURGE_RATE_TOPIC :  "ctrl/surgerate" 
 ## Topics in file: [messages/lolo_msgs/msg/Topics.msg](messages/lolo_msgs/msg/Topics.msg)
 
 -  RUDDER_CMD :  "actuators/rudder_cmd"
@@ -128,7 +135,7 @@
 -  THRUSTER_STRB_FB :  "actuators/thruster_strb_fb"
 -  VERTICAL_THRUSTER_BACK_PORT_FB :  "actuators/vertical_thruster_back_port_fb"
 -  VERTICAL_THRUSTER_BACK_STRB_FB :  "actuators/vertical_thruster_back_strb_fb"
--  VERTICAL_THRUSTER_FRONT_PORT_FB :  "actuators/vertical_thruster_front_strb_fb"
+-  VERTICAL_THRUSTER_FRONT_PORT_FB :  "actuators/vertical_thruster_front_port_fb"
 -  VERTICAL_THRUSTER_FRONT_STRB_FB :  "actuators/vertical_thruster_front_strb_fb"
 -  HEARTBEAT_TOPIC :  "heartbeat"
 -  LEAK_TOPIC :  "leak"
@@ -151,6 +158,28 @@
 -  SATELITE_RECEIVED_TOPIC :  "communication/satelite_received"
 -  USBL_RECEIVED_TOPIC :  "communication/usbl/received"
 -  USBL_RECEIVED_CHR_TOPIC :  "communication/usbl/received/chr"
+-  INS_ODOM_TOPIC :  "ins_odom"
+-  INS_RAW_TOPIC :  "/ix/ins"
+-  INS_IMU_TOPIC :  "/standard/imu"
+-  GPS_RAW_TOPIC :  sensors/gps/raw
+-  GPS_TOPIC :  sensors/gps
+-  SVS_RAW_TOPIC :  sensors/svs/raw
+-  SVS_TOPIC :  sensors/svs
+-  CTD_RAW_TOPIC :  sensors/ctd/raw
+-  CTD_TOPIC :  sensors/ctd
+-  DO_RAW_TOPIC :  sensors/do/raw
+-  DO_TOPIC :  sensors/do
+-  TURB_RAW_TOPIC :  sensors/turbidity/raw
+-  TURB_TOPIC :  sensors/turbidity
+-  FLUORESCENCE_RAW_TOPIC :  sensors/fluorescence/raw
+-  FLUORESCENCE_TOPIC :  sensors/fluorescence
+-  DVL_TOPIC :  sensors/dvl
+-  FLS_WC_TOPIC :  sensors/fls/watercolumn
+-  FLS_IMAGE_TOPIC :  sensors/fls/watercolumn/image
+-  MBES_WC_TOPIC :  sensors/fls/watercolumn
+-  MBES_IMAGE_TOPIC :  sensors/fls/watercolumn/image
+-  MBES_BATHY_TOPIC :  sensors/fls/bathymetry
+-  MBES_BATHY_POINTCLOUD_TOPIC :  sensors/fls/bathymetry/points
 ## Topics in file: [messages/smarc_msgs/msg/Topics.msg](messages/smarc_msgs/msg/Topics.msg)
 
 -  GPS_TOPIC :  'core/gps'
@@ -209,9 +238,12 @@
 -  'core/imu': 
     - [ STIM_IMU_TOPIC ](messages/sam_msgs/msg/Topics.msg)
     - [ IMU_TOPIC ](messages/drone_msgs/msg/Topics.msg)
--  "actuators/vertical_thruster_front_strb_fb": 
-    - [ VERTICAL_THRUSTER_FRONT_PORT_FB ](messages/lolo_msgs/msg/Topics.msg)
-    - [ VERTICAL_THRUSTER_FRONT_STRB_FB ](messages/lolo_msgs/msg/Topics.msg)
+-  sensors/fls/watercolumn: 
+    - [ FLS_WC_TOPIC ](messages/lolo_msgs/msg/Topics.msg)
+    - [ MBES_WC_TOPIC ](messages/lolo_msgs/msg/Topics.msg)
+-  sensors/fls/watercolumn/image: 
+    - [ FLS_IMAGE_TOPIC ](messages/lolo_msgs/msg/Topics.msg)
+    - [ MBES_IMAGE_TOPIC ](messages/lolo_msgs/msg/Topics.msg)
 -  'core/gps': 
     - [ GPS_TOPIC ](messages/smarc_msgs/msg/Topics.msg)
     - [ GPS_TOPIC ](messages/drone_msgs/msg/Topics.msg)

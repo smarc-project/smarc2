@@ -1,13 +1,22 @@
 #!/usr/bin/python3
 
 import rclpy
+from rclpy.node import Node
 import sys
 
+from .ParamUtils import DivingModelParam
 from .SAMDivePub import SAMDivePub
 from .ActionServerDiveSub import DiveActionServerSub
 from .DiveSub import DiveSub
 from .DiveController import DepthJoyControllerPID, DiveControllerPID, DiveControllerMPC 
 from .ConveniencePub import ConveniencePub
+from smarc_action_base.smarc_action_base import (
+    ActionResult,
+    ActionType,
+    SMARCActionServer,
+)
+from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.msg import Topics as SMaRCTopics
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -68,7 +77,7 @@ def joy_depth():
     """
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DivingNode")
+    node = rclpy.create_node("JoyDivingNode")
 
     node.declare_parameter('dive_pub_rate', 0.1)
     node.declare_parameter('dive_controller_rate', 0.1)
@@ -83,9 +92,10 @@ def joy_depth():
 
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
-    dive_pub = SAMDivePub(node)
-    dive_sub = DiveSub(node, dive_pub) 
-    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, dive_controller_rate)
+    param = DivingModelParam(node).get_param()
+    dive_sub = DiveSub(node, param) 
+    dive_pub = SAMDivePub(node, dive_sub, param)
+    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     #convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
@@ -116,7 +126,7 @@ def joy_depth():
 def action_server():
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DivingNode")
+    node = rclpy.create_node("ActionServerDivingNode")
 
     node.declare_parameter('dive_pub_rate', 0.1)
     node.declare_parameter('dive_controller_rate', 0.1)
@@ -131,9 +141,12 @@ def action_server():
 
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
-    dive_pub = SAMDivePub(node)
-    dive_sub = DiveActionServerSub(node, dive_pub)
-    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, dive_controller_rate)
+    param = DivingModelParam(node).get_param()
+    action_type = ActionType(BaseAction)
+    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
+    dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
+    dive_pub = SAMDivePub(node, dive_sub, param)
+    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 

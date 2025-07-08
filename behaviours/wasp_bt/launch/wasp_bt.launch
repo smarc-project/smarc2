@@ -1,0 +1,29 @@
+<launch>
+    <arg name="robot_name" default="sam0"/>
+    <arg name="use_sim_time" default="true"/>
+    <!-- Set to _gt if you want to use the ground truth from the sim -->
+    <arg name="link_suffix" default=""/>
+    <arg name="agent_type" default="air"/>
+    <arg name="pulse_rate" default="1.0"/>
+    <arg name="bt_log_mode" default="verbose"/>
+
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+            <node name="wasp_bt" pkg="wasp_bt" exec="wasp_bt" output="screen">
+                <param name="use_sim_time" value="$(var use_sim_time)" />
+                <param name="link_suffix" value="$(var link_suffix)"/>
+                <param name="robot_name" value="$(var robot_name)"/>
+                <param name="agent_type" value="$(var agent_type)"/>
+                <param name="pulse_rate" value="$(var pulse_rate)"/>
+                <param name="bt_log_mode" value="$(var bt_log_mode)"/>
+            </node>
+    </group>
+
+    <include file="$(find-pkg-share wasp_bt)/launch/wasp_mqtt_agent.launch">
+        <arg name="robot_name" value="$(var robot_name)"/>
+        <arg name="use_sim_time" value="$(var use_sim_time)"/>
+        <arg name="link_suffix" value="$(var link_suffix)"/>
+        <arg name="agent_type" value="$(var agent_type)"/>
+        <arg name="pulse_rate" value="$(var pulse_rate)"/>
+    </include>
+</launch>

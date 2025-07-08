@@ -20,9 +20,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Status.msg"
   "msg/Temperatures.msg"
   "msg/UsblTopsideCorrection.msg"
+  "msg/CustomCommand.msg"
   "msg/VescFeedback.msg"
   "msg/VolzServo.msg"
   "msg/Topics.msg"
+  "msg/Links.msg"
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs
  )
 

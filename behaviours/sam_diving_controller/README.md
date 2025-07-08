@@ -28,12 +28,14 @@ Both launch files call Node.py, which takes care of the rest.
 
 If you want to test something and provide your own waypoint, that's the way to go.
 
-### ActionServerDiveController.py
+### ActionServerDiveSub.py
 
-Inherits from DiveController.py, but allows you to interface with the BT action
-server instead.
+Inherits from DiveSub and the SMARCActionServer, but allows you to interface
+with the BT action server instead. The action implemented is a
+`auv-depth-move-to` action which requires a positive desired depth, rpm, and
+the waypoint from the GUI.
 
-### ConvenienceView.py
+### ConveniencePub.py
 
 Defines control convenience topics and publishes to them. That is:
     - current state
@@ -43,29 +45,50 @@ Defines control convenience topics and publishes to them. That is:
     - current waypoint
 All are published under /conv/ to make it easier to read them out afterwards.
 
+### DiveSub.py
+
+Reads out all robot states and provides the `get/set` methods for the
+controller.
+
 ### DiveController.py
 
-Reads out all robot states. This is a MVC Controller, not a control theory
-controller!
+This files contains all controller classes available. The I/O interface can
+change between them, depending on their respective needs. All classes inherit
+from `DiveControllerInterace` which provides all common functions. The control
+happens in the update function of the respective controller. Right now we have
+the following controller classes:
 
-### DivingModel.py
+#### DiveControllerPID
 
-This is the actual control, currently running several PIDs. All parameters are
-specified in sam\_diving\_controller\_config.yaml. Each PID gain, min, max, and
-neutral actuator values as well as emergency actuator values.
+Basic PID controller for waypoint following. Distinguishes between static and
+dynamic diving and uses either VBS/LCG for static diving or thrust-vectoring
+for dynamic diving. All parameters are specified in
+sam\_diving\_controller\_config.yaml. Each PID gain, min, max, and neutral
+actuator values as well as emergency actuator values.
 
-### IDiveView.py
+#### DepthJoyControllerPID
 
-Interface for the DiveView. Defines the mission states enum.
+This is a smaller version of the `DiveControllerPID` which we use for keeping
+depth when using the joystick for teleop. It keeps the desired depth and pitch,
+but allows the operator to maneuver the AUV.
+
+#### DiveControllerMPC
+
+This implements a MPC for waypoint following.
+
+### IDivePub.py
+
+Interface for the DivePub. Defines the mission states enum.
 
 ### Node.py
 
-Runs the different MVC nodes plus a convenience node for extra rostopics. 
+Runs the different MVC nodes plus a convenience node for extra rostopics. This
+node loads all required parameters.
 
 Requires the following parameter:
-    - view\_rate: rate of the view node
-    - model\_rate: rate of the model node
+    - pub\_rate: rate of the publisher node
     - controller\_rate: rate of the controller node
+    - sub\_rate: rate of the subscriber node
     - convenience\_rate: rate of the convenience node
 
 These are set in sam\_diving\_controller\_config.yaml.
@@ -74,7 +97,7 @@ These are set in sam\_diving\_controller\_config.yaml.
 
 Reads out all parameters for the DivingModel.py
 
-### SAMDiveView.py
+### SAMDivePub.py
 
 Publishes all actuator commands. Contains the corresponding set methods.
 Requires the following SamTopics:
@@ -95,5 +118,9 @@ Contains the config file for this package
 ## rviz
 
 Sample rviz layout to follow the vehicle and visualize the waypoints.
+
+## plotjuggler
+
+Sample plotjuggler layout to analyse rosbags.
 
 

@@ -59,7 +59,7 @@ class GeopointServer(SMARCActionServer):
         self.declare_parameters()
 
         self._pub_setpoint = self._node.create_publisher(
-            Pose, f"{self._setpoint_topic}", 2
+            PoseStamped, f"{self._setpoint_topic}", 2
         )
         self.logger.set_level(logging.LoggingSeverity.INFO)
         self._json_ops: GeoActionParsing = GeoActionParsing()
@@ -206,7 +206,8 @@ class GeopointServer(SMARCActionServer):
             #     "Position after transform:" + self._str_posestamp(pose_transformed)
             # )
         except TransformException as err:
-            err_str = "Failed to compute transform when computing distance to target"
+            err_str = f"Failed to compute transform when computing distance to target. In: {pose_stamped.header.frame_id} to {self.distance_frame}.\n"
+            self.logger.error(err_str)
             raise TransformException(err_str) from err
 
         pose_delta = pose_transformed.pose
@@ -267,6 +268,7 @@ class GeopointServer(SMARCActionServer):
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
+
             self.logger.debug(
                 f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
             )
@@ -281,10 +283,16 @@ class GeopointServer(SMARCActionServer):
             f"Publishing to {self._setpoint_topic}, Setpoint"
             + self._str_posestamp(self.goal_base_link)
         )
-        self._pub_setpoint.publish(self.goal_base_link.pose)
+        self._pub_setpoint.publish(self.goal_base_link)
 
-        self.feedback_loop(pose_stamped, goal_handle)
-        if not self.is_valid_goal:
+        status = self.feedback_loop(pose_stamped, goal_handle)
+
+        if status == "cancelled":
+            self.logger.info("Goal was cancelled by client.")
+            result_msg.success = False
+            return result_msg
+
+        if status == "invalid":
             result_msg.success = False
             return result_msg
 
@@ -308,7 +316,7 @@ class GeopointServer(SMARCActionServer):
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
-            err_str = "Could not successfully compute transform. Rejecting goal!\n"
+            err_str = "Could not successfully compute distance!. Rejecting goal!\n"
             exec_up = TransformException(err_str)
             exec_up.__cause__ = err
             # Adding error message to traceback for debug log.
@@ -343,22 +351,6 @@ class GeopointServer(SMARCActionServer):
             Cancel response as ACCEPT
         """
         self.logger.info("Received Cancel Request")
-        pose_msg = PoseStamped()
-        try:
-            t = self._tf_buffer.lookup_transform(
-                target_frame=self.target_frame,
-                source_frame=self.distance_frame,
-                time=Time(),
-                timeout=Duration(nanoseconds=int(0.7 * 1e9)),
-            )
-            pose_msg.pose.position.x = t.transform.translation.x
-            pose_msg.pose.position.y = t.transform.translation.y
-            pose_msg.pose.position.z = t.transform.translation.z
-            self.logger.debug(self._str_posestamp(pose_msg))
-            self._pub_setpoint.publish(pose_msg.pose)
-        except TransformException:
-            self.logger.error("Could not lookup transform to cancel goal.")
-            return CancelResponse.REJECT
         return CancelResponse.ACCEPT
 
     def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
@@ -368,34 +360,69 @@ class GeopointServer(SMARCActionServer):
             pose_stamped: target location
             goal_handle: passed in to enable feedback publishing
         """
-        rate = self._node.create_rate(2)
+        rate = self._node.create_rate(10)
         d = self.compute_distance(pose_stamped)
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
 
         while not tol_check:
-            self.logger.info(f"Goal handle active: {self.is_valid_goal}")
-            # TODO: (Tim) Is there anyway to not check this in the loop
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client.")
+                goal_handle.canceled()
+                self.publish_stop_setpoint()  # <-- Added this
+                return "cancelled"
             if not self.is_valid_goal:
-                return
+                return "invalid"
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
+            self.goal_base_link.header.stamp = self._node.get_clock().now().to_msg()
+            self._pub_setpoint.publish(self.goal_base_link)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
-            # self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
 
         rate.destroy()
-        return
+        return "done"
+    
+    def publish_stop_setpoint(self):
+        """
+        Publish a stop/hold setpoint to the robot at its current position in the target frame.
+        """
+        stop_pose = PoseStamped()
+        stop_pose.header.stamp = self._node.get_clock().now().to_msg()
+        stop_pose.header.frame_id = self.target_frame
+
+        try:
+            # Get the robot's current pose in the target frame
+            # Use the robot's base_link or equivalent as the source frame
+            current_pose = self._tf_buffer.lookup_transform(
+                target_frame=self.target_frame,
+                # use the distance frame as the source frame
+                source_frame=self.distance_frame,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1),
+            )
+            stop_pose.pose.position.x = current_pose.transform.translation.x
+            stop_pose.pose.position.y = current_pose.transform.translation.y
+            stop_pose.pose.position.z = current_pose.transform.translation.z
+            stop_pose.pose.orientation = current_pose.transform.rotation
+        except Exception as e:
+            self.logger.warn(f"Could not get current robot pose for stop setpoint: {e}")
+            stop_pose.pose.position.x = 0.0
+            stop_pose.pose.position.y = 0.0
+            stop_pose.pose.position.z = 0.0
+
+        self.logger.info("Publishing stop setpoint at current robot position to halt the robot.")
+        self._pub_setpoint.publish(stop_pose)
 
 
 def main(args=None):
     try:
         rclpy.init(args=args)
-        node_name = "setpoint_client"
+        node_name = "setpoint_server"
         node = Node(node_name)
         action_type = ActionType(BaseAction)
-        setpoint = GeopointServer(node, "go_to_setpoint", action_type)
+        setpoint = GeopointServer(node, "move_to", action_type)
         executor = MultiThreadedExecutor()
         executor.add_node(node)
         executor.spin()
