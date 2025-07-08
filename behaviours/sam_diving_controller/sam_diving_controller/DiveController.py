@@ -531,7 +531,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # directory failed so far.
 
         # create ocp object to formulate the OCP
-        self.N_horizon = 12 # Prediction horizon
+        self.N_horizon = 16 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -646,11 +646,27 @@ class DiveControllerMPC(DiveControllerInterface):
             waypoint_y = waypoint.position.y
             waypoint_z = waypoint.position.z
 
-            # For heading
+            # OLD waypoint heading calculation
             if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
                 self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
             heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
             waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
+
+            # For heading
+            # if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
+            #     self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
+            # r = R.from_quat([self.x0_heading[4], self.x0_heading[5], self.x0_heading[6], self.x0_heading[3]])  # Note: [x, y, z, w] order
+            # init_heading = r.as_euler('xyz', degrees=False)
+            # heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
+            # heading_waypoint = R.from_euler('z', heading, degrees=False)  # Convert to quaternion with scalar first
+            # waypoint_q = heading_waypoint.as_quat(scalar_first=True)
+
+
+            # if np.abs(init_heading[2]-heading) > np.pi/2:
+            #     q_rot = R.from_euler('z', 180, degrees=True)
+            #     q_new = q_rot * heading_waypoint
+            #     waypoint_q = q_new.as_quat(scalar_first=True)
+
             waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
             waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
             waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
@@ -735,7 +751,6 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ref[:, 5] = waypoint_q_y
             self.ref[:, 6] = waypoint_q_z
 
-
             # Update reference vector
             # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
             # set the following waypoints in the horizon to the last waypoint of the trajectory
@@ -772,14 +787,20 @@ class DiveControllerMPC(DiveControllerInterface):
         self.prev_vbs = u_vbs
         self.prev_lcg = u_lcg
 
-        s = f"\nMPC Check step {self.i}/{self.Nsim}: \n"
+        s = f"\nMPC Check step {self.i}/{self.Nsim}:\n"
         s += "Linear:\n"
         s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]}\n"
 
         s += "Quaternions:\n"
-        s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-        s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
+        r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
+        euler = r.as_euler('xyz', degrees=True)
+        s += f"Unity   : {euler}\n"
+        #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
+        #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
+        r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
+        euler = r.as_euler('xyz', degrees=True)
+        s += f"Uni. Ref: {euler}\n"
         s += f"NMPC:      Control:\nvbs: {u_vbs:.2f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.0f}, rpm2: {u_rpm2:.0f}\n"
         s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.4f}, lcg: {x_current[14]:.4f}, stern: {x_current[15]:.4f}, rudder: {x_current[16]:.4f}, rpm1: {x_current[17]:.2f}, rpm2: {x_current[18]:.2f}\n"
 
