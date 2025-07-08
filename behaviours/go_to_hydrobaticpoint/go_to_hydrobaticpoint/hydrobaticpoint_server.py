@@ -259,8 +259,6 @@ class HydropointServer(SMARCActionServer):
         # rate = self._node.create_rate()
 
         # rate.sleep()
-        time.sleep(5)
-        self._pub_setpoint.publish(hydropoint)
         self.feedback_loop(hydropoint, goal_handle)
 
         # Action succeeded
@@ -335,6 +333,8 @@ class HydropointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
+            self._pub_setpoint.publish(pose_stamped)
+
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()
