@@ -22,6 +22,7 @@ from rclpy.action import ActionClient
 # Path planning modules from smarc_modelling go here
 from smarc_modelling.vehicles.SAM import SAM
 from smarc_modelling.motion_planning.MotionPrimitives.MainScript import MotionPlanningROS
+#from smarc_modelling.sam_sim import plot_results, Sol
 
 class SamPathPlanner(Node):
 
@@ -52,14 +53,18 @@ class SamPathPlanner(Node):
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self, PercentStamped, SamTopics.LCG_FB_TOPIC)
         self.vbs_fb = Subscriber(self, PercentStamped, SamTopics.VBS_FB_TOPIC)
-        self.thrusters_cmd = Subscriber(self, ThrusterAngles , SamTopics.THRUST_VECTOR_CMD_TOPIC)
-        self.rpm1_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC)
-        self.rpm2_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC)
+        #self.thrusters_cmd = Subscriber(self, ThrusterAngles , SamTopics.THRUST_VECTOR_CMD_TOPIC)
+        self.thrusters_cmd = Subscriber(self, ThrusterAngles , 'with_header/thrust_vector_cmd')
+        # self.rpm1_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER1_FB_TOPIC)
+        # self.rpm2_fb = Subscriber(self, ThrusterFeedback, SamTopics.THRUSTER2_FB_TOPIC)
+        self.rpm1_fb = Subscriber(self, ThrusterFeedback, 'with_header/thruster1_fb')
+        self.rpm2_fb = Subscriber(self, ThrusterFeedback, 'with_header/thruster2_fb')
 
         self.ctrl_synch_msg = ApproximateTimeSynchronizer(
-            [self.vbs_fb, self.lcg_fb, self.thrusters_cmd, self.rpm1_fb, self.rpm2_fb],
+            [self.vbs_fb, self.lcg_fb],
             queue_size = 100,
-            slop = 0.0001
+            slop = 10, 
+            allow_headerless=True
         )
         self.ctrl_synch_msg.registerCallback(self.ctrl_synch_cb)
 
@@ -102,8 +107,15 @@ class SamPathPlanner(Node):
         
         rate = self.create_rate(self.node_rate)  # Hz rate
         while rclpy.ok():
-            rclpy.spin_once(self, timeout_sec=0.0) 
+            #rclpy.spin_once(self, timeout_sec=0.0) 
 
+            if self.sam_goal_t == PoseStamped():
+                self._logger.info(f"Missing goal")
+            if self.sam_pose_t == None:
+                self._logger.info(f"Missing pose")
+            if self.sam_control_t == None:
+                self._logger.info(f"Missing control")
+            
             # If goal is empty or feedback has not been received yet, keep spinning
             if self.sam_goal_t != PoseStamped() and self.sam_pose_t != None and self.sam_control_t != None:
     
@@ -125,11 +137,35 @@ class SamPathPlanner(Node):
                         self.sam_pose_t.twist.twist.angular.z,
                         self.sam_control_t.vbs.value,
                         self.sam_control_t.lcg.value ,
-                        self.sam_control_t.thruster_angles.thruster_vertical_radians,
-                        self.sam_control_t.thruster_angles.thruster_horizontal_radians,
-                        self.sam_control_t.rpms.thruster_1_rpm,
-                        self.sam_control_t.rpms.thruster_2_rpm
+                        0., 0., 0., 0
+                        # self.sam_control_t.thruster_angles.thruster_vertical_radians,
+                        # self.sam_control_t.thruster_angles.thruster_horizontal_radians,
+                        # self.sam_control_t.rpms.thruster_1_rpm,
+                        # self.sam_control_t.rpms.thruster_2_rpm
                     ])
+                
+                # # Getting the current orientation of the goal
+                # q0_goal_before = self.sam_goal_t.pose.orientation.w
+                # q1_goal_before = self.sam_goal_t.pose.orientation.x
+                # q2_goal_before = self.sam_goal_t.pose.orientation.y
+                # q3_goal_before = self.sam_goal_t.pose.orientation.z
+                # r = R.from_quat([q1_goal_before, q2_goal_before, q3_goal_before, q0_goal_before])
+                # roll, pitch, yaw = r.as_euler('xyz', degrees=False)
+                
+
+                # # From Euler to Quat
+                # #yaw = np.deg2rad(20)
+                # #pitch = np.deg2rad(-10)
+                # roll = np.deg2rad(0)
+                # r = R.from_euler('zyx', [yaw, pitch, roll])
+                # q = r.as_quat()
+                # q0 = q[3]
+                # q1, q2, q3 = q[0:3]
+                # self.get_logger().info(f"Yaw:...{yaw:.2f}, Pitch:{pitch:.2f}, Roll:{roll}")
+
+                # r = R.from_quat([q1, q2, q3, q0])
+                # roll, pitch, yaw = r.as_euler('xyz', degrees=False)
+                # self.get_logger().info(f"Yaw2:...{yaw:.2f}, Pitch2:{pitch:.2f}, Roll2:{roll}")
 
                 # === End state ===
                 end_state = np.array([
@@ -140,6 +176,7 @@ class SamPathPlanner(Node):
                         self.sam_goal_t.pose.orientation.x,
                         self.sam_goal_t.pose.orientation.y,
                         self.sam_goal_t.pose.orientation.z,
+                        # q0,q1,q2,q3,
                         0, 0, 0,
                         0, 0, 0,
                         50, 50, 0, 0, 0, 0
@@ -150,10 +187,25 @@ class SamPathPlanner(Node):
                 map_boundaries = (self.x_max, self.y_max, self.z_max, self.x_min, self.y_min, self.z_min)
                 map_resolution = self.TILESIZE
 
+                #Print the states
+                self.get_logger().info(f"Initial state:...{start_state}")
+                self.get_logger().info(f"-----------")
+                self.get_logger().info(f"Final State:...{end_state}")
+
+
                 ## Call the planner
                 self.get_logger().info(f'Calling planner...')
                 trajectory, successful = MotionPlanningROS(start_state, end_state, map_boundaries, map_resolution)
 
+                # ## Plot the inputs 
+                # if successful == 1:
+                #     sol = np.asarray(trajectory).T  # the columns are the states
+                #     t_eval = np.linspace(0, 0.1*len(trajectory), len(trajectory))
+                #     sol = Sol(t_eval, sol)
+                    
+                #     plot_results(sol)
+                #     self.get_logger().info(f'Inputs successfully plotted')
+                
                 ## Publish trajectory for Rviz
                 self.publishTrajectoryRviz(trajectory)
 
@@ -226,11 +278,16 @@ class SamPathPlanner(Node):
         # Define your map somewhere here
 
     def target_cb(self, msg: PoseStamped):
-        self.get_logger().info(f'---------------Received goal')
-        self.sam_goal_t = msg   
+        
+        if self.sam_goal_t != msg:
+            self.sam_goal_t = msg   
+            self.get_logger().info(f'Received new goal')
+        
         # The action server will send an empty msg when cancelling
         if self.sam_goal_t == PoseStamped():
             self.cancel_goal()
+            self.get_logger().info(f'Cancelled goal')
+
 
     def state_cb(self, msg: Odometry):
         #self.get_logger().info(f'Received state')
@@ -252,14 +309,14 @@ class SamPathPlanner(Node):
         self.sam_pose_t.pose.pose.orientation.y = t.transform.rotation.y
         self.sam_pose_t.pose.pose.orientation.z = t.transform.rotation.z
 
-    def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped, dsdr_cmd_msg: ThrusterAngles, rpm1_fb_msg: ThrusterFeedback, rpm2_fb_msg: ThrusterFeedback):
+    def ctrl_synch_cb(self, vbs_fb_msg: PercentStamped, lcg_fb_msg: PercentStamped):
         #self.get_logger().info(f'Received ctrl inputs')
         self.sam_control_t = SamControl()
         self.sam_control_t.vbs = vbs_fb_msg
         self.sam_control_t.lcg = lcg_fb_msg
-        self.sam_control_t.thruster_angles = dsdr_cmd_msg
-        self.sam_control_t.rpms.thruster_1_rpm = rpm1_fb_msg.rpm.rpm
-        self.sam_control_t.rpms.thruster_2_rpm = rpm2_fb_msg.rpm.rpm
+        # self.sam_control_t.thruster_angles = dsdr_cmd_msg
+        # self.sam_control_t.rpms.thruster_1_rpm = rpm1_fb_msg.rpm.rpm
+        # self.sam_control_t.rpms.thruster_2_rpm = rpm2_fb_msg.rpm.rpm
 
     #### AC for the MPC functions from here
     def send_goal(self, goal_msg):
