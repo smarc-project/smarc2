@@ -573,10 +573,10 @@ class DiveControllerMPC(DiveControllerInterface):
         Reads a CSV file and converts the elements to a NumPy array.
 
         Parameters:
-        file_path (str): The path to the CSV file.
+            file_path (str): The path to the CSV file.
 
         Returns:
-        np.array: A NumPy array containing the CSV data.
+            np.array: A NumPy array containing the CSV data.
         """
         data = []
         with open(file_path, 'r') as csvfile:
