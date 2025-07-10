@@ -1,18 +1,20 @@
 <launch>
   <arg name="robot_name" default="sam" />
+  <arg name="tf_suffix" default="_gt"/>
+  <arg name="use_sim_time" default="true"/>
   
-  <node pkg="sam_path_planning" exec="topic_collector_node" name="topic_collector_node" output="screen" 
-    namespace="$(var robot_name)">
+  <node pkg="sam_path_planning" exec="sam_planner_node" name="sam_planner_node" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
   </node>
 
-  <node pkg="sam_path_planning" exec="sam_planner_node" name="sam_planner_node" output="screen" 
-    namespace="$(var robot_name)">
+  <node pkg="go_to_hydrobaticpoint" exec="client" name="hydrobatic_client" output="screen" namespace="$(var robot_name)">
     <param name="robot_name" value="$(var robot_name)" />
-    <param name="use_sim_time" value="false" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
   </node>
 
   <node pkg="go_to_hydrobaticpoint" exec="server" name="hydrobatic_server" output="screen" namespace="$(var robot_name)">
-    <param name="use_sim_time" value="false" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
     <param name="robot_name" value="$(var robot_name)" />
     <param name="target_frame" value="base_link" />
     <param name="distance_frame" value="base_link" />
@@ -22,16 +24,16 @@
     <param name="goal_threshold" value="9" />
   </node>
 
-  <node pkg="go_to_hydrobaticpoint" exec="client" name="hydrobatic_client" output="screen" namespace="$(var robot_name)">
-    <param name="robot_name" value="$(var robot_name)" />
-    <param name="use_sim_time" value="false" />
-  </node>
-  
   <node pkg="sam_emergency_action" exec="server" name="emergency_server" output="screen" namespace="$(var robot_name)">
-    <param name="use_sim_time" value="false" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
     <param name="robot_name" value="$(var robot_name)"/>
     <param name="pub_frequency" value="10"/>
     <param name="lcg_percentage" value="40.0"/>
   </node>
+
+
+  <node name="map_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 map$(var tf_suffix) map_ned$(var tf_suffix)" />
+  <node name="mocap_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 -1 1 1.5707 0 3.1415 $(var robot_name)/odom mocap" />
+  <node name="baselink_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 $(var robot_name)/base_link$(var tf_suffix) $(var robot_name)/base_link_ned$(var tf_suffix) " />
 
 </launch>
