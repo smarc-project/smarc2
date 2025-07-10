@@ -72,6 +72,11 @@ class DiveSub():
         self._depth = None
         self._pitch = None
 
+        # Trajectory tracking variables.
+        self.path = None
+        self.path_len = None
+        self.current_idx = 0
+
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
@@ -295,6 +300,9 @@ class DiveSub():
     def get_odom_waypoint(self):
         return self._waypoint_odom
 
+    def get_path(self):
+        return self.path
+
     def get_goal_tolerance(self):
 
         if self._goal_tolerance is None:
@@ -335,6 +343,13 @@ class DiveSub():
             s = "(Terminal)"
 
         self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
+
+    def set_current_idx(self, idx):
+        """
+        Setting the current index of the trajectory we're following.
+        """
+        
+        self.current_idx = idx
 
     def update(self):
         """
