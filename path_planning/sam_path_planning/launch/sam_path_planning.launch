@@ -31,9 +31,4 @@
     <param name="lcg_percentage" value="40.0"/>
   </node>
 
-
-  <node name="map_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 map$(var tf_suffix) map_ned$(var tf_suffix)" />
-  <node name="mocap_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 -1 1 1.5707 0 3.1415 $(var robot_name)/odom mocap" />
-  <node name="baselink_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 $(var robot_name)/base_link$(var tf_suffix) $(var robot_name)/base_link_ned$(var tf_suffix) " />
-
 </launch>
