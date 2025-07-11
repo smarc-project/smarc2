@@ -8,315 +8,349 @@ This list does not contain the common topics that all nodes have(['parameter_eve
 
 The **robot_name parameter** given to all launch files: test_robot
 
-**SMaRC2 Commit:** 1c17548b2b87fbd0a794bf63639a773667bfe33a
+**SMaRC2 Commit:** 6eb1e7141a930166171b9c7104133afdf065574b
 
-**Created:** 1715868732 (2024-05-16 16:12:12)
+**Created:** 1752245353 (2025-07-11 16:49:13)
 
-## [dead_reckoning_msgs](./messages/dead_reckoning_msgs)
-
-> This package did not have any launch files.
-
-## [dubins_planner](./utilities/dubins_planner)
+## [alars](./behaviours/alars)
 
 > This package did not have any launch files.
 
-## [mqtt_bridge](./external_packages/mqtt_bridge)
+## [alars_auv_search_planner](./path_planning/alars_auv_search_planner)
 
-### [demo.launch.py](./external_packages/mqtt_bridge/launch/demo.launch.py)
+### [search_planning_launch.py](./path_planning/alars_auv_search_planner/launch/search_planning_launch.py)
+
+#### /Quadrotor/SearchPlanner_Controller
+
+##### Service Servers
+
+- **/Quadrotor/get_quadrotor_path** :: *smarc_mission_msgs/srv/DronePath*
+
+- **/Quadrotor/init_auv_search** :: *smarc_mission_msgs/srv/InitAUVSearch*
+
+#### /Quadrotor/SearchPlanner_gridmap
+
+##### Subscribers
+
+- **/Quadrotor/odom_gt** :: *nav_msgs/msg/Odometry*
+
+- **/sam_auv_v1/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/Quadrotor/grid_map** :: *nav_msgs/msg/OccupancyGrid*
+
+- **/Quadrotor/max_prob_cell** :: *geometry_msgs/msg/PointStamped*
+
+#### /Quadrotor/init_actions
+
+##### Subscribers
+
+- **/Quadrotor/odom_gt** :: *nav_msgs/msg/Odometry*
+
+- **/sam_auv_v1/smarc/latlon** :: *geographic_msgs/msg/GeoPoint*
+
+- **/sam_auv_v1/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+##### Publishers
+
+- **/sam_auv_v1/teleport** :: *geometry_msgs/msg/PoseStamped*
+
+#### /Quadrotor/pathplanner_spiral
+
+##### Subscribers
+
+- **/Quadrotor/core/battery** :: *sensor_msgs/msg/BatteryState*
+
+- **/Quadrotor/odom_gt** :: *nav_msgs/msg/Odometry*
+
+- **/sam_auv_v1/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/Quadrotor/move_to_setpoint** :: *geometry_msgs/msg/PoseStamped*
+
+- **/Quadrotor/path** :: *nav_msgs/msg/Path*
+
+- **/sam_auv_v1/position** :: *geometry_msgs/msg/PointStamped*
+
+## [auv_detector](./perception/auv_detector)
+
+### [estimator_detector_auto_winch.launch](./perception/auv_detector/launch/estimator_detector_auto_winch.launch)
+
+#### /test_robot/auv_relative_estimator_node
+
+##### Subscribers
+
+- **/clock** :: *rosgraph_msgs/msg/Clock*
+
+- **/target** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/depth** :: *std_msgs/msg/Float32*
+
+- **/test_robot/core/fpcamera/cam_info** :: *sensor_msgs/msg/CameraInfo*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/test_robot/auv/estimated_relative_position** :: *nav_msgs/msg/Odometry*
+
+- **/test_robot/go_to_setpoint** :: *geometry_msgs/msg/Pose*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/winch_control_test** :: *std_msgs/msg/Float32MultiArray*
+
+#### /test_robot/detector_node
+
+##### Subscribers
+
+- **/test_robot/core/fpcamera/image** :: *sensor_msgs/msg/Image*
+
+##### Publishers
+
+- **/target** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/sam_lowest_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/fpcamera/image_processed** :: *sensor_msgs/msg/Image*
+
+### [estimator_detector_field_test.launch](./perception/auv_detector/launch/estimator_detector_field_test.launch)
+
+#### /test_robot/detector_node
+
+##### Subscribers
+
+- **/Quadrotor/gimbal_camera/image_raw** :: *sensor_msgs/msg/Image*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/target** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/alars_detection/auv** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/alars_detection/buoy** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/alars_detection/middle** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/sam_lowest_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/fpcamera/image_processed** :: *sensor_msgs/msg/Image*
+
+### [detector_only.launch](./perception/auv_detector/launch/detector_only.launch)
+
+#### /test_robot/detector_node
+
+##### Subscribers
+
+- **/test_robot/core/fpcamera/image** :: *sensor_msgs/msg/Image*
+
+##### Publishers
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/sam_lowest_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/fpcamera/image_processed** :: *sensor_msgs/msg/Image*
+
+### [realdata_detector.launch](./perception/auv_detector/launch/realdata_detector.launch)
+
+#### /test_robot/detector_node
+
+##### Subscribers
+
+- **/test_robot/core/fpcamera/image** :: *sensor_msgs/msg/Image*
+
+##### Publishers
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/sam_lowest_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/fpcamera/image_processed** :: *sensor_msgs/msg/Image*
+
+#### /test_robot/video_pipeline_node
+
+##### Publishers
+
+- **/test_robot/realdata/camera/image** :: *sensor_msgs/msg/Image*
+
+### [estimator_detector.launch](./perception/auv_detector/launch/estimator_detector.launch)
+
+#### /test_robot/auv_relative_estimator_node
+
+##### Subscribers
+
+- **/clock** :: *rosgraph_msgs/msg/Clock*
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/depth** :: *std_msgs/msg/Float32*
+
+- **/test_robot/core/fpcamera/cam_info** :: *sensor_msgs/msg/CameraInfo*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/test_robot/auv/estimated_relative_position** :: *nav_msgs/msg/Odometry*
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+#### /test_robot/detector_node
+
+##### Subscribers
+
+- **/test_robot/core/fpcamera/image** :: *sensor_msgs/msg/Image*
+
+##### Publishers
+
+- **/test_robot/auv/buoy_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/auv/sam_lowest_est** :: *std_msgs/msg/Float32MultiArray*
+
+- **/test_robot/core/fpcamera/image_processed** :: *sensor_msgs/msg/Image*
+
+## [dji_captain](./vehicles/hardware/dji/dji_captain)
+
+> This package did not have any launch files.
+
+## [dji_msgs](./messages/dji_msgs)
+
+> This package did not have any launch files.
+
+## [drone_msgs](./messages/drone_msgs)
+
+> This package did not have any launch files.
+
+## [go_to_geopoint](./behaviours/go_to_geopoint)
+
+### [go_to_geopoint_server.launch](./behaviours/go_to_geopoint/launch/go_to_geopoint_server.launch)
+
+#### /test_robot/geopoint_server
+
+##### Subscribers
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/test_robot/go_to_setpoint** :: *geometry_msgs/msg/PoseStamped*
+
+- **/test_robot/waraps/action_server_heartbeat** :: *std_msgs/msg/String*
+
+##### Action Servers
+
+- **/test_robot/move_to** :: *smarc_mission_msgs/action/BaseAction*
+
+### [go_to_geopoint.launch](./behaviours/go_to_geopoint/launch/go_to_geopoint.launch)
+
+#### /test_robot/geopoint_server
+
+##### Subscribers
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/test_robot/go_to_setpoint** :: *geometry_msgs/msg/PoseStamped*
+
+- **/test_robot/waraps/action_server_heartbeat** :: *std_msgs/msg/String*
+
+##### Action Servers
+
+- **/test_robot/move_to** :: *smarc_mission_msgs/action/BaseAction*
+
+### [go_to_geopoint_client.launch](./behaviours/go_to_geopoint/launch/go_to_geopoint_client.launch)
+
+#### /test_robot/geopoint_client
+
+##### Action Clients
+
+- **/test_robot/go_to_setpoint** :: *smarc_mission_msgs/action/BaseAction*
+
+### [test_client_launch.py](./behaviours/go_to_geopoint/launch/test_client_launch.py)
+
+#### /setpoint_server
+
+##### Subscribers
+
+- **/tf** :: *tf2_msgs/msg/TFMessage*
+
+- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+
+##### Publishers
+
+- **/go_to_setpoint** :: *geometry_msgs/msg/PoseStamped*
+
+- **/waraps/action_server_heartbeat** :: *std_msgs/msg/String*
+
+##### Action Servers
+
+- **/move_to** :: *smarc_mission_msgs/action/BaseAction*
+
+## [odom_splitter](./utilities/odom_splitter)
+
+### [odom_splitter.launch](./utilities/odom_splitter/launch/odom_splitter.launch)
 
 > No nodes worked in this launch file!
 
-## [ros2_python_examples](./examples/ros2_python_examples)
-
-### [basic_controller_example.launch](./examples/ros2_python_examples/launch/basic_controller_example.launch)
-
-#### /test_robot/pid_controller_node
-
-##### Subscribers
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/test_robot/core/lcg_cmd** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/thrust_vector_cmd** :: *sam_msgs/msg/ThrusterAngles*
-
-- **/test_robot/core/thruster1_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-- **/test_robot/core/thruster2_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-- **/test_robot/core/vbs_cmd** :: *sam_msgs/msg/PercentStamped*
-
-## [ros_tcp_endpoint](./external_packages/ROS-TCP-Endpoint)
-
-### [endpoint.py](./external_packages/ROS-TCP-Endpoint/launch/endpoint.py)
-
-#### /UnityEndpoint
-
-## [sam_basic_controllers](./examples/sam_basic_controllers)
-
-### [sam_control.launch](./examples/sam_basic_controllers/launch/sam_control.launch)
-
-> No nodes worked in this launch file!
-
-## [sam_dead_reckoning](./navigation/dead_reckoning/sam_dead_reckoning)
-
-### [sam_dr_launch.launch](./navigation/dead_reckoning/sam_dead_reckoning/launch/sam_dr_launch.launch)
-
-#### /test_robot/compass_heading_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/test_robot/dr/yaw** :: *std_msgs/msg/Float64*
-
-##### Publishers
-
-- **/test_robot/dr/compass_heading** :: *std_msgs/msg/Float64*
-
-#### /test_robot/depth_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/test_robot/core/depth20_pressure** :: *sensor_msgs/msg/FluidPressure*
-
-##### Publishers
-
-- **/test_robot/dr/depth_pose** :: *geometry_msgs/msg/PoseWithCovarianceStamped*
-
-#### /test_robot/dr_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/test_robot/core/dvl** :: *smarc_msgs/msg/DVL*
-
-- **/test_robot/core/imu** :: *sensor_msgs/msg/Imu*
-
-- **/test_robot/core/sbg_imu** :: *sensor_msgs/msg/Imu*
-
-- **/test_robot/core/thrust_vector_cmd** :: *sam_msgs/msg/ThrusterAngles*
-
-- **/test_robot/core/thruster1_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/thruster2_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/dr/depth_pose** :: *geometry_msgs/msg/PoseWithCovarianceStamped*
-
-- **/test_robot/dr/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/test_robot/dr/odom** :: *nav_msgs/msg/Odometry*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-#### /test_robot/gps_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/sam/core/gps/prt** :: *sensor_msgs/msg/NavSatFix*
-
-- **/sam/core/gps/stb** :: *sensor_msgs/msg/NavSatFix*
-
-- **/test_robot/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/test_robot/dr/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/test_robot/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/test_robot/gps_odom_prt** :: *nav_msgs/msg/Odometry*
-
-- **/test_robot/gps_odom_stb** :: *nav_msgs/msg/Odometry*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-### [testing_sam_dr_launch.py](./navigation/dead_reckoning/sam_dead_reckoning/launch/testing_sam_dr_launch.py)
-
-#### /depth_node
-
-##### Subscribers
-
-- **/core/depth20_pressure** :: *sensor_msgs/msg/FluidPressure*
-
-##### Publishers
-
-- **/dr/depth_pose** :: *geometry_msgs/msg/PoseWithCovarianceStamped*
-
-#### /gps_node
-
-##### Subscribers
-
-- **/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/sam/core/gps/prt** :: *sensor_msgs/msg/NavSatFix*
-
-- **/sam/core/gps/stb** :: *sensor_msgs/msg/NavSatFix*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/dr/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/gps_odom_prt** :: *nav_msgs/msg/Odometry*
-
-- **/gps_odom_stb** :: *nav_msgs/msg/Odometry*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-### [sam_dr_launch.py](./navigation/dead_reckoning/sam_dead_reckoning/launch/sam_dr_launch.py)
-
-#### /sam0/depth_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/sam0/core/depth20_pressure** :: *sensor_msgs/msg/FluidPressure*
-
-##### Publishers
-
-- **/sam0/dr/depth_pose** :: *geometry_msgs/msg/PoseWithCovarianceStamped*
-
-#### /sam0/dr_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/sam0/core/dvl** :: *smarc_msgs/msg/DVL*
-
-- **/sam0/core/imu** :: *sensor_msgs/msg/Imu*
-
-- **/sam0/core/sbg_imu** :: *sensor_msgs/msg/Imu*
-
-- **/sam0/core/thrust_vector_cmd** :: *sam_msgs/msg/ThrusterAngles*
-
-- **/sam0/core/thruster1_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/sam0/core/thruster2_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/sam0/dr/depth_pose** :: *geometry_msgs/msg/PoseWithCovarianceStamped*
-
-- **/sam0/dr/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/sam0/dr/odom** :: *nav_msgs/msg/Odometry*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-#### /sam0/gps_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/sam/core/gps/prt** :: *sensor_msgs/msg/NavSatFix*
-
-- **/sam/core/gps/stb** :: *sensor_msgs/msg/NavSatFix*
-
-- **/sam0/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/sam0/dr/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/sam0/gps_odom** :: *nav_msgs/msg/Odometry*
-
-- **/sam0/gps_odom_prt** :: *nav_msgs/msg/Odometry*
-
-- **/sam0/gps_odom_stb** :: *nav_msgs/msg/Odometry*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-#### /sam0/rpy_node
-
-##### Subscribers
-
-- **/clock** :: *rosgraph_msgs/msg/Clock*
-
-- **/sam0/core/sbg_imu** :: *sensor_msgs/msg/Imu*
-
-##### Publishers
-
-- **/sam0/dr/pitch** :: *std_msgs/msg/Float64*
-
-- **/sam0/dr/roll** :: *std_msgs/msg/Float64*
-
-- **/sam0/dr/yaw** :: *std_msgs/msg/Float64*
-
-## [sam_description](./vehicles/descriptions/sam_description)
-
-### [sam_description.launch](./vehicles/descriptions/sam_description/launch/sam_description.launch)
-
-#### /test_robot/joint_state_publisher
-
-##### Subscribers
-
-- **/test_robot/command_states** :: *sensor_msgs/msg/JointState*
-
-- **/test_robot/robot_description** :: *std_msgs/msg/String*
-
-##### Publishers
-
-- **/test_robot/joint_states** :: *sensor_msgs/msg/JointState*
-
-#### /test_robot/robot_state_publisher
-
-##### Subscribers
-
-- **/test_robot/joint_states** :: *sensor_msgs/msg/JointState*
-
-##### Publishers
-
-- **/test_robot/robot_description** :: *std_msgs/msg/String*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-## [sam_graph_slam_2_msgs](./messages/sam_graph_slam_2_msgs)
+## [psdk_interfaces](./vehicles/hardware/dji/psdk_ros2/psdk_interfaces)
 
 > This package did not have any launch files.
 
-## [sam_msgs](./messages/sam_msgs)
+## [sam_health_checker](./vehicles/hardware/sam/sam_health_checker)
+
+### [sam_rate_health_checker.launch](./vehicles/hardware/sam/sam_health_checker/launch/sam_rate_health_checker.launch)
+
+> No nodes worked in this launch file!
+
+### [dummy_health_checker.launch](./vehicles/hardware/sam/sam_health_checker/launch/dummy_health_checker.launch)
+
+#### /test_robot/dummy_health_node
+
+##### Publishers
+
+- **/test_robot/smarc/vehicle_health** :: *std_msgs/msg/Int8*
+
+## [sam_path_following](./behaviours/sam_path_following)
+
+> This package did not have any launch files.
+
+## [sam_smarc_publisher](./vehicles/hardware/sam/sam_smarc_publisher)
+
+### [default.launch](./vehicles/hardware/sam/sam_smarc_publisher/launch/default.launch)
+
+> No nodes worked in this launch file!
+
+## [smarc_action_base](./behaviours/smarc_action_base)
 
 > This package did not have any launch files.
 
@@ -330,157 +364,37 @@ The **robot_name parameter** given to all launch files: test_robot
 
 - **/test_robot/core/vehicle_ready** :: *std_msgs/msg/Bool*
 
-#### /test_robot/DUMMY_action_server
+### [speaking_joy.launch](./scripts/smarc_bringups/launch/speaking_joy.launch)
 
-##### Publishers
-
-- **/test_robot/core/thruster1_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-- **/test_robot/core/thruster2_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-##### Action Servers
-
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
-
-### [mission.launch](./scripts/smarc_bringups/launch/mission.launch)
-
-#### /test_robot/smarc_bt
+#### /test_robot/joy
 
 ##### Subscribers
 
-- **/test_robot/core/abort** :: *std_msgs/msg/Empty*
-
-- **/test_robot/core/battery** :: *sensor_msgs/msg/BatteryState*
-
-- **/test_robot/core/depth20_pressure** :: *sensor_msgs/msg/FluidPressure*
-
-- **/test_robot/core/dvl** :: *smarc_msgs/msg/DVL*
-
-- **/test_robot/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/test_robot/core/heading** :: *smarc_msgs/msg/FloatStamped*
-
-- **/test_robot/core/lcg_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/leak** :: *sam_msgs/msg/Leak*
-
-- **/test_robot/core/thruster1_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/thruster2_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/vbs_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/vehicle_ready** :: *std_msgs/msg/Bool*
-
-- **/test_robot/mission/bt_command** :: *smarc_mission_msgs/msg/BTCommand*
-
-- **/test_robot/mission/mission_control** :: *smarc_mission_msgs/msg/MissionControl*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
+- **/test_robot/joy/set_feedback** :: *sensor_msgs/msg/JoyFeedback*
 
 ##### Publishers
 
-- **/test_robot/core/abort** :: *std_msgs/msg/Empty*
+- **/test_robot/joy** :: *sensor_msgs/msg/Joy*
 
-- **/test_robot/core/heartbeat** :: *std_msgs/msg/Empty*
+#### /test_robot/speaker
 
-- **/test_robot/mission/bt_tip** :: *py_trees_ros_interfaces/msg/Behaviour*
+##### Subscribers
 
-##### Action Clients
-
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
+- **/test_robot/speak** :: *std_msgs/msg/String*
 
 ### [utilities.launch](./scripts/smarc_bringups/launch/utilities.launch)
 
-#### /test_robot/dubins_service
-
-##### Service Servers
-
-- **/test_robot/mission/dubins_service** :: *smarc_mission_msgs/srv/DubinsPlan*
-
-#### /test_robot/utm_latlon_service
-
-##### Service Servers
-
-- **/test_robot/mission/utm_latlon_conversion_service** :: *smarc_mission_msgs/srv/UTMLatLon*
+> No nodes worked in this launch file!
 
 ## [smarc_bt](./behaviours/smarc_bt)
 
 ### [test_sam_bt.launch](./behaviours/smarc_bt/launch/test_sam_bt.launch)
 
-#### /test_robot/action_server_node
+> No nodes worked in this launch file!
 
-##### Publishers
+### [smarc_bt.launch](./behaviours/smarc_bt/launch/smarc_bt.launch)
 
-- **/test_robot/core/thruster1_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-- **/test_robot/core/thruster2_cmd** :: *smarc_msgs/msg/ThrusterRPM*
-
-##### Action Servers
-
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
-
-#### /test_robot/dubins_service
-
-##### Service Servers
-
-- **/test_robot/mission/dubins_service** :: *smarc_mission_msgs/srv/DubinsPlan*
-
-#### /test_robot/smarc_bt
-
-##### Subscribers
-
-- **/test_robot/core/abort** :: *std_msgs/msg/Empty*
-
-- **/test_robot/core/battery** :: *sensor_msgs/msg/BatteryState*
-
-- **/test_robot/core/depth20_pressure** :: *sensor_msgs/msg/FluidPressure*
-
-- **/test_robot/core/dvl** :: *smarc_msgs/msg/DVL*
-
-- **/test_robot/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/test_robot/core/heading** :: *smarc_msgs/msg/FloatStamped*
-
-- **/test_robot/core/lcg_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/leak** :: *sam_msgs/msg/Leak*
-
-- **/test_robot/core/thruster1_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/thruster2_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/vbs_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/vehicle_ready** :: *std_msgs/msg/Bool*
-
-- **/test_robot/mission/bt_command** :: *smarc_mission_msgs/msg/BTCommand*
-
-- **/test_robot/mission/mission_control** :: *smarc_mission_msgs/msg/MissionControl*
-
-- **/tf** :: *tf2_msgs/msg/TFMessage*
-
-- **/tf_static** :: *tf2_msgs/msg/TFMessage*
-
-##### Publishers
-
-- **/test_robot/core/abort** :: *std_msgs/msg/Empty*
-
-- **/test_robot/core/heartbeat** :: *std_msgs/msg/Empty*
-
-- **/test_robot/mission/bt_tip** :: *py_trees_ros_interfaces/msg/Behaviour*
-
-##### Action Clients
-
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
-
-#### /test_robot/utm_latlon_service
-
-##### Service Servers
-
-- **/test_robot/mission/utm_latlon_conversion_service** :: *smarc_mission_msgs/srv/UTMLatLon*
+> No nodes worked in this launch file!
 
 ## [smarc_mission_msgs](./messages/smarc_mission_msgs)
 
@@ -490,91 +404,211 @@ The **robot_name parameter** given to all launch files: test_robot
 
 > This package did not have any launch files.
 
-## [smarc_nodered](./gui/smarc_nodered)
-
-### [smarc_nodered.launch](./gui/smarc_nodered/launch/smarc_nodered.launch)
-
-#### /test_robot/mqtt_bridge_cloud
-
-##### Subscribers
-
-- **/test_robot/core/abort** :: *std_msgs/msg/Empty*
-
-- **/test_robot/core/battery** :: *sensor_msgs/msg/BatteryState*
-
-- **/test_robot/core/gps** :: *sensor_msgs/msg/NavSatFix*
-
-- **/test_robot/core/heartbeat** :: *std_msgs/msg/Empty*
-
-- **/test_robot/core/lcg_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/core/leak** :: *sam_msgs/msg/Leak*
-
-- **/test_robot/core/thruster1_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/thruster2_fb** :: *smarc_msgs/msg/ThrusterFeedback*
-
-- **/test_robot/core/vbs_fb** :: *sam_msgs/msg/PercentStamped*
-
-- **/test_robot/dr/altitude** :: *std_msgs/msg/Float64*
-
-- **/test_robot/dr/depth** :: *std_msgs/msg/Float64*
-
-- **/test_robot/dr/lat_lon** :: *geographic_msgs/msg/GeoPoint*
-
-- **/test_robot/dr/pitch** :: *std_msgs/msg/Float64*
-
-- **/test_robot/dr/roll** :: *std_msgs/msg/Float64*
-
-- **/test_robot/dr/yaw** :: *std_msgs/msg/Float64*
-
-- **/test_robot/mission/bt_command** :: *smarc_mission_msgs/msg/BTCommand*
-
-- **/test_robot/mission/bt_tip** :: *py_trees_ros_interfaces/msg/Behaviour*
-
-- **/test_robot/mission/mission_control** :: *smarc_mission_msgs/msg/MissionControl*
-
-##### Publishers
-
-- **/test_robot/mission/mission_control** :: *smarc_mission_msgs/msg/MissionControl*
-
-## [utm_latlon_converter](./utilities/utm_latlon_converter)
+## [smarc_utilities](./utilities/smarc_utilities)
 
 > This package did not have any launch files.
 
-## [workshopfun](./examples/workshopfun)
+## [str_json_mqtt_bridge](./utilities/str_json_mqtt_bridge)
 
-### [do_science.launch](./examples/workshopfun/launch/do_science.launch)
+### [waraps_bridge.launch](./utilities/str_json_mqtt_bridge/launch/waraps_bridge.launch)
 
-#### /test_robot/science_node
+#### /test_robot/waraps/mqtt_bridge_cloud
+
+## [tmux_alert](./scripts/tmux_alert)
+
+### [tmux_alert_node.launch](./scripts/tmux_alert/launch/tmux_alert_node.launch)
+
+#### /test_robot/tmux_alert_node
+
+##### Subscribers
+
+- **/test_robot/core/battery_status** :: *sensor_msgs/msg/BatteryState*
+
+- **/test_robot/core/leak_fb** :: *smarc_msgs/msg/Leak*
+
+## [virtual_lolo](./behaviours/virtual_lolo)
+
+> This package did not have any launch files.
+
+## [wasp_bt](./behaviours/wasp_bt)
+
+### [wasp_bt.launch](./behaviours/wasp_bt/launch/wasp_bt.launch)
+
+#### /test_robot/waraps_vehicle
+
+##### Subscribers
+
+- **/clock** :: *rosgraph_msgs/msg/Clock*
+
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
+
+- **/test_robot/smarc/battery_percent** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/course** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/depth** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/heading** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/latlon** :: *geographic_msgs/msg/GeoPoint*
+
+- **/test_robot/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+- **/test_robot/smarc/speed** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/vehicle_health** :: *std_msgs/msg/Int8*
+
+- **/test_robot/waraps/direct_execution_info** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst_execution_info** :: *std_msgs/msg/String*
 
 ##### Publishers
 
-- **/test_robot/core/thruster1_cmd** :: *smarc_msgs/msg/ThrusterRPM*
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
 
-- **/test_robot/core/thruster2_cmd** :: *smarc_msgs/msg/ThrusterRPM*
+- **/test_robot/smarc/heartbeat** :: *std_msgs/msg/Empty*
+
+- **/test_robot/waraps/heartbeat** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/course** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/depth** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/heading** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/pitch** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/position** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/roll** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/speed** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor_info** :: *std_msgs/msg/String*
+
+#### /test_robot/wasp_bt
+
+##### Subscribers
+
+- **/clock** :: *rosgraph_msgs/msg/Clock*
+
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
+
+- **/test_robot/smarc/battery_percent** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/course** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/depth** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/heading** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/latlon** :: *geographic_msgs/msg/GeoPoint*
+
+- **/test_robot/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+- **/test_robot/smarc/speed** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/vehicle_health** :: *std_msgs/msg/Int8*
+
+- **/test_robot/waraps/abort** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/action_server_heartbeat** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/exec/command** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/heartbeat** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst/command** :: *std_msgs/msg/String*
+
+##### Publishers
+
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
+
+- **/test_robot/smarc/bt_status** :: *std_msgs/msg/String*
+
+- **/test_robot/smarc/heartbeat** :: *std_msgs/msg/Empty*
+
+- **/test_robot/waraps/direct_execution_info** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/exec/feedback** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/exec/response** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/bt** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/executing_tasks** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst/feedback** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst/response** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst_execution_info** :: *std_msgs/msg/String*
 
 ##### Service Servers
 
-- **/test_robot/log_rpm_info** :: *example_interfaces/srv/SetBool*
-
-### [actionserver.launch](./examples/workshopfun/launch/actionserver.launch)
-
-#### /test_robot/action_client_node
+- **/test_robot/reset_emergency** :: *std_srvs/srv/Trigger*
 
 ##### Action Clients
 
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
+- **/test_robot/auv_depth_move_to** :: *smarc_mission_msgs/action/BaseAction*
 
-#### /test_robot/action_server_node
+- **/test_robot/cruise_depth_at_heading** :: *smarc_mission_msgs/action/BaseAction*
+
+- **/test_robot/emergency_action** :: *smarc_mission_msgs/action/BaseAction*
+
+- **/test_robot/move_to** :: *smarc_mission_msgs/action/BaseAction*
+
+### [wasp_mqtt_agent.launch](./behaviours/wasp_bt/launch/wasp_mqtt_agent.launch)
+
+#### /test_robot/waraps_vehicle
+
+##### Subscribers
+
+- **/clock** :: *rosgraph_msgs/msg/Clock*
+
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
+
+- **/test_robot/smarc/battery_percent** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/course** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/depth** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/heading** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/latlon** :: *geographic_msgs/msg/GeoPoint*
+
+- **/test_robot/smarc/odom** :: *nav_msgs/msg/Odometry*
+
+- **/test_robot/smarc/speed** :: *std_msgs/msg/Float32*
+
+- **/test_robot/smarc/vehicle_health** :: *std_msgs/msg/Int8*
+
+- **/test_robot/waraps/direct_execution_info** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/tst_execution_info** :: *std_msgs/msg/String*
 
 ##### Publishers
 
-- **/test_robot/core/thruster1_cmd** :: *smarc_msgs/msg/ThrusterRPM*
+- **/test_robot/smarc/abort** :: *std_msgs/msg/Empty*
 
-- **/test_robot/core/thruster2_cmd** :: *smarc_msgs/msg/ThrusterRPM*
+- **/test_robot/smarc/heartbeat** :: *std_msgs/msg/Empty*
 
-##### Action Servers
+- **/test_robot/waraps/heartbeat** :: *std_msgs/msg/String*
 
-- **/test_robot/mission/goto_wp_action** :: *smarc_mission_msgs/action/GotoWaypoint*
+- **/test_robot/waraps/sensor/course** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/depth** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/heading** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/pitch** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/position** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/roll** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor/speed** :: *std_msgs/msg/String*
+
+- **/test_robot/waraps/sensor_info** :: *std_msgs/msg/String*
 
