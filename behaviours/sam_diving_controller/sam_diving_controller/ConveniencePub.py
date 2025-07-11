@@ -20,6 +20,12 @@ class ConveniencePub(IDivePub):
     Implements convenience topic publishers for debugging
     """
     def __init__(self, node: Node, dive_sub, dive_controller) -> None:
+
+        self._node = node
+
+        #self._node.declare_parameter('robot_name', 'sam0')
+        self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
+
         self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
@@ -80,15 +86,15 @@ class ConveniencePub(IDivePub):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        self._waypoint = self._dive_sub.get_waypoint()
+        self._waypoint = self._dive_sub.get_odom_waypoint()
         self._goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         if self._waypoint is None:
             return
 
         self._waypoint_msg = PoseWithCovarianceStamped()
-        self._waypoint_msg.header = self._waypoint.header
-        self._waypoint_msg.pose.pose = self._waypoint.pose
+        self._waypoint_msg.header.frame_id = self._robot_name + 'odom'
+        self._waypoint_msg.pose.pose = self._waypoint
         self._waypoint_msg.pose.pose.orientation.w = 1.0
         cov = np.zeros([6,6])
         cov[0][0] = np.sqrt(self._goal_tolerance)
@@ -166,5 +172,5 @@ class ConveniencePub(IDivePub):
         self._update_error()
         self._update_input()
         self._update_waypoint()
-        self._print_state()
+        #self._print_state()
 

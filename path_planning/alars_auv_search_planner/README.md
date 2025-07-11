@@ -33,7 +33,7 @@ If the user wants to integrate this in a broader task, two clients have to be cr
 ## **(ROS) Srv**
 | Service name | Service Type | Description |
 | --- | ---| ---|
-| 'init_auv_search' | InitAUVSearch | It initiates the **PGM**. It should be requested when the drone is +or- within the desired workspace and search planning is about to initiate. It needs the GPS ping and the initial drone position in any frame connected to Quadrotor's odom|
+| 'init_auv_search' | InitAUVSearch | It initiates the **PGM**. It should be requested when the search planning is about to initiate. It needs the search radius around the GPS ping, the GPS ping (GeoPoint msg) and the drone's initial altitude wrt to the water level. It can be called several times in a single simulation since the planner and the grid map are reinitialized when this service is requested|
 | 'get_quadrotor_path' | DronePath |  It computes a path based on the **PGM** and returns it as a PoseArray |
 ---
 Check *test_initmap_srv.py* and *test_getpath_srv.py* to see how the client can be set up.

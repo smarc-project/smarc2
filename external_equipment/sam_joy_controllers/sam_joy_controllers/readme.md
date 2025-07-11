@@ -50,3 +50,17 @@ roslaunch sam_joy_xbox joy.launch
 | ```Left stick``` | Send RPM commands to motors | - | 
 | ```Right stick``` | Send thrust vector commands | - | 
 | ```A``` | Toggle teleop enable | ```One short pulse``` - Enabled <br>```Two short pulse``` - Disabled |
+
+## Automatic depth keeping
+
+If needed, the controller can automatically keep a desired depth. For this, launch
+```bash
+ros2 launch sam_joy_xbox joy_depth_control.launch robot_name:=<robot name>
+```
+with `<robot name>` the appropriate robot name. The depth setpoint has to be
+published manually with
+```bash
+ros2 topic pub -r 1 /sam/ctrl/elevator_pid/setpoint std_msgs/Float64 "data: -1.0"
+```
+where the data value is the desired depth in an ENU frame, i.e. depth needs to
+be negative.
