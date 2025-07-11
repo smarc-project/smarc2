@@ -72,9 +72,15 @@ class DiveSub():
         self._depth = None
         self._pitch = None
 
+        # Trajectory tracking variables.
+        self.path = None
+        self.path_len = None
+        self.current_idx = 0
+
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
+        self._tf_odom_link = None
 
         self._states = Odometry()
         self._received_states = False
@@ -298,15 +304,21 @@ class DiveSub():
         return distance
 
     def get_dive_pitch(self):
+        """
+        This is basically a look-ahead controller based on the distance to the waypoint.
+        """
         if self._waypoint_body is None:
             return None
 
         # With the ata2, we automatically get the desired diving pitch angle that corresponds to 
         # a ENU system, i.e. positive pitch for diving down, negative pitch for diving up
         current_depth = self.get_depth()
-        depth_error = np.abs(self._waypoint_global.pose.position.z) - np.abs(current_depth)
-        distance = self.get_distance()
-        dive_pitch = math.atan2(depth_error, distance)
+        depth_setpoint = self.get_depth_setpoint()
+        #depth_setpoint *= -1
+        #current_depth *= -1
+        depth_error = depth_setpoint - current_depth
+        look_ahead_distance = 3
+        dive_pitch = math.atan2(-depth_error, look_ahead_distance)
 
         return dive_pitch
 
@@ -315,6 +327,9 @@ class DiveSub():
 
     def get_odom_waypoint(self):
         return self._waypoint_odom
+
+    def get_path(self):
+        return self.path
 
     def get_goal_tolerance(self):
 
@@ -356,6 +371,13 @@ class DiveSub():
             s = "(Terminal)"
 
         self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
+
+    def set_current_idx(self, idx):
+        """
+        Setting the current index of the trajectory we're following.
+        """
+        
+        self.current_idx = idx
 
     def update(self):
         """

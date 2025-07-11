@@ -27,7 +27,7 @@ setup(
         'console_scripts': [
             "search_planner_controller = alars_auv_search_planner.search_planner_controller:main",
             "test_getpath_srv = alars_auv_search_planner.test_getpath_srv:main",
-            "test_initmap_srv = alars_auv_search_planner.test_initmap_srv:main"
+            "test_initmap_srv = alars_auv_search_planner.test_initmap_srv:main",
         ],
     },
 )

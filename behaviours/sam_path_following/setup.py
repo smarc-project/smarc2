@@ -1,8 +1,6 @@
 from setuptools import find_packages, setup
-import os
-import glob
 
-package_name = 'sam_path_planning'
+package_name = 'sam_path_following'
 
 setup(
     name=package_name,
@@ -12,20 +10,16 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
-        
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='torroba',
-    maintainer_email='torroba@kth.se',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer='David Doerner',
+    maintainer_email='ddorner@kth.se',
+    description='Action server, client, and action for path following',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'sam_planner_node = sam_path_planning.sam_planner_node:main',
-            'topic_collector_node = sam_path_planning.topic_collector:main'
         ],
     },
 )

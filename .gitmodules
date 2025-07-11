@@ -52,3 +52,7 @@
 [submodule "utilities/serial_ping_pkg"]
 	path = utilities/serial_ping_pkg
 	url = https://github.com/NinjaTuna007/serial_ping_pkg.git
+[submodule "external_equipment/PlayStation-JoyInterface-ROS2"]
+	path = external_equipment/PlayStation-JoyInterface-ROS2
+	url = https://github.com/HarvestX/PlayStation-JoyInterface-ROS2
+	branch = humble

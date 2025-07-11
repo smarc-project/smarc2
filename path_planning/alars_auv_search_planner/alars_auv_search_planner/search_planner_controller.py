@@ -3,12 +3,12 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from .prob_grid_map import ProbabilisticGridMap 
-from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
 from math import dist
 from smarc_mission_msgs.srv import DronePath, InitAUVSearch
 from geometry_msgs.msg import PoseArray, Pose, PointStamped
-
+from .prob_grid_map import ProbabilisticGridMap 
+from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
+from smarc_utilities.georef_utils import convert_latlon_to_utm
 
 ##############################################################################
 # TODO
@@ -71,23 +71,34 @@ class SearchPlannerController(Node):
 
         # initialize planner and grid map but without GPS ping and drone position; move drone to flight height (solely vertically)
         self.grid_map = ProbabilisticGridMap(params = self.model_params)
-
-        if self.model_params['path_planner'] == 'spiral':
-            self.planner = SpiralPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'greedy':
-            self.planner = GreedyPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'astar':
-            self.planner = AStarPathModel(params = self.model_params, grid_map = self.grid_map)
-        elif self.model_params['path_planner'] == 'apf':
-            self.planner = APFPathModel(params = self.model_params, grid_map = self.grid_map)
-        else:
-            self.get_logger().error('Incorrect path planner label! Check launch file')
+        planner_dict = {'spiral': SpiralPathModel,
+                        'greedy': GreedyPathModel,
+                        'astar': AStarPathModel,
+                        'apf': APFPathModel}
+        try:
+            self.planner = planner_dict[self.model_params['path_planner']](params = self.model_params, grid_map = self.grid_map)
+        except:
+            self.get_logger().error('Incorrect path planner label! Check launch and README files')
 
     def init_search_srv_callback(self, request, response):
-        """ Stores the GPS_ping and desired quadrotor initial position, which will trigger path generation in respective timer."""
-        self.GPS_ping = request.gps
-        self.drone_init_pos = self.planner.transform_point(request.quadrotor_ipos)
+        """ 
+        Stores the GPS_ping (after transforming it to map) and desired quadrotor initial position, 
+        which will trigger path generation in respective timer.
+        """
+        # if activated by client, quadrotor doesn't perform initial movement (assigning purposes only)
+        self.drone_init_pos = PointStamped()
+        self.drone_init_pos.header.frame_id = self.model_params['frames.id.quadrotor_odom']      
+
+        # get search radius (range) and altitude #TODO; convert GPS ping to correct coordinates
+        self.grid_map.w = self.grid_map.h = 2*request.radius
+        self.planner.flight_height = self.planner.grid_map.flight_height = request.initial_altitude + request.gps.altitude
+        GPS_ping_utm = convert_latlon_to_utm(request.gps)
+        self.GPS_ping = self.planner.transform_point(GPS_ping_utm, self.model_params['frames.id.map'])
         response.success = True
+
+        # (re)initialize planner (including grid map)
+        self.grid_map.GPS_ping = self.GPS_ping
+        self.planner.reinitialize_planner()
         return response
 
     def get_path_srv_callback(self, request, response):
@@ -100,9 +111,11 @@ class SearchPlannerController(Node):
                 pose = Pose()
                 pose.position.x = position[0]
                 pose.position.y = position[1]
-                pose.position.z = self.model_params["flight_height"]
+                pose.position.z = self.model_params["drone.flight_height"]
                 pose_list.append(pose)
             path_msg.poses = pose_list
+            path_msg.header.frame_id = self.model_params['frames.id.quadrotor_odom']
+            path_msg.header.stamp = self.get_clock().now().to_msg()
             response.path = path_msg 
             return response
         else: return None
@@ -137,8 +150,11 @@ class SearchPlannerController(Node):
                 self.get_logger().info(f'Received GPS ping (x,y) = {round(float(self.GPS_ping.point.x),2), round(float(self.GPS_ping.point.y),2)}')
                 if None in (self.drone_init_pos.point.x, self.drone_init_pos.point.y,  self.drone_init_pos.point.z):
                     self.init_done = True
-                else:
-                    self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+                else: # create timer to relocate drone (valid only in mode = sim)
+                    if self.model_params['mode'] == 'sim':
+                        self.relocate_timer = self.create_timer(0.5, self.check_drone_position)
+                    else:
+                        self.init_done = True
 
     def check_drone_position(self):
         """ Continously publish initial waypoint and checking distance"""
@@ -226,14 +242,13 @@ class SearchPlannerController(Node):
         self.model_params = {
             "mode": self.get_parameter("mode").value,
             "path_planner": self.get_parameter("path_planner").value,
-            "drone.init_pos": self.get_parameter("drone.init_pos").value,
-            "sam.init_pos": self.get_parameter("sam.init_pos").value,
-
             'initialization.time_delay': self.get_parameter("initialization.time_delay").value,
-            "flight_height": self.get_parameter("flight_height").value,
-            "camera_fov": self.get_parameter("camera_fov").value,
-            "look_ahead_time": self.get_parameter("look_ahead_time").value,
-            "intermediate_dt": self.get_parameter("intermediate_dt").value,
+
+            "drone.init_pos": self.get_parameter("drone.init_pos").value,
+            "drone.flight_height": self.get_parameter("drone.flight_height").value,
+            "drone.camera_fov": self.get_parameter("drone.camera_fov").value,
+            "drone.look_ahead_time": self.get_parameter("drone.look_ahead_time").value,
+            "drone.intermediate_dt": self.get_parameter("drone.intermediate_dt").value,
 
             "spiral.vel_factor": self.get_parameter("spiral.vel_factor").value,
             "spiral.dtheta": self.get_parameter("spiral.dtheta").value,
@@ -252,7 +267,8 @@ class SearchPlannerController(Node):
             'arf.d_max': self.get_parameter("arf.d_max").value,
             'arf.horizon_radius': self.get_parameter("arf.horizon_radius").value,
             
-            "sam.initial_state.pos_variance": self.get_parameter("sam.initial_state.pos_variance").value,
+            "sam.init_pos": self.get_parameter("sam.init_pos").value,
+            "sam.init_pos_variance": self.get_parameter("sam.init_pos_variance").value,
             'sam.vel_variance': self.get_parameter('sam.vel_variance').value,
             'sam.max_floating_vel': self.get_parameter('sam.max_floating_vel').value, 
 
@@ -268,8 +284,11 @@ class SearchPlannerController(Node):
             "battery.threshold": self.get_parameter("battery.threshold").value,
             "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value,
 
-            'frames.id.quadrotor_map': self.get_parameter('frames.id.quadrotor_map').value,
+            'frames.id.map': self.get_parameter('frames.id.map').value,
             'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
+            'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value,
+
+            'topics.move_drone': self.get_parameter('topics.move_drone').value
 
 
         }
