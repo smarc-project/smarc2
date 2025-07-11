@@ -1,0 +1,10 @@
+<launch>
+    <arg name="robot_name" default="M350"/>
+    
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+            <node name="joy" pkg="joy" exec="game_controller_node" output="screen"/>
+            <node name="speaker" pkg="smarc_utilities" exec="simple_tts" output="screen"/>
+    </group>
+
+</launch>
