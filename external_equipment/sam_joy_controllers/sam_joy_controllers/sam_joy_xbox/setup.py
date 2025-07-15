@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'sam_joy_xbox = sam_joy_xbox.controller:main',
+            'depth_node = sam_joy_xbox.press_to_depth:main',
         ],
     },
 )

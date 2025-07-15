@@ -1,7 +1,7 @@
 ---
 /*/diving_node:
   ros__parameters:
-    view_rate: 0.1
+    view_rate: 0.2
     model_rate: 0.1
     controller_rate: 0.1
     vbs_pid_kp: 20.0
