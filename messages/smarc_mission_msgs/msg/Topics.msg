@@ -1,5 +1,6 @@
 string DUBINS_SERVICE = 'mission/dubins_service'
 string UTM_LATLON_CONVERSION_SERVICE = 'mission/utm_latlon_conversion_service'
+string GEOFENCE_CHECKER_SERVICE = 'mission/geofence_checker'
 
 string MISSION_COMPLETE_TOPIC = 'mission/complete'
 string MISSION_CONTROL_TOPIC = 'mission/mission_control'

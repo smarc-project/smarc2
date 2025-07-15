@@ -32,7 +32,7 @@
     yaw_u_neutral: 0.0
     yaw_u_min: -0.122173
     yaw_u_max: 0.122173
-    rpm_u_neutral: 0.0
-    rpm_u_min: -400.0
-    rpm_u_max: 800.0
+    rpm_u_neutral: 0
+    rpm_u_min: -400
+    rpm_u_max: 800
     max_dive_pitch: 0.349

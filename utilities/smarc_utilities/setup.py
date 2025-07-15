@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'simple_tts = smarc_utilities.tts:main',
         ],
     },
 )

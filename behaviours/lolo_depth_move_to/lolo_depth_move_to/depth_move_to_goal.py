@@ -7,6 +7,7 @@ class DepthMoveToGoal():
         self.min_altitude = None   # In [m], minimum distance to the seafloor.
         self.rpm = None            # Desired RPMs for horizontal thrusters.
         self.timeout = None        # In [s], time duration before aborting.
+        self.tolerance = None      # In [m], tolerance radius around goal.
 
     def __str__(self):
         return f"lat:   {self.geopoint.latitude}\n"\
@@ -14,5 +15,6 @@ class DepthMoveToGoal():
                + f"tgt_depth: {self.target_depth}\n"\
                + f"min_alt:   {self.min_altitude}\n"\
                + f"rpm:       {self.rpm}\n"\
-               + f"timeout:   {self.timeout}\n"
+               + f"timeout:   {self.timeout}\n"\
+               + f"tolerance: {self.tolerance}\n"
 

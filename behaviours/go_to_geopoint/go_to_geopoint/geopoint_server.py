@@ -268,7 +268,6 @@ class GeopointServer(SMARCActionServer):
         pose_stamped = self.convert_to_utm(geopoint)
         try:
             self.goal_base_link = self.transform_goal(pose_stamped)
-            self.goal_base_link.pose.position.z = geopoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
 
             self.logger.debug(
                 f"Goal in {self.target_frame} is {self._str_posestamp(self.goal_base_link)}"
@@ -314,7 +313,6 @@ class GeopointServer(SMARCActionServer):
         geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
         self.logger.info(f"Received UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
-        pose_stamped.pose.position.z = geo_setpoint.altitude # altitude in the context of things close to water that is not at sea level is funky...
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
@@ -362,7 +360,7 @@ class GeopointServer(SMARCActionServer):
             pose_stamped: target location
             goal_handle: passed in to enable feedback publishing
         """
-        rate = self._node.create_rate(2)
+        rate = self._node.create_rate(10)
         d = self.compute_distance(pose_stamped)
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
@@ -377,6 +375,8 @@ class GeopointServer(SMARCActionServer):
                 return "invalid"
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
+            self.goal_base_link.header.stamp = self._node.get_clock().now().to_msg()
+            self._pub_setpoint.publish(self.goal_base_link)
             rate.sleep()
             d = self.compute_distance(pose_stamped)
             tol_check = self._tol_check(d)
