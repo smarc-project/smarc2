@@ -8,10 +8,12 @@
     <param name="battery_min_voltage" value="20.0" />
     <param name="battery_min_capacity" value="0.25" />
 
-    <param name="initial_timeout_time_sec" value="60.0" />
-    <param name="timeout_time_sec" value="7.5" />
+    <param name="initial_timeout_time_sec" value="30.0" />
+    <param name="timeout_time_sec" value="2.5" />
 
     <param name="verbose" value="True" />
+    <param name="testing" value="True" />
+
 
   </node>
 
