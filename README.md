@@ -10,6 +10,10 @@ Each of the following directories also include more detailed readmes within.
 [This example](/behaviours/alars/alars/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 
 It works with [the bt](./behaviours/wasp_bt/launch/wasp_bt.launch) out of the box.
 
+
+## [The general architecture of smarc2](/documentation/Smarchitecture.md)
+An overview of the general ideas and structures that we use across different vehicles.
+
 ## Stuff in this repo
 
 > Add more directories as needed.

@@ -9,7 +9,7 @@ from geographic_msgs.msg import GeoPoint
 
 from std_msgs.msg import Empty, Bool
 from std_msgs.msg import String
-from sensor_msgs.msg import NavSatFix, BatteryState
+from sensor_msgs.msg import NavSatFix
 from smarc_msgs.msg import Topics
 from nav_msgs.msg import Odometry
 from typing import Type
@@ -91,7 +91,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.SPEED, [data.data], sec)
 
-    def _battery_cb(self, data: BatteryState):
+    def _battery_cb(self, data: Float32):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.data], sec)
 

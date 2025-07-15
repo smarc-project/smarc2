@@ -4,6 +4,8 @@ import time
 import json
 import threading
 
+import numpy as np
+
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
@@ -28,6 +30,7 @@ from action_msgs.msg import GoalStatus
 from action_msgs.srv import CancelGoal
 
 # ROS Imports
+import rclpy
 from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
@@ -46,6 +49,8 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionServer,
 )
 
+from sam_path_following.path_action import ActionComponent as ActC
+from sam_path_following.path_action import PathAction
 
 try:
     from .DiveSub import DiveSub
@@ -230,4 +235,204 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
 
         return CancelResponse.ACCEPT
 
+
+class PathServer(SMARCActionServer, DiveSub):
+    """Action point server that handle GotoGeopoint messages.
+
+    Attributes:
+        logger: shorthand for `node.get_logger()`
+        robot_name: provided robot name from launch file
+        target_frame: frame that goal's should be transformed to
+    """
+
+    def __init__(self, node: Node, action_name, action_type: ActionType, param):
+
+        self.param = param
+        self._node = node
+
+        SMARCActionServer.__init__(self,
+            node,
+            action_name,
+            action_type,
+            SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC,
+        )
+        DiveSub.__init__(self,self._node, self.param)
+
+        self.logger = node.get_logger()
+
+        self.path = None
+        self.path_len = None
+        self.current_idx = 0
+
+        #self.declare_parameters()
+
+        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+
+        self._json_ops: PathAction = PathAction()
+
+        self._loginfo("Path Action Server started")
+
+
+    # TODO: Cancel process. Need to stop the controller as well, similar to the wp action server.
+
+#    def declare_parameters(self):
+#        """Declares all of node's parameters in a single location."""
+#
+#        # TODO: Which ones are actually needed?
+#
+#        node = self._node
+#        self.robot_name = node.declare_parameter("robot_name", "Quadrotor").value
+#        self._target_frame_param = node.declare_parameter("target_frame", "odom").value
+#
+#        self._distance_frame_param = node.declare_parameter(
+#            "distance_frame",
+#            "base_link",
+#            ParameterDescriptor(
+#                description="Frame for which the distance to target will be computed (usually base_link)"
+#            ),
+#        ).value
+#
+#        self._distance_frame_suffix = node.declare_parameter(
+#            "distance_frame_suffix",
+#            "_gt",
+#            ParameterDescriptor(
+#                description="Frame suffix for distance frame. Commonly is '_gt' for ground truth if applicable"
+#            ),
+#        ).value
+#
+#        self._frame_suffix = node.declare_parameter(
+#            "frame_suffix",
+#            "_gt",
+#            ParameterDescriptor(
+#                description="Frame suffix for transform. Commonly is '_gt' for ground truth if applicable"
+#            ),
+#        ).value
+#
+#        self._setpoint_tol: float = node.declare_parameter(
+#            "setpoint_tolerance",
+#            0.25,
+#            ParameterDescriptor(
+#                description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
+#            ),
+#        ).value
+#
+#        # self._setpoint_topic = node.declare_parameter(
+#        #     "setpoint_topic",
+#        #     "go_to_setpoint",
+#        #     ParameterDescriptor(
+#        #         description="Topic to publish setpoint targets to. Will be prepended with 'robot_name'"
+#        #     ),
+#        # ).value
+#
+#        self._goal_threshold = (
+#            node.declare_parameter(
+#                "goal_threshold",
+#                10,
+#                ParameterDescriptor(
+#                    description="Distance threshold in meters where a goal should be rejected. (Euclidean Norm)"
+#                ),
+#            ).value
+#        )
+#
+#        self.target_frame = (
+#            f"{self.robot_name}/{self._target_frame_param}{self._frame_suffix}"
+#        )
+#        self.logger.info(f"Target frame {self.target_frame}")
+#
+#        self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
+#        self.logger.info(f"Distance frame {self.distance_frame}")
+
+    def _save_path(self, path):
+        """
+        Convert path from list to numpy array.
+        """
+        self.path = np.asarray(path)
+        self.logger.info(f"AS: saved path")
+
+
+    def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
+        """Considers a goal validity and evaluates whether it should be accepted or not.
+
+        Args:
+            goal_request (ActionType.Goal): Goal message
+
+        Returns:
+            response: Either GoalResponse.Accept or GoalResponse.Reject
+
+        """
+        # TODO: Think of whether you want to reject any goal. For now, accept
+        # everything, as we assume the planner to know what it's doing.
+        goal_request = goal_request.goal
+        path = self._json_ops.decode(goal_request, ActC.GOAL)
+        self.logger.info(f"Recieved path")
+        self._save_path(path)
+        self.path_len = len(self.path) # TODO: Check which index to use, 0 or 1
+
+        # Accepts as all criteria fulfilled
+        return GoalResponse.ACCEPT
+
+
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """Primary execution callback where goal's are handled after acceptance.
+
+        Args:
+            goal_handle: handle to control server and add callbacks
+
+        Returns:
+            A populated ActionResult message
+        """
+        result_msg = self.action_type.Result
+        status = self.feedback_loop(goal_handle)
+        if status == "cancelled":
+            self.logger.info("Goal was cancelled by client.")
+            result_msg.success = False
+            return result_msg
+        
+        self.set_mission_state(MissionStates.COMPLETED, "AS")
+        result_msg.success = True
+        return result_msg
+
+    def feedback_loop(self, goal_handle: ServerGoalHandle):
+        """Abstracted feedback loop where tolerance checks are conducted.
+
+        Args:
+            pose_stamped: target location
+            goal_handle: passed in to enable feedback publishing
+        """
+        rate = self._node.create_rate(2)
+        feedback = self.action_type.Feedback
+
+        while self.current_idx <= self.path_len:
+
+            self.set_mission_state(MissionStates.RUNNING, "AS")
+
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client.")
+                goal_handle.canceled()
+                return "cancelled"
+            
+            feedback.feedback = self._json_ops.encode(self.current_idx)
+            goal_handle.publish_feedback(feedback)
+            rate.sleep()
+
+        goal_handle.succeed()
+        rate.destroy()
+        return "done"
+
+
+    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        """Handles canceling of goal requests.
+
+        Args:
+            goal_handle: handle
+
+        Returns:
+            Cancel response as ACCEPT
+        """
+
+        self._loginfo("Cancelled")
+
+        self.set_mission_state(MissionStates.CANCELLED, "AS")
+
+        return CancelResponse.ACCEPT
 

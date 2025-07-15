@@ -24,7 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'sam_planner_node = sam_path_planning.sam_planner_node:main'
+            'sam_planner_node = sam_path_planning.sam_planner_node:main',
+            'topic_collector_node = sam_path_planning.topic_collector:main'
         ],
     },
 )
