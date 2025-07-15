@@ -87,6 +87,7 @@ string LED_CMD_TOPIC = 'core/led_cmd'
 string DVL_CMD_TOPIC = 'core/dvl_relay'
 string SSS_CMD_TOPIC = 'core/sss_relay'
 string TOGGLE_7V_CMD_TOPIC = 'core/enable_7v'
+string UTM_ZONE_BAND = 'core/utm_zone_band'
 
 string GET_NODE_INFO_SRV = 'core/uavcan_get_node_info'
 string GET_TRANSPORT_STATS_SRV = 'core/uavcan_get_transport_stats'
