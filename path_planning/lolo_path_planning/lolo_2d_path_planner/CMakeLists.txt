@@ -9,13 +9,14 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include/lolo_2d_path_planner/
 )
 
 add_executable(server src/path_planner_main.cpp)
-ament_target_dependencies(server rclcpp nav_msgs)
+ament_target_dependencies(server rclcpp nav_msgs tf2)
 
 install(TARGETS
     server

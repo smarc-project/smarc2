@@ -63,11 +63,13 @@ class LoloProxOpsAction():
 
         #Settings etc
         self.target_tol = 5 #tolerance when loitering
-        self.timeout = 10
+        self.timeout = 600
         self.fast_rpm = 700
         self.slow_rpm = 500
         self.loiter_points = None
         self.loiter_depth = 5
+        self.long_distance_depth = 4
+        self.short_distance_depth = 2
         self.prox_ops_depth = 2
         self.min_altitude = 3
         self.map = None #Occupancygrid
@@ -99,7 +101,7 @@ class LoloProxOpsAction():
 
         # Subscribers
         #altitude_sub
-        #target_sub
+        self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10)
         #'done'_sub
 
         self._node.get_logger().info("Action server started")
@@ -183,6 +185,18 @@ class LoloProxOpsAction():
         #if distance to docking station==far away current_action_pahse -> LONG_DISTANCE
         #if distance to docking station==close away current_action_pahse -> SHORT_DISTANCE
 
+        if(self.target_position == None or self.target_position_time == None): 
+            self.current_action_phase = self.ACTION_PHASE.LOITER
+        elif(time_now - self.target_position_time > 10):
+            self.current_action_phase = self.ACTION_PHASE.LOITER
+        else:
+            #TODO integrate target position..
+            dist = self.calculate_distance(self.robot_position, self.target_position)
+            if(dist > 20): self.current_action_phase = self.ACTION_PHASE.LONG_DISTANCE
+            else: self.current_action_phase = self.ACTION_PHASE.SHORT_DISTANCE
+            
+            
+
         if(self.current_action_phase == self.ACTION_PHASE.LOITER):
             # We will plan a path every X loops that keeps lolo inside the geofenced area
             # Preferable as far away from the corners as possible to avoid running aground
@@ -193,6 +207,8 @@ class LoloProxOpsAction():
             if(self.calculate_distance(self.robot_position, self.loiter_points[self.current_loiter_point_index]) < self.target_tol):
                 self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
 
+            #TESTING
+            self.robot_position = self.loiter_points[self.current_loiter_point_index]
             self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
 
             #Plan a path to the next loiter point
@@ -203,10 +219,11 @@ class LoloProxOpsAction():
                 #Publish map for logging
                 self.path_pub.publish(result)
 
-                yaw_setpoint = self.get_yaw_from_path(result)
+                yaw_setpoint = self.get_yaw_from_path(self.robot_position, result)
                 roll_setpoint = 0
                 depth_setpoint = self.get_depth_setpoint(self.loiter_depth)
                 rpm_setpoint = self.slow_rpm
+                self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
 
                 #TODO publish setpoints
 
@@ -219,16 +236,36 @@ class LoloProxOpsAction():
             # Plan a path that goes to a point 10m ahead of the docking station
             # Send yaw = 10s into the future in the path
             # Set RPM = Fast
+
+            #Plan a path to the next loiter point
+            path = self.plan_path('map', self.robot_position, self.target_position)
+            if(path is not None ): 
+                self._node.get_logger().info("Plan path successful")
+                #Publish map for logging
+                self.path_pub.publish(path)
+
+                yaw_setpoint = self.get_yaw_from_path(self.robot_position, path)
+                roll_setpoint = 0
+                depth_setpoint = self.get_depth_setpoint(self.long_distance_depth)
+                rpm_setpoint = self.fast_rpm
+                self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
+
+                #TODO publish setpoints
+            else: 
+                self._node.get_logger().error("Failed to plan path")
+                return False #FAIL
             pass
 
         if(self.current_action_phase == self.ACTION_PHASE.SHORT_DISTANCE):
             # Set target yaw = docking station + 10m ahead
             # Set RPM = SLOW if distance to target < 2m
             # Set RPM = FAST if distance to target < 4m
+            yaw_setpoint = self.get_angle_between_points(self.robot_position, self.target_position)
+            roll_setpoint = 0
+            depth_setpoint = self.get_depth_setpoint(self.loiter_depth)
+            rpm_setpoint = self.slow_rpm
+            self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
             pass
-
-
-        
 
         return None
     
@@ -247,9 +284,28 @@ class LoloProxOpsAction():
         dy = pose1.pose.position.y - pose2.pose.position.y
         return math.sqrt(dx*dx + dy*dy)
 
-    def get_yaw_from_path(self, path) -> float: 
+    def get_yaw_from_path(self, start_pose:PoseStamped, path : Path) -> float: 
         # Step through the path 10s into the future (or until end) and calculate the yaw value need to reach that point
-        return 1.0
+        #start_time = path.poses[0].header.stamp.sec
+        index = 0
+        #self._node.get_logger().info("path length " + str(len(path.poses)))
+        #while index < len(path.poses)-1:
+        #    #dt = path.poses[index].header.stamp.sec - start_time
+        #    #self._node.get_logger().info("dt: " + str(dt))
+        #    index +=1
+        #    if(index > 30): 
+        #        break
+        index = min(len(path.poses)-1, 30) 
+        return self.get_angle_between_points(start_pose, path.poses[index])
+
+    def get_angle_between_points(self, p1:PoseStamped, p2:PoseStamped):
+        dx = p2.pose.position.x - p1.pose.position.x
+        dy = p2.pose.position.y - p1.pose.position.y
+        return math.atan2(dy,dx)
+
+    def integrate_pose(p:PoseStamped, t):
+        #Integrate p with constant speed for t seconds
+        return None
 
     def get_depth_setpoint(self, target_depth) -> float:
         #return a good depth setpoint based on target depth and minimum altitude
@@ -293,12 +349,23 @@ class LoloProxOpsAction():
         gridmap.info.origin.position.z = 0.0
 
         gridmap.data = [-1]*(gridmap.info.width*gridmap.info.height)
-
+        #gridmap.data[row + col*gridmap.info.height] = 100
         for i in range(0,100):
-            row = i
-            col = i
-            gridmap.data[row + col*gridmap.info.height] = 100
+            gridmap.data[0 + i*gridmap.info.height] = 100
+            gridmap.data[1 + i*gridmap.info.height] = 100
+            gridmap.data[98 + i*gridmap.info.height] = 100
+            gridmap.data[99 + i*gridmap.info.height] = 100
+            gridmap.data[i + 0*gridmap.info.height] = 100
+            gridmap.data[i + 1*gridmap.info.height] = 100
+            gridmap.data[i + 98*gridmap.info.height] = 100
+            gridmap.data[i + 99*gridmap.info.height] = 100
         return gridmap
+
+    #Subscriber callback functions
+    def target_callback(self,msg):
+        self._node.get_logger().info("target position received.")
+        self.target_position = msg
+        self.target_position_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
 
     def testcase(self):
 
@@ -317,8 +384,8 @@ class LoloProxOpsAction():
         self.robot_position.pose.orientation.y = pose_quaternion_values[1]
         self.robot_position.pose.orientation.z = pose_quaternion_values[2]
         self.robot_position.pose.orientation.w = pose_quaternion_values[3]
-        self.robot_position.pose.position.x = 0.0
-        self.robot_position.pose.position.y = 0.0
+        self.robot_position.pose.position.x = 50.0
+        self.robot_position.pose.position.y = 50.0
         self.robot_position.pose.position.z = 0.0
 
         #set target position
@@ -347,13 +414,13 @@ class LoloProxOpsAction():
         l1.header.stamp = self._node.get_clock().now().to_msg()
         l1_q = tf_transformations.quaternion_from_euler(0,
                                                         0,
-                                                        3)
+                                                        math.radians(225))
         l1.pose.orientation.x = l1_q[0]
         l1.pose.orientation.y = l1_q[1]
         l1.pose.orientation.z = l1_q[2]
         l1.pose.orientation.w = l1_q[3]
-        l1.pose.position.x = 50.0
-        l1.pose.position.y = 70.0
+        l1.pose.position.x = 20.0
+        l1.pose.position.y = 20.0
         l1.pose.position.z = 0.0
         self.loiter_points.append(l1)
 
@@ -362,13 +429,13 @@ class LoloProxOpsAction():
         l2.header.stamp = self._node.get_clock().now().to_msg()
         l2_q = tf_transformations.quaternion_from_euler(0,
                                                         0,
-                                                        -2)
+                                                        math.radians(45))
         l2.pose.orientation.x = l2_q[0]
         l2.pose.orientation.y = l2_q[1]
         l2.pose.orientation.z = l2_q[2]
         l2.pose.orientation.w = l2_q[3]
-        l2.pose.position.x = 70.0
-        l2.pose.position.y = 50.0
+        l2.pose.position.x = 80.0
+        l2.pose.position.y = 80.0
         l2.pose.position.z = 0.0
         self.loiter_points.append(l2)
 

@@ -8,6 +8,9 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 import time
+import random
+import math
+import tf_transformations
 
 
 class MinimalClientAsync(Node):
@@ -28,20 +31,43 @@ class MinimalClientAsync(Node):
             self.get_logger().info('Waiting for plan path service...')
 
         self.path_pub = self.create_publisher(Path, 'path', 10) #Default callback group?
-        self.timer = self.create_timer(0.1, self.send_request, callback_group=timer_callback_group)
+        self.timer = self.create_timer(2, self.send_request, callback_group=timer_callback_group)
 
 
     def send_request(self):
         self.req = GetPlan.Request()
 
+#Set robot position
+        robot_yaw_rad = random.random()*math.pi*2
+        robot_pitch_rad = 0
+        robot_roll_rad = 0
+        pose_quaternion_values = tf_transformations.quaternion_from_euler(robot_roll_rad,
+                                                                          robot_pitch_rad,
+                                                                          robot_yaw_rad)
         self.req.start.header.frame_id = 'map'
-        self.req.start.pose.position.x = 0.0
-        self.req.start.pose.position.y = 0.0
+        self.req.start.header.stamp = self.get_clock().now().to_msg()
+        self.req.start.pose.orientation.x = pose_quaternion_values[0]
+        self.req.start.pose.orientation.y = pose_quaternion_values[1]
+        self.req.start.pose.orientation.z = pose_quaternion_values[2]
+        self.req.start.pose.orientation.w = pose_quaternion_values[3]
+        self.req.start.pose.position.x = 100*random.random()
+        self.req.start.pose.position.y = 100*random.random()
         self.req.start.pose.position.z = 0.0
-        
+
+        #set target position
+        target_yaw_rad = random.random()*math.pi*2
+        target_pitch_rad = 0
+        target_roll_rad = 0
+        target_quaternion_values = tf_transformations.quaternion_from_euler(target_roll_rad,
+                                                                          target_pitch_rad,
+                                                                          target_yaw_rad)
         self.req.goal.header.frame_id = 'map'
-        self.req.goal.pose.position.x = 10.0
-        self.req.goal.pose.position.y = 10.0
+        self.req.goal.pose.orientation.x = target_quaternion_values[0]
+        self.req.goal.pose.orientation.y = target_quaternion_values[1]
+        self.req.goal.pose.orientation.z = target_quaternion_values[2]
+        self.req.goal.pose.orientation.w = target_quaternion_values[3]
+        self.req.goal.pose.position.x = 100*random.random()
+        self.req.goal.pose.position.y = 100*random.random()
         self.req.goal.pose.position.z = 0.0
 
         #TODO start and end yaw
