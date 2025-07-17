@@ -83,7 +83,7 @@ public:
         float beta  = unwrap_2pi(psi2 - theta); // [0:2*PI]
         int best_index = -1;
         float lowest_cost = -1;
-        float seg_final[] = {0,0,0};
+        float segment_times[] = {0,0,0}; //Contains time of each segment normalized by turn radius
 
         // Compute all Dubins paths between points
         dubinsLSL(alpha,beta,d, tz[0], pz[0], qz[0]);
@@ -95,67 +95,26 @@ public:
 
         //Pick the path with the lowest cost
         for(int k=0;k<6;k++) {
-            if(tz[k]!=-1) {
-                float cost = tz[k] + pz[k] + qz[k];
-                if(cost<lowest_cost || lowest_cost==-1) {
+            if(tz[k]!=-1) { //Path exists?
+                float time_cost = tz[k] + pz[k] + qz[k];
+                float temp_segment_times[3] = {tz[k], pz[k], qz[k]};
+                float stepsize = 1; //Course path for calculating cost
+                float map_cost = create_dubins_path(start, goal, temp_segment_times, DIRDATA[k], stepsize, nullptr, true);
+                RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Map cost %f", map_cost);
+                if((time_cost+map_cost)<lowest_cost || lowest_cost==-1) {
                     best_index = k;
-                    lowest_cost = cost;
-                    seg_final[0] = tz[k];
-                    seg_final[1] = pz[k];
-                    seg_final[2] = qz[k];
+                    lowest_cost = time_cost+map_cost;
+                    segment_times[0] = tz[k];
+                    segment_times[1] = pz[k];
+                    segment_times[2] = qz[k];
                 }
             }
         }
 
-        //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Best path found %d", best_index);
-        
-        
-        //Add header for path
-        response->plan.header = start.header;
-        //# Build the trajectory from the lowest-cost path
-        response->plan.poses.push_back(start);
-        geometry_msgs::msg::PoseStamped* current_pos = &start;
-        float current_yaw = getYaw(*current_pos);
+        //Crete the final path
+        float stepsize = 2;
+        create_dubins_path(start, goal, segment_times, DIRDATA[best_index], stepsize, &response->plan, false);
 
-        float stepsize = 0.1;
-        float x = 0;
-        float length = (seg_final[0]+seg_final[1]+seg_final[2])*turn_radius;
-        //path = []
-
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Length of path %f", length);
-        
-        while (x < length) {
-   
-            float tprime = x/turn_radius;
-            float dt = stepsize / turn_radius;
-            
-            const Segment* types = DIRDATA[best_index];
-            geometry_msgs::msg::PoseStamped next_pos;
-            if(tprime<seg_final[0])
-                next_pos = dubins_segment(dt,current_yaw,types[0]);
-            else if(tprime<(seg_final[0]+seg_final[1]))
-                next_pos = dubins_segment(dt,current_yaw,types[1]);
-            else
-                next_pos = dubins_segment(dt, current_yaw, types[2]);
-            
-            //Rescale with turning radius and add position of last wp
-            next_pos.pose.position.x = current_pos->pose.position.x + (next_pos.pose.position.x * turn_radius);
-            next_pos.pose.position.y = current_pos->pose.position.y + (next_pos.pose.position.y * turn_radius);
-            next_pos.pose.position.z = current_pos->pose.position.z;
-
-            //set header
-            next_pos.header = start.header;
-            next_pos.header.stamp.sec += x; //Increase timestamp
-            
-            response->plan.poses.push_back(next_pos);
-            current_pos = &response->plan.poses.back();
-            current_yaw = getYaw(*current_pos);
-
-            x += stepsize;
-        }
-
-        //Add goal as last wp
-        response->plan.poses.push_back(goal);  
     };
         
 
@@ -262,6 +221,85 @@ public:
             q = unwrap_2pi(unwrap_2pi(beta)-alpha-t+(p)); //[0:2*PI]
         }
     };
+
+    float create_dubins_path(geometry_msgs::msg::PoseStamped &start, geometry_msgs::msg::PoseStamped &goal, float segment_times[3], const Segment segment_types[3], float stepsize, nav_msgs::msg::Path* path, bool calcualteMapCost) {
+        
+        float map_cost = 0;
+
+        //Add header for path
+        if(path != nullptr) {
+            path->header = start.header;
+            path->poses.push_back(start);
+        }
+        
+        float start_yaw = getYaw(start);
+
+
+        //Calculate intermediate points (reduces integration errors)
+        geometry_msgs::msg::PoseStamped mid1 = dubins_segment(segment_times[0], start_yaw, segment_types[0]);
+        mid1.pose.position.x = start.pose.position.x + (mid1.pose.position.x * turn_radius);
+        mid1.pose.position.y = start.pose.position.y + (mid1.pose.position.y * turn_radius);
+        mid1.pose.position.z = start.pose.position.z;
+        float mid1_yaw = getYaw(mid1);
+    
+        geometry_msgs::msg::PoseStamped mid2 = dubins_segment(segment_times[1], mid1_yaw, segment_types[1]);
+        mid2.pose.position.x = mid1.pose.position.x + (mid2.pose.position.x * turn_radius);
+        mid2.pose.position.y = mid1.pose.position.y + (mid2.pose.position.y * turn_radius);
+        mid2.pose.position.z = mid1.pose.position.z;
+        float mid2_yaw = getYaw(mid2);
+
+        float length = (segment_times[0]+segment_times[1]+segment_times[2])*turn_radius;
+        //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Length of path %f", length);
+        float x = 0;
+        while (x < length) {
+   
+            float tprime = x/turn_radius;            
+            
+            geometry_msgs::msg::PoseStamped next_pos;
+            if(tprime<segment_times[0]) {
+                next_pos = dubins_segment(tprime,start_yaw,segment_types[0]);
+                next_pos.pose.position.x = start.pose.position.x + (next_pos.pose.position.x * turn_radius);
+                next_pos.pose.position.y = start.pose.position.y + (next_pos.pose.position.y * turn_radius);
+                next_pos.pose.position.z = start.pose.position.z;
+            }
+            else if(tprime<(segment_times[0]+segment_times[1])) {
+                next_pos = dubins_segment(tprime-segment_times[0], mid1_yaw, segment_types[1]);
+                next_pos.pose.position.x = mid1.pose.position.x + (next_pos.pose.position.x * turn_radius);
+                next_pos.pose.position.y = mid1.pose.position.y + (next_pos.pose.position.y * turn_radius);
+                next_pos.pose.position.z = mid1.pose.position.z;
+            }
+            else {
+                next_pos = dubins_segment(tprime-segment_times[0]-segment_times[1], mid2_yaw, segment_types[2]);
+                next_pos.pose.position.x = mid2.pose.position.x + (next_pos.pose.position.x * turn_radius);
+                next_pos.pose.position.y = mid2.pose.position.y + (next_pos.pose.position.y * turn_radius);
+                next_pos.pose.position.z = mid2.pose.position.z;
+            }
+            
+            //set header
+            next_pos.header = start.header;
+            next_pos.header.stamp.sec += x; //Increase timestamp
+            x += stepsize;
+
+            //Add pose to path
+            if(path != nullptr) {
+                path->poses.push_back(next_pos);
+            }
+            
+
+            if(calcualteMapCost) {
+                map_cost += calculate_map_cost(next_pos);
+            }
+        }
+
+        //Add goal as last wp
+        if(path != nullptr) {
+            path->poses.push_back(goal);  
+        }
+        
+        
+        //TODO return map cost
+        return map_cost;
+    }
 
     geometry_msgs::msg::PoseStamped dubins_segment(double dt, float start_yaw, Segment type)
     {

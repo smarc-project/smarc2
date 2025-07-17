@@ -17,6 +17,7 @@ class PathPlanner {
 protected:
     //Pathplanner map
     nav_msgs::msg::OccupancyGrid map;
+    bool map_set = false;
 
 
 public:
@@ -75,7 +76,7 @@ public:
         map.info = request->map.info;
         map.header = request->map.header;
         map.data = request->map.data;
-
+        map_set = true;
         response->success = false;
     }
 
@@ -87,8 +88,30 @@ public:
         response->map = map;
     }
 
-    //TODO:
     // function for calculating cost of a point based on the map
+    float calculate_map_cost(geometry_msgs::msg::PoseStamped &p) {
+        
+        
+        //Map not set. cost = 0
+        if(!map_set)
+            return 0;
+
+        //calculate coordinates for point in the map
+        float x = p.pose.position.x - map.info.origin.position.x;
+        float y = p.pose.position.y - map.info.origin.position.y;
+
+        int col = (int) x;
+        int row = (int) y;
+
+        if(col >= 0 && col < map.info.width &&
+           row >= 0 && row < map.info.height) {
+            int map_value = map.data[row + col*map.info.width];
+            if(map_value == -1) map_value = 0;
+            return ((float) map_value) / 100;
+        }
+        //RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Error map index out of bounds (%d %d)", col, row);
+        return 2;
+    }
 };
 
 #endif //PATHPLANNER_BASE_H
