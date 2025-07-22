@@ -12,8 +12,9 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import BaseAction
 from std_msgs.msg import String
+import math
 
-from lolo_depth_move_to.depth_move_to_goal import DepthMoveToGoal
+#from lolo_depth_move_to.depth_move_to_goal import DepthMoveToGoal
 #from lolo_depth_move_to.action_parsing import ActionSubMsg as ActMsg
 #from lolo_depth_move_to.action_parsing import DepthMoveToActionParsing
 
@@ -89,8 +90,32 @@ class ProxOpsClient(SMARCActionClient):
         self.logger.info(f"Sending goal to action server")
         goal_msg = BaseAction.Goal()
         parameters = {}
-        parameters['hej1'] = 123
-        parameters['hej2'] = 321
+        parameters['loiter_1'] = [58.822943, 17.634076, 270]
+        parameters['loiter_2'] = [58.821758, 17.634371, 90]
+        parameters['geofence'] = [
+            [58.82340843380697, 17.63504927730432],
+            [58.82339234537327, 17.63333247097488],
+            [58.82313658210533, 17.63282176946456],
+            [58.82274289249682, 17.63300822776146],
+            [58.82233929757847, 17.63303259019619],
+            [58.82204921353041, 17.63271587944806],
+            [58.82154618191932, 17.63280916342387],
+            [58.82128528523900, 17.63358102518024],
+            [58.82111275289891, 17.63420663339427],
+            [58.82114994251493, 17.63499700075815],
+            [58.82149845972899, 17.63494094670145],
+            [58.82174650200419, 17.63502216759974],
+            [58.82207021809655, 17.63505466876092],
+            [58.82232665647457, 17.63477821663079],
+            [58.82262912026778, 17.63446904208885],
+            [58.82294346132444, 17.63458097904721],
+            [58.82317133139508, 17.63507686273834],
+            [58.82317911826976, 17.63573905491145],
+            [58.82328740805892, 17.63572925868223],
+            [58.82327540403292, 17.63507536930186],
+            [58.82340843380697, 17.63504927730432]
+        ]
+
         str_msg = String()
         str_msg.data = json.dumps(parameters)
         goal_msg.goal = str_msg
@@ -102,7 +127,7 @@ def main(args=None):
     node_name = "lolo_move_to_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    setpoint = ProxOpsClient(node, "/lolo_prox_ops", action_type)
+    setpoint = ProxOpsClient(node, "lolo_prox_ops", action_type)
     setpoint._test_actionserver()
     try:
         rclpy.spin(node)

@@ -10,20 +10,20 @@ class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('fake_target_publisher')
-        self.publisher_ = self.create_publisher(PoseStamped, 'proxops/target', 10)
+        self.publisher_ = self.create_publisher(PoseStamped, '/lolo_auv_v1/proxops/target', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0.0
 
     def timer_callback(self):
         msg = PoseStamped()
-        msg.header.frame_id = 'map'
+        msg.header.frame_id = 'map_gt'
         msg.header.stamp = self.get_clock().now().to_msg()
 
-        msg.pose.position.x = 50 + 40*math.cos(self.i)
-        msg.pose.position.y = 50 + 40*math.sin(self.i)
+        msg.pose.position.x = -971.3089599609375 + 20*math.cos(self.i)
+        msg.pose.position.y = -2000 + 40*math.sin(self.i)
 
-        q = tf_transformations.quaternion_from_euler(0, 0, self.i+0.25*math.pi)
+        q = tf_transformations.quaternion_from_euler(0, 0, (5.1*self.i))
         msg.pose.orientation.x = q[0]
         msg.pose.orientation.y = q[1]
         msg.pose.orientation.z = q[2]

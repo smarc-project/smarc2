@@ -6,15 +6,23 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-
+from geodesy import utm
+from geographic_msgs.msg import GeoPoint
+from tf2_geometry_msgs import do_transform_pose_stamped
+from tf_transformations import euler_from_quaternion
+from rclpy.time import Duration, Time
 from nav_msgs.srv import SetMap
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import MapMetaData
 from nav_msgs.srv import GetPlan
 from nav_msgs.msg import Path
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
+from lolo_msgs.msg import Topics as loloTopics
+from smarc_msgs.msg import Topics as smarcTopics
+from tf2_ros import Buffer, TransformException, TransformListener
 import numpy as np
 import time
 import math
@@ -53,6 +61,12 @@ class LoloProxOpsAction():
 
         # Initialize any necessary state for your specific action
         # These have nothing to do with the action server itself
+
+        # Tf listener
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(
+            self._tf_buffer, self._node, spin_thread=True
+        )
         
         # State variables. gets updated from topic callbacks
         self.robot_position = PoseStamped() #robot positon [geometry_msgs/msg/Pose]
@@ -60,18 +74,21 @@ class LoloProxOpsAction():
         self.target_position = PoseStamped() #target position [geometry_msgs/msg/Pose]
         self.target_position_time = None #node time to be compared with current time
         self.current_loiter_point_index=0 #Index of current loiter point    
+        self.loiter_points = []
+
+        #Target frame
+        self.frame_id = 'map_gt'
 
         #Settings etc
         self.target_tol = 5 #tolerance when loitering
-        self.timeout = 600
-        self.fast_rpm = 700
-        self.slow_rpm = 500
+        self.timeout = 1800.0
+        self.fast_rpm = 700.0
+        self.slow_rpm = 500.0
         self.loiter_points = None
-        self.loiter_depth = 5
-        self.long_distance_depth = 4
-        self.short_distance_depth = 2
-        self.prox_ops_depth = 2
-        self.min_altitude = 3
+        self.loiter_depth = 5.0
+        self.long_distance_depth = 0.0
+        self.short_distance_depth = 0.0
+        self.min_altitude = 0.0
         self.map = None #Occupancygrid
 
         #Initialize in the "Do nothing phase"
@@ -81,7 +98,9 @@ class LoloProxOpsAction():
         self.action_started_time = None
 
         #Service clients
-        self.srv_callback_group = ReentrantCallbackGroup()
+        self.srv_callback_group = MutuallyExclusiveCallbackGroup()
+        self.publisher_callback_group = ReentrantCallbackGroup()
+        self.subscriber_callback_group = ReentrantCallbackGroup()
         self.set_map_cli = self._node.create_client(SetMap, 'set_map', callback_group=self.srv_callback_group)
         self.get_plan_cli = self._node.create_client(GetPlan, 'plan_path', callback_group=self.srv_callback_group)
 
@@ -92,16 +111,17 @@ class LoloProxOpsAction():
             self._node.get_logger().info('Waiting for set map service...')
 
         # Publishers
-        self.map_pub = self._node.create_publisher(OccupancyGrid, 'proxops/map',10)
-        self.path_pub = self._node.create_publisher(Path, 'proxops/path',10)
-        #self.rpm_pub
-        #self.yaw_pub
-        #self.depth_pub
-        #self.roll_pub
+        self.map_pub = self._node.create_publisher(OccupancyGrid, 'proxops/map',10, callback_group=self.publisher_callback_group)
+        self.path_pub = self._node.create_publisher(Path, 'proxops/path',10, callback_group=self.publisher_callback_group)
+        self.rpm_pub = self._node.create_publisher(Float32, loloTopics.RPM_SETPOINT, 10, callback_group=self.publisher_callback_group)
+        self.yaw_pub = self._node.create_publisher(Float32, loloTopics.YAW_SETPOINT, 10, callback_group=self.publisher_callback_group)
+        self.depth_pub = self._node.create_publisher(Float32, loloTopics.DEPTH_SETPOINT, 10, callback_group=self.publisher_callback_group)
+        self.roll_pub = self._node.create_publisher(Float32, loloTopics.ROLL_SETPOINT, 10, callback_group=self.publisher_callback_group)
 
         # Subscribers
-        #altitude_sub
-        self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10)
+        self.altitude_sub = self._node.create_subscription(Float32, smarcTopics.ALTITUDE_TOPIC, self.altitude_callback,10, callback_group=self.subscriber_callback_group)
+        self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10, callback_group=self.subscriber_callback_group)
+        self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
         #'done'_sub
 
         self._node.get_logger().info("Action server started")
@@ -110,13 +130,26 @@ class LoloProxOpsAction():
         self._node.get_logger().info(f"Received goal request: {goal_request}")
         # Here you would typically validate the goal request
         # Return True to accept the goal, False to reject it
+        
+        #Loiter points
+        l1 = goal_request['loiter_1']
+        l2 = goal_request['loiter_2']
+        #Map boundary
+        map_boundary = goal_request['geofence']
 
-        #TODO parse input JSON
-        #Check that the goal request contains all important parameters
+        assert l1 is not None
+        assert l2 is not None
+        assert map_boundary is not None
+
+        #Convert loiter points to local frame
+        self.loiter_points = []
+        self.loiter_points.append(self.latlon_to_local_frame(l1))
+        self.loiter_points.append(self.latlon_to_local_frame(l2))
+        #self.latlon_to_local_frame()
 
         
         #Create occupancy grid for path planner
-        self.map = self.create_map(frame_id = 'map', geofence = None)
+        self.map = self.create_map(frame_id = self.frame_id, geofence = map_boundary)
         set_map_req = SetMap.Request()
         set_map_req.map = self.map
 
@@ -168,10 +201,6 @@ class LoloProxOpsAction():
         if(runtime > self.timeout):
             return False # Failure
 
-        #Check if Lolo is outside the geofenced area
-        #if(outside(self.geofence))
-        #    return False # Failure
-
         #Do different things depending on action phase
         if(self.current_action_phase == self.ACTION_PHASE.STANDBY):
             self._node.get_logger().info("Something went wrong.")
@@ -180,10 +209,13 @@ class LoloProxOpsAction():
             self._node.get_logger().info("Action success.")
             return True # Success
 
-        #TODO check if we the position of the docking station is known
         #if docking station location is unknown current_action_pahse -> LOITER
         #if distance to docking station==far away current_action_pahse -> LONG_DISTANCE
         #if distance to docking station==close away current_action_pahse -> SHORT_DISTANCE
+
+        if(self.robot_position is None):
+            self._node.get_logger().info("ERROR no robot position")
+            return None
 
         if(self.target_position == None or self.target_position_time == None): 
             self.current_action_phase = self.ACTION_PHASE.LOITER
@@ -208,29 +240,38 @@ class LoloProxOpsAction():
                 self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
 
             #TESTING
-            self.robot_position = self.loiter_points[self.current_loiter_point_index]
-            self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
+            #self.robot_position = self.loiter_points[self.current_loiter_point_index]
+            #self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
 
             #Plan a path to the next loiter point
-            result = self.plan_path('map', self.robot_position, self.loiter_points[self.current_loiter_point_index])
+            result = self.plan_path(self.robot_position, self.loiter_points[self.current_loiter_point_index])
             
             if(result is not None ): 
                 self._node.get_logger().info("Plan path successful")
-                #Publish map for logging
+                #Publish path and map for logging
                 self.path_pub.publish(result)
+                self.map_pub.publish(self.map)
 
-                yaw_setpoint = self.get_yaw_from_path(self.robot_position, result)
-                roll_setpoint = 0
-                depth_setpoint = self.get_depth_setpoint(self.loiter_depth)
-                rpm_setpoint = self.slow_rpm
+                yaw_setpoint = Float32()
+                roll_setpoint = Float32()
+                depth_setpoint = Float32()
+                rpm_setpoint = Float32()
+
+                yaw_setpoint.data = self.get_yaw_from_path(self.robot_position, result)
+                roll_setpoint.data = 0.0
+                depth_setpoint.data = self.get_depth_setpoint(self.loiter_depth)
+                rpm_setpoint.data = self.slow_rpm
                 self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
 
-                #TODO publish setpoints
+                #publish setpoints
+                self.rpm_pub.publish(rpm_setpoint)
+                self.yaw_pub.publish(yaw_setpoint)
+                self.depth_pub.publish(depth_setpoint)
+                self.roll_pub.publish(roll_setpoint)
 
             else: 
                 self._node.get_logger().error("Failed to plan path")
                 return False #FAIL
-
 
         if(self.current_action_phase == self.ACTION_PHASE.LONG_DISTANCE):
             # Plan a path that goes to a point 10m ahead of the docking station
@@ -238,19 +279,29 @@ class LoloProxOpsAction():
             # Set RPM = Fast
 
             #Plan a path to the next loiter point
-            path = self.plan_path('map', self.robot_position, self.target_position)
+            path = self.plan_path(self.robot_position, self.target_position)
             if(path is not None ): 
                 self._node.get_logger().info("Plan path successful")
-                #Publish map for logging
+                #Publish path and map for logging
                 self.path_pub.publish(path)
+                self.map_pub.publish(self.map)
 
-                yaw_setpoint = self.get_yaw_from_path(self.robot_position, path)
-                roll_setpoint = 0
-                depth_setpoint = self.get_depth_setpoint(self.long_distance_depth)
-                rpm_setpoint = self.fast_rpm
+                yaw_setpoint = Float32()
+                roll_setpoint = Float32()
+                depth_setpoint = Float32()
+                rpm_setpoint = Float32()
+
+                yaw_setpoint.data = self.get_yaw_from_path(self.robot_position, path)
+                roll_setpoint.data = 0.0
+                depth_setpoint.data = self.get_depth_setpoint(self.long_distance_depth)
+                rpm_setpoint.data = self.fast_rpm
                 self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
 
-                #TODO publish setpoints
+                #publish setpoints
+                self.rpm_pub.publish(rpm_setpoint)
+                self.yaw_pub.publish(yaw_setpoint)
+                self.depth_pub.publish(depth_setpoint)
+                self.roll_pub.publish(roll_setpoint)
             else: 
                 self._node.get_logger().error("Failed to plan path")
                 return False #FAIL
@@ -260,12 +311,23 @@ class LoloProxOpsAction():
             # Set target yaw = docking station + 10m ahead
             # Set RPM = SLOW if distance to target < 2m
             # Set RPM = FAST if distance to target < 4m
-            yaw_setpoint = self.get_angle_between_points(self.robot_position, self.target_position)
-            roll_setpoint = 0
-            depth_setpoint = self.get_depth_setpoint(self.loiter_depth)
-            rpm_setpoint = self.slow_rpm
+
+            yaw_setpoint = Float32()
+            roll_setpoint = Float32()
+            depth_setpoint = Float32()
+            rpm_setpoint = Float32()
+
+            yaw_setpoint.data = self.get_angle_between_points(self.robot_position, self.target_position)
+            roll_setpoint.data = 0.0
+            depth_setpoint.data = self.get_depth_setpoint(self.short_distance_depth)
+            rpm_setpoint.data = self.slow_rpm
             self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
-            pass
+            
+            #publish setpoints
+            self.rpm_pub.publish(rpm_setpoint)
+            self.yaw_pub.publish(yaw_setpoint)
+            self.depth_pub.publish(depth_setpoint)
+            self.roll_pub.publish(roll_setpoint)
 
         return None
     
@@ -285,18 +347,37 @@ class LoloProxOpsAction():
         return math.sqrt(dx*dx + dy*dy)
 
     def get_yaw_from_path(self, start_pose:PoseStamped, path : Path) -> float: 
-        # Step through the path 10s into the future (or until end) and calculate the yaw value need to reach that point
-        #start_time = path.poses[0].header.stamp.sec
-        index = 0
-        #self._node.get_logger().info("path length " + str(len(path.poses)))
-        #while index < len(path.poses)-1:
-        #    #dt = path.poses[index].header.stamp.sec - start_time
-        #    #self._node.get_logger().info("dt: " + str(dt))
-        #    index +=1
-        #    if(index > 30): 
-        #        break
-        index = min(len(path.poses)-1, 30) 
-        return self.get_angle_between_points(start_pose, path.poses[index])
+
+        if(len(path.poses) < 4):
+            self._node.get_logger().Error("Path too short: " +str(len(path.poses)))
+            return self.get_yaw_from_posestamped(start_pose)
+        
+
+
+        yaw1 = self.get_angle_between_points(path.poses[1], path.poses[2]) #1st  pose
+        yaw2 = self.get_angle_between_points(path.poses[2], path.poses[3]) #2nd pose
+
+        d = yaw2-yaw1
+
+        self._node.get_logger().info("current yaw: : " +str(math.degrees(self.get_yaw_from_posestamped(start_pose))))
+        self._node.get_logger().info("Yaw1: : " +str(math.degrees(yaw1)))
+        self._node.get_logger().info("Yaw2: : " +str(math.degrees(yaw2)))
+
+        if(d < -math.pi): d+=2*math.pi
+        if(d > math.pi): d-=2*math.pi
+
+        return yaw2 + d*2
+        #turn = 0
+        #if(d < math.radians(2.5)): turn = -1
+        #if(d > math.radians(2.5)): turn = 1
+        #return yaw1 + turn
+    
+    def get_yaw_from_posestamped(self, ps:PoseStamped) -> float: 
+        orientation_q = ps.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+        #self._node.get_logger().error("roll pitch yaw: " +str(math.degrees(roll)) +", "+str(math.degrees(pitch))+", "+str(math.degrees(yaw)))
+        return yaw
 
     def get_angle_between_points(self, p1:PoseStamped, p2:PoseStamped):
         dx = p2.pose.position.x - p1.pose.position.x
@@ -311,7 +392,7 @@ class LoloProxOpsAction():
         #return a good depth setpoint based on target depth and minimum altitude
         return min(target_depth, (-self.robot_position.pose.position.z + self.robot_altitude) - self.min_altitude)
 
-    def plan_path(self,frame_id, _start, _goal):
+    def plan_path(self, _start, _goal):
         """
         Plan a path from start to goal
         """
@@ -337,35 +418,101 @@ class LoloProxOpsAction():
     def create_map(self, frame_id, geofence) -> OccupancyGrid:
         """
         Create an occupancygrid with free and occupied regions based on the geofence given in the goal
-        TODO: Use lat lon as geofence input
         """
+
+        #Convert points
+        boundary = [self.latlon_to_local_frame(point) for point in geofence]
+
+        minx = math.inf
+        miny = math.inf
+        maxx = -math.inf
+        maxy = -math.inf
+        for i in range(len(boundary)):
+            minx = min(minx, boundary[i].pose.position.x)
+            miny = min(miny, boundary[i].pose.position.y)
+            maxx = max(maxx, boundary[i].pose.position.x)
+            maxy = max(maxy, boundary[i].pose.position.y)
+
+        self._node.get_logger().error("coordinates of map: (" + str(minx) + ", " + str(miny) + ") (" + str(maxx) + ", " + str(maxy) + ")")
+
         gridmap = OccupancyGrid()
         gridmap.header.frame_id = frame_id
-        gridmap.info.height = 100
-        gridmap.info.width = 100
+        gridmap.info.height = int(maxy-miny)+1
+        gridmap.info.width = int(maxx-minx)+1
         gridmap.info.resolution = 1.0
-        gridmap.info.origin.position.x = 0.0
-        gridmap.info.origin.position.y = 0.0
+        gridmap.info.origin.position.x = minx
+        gridmap.info.origin.position.y = miny
         gridmap.info.origin.position.z = 0.0
 
         gridmap.data = [-1]*(gridmap.info.width*gridmap.info.height)
-        #gridmap.data[row + col*gridmap.info.height] = 100
-        for i in range(0,100):
-            gridmap.data[0 + i*gridmap.info.height] = 100
-            gridmap.data[1 + i*gridmap.info.height] = 100
-            gridmap.data[98 + i*gridmap.info.height] = 100
-            gridmap.data[99 + i*gridmap.info.height] = 100
-            gridmap.data[i + 0*gridmap.info.height] = 100
-            gridmap.data[i + 1*gridmap.info.height] = 100
-            gridmap.data[i + 98*gridmap.info.height] = 100
-            gridmap.data[i + 99*gridmap.info.height] = 100
+
+        for x in range(gridmap.info.width):
+            for y in range(gridmap.info.height):
+                if(not self.is_inside_boundary(gridmap.info.origin.position.x + x,gridmap.info.origin.position.y + y, boundary)):
+                    gridmap.data[x + y*gridmap.info.width] = 100
+                else:
+                    gridmap.data[x + y*gridmap.info.width] = 0
         return gridmap
 
+    def is_inside_boundary(self, x : float,y : float, boundary: list) -> bool:
+        c = False
+        l = len(boundary)
+        for i in range(l):
+            pi = boundary[i].pose.position
+            piplus = boundary[(i+1) % l].pose.position
+            if( ((piplus.x>x) != (pi.x>x)) and
+                (y < (pi.y-piplus.y) * (x-piplus.x) / (pi.x-piplus.x) + piplus.y) ):
+                c = not c
+        return c
+
+    def latlon_to_local_frame(self, point_list: list) -> PoseStamped:
+
+        geopoint = GeoPoint()
+        geopoint.latitude = point_list[0]
+        geopoint.longitude = point_list[1]
+        geopoint.altitude = 0.0
+        yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
+
+
+        point: utm.UTMPoint = utm.fromMsg(geopoint)
+        pose_stamp = PoseStamped()
+        pose_stamp.pose.position = point.toPoint()
+        zone, band = point.gridZone()
+        pose_stamp.header.frame_id = f"utm_{zone}_{band}"
+
+        #Add yaw
+        quaternion_values = tf_transformations.quaternion_from_euler(0,0,yaw)
+        pose_stamp.pose.orientation.x = quaternion_values[0]
+        pose_stamp.pose.orientation.y = quaternion_values[1]
+        pose_stamp.pose.orientation.z = quaternion_values[2]
+        pose_stamp.pose.orientation.w = quaternion_values[3]
+
+        t = self._tf_buffer.lookup_transform(
+                target_frame=self.frame_id,
+                source_frame=pose_stamp.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1),
+            )
+        return do_transform_pose_stamped(pose_stamp, t)
+
     #Subscriber callback functions
-    def target_callback(self,msg):
-        self._node.get_logger().info("target position received.")
+    def target_callback(self,msg:PoseStamped):
+        #self._node.get_logger().info("target position received.")
+        if(msg.header.frame_id != self.frame_id):
+            self._node.get_logger().info("Target is not in the coorrect frame")
+            return
         self.target_position = msg
         self.target_position_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
+
+    def robot_odom_callback(self,msg : Odometry):
+        #self._node.get_logger().info("robot position updated.")
+        self.robot_position = PoseStamped()
+        self.robot_position.header = msg.header
+        self.robot_position.pose = msg.pose.pose
+        #self._node.get_logger().info("" + str(msg.header.frame_id))
+
+    def altitude_callback(self,msg):
+        self.robot_altitude = msg.data
 
     def testcase(self):
 
