@@ -14,7 +14,7 @@
 #include <cmath>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
-
+#include <std_msgs/msg/string.h>
 
 class DubinsPlanner : public PathPlanner {
 
@@ -63,6 +63,24 @@ public:
         geometry_msgs::msg::PoseStamped goal = request->goal;
         double start_yaw = getYaw(start);
         double goal_yaw = getYaw(goal);
+
+        //Check to make sure the start, goal and map are in the same frame
+        //std::string start_frame = start.header.frame_id;
+        //std::string end_frame = start.header.frame_id.data;
+        //std::string map_frame = "Hello";
+
+        if(start.header.frame_id.compare(goal.header.frame_id) != 0) {
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "ERROR start and goal frames_id is different");
+            return;
+        }
+
+        if(map_set) {
+            if(start.header.frame_id.compare(map.header.frame_id) != 0) {
+                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "ERROR start and goal are not in the same frame as the map");
+                return;
+            }
+        }
+        
 
         // Calculate a dubins path between two waypoints
         float tz[] = {0, 0, 0, 0, 0, 0}; /* The translated initial configuration */ 

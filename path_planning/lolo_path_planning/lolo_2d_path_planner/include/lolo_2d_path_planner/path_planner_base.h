@@ -103,9 +103,9 @@ public:
         int col = (int) x;
         int row = (int) y;
 
-        if(col >= 0 && col < map.info.width &&
-           row >= 0 && row < map.info.height) {
-            int map_value = map.data[row + col*map.info.width];
+        if(col >= 0 && col < (int) map.info.width &&
+           row >= 0 && row < (int) map.info.height) {
+            int map_value = map.data[col + row*map.info.width];
             if(map_value == -1) map_value = 0;
             return ((float) map_value) / 100;
         }
