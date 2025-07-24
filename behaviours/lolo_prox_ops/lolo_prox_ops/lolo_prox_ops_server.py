@@ -19,13 +19,14 @@ from nav_msgs.msg import Path
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Empty
 from lolo_msgs.msg import Topics as loloTopics
 from smarc_msgs.msg import Topics as smarcTopics
 from tf2_ros import Buffer, TransformException, TransformListener
 import numpy as np
 import time
 import math
+import json
 
 import tf_transformations
 
@@ -77,15 +78,16 @@ class LoloProxOpsAction():
         self.loiter_points = []
 
         #Target frame
-        self.frame_id = 'map_gt'
+        #self.frame_id = 'map_gt'
+        self.frame_id = 'lolo/odom'
 
         #Settings etc
         self.target_tol = 5 #tolerance when loitering
         self.timeout = 1800.0
-        self.fast_rpm = 700.0
-        self.slow_rpm = 500.0
+        self.fast_rpm = 600.0
+        self.slow_rpm = 300.0
         self.loiter_points = None
-        self.loiter_depth = 5.0
+        self.loiter_depth = 0.0
         self.long_distance_depth = 0.0
         self.short_distance_depth = 0.0
         self.min_altitude = 0.0
@@ -98,7 +100,7 @@ class LoloProxOpsAction():
         self.action_started_time = None
 
         #Service clients
-        self.srv_callback_group = MutuallyExclusiveCallbackGroup()
+        self.srv_callback_group = ReentrantCallbackGroup()
         self.publisher_callback_group = ReentrantCallbackGroup()
         self.subscriber_callback_group = ReentrantCallbackGroup()
         self.set_map_cli = self._node.create_client(SetMap, 'set_map', callback_group=self.srv_callback_group)
@@ -122,7 +124,7 @@ class LoloProxOpsAction():
         self.altitude_sub = self._node.create_subscription(Float32, smarcTopics.ALTITUDE_TOPIC, self.altitude_callback,10, callback_group=self.subscriber_callback_group)
         self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10, callback_group=self.subscriber_callback_group)
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
-        #'done'_sub
+        self.done_sub = self._node.create_subscription(Empty, 'proxops/done', self.done_callback,10, callback_group=self.subscriber_callback_group)
 
         self._node.get_logger().info("Action server started")
 
@@ -130,12 +132,15 @@ class LoloProxOpsAction():
         self._node.get_logger().info(f"Received goal request: {goal_request}")
         # Here you would typically validate the goal request
         # Return True to accept the goal, False to reject it
+        params = json.loads(goal_request['json-params'])
+
+        self._node.get_logger().info(f"params: {params}")
         
         #Loiter points
-        l1 = goal_request['loiter_1']
-        l2 = goal_request['loiter_2']
+        l1 = params['loiter_1']
+        l2 = params['loiter_2']
         #Map boundary
-        map_boundary = goal_request['geofence']
+        map_boundary = params['geofence']
 
         assert l1 is not None
         assert l2 is not None
@@ -317,10 +322,12 @@ class LoloProxOpsAction():
             depth_setpoint = Float32()
             rpm_setpoint = Float32()
 
-            yaw_setpoint.data = self.get_angle_between_points(self.robot_position, self.target_position)
+            projected_target = self.integrate_pose(self.target_position,10)
+
+            yaw_setpoint.data = self.get_angle_between_points(self.robot_position, projected_target)
             roll_setpoint.data = 0.0
             depth_setpoint.data = self.get_depth_setpoint(self.short_distance_depth)
-            rpm_setpoint.data = self.slow_rpm
+            rpm_setpoint.data = self.slow_rpm if self.calculate_distance(self.robot_position, projected_target) < 3 else self.fast_rpm
             self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
             
             #publish setpoints
@@ -384,9 +391,11 @@ class LoloProxOpsAction():
         dy = p2.pose.position.y - p1.pose.position.y
         return math.atan2(dy,dx)
 
-    def integrate_pose(p:PoseStamped, t):
-        #Integrate p with constant speed for t seconds
-        return None
+    def integrate_pose(self,p:PoseStamped, m:float ) -> PoseStamped:
+        yaw = self.get_yaw_from_posestamped(p)
+        p.pose.position.x += m*math.cos(yaw)
+        p.pose.position.y += m*math.sin(yaw)
+        return p
 
     def get_depth_setpoint(self, target_depth) -> float:
         #return a good depth setpoint based on target depth and minimum altitude
@@ -436,6 +445,7 @@ class LoloProxOpsAction():
         self._node.get_logger().error("coordinates of map: (" + str(minx) + ", " + str(miny) + ") (" + str(maxx) + ", " + str(maxy) + ")")
 
         gridmap = OccupancyGrid()
+        gridmap.header.stamp = self._node.get_clock().now().to_msg()
         gridmap.header.frame_id = frame_id
         gridmap.info.height = int(maxy-miny)+1
         gridmap.info.width = int(maxx-minx)+1
@@ -513,6 +523,10 @@ class LoloProxOpsAction():
 
     def altitude_callback(self,msg):
         self.robot_altitude = msg.data
+
+    def done_callback(self,msg):
+        self._node.get_logger().info("Done message received")
+        self.current_action_phase = self.ACTION_PHASE.DONE
 
     def testcase(self):
 

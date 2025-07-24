@@ -20,10 +20,10 @@ class MinimalPublisher(Node):
         msg.header.frame_id = 'map_gt'
         msg.header.stamp = self.get_clock().now().to_msg()
 
-        msg.pose.position.x = -971.3089599609375 + 20*math.cos(self.i)
-        msg.pose.position.y = -2000 + 40*math.sin(self.i)
+        msg.pose.position.x = -941.3089599609375 + 40*math.cos(self.i)
+        msg.pose.position.y = -2090.0 + 40*math.sin(self.i)
 
-        q = tf_transformations.quaternion_from_euler(0, 0, (5.1*self.i))
+        q = tf_transformations.quaternion_from_euler(0, 0, (0.5*math.pi + self.i))
         msg.pose.orientation.x = q[0]
         msg.pose.orientation.y = q[1]
         msg.pose.orientation.z = q[2]
@@ -31,7 +31,7 @@ class MinimalPublisher(Node):
 
         self.publisher_.publish(msg)
         self.get_logger().info("Publishing")
-        self.i += 0.01
+        self.i += 0.005
 
 
 def main(args=None):

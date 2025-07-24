@@ -119,6 +119,7 @@ class ProxOpsClient(SMARCActionClient):
         str_msg = String()
         str_msg.data = json.dumps(parameters)
         goal_msg.goal = str_msg
+        self.logger.info(""+str_msg.data)
         self.send_goal(goal_msg)
 
 
