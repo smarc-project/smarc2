@@ -1,0 +1,167 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+ <tabbed_widget name="Main Window" parent="main_window">
+  <Tab containers="1" tab_name="LCG/Pitch">
+   <Container>
+    <DockSplitter sizes="0.249703;0.250892;0.249703;0.249703" count="4" orientation="-">
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.715161" left="0.010302" bottom="-0.348626" top="0.143469"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/ref/pitch" color="#c9531a"/>
+       <curve name="/sam/ctrl/conv/states/pose/pitch" color="#1ac938"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.715161" left="0.010302" bottom="14.125000" top="50.875000"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/control_input/lcg" color="#1f77b4"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.715161" left="0.010302" bottom="-0.128282" top="0.128282"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/control_input/thrusterhorizontal" color="#d62728"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.715161" left="0.010302" bottom="-0.227725" top="0.253672"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/error/pitch" color="#ff7f0e"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="VBS/Depth">
+   <Container>
+    <DockSplitter sizes="0.2;0.2;0.2;0.2;0.2" count="5" orientation="-">
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.000000" bottom="-4.431377" top="0.117533"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/states/pose/z" color="#17becf"/>
+       <curve name="/sam/dr/odom/pose/pose/position/z" color="#d62728"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.000000" bottom="-1.000000" top="41.000000"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/control_input/vbs" color="#f14cc1"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.000000" bottom="-0.128282" top="0.128282"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/control_input/thrusterhorizontal" color="#d62728"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.000000" bottom="-4.157573" top="1.133152"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/error/z" color="#9467bd"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.000000" bottom="-141.275000" top="4112.275000"/>
+       <limitY/>
+       <curve name="/sam/core/thruster1_cmd/rpm" color="#bcbd22"/>
+       <curve name="/sam/core/thruster1_fb/rpm/rpm" color="#1f77b4"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="tab3">
+   <Container>
+    <DockSplitter sizes="1" count="1" orientation="-">
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="524.768377" left="0.010302" bottom="-4.456326" top="1.140439"/>
+       <limitY/>
+       <curve name="/sam/ctrl/conv/ref/z" color="#ff7f0e"/>
+       <curve name="/sam/ctrl/conv/error/z" color="#9467bd"/>
+       <curve name="/sam/ctrl/conv/states/pose/z" color="#17becf"/>
+       <curve name="/sam/dr/odom/pose/pose/position/z" color="#d62728"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="tab4">
+   <Container>
+    <DockSplitter sizes="1" count="1" orientation="-">
+     <DockArea name="...">
+      <plot flip_x="false" flip_y="false" style="Lines" mode="TimeSeries">
+       <range right="1.000000" left="0.000000" bottom="0.000000" top="1.000000"/>
+       <limitY/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="2"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters time_axis="" delimiter="0"/>
+  </plugin>
+  <plugin ID="DataLoad MCAP"/>
+  <plugin ID="DataLoad ROS2 bags">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value="/diagnostics;/navheading;/parameter_events;/rosout;/sam/core/battery_status;/sam/core/can_gps;/sam/core/compass;/sam/core/ctd_fb;/sam/core/depth20_pressure;/sam/core/depth3000_pressure;/sam/core/dvl;/sam/core/dvl_raw_output;/sam/core/dvl_relay;/sam/core/gps;/sam/core/imu;/sam/core/lcg_cmd;/sam/core/lcg_fb;/sam/core/leak_fb;/sam/core/motor_oil_pressure;/sam/core/motor_temp;/sam/core/panic_fb;/sam/core/sbg_imu;/sam/core/standard/lcg_cmd;/sam/core/standard/leak;/sam/core/standard/thrust_vector_pitch_cmd;/sam/core/standard/thrust_vector_yaw_cmd;/sam/core/standard/thruster1_cmd;/sam/core/standard/thruster2_cmd;/sam/core/standard/vbs_cmd;/sam/core/thrust_vector_cmd;/sam/core/thruster1_cmd;/sam/core/thruster1_fb;/sam/core/thruster2_cmd;/sam/core/thruster2_fb;/sam/core/vbs_cmd;/sam/core/vbs_fb;/sam/core/vbs_tank_pressure;/sam/core/vbs_tank_temperature;/sam/core/yost_imu;/sam/ctrl/conv/control_input;/sam/ctrl/conv/error;/sam/ctrl/conv/ref;/sam/ctrl/conv/states;/sam/ctrl/conv/waypoint;/sam/ctrl/elevator_pid/ctrl_effort;/sam/dr/odom;/sam/dvl_enable;/sam/sbg/ekf_euler;/sam/sbg/ekf_nav;/sam/sbg/ekf_quat;/sam/sbg/imu_data;/sam/sbg/imu_short;/sam/sbg/mag;/sam/sbg/mag_calib;/sam/sbg/ship_motion;/sam/sbg/status;/sam/sbg/utc_time;/sam/smarc/vehicle_health;/sam/teleop/drive_assist_enable;/tf;/tf_static;/ublox_gps_node/fix_velocity"/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="ROS2 Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value="/sam/core/imu;/sam/core/lcg_cmd;/sam/core/lcg_fb;/sam/core/leak_fb;/sam/core/sbg_imu;/sam/core/thrust_vector_cmd;/sam/core/thruster1_cmd;/sam/core/thruster1_fb;/sam/core/thruster2_cmd;/sam/core/thruster2_fb;/sam/core/vbs_cmd;/sam/core/vbs_fb"/>
+  </plugin>
+  <plugin ID="UDP Server"/>
+  <plugin ID="WebSocket Server"/>
+  <plugin ID="ZMQ Subscriber"/>
+  <plugin ID="Fast Fourier Transform"/>
+  <plugin ID="Quaternion to RPY"/>
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays&#xa;&#xa; new_series: a series previously created with ScatterXY.new(name)&#xa; prefix:     prefix of the timeseries, before the index of the array&#xa; suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.&#xa; suffix_Y:   suffix to complete the name of the series containing the Y value&#xa; timestamp:   usually the tracker_time variable&#xa;              &#xa; Example:&#xa; &#xa; Assuming we have multiple series in the form:&#xa; &#xa;   /trajectory/node.{X}/position/x&#xa;   /trajectory/node.{X}/position/y&#xa;   &#xa; where {N} is the index of the array (integer). We can create a reactive series from the array with:&#xa; &#xa;   new_series = ScatterXY.new(&quot;my_trajectory&quot;) &#xa;   CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time );&#xa;--]]&#xa;&#xa;function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )&#xa;  &#xa;  --- clear previous values&#xa;  new_series:clear()&#xa;  &#xa;  --- Append points to new_series&#xa;  index = 0&#xa;  while(true) do&#xa;&#xa;    x = index;&#xa;    -- if not nil, get the X coordinate from a series&#xa;    if suffix_X ~= nil then &#xa;      series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )&#xa;      if series_x == nil then break end&#xa;      x = series_x:atTime(timestamp)&#x9; &#xa;    end&#xa;    &#xa;    series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )&#xa;    if series_y == nil then break end &#xa;    y = series_y:atTime(timestamp)&#xa;    &#xa;    new_series:push_back(x,y)&#xa;    index = index+1&#xa;  end&#xa;end&#xa;&#xa;--[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]&#xa;&#xa;function GetSeriesNamesByPrefix(prefix)&#xa;  -- GetSeriesNames(9 is a built-in function&#xa;  all_names = GetSeriesNames()&#xa;  filtered_names = {}&#xa;  for i, name in ipairs(all_names)  do&#xa;    -- check the prefix&#xa;    if name:find(prefix, 1, #prefix) then&#xa;      table.insert(filtered_names, name);&#xa;    end&#xa;  end&#xa;  return filtered_names&#xa;end&#xa;&#xa;--[[ Modify an existing series, applying offsets to all their X and Y values&#xa;&#xa; series: an existing timeseries, obtained with TimeseriesView.find(name)&#xa; delta_x: offset to apply to each x value&#xa; delta_y: offset to apply to each y value &#xa;  &#xa;--]]&#xa;&#xa;function ApplyOffsetInPlace(series, delta_x, delta_y)&#xa;  -- use C++ indeces, not Lua indeces&#xa;  for index=0, series:size()-1 do&#xa;    x,y = series:at(index)&#xa;    series:set(index, x + delta_x, y + delta_y)&#xa;  end&#xa;end&#xa;"/>
+   <scripts/>
+  </plugin>
+  <plugin ID="CSV Exporter"/>
+  <plugin ID="ROS2 Topic Re-Publisher"/>
+ </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
+ <previouslyLoaded_Datafiles>
+  <fileInfo prefix="" filename="../../../../../../dev/data/01_rosbags/2025-06-15__Asko/full_set_1/rosbag2_2025_06_15-17_27_13/metadata.yaml">
+   <plugin ID="DataLoad ROS2 bags">
+    <use_header_stamp value="false"/>
+    <discard_large_arrays value="true"/>
+    <max_array_size value="100"/>
+    <boolean_strings_to_number value="true"/>
+    <remove_suffix_from_strings value="true"/>
+    <selected_topics value="/diagnostics;/navheading;/parameter_events;/rosout;/sam/core/battery_status;/sam/core/can_gps;/sam/core/compass;/sam/core/ctd_fb;/sam/core/depth20_pressure;/sam/core/depth3000_pressure;/sam/core/dvl;/sam/core/dvl_raw_output;/sam/core/dvl_relay;/sam/core/gps;/sam/core/imu;/sam/core/lcg_cmd;/sam/core/lcg_fb;/sam/core/leak_fb;/sam/core/motor_oil_pressure;/sam/core/motor_temp;/sam/core/panic_fb;/sam/core/sbg_imu;/sam/core/standard/lcg_cmd;/sam/core/standard/leak;/sam/core/standard/thrust_vector_pitch_cmd;/sam/core/standard/thrust_vector_yaw_cmd;/sam/core/standard/thruster1_cmd;/sam/core/standard/thruster2_cmd;/sam/core/standard/vbs_cmd;/sam/core/thrust_vector_cmd;/sam/core/thruster1_cmd;/sam/core/thruster1_fb;/sam/core/thruster2_cmd;/sam/core/thruster2_fb;/sam/core/vbs_cmd;/sam/core/vbs_fb;/sam/core/vbs_tank_pressure;/sam/core/vbs_tank_temperature;/sam/core/yost_imu;/sam/ctrl/conv/control_input;/sam/ctrl/conv/error;/sam/ctrl/conv/ref;/sam/ctrl/conv/states;/sam/ctrl/conv/waypoint;/sam/ctrl/elevator_pid/ctrl_effort;/sam/dr/odom;/sam/dvl_enable;/sam/sbg/ekf_euler;/sam/sbg/ekf_nav;/sam/sbg/ekf_quat;/sam/sbg/imu_data;/sam/sbg/imu_short;/sam/sbg/mag;/sam/sbg/mag_calib;/sam/sbg/ship_motion;/sam/sbg/status;/sam/sbg/utc_time;/sam/smarc/vehicle_health;/sam/teleop/drive_assist_enable;/tf;/tf_static;/ublox_gps_node/fix_velocity"/>
+   </plugin>
+  </fileInfo>
+ </previouslyLoaded_Datafiles>
+ <!-- - - - - - - - - - - - - - - -->
+ <customMathEquations/>
+ <snippets/>
+ <!-- - - - - - - - - - - - - - - -->
+</root>
+

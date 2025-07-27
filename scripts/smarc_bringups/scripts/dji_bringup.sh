@@ -2,10 +2,10 @@
 ROBOT_NAME=m350_v1
 SESSION=${ROBOT_NAME}_bringup
 
-# if [ whoami | grep -q "alars"]; then
-#     USE_SIM_TIME=False
-#     MAP_FRAME=$ROBOT_NAME/map
-# else
+if [[ "$(whoami)" == *"alars"* ]]; then
+    USE_SIM_TIME=False
+    MAP_FRAME=$ROBOT_NAME/map
+else
     USE_SIM_TIME=True
     MAP_FRAME=map_gt
 # fi
@@ -48,7 +48,9 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux select-pane -t $SESSION:0.2
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
-    # tmux select-pane -t $SESSION:0.3
+    tmux select-pane -t $SESSION:0.3
+    # tmux send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
+    tmux send-keys "fast-discovery-server -i 0" C-m
 else
     tmux select-window -t $SESSION:0
     tmux select-pane -t $SESSION:0.1

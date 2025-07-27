@@ -121,9 +121,10 @@ class TopicRateMonitor:
 
             # Check for timeout
             now = self.node.get_clock().now().nanoseconds/1e9
-            if now - self.timestamps[topic_name][0] > self.timeout_time_sec:
+            time_diff = now - self.timestamps[topic_name][0]
+            if time_diff > self.timeout_time_sec:
                 self.fault = True
-                self.node.get_logger().warn(f"Fault: timeout on {topic_name}")
+                self.node.get_logger().warn(f"Fault: timeout on {topic_name}, time difference: {time_diff:.2f} s > {self.timeout_time_sec:.2f} s")
                 return True
 
             # Check frequency
