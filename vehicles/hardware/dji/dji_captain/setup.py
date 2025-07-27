@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dji_captain = dji_captain.dji_captain:main',
+            'unity_translator = dji_captain.unity_translator:main'
         ],
     },
 )

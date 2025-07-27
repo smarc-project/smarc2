@@ -66,7 +66,7 @@ class DjiCaptain():
         self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
         
         self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #originally 0.5, was modified to 1 for testing in sim # seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_MAX = 0.4
         self.JOY_PERIOD = .1
         self.READY_BATTERY_PERCENTAGE = 40
@@ -312,7 +312,7 @@ class DjiCaptain():
 
     @property
     def now_stamp(self):
-        return self._node.get_clock().now().to_msg()
+        return self._node.get_clock().now().to_msg() #TODO: Does not work in Sim
     
     
     @property
@@ -375,6 +375,7 @@ class DjiCaptain():
         if (self.now_stamp.sec - msg.header.stamp.sec) + \
            (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
+            self.log(f"Current time: {self.now_stamp.sec}.{self.now_stamp.nanosec}\nSetpoint Time: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}")
             self._move_to_setpoint = None
             return
 
@@ -394,34 +395,34 @@ class DjiCaptain():
         else:
             self._move_to_setpoint = msg
 
-        self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
+        # self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         
         if self._joy_timer is None:
-            try:
-                tf = self._tf_buffer.lookup_transform(
-                    target_frame=self.BASE_ENU_FRAME,
-                    source_frame=self.BASE_FLAT_FRAME,
-                    time=Time(seconds=0),
-                    timeout=Duration(seconds=1)
-                )
-                velocity_as_pose_stamped = PoseStamped()
-                velocity_as_pose_stamped.header.frame_id = self.BASE_ENU_FRAME
-                velocity_as_pose_stamped.header.stamp = self.now_stamp
-                if(self._velocity_ground is not None):
-                    velocity_as_pose_stamped.pose.position.x = self._velocity_ground.vector.x
-                    velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
-                    velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
-                    velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
-                    self.prev_joy_vec = np.array([velocity_as_pose_stamped_base_flat.pose.position.x, \
-                                                  velocity_as_pose_stamped_base_flat.pose.position.y, \
-                                                  velocity_as_pose_stamped_base_flat.pose.position.z])
-                else:
-                    self.prev_joy_vec = np.array([0.0, 0.0, 0.0])
+            # try:
+            #     tf = self._tf_buffer.lookup_transform(
+            #         target_frame=self.BASE_ENU_FRAME,
+            #         source_frame=self.BASE_FLAT_FRAME,
+            #         time=Time(seconds=0),
+            #         timeout=Duration(seconds=1)
+            #     )
+            #     # velocity_as_pose_stamped = PoseStamped()
+            #     # velocity_as_pose_stamped.header.frame_id = self.BASE_ENU_FRAME
+            #     # velocity_as_pose_stamped.header.stamp = self.now_stamp
+            #     # if(self._velocity_ground is not None):
+            #     #     velocity_as_pose_stamped.pose.position.x = self._velocity_ground.vector.x
+            #     #     velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
+            #     #     velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
+            #     #     velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
+            #     #     self.prev_joy_vec = np.array([velocity_as_pose_stamped_base_flat.pose.position.x, \
+            #     #                                   velocity_as_pose_stamped_base_flat.pose.position.y, \
+            #     #                                   velocity_as_pose_stamped_base_flat.pose.position.z])
+            #     # else:
+            #     #     self.prev_joy_vec = np.array([0.0, 0.0, 0.0])
                 
-            except Exception as e:
-                self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
-                self._move_to_setpoint = None
-                return
+            # except Exception as e:
+            #     self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
+            #     self._move_to_setpoint = None
+            #     return
                 
             self.kP = self._node.get_parameter("p_gain").value
             self.deriv_limit = self._node.get_parameter("deriv_limit").value
@@ -592,11 +593,9 @@ class DjiCaptain():
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
         self._base_pose_in_home.pose.orientation = msg.quaternion
 
-        rpy_enu_flat = [0.0, 0.0, rpy_enu[2]]  # we want a frame without roll and pitch for control reasons
         flat_quat = Quaternion()
         flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
         self._base_pose_flat_in_home.pose.orientation = flat_quat
-        rpy_enu_flat_no_yaw = [0.0, 0.0, 0.0]
         ENU_quat = Quaternion()
         ENU_quat.x, ENU_quat.y, ENU_quat.z, ENU_quat.w = quaternion_from_euler(0, 0, 0)
         self._base_pose_ENU_in_home.pose.orientation = ENU_quat
@@ -621,19 +620,21 @@ class DjiCaptain():
         self._home_point_in_utm.header.stamp = self.now_stamp
 
     def _home_point_altitude_callback(self, msg: Float32):
-        if self._home_point_in_utm is None: return
+        if self._home_point_in_utm is None:
+            self.log("home point in utm not set, can't set _home_geo_altitude")
+            return
         self._home_geo_altitude = msg.data
 
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._gps_point_in_home is None:
             self._gps_point_in_home = PointStamped()
             self._gps_point_in_home.header.frame_id = self.ODOM_FRAME
-
+        # self.log(f"GPS Time: {msg.header.stamp}")
         gp = GeoPoint()
         gp.latitude = msg.latitude
         gp.longitude = msg.longitude
@@ -651,7 +652,7 @@ class DjiCaptain():
 
     def _rtk_cb(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._rtk_point_in_home is None:
