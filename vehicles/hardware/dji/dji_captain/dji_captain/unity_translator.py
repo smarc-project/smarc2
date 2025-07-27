@@ -139,9 +139,10 @@ class Translator(Node):
         move_point.pose.position.x = 10.0
         move_point.pose.position.y = 10.0
         move_point.pose.position.z = 10.0
-        move_point.header.frame_id = "Quadrotor/home_point"
+        move_point.header.frame_id = "M350/home_point"#TODO:generalize
         move_point.header.stamp = self.get_clock().now().to_msg()
-        self._move_to_publisher.publish(move_point)
+        if(self.control == 1):
+            self._move_to_publisher.publish(move_point)
 
 
 def main(args=None):

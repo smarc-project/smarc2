@@ -8,7 +8,7 @@ if [[ "$(whoami)" == *"alars"* ]]; then
 else
     USE_SIM_TIME=True
     MAP_FRAME=map_gt
-# fi
+fi
 
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch

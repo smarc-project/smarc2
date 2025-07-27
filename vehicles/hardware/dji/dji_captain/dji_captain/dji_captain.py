@@ -72,7 +72,7 @@ class DjiCaptain():
         self._node.declare_parameter("controller_deadzone", 0.1)
 
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name')}/"
+        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
 
         self._CONTROLLER_DEADZONE : float = 0.1
         v = self._node.get_parameter("controller_deadzone").value 
@@ -87,7 +87,7 @@ class DjiCaptain():
         self._ENU_pos_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUpos_JOY.value, qos_profile=10)
         self._setpoint_received_at : float|None = None
         
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_PUB_MAX = 0.8
         self.JOY_PUB_PERIOD = .1
 
@@ -596,6 +596,7 @@ class DjiCaptain():
 
 
     def _move_towards_setpoint_FLUvel(self):
+
         if self._move_to_setpoint is None or self._setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             self._cancel_joy_timer()
@@ -620,13 +621,13 @@ class DjiCaptain():
                 time=Time(seconds=0),
                 timeout=Duration(seconds=1))
             target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
-        except:
-            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.")
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
             self._cancel_joy_timer()
             return
 
         
-        e_forw = target_in_base.pose.position.x # error about each axis
+        e_forw = -target_in_base.pose.position.x #TODO: THIS NEGATIVE IS DEFINITELY WRONG, trying to test sim # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
