@@ -136,7 +136,23 @@ class LoloProxOpsAction():
         params = json.loads(goal_request['json-params'])
 
         self._node.get_logger().info(f"params: {params}")
-        
+
+        if 'timeout' in params.keys() : self.timeout = min(3600, max(1, params['timeout']))
+        if 'fast_rpm' in params.keys() : self.fast_rpm = min(800, max(0, params['fast_rpm']))
+        if 'slow_rpm' in params.keys() : self.slow_rpm = min(800, max(0, params['slow_rpm']))
+        if 'loiter_depth' in params.keys() : self.loiter_depth = min(10, max(-1, params['loiter_depth']))
+        if 'long_distance_depth' in params.keys() : self.long_distance_depth = min(10, max(-1, params['long_distance_depth']))
+        if 'short_distance_depth' in params.keys() : self.short_distance_depth = min(10, max(-1, params['short_distance_depth']))
+        if 'min_altitude' in params.keys() : self.min_altitude = max(1, params['min_altitude'])
+
+        self._node.get_logger().info('timeout: ' + str(self.timeout))
+        self._node.get_logger().info('fast_rpm: ' + str(self.fast_rpm))
+        self._node.get_logger().info('slow_rpm: ' + str(self.slow_rpm))
+        self._node.get_logger().info('loiter_depth: ' + str(self.loiter_depth))
+        self._node.get_logger().info('long_distance_depth: ' + str(self.long_distance_depth))
+        self._node.get_logger().info('short_distance_depth: ' + str(self.short_distance_depth))
+        self._node.get_logger().info('min_altitude: ' + str(self.min_altitude))
+
         #Loiter points
         l1 = params['loiter_1']
         l2 = params['loiter_2']
