@@ -3,11 +3,11 @@
   <arg name="robot_name" default="lolo" />
 
   <node pkg="lolo_prox_ops" exec="proxops_server" name="proxops_server" output="screen" namespace="$(var robot_name)">
-    <param name="use_sim_time" value="true"/>
+    <param name="use_sim_time" value="false"/>
   </node>
 
   <node pkg="lolo_2d_path_planner" exec="server" name="path_planner" output="screen" namespace="$(var robot_name)">
-    <param name="use_sim_time" value="true"/>
+    <param name="use_sim_time" value="false"/>
   </node>
 
 </launch>
