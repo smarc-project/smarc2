@@ -71,6 +71,7 @@ class LoloProxOpsAction():
         
         # State variables. gets updated from topic callbacks
         self.robot_position = PoseStamped() #robot positon [geometry_msgs/msg/Pose]
+        self.robot_position_time = None #robot position time to be compared with current time
         self.robot_altitude = None #altitude over seafloor in meters [Float32]
         self.target_position = PoseStamped() #target position [geometry_msgs/msg/Pose]
         self.target_position_time = None #node time to be compared with current time
@@ -208,7 +209,7 @@ class LoloProxOpsAction():
 
         #Do different things depending on action phase
         if(self.current_action_phase == self.ACTION_PHASE.STANDBY):
-            self._node.get_logger().info("Something went wrong.")
+            self._node.get_logger().error("Something went wrong.")
             return False # Failure
         if(self.current_action_phase == self.ACTION_PHASE.DONE):
             self._node.get_logger().info("Action success.")
@@ -218,8 +219,8 @@ class LoloProxOpsAction():
         #if distance to docking station==far away current_action_pahse -> LONG_DISTANCE
         #if distance to docking station==close away current_action_pahse -> SHORT_DISTANCE
 
-        if(self.robot_position is None):
-            self._node.get_logger().info("ERROR no robot position")
+        if(self.robot_position is None or (time_now - self.robot_position_time) > 10):
+            self._node.get_logger().error("ERROR no robot position")
             return None
 
         if(self.target_position == None or self.target_position_time == None): 
@@ -519,6 +520,7 @@ class LoloProxOpsAction():
         self.robot_position = PoseStamped()
         self.robot_position.header = msg.header
         self.robot_position.pose = msg.pose.pose
+        self.robot_position_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
         #self._node.get_logger().info("" + str(msg.header.frame_id))
 
     def altitude_callback(self,msg):
