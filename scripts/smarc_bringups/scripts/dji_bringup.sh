@@ -62,19 +62,19 @@ fi
 tmux new-window -t $SESSION:1 -n 'action servers'
 tmux rename-window "move-to"
 tmux select-window -t $SESSION:1
-# tmux split-window -h -t $SESSION:1.0      # Split window into left (0.0) and right (0.1)
-# tmux split-window -v -t $SESSION:1.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
-# tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1) and bottom-right (0.3)
-# tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
+tmux split-window -h -t $SESSION:1.0      # Split window into left (0.0) and right (0.1)
+tmux split-window -v -t $SESSION:1.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
+tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1) and bottom-right (0.3)
+tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
 
-# tmux select-pane -t $SESSION:1.0
+tmux select-pane -t $SESSION:1.0
 tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
 
-# tmux select-pane -t $SESSION:1.1
-# tmux send-keys "ros2 run alars search_and_track_auv_action --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+tmux select-pane -t $SESSION:1.1
+tmux send-keys "ros2 run alars search_and_track_auv_action --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 
-# tmux select-pane -t $SESSION:1.2
-# tmux send-keys "ros2 run alars rescuepoint_server --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+tmux select-pane -t $SESSION:1.2
+tmux send-keys "ros2 run alars rescuepoint_server --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 
 # bt
 tmux new-window -t $SESSION:2 -n 'bt'
