@@ -411,7 +411,7 @@ class PathServer(SMARCActionServer, DiveSub):
                 goal_handle.canceled()
                 return "cancelled"
             
-            feedback.feedback = self._json_ops.encode(self.current_idx)
+            feedback.feedback = self._json_ops.encode(float(self.current_idx)) #- NOTE: the encode returns nonetype value if not float
             goal_handle.publish_feedback(feedback)
             rate.sleep()
 
