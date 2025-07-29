@@ -328,7 +328,7 @@ class DjiCaptain():
 
     @property
     def now_stamp(self):
-        return self._node.get_clock().now().to_msg() 
+        return self._node.get_clock().now().to_msg()
     
     
     @property
@@ -804,7 +804,6 @@ class DjiCaptain():
         if self._gps_point_in_home is None:
             self._gps_point_in_home = PointStamped()
             self._gps_point_in_home.header.frame_id = self.ODOM_FRAME
-        # self.log(f"GPS Time: {msg.header.stamp}")
         gp = GeoPoint()
         gp.latitude = msg.latitude
         gp.longitude = msg.longitude
@@ -885,9 +884,9 @@ class DjiCaptain():
 
         self._tf_pub_status = f"Published at {now.sec}.{now.nanosec} sec"
 
-        # # 0 transforms for home -> map, home -> odom, utm_z_b -> utm
-        # # for compatibility with other systems
-        # # and so we can use "odom" for all things that relate to home point
+        # 0 transforms for home -> map, home -> odom, utm_z_b -> utm
+        # for compatibility with other systems
+        # and so we can use "odom" for all things that relate to home point
         map_in_home = TransformStamped()
         map_in_home.header.stamp = now
         map_in_home.header.frame_id = self.HOME_FRAME
@@ -900,11 +899,11 @@ class DjiCaptain():
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
 
-        if self._utm_labeled_frame is not None: #_utm_labeld_fram is a string given by the frame_id of the gps_position topic after being converted from latlon (utm_{zone}_{band})
+        if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
             utms.header.stamp = now
             utms.header.frame_id = self._utm_labeled_frame
-            utms.child_frame_id = DjiLinks.UTM #'utm'
+            utms.child_frame_id = DjiLinks.UTM 
             tf_msg.transforms.append(utms)
 
         if self._home_point_in_utm is not None:
@@ -913,9 +912,9 @@ class DjiCaptain():
             home_tf.header.stamp = now
             home_tf.header.frame_id = DjiLinks.UTM
             home_tf.child_frame_id = self.HOME_FRAME
-            home_tf.transform.translation.x = self._home_point_in_utm.point.x #Set from geopoint in _home_point_callback converted by latlon
+            home_tf.transform.translation.x = self._home_point_in_utm.point.x 
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z #Hard set to 0
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z 
             tf_msg.transforms.append(home_tf)
 
 
@@ -925,7 +924,7 @@ class DjiCaptain():
             base_in_home.header.stamp = now
             base_in_home.header.frame_id = self.ODOM_FRAME
             base_in_home.child_frame_id = self.BASE_FRAME
-            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation #Set in _attitude_callback, on wrapper/psdk_ros2/attitude
+            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation 
             base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
             base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
             base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
