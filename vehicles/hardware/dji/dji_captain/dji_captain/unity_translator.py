@@ -53,13 +53,11 @@ class PSDKTopics(Enum):
 class Translator(Node):
     def __init__(self):
         super().__init__('translator')
-        self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
-
 
         self._pos_fused_pub = self.create_publisher(PositionFused, PSDKTopics.POSITION_FUSED.value, 10)
         self._pos_fused_sub = self.create_subscription(
-            Vector3Stamped, 
-            'sim/position_fused',
+            Odometry, 
+            'odom_gt',
             self._pos_fused_callback,
             10)
         self._esc_data_pub = self.create_publisher(EscData, PSDKTopics.ESC_DATA.value, 10)
@@ -81,15 +79,12 @@ class Translator(Node):
         self._control_mode_timer = self.create_timer(1, self._control_mode_pub_callback)
         self.control = 0
 
-        self._move_to_publisher = self.create_publisher(PoseStamped, self.MOVE_TO_SETPOINT_TOPIC, 10)
-        self._move_to_timer = self.create_timer(.1, self._move_to_callback)
 
-
-    def _pos_fused_callback(self, msg: Vector3Stamped):
+    def _pos_fused_callback(self, msg: Odometry):
         position_fused : PositionFused = PositionFused()
-        position_fused.position.x = msg.vector.x
-        position_fused.position.y = msg.vector.y
-        position_fused.position.z = msg.vector.z
+        position_fused.position.x = msg.pose.pose.position.x
+        position_fused.position.y = msg.pose.pose.position.y
+        position_fused.position.z = msg.pose.pose.position.z
         position_fused.header = msg.header
         self._pos_fused_pub.publish(position_fused)
 
@@ -133,16 +128,6 @@ class Translator(Node):
         sim_control = Int8()
         sim_control.data = self.control
         self._control_mode_sim_pub.publish(sim_control)
-
-    def _move_to_callback(self):
-        move_point = PoseStamped()
-        move_point.pose.position.x = 10.0
-        move_point.pose.position.y = 10.0
-        move_point.pose.position.z = 10.0
-        move_point.header.frame_id = "M350/home_point"#TODO:generalize
-        move_point.header.stamp = self.get_clock().now().to_msg()
-        if(self.control == 1):
-            self._move_to_publisher.publish(move_point)
 
 
 def main(args=None):

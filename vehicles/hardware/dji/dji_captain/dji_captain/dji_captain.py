@@ -135,7 +135,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = ["{/Quadrotor/}  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -328,7 +328,7 @@ class DjiCaptain():
 
     @property
     def now_stamp(self):
-        return self._node.get_clock().now().to_msg() #TODO: Does not work in Sim
+        return self._node.get_clock().now().to_msg() 
     
     
     @property
@@ -627,7 +627,7 @@ class DjiCaptain():
             return
 
         
-        e_forw = -target_in_base.pose.position.x #TODO: THIS NEGATIVE IS DEFINITELY WRONG, trying to test sim # error about each axis
+        e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
@@ -885,9 +885,9 @@ class DjiCaptain():
 
         self._tf_pub_status = f"Published at {now.sec}.{now.nanosec} sec"
 
-        # 0 transforms for home -> map, home -> odom, utm_z_b -> utm
-        # for compatibility with other systems
-        # and so we can use "odom" for all things that relate to home point
+        # # 0 transforms for home -> map, home -> odom, utm_z_b -> utm
+        # # for compatibility with other systems
+        # # and so we can use "odom" for all things that relate to home point
         map_in_home = TransformStamped()
         map_in_home.header.stamp = now
         map_in_home.header.frame_id = self.HOME_FRAME
@@ -900,11 +900,11 @@ class DjiCaptain():
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
 
-        if self._utm_labeled_frame is not None:
+        if self._utm_labeled_frame is not None: #_utm_labeld_fram is a string given by the frame_id of the gps_position topic after being converted from latlon (utm_{zone}_{band})
             utms = TransformStamped()
             utms.header.stamp = now
             utms.header.frame_id = self._utm_labeled_frame
-            utms.child_frame_id = DjiLinks.UTM
+            utms.child_frame_id = DjiLinks.UTM #'utm'
             tf_msg.transforms.append(utms)
 
         if self._home_point_in_utm is not None:
@@ -913,9 +913,9 @@ class DjiCaptain():
             home_tf.header.stamp = now
             home_tf.header.frame_id = DjiLinks.UTM
             home_tf.child_frame_id = self.HOME_FRAME
-            home_tf.transform.translation.x = self._home_point_in_utm.point.x
+            home_tf.transform.translation.x = self._home_point_in_utm.point.x #Set from geopoint in _home_point_callback converted by latlon
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z #Hard set to 0
             tf_msg.transforms.append(home_tf)
 
 
@@ -925,7 +925,7 @@ class DjiCaptain():
             base_in_home.header.stamp = now
             base_in_home.header.frame_id = self.ODOM_FRAME
             base_in_home.child_frame_id = self.BASE_FRAME
-            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
+            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation #Set in _attitude_callback, on wrapper/psdk_ros2/attitude
             base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
             base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
             base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
@@ -991,8 +991,7 @@ class DjiCaptain():
             move_to_setpoint_tf.transform.translation.z = self._move_to_setpoint.pose.position.z
             tf_msg.transforms.append(move_to_setpoint_tf)
 
-        self._tf_pub.publish(tf_msg)
-
+        self._tf_pub.publish(tf_msg) 
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
             return

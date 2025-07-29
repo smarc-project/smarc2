@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=m350_v1
+ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
 
 if [[ "$(whoami)" == *"alars"* ]]; then
@@ -54,21 +54,21 @@ if [ "$USE_SIM_TIME" = "False" ]; then
 else
     tmux select-window -t $SESSION:0
     tmux select-pane -t $SESSION:0.1
-    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -r __ns:=/$ROBOT_NAME" C-m
+    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 fi
 
 
 # action servers
 tmux new-window -t $SESSION:1 -n 'action servers'
 tmux rename-window "move-to"
-# tmux select-window -t $SESSION:1
+tmux select-window -t $SESSION:1
 # tmux split-window -h -t $SESSION:1.0      # Split window into left (0.0) and right (0.1)
 # tmux split-window -v -t $SESSION:1.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
 # tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1) and bottom-right (0.3)
 # tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
 
 # tmux select-pane -t $SESSION:1.0
-# tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
+tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
 
 # tmux select-pane -t $SESSION:1.1
 # tmux send-keys "ros2 run alars search_and_track_auv_action --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
@@ -95,7 +95,7 @@ if [ "$USE_SIM_TIME" = "True" ]; then
     tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_ip:=localhost -p tcp_port:=10000" C-m
     tmux new-window -t $SESSION:5 -n 'Unity->PSDK Translator'
     tmux select-window -t $SESSION:5
-    tmux send-keys "ros2 run dji_captain unity_translator --ros-args -r __ns:=/$ROBOT_NAME" C-m
+    tmux send-keys "ros2 run dji_captain unity_translator --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 else
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
 fi
