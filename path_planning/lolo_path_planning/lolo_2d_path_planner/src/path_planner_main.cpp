@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
     //Create pathplanner object
     //PathPlanner path_planner;
-    DubinsPlanner path_planner(15);
+    DubinsPlanner path_planner(20);
     rclcpp::init(argc, argv);
 
     std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("lolo_2d_path_planner");

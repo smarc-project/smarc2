@@ -83,10 +83,10 @@ class LoloProxOpsAction():
         self.frame_id = 'lolo/odom'
 
         #Settings etc
-        self.target_tol = 5 #tolerance when loitering
+        self.target_tol = 10 #tolerance when loitering
         self.timeout = 1800.0
-        self.fast_rpm = 600.0
-        self.slow_rpm = 300.0
+        self.fast_rpm = 500.0
+        self.slow_rpm = 450.0
         self.loiter_points = None
         self.loiter_depth = 0.0
         self.long_distance_depth = 0.0
