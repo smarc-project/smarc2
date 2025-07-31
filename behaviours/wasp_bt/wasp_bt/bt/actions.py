@@ -89,19 +89,36 @@ class A_Chilling(VehicleBehaviour):
     def __init__(self, bt: HasClock):
         name = f"{self.__class__.__name__}"
         super().__init__(bt, name)
-
+        self.task_handler: WaraPSTaskHandler = self._bt._task_handler
 
 
     def update(self) -> Status:
         self.feedback_message = f"Just chillin'... Got something for me to do?"
-        return Status.RUNNING
-    
-    def terminate(self, new_status: Status) -> None:
-        if new_status == Status.INVALID:
-            # action is finished proper. 
-            self.feedback_message = None
-        return
+
+        mission_status = self.task_handler.mission_status
+
+        if mission_status == None:
+            # no mission, just chill
+            self.feedback_message = "No mission, just chillin'..."
+            return Status.RUNNING 
         
+        if mission_status == WaraPSTaskStates.ERROR.value:
+            # mission is in error state, just chill
+            self.feedback_message = "Mission in error state, failing the tree"
+            self.task_handler.publish_feedback_to_tst("!!Failed Mission!!")
+
+            self.task_handler.clear_task_queue()
+
+            #reser mission_status flag
+            self.task_handler.set_mission_status(WaraPSTaskStates.NONE.value)
+            
+            return Status.FAILURE
+        
+        if mission_status == WaraPSTaskStates.FINISHED.value:
+            # mission is finished, just chill
+            self.feedback_message = "Mission finished, waiting for new task..."
+            return Status.RUNNING
+                        
 class A_JustChillFor(VehicleBehaviour):
     def __init__(self, bt: HasClock, task_handler: WaraPSTaskHandler, duration: float):
         name = f"{self.__class__.__name__}({duration})Seconds"
@@ -315,6 +332,7 @@ class A_ActionClient(Behaviour):
             # should be handled by the rest of the tree
             self.feedback_message = f"Action failed. Action Client state: {self._client.state}"
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+            self._task_handler.set_mission_status(WaraPSTaskStates.ERROR.value)
 
         # reset the client to ready state
         self._client.get_ready()
