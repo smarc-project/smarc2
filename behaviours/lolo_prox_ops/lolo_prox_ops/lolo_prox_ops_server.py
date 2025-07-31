@@ -259,46 +259,44 @@ class LoloProxOpsAction():
         if(self.current_action_phase == self.ACTION_PHASE.LOITER):
             # We will plan a path every X loops that keeps lolo inside the geofenced area
             # Preferable as far away from the corners as possible to avoid running aground
-            # Send a course for lolo to lolo corresponding to a point in the path ~10s in the future
             # Set RPM=Slow
 
             #Calculate distance to our current loiter target and change target if we are close enough to switch to the next one
-            if(self.calculate_distance(self.robot_position, self.loiter_points[self.current_loiter_point_index]) < self.target_tol):
+            distance_to_loiter_point = self.calculate_distance(self.robot_position, self.loiter_points[self.current_loiter_point_index])
+            if(distance_to_loiter_point < self.target_tol):
                 self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
 
-            #TESTING
-            #self.robot_position = self.loiter_points[self.current_loiter_point_index]
-            #self.current_loiter_point_index = (self.current_loiter_point_index+1) % len(self.loiter_points)
+            yaw_setpoint = Float32()
+            roll_setpoint = Float32()
+            depth_setpoint = Float32()
+            rpm_setpoint = Float32()
 
-            #Plan a path to the next loiter point
-            result = self.plan_path(self.robot_position, self.loiter_points[self.current_loiter_point_index])
-            
-            if(result is not None ): 
-                #self._node.get_logger().info("Plan path successful")
-                #Publish path and map for logging
-                self.path_pub.publish(result)
-                self.map_pub.publish(self.map)
+            roll_setpoint.data = 0.0
+            depth_setpoint.data = self.get_depth_setpoint(self.loiter_depth)
+            rpm_setpoint.data = self.slow_rpm
 
-                yaw_setpoint = Float32()
-                roll_setpoint = Float32()
-                depth_setpoint = Float32()
-                rpm_setpoint = Float32()
 
-                yaw_setpoint.data = self.get_yaw_from_path(self.robot_position, result)
-                roll_setpoint.data = 0.0
-                depth_setpoint.data = self.get_depth_setpoint(self.loiter_depth)
-                rpm_setpoint.data = self.slow_rpm
-                #self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
+            if(distance_to_loiter_point < 2*self.target_tol):
+                yaw_setpoint.data = self.get_angle_between_points(self.robot_position, self.loiter_points[self.current_loiter_point_index])
+            else:
+                #Plan a path to the next loiter point
+                result = self.plan_path(self.robot_position, self.loiter_points[self.current_loiter_point_index])
+                if(result is not None ): 
+                    #Publish path and map for logging
+                    self.path_pub.publish(result)
+                    self.map_pub.publish(self.map)
 
-                #publish setpoints
-                self.rpm_pub.publish(rpm_setpoint)
-                self.yaw_pub.publish(yaw_setpoint)
-                self.depth_pub.publish(depth_setpoint)
-                self.roll_pub.publish(roll_setpoint)
+                    yaw_setpoint.data = self.get_yaw_from_path(self.robot_position, result)
+                else: 
+                    self._node.get_logger().error("Failed to plan path")
+                    return False #FAIL
+                
+            #publish setpoints
+            self.rpm_pub.publish(rpm_setpoint)
+            self.yaw_pub.publish(yaw_setpoint)
+            self.depth_pub.publish(depth_setpoint)
+            self.roll_pub.publish(roll_setpoint)
 
-            else: 
-                self._node.get_logger().error("Failed to plan path")
-                return False #FAIL
 
         if(self.current_action_phase == self.ACTION_PHASE.LONG_DISTANCE):
             # Plan a path that goes to a point 10m ahead of the docking station
@@ -344,7 +342,7 @@ class LoloProxOpsAction():
             depth_setpoint = Float32()
             rpm_setpoint = Float32()
 
-            projected_target = self.integrate_pose(self.target_position,10)
+            projected_target = self.integrate_pose(self.target_position,2,angle_rad=math.radians(-90))
 
             yaw_setpoint.data = self.get_angle_between_points(self.robot_position, projected_target)
             roll_setpoint.data = 0.0
@@ -413,10 +411,10 @@ class LoloProxOpsAction():
         dy = p2.pose.position.y - p1.pose.position.y
         return math.atan2(dy,dx)
 
-    def integrate_pose(self,p:PoseStamped, m:float ) -> PoseStamped:
+    def integrate_pose(self,p:PoseStamped, m:float , angle_rad:float = 0) -> PoseStamped:
         yaw = self.get_yaw_from_posestamped(p)
-        p.pose.position.x += m*math.cos(yaw)
-        p.pose.position.y += m*math.sin(yaw)
+        p.pose.position.x += m*math.cos(yaw + angle_rad)
+        p.pose.position.y += m*math.sin(yaw + angle_rad)
         return p
 
     def get_depth_setpoint(self, target_depth) -> float:
