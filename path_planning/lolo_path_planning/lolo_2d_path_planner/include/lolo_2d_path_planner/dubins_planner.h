@@ -118,7 +118,7 @@ public:
                 float temp_segment_times[3] = {tz[k], pz[k], qz[k]};
                 float stepsize = 1; //Course path for calculating cost
                 float map_cost = create_dubins_path(start, goal, temp_segment_times, DIRDATA[k], stepsize, nullptr, true);
-                RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Map cost %f", map_cost);
+                //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Map cost %f", map_cost);
                 if((time_cost+map_cost)<lowest_cost || lowest_cost==-1) {
                     best_index = k;
                     lowest_cost = time_cost+map_cost;

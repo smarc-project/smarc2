@@ -104,6 +104,7 @@ class LoloProxOpsAction():
         self.srv_callback_group = ReentrantCallbackGroup()
         self.publisher_callback_group = ReentrantCallbackGroup()
         self.subscriber_callback_group = ReentrantCallbackGroup()
+        self.subscriber_callback_group2 = ReentrantCallbackGroup()
         self.set_map_cli = self._node.create_client(SetMap, 'set_map', callback_group=self.srv_callback_group)
         self.get_plan_cli = self._node.create_client(GetPlan, 'plan_path', callback_group=self.srv_callback_group)
 
@@ -123,7 +124,7 @@ class LoloProxOpsAction():
 
         # Subscribers
         self.altitude_sub = self._node.create_subscription(Float32, smarcTopics.ALTITUDE_TOPIC, self.altitude_callback,10, callback_group=self.subscriber_callback_group)
-        self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10, callback_group=self.subscriber_callback_group)
+        self.target_sub = self._node.create_subscription(PoseStamped, 'proxops/target', self.target_callback,10, callback_group=self.subscriber_callback_group2)
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
         self.done_sub = self._node.create_subscription(Empty, 'proxops/done', self.done_callback,10, callback_group=self.subscriber_callback_group)
 
@@ -238,15 +239,19 @@ class LoloProxOpsAction():
         if(self.robot_position is None or (time_now - self.robot_position_time) > 10):
             self._node.get_logger().error("ERROR no robot position")
             return None
+        if(self.target_position_time != None):
+            t = time_now - self.target_position_time
+            self._node.get_logger().info("Tince since last target message: " + str(t))
 
         if(self.target_position == None or self.target_position_time == None): 
             self.current_action_phase = self.ACTION_PHASE.LOITER
-        elif(time_now - self.target_position_time > 10):
+        elif(time_now - self.target_position_time > 20):
             self.current_action_phase = self.ACTION_PHASE.LOITER
         else:
             #TODO integrate target position..
             dist = self.calculate_distance(self.robot_position, self.target_position)
-            if(dist > 20): self.current_action_phase = self.ACTION_PHASE.LONG_DISTANCE
+            self._node.get_logger().info("Distance to target: " + str(dist))
+            if(dist > 200): self.current_action_phase = self.ACTION_PHASE.LONG_DISTANCE
             else: self.current_action_phase = self.ACTION_PHASE.SHORT_DISTANCE
             
             
@@ -269,7 +274,7 @@ class LoloProxOpsAction():
             result = self.plan_path(self.robot_position, self.loiter_points[self.current_loiter_point_index])
             
             if(result is not None ): 
-                self._node.get_logger().info("Plan path successful")
+                #self._node.get_logger().info("Plan path successful")
                 #Publish path and map for logging
                 self.path_pub.publish(result)
                 self.map_pub.publish(self.map)
@@ -283,7 +288,7 @@ class LoloProxOpsAction():
                 roll_setpoint.data = 0.0
                 depth_setpoint.data = self.get_depth_setpoint(self.loiter_depth)
                 rpm_setpoint.data = self.slow_rpm
-                self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
+                #self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
 
                 #publish setpoints
                 self.rpm_pub.publish(rpm_setpoint)
@@ -317,7 +322,7 @@ class LoloProxOpsAction():
                 roll_setpoint.data = 0.0
                 depth_setpoint.data = self.get_depth_setpoint(self.long_distance_depth)
                 rpm_setpoint.data = self.fast_rpm
-                self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
+                #self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
 
                 #publish setpoints
                 self.rpm_pub.publish(rpm_setpoint)
@@ -345,7 +350,7 @@ class LoloProxOpsAction():
             roll_setpoint.data = 0.0
             depth_setpoint.data = self.get_depth_setpoint(self.short_distance_depth)
             rpm_setpoint.data = self.slow_rpm if self.calculate_distance(self.robot_position, projected_target) < 3 else self.fast_rpm
-            self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
+            #self._node.get_logger().info("Yaw setpoint: " +str(yaw_setpoint))
             
             #publish setpoints
             self.rpm_pub.publish(rpm_setpoint)
@@ -383,9 +388,9 @@ class LoloProxOpsAction():
 
         d = yaw2-yaw1
 
-        self._node.get_logger().info("current yaw: : " +str(math.degrees(self.get_yaw_from_posestamped(start_pose))))
-        self._node.get_logger().info("Yaw1: : " +str(math.degrees(yaw1)))
-        self._node.get_logger().info("Yaw2: : " +str(math.degrees(yaw2)))
+        #self._node.get_logger().info("current yaw: : " +str(math.degrees(self.get_yaw_from_posestamped(start_pose))))
+        #self._node.get_logger().info("Yaw1: : " +str(math.degrees(yaw1)))
+        #self._node.get_logger().info("Yaw2: : " +str(math.degrees(yaw2)))
 
         if(d < -math.pi): d+=2*math.pi
         if(d > math.pi): d-=2*math.pi
@@ -524,7 +529,9 @@ class LoloProxOpsAction():
 
     #Subscriber callback functions
     def target_callback(self,msg:PoseStamped):
+        self._node.get_logger().info("new target received " + str(msg))
         #self._node.get_logger().info("target position received.")
+        msg.header.frame_id = self.frame_id
         if(msg.header.frame_id != self.frame_id):
             self._node.get_logger().info("Target is not in the coorrect frame")
             return
