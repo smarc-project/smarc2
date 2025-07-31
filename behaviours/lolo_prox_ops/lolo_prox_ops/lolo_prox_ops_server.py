@@ -342,7 +342,13 @@ class LoloProxOpsAction():
             depth_setpoint = Float32()
             rpm_setpoint = Float32()
 
+            #Project target to the side and foward
+            t = time_now - self.target_position_time
             projected_target = self.integrate_pose(self.target_position,2,angle_rad=math.radians(-90))
+            projected_target = self.integrate_pose(projected_target,5 + 1.0*t,angle_rad=math.radians(0))
+
+            dist = self.calculate_distance(self.robot_position, projected_target)
+            self._node.get_logger().info("Distance to projected target: " + str(dist))
 
             yaw_setpoint.data = self.get_angle_between_points(self.robot_position, projected_target)
             roll_setpoint.data = 0.0
@@ -412,9 +418,13 @@ class LoloProxOpsAction():
         return math.atan2(dy,dx)
 
     def integrate_pose(self,p:PoseStamped, m:float , angle_rad:float = 0) -> PoseStamped:
+        p_i = PoseStamped()
+        p_i.header = p.header()
+        p_i.pose.orientation = p.pose.orientation
         yaw = self.get_yaw_from_posestamped(p)
-        p.pose.position.x += m*math.cos(yaw + angle_rad)
-        p.pose.position.y += m*math.sin(yaw + angle_rad)
+        p_i.pose.position.x = p.pose.position.x + m*math.cos(yaw + angle_rad)
+        p_i.pose.position.y = p.pose.position.y + m*math.sin(yaw + angle_rad)
+        p_i.pose.position.z = 0
         return p
 
     def get_depth_setpoint(self, target_depth) -> float:
