@@ -1,0 +1,17 @@
+/**/auv_yolo_detector:
+  ros__parameters:
+    mode: "sim"
+    inference_frequency: 1.0
+    confidence_threshold: 0.4
+    model_path: 'None'
+
+    frames:
+      id:
+        map: "map_gt"
+        quadrotor_odom: "Quadrotor/odom"
+        sam_odom: "sam_auv_v1/odom"
+    
+    topics:
+      raw_image: '/Quadrotor/gimbal_camera/image_raw'
+      camera_info: '/Quadrotor/gimbal_camera/camera_info'
+      annotated_image: 'image_annotated'
