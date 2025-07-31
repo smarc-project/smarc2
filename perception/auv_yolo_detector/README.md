@@ -1,17 +1,21 @@
-# YOLO Detection pckg
+# YOLO Detection 
+This package uses YOLO to independently detect SAM and buoy. It includes two trained models: one for simulation and another for real-world scenarios (*.pt* files).
+Two different datasets were used, with ~200 labelled images each. Access them [here](https://kth-my.sharepoint.com/:f:/g/personal/framir_ug_kth_se/EpHV7UF6nQVIsYwrSBDlYWkBR-Yv08Lia9hxuD-aqrMTJQ?e=cpmczE).
 
-## Run image recording (in sim)
-``
-ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
-``
-``
-ros2 run auv_yolo_detector yolo_detector
-``
+## Dependencies (dev versions)
+- ROS2 Humble
+- Ultralytics: 8.3.160
+  
+When installing *Ultralytics*, corresponding dependencies (*eg*: torch, opencv, etc) will be installed (check [here](https://docs.ultralytics.com/quickstart/))
 
-## Run rosbag
+## Launch yolo detector
 ``
-ros2 bag play --read-ahead-queue-size 100 -l -r 1.0 --clock 100 --start-paused ~/KTH_Courses/ResearchProject/RProj_GitRepoFork/colcon_ws/src/smarc2/perception/auv_yolo_detector/bags/alars_search_and_recover/rosbag2_2025_06_13-19_49_25_4.db3
+ros2 launch auv_yolo_detector yolo_detector_launch.py
 ``
+## **New Topics**
+| Topic | Type | Description |
+| --- | ---| --- |
+| /Quadrotor/path | RVIZ2 visualization | Path computed by any of the existing algorithms|
+---
 
-## Datasetd
-Click [https://kth-my.sharepoint.com/:f:/g/personal/framir_ug_kth_se/EpHV7UF6nQVIsYwrSBDlYWkBR-Yv08Lia9hxuD-aqrMTJQ?e=cpmczE]
+## Future work
