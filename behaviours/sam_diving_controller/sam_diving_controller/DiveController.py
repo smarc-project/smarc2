@@ -647,21 +647,6 @@ class DiveControllerMPC(DiveControllerInterface):
             heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
             waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
 
-            # For heading
-            # if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
-            #     self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
-            # r = R.from_quat([self.x0_heading[4], self.x0_heading[5], self.x0_heading[6], self.x0_heading[3]])  # Note: [x, y, z, w] order
-            # init_heading = r.as_euler('xyz', degrees=False)
-            # heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
-            # heading_waypoint = R.from_euler('z', heading, degrees=False)  # Convert to quaternion with scalar first
-            # waypoint_q = heading_waypoint.as_quat(scalar_first=True)
-
-
-            # if np.abs(init_heading[2]-heading) > np.pi/2:
-            #     q_rot = R.from_euler('z', 180, degrees=True)
-            #     q_new = q_rot * heading_waypoint
-            #     waypoint_q = q_new.as_quat(scalar_first=True)
-
             waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
             waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
             waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
@@ -890,5 +875,3 @@ class DiveControllerMPC(DiveControllerInterface):
         x_current[18] = control_msg['rpm2']
         
         return x_current
-
-# TODO: Write unit tests here that do one loop of everything
