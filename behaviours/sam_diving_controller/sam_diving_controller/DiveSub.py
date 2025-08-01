@@ -9,7 +9,7 @@ import math
 from tf2_geometry_msgs import PoseWithCovarianceStamped
 import tf2_geometry_msgs.tf2_geometry_msgs
 from std_msgs.msg import Float64
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from sensor_msgs.msg import Imu
 
@@ -18,6 +18,7 @@ from smarc_control_msgs.msg import Topics as ControlTopics
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles, ThrusterRPMs
 from dead_reckoning_msgs.msg import Topics as DRTopics
+from rclpy.executors import MultiThreadedExecutor
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -99,6 +100,8 @@ class DiveSub():
         self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
         self.pitch_sub = node.create_subscription(msg_type=Imu, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
 
+        # Path subscriber - Added for trajectory tracking
+        self.path_sub = node.create_subscription(msg_type=Path, topic='planned_path', callback=self._path_cb, qos_profile=10)
 
         # Test of subscribers - excluding ctrl_synch_msg
         self.lcg_fb = node.create_subscription(msg_type=PercentStamped, topic=SamTopics.LCG_FB_TOPIC, callback=self._lcg_cb, qos_profile=10)
@@ -107,7 +110,6 @@ class DiveSub():
         # self.rpm2_fb = node.create_subscription(msg_type=ThrusterRPM, topic=SamTopics.THRUSTER2_CMD_TOPIC, callback=self._lcg_cb, qos_profile=10)
         self.combined_rpms_fb = node.create_subscription(msg_type=ThrusterRPMs, topic="core/thruster_rpms_cmd", callback=self._rpms_cb, qos_profile=10)
         self.thrust_vector_fb = node.create_subscription(msg_type=ThrusterAngles, topic=SamTopics.THRUST_VECTOR_CMD_TOPIC, callback=self._thrust_vector_cb, qos_profile=10)
-
 
         # Synch subscribers here 
         # self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
@@ -133,6 +135,7 @@ class DiveSub():
 
     def _states_cb(self, msg):
         self._states = msg
+        #self._loginfo(f"R. state:{self._states.pose.pose.position.z} ")
         self._received_states = True
 
 
@@ -143,6 +146,9 @@ class DiveSub():
         self._requested_rpm = 500
         self._received_waypoint = True
 
+    def _path_cb(self, path):
+        self.path = path
+    
     def _joy_depth_setpoint_cb(self, msg):
         self._joy_depth = msg.data
 
@@ -324,6 +330,10 @@ class DiveSub():
 
     def get_waypoint(self):
         return self._waypoint_global
+    
+
+    def get_path(self, path):
+        return self.path
 
     def get_odom_waypoint(self):
         return self._waypoint_odom

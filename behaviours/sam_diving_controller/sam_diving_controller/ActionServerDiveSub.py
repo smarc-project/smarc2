@@ -402,10 +402,10 @@ class PathServer(SMARCActionServer, DiveSub):
         rate = self._node.create_rate(2)
         feedback = self.action_type.Feedback
 
-        while self.current_idx <= self.path_len:
+        while self.current_idx < self.path_len:
 
             self.set_mission_state(MissionStates.RUNNING, "AS")
-
+            #self._loginfo(f"IN LOOP: Current idx {self.current_idx}/{self.path_len}")
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client.")
                 goal_handle.canceled()

@@ -15,6 +15,7 @@ from .IDivePub import MissionStates, ActuatorStates
 
 from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
 from smarc_modelling.control.control import *
+import time
 
 class PIDControl:
     """
@@ -553,7 +554,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # directory failed so far.
 
         # create ocp object to formulate the OCP
-        self.N_horizon = 16 # Prediction horizon
+        self.N_horizon = 8 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -561,100 +562,72 @@ class DiveControllerMPC(DiveControllerInterface):
         # Run the MPC setup
         self.ocp_solver, self.integrator = self.nmpc.setup()
         
-        self.ref_is_traj = False
-        difficulty = 'easy'
-        if self.ref_is_traj:
-            # load trajectory - Replace with your actual file path
-            if difficulty == 'easy':
-                file_path = "/home/admin/smarc_modelling/src/Trajectories/report_update/easy/trajectories/case_easy0.csv"
-                self.q_rot = R.from_euler('z', 0, degrees=True)
-            elif difficulty == 'medium':
-                file_path = "/home/admin/smarc_modelling/src/Trajectories/report_update/medium/trajectories/case_medium0.csv"
-                self.q_rot = R.from_euler('z', 90, degrees=True)
-            elif difficulty == 'hard':
-                file_path = "/home/admin/smarc_modelling/src/Trajectories/report_update/hard/trajectories/case_hard0.csv"
-                self.q_rot = R.from_euler('z', 180, degrees=True)
-            self.trajectory = self._read_csv_to_array(file_path)
-
-            # Declare duration of sim. 
-            self.Nsim = (self.trajectory.shape[0])         # The sim length should be equal to the number of waypoints
-            # Augment the trajectory and control input r0.0eference 
-            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
-            self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
-
+        
         # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
         self._initialized = False
-
+        self.ref_is_traj = True # Flag to indicate if the reference is a trajectory or not
         self._loginfo("Dive Controller created")
-
-
-    # FIXME: This is for development only. The trajectory is later provided by
-    # the planning node
-    def _read_csv_to_array(self, file_path: str):
-        """
-        Reads a CSV file and converts the elements to a NumPy array.
-
-        Parameters:
-            file_path (str): The path to the CSV file.
-
-        Returns:
-            np.array: A NumPy array containing the CSV data.
-        """
-        data = []
-        with open(file_path, 'r') as csvfile:
-            csvreader = csv.reader(csvfile)
-            next(csvreader)
-            for row in csvreader:
-                data.append([float(element) for element in row])
-
-        return np.array(data)
 
     def update(self):
         """
         This is where all the magic happens.
         """
-        return
-
-        mission_state = self._dive_sub.get_mission_state()
-        if mission_state == MissionStates.RECEIVED:
-            self._loginfo_once("Mission Received")
-            self._set_actuators_neutral()
-            return
-
-        if mission_state == MissionStates.COMPLETED:
-            self._loginfo_once("Mission Complete")
-            self._set_actuators_neutral()
-            return
-
-        if mission_state == MissionStates.CANCELLED:
-            self._loginfo_once("Mission Cancelled")
-            self._set_actuators_neutral()
-            return
-
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
         # Get the current states
         self._current_state = self._dive_sub.get_states()
         self._current_control = self._dive_sub.get_control_input()
-
+    
         if self.ref_is_traj:
+            self.trajectory = self._dive_sub.get_path()
+
+            if self.trajectory is None: #NOTE: Sometimes a none trajectory manages to slip through
+                self._loginfo_once("No trajectory received")
+                # self._set_actuators_neutral()
+                return
+            else:
+                self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
+            # Declare duration of sim. 
+            self.Nsim = self.trajectory.shape[0]  # The sim length should be equal to the number of waypoints
+
+            # Augment the trajectory and control input reference 
+            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
+            self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
+
+
             x0 = self.get_init_state(self._current_state, self._current_control)
 
-            # Match the starting position in unity with the one from the trajectory.
+            # # Match the starting position in unity with the one from the trajectory.
             self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
             self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
             self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
 
-            # Match the starting orientation with the one from the trajectory
-            for index, waypoint in enumerate(self.trajectory):
-                q_waypoint = R.from_quat(waypoint[3:7], scalar_first = True)
-                q_new = self.q_rot * q_waypoint
-                q_new = q_new.as_quat()
-                q_new = [q_new[3], q_new[0], q_new[1], q_new[2]] #Convert back to w,x,y,z
-                self.trajectory[index, 3:7] = q_new
+            # # Match the starting orientation with the one from the trajectory
+            # for index, waypoint in enumerate(self.trajectory):
+            #     q_waypoint = R.from_quat(waypoint[3:7], scalar_first = True)
+            #     q_new = self.q_rot * q_waypoint
+            #     q_new = q_new.as_quat()
+            #     q_new = [q_new[3], q_new[0], q_new[1], q_new[2]] #Convert back to w,x,y,z
+            #     self.trajectory[index, 3:7] = q_new
 
         elif not self.ref_is_traj:
+            mission_state = self._dive_sub.get_mission_state()
+            if mission_state == MissionStates.RECEIVED:
+                self._loginfo_once("Mission Received")
+                self._set_actuators_neutral()
+                return
+
+            if mission_state == MissionStates.COMPLETED:
+                self._loginfo_once("Mission Complete")
+                self._set_actuators_neutral()
+                return
+
+            if mission_state == MissionStates.CANCELLED:
+                self._loginfo_once("Mission Cancelled")
+                self._set_actuators_neutral()
+                return
+            
             self.Nsim = 1 # TODO:fix the Nsim issue. This is to trick the print statement in the loginfo
 
             if not self._dive_sub.has_waypoint():
@@ -694,7 +667,7 @@ class DiveControllerMPC(DiveControllerInterface):
             waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
             waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
             waypoint_q_z = waypoint_q[3] #waypoint.orientation.z
-
+    
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
             tmp = self._dive_sub.get_states()
@@ -711,12 +684,11 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self._initialized = True
                     
-        # TODO: RESTRUCTURED UNTIL THIS LINE - Continue below
+        ### TODO: RESTRUCTURED UNTIL THIS LINE - Continue below  ####  WOKRS AS INTENDED UNTIL HERE
 
-        # Get the current state
+        # Get the current state vector
         x_current = self.get_current_state(self._current_state, self._current_control)
-
-        # # FIXME: Only for trajectory tracking of length Nsim, edit this to fit waypoints too
+    
         if self.ref_is_traj:
             if self.i < self.Nsim:
                 # extract the sub-trajectory to track under the prediction horizon
@@ -741,8 +713,13 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ocp_solver.set(0, "lbx", x_current)
                 self.ocp_solver.set(0, "ubx", x_current)
 
+
+                # STATE_CB WORKS UNTIL THIS POINT
                 # solve ocp and get next control input
+                start_time = time.time()
                 status = self.ocp_solver.solve()
+                end_time = time.time()
+                self._loginfo(f"NMPC solve time: {end_time - start_time:.3f} seconds")
 
                 # simulate system
                 self.simU = self.ocp_solver.get(0, "u")
@@ -757,13 +734,15 @@ class DiveControllerMPC(DiveControllerInterface):
                 u_rpm2 = mpc_solution[18]
 
             else:
-                self.i = self.Nsim-1 # so it stays here and read the sim data from last step
-                u_vbs = self.prev_vbs
-                u_lcg = self.prev_lcg
-                u_stern = 0.0
-                u_rudder = 0.0
-                u_rpm1 = 0.0
-                u_rpm2 = 0.0
+                # so it stays here and read the sim data from last step
+                self._loginfo_once("Trajectory Tracking Complete")
+                u_vbs = 50
+                u_lcg = 50
+                u_stern = 0
+                u_rudder = 0
+                u_rpm1 = 0
+                u_rpm2 = 0
+                return
         else:
             self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
             self.ref[:, 0] = waypoint_x
@@ -807,25 +786,22 @@ class DiveControllerMPC(DiveControllerInterface):
             u_rpm1 = mpc_solution[17]
             u_rpm2 = mpc_solution[18]
 
-        self.prev_vbs = u_vbs
-        self.prev_lcg = u_lcg
-
-        s = f"\nMPC Check step {self.i}/{self.Nsim}:\n"
-        s += "Linear:\n"
+        s = f"\nMPC Check step {self._dive_sub.current_idx}/{self.Nsim}:\n"
+        # s += "Linear:\n"
         s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]}\n"
+        #s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
 
-        s += "Quaternions:\n"
-        r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
-        euler = r.as_euler('xyz', degrees=True)
-        s += f"Unity   : {euler}\n"
-        #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-        #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
-        r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
-        euler = r.as_euler('xyz', degrees=True)
-        s += f"Uni. Ref: {euler}\n"
-        s += f"NMPC:      Control:\nvbs: {u_vbs:.2f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.0f}, rpm2: {u_rpm2:.0f}\n"
-        s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.4f}, lcg: {x_current[14]:.4f}, stern: {x_current[15]:.4f}, rudder: {x_current[16]:.4f}, rpm1: {x_current[17]:.2f}, rpm2: {x_current[18]:.2f}\n"
+        # s += "Quaternions:\n"
+        # r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
+        # euler = r.as_euler('xyz', degrees=True)
+        # s += f"Unity   : {euler}\n"
+        # #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
+        # #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
+        # r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
+        # euler = r.as_euler('xyz', degrees=True)
+        # s += f"Uni. Ref: {euler}\n"
+        # s += f"NMPC:      Control:\nvbs: {u_vbs:.2f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.0f}, rpm2: {u_rpm2:.0f}\n"
+        # s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.4f}, lcg: {x_current[14]:.4f}, stern: {x_current[15]:.4f}, rudder: {x_current[16]:.4f}, rpm1: {x_current[17]:.2f}, rpm2: {x_current[18]:.2f}\n"
 
         self._loginfo(s)
 
@@ -843,7 +819,6 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.z = self.ref[0,2]
             r = R.from_quat(self.ref[0,3:7], scalar_first = True)
             euler_angles = r.as_euler('xyz', degrees=False)
-            self._loginfo(f"{euler_angles[2]}")
 
             self._ref.roll  = euler_angles[0]
             self._ref.pitch = euler_angles[1]
@@ -857,7 +832,9 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input.thrusterhorizontal = u_rudder
         self._input.thrusterrpm = float(u_rpm1)
 
+        # Increment the current index to fit the next waypoint and let the action server know
         self.i += 1
+        self._dive_sub.set_current_idx(self.i)
 
         return
     
