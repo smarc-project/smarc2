@@ -58,10 +58,6 @@ class RescuePointServer(SMARCActionServer):
         self.BASE_FRAME = self._node.get_parameter("robot_name").value + "/base_link"
         self.ODOM_FRAME = self._node.get_parameter("robot_name").value + "/odom"
 
-        self._pub_setpoint = self._node.create_publisher(
-            PoseStamped, self._node.get_parameter("setpoint_topic").value, 2
-        )
-
         self.odom_topic = Topics.ODOM_TOPIC 
 
         self.sub_quad = self._node.create_subscription(
@@ -77,7 +73,7 @@ class RescuePointServer(SMARCActionServer):
         typed_param_declare(
             node,
             "robot_name",
-            "Quadrotor",
+            "M350",
             "The name of the robot being run; used for things like frame names"
         )
 
@@ -509,7 +505,7 @@ class RescuePointServer(SMARCActionServer):
 
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self._node.get_clock().now().to_msg()
-                pose_msg.header.frame_id = 'odom'
+                pose_msg.header.frame_id = self.ODOM_FRAME;
                 pose_msg.pose.position.x = float(self.pickup_traj_start_point[0])
                 pose_msg.pose.position.y = float(self.pickup_traj_start_point[1])
                 pose_msg.pose.position.z = float(self.pickup_traj_start_point[2])
@@ -549,7 +545,7 @@ class RescuePointServer(SMARCActionServer):
 
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self._node.get_clock().now().to_msg()
-                pose_msg.header.frame_id = 'odom'
+                pose_msg.header.frame_id = self.ODOM_FRAME
                 pose_msg.pose.position.x = float(target_pos[0])
                 pose_msg.pose.position.y = float(target_pos[1])
                 pose_msg.pose.position.z = float(target_pos[2])
@@ -569,7 +565,7 @@ class RescuePointServer(SMARCActionServer):
 
             pose_msg = PoseStamped()
             pose_msg.header.stamp = self._node.get_clock().now().to_msg()
-            pose_msg.header.frame_id = 'odom'
+            pose_msg.header.frame_id = self.ODOM_FRAME
             pose_msg.pose.position.x = float(self.flat_final[0])
             pose_msg.pose.position.y = float(self.flat_final[1])
             pose_msg.pose.position.z = float(self.flat_final[2])
@@ -593,7 +589,7 @@ class RescuePointServer(SMARCActionServer):
 
             pose_msg = PoseStamped()
             pose_msg.header.stamp = self._node.get_clock().now().to_msg()
-            pose_msg.header.frame_id = 'odom'
+            pose_msg.header.frame_id = self.ODOM_FRAME
             pose_msg.pose.position.x = float(self.incline_final[0])
             pose_msg.pose.position.y = float(self.incline_final[1])
             pose_msg.pose.position.z = float(self.incline_final[2])

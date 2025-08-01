@@ -93,9 +93,6 @@ if [ "$USE_SIM_TIME" = "True" ]; then
     tmux new-window -t $SESSION:4 -n 'ROS2Bridge'
     tmux select-window -t $SESSION:4
     tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_ip:=localhost -p tcp_port:=10000" C-m
-    tmux new-window -t $SESSION:5 -n 'Unity->PSDK Translator'
-    tmux select-window -t $SESSION:5
-    tmux send-keys "ros2 run dji_captain unity_translator --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 else
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
 fi
