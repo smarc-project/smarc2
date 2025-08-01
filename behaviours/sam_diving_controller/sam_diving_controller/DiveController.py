@@ -579,18 +579,21 @@ class DiveControllerMPC(DiveControllerInterface):
         self._current_state = self._dive_sub.get_states()
         self._current_control = self._dive_sub.get_control_input()
     
-        if self.ref_is_traj:
+        if self.ref_is_traj and not self._initialized:
             self.trajectory = self._dive_sub.get_path()
-
-            if self.trajectory is None: #NOTE: Sometimes a none trajectory manages to slip through
+            
+            if self.trajectory is None: #NOTE: Sometimes a none trajectory manages to slip through - this is a preliminary fix. 
                 self._loginfo_once("No trajectory received")
                 # self._set_actuators_neutral()
                 return
             else:
                 self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
             # Declare duration of sim. 
-            self.Nsim = self.trajectory.shape[0]  # The sim length should be equal to the number of waypoints
-
+            try: 
+                self.Nsim = self.trajectory.shape[0]  # The sim length should be equal to the number of waypoints
+            except IndexError:
+                self._loginfo_once("No trajectory received - IndexError")
+                return
             # Augment the trajectory and control input reference 
             Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
@@ -598,18 +601,14 @@ class DiveControllerMPC(DiveControllerInterface):
 
             x0 = self.get_init_state(self._current_state, self._current_control)
 
+            # TODO: Remove this when running in actual SAM
             # # Match the starting position in unity with the one from the trajectory.
             self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
             self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
             self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
 
-            # # Match the starting orientation with the one from the trajectory
-            # for index, waypoint in enumerate(self.trajectory):
-            #     q_waypoint = R.from_quat(waypoint[3:7], scalar_first = True)
-            #     q_new = self.q_rot * q_waypoint
-            #     q_new = q_new.as_quat()
-            #     q_new = [q_new[3], q_new[0], q_new[1], q_new[2]] #Convert back to w,x,y,z
-            #     self.trajectory[index, 3:7] = q_new
+            # Set the orientation of the trajectory to the initial state
+            self.trajectory[:,3:7] = x0[3:7]  
 
         elif not self.ref_is_traj:
             mission_state = self._dive_sub.get_mission_state()
@@ -684,8 +683,6 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self._initialized = True
                     
-        ### TODO: RESTRUCTURED UNTIL THIS LINE - Continue below  ####  WOKRS AS INTENDED UNTIL HERE
-
         # Get the current state vector
         x_current = self.get_current_state(self._current_state, self._current_control)
     
@@ -713,19 +710,16 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ocp_solver.set(0, "lbx", x_current)
                 self.ocp_solver.set(0, "ubx", x_current)
 
-
-                # STATE_CB WORKS UNTIL THIS POINT
                 # solve ocp and get next control input
                 start_time = time.time()
                 status = self.ocp_solver.solve()
                 end_time = time.time()
-                self._loginfo(f"NMPC solve time: {end_time - start_time:.3f} seconds")
 
                 # simulate system
                 self.simU = self.ocp_solver.get(0, "u")
                 mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
-                # TODO: Check that the outputs fit the actual actuators - X_current is two timestep behind?
+                # Assign the calculated control signal to actuators
                 u_vbs = mpc_solution[13]
                 u_lcg = mpc_solution[14]
                 u_stern = mpc_solution[15] 
@@ -787,21 +781,23 @@ class DiveControllerMPC(DiveControllerInterface):
             u_rpm2 = mpc_solution[18]
 
         s = f"\nMPC Check step {self._dive_sub.current_idx}/{self.Nsim}:\n"
+        s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
+
         # s += "Linear:\n"
         s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        #s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
+        s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
 
-        # s += "Quaternions:\n"
-        # r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
-        # euler = r.as_euler('xyz', degrees=True)
-        # s += f"Unity   : {euler}\n"
-        # #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
+        s += "Quaternions:\n"
+        r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
+        euler = r.as_euler('xyz', degrees=True)
+        s += f"Unity   : {euler}\n"
+        #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
         # #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
-        # r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
-        # euler = r.as_euler('xyz', degrees=True)
-        # s += f"Uni. Ref: {euler}\n"
-        # s += f"NMPC:      Control:\nvbs: {u_vbs:.2f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.0f}, rpm2: {u_rpm2:.0f}\n"
-        # s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.4f}, lcg: {x_current[14]:.4f}, stern: {x_current[15]:.4f}, rudder: {x_current[16]:.4f}, rpm1: {x_current[17]:.2f}, rpm2: {x_current[18]:.2f}\n"
+        r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
+        euler = r.as_euler('xyz', degrees=True)
+        s += f"Uni. Ref: {euler}\n"
+        s += f"NMPC:      Control:\nvbs: {u_vbs:.2f}, lcg: {u_lcg:.2f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.0f}, rpm2: {u_rpm2:.0f}\n"
+        s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.2f}, lcg: {x_current[14]:.2f}, stern: {x_current[15]:.3f}, rudder: {x_current[16]:.3f}, rpm1: {x_current[17]:.0f}, rpm2: {x_current[18]:.0f}\n"
 
         self._loginfo(s)
 
