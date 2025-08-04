@@ -135,7 +135,7 @@ class DiveSub():
 
     def _states_cb(self, msg):
         self._states = msg
-        #self._loginfo(f"R. state:{self._states.pose.pose.position.x}, {self._states.pose.pose.position.y}, {self._states.pose.pose.position.z} ")
+        #self._loginfo(f"R. state:{self._states.pose.pose.position.x:.2f}, {self._states.pose.pose.position.y:.2f}, {self._states.pose.pose.position.z:.2f} ")
         self._received_states = True
 
 

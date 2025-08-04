@@ -553,8 +553,8 @@ class DiveControllerMPC(DiveControllerInterface):
         # them. Not good, but all attempts to force it to use a specific
         # directory failed so far.
 
-        # create ocp object to formulate the OCP
-        self.N_horizon = 8 # Prediction horizon
+        # create nmpc object to formulate the OCP
+        self.N_horizon = 16 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -565,7 +565,7 @@ class DiveControllerMPC(DiveControllerInterface):
         
         # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
         self._initialized = False
-        self.ref_is_traj = True # Flag to indicate if the reference is a trajectory or not
+        self.ref_is_traj = False # Flag to indicate if the reference is a trajectory or not
         self._loginfo("Dive Controller created")
 
     def update(self):
@@ -578,7 +578,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # Get the current states
         self._current_state = self._dive_sub.get_states()
         self._current_control = self._dive_sub.get_control_input()
-    
+
         if self.ref_is_traj and not self._initialized:
             self.trajectory = self._dive_sub.get_path()
             
@@ -750,7 +750,9 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ocp_solver.set(0, "ubx", x_current)
 
             # solve ocp and get next control input
+            start_time = time.time()
             status = self.ocp_solver.solve()
+            end_time = time.time()
 
             # simulate system
             self.simU = self.ocp_solver.get(0, "u")
