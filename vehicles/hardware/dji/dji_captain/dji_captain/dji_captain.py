@@ -72,7 +72,7 @@ class DjiCaptain():
         self._node.declare_parameter("controller_deadzone", 0.1)
 
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name')}/"
+        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
 
         self._CONTROLLER_DEADZONE : float = 0.1
         v = self._node.get_parameter("controller_deadzone").value 
@@ -87,7 +87,7 @@ class DjiCaptain():
         self._ENU_pos_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUpos_JOY.value, qos_profile=10)
         self._setpoint_received_at : float|None = None
         
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_PUB_MAX = 0.8
         self.JOY_PUB_PERIOD = .1
 
@@ -135,7 +135,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = ["{/Quadrotor/}  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -418,6 +418,7 @@ class DjiCaptain():
         if (self.now_stamp.sec - msg.header.stamp.sec) + \
            (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
+            self.log(f"Current time: {self.now_stamp.sec}.{self.now_stamp.nanosec}\nSetpoint Time: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}")
             self._move_to_setpoint = None
             return
         
@@ -448,7 +449,7 @@ class DjiCaptain():
         else:
             self._move_to_setpoint = msg
 
-        self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
+        # self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         
         if self._joy_timer is None:
             if self._control_mode == ControlModes.FLUvel:
@@ -595,6 +596,7 @@ class DjiCaptain():
 
 
     def _move_towards_setpoint_FLUvel(self):
+
         if self._move_to_setpoint is None or self._setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             self._cancel_joy_timer()
@@ -619,8 +621,8 @@ class DjiCaptain():
                 time=Time(seconds=0),
                 timeout=Duration(seconds=1))
             target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
-        except:
-            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.")
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
             self._cancel_joy_timer()
             return
 
@@ -788,19 +790,20 @@ class DjiCaptain():
         self._home_point_in_utm.header.stamp = self.now_stamp
 
     def _home_point_altitude_callback(self, msg: Float32):
-        if self._home_point_in_utm is None: return
+        if self._home_point_in_utm is None:
+            self.log("home point in utm not set, can't set _home_geo_altitude")
+            return
         self._home_geo_altitude = msg.data
 
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._gps_point_in_home is None:
             self._gps_point_in_home = PointStamped()
             self._gps_point_in_home.header.frame_id = self.ODOM_FRAME
-
         gp = GeoPoint()
         gp.latitude = msg.latitude
         gp.longitude = msg.longitude
@@ -818,7 +821,7 @@ class DjiCaptain():
 
     def _rtk_cb(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._rtk_point_in_home is None:
@@ -896,11 +899,11 @@ class DjiCaptain():
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
 
-        if self._utm_labeled_frame is not None:
+        if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
             utms.header.stamp = now
             utms.header.frame_id = self._utm_labeled_frame
-            utms.child_frame_id = DjiLinks.UTM
+            utms.child_frame_id = DjiLinks.UTM 
             tf_msg.transforms.append(utms)
 
         if self._home_point_in_utm is not None:
@@ -909,9 +912,9 @@ class DjiCaptain():
             home_tf.header.stamp = now
             home_tf.header.frame_id = DjiLinks.UTM
             home_tf.child_frame_id = self.HOME_FRAME
-            home_tf.transform.translation.x = self._home_point_in_utm.point.x
+            home_tf.transform.translation.x = self._home_point_in_utm.point.x 
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z 
             tf_msg.transforms.append(home_tf)
 
 
@@ -921,7 +924,7 @@ class DjiCaptain():
             base_in_home.header.stamp = now
             base_in_home.header.frame_id = self.ODOM_FRAME
             base_in_home.child_frame_id = self.BASE_FRAME
-            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
+            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation 
             base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
             base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
             base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
@@ -987,8 +990,7 @@ class DjiCaptain():
             move_to_setpoint_tf.transform.translation.z = self._move_to_setpoint.pose.position.z
             tf_msg.transforms.append(move_to_setpoint_tf)
 
-        self._tf_pub.publish(tf_msg)
-
+        self._tf_pub.publish(tf_msg) 
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
             return
