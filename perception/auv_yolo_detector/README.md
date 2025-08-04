@@ -1,17 +1,37 @@
-# YOLO Detection pckg
+# YOLO Detection 
+## Overview
+This package uses YOLO to independently detect SAM and buoy. It includes two trained models: one for simulation and another for real-world scenarios (*.pt* files).
+Two different datasets were used, with ~200 labelled images each. Access them [here](https://kth-my.sharepoint.com/:f:/g/personal/framir_ug_kth_se/EpHV7UF6nQVIsYwrSBDlYWkBR-Yv08Lia9hxuD-aqrMTJQ?e=cpmczE).
+### Training
+The sim model was trained with the sim dataset, which was later used to train the real model with the real dataset.
+Specs:
+- Epochs: 100
+- Batch: 8
 
-## Run image recording (in sim)
-``
-ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
-``
-``
-ros2 run auv_yolo_detector yolo_detector
-``
+## Dependencies (dev versions)
+- ROS2 Humble
+- Ultralytics: 8.3.160
+  
+When installing *Ultralytics*, corresponding dependencies (*eg*: torch, opencv, etc) will be installed (check [here](https://docs.ultralytics.com/quickstart/) for more info)
 
-## Run rosbag
+## Launch yolo detector
 ``
-ros2 bag play --read-ahead-queue-size 100 -l -r 1.0 --clock 100 --start-paused ~/KTH_Courses/ResearchProject/RProj_GitRepoFork/colcon_ws/src/smarc2/perception/auv_yolo_detector/bags/alars_search_and_recover/rosbag2_2025_06_13-19_49_25_4.db3
+ros2 launch auv_yolo_detector yolo_detector_launch.py
 ``
+## **New Topics**
+| Topic | Msg | Description |
+| --- | ---| --- |
+| /Quadrotor/image_annotated | Image | Image from camera with YOLO annotations (bounding boxes + probabilities)|
+---
 
-## Datasetd
-Click [https://kth-my.sharepoint.com/:f:/g/personal/framir_ug_kth_se/EpHV7UF6nQVIsYwrSBDlYWkBR-Yv08Lia9hxuD-aqrMTJQ?e=cpmczE]
+## Future work
+Convert bounding boxes+orientation to pose in a given frame.
+
+## Outro
+Don't forget to
+```
+colcon build --symlink-install --packages-select auv_yolo_detector
+source install/setup.sh
+```
+## Maintainer
+Francisco Miranda, framir@kth.se
