@@ -43,7 +43,7 @@ class PSDKTopics(Enum):
     ALTITUDE            = WRAPPER_NS + "altitude_sea_level"
     CONTROL_MODE        = WRAPPER_NS + "control_mode"
     BATTERY             = WRAPPER_NS + "battery" 
-    VELOCTY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
+    VELOCITY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
     ANGULAR_RATE_GND_FSD= WRAPPER_NS + "angular_rate_ground_fused"
     ESC_DATA            = WRAPPER_NS + "esc_data"
     RC                  = WRAPPER_NS + "rc"
@@ -90,6 +90,9 @@ class DjiCaptain():
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_PUB_MAX = 0.8
         self.JOY_PUB_PERIOD = .1
+
+        self._prev_setpoint_error : None | np.ndarray = None
+        self._prev_joy_output : None | np.ndarray = None
 
         self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -217,7 +220,7 @@ class DjiCaptain():
         
         node.create_subscription(
             Vector3Stamped,
-            PSDKTopics.VELOCTY_GROUND_FSD.value,
+            PSDKTopics.VELOCITY_GROUND_FSD.value,
             self._velocity_ground_callback,
             qos_profile=10)
         
@@ -585,6 +588,8 @@ class DjiCaptain():
     def _cancel_joy_timer(self):
         self._setpoint_received_at = None
         self._move_to_setpoint = None
+        self._prev_joy_output = None
+        self._prev_setpoint_error = None
         self.log("Setpoint discarded.")
         if self._joy_timer is not None:
             self._joy_timer.cancel()
@@ -613,6 +618,28 @@ class DjiCaptain():
             self.log("Not got control, cannot move with joy.")
             self._cancel_joy_timer()
             return
+        
+        if(self._velocity_ground == None):
+            self.log(f"Ground Velocity not defined, cancelling Joy")
+            self._move_to_setpoint = None
+            self._cancel_joy_timer()
+            return
+        tf = self._tf_buffer.lookup_transform(
+            target_frame = self.BASE_FLAT_FRAME,
+            source_frame = self._velocity_ground.header.frame_id,
+            time=Time(seconds=0),
+            timeout=Duration(seconds=1))
+        vel_pose = PoseStamped()
+        vel_pose.pose.position.x = self._velocity_ground.vector.x
+        vel_pose.pose.position.y = self._velocity_ground.vector.y
+        vel_pose.pose.position.z = self._velocity_ground.vector.z
+        FLU_vel = do_transform_pose_stamped(vel_pose, tf)
+
+        if (self._prev_joy_output is None):
+            self._prev_joy_output = np.array([FLU_vel.pose.position.x, FLU_vel.pose.position.y, FLU_vel.pose.position.z])
+        
+        if (self._prev_setpoint_error is None):
+            self._prev_setpoint_error = np.array([0, 0, 0])
 
         try:
             tf_diff = self._tf_buffer.lookup_transform(
@@ -625,30 +652,43 @@ class DjiCaptain():
             self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
             self._cancel_joy_timer()
             return
-
         
+        #Tuning: For large movements, k_pose will have essentially no impact on the startup. r_sigma dominates in this range, with a larger r_sigma producing a smoother 
+        #start and a smaller r_sigma producing a faster start. When stopping, both variables matter. A larger r_sigma will produce more overshoot in the target position.
+        #A smaller k_pose will cause this to behave more like a normal proportional controller, reducing overshoot by making the deceleration happen over a greater 
+        #distance. A larger k_pose will decrease the time spent decelerating, which could either increase or decrease overshoot, depending on how large it is. The best 
+        #choice for these values is also dependent on JOY_PUB_MAX and even more so on JOY_PUB_PERIOD, so make sure to be very careful and retune after adjusting these.
+        k_pose = .5 #proportional gain
+        r_sigma = .9 #"gain" on previous output, between 0 and 1 (kind of, the "desired output" is multiplied by 1 - r_sigma and the previous output is multiplied by r_sigma).
+
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        # limit the horizontal velocity to the maximum joy value
-        e_horizontal = np.array([e_forw, e_left])
-        e_horizontal_norm = np.linalg.norm(e_horizontal)
-        if e_horizontal_norm > self.JOY_PUB_MAX:
-            e_horizontal = e_horizontal / e_horizontal_norm * self.JOY_PUB_MAX
-            e_forw, e_left = e_horizontal[0], e_horizontal[1]
+        joy_forw = k_pose * e_forw
+        joy_left = k_pose * e_left
+        joy_updn = k_pose * e_updn
 
-        if np.abs(e_updn) > self.JOY_PUB_MAX:
-            e_updn = np.sign(e_updn) * self.JOY_PUB_MAX
+        # limit the velocity to the maximum joy value
+        joy_net = np.array([joy_forw, joy_left, joy_updn])
+        joy_net = self._normalize_max_speed(joy_net)
+
+        joy_net = (1 - r_sigma) * joy_net + r_sigma * self._prev_joy_output
+        joy_net = self._normalize_max_speed(joy_net)
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [e_forw, e_left, e_updn, 0.0]  # Axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._FLU_vel_joy_pub.publish(joy_msg)
+        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_updn])
 
-
+    def _normalize_max_speed(self, joy_net):
+        joy_norm = np.linalg.norm(joy_net)
+        if joy_norm > self.JOY_PUB_MAX:
+            joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
+        return joy_net
     def move_towards_setpoint_ENUpos(self):
         self.log("move_towards_setpoint_ENUpos not implemented yet.")
         self._cancel_joy_timer()
