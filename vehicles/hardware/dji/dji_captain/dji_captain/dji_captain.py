@@ -79,7 +79,7 @@ class DjiCaptain():
         if v is not None: self._CONTROLLER_DEADZONE = v
 
         
-        self._control_mode = ControlModes.FLUvel
+        self._control_mode = ControlModes.ENUpos
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
         self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLUvel_JOY.value, qos_profile=10)
@@ -457,9 +457,9 @@ class DjiCaptain():
             if self._control_mode == ControlModes.FLUvel:
                 self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_FLUvel)
             elif self._control_mode == ControlModes.ENUvel:
-                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUvel)
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_ENUvel)
             elif self._control_mode == ControlModes.ENUpos:
-                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUpos)
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_ENUpos)
 
             self._setpoint_received_at = time.time()
             self.log("Joy timer started to move with joy.")
@@ -579,8 +579,22 @@ class DjiCaptain():
                 self._ENU_vel_joy_pub.publish(joy_msg)
 
             elif self._control_mode == ControlModes.ENUpos:
-                #TODO
-                pass
+                self.log("Moving with ENU position control mode, be careful! Right stick is real East/North!")
+                if(self._heading_deg is None):
+                    self.log("No heading set, cannot move with ENUpos control mode.")
+                    return
+                if(self._base_pose_flat_in_home is None):
+                    self.log("No heading set, cannot move with ENUpos control mode.")
+                    return
+                if(LV is None or LH is None):
+                    self.log("No left stick, cannot move with ENUpos control mode.")
+                    return
+                
+                yaw = math.pi - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
+                altitude = self._base_pose_flat_in_home.pose.position.z  #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
+                joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
+                self._ENU_pos_joy_pub.publish(joy_msg.axes)
+                
 
         
         
@@ -684,12 +698,55 @@ class DjiCaptain():
         if joy_norm > self.JOY_PUB_MAX:
             joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
         return joy_net
-    def move_towards_setpoint_ENUpos(self):
-        self.log("move_towards_setpoint_ENUpos not implemented yet.")
-        self._cancel_joy_timer()
+    
+    def _move_towards_setpoint_ENUpos(self):
+        if self._move_to_setpoint is None or self._setpoint_received_at is None:
+            self.log("No move to setpoint set, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        
+        if(self._heading_deg is None):
+            self.log("No heading set, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        
+        if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
+           (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+            self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
+            self._move_to_setpoint = None
+            self._cancel_joy_timer()
+            return
+        
+        if not self._got_control:
+            self.log("Not got control, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        try:
+            tf_diff = self._tf_buffer.lookup_transform(
+                target_frame = self.BASE_ENU_FRAME, #This is the frame centered on the baselink but locked to ENU rotationally
+                source_frame = self._move_to_setpoint.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1))
+            target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
+            self._cancel_joy_timer()
+            return
+        e_forw = target_in_base.pose.position.x # error about each axis
+        e_left = target_in_base.pose.position.y
+        target_updn = self._move_to_setpoint.pose.position.z #Should be "relative to the global Cartesian frame where the aircraft has been initialized." This is in the ODOM frame, which I think is correct?
+        yaw = math.pi - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
 
-    def move_towards_setpoint_ENUvel(self):
-        self.log("move_towards_setpoint_ENUvel not implemented yet.")
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = [e_forw, e_left, target_updn, yaw]  # Axes: [forward, left, up/down, yaw] 
+        joy_msg.buttons = []
+
+        self._ENU_pos_joy_pub.publish(joy_msg)
+
+
+    def _move_towards_setpoint_ENUvel(self):
+        self.log("_move_towards_setpoint_ENUvel not implemented yet.")
         self._cancel_joy_timer()
     
 
