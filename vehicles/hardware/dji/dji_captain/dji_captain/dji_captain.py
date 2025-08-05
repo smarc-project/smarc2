@@ -91,7 +91,6 @@ class DjiCaptain():
         self.JOY_PUB_MAX = 0.8
         self.JOY_PUB_PERIOD = .1
 
-        self._prev_setpoint_error : None | np.ndarray = None
         self._prev_joy_output : None | np.ndarray = None
 
         self.READY_BATTERY_PERCENTAGE = 25
@@ -589,7 +588,6 @@ class DjiCaptain():
         self._setpoint_received_at = None
         self._move_to_setpoint = None
         self._prev_joy_output = None
-        self._prev_setpoint_error = None
         self.log("Setpoint discarded.")
         if self._joy_timer is not None:
             self._joy_timer.cancel()
@@ -637,9 +635,6 @@ class DjiCaptain():
 
         if (self._prev_joy_output is None):
             self._prev_joy_output = np.array([FLU_vel.pose.position.x, FLU_vel.pose.position.y, FLU_vel.pose.position.z])
-        
-        if (self._prev_setpoint_error is None):
-            self._prev_setpoint_error = np.array([0, 0, 0])
 
         try:
             tf_diff = self._tf_buffer.lookup_transform(
