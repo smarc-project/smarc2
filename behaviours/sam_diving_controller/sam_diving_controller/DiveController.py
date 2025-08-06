@@ -545,7 +545,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = True # NOTE: Don't change until the previous fixme is resolved.
+        build = False # NOTE: Don't change until the previous fixme is resolved.
         self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
         # FIXME: This needs to be fixed. Acados places the generated C files in
         # the current directory. So we litter the whole ros workspace with
@@ -789,8 +789,8 @@ class DiveControllerMPC(DiveControllerInterface):
         if self.ref is not None:
             self._ref = ControlReference()
             self._ref.x = self.ref[0,0]
-            self._ref.y = self.ref[0,1]
-            self._ref.z = self.ref[0,2]
+            self._ref.y = -self.ref[0,1]
+            self._ref.z = -self.ref[0,2]
 
             r = R.from_quat(self.ref[0,3:7], scalar_first = True)
             euler_angles = r.as_euler('xyz', degrees=False)
