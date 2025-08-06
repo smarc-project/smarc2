@@ -79,7 +79,7 @@ class DjiCaptain():
         if v is not None: self._CONTROLLER_DEADZONE = v
 
         
-        self._control_mode = ControlModes.ENUpos
+        self._control_mode = ControlModes.FLUvel
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
         self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLUvel_JOY.value, qos_profile=10)
@@ -590,8 +590,8 @@ class DjiCaptain():
                     self.log("No left stick, cannot move with ENUpos control mode.")
                     return
                 
-                yaw = math.pi - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
-                altitude = self._base_pose_flat_in_home.pose.position.z  #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
+                yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
+                altitude = self._base_pose_flat_in_home.pose.position.z #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
                 joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
                 self._ENU_pos_joy_pub.publish(joy_msg.axes)
                 
@@ -691,7 +691,7 @@ class DjiCaptain():
         joy_msg.buttons = []
 
         self._FLU_vel_joy_pub.publish(joy_msg)
-        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_updn])
+        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
 
     def _normalize_max_speed(self, joy_net):
         joy_norm = np.linalg.norm(joy_net)
@@ -732,14 +732,26 @@ class DjiCaptain():
             self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
             self._cancel_joy_timer()
             return
-        e_forw = target_in_base.pose.position.x # error about each axis
-        e_left = target_in_base.pose.position.y
-        target_updn = self._move_to_setpoint.pose.position.z #Should be "relative to the global Cartesian frame where the aircraft has been initialized." This is in the ODOM frame, which I think is correct?
-        yaw = math.pi - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
+        
+        try:
+            tf = self._tf_buffer.lookup_transform(
+                target_frame = self.ODOM_FRAME,
+                source_frame = self._move_to_setpoint.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1))
+            target_in_odom = do_transform_pose_stamped(self._move_to_setpoint, tf)
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.ODOM_FRAME}, cancelling joy timer.: {e}")
+            self._cancel_joy_timer()
+            return
+        e_east = target_in_base.pose.position.x # error about each axis
+        e_north = target_in_base.pose.position.y
+        target_updn = target_in_odom.pose.position.z #Should be "relative to the global Cartesian frame where the aircraft has been initialized." This is in the ODOM frame, which I think is correct?
+        yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [e_forw, e_left, target_updn, yaw]  # Axes: [forward, left, up/down, yaw] 
+        joy_msg.axes = [e_east, e_north, target_updn, yaw]  # Axes: [east offset, north offset, up/down position, yaw position] 
         joy_msg.buttons = []
 
         self._ENU_pos_joy_pub.publish(joy_msg)
