@@ -5,13 +5,39 @@
     confidence_threshold: 0.4
     model_path: 'None'
 
+    camera:
+      fov: 82.0
+
+    real_dimensions:
+      sam:
+        width: 2.0
+        height: 16.0
+    
     frames:
-      id:
-        map: "map_gt"
+      real:
+        map: "map_gt" 
         quadrotor_odom: "Quadrotor/odom"
         sam_odom: "sam_auv_v1/odom"
+        camera: "Quadrotor/camera"
+      sim:
+        map: "map_gt" 
+        quadrotor_odom: "Quadrotor/odom"
+        sam_odom: "sam_auv_v1/odom"
+        camera: "Quadrotor/camera"
     
     topics:
-      raw_image: '/Quadrotor/gimbal_camera/image_raw'
-      camera_info: '/Quadrotor/gimbal_camera/camera_info'
-      annotated_image: 'image_annotated'
+      sub:
+        real:
+          raw_image: '/Quadrotor/gimbal_camera/image_raw'
+          camera_info: '/Quadrotor/gimbal_camera/camera_info'
+          drone_position: '/Quadrotor/smarc/odom' #/Quadrotor/smarc/odom
+        sim:
+          raw_image: /Quadrotor/core/fpcamera/image
+          camera_info: /Quadrotor/core/fpcamera/cam_info
+          drone_position: /Quadrotor/odom_gt #/Quadrotor/smarc/odom
+
+      pub:
+        annotated_image: 'image_annotated'
+        predicted_position:
+          sam: '/Quadrotor/pred_position/sam'
+          buoy: '/Quadrotor/pred_position/buoy'

@@ -7,8 +7,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
 
     # ---- frequently changed params as launch arguments ...
-    mode_arg = DeclareLaunchArgument('mode', default_value='real')
-    inference_frequency_arg = DeclareLaunchArgument('inference_frequency', default_value='0.2')
+    mode_arg = DeclareLaunchArgument('mode', default_value='sim')
+    inference_frequency_arg = DeclareLaunchArgument('inference_frequency', default_value='0.5')
     model_path_arg = DeclareLaunchArgument('model_path',
                                        default_value = '/home/fm/KTH_Courses/ResearchProject/RProj_GitRepoFork/colcon_ws/src/smarc2/perception/auv_yolo_detector')
 
