@@ -8,6 +8,7 @@ from .ActionServerDiveSub import DiveActionServerSub
 from .DiveSub import DiveSub
 from .DiveController import DepthJoyControllerPID
 from .ConveniencePub import ConveniencePub
+from .ParamUtils import DivingModelParam
 
 from rclpy.executors import MultiThreadedExecutor
 
@@ -31,10 +32,11 @@ def joy_depth():
     dive_sub_rate = node.get_parameter('dive_sub_rate').get_parameter_value().double_value
 
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
-
-    dive_pub = SAMDivePub(node)
-    dive_sub = DiveSub(node, dive_pub) 
-    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, dive_controller_rate)
+    
+    param = DivingModelParam(node).get_param()
+    dive_sub = DiveSub(node, param) 
+    dive_pub = SAMDivePub(node, dive_sub, param)
+    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub,param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 

@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=Quadrotor
+ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
 
 if [[ "$(whoami)" == *"alars"* ]]; then
@@ -49,10 +49,12 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
     tmux select-pane -t $SESSION:0.3
-    tmux send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
+    # tmux send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
+    tmux send-keys "fast-discovery-server -i 0" C-m
 else
     tmux select-window -t $SESSION:0
-    tmux send-keys "ros2 topic pub /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 \"data: 0\" -r 5" C-m
+    tmux select-pane -t $SESSION:0.1
+    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
 fi
 
 
@@ -87,9 +89,10 @@ tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
 tmux rename-window "mqtt_bridge"
 tmux select-window -t $SESSION:3
 if [ "$USE_SIM_TIME" = "True" ]; then
-    tmux new-window -t $SESSION:0 -n 'ROS2Bridge'
-    tmux select-window -t $SESSION:0
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation broker_addr:=localhost broker_port:=1889 context:=alars" C-m
+    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
+    tmux new-window -t $SESSION:4 -n 'ROS2Bridge'
+    tmux select-window -t $SESSION:4
+    tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_ip:=localhost -p tcp_port:=10000" C-m
 else
     tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
 fi
