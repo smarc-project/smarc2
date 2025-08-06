@@ -6,8 +6,6 @@ from pathlib import Path
 from tf_transformations import euler_from_quaternion
 from scipy.spatial.transform import Rotation as R
 
-import csv
-
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
 #from .ParamUtils import DivingModelParam
@@ -520,6 +518,7 @@ class DepthJoyControllerPID(DiveControllerInterface):
 
         return
 
+
 class DiveControllerMPC(DiveControllerInterface):
 
     def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
@@ -546,15 +545,15 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False # NOTE: Don't change until the previous fixme is resolved.
+        build = True # NOTE: Don't change until the previous fixme is resolved.
         self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
         # FIXME: This needs to be fixed. Acados places the generated C files in
         # the current directory. So we litter the whole ros workspace with
         # them. Not good, but all attempts to force it to use a specific
         # directory failed so far.
 
-        # create nmpc object to formulate the OCP
-        self.N_horizon = 16 # Prediction horizon
+        # create nmpc object for the OCP
+        self.N_horizon = 14 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -572,12 +571,6 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
-        # Engage actuators in case they were off before.
-        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
-
-        # Get the current states
-        self._current_state = self._dive_sub.get_states()
-        self._current_control = self._dive_sub.get_control_input()
 
         if self.ref_is_traj and not self._initialized:
             self.trajectory = self._dive_sub.get_path()
@@ -598,7 +591,12 @@ class DiveControllerMPC(DiveControllerInterface):
             Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
 
+            # Engage actuators in case they were off before.
+            self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
+            # Get the current states
+            self._current_state = self._dive_sub.get_states()
+            self._current_control = self._dive_sub.get_control_input()
             x0 = self.get_init_state(self._current_state, self._current_control)
 
             # TODO: Remove this when running in actual SAM
@@ -627,6 +625,12 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._set_actuators_neutral()
                 return
             
+            # Engage actuators in case they were off before.
+            self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
+            # Get the current states
+            self._current_state = self._dive_sub.get_states()
+            self._current_control = self._dive_sub.get_control_input()
             self.Nsim = 1 # TODO:fix the Nsim issue. This is to trick the print statement in the loginfo
 
             if not self._dive_sub.has_waypoint():
@@ -725,12 +729,12 @@ class DiveControllerMPC(DiveControllerInterface):
         else:
             self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
             self.ref[:, 0] = waypoint_x
-            self.ref[:, 1] = waypoint_y
-            self.ref[:, 2] = waypoint_z
-            self.ref[:, 3] = waypoint_q_w
-            self.ref[:, 4] = waypoint_q_x
-            self.ref[:, 5] = waypoint_q_y
-            self.ref[:, 6] = waypoint_q_z
+            self.ref[:, 1] = -waypoint_y
+            self.ref[:, 2] = -waypoint_z
+            quat = self.enu_to_ned([waypoint_q_x, waypoint_q_y, waypoint_q_z, waypoint_q_w])
+            self.ref[:, 3:7] = quat
+            self.ref[:, 13] = 50 # VBS
+            self.ref[:, 14] = 50 # LCG
 
             # Update reference vector
             # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
@@ -759,13 +763,40 @@ class DiveControllerMPC(DiveControllerInterface):
             mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
 
-            # TODO: Check that the outputs fit the actual actuators - X_current is two timestep behind?
+            # Assign the calculated control signal to actuators
             u_vbs = mpc_solution[13]
             u_lcg = mpc_solution[14]
             u_stern = mpc_solution[15] 
             u_rudder = mpc_solution[16]
             u_rpm1 = mpc_solution[17]
             u_rpm2 = mpc_solution[18]
+
+        # Publish the control input
+        self._dive_pub.set_vbs(u_vbs)
+        self._dive_pub.set_lcg(u_lcg)
+        self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
+        self._dive_pub.set_rpm(u_rpm1, u_rpm2)
+
+        # Set control input (For convenience topics)
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
+        self._input.thrustervertical = u_stern
+        self._input.thrusterhorizontal = u_rudder
+        self._input.thrusterrpm = float(u_rpm1)
+
+        # Convenience Topics
+        if self.ref is not None:
+            self._ref = ControlReference()
+            self._ref.x = self.ref[0,0]
+            self._ref.y = self.ref[0,1]
+            self._ref.z = self.ref[0,2]
+
+            r = R.from_quat(self.ref[0,3:7], scalar_first = True)
+            euler_angles = r.as_euler('xyz', degrees=False)
+            self._ref.roll  = euler_angles[0]
+            self._ref.pitch = euler_angles[1]
+            self._ref.yaw   = euler_angles[2]
 
         s = f"\nMPC Check step {self._dive_sub.current_idx}/{self.Nsim}:\n"
         s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
@@ -779,7 +810,7 @@ class DiveControllerMPC(DiveControllerInterface):
         euler = r.as_euler('xyz', degrees=True)
         s += f"Unity   : {euler}\n"
         #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-        # #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
+        #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
         r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
         euler = r.as_euler('xyz', degrees=True)
         s += f"Uni. Ref: {euler}\n"
@@ -787,33 +818,6 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"X_CURRENT: Control:\nvbs: {x_current[13]:.2f}, lcg: {x_current[14]:.2f}, stern: {x_current[15]:.3f}, rudder: {x_current[16]:.3f}, rpm1: {x_current[17]:.0f}, rpm2: {x_current[18]:.0f}\n"
 
         self._loginfo(s)
-
-        # Publish the control input
-        self._dive_pub.set_vbs(u_vbs)
-        self._dive_pub.set_lcg(u_lcg)
-        self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
-        self._dive_pub.set_rpm(u_rpm1, u_rpm2)
-
-        # Convenience Topics
-        if self.ref is not None:
-            self._ref = ControlReference()
-            self._ref.x = self.ref[0,0]
-            self._ref.y = self.ref[0,1]
-            self._ref.z = self.ref[0,2]
-            r = R.from_quat(self.ref[0,3:7], scalar_first = True)
-            euler_angles = r.as_euler('xyz', degrees=False)
-
-            self._ref.roll  = euler_angles[0]
-            self._ref.pitch = euler_angles[1]
-            self._ref.yaw   = euler_angles[2]
-
-        # Set control input
-        self._input = ControlInput()
-        self._input.vbs = u_vbs
-        self._input.lcg = u_lcg
-        self._input.thrustervertical = u_stern
-        self._input.thrusterhorizontal = u_rudder
-        self._input.thrusterrpm = float(u_rpm1)
 
         # Increment the current index to fit the next waypoint and let the action server know
         self.i += 1
@@ -824,21 +828,23 @@ class DiveControllerMPC(DiveControllerInterface):
     def get_init_state(self, state_msg, control_msg, is_trajectory=True):
         """
         Returns the initial state of the controller as the state vector x (numpy array)
+
+        NOTE: It gets the state in ENU frame and converts it to NED frame
         """
         x = np.zeros(19)
         x[0] = state_msg.pose.pose.position.x
-        x[1] = state_msg.pose.pose.position.y
-        x[2] = state_msg.pose.pose.position.z 
-        x[3] = state_msg.pose.pose.orientation.w
-        x[4] = state_msg.pose.pose.orientation.x
-        x[5] = state_msg.pose.pose.orientation.y
-        x[6] = state_msg.pose.pose.orientation.z
+        x[1] = -state_msg.pose.pose.position.y
+        x[2] = -state_msg.pose.pose.position.z 
+        x[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+                                          state_msg.pose.pose.orientation.y,
+                                          state_msg.pose.pose.orientation.z,
+                                          state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion   
         x[7] = state_msg.twist.twist.linear.x
-        x[8] = state_msg.twist.twist.linear.y
-        x[9] = state_msg.twist.twist.linear.z
+        x[8] = -state_msg.twist.twist.linear.y
+        x[9] = -state_msg.twist.twist.linear.z
         x[10] = state_msg.twist.twist.angular.x
-        x[11] = state_msg.twist.twist.angular.y
-        x[12] = state_msg.twist.twist.angular.z
+        x[11] = -state_msg.twist.twist.angular.y
+        x[12] = -state_msg.twist.twist.angular.z
         x[13] = control_msg['vbs']
         x[14] = control_msg['lcg']
         x[15] = control_msg['stern']
@@ -854,21 +860,23 @@ class DiveControllerMPC(DiveControllerInterface):
     def get_current_state(self, state_msg, control_msg):
         """
         Returns the current state of the controller as the state vector x (numpy array)
+
+        NOTE: It gets the state in ENU frame and converts it to NED frame
         """
         x_current = np.zeros(19)
         x_current[0] = state_msg.pose.pose.position.x
-        x_current[1] = state_msg.pose.pose.position.y
-        x_current[2] = state_msg.pose.pose.position.z 
-        x_current[3] = state_msg.pose.pose.orientation.w
-        x_current[4] = state_msg.pose.pose.orientation.x
-        x_current[5] = state_msg.pose.pose.orientation.y
-        x_current[6] = state_msg.pose.pose.orientation.z
+        x_current[1] = -state_msg.pose.pose.position.y
+        x_current[2] = -state_msg.pose.pose.position.z 
+        x_current[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+                                          state_msg.pose.pose.orientation.y,
+                                          state_msg.pose.pose.orientation.z,
+                                          state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion
         x_current[7] = state_msg.twist.twist.linear.x
-        x_current[8] = state_msg.twist.twist.linear.y
-        x_current[9] = state_msg.twist.twist.linear.z
+        x_current[8] = -state_msg.twist.twist.linear.y
+        x_current[9] = -state_msg.twist.twist.linear.z
         x_current[10] = state_msg.twist.twist.angular.x
-        x_current[11] = state_msg.twist.twist.angular.y
-        x_current[12] = state_msg.twist.twist.angular.z
+        x_current[11] = -state_msg.twist.twist.angular.y
+        x_current[12] = -state_msg.twist.twist.angular.z
         x_current[13] = control_msg['vbs']
         x_current[14] = control_msg['lcg']
         x_current[15] = control_msg['stern']
@@ -877,3 +885,20 @@ class DiveControllerMPC(DiveControllerInterface):
         x_current[18] = control_msg['rpm2']
         
         return x_current
+
+    def enu_to_ned(self, quat_enu):
+
+        T = np.array([
+            [1, 0, 0],
+            [0, -1, 0],
+            [0, 0, -1]
+            ])
+        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
+        r_ned = T @ r_enu.as_matrix() @ T.T
+        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
+        quat_ned_right_order = np.array([quat_ned[3], # w
+                                        quat_ned[0],  # x
+                                        quat_ned[1],  # y
+                                        quat_ned[2]   # z
+                                        ])
+        return quat_ned_right_order
