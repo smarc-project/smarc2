@@ -13,7 +13,7 @@ class DivingModelParam():
         self._node.declare_parameter('vbs_pid_ki', 5.0)
         self._node.declare_parameter('vbs_pid_kd', 1.0)
         self._node.declare_parameter('vbs_pid_kaw', 1.0)
-        self._node.declare_parameter('vbs_u_neutral', 55.0)
+        self._node.declare_parameter('vbs_u_neutral', 45.0)
         self._node.declare_parameter('vbs_u_min', 0.0)
         self._node.declare_parameter('vbs_u_max', 100.0)
         self._node.declare_parameter('vbs_u_emergency', 0.0)

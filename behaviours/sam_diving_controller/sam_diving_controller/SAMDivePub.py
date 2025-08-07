@@ -28,7 +28,7 @@ class SAMDivePub(IDivePub):
         self._dive_sub = dive_sub
         self.param = param
 
-        self._actuator_state = None
+        self._actuator_state = ActuatorStates.NEUTRAL
 
         # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
@@ -48,6 +48,7 @@ class SAMDivePub(IDivePub):
         self._joy_tv_msg = Float64()
 
         self._vbs_msg.value = self.param['vbs_u_neutral']
+        self._loginfo(f"{self._vbs_msg.value}")
         self._lcg_msg.value = self.param['lcg_u_neutral']
         self._thrust_vector_msg.thruster_horizontal_radians = self.param['tv_u_neutral']
         self._thrust_vector_msg.thruster_vertical_radians = self.param['tv_u_neutral']
