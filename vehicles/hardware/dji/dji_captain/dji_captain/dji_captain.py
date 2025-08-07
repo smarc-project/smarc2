@@ -43,7 +43,7 @@ class PSDKTopics(Enum):
     ALTITUDE            = WRAPPER_NS + "altitude_sea_level"
     CONTROL_MODE        = WRAPPER_NS + "control_mode"
     BATTERY             = WRAPPER_NS + "battery" 
-    VELOCTY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
+    VELOCITY_GROUND_FSD  = WRAPPER_NS + "velocity_ground_fused"
     ANGULAR_RATE_GND_FSD= WRAPPER_NS + "angular_rate_ground_fused"
     ESC_DATA            = WRAPPER_NS + "esc_data"
     RC                  = WRAPPER_NS + "rc"
@@ -72,7 +72,7 @@ class DjiCaptain():
         self._node.declare_parameter("controller_deadzone", 0.1)
 
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name')}/"
+        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
 
         self._CONTROLLER_DEADZONE : float = 0.1
         v = self._node.get_parameter("controller_deadzone").value 
@@ -87,9 +87,11 @@ class DjiCaptain():
         self._ENU_pos_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUpos_JOY.value, qos_profile=10)
         self._setpoint_received_at : float|None = None
         
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
         self.JOY_PUB_MAX = 0.8
         self.JOY_PUB_PERIOD = .1
+
+        self._prev_joy_output : None | np.ndarray = None
 
         self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -135,7 +137,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = ["{/Quadrotor/}  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -217,7 +219,7 @@ class DjiCaptain():
         
         node.create_subscription(
             Vector3Stamped,
-            PSDKTopics.VELOCTY_GROUND_FSD.value,
+            PSDKTopics.VELOCITY_GROUND_FSD.value,
             self._velocity_ground_callback,
             qos_profile=10)
         
@@ -418,6 +420,7 @@ class DjiCaptain():
         if (self.now_stamp.sec - msg.header.stamp.sec) + \
            (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it.")
+            self.log(f"Current time: {self.now_stamp.sec}.{self.now_stamp.nanosec}\nSetpoint Time: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}")
             self._move_to_setpoint = None
             return
         
@@ -448,15 +451,15 @@ class DjiCaptain():
         else:
             self._move_to_setpoint = msg
 
-        self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
+        # self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         
         if self._joy_timer is None:
             if self._control_mode == ControlModes.FLUvel:
                 self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_FLUvel)
             elif self._control_mode == ControlModes.ENUvel:
-                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUvel)
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_ENUvel)
             elif self._control_mode == ControlModes.ENUpos:
-                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUpos)
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_ENUpos)
 
             self._setpoint_received_at = time.time()
             self.log("Joy timer started to move with joy.")
@@ -576,14 +579,29 @@ class DjiCaptain():
                 self._ENU_vel_joy_pub.publish(joy_msg)
 
             elif self._control_mode == ControlModes.ENUpos:
-                #TODO
-                pass
+                self.log("Moving with ENU position control mode, be careful! Right stick is real East/North!")
+                if(self._heading_deg is None):
+                    self.log("No heading set, cannot move with ENUpos control mode.")
+                    return
+                if(self._base_pose_flat_in_home is None):
+                    self.log("No heading set, cannot move with ENUpos control mode.")
+                    return
+                if(LV is None or LH is None):
+                    self.log("No left stick, cannot move with ENUpos control mode.")
+                    return
+                
+                yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
+                altitude = self._base_pose_flat_in_home.pose.position.z #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
+                joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
+                self._ENU_pos_joy_pub.publish(joy_msg.axes)
+                
 
         
         
     def _cancel_joy_timer(self):
         self._setpoint_received_at = None
         self._move_to_setpoint = None
+        self._prev_joy_output = None
         self.log("Setpoint discarded.")
         if self._joy_timer is not None:
             self._joy_timer.cancel()
@@ -595,6 +613,7 @@ class DjiCaptain():
 
 
     def _move_towards_setpoint_FLUvel(self):
+
         if self._move_to_setpoint is None or self._setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             self._cancel_joy_timer()
@@ -611,6 +630,25 @@ class DjiCaptain():
             self.log("Not got control, cannot move with joy.")
             self._cancel_joy_timer()
             return
+        
+        if(self._velocity_ground == None):
+            self.log(f"Ground Velocity not defined, cancelling Joy")
+            self._move_to_setpoint = None
+            self._cancel_joy_timer()
+            return
+        tf = self._tf_buffer.lookup_transform(
+            target_frame = self.BASE_FLAT_FRAME,
+            source_frame = self._velocity_ground.header.frame_id,
+            time=Time(seconds=0),
+            timeout=Duration(seconds=1))
+        vel_pose = PoseStamped()
+        vel_pose.pose.position.x = self._velocity_ground.vector.x
+        vel_pose.pose.position.y = self._velocity_ground.vector.y
+        vel_pose.pose.position.z = self._velocity_ground.vector.z
+        FLU_vel = do_transform_pose_stamped(vel_pose, tf)
+
+        if (self._prev_joy_output is None):
+            self._prev_joy_output = np.array([FLU_vel.pose.position.x, FLU_vel.pose.position.y, FLU_vel.pose.position.z])
 
         try:
             tf_diff = self._tf_buffer.lookup_transform(
@@ -619,40 +657,108 @@ class DjiCaptain():
                 time=Time(seconds=0),
                 timeout=Duration(seconds=1))
             target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
-        except:
-            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.")
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
             self._cancel_joy_timer()
             return
-
         
+        #Tuning: For large movements, k_pose will have essentially no impact on the startup. r_sigma dominates in this range, with a larger r_sigma producing a smoother 
+        #start and a smaller r_sigma producing a faster start. When stopping, both variables matter. A larger r_sigma will produce more overshoot in the target position.
+        #A smaller k_pose will cause this to behave more like a normal proportional controller, reducing overshoot by making the deceleration happen over a greater 
+        #distance. A larger k_pose will decrease the time spent decelerating, which could either increase or decrease overshoot, depending on how large it is. The best 
+        #choice for these values is also dependent on JOY_PUB_MAX and even more so on JOY_PUB_PERIOD, so make sure to be very careful and retune after adjusting these.
+        k_pose = .5 #proportional gain
+        r_sigma = .9 #"gain" on previous output, between 0 and 1 (kind of, the "desired output" is multiplied by 1 - r_sigma and the previous output is multiplied by r_sigma).
+
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        # limit the horizontal velocity to the maximum joy value
-        e_horizontal = np.array([e_forw, e_left])
-        e_horizontal_norm = np.linalg.norm(e_horizontal)
-        if e_horizontal_norm > self.JOY_PUB_MAX:
-            e_horizontal = e_horizontal / e_horizontal_norm * self.JOY_PUB_MAX
-            e_forw, e_left = e_horizontal[0], e_horizontal[1]
+        joy_forw = k_pose * e_forw
+        joy_left = k_pose * e_left
+        joy_updn = k_pose * e_updn
 
-        if np.abs(e_updn) > self.JOY_PUB_MAX:
-            e_updn = np.sign(e_updn) * self.JOY_PUB_MAX
+        # limit the velocity to the maximum joy value
+        joy_net = np.array([joy_forw, joy_left, joy_updn])
+        joy_net = self._normalize_max_speed(joy_net)
+
+        joy_net = (1 - r_sigma) * joy_net + r_sigma * self._prev_joy_output
+        joy_net = self._normalize_max_speed(joy_net)
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [e_forw, e_left, e_updn, 0.0]  # Axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
         self._FLU_vel_joy_pub.publish(joy_msg)
+        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
+
+    def _normalize_max_speed(self, joy_net):
+        joy_norm = np.linalg.norm(joy_net)
+        if joy_norm > self.JOY_PUB_MAX:
+            joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
+        return joy_net
+    
+    def _move_towards_setpoint_ENUpos(self):
+        if self._move_to_setpoint is None or self._setpoint_received_at is None:
+            self.log("No move to setpoint set, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        
+        if(self._heading_deg is None):
+            self.log("No heading set, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        
+        if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
+           (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+            self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
+            self._move_to_setpoint = None
+            self._cancel_joy_timer()
+            return
+        
+        if not self._got_control:
+            self.log("Not got control, cannot move with joy.")
+            self._cancel_joy_timer()
+            return
+        try:
+            tf_diff = self._tf_buffer.lookup_transform(
+                target_frame = self.BASE_ENU_FRAME, #This is the frame centered on the baselink but locked to ENU rotationally
+                source_frame = self._move_to_setpoint.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1))
+            target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.: {e}")
+            self._cancel_joy_timer()
+            return
+        
+        try:
+            tf = self._tf_buffer.lookup_transform(
+                target_frame = self.ODOM_FRAME,
+                source_frame = self._move_to_setpoint.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1))
+            target_in_odom = do_transform_pose_stamped(self._move_to_setpoint, tf)
+        except Exception as e:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.ODOM_FRAME}, cancelling joy timer.: {e}")
+            self._cancel_joy_timer()
+            return
+        e_east = target_in_base.pose.position.x # error about each axis
+        e_north = target_in_base.pose.position.y
+        target_updn = target_in_odom.pose.position.z #Should be "relative to the global Cartesian frame where the aircraft has been initialized." This is in the ODOM frame, which I think is correct?
+        yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
+
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = [e_east, e_north, target_updn, yaw]  # Axes: [east offset, north offset, up/down position, yaw position] 
+        joy_msg.buttons = []
+
+        self._ENU_pos_joy_pub.publish(joy_msg)
 
 
-    def move_towards_setpoint_ENUpos(self):
-        self.log("move_towards_setpoint_ENUpos not implemented yet.")
-        self._cancel_joy_timer()
-
-    def move_towards_setpoint_ENUvel(self):
-        self.log("move_towards_setpoint_ENUvel not implemented yet.")
+    def _move_towards_setpoint_ENUvel(self):
+        self.log("_move_towards_setpoint_ENUvel not implemented yet.")
         self._cancel_joy_timer()
     
 
@@ -788,19 +894,20 @@ class DjiCaptain():
         self._home_point_in_utm.header.stamp = self.now_stamp
 
     def _home_point_altitude_callback(self, msg: Float32):
-        if self._home_point_in_utm is None: return
+        if self._home_point_in_utm is None:
+            self.log("home point in utm not set, can't set _home_geo_altitude")
+            return
         self._home_geo_altitude = msg.data
 
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._gps_point_in_home is None:
             self._gps_point_in_home = PointStamped()
             self._gps_point_in_home.header.frame_id = self.ODOM_FRAME
-
         gp = GeoPoint()
         gp.latitude = msg.latitude
         gp.longitude = msg.longitude
@@ -818,7 +925,7 @@ class DjiCaptain():
 
     def _rtk_cb(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
             return
         
         if self._rtk_point_in_home is None:
@@ -896,11 +1003,11 @@ class DjiCaptain():
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
 
-        if self._utm_labeled_frame is not None:
+        if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
             utms.header.stamp = now
             utms.header.frame_id = self._utm_labeled_frame
-            utms.child_frame_id = DjiLinks.UTM
+            utms.child_frame_id = DjiLinks.UTM 
             tf_msg.transforms.append(utms)
 
         if self._home_point_in_utm is not None:
@@ -909,9 +1016,9 @@ class DjiCaptain():
             home_tf.header.stamp = now
             home_tf.header.frame_id = DjiLinks.UTM
             home_tf.child_frame_id = self.HOME_FRAME
-            home_tf.transform.translation.x = self._home_point_in_utm.point.x
+            home_tf.transform.translation.x = self._home_point_in_utm.point.x 
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z 
             tf_msg.transforms.append(home_tf)
 
 
@@ -921,7 +1028,7 @@ class DjiCaptain():
             base_in_home.header.stamp = now
             base_in_home.header.frame_id = self.ODOM_FRAME
             base_in_home.child_frame_id = self.BASE_FRAME
-            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation
+            base_in_home.transform.rotation = self._base_pose_in_home.pose.orientation 
             base_in_home.transform.translation.x = self._base_pose_in_home.pose.position.x
             base_in_home.transform.translation.y = self._base_pose_in_home.pose.position.y
             base_in_home.transform.translation.z = self._base_pose_in_home.pose.position.z
@@ -987,8 +1094,7 @@ class DjiCaptain():
             move_to_setpoint_tf.transform.translation.z = self._move_to_setpoint.pose.position.z
             tf_msg.transforms.append(move_to_setpoint_tf)
 
-        self._tf_pub.publish(tf_msg)
-
+        self._tf_pub.publish(tf_msg) 
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
             return
