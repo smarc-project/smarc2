@@ -1,0 +1,28 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+    <arg name="tf_suffix" default="_gt"/>
+    <arg name="control_yaml" default="$(find-pkg-share sam_diving_controller)/config/sam_diving_controller_config.yaml"/>
+    <arg name="acados_dir" default="$(find-pkg-share sam_diving_controller)/sam_diving_controller"/>
+
+   
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+       <node name="diving" pkg="sam_diving_controller" exec="nmpc_diving" output="screen">
+        <param name="robot_name" value="$(var robot_name)"/>
+        <param name="tf_suffix" value="$(var tf_suffix)"/>
+	<param from="$(var control_yaml)"/>
+	<param name="acados_dir" value="$(var acados_dir)"/>
+       </node>
+
+       <!-- <node name="diving_setpoint" pkg="sam_diving_controller" exec="setpoint" output="screen">
+        <param name="robot_name" value="$(var robot_name)"/>
+        <param name="tf_suffix" value="$(var tf_suffix)"/>
+        <param from="$(var control_yaml)"/>
+       </node> -->
+       
+    </group>
+
+    <node name="map_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 map$(var tf_suffix) map_ned$(var tf_suffix)" />
+    <node name="baselink_ned_pub" pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 1.5707 0 3.1415 $(var robot_name)/base_link$(var tf_suffix) $(var robot_name)/base_link_ned$(var tf_suffix) " />
+</launch>
