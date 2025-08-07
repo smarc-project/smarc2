@@ -545,15 +545,10 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False # NOTE: Don't change until the previous fixme is resolved.
-        self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
-        # FIXME: This needs to be fixed. Acados places the generated C files in
-        # the current directory. So we litter the whole ros workspace with
-        # them. Not good, but all attempts to force it to use a specific
-        # directory failed so far.
+        build = False
 
         # create nmpc object for the OCP
-        self.N_horizon = 14 # Prediction horizon
+        self.N_horizon = 10 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -566,6 +561,14 @@ class DiveControllerMPC(DiveControllerInterface):
         self._initialized = False
         self.ref_is_traj = False # Flag to indicate if the reference is a trajectory or not
         self._loginfo("Dive Controller created")
+
+        self._acados_status = {0: "ACADOS_SUCCESS",
+                               1: "ACADOS_NAN_DETECTED",
+                               2: "ACADOS_MAXITER",
+                               3: "ACADOS_MINSTEP",
+                               4: "ACADOS_QP_FAILURE",
+                               5: "ACADOS_READY",
+                               6: "ACADOS_UNBOUNDED"}
 
     def update(self):
         """
@@ -649,12 +652,13 @@ class DiveControllerMPC(DiveControllerInterface):
             if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
                 self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
             heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
-            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
+            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat()  # Convert to quaternion with scalar first
 
-            waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
-            waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
-            waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
-            waypoint_q_z = waypoint_q[3] #waypoint.orientation.z
+            waypoint_q_x = waypoint_q[0] #waypoint.orientation.x
+            waypoint_q_y = waypoint_q[1] #waypoint.orientation.y
+            waypoint_q_z = waypoint_q[2] #waypoint.orientation.z
+            waypoint_q_w = waypoint_q[3] #waypoint.orientation.w
+
     
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
@@ -792,25 +796,29 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.y = -self.ref[0,1]
             self._ref.z = -self.ref[0,2]
 
-            r = R.from_quat(self.ref[0,3:7], scalar_first = True)
+            r = R.from_quat([self.ref[0,4], # x
+                            self.ref[0,5], # y
+                            self.ref[0,6], # z
+                            self.ref[0,3]]) # w
             euler_angles = r.as_euler('xyz', degrees=False)
             self._ref.roll  = euler_angles[0]
             self._ref.pitch = euler_angles[1]
             self._ref.yaw   = euler_angles[2]
 
-        s = f"\nMPC Check step {self._dive_sub.current_idx}/{self.Nsim}:\n"
+        s = f"\nNMPC step {self._dive_sub.current_idx}/{self.Nsim}:\n"
+        s += f"NMPC solver status: {self._acados_status[status]}\n"
         s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
 
-        # s += "Linear:\n"
+        s += "Position:\n"
         s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
 
         s += "Quaternions:\n"
+        #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
+        #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
         r = R.from_quat([x_current[4], x_current[5], x_current[6], x_current[3]])  # Note: [x, y, z, w] order
         euler = r.as_euler('xyz', degrees=True)
         s += f"Unity   : {euler}\n"
-        #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-        #s += f"Uni. Ref: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
         r = R.from_quat([self.ref[0,4], self.ref[0,5], self.ref[0,6], self.ref[0,3]])  # Note: [x, y, z, w] order
         euler = r.as_euler('xyz', degrees=True)
         s += f"Uni. Ref: {euler}\n"
