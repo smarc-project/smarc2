@@ -805,7 +805,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.pitch = euler_angles[1]
             self._ref.yaw   = euler_angles[2]
 
-        s = f"\nNMPC step {self._dive_sub.current_idx}/{self.Nsim}:\n"
+        s = f"\nNMPC INFO\n" # {self._dive_sub.current_idx}/{self.Nsim}:\n"
         s += f"NMPC solver status: {self._acados_status[status]}\n"
         s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
 
