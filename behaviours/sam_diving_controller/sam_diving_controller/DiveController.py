@@ -553,7 +553,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # directory failed so far.
 
         # create nmpc object for the OCP
-        self.N_horizon = 14 # Prediction horizon
+        self.N_horizon = 10 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -649,12 +649,12 @@ class DiveControllerMPC(DiveControllerInterface):
             if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
                 self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
             heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
-            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat(scalar_first=True)  # Convert to quaternion with scalar first
+            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat()  # Convert to quaternion with scalar first
 
-            waypoint_q_w = waypoint_q[0] #waypoint.orientation.w
-            waypoint_q_x = waypoint_q[1] #waypoint.orientation.x
-            waypoint_q_y = waypoint_q[2] #waypoint.orientation.y
-            waypoint_q_z = waypoint_q[3] #waypoint.orientation.z
+            waypoint_q_w = waypoint_q[3] #waypoint.orientation.w
+            waypoint_q_x = waypoint_q[0] #waypoint.orientation.x
+            waypoint_q_y = waypoint_q[1] #waypoint.orientation.y
+            waypoint_q_z = waypoint_q[2] #waypoint.orientation.z
     
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
@@ -792,7 +792,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.y = -self.ref[0,1]
             self._ref.z = -self.ref[0,2]
 
-            r = R.from_quat(self.ref[0,3:7], scalar_first = True)
+            r = R.from_quat(self.ref[0,3:7])
             euler_angles = r.as_euler('xyz', degrees=False)
             self._ref.roll  = euler_angles[0]
             self._ref.pitch = euler_angles[1]
