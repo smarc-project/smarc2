@@ -40,7 +40,7 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     # ----+----
     # 0.2 | 0.3
     tmux select-pane -t $SESSION:0.0
-    tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py" C-m
+    tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper" C-m
     
     tmux select-pane -t $SESSION:0.1
     tmux send-keys "ros2 run dji_captain dji_captain --ros-args -r __ns:=/$ROBOT_NAME" C-m

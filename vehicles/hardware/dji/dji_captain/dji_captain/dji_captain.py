@@ -68,15 +68,15 @@ class ControlModes(Enum):
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-        self._node.declare_parameter("robot_name", "Quadrotor")
+        self._node.declare_parameter("robot_name", "M350")
         self._node.declare_parameter("controller_deadzone", 0.1)
+        self._node.declare_parameter("controller_yawrate_multiplier", 0.3)
 
+        self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
+        self._TF_NS : str = f"{self.ROBOT_NAME}/"
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
-
-        self._CONTROLLER_DEADZONE : float = 0.1
-        v = self._node.get_parameter("controller_deadzone").value 
-        if v is not None: self._CONTROLLER_DEADZONE = v
+        self._CONTROLLER_DEADZONE : float = self._node.get_parameter("controller_deadzone").get_parameter_value().double_value
+        self._CONTROLLER_YAWRATE_MULTIPLIER : float = self._node.get_parameter("controller_yawrate_multiplier").get_parameter_value().double_value
 
         
         self._control_mode = ControlModes.FLUvel
@@ -137,7 +137,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self.ROBOT_NAME + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -590,10 +590,10 @@ class DjiCaptain():
                     self.log("No left stick, cannot move with ENUpos control mode.")
                     return
                 
-                yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
-                yaw_move = yaw + LH/3 #TODO introduce as a param, a yaw rate limit or sth
-                altitude = self._base_pose_flat_in_home.pose.position.z #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
-                joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
+                yaw = math.pi/2 - math.radians(self._heading_deg)
+                yaw_move = yaw + LH * self._CONTROLLER_YAWRATE_MULTIPLIER
+                altitude = self._base_pose_flat_in_home.pose.position.z
+                joy_msg.axes = [RV, RH, altitude + LV, yaw_move]
                 self._ENU_pos_joy_pub.publish(joy_msg)
                 
 
