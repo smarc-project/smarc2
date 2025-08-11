@@ -127,8 +127,8 @@ class WaraPSTaskHandler:
         self._wara_ps_tst_response_pub = node.create_publisher(String, Topics.WARA_PS_TST_RESPONSE_TOPIC, 10)
         self._wara_ps_tst_feedback_pub = node.create_publisher(String, Topics.WARA_PS_TST_FEEDBACK_TOPIC, 10)
 
-        # publishers for smarc-bt head
-        self._smarc_bt_tip_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_BT_TOPIC, 10)
+        # publishers for bt head
+        self._wasp_bt_tip_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_BT_TOPIC, 10)
 
 
         # Subscriptions for WARA-PS command topics
@@ -1074,13 +1074,11 @@ class WaraPSTaskHandler:
         This is used to inform the WaraPS that the BT is ready to receive commands.
         """
 
-        # use self._smarc_bt_head_pub to publish the head
         tip_msg = {
             "agent-uuid": self._wara_ps_dict["agent-uuid"],
             "tip": tip
         }
         msg = String()
         msg.data = json.dumps(tip_msg)
-        self._smarc_bt_tip_pub.publish(msg)
-        # self._node.get_logger().info(f'Published BT head: {head}')
+        self._wasp_bt_tip_pub.publish(msg)
         return
