@@ -2,7 +2,7 @@ from typing import Type
 from rclpy.node import Node
 from std_msgs.msg import String, Int8, Empty
 from smarc_msgs.msg import Topics
-from smarc_bt.vehicles.sensor import Sensor, SensorNames
+from wasp_bt.vehicles.sensor import Sensor, SensorNames
 import json
 from copy import deepcopy
 import enum
