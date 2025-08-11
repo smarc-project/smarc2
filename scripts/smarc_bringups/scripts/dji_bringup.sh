@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=M350
+ROBOT_NAME=Quadrotor
 SESSION=${ROBOT_NAME}_bringup
 
 if [[ "$(whoami)" == *"alars"* ]]; then
