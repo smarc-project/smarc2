@@ -584,14 +584,12 @@ class DiveControllerMPC(DiveControllerInterface):
                 return
             else:
                 self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
+
             # Declare duration of sim. 
-            try: 
-                self.Nsim = self.trajectory.shape[0]  # The sim length should be equal to the number of waypoints
-            except IndexError:
-                self._loginfo_once("No trajectory received - IndexError")
-                return
+            self.Nsim = self.trajectory.shape[0] 
+
             # Augment the trajectory and control input reference 
-            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large control increments
+            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
 
             # Engage actuators in case they were off before.
@@ -602,14 +600,11 @@ class DiveControllerMPC(DiveControllerInterface):
             self._current_control = self._dive_sub.get_control_input()
             x0 = self.get_init_state(self._current_state, self._current_control)
 
-            # TODO: Remove this when running in actual SAM
-            # # Match the starting position in unity with the one from the trajectory.
+            # NOTE: Remove this when running in actual SAM
+            # Used to match the starting position in unity with the one from the trajectory.
             self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
             self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
             self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
-
-            # Set the orientation of the trajectory to the initial state
-            self.trajectory[:,3:7] = x0[3:7]  
 
         elif not self.ref_is_traj:
             mission_state = self._dive_sub.get_mission_state()
@@ -634,7 +629,7 @@ class DiveControllerMPC(DiveControllerInterface):
             # Get the current states
             self._current_state = self._dive_sub.get_states()
             self._current_control = self._dive_sub.get_control_input()
-            self.Nsim = 1 # TODO:fix the Nsim issue. This is to trick the print statement in the loginfo
+            self.Nsim = 1 # NOTE: This is to trick the print statement in the loginfo that shows the progress along the trajectory
 
             if not self._dive_sub.has_waypoint():
                 self._loginfo(f"No waypoint available")
@@ -644,25 +639,9 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Get Waypoint information
             waypoint = self._dive_sub.get_odom_waypoint()
-
-            if waypoint is None:
-                self._loginfo(f"DC: Waypoint is none.")
-                return
-
             waypoint_x = waypoint.position.x
             waypoint_y = waypoint.position.y
             waypoint_z = waypoint.position.z
-
-            # OLD waypoint heading calculation
-            if not self._initialized: # Want the first position for the heading calculation - x0 above gets updated at every .update() call
-                self.x0_heading = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
-            heading = np.arctan2(waypoint_y-self.x0_heading[1], waypoint_x-self.x0_heading[0])
-            waypoint_q = R.from_euler('z', heading, degrees=False).as_quat()  # Convert to quaternion with scalar first
-
-            waypoint_q_x = waypoint_q[0] #waypoint.orientation.x
-            waypoint_q_y = waypoint_q[1] #waypoint.orientation.y
-            waypoint_q_z = waypoint_q[2] #waypoint.orientation.z
-            waypoint_q_w = waypoint_q[3] #waypoint.orientation.w
 
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
@@ -692,8 +671,7 @@ class DiveControllerMPC(DiveControllerInterface):
                     self.ref = self.trajectory[self.i:, :]
 
                 # Update reference vector
-                # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
-                # set the following waypoints in the horizon to the last waypoint of the trajectory
+                # If the waypoints left is less than one prediction horizon, assign all future waypoints to the last waypoint. Else, assign the sub-trajectory.
                 for stage in range(self.N_horizon):
                     if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
                         self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
@@ -712,8 +690,9 @@ class DiveControllerMPC(DiveControllerInterface):
                 status = self.ocp_solver.solve()
                 end_time = time.time()
 
-                # simulate system
+                # simulate system: NOTE: May be possible to use get(0, "x") to acquire the actual control input.
                 self.simU = self.ocp_solver.get(0, "u")
+                # The integrator of the control signal is needed, since u is the control derivative.
                 mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
                 # Assign the calculated control signal to actuators
@@ -735,19 +714,23 @@ class DiveControllerMPC(DiveControllerInterface):
                 u_rpm2 = 0
                 return
         else:
-            # Conversion ENU to NED waypoint
+            # Get waypoint. Minus signs are needed for the conversion to NED
+            # NOTE: This is temporary, since there is no tracking on the orientation yet
+            waypoint_q_x = 0
+            waypoint_q_y = 0
+            waypoint_q_z = 0
+            waypoint_q_w = 1
+
             self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
             self.ref[:, 0] = waypoint_x
             self.ref[:, 1] = -waypoint_y
             self.ref[:, 2] = -waypoint_z
             quat = self.enu_to_ned([waypoint_q_x, waypoint_q_y, waypoint_q_z, waypoint_q_w])
             self.ref[:, 3:7] = quat
-            self.ref[:, 13] = 50 # VBS
-            self.ref[:, 14] = 50 # LCG
+            self.ref[:, 13] = 50 # VBS - neutral
+            self.ref[:, 14] = 50 # LCG - neutral
 
             # Update reference vector
-            # If the end of the trajectory has been reached, (ref.shape < N_horizon from above)
-            # set the following waypoints in the horizon to the last waypoint of the trajectory
             for stage in range(self.N_horizon):
                 if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
                     self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
@@ -756,7 +739,6 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Set the terminal state reference to the value at N_horizon
             self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
-
 
             # Set current state
             self.ocp_solver.set(0, "lbx", x_current)

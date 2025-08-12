@@ -123,13 +123,10 @@ def joy_depth():
     _loginfo(node,"Shutting down")
 
 
-def nmpc_depth():
-    """
-   Run the NMPC controller
-    """
+def nmpc_action_server():
 
     rclpy.init(args=sys.argv)
-    node = rclpy.create_node("DivingNode")
+    node = rclpy.create_node("ActionServerDivingNode")
 
     node.declare_parameter('dive_pub_rate', 0.1)
     node.declare_parameter('dive_controller_rate', 0.1)
@@ -141,14 +138,18 @@ def nmpc_depth():
     dive_pub_rate = node.get_parameter('dive_pub_rate').get_parameter_value().double_value
     dive_controller_rate = node.get_parameter('dive_controller_rate').get_parameter_value().double_value
     dive_sub_rate = node.get_parameter('dive_sub_rate').get_parameter_value().double_value
+
     convenience_pub_rate = node.get_parameter('convenience_rate').get_parameter_value().double_value
 
     param = DivingModelParam(node).get_param()
-    dive_sub = DiveSub(node, param)
-    dive_pub = SAMDivePub(node, dive_sub, param) 
+    action_type = ActionType(BaseAction)
+    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
+    dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
+    dive_pub = SAMDivePub(node, dive_sub, param)
     dive_controller = DiveControllerMPC(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
+
 
     node.create_timer(dive_pub_rate, dive_pub.update)
     node.create_timer(dive_controller_rate, dive_controller.update)
@@ -159,7 +160,7 @@ def nmpc_depth():
     def _loginfo(node, s):
         node.get_logger().info(s)
 
-    _loginfo(node,"Setpoints in Topic")
+    _loginfo(node,"Action Server")
     _loginfo(node,"Created MVC")
 
     executor = MultiThreadedExecutor()
@@ -172,7 +173,6 @@ def nmpc_depth():
         pass
 
     _loginfo(node,"Shutting down")
-
 
 def action_server():
 
