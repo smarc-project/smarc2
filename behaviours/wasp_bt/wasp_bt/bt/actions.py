@@ -7,7 +7,7 @@ from py_trees.behaviour import Behaviour
 
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
+from .common import VehicleBehaviour, bool_to_status
 from smarc_action_base.smarc_action_base import ActionClientState
 
 import json

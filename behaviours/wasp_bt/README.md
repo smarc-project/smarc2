@@ -66,5 +66,62 @@ You can watch the demo here:
 
 We hope this helps you get started and provides valuable insights into the capabilities of this package!
 
+## Behavior Tree Structure and Symbols
+
+The behavior tree visualization uses specific symbols to represent different node types and their current states. Understanding these symbols will help you debug and monitor the BT execution.
+
+### Current BT Structure
+```
+[-] S_Root [*]
+    --> A_Heartbeat [o]
+    [o] F_HandleEmergency [o]
+        --> C_NoEmergencyAbortSignalDetected [o]
+        --> A_ActionClient(emergency_action) [-]
+    [o] F_Health_Handler [o]
+        [-] S_Health_Status [x]
+            --> C_HasHeardFromVehicleHealth [o] -- Vehicle health received.
+            --> C_LastHealthy [o] -- Comms are fine. Vehicle health is up to date.
+            --> C_VehicleHealthStatus [x]
+        --> A_Abort [o] -- !! ABORTED !!
+    [o] F_Task_Handler [*]
+        [-] S_BreatheAfterAbort [x]
+            --> C_AbortedPreviousTask [x] -- Previous task was not aborted
+            --> A_TaskAbortedFlagReset [-]
+        [-] S_auv-depth-move-to [x]
+            --> C_TaskIs auv-depth-move-to [x] -- No tasks executing
+            [o] F_StatusCheck [-]
+                --> C_TaskStatus started [-]
+                --> C_TaskStatus resumed [-]
+                --> C_TaskStatus running [-]
+            --> A_ActionClient(/sam/auv_depth_move_to) [-]
+            --> A_ClearCurrentTask [-]
+        --> A_Chilling [*] -- No mission, just chillin'...
+```
+
+### Node Type Symbols (Left Side)
+- `[-]` **Sequence node** - Executes children in order, fails if any child fails. Names prefixed with `S_`
+- `[o]` **Fallback/Selector node** - Tries children in order until one succeeds. Names prefixed with `F_`
+- `-->` **Actions or Conditions** - Leaf nodes that perform actions or check conditions. Names prefixed with `A_` or `C_`
+- `/_/` **Parallel node** - Executes multiple children simultaneously. Names prefixed with `P_`
+- `-^-` **Decorator node** - Modifies child behavior (various types available)
+
+### Execution State Symbols (Right Side)
+- `[-]` **Not ticked** - Node hasn't been executed this cycle
+- `[o]` **Success** - Node completed successfully
+- `[x]` **Failure** - Node failed to complete
+- `[*]` **Running** - Node is currently executing (for long-running actions)
+
+### Feedback Messages
+Each node can display feedback after `--`. For example:
+- `C_HasHeardFromVehicleHealth [o] -- Vehicle health received.` shows health communication status
+- `C_TaskIs auv-depth-move-to [x] -- No tasks executing` indicates no current task is running
+- `A_Chilling [*] -- No mission, just chillin'...` shows the system is idle and waiting
+
+This visualization helps you understand which parts of the behavior tree are active, succeeding, or failing during execution. In this example, the tree is currently running (`[*]`) with the `A_Chilling` action active since no tasks are executing.
+
 ## Disclaimer
 This package is under active development and may change significantly in the very near future. It is recommended to keep an eye on the repository for updates and changes. Feel free to contact the maintainers if you have any questions or suggestions.
+
+### Future Work
+- [ ] Expanding/contracting the BT dynamically based on liveliness of action servers
+- [ ] Parallelisation of tasks (currently we employ a queue mission structure)
