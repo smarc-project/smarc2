@@ -66,6 +66,7 @@ class SAMDivePub(IDivePub):
         Set vbs
         """
         self._vbs_msg.value = float(vbs)
+        #self._vbs_msg.value = float(0)
 
 
     def set_lcg(self, lcg: float) -> None:
@@ -73,6 +74,7 @@ class SAMDivePub(IDivePub):
         Set LCG
         """
         self._lcg_msg.value = float(lcg)
+        #self._lcg_msg.value = float(40)
 
 
     def set_rpm(self, rpm1: float, rpm2: float) -> None:

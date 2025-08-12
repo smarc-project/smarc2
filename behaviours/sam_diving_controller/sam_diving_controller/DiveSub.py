@@ -54,9 +54,9 @@ class DiveSub():
         self._node.declare_parameter('tf_suffix', '')
         self._node.declare_parameter('acados_dir', '')
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
-        robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._robot_base_link = robot_name + '/base_link'+ tf_suffix
-        self._odom_link = robot_name + '/odom'
+        self.robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
+        self._robot_base_link = self.robot_name + '/base_link'+ tf_suffix
+        self._odom_link = self.robot_name + '/odom'
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
 
         self._loginfo(f"robot base link: {self._robot_base_link}")

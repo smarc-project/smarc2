@@ -6,7 +6,7 @@ import sys
 
 from .ParamUtils import DivingModelParam
 from .SAMDivePub import SAMDivePub
-from .ActionServerDiveSub import DiveActionServerSub, PathServer
+from .ActionServerDiveSub import DiveActionServerSub, PathServer, HydropointServer
 from .DiveSub import DiveSub
 from .DiveController import DepthJoyControllerPID, DiveControllerPID, DiveControllerMPC 
 from .ConveniencePub import ConveniencePub
@@ -195,7 +195,8 @@ def action_server():
     param = DivingModelParam(node).get_param()
     action_type = ActionType(BaseAction)
     heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
-    dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
+    #dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
+    dive_sub = HydropointServer(node, "go_to_hydropoint", action_type, param, heartbeat_topic)
     dive_pub = SAMDivePub(node, dive_sub, param)
     #dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
     dive_controller = DiveControllerMPC(node, dive_pub, dive_sub, param, dive_controller_rate)
