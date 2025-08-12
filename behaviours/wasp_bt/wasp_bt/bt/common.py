@@ -5,7 +5,6 @@ import enum
 from py_trees.behaviour import Behaviour
 from py_trees.blackboard import Blackboard
 from .i_has_vehicle_container import HasVehicleContainer    
-from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlan
 
 

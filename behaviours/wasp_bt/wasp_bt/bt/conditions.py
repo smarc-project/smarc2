@@ -10,7 +10,6 @@ from py_trees.behaviour import Behaviour
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
 from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
-from .bb_keys import BBKeys
 from ..mission.mission_plan import MissionPlanStates
 from ..vehicles.sensor import SensorNames       
 

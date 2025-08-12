@@ -18,7 +18,6 @@ from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .bb_keys import BBKeys
 from ..mission.i_action_client import IActionClient
 
 from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
@@ -109,27 +108,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         return health_checks                
  
-    def _safety_tree(self):
-        safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
-            C_NotAborted(self),
-            C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY),
-            Inverter("Not leaking", C_CheckSensorBool(self, SensorNames.LEAK)),
-            C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
-            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
-            C_MissionTimeoutOK()
-        ])
-
-        safety_tree = Fallback("F_Safety", memory=False, children=[
-            safety_checks,
-            # modify mission?
-            Parallel("P_EMERGENCY", policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
-                A_Abort(self),
-                Running("TODO: A_EmergencyAction")
-            ])
-        ])
-
-        return safety_tree
-    
+   
     def _handle_emergency_tree(self):
         """
         A tree that handles emergency situations, such as aborting the mission
@@ -223,7 +202,6 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         # we will append the task trees to this list programmatically
         if action_client_list is not None:
-            #TODO: implement this
             self._task_handler._node.get_logger().info(f"Action clients: {[ac.get_action_name() for ac in action_client_list]}")
 
             for action_client in action_client_list:
