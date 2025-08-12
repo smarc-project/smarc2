@@ -9,8 +9,7 @@ from py_trees.behaviour import Behaviour
 
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
-from ..mission.mission_plan import MissionPlanStates
+from .common import VehicleBehaviour, bool_to_status
 from ..vehicles.sensor import SensorNames       
 
 from ..waraps.waraps_task_handler import HasWaraPSTaskHandler, WaraPSTaskHandler, WaraPSTaskStates
@@ -91,43 +90,7 @@ class C_NotAborted(VehicleBehaviour):
         
         return Status.SUCCESS
 
-
-class C_CheckMissionPlanState(MissionPlanBehaviour):
-    def __init__(self, expected_state: MissionPlanStates):
-        self._expected_state = expected_state
-        name = f"{self.__class__.__name__}({self._expected_state})"
-        super().__init__(name)
-        self._bb = Blackboard()
-        
-
-    def update(self) -> Status:
-        self.feedback_message = ""
-        plan = self._get_plan()
-        if plan is None: return Status.FAILURE
-
-        if plan.state != self._expected_state:
-            self.feedback_message = f"Expected:{self._expected_state} found:{plan.state}"
-            return Status.FAILURE
-
-        return Status.SUCCESS
     
-
-class C_MissionTimeoutOK(MissionPlanBehaviour):
-    def __init__(self):
-        name = f"{self.__class__.__name__}"
-        super().__init__(name)
-        self._bb = Blackboard()
-
-    def update(self) -> Status:
-        self.feedback_message = ""
-        plan = self._get_plan()
-        if plan is None: return Status.SUCCESS
-        
-        self.feedback_message = f"({plan.seconds_to_timeout}) to timeout"
-        if plan.timeout_reached: 
-            return Status.FAILURE
-        return Status.SUCCESS
-
 class C_AbortedPreviousTask(Behaviour):
     def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
         """

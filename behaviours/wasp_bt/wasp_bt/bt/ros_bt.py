@@ -18,7 +18,6 @@ from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from ..mission.i_action_client import IActionClient
 
 from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
@@ -28,12 +27,7 @@ from smarc_mission_msgs.action import BaseAction
 
 
 
-from .conditions import C_CheckMissionPlanState,\
-                        C_CheckSensorBool,\
-                        C_NotAborted,\
-                        C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK,\
-                        C_TaskIs,\
+from .conditions import C_TaskIs,\
                         C_TaskStatus,\
                         C_AbortedPreviousTask,\
                         C_NoEmergencyAbortSignalDetected,\
@@ -138,7 +132,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         return Fallback("F_HandleEmergency", memory=False, children=emergency_children)
                     
-    def _one_task_tree(self, task_name: str, action_client: IActionClient):
+    def _one_task_tree(self, task_name: str, action_client: BTActionClient):
         """
         A tree that handles a single task type, such as move-to or depth-move-to
         """
@@ -163,7 +157,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         return task_tree
 
 
-    def _task_handler_tree(self, action_client_list: typing.List[IActionClient] = None):
+    def _task_handler_tree(self, action_client_list: typing.List[BTActionClient] = None):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
         """
