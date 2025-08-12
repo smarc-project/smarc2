@@ -545,7 +545,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
+        build = True 
 
         # create nmpc object for the OCP
         self.N_horizon = 10 # Prediction horizon
@@ -644,6 +644,11 @@ class DiveControllerMPC(DiveControllerInterface):
 
             # Get Waypoint information
             waypoint = self._dive_sub.get_odom_waypoint()
+
+            if waypoint is None:
+                self._loginfo(f"DC: Waypoint is none.")
+                return
+
             waypoint_x = waypoint.position.x
             waypoint_y = waypoint.position.y
             waypoint_z = waypoint.position.z
@@ -730,6 +735,7 @@ class DiveControllerMPC(DiveControllerInterface):
                 u_rpm2 = 0
                 return
         else:
+            # Conversion ENU to NED waypoint
             self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
             self.ref[:, 0] = waypoint_x
             self.ref[:, 1] = -waypoint_y
@@ -809,8 +815,8 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
 
         s += "Position:\n"
-        s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
+        s += f"State (NED):    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        s += f"Ref (NED): x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
 
         s += "Quaternions:\n"
         #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
