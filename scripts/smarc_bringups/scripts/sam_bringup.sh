@@ -1,11 +1,8 @@
 #! /bin/bash
 # Set LOCAL_ROBOT_NAME, LOCAL_MQTT_BROKER_IP, and LOCAL_MQTT_BROKER_PORT in your bashrc
 ROBOT_NAME=$LOCAL_ROBOT_NAME
-# ROBOT_NAME=sam
-# MQTT_BROKER_IP=$LOCAL_MQTT_BROKER_IP
-MQTT_BROKER_IP=20.240.40.232
-# MQTT_BROKER_PORT=$LOCAL_MQTT_BROKER_PORT
-MQTT_BROKER_PORT=1884
+MQTT_BROKER_IP=$LOCAL_MQTT_BROKER_IP
+MQTT_BROKER_PORT=$LOCAL_MQTT_BROKER_PORT
 SSS_SAVE_PATH=/home/orin/sss_auto_save
 
 SESSION=${ROBOT_NAME}_bringup
@@ -63,8 +60,7 @@ fi
 tmux new-window -t $SESSION:1 -n 'dr'
 tmux rename-window "dr"
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME" C-m
-# tmux send-keys "echo 'Not launching sam_dead_reckoning sam_dr_launch.launch until someone fixes it!'" C-m
+tmux send-keys " ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME  use_motion_model:=false inference_strategy:=FixedLagSmoothing kf_interval_hz:=10 use_sensor_covariance:=false init_from_ground_truth:=false" C-m
 
 # BT, action servers etc.
 tmux new-window -t $SESSION:2 -n 'bt'
