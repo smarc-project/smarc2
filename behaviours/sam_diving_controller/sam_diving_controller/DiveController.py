@@ -533,6 +533,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Convenience Topics
         self._current_state = None
+        self._current_state_odom = None
         self._current_control = None
         self._ref = None
         self._error = None
@@ -545,10 +546,10 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
+        build = True 
 
         # create nmpc object for the OCP
-        self.N_horizon = 10 # Prediction horizon
+        self.N_horizon = 20 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -624,10 +625,32 @@ class DiveControllerMPC(DiveControllerInterface):
                 return
             
             # Engage actuators in case they were off before.
+            # FIXME: Check that it stops when emergencies happen
             self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
+
             # Get the current states
-            self._current_state = self._dive_sub.get_states()
+            self._current_state_odom = self._dive_sub.get_states()
+            self._current_state = self._dive_sub.get_mocap_states()
+
+            if self._current_state is None:
+                self._loginfo(f"No state available yet.")
+                return
+
+            #self._current_state.pose.pose.position.x = 0.0
+            #self._current_state.pose.pose.position.y = 0.0
+            #self._current_state.pose.pose.position.z = 0.0
+            #self._current_state.pose.pose.orientation.x = 0.0
+            #self._current_state.pose.pose.orientation.y = 0.0
+            #self._current_state.pose.pose.orientation.z = 0.0
+            #self._current_state.pose.pose.orientation.w = 1.0
+            #self._current_state.twist.twist.linear.x = 0.0
+            #self._current_state.twist.twist.linear.y = 0.0
+            #self._current_state.twist.twist.linear.z = 0.0
+            #self._current_state.twist.twist.angular.x = 0.0
+            #self._current_state.twist.twist.angular.y = 0.0
+            #self._current_state.twist.twist.angular.z = 0.0
+
             self._current_control = self._dive_sub.get_control_input()
             self.Nsim = 1 # NOTE: This is to trick the print statement in the loginfo that shows the progress along the trajectory
 
@@ -635,14 +658,21 @@ class DiveControllerMPC(DiveControllerInterface):
                 self._loginfo(f"No waypoint available")
                 return
 
+
             x0 = self.get_init_state(self._current_state, self._current_control, is_trajectory=False)
 
             # Get Waypoint information
-            waypoint = self._dive_sub.get_odom_waypoint()
-            waypoint_x = waypoint.position.x
-            waypoint_y = waypoint.position.y
-            waypoint_z = waypoint.position.z
-    
+            #waypoint = self._dive_sub.get_odom_waypoint()
+            #waypoint = self._dive_sub.get_body_waypoint()
+            waypoint = self._dive_sub.get_waypoint()
+
+            if waypoint is None:
+                return
+
+            waypoint_x = waypoint.pose.position.x
+            waypoint_y = waypoint.pose.position.y
+            waypoint_z = waypoint.pose.position.z
+
         if not self._initialized:
             # Declare the initial state based on where the robot is right now
             tmp = self._dive_sub.get_states()
@@ -723,9 +753,10 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
             self.ref[:, 0] = waypoint_x
-            self.ref[:, 1] = -waypoint_y
-            self.ref[:, 2] = -waypoint_z
-            quat = self.enu_to_ned([waypoint_q_x, waypoint_q_y, waypoint_q_z, waypoint_q_w])
+            self.ref[:, 1] = waypoint_y
+            self.ref[:, 2] = waypoint_z
+            #quat = self.enu_to_ned([waypoint_q_x, waypoint_q_y, waypoint_q_z, waypoint_q_w])
+            quat = [waypoint_q_x, waypoint_q_y, waypoint_q_z, waypoint_q_w]
             self.ref[:, 3:7] = quat
             self.ref[:, 13] = 50 # VBS - neutral
             self.ref[:, 14] = 50 # LCG - neutral
@@ -797,8 +828,9 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
 
         s += "Position:\n"
-        s += f"Unity:    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        s += f"Uni. Ref: x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
+        s += f"State (mocap):    x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        s += f"State (odom):    x: {self._current_state_odom.pose.pose.position.x:.3f}, y: {self._current_state_odom.pose.pose.position.y:.3f}, z: {self._current_state_odom.pose.pose.position.z:.3f}\n"
+        s += f"Ref (mocap): x: {self.ref[0,0]:.3f},   y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]:.3f}\n"
 
         s += "Quaternions:\n"
         #s += f"Unity   : w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
@@ -828,12 +860,16 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         x = np.zeros(19)
         x[0] = state_msg.pose.pose.position.x
-        x[1] = -state_msg.pose.pose.position.y
-        x[2] = -state_msg.pose.pose.position.z 
-        x[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+        x[1] = state_msg.pose.pose.position.y
+        x[2] = state_msg.pose.pose.position.z 
+        x[3:7] = [state_msg.pose.pose.orientation.x,
                                           state_msg.pose.pose.orientation.y,
                                           state_msg.pose.pose.orientation.z,
-                                          state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion   
+                                          state_msg.pose.pose.orientation.w]
+        #x[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+        #                                  state_msg.pose.pose.orientation.y,
+        #                                  state_msg.pose.pose.orientation.z,
+        #                                  state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion   
         x[7] = state_msg.twist.twist.linear.x
         x[8] = -state_msg.twist.twist.linear.y
         x[9] = -state_msg.twist.twist.linear.z
@@ -860,12 +896,16 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         x_current = np.zeros(19)
         x_current[0] = state_msg.pose.pose.position.x
-        x_current[1] = -state_msg.pose.pose.position.y
-        x_current[2] = -state_msg.pose.pose.position.z 
-        x_current[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+        x_current[1] = state_msg.pose.pose.position.y
+        x_current[2] = state_msg.pose.pose.position.z 
+        x_current[3:7] = [state_msg.pose.pose.orientation.x,
                                           state_msg.pose.pose.orientation.y,
                                           state_msg.pose.pose.orientation.z,
-                                          state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion
+                                          state_msg.pose.pose.orientation.w]
+        #x_current[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+        #                                  state_msg.pose.pose.orientation.y,
+        #                                  state_msg.pose.pose.orientation.z,
+        #                                  state_msg.pose.pose.orientation.w])  # Convert ENU to NED quaternion
         x_current[7] = state_msg.twist.twist.linear.x
         x_current[8] = -state_msg.twist.twist.linear.y
         x_current[9] = -state_msg.twist.twist.linear.z

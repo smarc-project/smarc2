@@ -14,9 +14,9 @@ from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Links as SamLinks
 
 try:
-    from .helpers.ros_helpers import rcl_time_to_stamp
+    from sam_dead_reckoning.helpers.ros_helpers import rcl_time_to_stamp
 except ImportError:
-    from helpers.ros_helpers import rcl_time_to_stamp
+    from sam_dead_reckoning.helpers.ros_helpers import rcl_time_to_stamp
 
 
 class Press2Depth(Node):

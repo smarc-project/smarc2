@@ -28,7 +28,7 @@ class SAMDivePub(IDivePub):
         self._dive_sub = dive_sub
         self.param = param
 
-        self._actuator_state = None
+        self._actuator_state = ActuatorStates.NEUTRAL
 
         # Publishers
         self._vbs_pub = node.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
@@ -50,6 +50,7 @@ class SAMDivePub(IDivePub):
         self._joy_tv_msg = Float64()
 
         self._vbs_msg.value = self.param['vbs_u_neutral']
+        self._loginfo(f"{self._vbs_msg.value}")
         self._lcg_msg.value = self.param['lcg_u_neutral']
         self._thrust_vector_msg.thruster_horizontal_radians = self.param['tv_u_neutral']
         self._thrust_vector_msg.thruster_vertical_radians = self.param['tv_u_neutral']
@@ -65,6 +66,7 @@ class SAMDivePub(IDivePub):
         Set vbs
         """
         self._vbs_msg.value = float(vbs)
+        #self._vbs_msg.value = float(0)
 
 
     def set_lcg(self, lcg: float) -> None:
@@ -72,16 +74,23 @@ class SAMDivePub(IDivePub):
         Set LCG
         """
         self._lcg_msg.value = float(lcg)
+        #self._lcg_msg.value = float(40)
 
 
     def set_rpm(self, rpm1: float, rpm2: float) -> None:
         """
         Set RPMs
         """
-        self._t1_msg.rpm = int(rpm1)
-        self._t2_msg.rpm = int(rpm2)
-        self.rpm_msg.thruster_1_rpm = int(rpm1)
-        self.rpm_msg.thruster_2_rpm = int(rpm2)
+        #self._t1_msg.rpm = int(rpm1)
+        #self._t2_msg.rpm = int(rpm2)
+        #self.rpm_msg.thruster_1_rpm = int(rpm1)
+        #self.rpm_msg.thruster_2_rpm = int(rpm2)
+
+        # FOR DEBUG ONLY!!!!
+        self._t1_msg.rpm = int(0)
+        self._t2_msg.rpm = int(0)
+        self.rpm_msg.thruster_1_rpm = int(0)
+        self.rpm_msg.thruster_2_rpm = int(0)
 
     def set_thrust_vector(self, horizontal_tv: float, vertical_tv: float) -> None:
         """
