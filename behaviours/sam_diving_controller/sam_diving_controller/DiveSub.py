@@ -81,10 +81,14 @@ class DiveSub():
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
+        self._tf_mocap = None
         self._tf_odom_link = None
 
         self._states = Odometry()
         self._received_states = False
+
+        self._states_mocap = Odometry()
+
 
         self._control_input = {} 
         self._control_input['vbs'] = self.param['vbs_u_neutral']
@@ -204,6 +208,15 @@ class DiveSub():
             return
 
         try:
+            self._tf_mocap = self._tf_buffer.lookup_transform(self._waypoint_global.header.frame_id,
+                                                                  self._robot_base_link,
+                                                                  rclpy.time.Time(seconds=0))
+        except Exception as ex:
+            self._loginfo(
+                f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
+            return
+
+        try:
             self._tf_odom_link = self._tf_buffer.lookup_transform(self._odom_link,
                                                                   self._waypoint_global.header.frame_id,
                                                                   rclpy.time.Time(seconds=0))
@@ -222,6 +235,24 @@ class DiveSub():
 
         self._waypoint_odom = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_odom_link)
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
+
+    def _transform_state(self):
+        if self._states is None:
+            return
+
+        if self._tf_base_link is None:
+            return
+
+        self._states_mocap.header.frame_id = self._waypoint_global.header.frame_id
+
+        self._states_mocap.pose.pose.position.x = self._tf_mocap.transform.translation.x
+        self._states_mocap.pose.pose.position.y = self._tf_mocap.transform.translation.y
+        self._states_mocap.pose.pose.position.z = self._tf_mocap.transform.translation.z
+        self._states_mocap.pose.pose.orientation.x = self._tf_mocap.transform.rotation.x
+        self._states_mocap.pose.pose.orientation.y = self._tf_mocap.transform.rotation.y
+        self._states_mocap.pose.pose.orientation.z = self._tf_mocap.transform.rotation.z
+        self._states_mocap.pose.pose.orientation.w = self._tf_mocap.transform.rotation.w
+        self._states_mocap.twist = self._states.twist
 
     # Get methods
     def get_depth_setpoint(self):
@@ -262,6 +293,17 @@ class DiveSub():
             return self._states
         else: 
             return None
+
+    def get_mocap_states(self):
+        # TODO: Might be better to split this by what 
+        # state you're interested in, then you can get them
+        # directly.
+        #return self._states
+        if self._received_states:
+            return self._states_mocap
+        else: 
+            return None
+
 
     def get_control_input(self):
         return self._control_input
@@ -338,6 +380,9 @@ class DiveSub():
     def get_odom_waypoint(self):
         return self._waypoint_odom
 
+    def get_body_waypoint(self):
+        return self._waypoint_body
+
     def get_path(self):
         return self.path
 
@@ -395,6 +440,7 @@ class DiveSub():
         """
         self._update_tf()
         self._transform_wp()
+        self._transform_state()
 
 
 
