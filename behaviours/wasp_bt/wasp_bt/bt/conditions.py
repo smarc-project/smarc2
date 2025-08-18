@@ -156,13 +156,23 @@ class C_LastHealthy(Behaviour):
             self.feedback_message = "Comms are fine. Vehicle health is up to date."
             return Status.SUCCESS
 
+
 class C_VehicleHealthStatus(Behaviour):
-    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, desired_status: Topics):
         """
         Returns S if the vehicle is healthy
         """
         self._wara_ps_task_handler = wara_ps_task_handler
-        name = f"{self.__class__.__name__}"
+        self._desired_status = desired_status
+
+        self.status_dict = {
+            0: "READY",
+            1: "WAITING",
+            2: "ERROR"
+        }
+        
+        desired_status_str = self.status_dict[desired_status]
+        name = f"{self.__class__.__name__}({desired_status_str})"
         super().__init__(name)
         self._health_status = self._wara_ps_task_handler.health_status
         self.feedback_message = ""
@@ -172,17 +182,11 @@ class C_VehicleHealthStatus(Behaviour):
         # update the health status from the task handler
         self._health_status = self._wara_ps_task_handler.health_status
 
-        if self._health_status == Topics.VEHICLE_HEALTH_READY:
+        if self._health_status == self._desired_status:
             self.feedback_message = f"Vehicle health status is {self._health_status}"
             return Status.SUCCESS
-        elif self._health_status == Topics.VEHICLE_HEALTH_WAITING:
-            self.feedback_message = f"Vehicle health status is {self._health_status}. Waiting for recovery."
-            return Status.RUNNING
-        elif self._health_status == Topics.VEHICLE_HEALTH_ERROR:
-            self.feedback_message = f"Vehicle health status is {self._health_status}. Aborting mission."
-            return Status.FAILURE
         else:
-            self.feedback_message = f"Vehicle health status is {self._health_status}. Unknown status."
+            self.feedback_message = f"Vehicle health status is {self._health_status}. Unknown status"
             return Status.FAILURE
 
         
