@@ -86,7 +86,7 @@ class ConveniencePub(IDivePub):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        self._waypoint = self._dive_sub.get_odom_waypoint()
+        self._waypoint = self._dive_sub.get_waypoint_in_odom()
         self._goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         if self._waypoint is None:
@@ -172,5 +172,5 @@ class ConveniencePub(IDivePub):
         self._update_error()
         self._update_input()
         self._update_waypoint()
-        #self._print_state()
+        self._print_state()
 
