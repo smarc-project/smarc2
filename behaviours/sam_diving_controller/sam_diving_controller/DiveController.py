@@ -549,10 +549,10 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False 
+        build = False
 
         # create nmpc object for the OCP
-        self.N_horizon = 20 # Prediction horizon
+        self.N_horizon = 10 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length

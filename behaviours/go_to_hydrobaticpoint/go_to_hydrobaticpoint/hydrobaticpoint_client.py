@@ -50,7 +50,8 @@ class HydropointClient(SMARCActionClient):
     def run(self):
         self.logger.info("Subscribing to mocap hydro point topic")
         self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
-                                                             ControlTopics.MOCAP_HYDROPOINT,
+                                                             #ControlTopics.MOCAP_HYDROPOINT,
+                                                             "/mocap/hula/pose",
                                                              self.mocap_hydro_cb, 1)
 
 
