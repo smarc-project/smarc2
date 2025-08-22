@@ -1,5 +1,5 @@
 #! /bin/bash
-ROBOT_NAME=Quadrotor
+ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
 
 if [[ "$(whoami)" == *"alars"* ]]; then
@@ -109,7 +109,7 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux select-pane -t $SESSION:4.0
     tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args -r __ns:=/$ROBOT_NAME/gimbal_camera" C-m
     tmux select-pane -t $SESSION:4.1
-    tmux send-keys "ros2 launch auv_detector estimator_detector_field_test.launch" C-m
+    tmux send-keys "ros2 launch auv_detector estimator_detector_field_test.launch robot_name:=$ROBOT_NAME" C-m
 fi
 
 
