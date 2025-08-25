@@ -282,6 +282,9 @@ class HydropointServer(SMARCActionServer, DiveSub):
         )
         self.declare_parameters()
 
+        # We get the waypoint from the action server instead
+        node.destroy_subscription(self.waypoint_sub)
+
         self._pub_setpoint = self._node.create_publisher(
             PoseStamped, ControlTopics.WAYPOINT, 2
         )
@@ -296,6 +299,25 @@ class HydropointServer(SMARCActionServer, DiveSub):
         self.logger.info(f"Global WP frame: {self._waypoint_global.header.frame_id}")
 
         self._received_waypoint = True
+
+    def _tol_check(self, delta):
+        """Checks if vehicle is within tolerance of setpoint.
+
+        Args:
+            delta (float): distance to setpoint
+
+        Returns:
+            tol_check (bool): true if vehicle is within zone
+        """
+        if delta > self._setpoint_tol:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def _str_posestamp(pose: PoseStamped):
+        """Helper function to print PoseStamped Messages nicely."""
+        return f"\nFrame: {pose.header.frame_id}\nPosition: {pose.pose.position}\nOrientation: {pose.pose.orientation}"
 
     def declare_parameters(self):
         """Declares all of node's parameters in a single location."""
@@ -361,10 +383,85 @@ class HydropointServer(SMARCActionServer, DiveSub):
         self.distance_frame = f"{self.robot_name}/{self._distance_frame_param}{self._distance_frame_suffix}"
         self.logger.info(f"Distance frame {self.distance_frame}")
 
-    @staticmethod
-    def _str_posestamp(pose: PoseStamped):
-        """Helper function to print PoseStamped Messages nicely."""
-        return f"\nFrame: {pose.header.frame_id}\nPosition: {pose.pose.position}\nOrientation: {pose.pose.orientation}"
+
+
+
+
+
+    def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
+        """Considers a goal validity and evaluates whether it should be accepted or not.
+
+        Args:
+            goal_request (ActionType.Goal): Goal message
+
+        Returns:
+            response: Either GoalResponse.Accept or GoalResponse.Reject
+
+        """
+        goal_request = goal_request.goal
+        self.logger.info(f"goal_request: {goal_request}, actC.GOAL: {ActC.GOAL}")
+        hydro_setpoint = self._json_ops.decode(goal_request, 0)
+        self.logger.info(f"Recieved setpoint at {hydro_setpoint}")
+        pose_stamped = hydro_setpoint
+        try:
+            dist = self.compute_distance(pose_stamped)
+        except TransformException as err:
+            err_str = "Could not successfully compute transform. Rejecting goal!\n"
+            exec_up = TransformException(err_str)
+            exec_up.__cause__ = err
+            # Adding error message to traceback for debug log.
+            self.logger.info(err_str)
+            self.logger.debug(traceback.format_exc())
+            return GoalResponse.REJECT
+
+        if dist >= self._goal_threshold:
+            err_str = f"Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self._goal_threshold:.1f}"
+            self.logger.info(err_str)
+
+            # providing additional details if possible about error
+            try:
+                pose = self.get_robot_pose_in_msg_frame(pose_stamped)
+                err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
+                self.logger.debug(err_str)
+            except TransformException:
+                pass
+            return GoalResponse.REJECT
+        # Saves and accepts as all criteria fulfilled
+        self._save_wp(pose_stamped)
+        return GoalResponse.ACCEPT
+
+    def compute_distance(self, pose_stamped: PoseStamped) -> float:
+        """Euclidean distance to target.
+
+        Args:
+            pose_stamped: current location of target in utm frame
+        Returns:
+            distance: euclidean distance to target
+        Raises:
+            TransformException when transform fails
+        """
+        try:
+            override_frame = self.distance_frame
+            pose_transformed: PoseStamped = self.transform_goal(
+                pose_stamped, override_target=override_frame
+            )
+            self.logger.debug(
+                "Position after transform:" + self._str_posestamp(pose_transformed)
+            )
+        except TransformException as err:
+            err_str = "Failed to compute transform when computing distance to target"
+            raise TransformException(err_str) from err
+
+        pose_delta = pose_transformed.pose
+        delta = np.sqrt(
+            (pose_delta.position.x) ** 2
+            + (pose_delta.position.y) ** 2
+            + (pose_delta.position.z) ** 2
+        )
+
+        # TODO: add orientation errors
+
+        return delta
 
     def transform_goal(
         self,
@@ -417,53 +514,6 @@ class HydropointServer(SMARCActionServer, DiveSub):
         # based on ReadMe in repository
         return do_transform_pose_stamped(PoseStamped(), t)
 
-    def compute_distance(self, pose_stamped: PoseStamped) -> float:
-        """Euclidean distance to target.
-
-        Args:
-            pose_stamped: current location of target in utm frame
-        Returns:
-            distance: euclidean distance to target
-        Raises:
-            TransformException when transform fails
-        """
-        try:
-            override_frame = self.distance_frame
-            pose_transformed: PoseStamped = self.transform_goal(
-                pose_stamped, override_target=override_frame
-            )
-            self.logger.debug(
-                "Position after transform:" + self._str_posestamp(pose_transformed)
-            )
-        except TransformException as err:
-            err_str = "Failed to compute transform when computing distance to target"
-            raise TransformException(err_str) from err
-
-        pose_delta = pose_transformed.pose
-        delta = np.sqrt(
-            (pose_delta.position.x) ** 2
-            + (pose_delta.position.y) ** 2
-            + (pose_delta.position.z) ** 2
-        )
-
-        # TODO: add orientation errors
-
-        return delta
-
-    def _tol_check(self, delta):
-        """Checks if vehicle is within tolerance of setpoint.
-
-        Args:
-            delta (float): distance to setpoint
-
-        Returns:
-            tol_check (bool): true if vehicle is within zone
-        """
-        if delta > self._setpoint_tol:
-            return False
-        else:
-            return True
-
     def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
         """Primary execution callback where goal's are handled after acceptance.
 
@@ -476,14 +526,10 @@ class HydropointServer(SMARCActionServer, DiveSub):
         result_msg = self.action_type.Result
         hydropoint = self._json_ops.decode(goal_handle.request.goal, 0) #ActC.GOAL)
         self.logger.info(f"Hydropoint sent: {hydropoint}")
-        # rate = self._node.create_rate()
-
-        # rate.sleep()
-        #self.feedback_loop(hydropoint, goal_handle)
 
         # Action succeeded
-        #goal_handle.succeed()
-        time.sleep(5)
+        # FIXME: Why is there this timer?
+        #time.sleep(5)
         self._pub_setpoint.publish(hydropoint)
         status = self.feedback_loop(hydropoint, goal_handle)
         if status == "cancelled":
@@ -493,66 +539,8 @@ class HydropointServer(SMARCActionServer, DiveSub):
         
         self.set_mission_state(MissionStates.COMPLETED, "AS")
         result_msg.success = True
+
         return result_msg
-
-    def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
-        """Considers a goal validity and evaluates whether it should be accepted or not.
-
-        Args:
-            goal_request (ActionType.Goal): Goal message
-
-        Returns:
-            response: Either GoalResponse.Accept or GoalResponse.Reject
-
-        """
-        goal_request = goal_request.goal
-        self.logger.info(f"goal_request: {goal_request}, actC.GOAL: {ActC.GOAL}")
-        hydro_setpoint = self._json_ops.decode(goal_request, 0)
-        self.logger.info(f"Recieved setpoint at {hydro_setpoint}")
-        pose_stamped = hydro_setpoint
-        try:
-            dist = self.compute_distance(pose_stamped)
-        except TransformException as err:
-            err_str = "Could not successfully compute transform. Rejecting goal!\n"
-            exec_up = TransformException(err_str)
-            exec_up.__cause__ = err
-            # Adding error message to traceback for debug log.
-            self.logger.info(err_str)
-            self.logger.debug(traceback.format_exc())
-            return GoalResponse.REJECT
-
-        if dist >= self._goal_threshold:
-            err_str = f"Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self._goal_threshold:.1f}"
-            self.logger.info(err_str)
-
-            # providing additional details if possible about error
-            try:
-                pose = self.get_robot_pose_in_msg_frame(pose_stamped)
-                err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
-                self.logger.debug(err_str)
-            except TransformException:
-                pass
-            return GoalResponse.REJECT
-        # Accepts as all criteria fulfilled
-        return GoalResponse.ACCEPT
-
-    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
-        """Handles canceling of goal requests.
-
-        Args:
-            goal_handle: handle
-
-        Returns:
-            Cancel response as ACCEPT
-        """
-        self.logger.info("Cancelled!")
-        self.set_mission_state(MissionStates.CANCELLED, "AS")
-
-        #pose_msg = Pose()
-
-        #self._pub_setpoint.publish(pose_msg)
-
-        return CancelResponse.ACCEPT
 
     def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle):
         """Abstracted feedback loop where tolerance checks are conducted.
@@ -582,7 +570,23 @@ class HydropointServer(SMARCActionServer, DiveSub):
             tol_check = self._tol_check(d)
             self.logger.debug(f"Tol check result: {tol_check}, Distance: {d} m.")
         rate.destroy()
+
         return "done"
+
+    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        """Handles canceling of goal requests.
+
+        Args:
+            goal_handle: handle
+
+        Returns:
+            Cancel response as ACCEPT
+        """
+        self.logger.info("Cancelled!")
+        self.set_mission_state(MissionStates.CANCELLED, "AS")
+
+        return CancelResponse.ACCEPT
+
 
 
 class PathServer(SMARCActionServer, DiveSub):
