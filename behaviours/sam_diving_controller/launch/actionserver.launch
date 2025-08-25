@@ -15,7 +15,7 @@
 	<param name="distance_frame" value="base_link" />
 	<param name="distance_frame_suffix" value="" />
 	<param name="frame_suffix" value="" />
-	<param name="setpoint_tolerance" value="0.1" />
+	<param name="setpoint_tolerance" value="1.5" />
         <param name="goal_threshold" value="9" />
        </node>
     </group>

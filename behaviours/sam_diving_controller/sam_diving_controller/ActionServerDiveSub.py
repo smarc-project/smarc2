@@ -329,7 +329,7 @@ class HydropointServer(SMARCActionServer, DiveSub):
 
         self._setpoint_tol: float = node.declare_parameter(
             "setpoint_tolerance",
-            0.25,
+            1.25,
             ParameterDescriptor(
                 description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
             ),

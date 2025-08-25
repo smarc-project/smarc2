@@ -549,10 +549,10 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False 
+        build = False
 
         # create nmpc object for the OCP
-        self.N_horizon = 20 # Prediction horizon
+        self.N_horizon = 10 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -739,19 +739,23 @@ class DiveControllerMPC(DiveControllerInterface):
         # The integrator of the control signal is needed, since u is the control derivative.
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
-        # Assign the calculated control signal to actuators
-        u_vbs = mpc_solution[13]
-        u_lcg = mpc_solution[14]
-        u_stern = mpc_solution[15] 
-        u_rudder = mpc_solution[16]
-        u_rpm1 = mpc_solution[17]
-        u_rpm2 = mpc_solution[18]
+        if mpc_solution is None:
+            self._set_actuators_neutral()
 
-        # Publish the control input
-        self._dive_pub.set_vbs(u_vbs)
-        self._dive_pub.set_lcg(u_lcg)
-        self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
-        self._dive_pub.set_rpm(u_rpm1, u_rpm2)
+        else:
+            # Assign the calculated control signal to actuators
+            u_vbs = mpc_solution[13]
+            u_lcg = mpc_solution[14]
+            u_stern = mpc_solution[15] 
+            u_rudder = mpc_solution[16]
+            u_rpm1 = mpc_solution[17]
+            u_rpm2 = mpc_solution[18]
+
+            # Publish the control input
+            self._dive_pub.set_vbs(u_vbs)
+            self._dive_pub.set_lcg(u_lcg)
+            self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
+            self._dive_pub.set_rpm(u_rpm1, u_rpm2)
 
         # Set control input (For convenience topics)
         self._input = ControlInput()
