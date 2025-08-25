@@ -1,0 +1,11 @@
+<launch>
+  <arg name="robot_name" default="sam" />
+  <arg name="tf_suffix" default="_gt"/>
+  <arg name="use_sim_time" default="true"/>
+  
+  <node pkg="go_to_hydrobaticpoint" exec="client" name="hydrobatic_client" output="screen" namespace="$(var robot_name)">
+    <param name="robot_name" value="$(var robot_name)" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+  </node>
+
+</launch>
