@@ -31,12 +31,12 @@ class HydrobaticPointAction:
             
         """
         fmt_dict = json.loads(serialized_fmt.data)
-        if component is ActionComponent.GOAL:
+        if component is 0: #ActionComponent.GOAL:
             hydropoint = PoseStamped()
             hydropoint.header.frame_id = str(fmt_dict["hydropoint"]["frame_id"])
             hydropoint.pose.position.x = float(fmt_dict["hydropoint"]["position"]["x"])
-            hydropoint.pose.position.x = float(fmt_dict["hydropoint"]["position"]["y"])
-            hydropoint.pose.position.x = float(fmt_dict["hydropoint"]["position"]["z"])
+            hydropoint.pose.position.y = float(fmt_dict["hydropoint"]["position"]["y"])
+            hydropoint.pose.position.z = float(fmt_dict["hydropoint"]["position"]["z"])
             hydropoint.pose.orientation.x = float(fmt_dict["hydropoint"]["orientation"]["x"])
             hydropoint.pose.orientation.y = float(fmt_dict["hydropoint"]["orientation"]["y"])
             hydropoint.pose.orientation.z = float(fmt_dict["hydropoint"]["orientation"]["z"])
@@ -47,6 +47,8 @@ class HydrobaticPointAction:
         elif component is ActionComponent.FEEDBACK:
             # TODO: add time_remaining
             return float(fmt_dict["distance_remaining"])
+        else:
+            print(f"Wrong component: {component}")
 
     def encode(
         self,

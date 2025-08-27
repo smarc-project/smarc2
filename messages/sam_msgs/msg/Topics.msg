@@ -10,6 +10,23 @@
 string ABORT_TOPIC = 'core/abort'
 string HEARTBEAT_TOPIC = 'core/heartbeat'
 string VEHICLE_HEALTH_TOPIC = 'core/vehicle_health'
+string STD_LEAK_TOPIC = 'core/standard/leak'
+
+####################
+# Actuator commands for SIM
+####################
+string STD_VBS_CMD_TOPIC = 'core/standard/vbs_cmd'
+string STD_LCG_CMD_TOPIC = 'core/standard/lcg_cmd'
+string STD_THRUSTER1_CMD_TOPIC = 'core/standard/thruster1_cmd'
+string STD_THRUSTER2_CMD_TOPIC = 'core/standard/thruster2_cmd'
+string STD_THRUST_VECTOR_YAW_CMD_TOPIC = 'core/standard/thrust_vector_yaw_cmd'
+string STD_THRUST_VECTOR_PITCH_CMD_TOPIC = 'core/standard/thrust_vector_pitch_cmd'
+
+# Feedback topics
+string STD_VBS_FB_TOPIC = 'core/standard/vbs_fb'
+string STD_LCG_FB_TOPIC = 'core/standard/lcg_fb'
+string STD_THRUSTER1_FB_TOPIC = 'core/standard/thruster1_fb'
+string STD_THRUSTER2_FB_TOPIC = 'core/standard/thruster2_fb'
 
 ####################
 # Actuator commands
@@ -19,6 +36,7 @@ string LCG_CMD_TOPIC = 'core/lcg_cmd'
 string THRUSTER1_CMD_TOPIC = 'core/thruster1_cmd'
 string THRUSTER2_CMD_TOPIC = 'core/thruster2_cmd'
 string THRUST_VECTOR_CMD_TOPIC = 'core/thrust_vector_cmd'
+
 string THRUST_VECTOR_YAW_CMD_TOPIC = 'core/thrust_vector_yaw_cmd'
 string THRUST_VECTOR_PITCH_CMD_TOPIC = 'core/thrust_vector_pitch_cmd'
 string DEPTH_TOPIC = 'core/depth20_pressure'
@@ -69,6 +87,7 @@ string LED_CMD_TOPIC = 'core/led_cmd'
 string DVL_CMD_TOPIC = 'core/dvl_relay'
 string SSS_CMD_TOPIC = 'core/sss_relay'
 string TOGGLE_7V_CMD_TOPIC = 'core/enable_7v'
+string UTM_ZONE_BAND = 'core/utm_zone_band'
 
 string GET_NODE_INFO_SRV = 'core/uavcan_get_node_info'
 string GET_TRANSPORT_STATS_SRV = 'core/uavcan_get_transport_stats'

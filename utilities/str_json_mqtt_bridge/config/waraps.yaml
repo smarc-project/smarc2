@@ -43,6 +43,7 @@
                 "sensor/roll",
                 "sensor/pitch",
                 "sensor/depth",
+                "sensor/executing_tasks",
 
                 #lv2
                 "direct_execution_info",
@@ -53,6 +54,9 @@
                 'tst_execution_info',
                 "tst/response",
                 "tst/feedback",
+
+                # smarc bt
+                "sensor/bt",
 
               ]
             to_ros:

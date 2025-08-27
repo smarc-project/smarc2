@@ -5,7 +5,7 @@ from rclpy.time import Time
 from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Empty, Int8, Float32, Float64
+from std_msgs.msg import Empty, Int8, Float32, Float64, String
 
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_msgs.msg import DVL
@@ -27,23 +27,24 @@ class SAMSMARCPublisher(Node):
         self.get_logger().info('SAM SMaRC Publisher Node has been started.')
         self.declare_parameter('robot_name', 'sam')
         self.robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
-        self._create_tf_listener()
+        self.utm_frame = None
+        self.create_subscription(String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10)
 
         self._create_abort_pubsub()
         self._create_bt_heartbeat_pubsub()
         self._create_altitude_pubsub()
         self._create_battery_status_pubsub()
 
+        self._create_tf_listener()
         self._create_odom_pubsub()
 
-    def _create_tf_listener(self):
-        self.declare_parameter('utm_zone', '34')
-        self.utm_zone = self.get_parameter('utm_zone').get_parameter_value().string_value
-        self.declare_parameter('utm_band', 'V')
-        self.utm_band = self.get_parameter('utm_band').get_parameter_value().string_value
-        self.utm_frame = f'utm_{self.utm_zone}_{self.utm_band}'
+    def _utm_callback(self, msg):
+        if self.utm_frame is not None:
+            return
+        self.utm_frame = msg.data
         self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
 
+    def _create_tf_listener(self):
         self.odom_frame = f'{self.robot_name}/odom'
         self.get_logger().info(f'Using odom frame: {self.odom_frame}')
         self.tf_buffer = Buffer()
@@ -71,10 +72,22 @@ class SAMSMARCPublisher(Node):
         self.vehicle_health_pub.publish(msg)
 
     def _create_battery_status_pubsub(self):
-        self.battery_percent_pub = self.create_publisher(BatteryState, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
+        self.battery_percent_pub = self.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self.battery_status_sub = self.create_subscription(BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self.battery_status_callback, 10)
     
     def battery_status_callback(self, msg):
+
+        # extract the battery percentage from the BatteryState message
+        if msg.percentage is not None:
+            battery_percentage = msg.percentage * 100.0
+        else:
+            # don't publish if percentage is not available
+            self.get_logger().warn('Battery percentage not available, not publishing.')
+            return
+        # create a Float32 message to publish
+        msg = Float32()
+        msg.data = battery_percentage
+        # self.get_logger().info(f'Publishing battery percentage: {battery_percentage}%')
         self.battery_percent_pub.publish(msg)
 
     def _create_altitude_pubsub(self):
@@ -85,6 +98,7 @@ class SAMSMARCPublisher(Node):
         """
         Callback for the DVL topic. It publishes the altitude to the SMaRC topic.
         """
+        
         self.altitude_pub.publish(Float32(data=msg.altitude))
 
     def _create_odom_pubsub(self):
@@ -112,6 +126,10 @@ class SAMSMARCPublisher(Node):
         # Publish the odometry message
         self.odom_pub.publish(msg)
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
+
+        if not self.utm_frame:
+            self.get_logger().warn('UTM frame not set, will not attempt to transform.')
+            return
 
         try:
             timestamp = msg.header.stamp

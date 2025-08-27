@@ -75,7 +75,6 @@ class WaraPSVehicle():
                 "roll",
                 "pitch",    
                 "depth",
-                "executing_tasks"
             ],
 
         "stamp": "",
@@ -125,10 +124,22 @@ class WaraPSVehicle():
             if "tst_execution" in self._wara_ps_dict["levels"]:
                 self._wara_ps_dict["levels"].remove("tst_execution")
                 self._logger.info("Removed 'task_execution' from WaraPS levels due to inactivity.")
+
+        # include "executing_tasks","bt_head" in self._sensor_info_data["sensor-data-provided"] if levels include "direct_execution" or "tst_execution"
+        if "direct_execution" in self._wara_ps_dict["levels"] and "tst_execution" in self._wara_ps_dict["levels"]:
+            if "executing_tasks" not in self._sensor_info_data["sensor-data-provided"]:
+                self._sensor_info_data["sensor-data-provided"].extend(["executing_tasks", "bt_head"])
+        else: # remove them if they are not in the levels
+            if "executing_tasks" in self._sensor_info_data["sensor-data-provided"]:
+                self._sensor_info_data["sensor-data-provided"].remove("executing_tasks")
+            if "bt_head" in self._sensor_info_data["sensor-data-provided"]:
+                self._sensor_info_data["sensor-data-provided"].remove("bt_head")
+
         
         # update the heartbeat data
         self._heartbeat_data["stamp"] = now_time
         self._heartbeat_data["levels"] = self._wara_ps_dict["levels"]
+        
         # publish the heartbeat data
         msg = String()
         msg.data = json.dumps(self._heartbeat_data)
@@ -237,7 +248,6 @@ def main(args=None):
     import rclpy
     from rclpy.node import Node
     import uuid
-    from wasp_bt.vehicles.ros_vehicle import ROSVehicle
     from wasp_bt.vehicles.smarc_vehicle import GenericSMaRCVehicle
     from wasp_bt.vehicles.vehicle import UnderwaterVehicleState
 
@@ -283,8 +293,8 @@ def main(args=None):
         # sensor info
         wara_ps_vehicle.wara_ps_lvl1(now_time)
 
-    # Create a timer to call the wara_ps_level_1_comms function every 1 second
-    timer_period = 1.0/agent_waraps_dict["pulse_rate"]  # seconds
+    # Create a timer to call the wara_ps_level_1_comms function at the specified pulse rate
+    timer_period = 1.0/agent_waraps_dict["pulse_rate"]  # Hz to seconds
     timer = node.create_timer(timer_period, wara_ps_level_1_comms)
     node.get_logger().info("WaraPS Vehicle Node started. Publishing WaraPS Level 1 data...")
     try:

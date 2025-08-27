@@ -237,6 +237,13 @@ class HydropointServer(SMARCActionServer):
         result_msg = self.action_type.Result
         hydropoint = self._json_ops.decode(goal_handle.request.goal, ActC.GOAL)
         self.logger.info(f"Hydropoint sent: {hydropoint}")
+        # rate = self._node.create_rate()
+
+        # rate.sleep()
+        #self.feedback_loop(hydropoint, goal_handle)
+
+        # Action succeeded
+        #goal_handle.succeed()
         time.sleep(5)
         self._pub_setpoint.publish(hydropoint)
         status = self.feedback_loop(hydropoint, goal_handle)
@@ -244,6 +251,7 @@ class HydropointServer(SMARCActionServer):
             self.logger.info("Goal was cancelled by client.")
             result_msg.success = False
             return result_msg
+        
         result_msg.success = True
         return result_msg
 
@@ -314,11 +322,14 @@ class HydropointServer(SMARCActionServer):
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
         while not tol_check:
+            self._pub_setpoint.publish(pose_stamped)
+
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client.")
                 goal_handle.canceled()
                 self.publish_stop_setpoint()
                 return "cancelled"
+            
             feedback.feedback = self._json_ops.encode(d)
             goal_handle.publish_feedback(feedback)
             rate.sleep()

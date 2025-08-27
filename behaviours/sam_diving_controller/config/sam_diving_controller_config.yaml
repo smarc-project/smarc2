@@ -1,7 +1,7 @@
 ---
 /*/diving_node:
   ros__parameters:
-    view_rate: 0.1
+    view_rate: 0.2
     model_rate: 0.1
     controller_rate: 0.1
     vbs_pid_kp: 20.0
@@ -15,7 +15,7 @@
     lcg_pid_ki: 5.0
     lcg_pid_kd: 1.0
     lcg_pid_kaw: 1.0
-    lcg_u_neutral: 75.0
+    lcg_u_neutral: 50.0
     lcg_u_min: 0.0
     lcg_u_max: 100.0
     tv_pid_kp: 1.0
@@ -32,7 +32,7 @@
     yaw_u_neutral: 0.0
     yaw_u_min: -0.122173
     yaw_u_max: 0.122173
-    rpm_u_neutral: 0.0
-    rpm_u_min: -400.0
-    rpm_u_max: 800.0
+    rpm_u_neutral: 0
+    rpm_u_min: -400
+    rpm_u_max: 800
     max_dive_pitch: 0.349

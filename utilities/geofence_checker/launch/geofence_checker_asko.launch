@@ -1,0 +1,9 @@
+<launch>
+  <arg name="robot_name" default="lolo" />
+
+  <node pkg="geofence_checker" exec="geofence_checker_service" name="geofence_checker_node" output="screen" namespace="$(var robot_name)">
+    <param name="update_rate" value="asko.yaml" />
+    <param name="verbose" value="False" />
+  </node>
+
+</launch>

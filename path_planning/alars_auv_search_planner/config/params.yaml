@@ -1,0 +1,67 @@
+/**/SearchPlanner_Controller:
+  ros__parameters:
+    mode: "sim"
+    path_planner: "spiral"
+
+    sam:
+      init_pos: [1260.0, 1150.0]
+      init_pos_variance: 0.1
+      vel_variance: 4.0
+      max_floating_vel: 2.0
+
+    drone:
+      init_pos: [5.0, 5.0]
+      flight_height: 6.0
+      camera_fov: 82.0
+      intermediate_dt: 2.0
+      look_ahead_time: 1.0
+
+    initialization:
+      time_delay: 1.0
+
+    spiral:
+      vel_factor: 1.0
+      dtheta: 0.5235987756  # in radians (pi/6 as of now)
+
+    greedy:
+      horizon_radius: -1.0
+
+    astar:
+      obstacles:
+        max_length: 0.8
+        quantile_per: 70
+        obstacles_per: 5
+      horizon_radius: -1.0
+
+    arf:
+      k_attractive: 100
+      k_repulsive: 70
+      goal_distance_factor: 70
+      d_min: 2
+      d_max: 30
+      horizon_radius: 20
+
+    grid_map:
+      workspace:
+        width: 120.0
+        height: 120.0
+        resol: 2.0
+        variance: 10.0
+      update:
+        rate: 0.5
+        true_detection_rate: 0.9999999999  # 1.0 - 1e-10
+        time_margin: 10.0
+
+    battery:
+      discharge_rate: 1.0
+      threshold: 20
+      equivalent_drone_vel: 1.0
+
+    frames:
+      id:
+        map: "map_gt"
+        quadrotor_odom: "Quadrotor/odom"
+        sam_odom: "sam_auv_v1/odom"
+    
+    topics:
+      move_drone: "/Quadrotor/move_to_setpoint"

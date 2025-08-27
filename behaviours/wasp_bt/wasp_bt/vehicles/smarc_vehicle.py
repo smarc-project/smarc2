@@ -9,7 +9,7 @@ from geographic_msgs.msg import GeoPoint
 
 from std_msgs.msg import Empty, Bool
 from std_msgs.msg import String
-from sensor_msgs.msg import NavSatFix, BatteryState
+from sensor_msgs.msg import NavSatFix
 from smarc_msgs.msg import Topics
 from nav_msgs.msg import Odometry
 from typing import Type
@@ -37,7 +37,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._gps_sub = node.create_subscription(GeoPoint, Topics.POS_LATLON_TOPIC, self._gps_cb, 10)
         self._heading_sub = node.create_subscription(Float32, Topics.HEADING_TOPIC, self._heading_cb, 10)
         self._course_sub = node.create_subscription(Float32, Topics.COURSE_TOPIC, self._course_cb, 10)
-        self._battery_sub = node.create_subscription(String, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
+        self._battery_sub = node.create_subscription(Float32, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
 
@@ -91,9 +91,9 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.SPEED, [data.data], sec)
 
-    def _battery_cb(self, data: BatteryState):
+    def _battery_cb(self, data: Float32):
         sec = self.current_time()
-        self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.voltage, data.percentage], sec)
+        self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.data], sec)
 
     def _odom_cb(self, data: Odometry):
 

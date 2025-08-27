@@ -2,7 +2,7 @@ from typing import Type
 from rclpy.node import Node
 from std_msgs.msg import String, Int8, Empty
 from smarc_msgs.msg import Topics
-from smarc_bt.vehicles.sensor import Sensor, SensorNames
+from wasp_bt.vehicles.sensor import Sensor, SensorNames
 import json
 from copy import deepcopy
 import enum
@@ -105,10 +105,17 @@ class WaraPSTaskHandler:
         self.mission_start_time = None
         self.mission_timeout = None
 
+        self.mission_status = None
+
+        self.mission_command = None
 
         
         # Publishers for Level 2 WARA-PS topics
-        self._wara_ps_direct_execution_info_pub = node.create_publisher(String, Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10)
+        self._wara_ps_direct_execution_info_pub = node.create_publisher(String, Topics.
+        WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10)
+
+        # Publishers for Level 1 WARA-PS topic: executing_tasks
+        self._wara_ps_task_list_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC, 10)
 
         self._wara_ps_exec_response_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_RESPONSE_TOPIC, 10)
         self._wara_ps_exec_feedback_pub = node.create_publisher(String, Topics.WARA_PS_EXEC_FEEDBACK_TOPIC, 10)
@@ -120,9 +127,8 @@ class WaraPSTaskHandler:
         self._wara_ps_tst_response_pub = node.create_publisher(String, Topics.WARA_PS_TST_RESPONSE_TOPIC, 10)
         self._wara_ps_tst_feedback_pub = node.create_publisher(String, Topics.WARA_PS_TST_FEEDBACK_TOPIC, 10)
 
-
-        # subscribe to Level 1 heartbeat to trigger direct_execution_info
-        # self._wara_ps_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._publish_direct_execution_info_cb, 10)
+        # publishers for bt head
+        self._wasp_bt_tip_pub = node.create_publisher(String, Topics.WARA_PS_SENSOR_BT_TOPIC, 10)
 
 
         # Subscriptions for WARA-PS command topics
@@ -133,13 +139,14 @@ class WaraPSTaskHandler:
         # Subscriptions to action Server topics
         self._wara_ps_action_server_sub = node.create_subscription(String, Topics.WARA_PS_ACTION_SERVER_HB_TOPIC, self._action_hb_callback, 10)
 
+        # Subscriptions for WARA-PS heartbeat topics
         self._level_1_heartbeat_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._read_level_1_heartbeat_cb, 1)
 
         # subscribe to ABORT topic
         self._wara_ps_abort_sub = node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._bigredbutton_cb, 10)
 
         # subscribe to SMARC-wide abort topic
-        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._bigredbutton_cb, 10)
+        self._smarc_abort_sub = node.create_subscription(Empty, Topics.ABORT_TOPIC, self._emptybigredbutton_cb, 10)
 
         # subscribe to smarc health topic
         self._vehicle_health_sub = node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_cb, 10)
@@ -218,6 +225,11 @@ class WaraPSTaskHandler:
         msg.data = json.dumps(self._direct_execution_info_data)
         self._wara_ps_direct_execution_info_pub.publish(msg)
         # self._node.get_logger().info('Published Direct Execution Info message')
+
+        # publish executing tasks
+        msg = String()
+        msg.data = json.dumps(self.tasks_executing)
+        self._wara_ps_task_list_pub.publish(msg)
         
         return True    
     
@@ -344,7 +356,7 @@ class WaraPSTaskHandler:
         self._node.get_logger().info(f"Received command: {command}")
 
         # Refuse starts or signals if emergency flag is up
-        if self.emergency_flag and command["command"] in ["start-task", "signal-task"]:
+        if (self.emergency_flag) and command["command"] in ["start-task", "signal-task"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -355,6 +367,19 @@ class WaraPSTaskHandler:
             msg.data = json.dumps(response_msg)
             self._wara_ps_exec_response_pub.publish(msg)
             self._node.get_logger().warn("Rejected start/signal command due to emergency flag.")
+            return
+        # refuse start or signal if health status is not ok
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task", "signal-task"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: vehicle health status is not ok",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_exec_response_pub.publish(msg)
+            self._node.get_logger().warn(f"Rejected start/signal command due to vehicle health status: {self.health_status}.")
             return
 
         # handle ping command
@@ -641,6 +666,20 @@ class WaraPSTaskHandler:
             self._wara_ps_tst_response_pub.publish(msg)
             self._node.get_logger().warn("Rejected start TST command due to emergency flag.")
             return
+        
+        # Refuse starts or signals if health status is not ok
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-tst", "signal-unit"]:
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "rejected: vehicle health status is not ok",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_tst_response_pub.publish(msg)
+            self._node.get_logger().warn(f"Rejected start TST command due to vehicle health status: {self.health_status}.")
+            return
 
         # check if the command is valid
         if "command" not in command:
@@ -720,6 +759,9 @@ class WaraPSTaskHandler:
                 msg.data = json.dumps(response_msg)
                 self._wara_ps_tst_response_pub.publish(msg)
                 return
+            
+            # set mission command
+            self.mission_command = command
                             
             # extract the mission timout from "params" key in tst
             if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
@@ -868,6 +910,13 @@ class WaraPSTaskHandler:
         else:
             self._node.get_logger().error("No tasks executing")
             return None
+    
+    def set_mission_status(self, status: str):
+        """
+        Sets the status of the current mission.
+        """
+        self.mission_command["status"] = status
+        
         
     def move_task_to_past(self):
         """
@@ -923,6 +972,28 @@ class WaraPSTaskHandler:
             # log
             # self._node.get_logger().error("No tasks executing")
             return None 
+        
+    def publish_feedback_to_tst(self, feedback: str):
+        """
+        Publishes feedback to the TST.
+        """
+        if len(self.tasks_executing) > 0:
+            # create a feedback message
+            feedback_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "tst-uuid": self.mission_command["tst"]["tst-uuid"],
+                "task-uuid": self.tasks_executing[0]["task-uuid"],
+                "feedback": feedback,
+                "status": self.tasks_executing[0]["status"]
+            }
+            msg = String()
+            msg.data = json.dumps(feedback_msg)
+            self._wara_ps_tst_feedback_pub.publish(msg)
+            # self._node.get_logger().info('Published TST Feedback message')
+        else:
+            # log
+            # self._node.get_logger().error("No tasks executing")
+            return None
 
     def _bigredbutton_cb(self, data: String):
         """
@@ -952,6 +1023,23 @@ class WaraPSTaskHandler:
         self._node.get_logger().info('Published Big Red Button response message')
         return
     
+    def _emptybigredbutton_cb(self, data: Empty):
+        """
+        same as above, but no feedback to be sent.
+        """
+        self._node.get_logger().info("Big Red Button pressed, aborting all tasks")
+        self.emergency_flag = True
+        # set all tasks executing to aborted
+        for task in self.tasks_executing:
+            task["status"] = WaraPSTaskStates.ABORTED.value
+            self.past_tasks.append(task)
+
+        # clear the executing tasks list
+        self.tasks_executing = []
+
+        # publish the response
+        return True
+    
     def abort(self):
         """
         This method is called to abort all tasks and set the aborted flag to True.
@@ -978,3 +1066,19 @@ class WaraPSTaskHandler:
         Returns the current time in seconds.
         """
         return self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
+    
+
+    def publish_bt_tip(self, tip: str):
+        """
+        Publishes the BT head to the MQTT broker.
+        This is used to inform the WaraPS that the BT is ready to receive commands.
+        """
+
+        tip_msg = {
+            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+            "tip": tip
+        }
+        msg = String()
+        msg.data = json.dumps(tip_msg)
+        self._wasp_bt_tip_pub.publish(msg)
+        return

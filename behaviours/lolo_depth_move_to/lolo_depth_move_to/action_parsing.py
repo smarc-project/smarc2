@@ -39,6 +39,7 @@ class DepthMoveToActionParsing:
             goal.min_altitude = float(fmt_dict["waypoint"]["min_altitude"])
             goal.rpm = float(fmt_dict["waypoint"]["rpm"])
             goal.timeout = float(fmt_dict["waypoint"]["timeout"])
+            goal.tolerance = float(fmt_dict["waypoint"]["tolerance"])
             return goal
         elif component is ActionSubMsg.FEEDBACK:
             return float(fmt_dict["distance_remaining"])
@@ -58,6 +59,7 @@ class DepthMoveToActionParsing:
             fmt_dict["waypoint"]["min_altitude"] = val.min_altitude
             fmt_dict["waypoint"]["rpm"] = val.rpm
             fmt_dict["waypoint"]["timeout"] = val.timeout
+            fmt_dict["waypoint"]["tolerance"] = val.tolerance
         elif isinstance(val, (float,)):
             fmt_dict["distance_remaining"] = val
         else:

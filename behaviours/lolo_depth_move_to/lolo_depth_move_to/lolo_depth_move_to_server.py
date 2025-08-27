@@ -59,7 +59,7 @@ class DepthMoveToServer(SMARCActionServer):
         """Declares all of node's parameters in a single location."""
         node = self._node
         self._robot_name = node.declare_parameter(
-            "setpoint_tolerance", self._node.get_namespace()).value
+            "robot_name", self._node.get_namespace()).value
         self._update_rate = node.declare_parameter("update_rate", 10).value
         # If filename not declared, default values should be
         # set by the vehicle and not the server.
@@ -170,7 +170,7 @@ class DepthMoveToServer(SMARCActionServer):
                                     pose_delta.position.y])
         return delta
 
-    def _tol_check(self, delta):
+    def _tol_check(self, delta, tolerance):
         """Checks if vehicle is within tolerance of setpoint.
 
         Args:
@@ -179,7 +179,7 @@ class DepthMoveToServer(SMARCActionServer):
         Returns:
             tol_check (bool): true if vehicle is within zone
         """
-        if delta > self.vehicle.limits["goal_tolerance_plane"]:
+        if delta > min(tolerance, self.vehicle.limits["goal_tolerance_plane"]):
             return False
         else:
             return True
@@ -222,6 +222,7 @@ class DepthMoveToServer(SMARCActionServer):
                                                      override_target=self.target_frame)
 
         result_msg.success = self.feedback_loop(pose_stamped_nav_frame,
+                                                float(moveto_goal.tolerance),
                                                 goal_handle,
                                                 int(moveto_goal.timeout))
 
@@ -287,8 +288,8 @@ class DepthMoveToServer(SMARCActionServer):
         self.vehicle.reset_goal()
         return CancelResponse.ACCEPT
 
-    def feedback_loop(self, pose_stamped: PoseStamped, goal_handle: ServerGoalHandle,
-                      timeout: int) -> bool:
+    def feedback_loop(self, pose_stamped: PoseStamped, tol_radius: float,
+                      goal_handle: ServerGoalHandle, timeout: int) -> bool:
         """Abstracted feedback loop where tolerance checks are conducted.
 
         Args:
@@ -299,18 +300,14 @@ class DepthMoveToServer(SMARCActionServer):
         Returns:
             Boolean flag, True if the goal was reached within the timeout.
         """
-        # FIXME: the tolerance check considers the distance to the waypoint in 3D, which means that
-        # if our robot reaches the goal in the XY plane, but not in Z, it will be going in circles
-        # until it times out. What's the best way of dealing with this??
         rate = self._node.create_rate(self._update_rate)
         feedback = self.action_type.Feedback
         action_start_time = int(self._node.get_clock().now().nanoseconds * 1e-9)
         goal_reached = True
 
         # Check tolerance before going into the loop.
-        # TODO: Should we consider the depth error as well?!
         d = self.compute_distance(pose_stamped, check_depth=False)
-        tol_check = self._tol_check(d)
+        tol_check = self._tol_check(d, tol_radius)
         while not tol_check:
             # Check if we've been cancelled!
             if goal_handle.is_cancel_requested:
@@ -332,7 +329,7 @@ class DepthMoveToServer(SMARCActionServer):
 
             # TODO: Should we consider the depth error as well?!
             d = self.compute_distance(pose_stamped, check_depth=False)
-            tol_check = self._tol_check(d)
+            tol_check = self._tol_check(d, tol_radius)
             self.logger.info(f"\nWaypoint reached: {tol_check}\nDistance: {d} m.",
                              throttle_duration_sec=10)
 

@@ -4,16 +4,17 @@ import numpy as np
 from pathlib import Path
 
 from tf_transformations import euler_from_quaternion
-
-import csv
+from scipy.spatial.transform import Rotation as R
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
+from geometry_msgs.msg import PoseStamped
 
-from .ParamUtils import DivingModelParam
+#from .ParamUtils import DivingModelParam
 from .IDivePub import MissionStates, ActuatorStates
 
-#from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
-#from smarc_modelling.control.control import *
+from smarc_modelling.vehicles.SAM_casadi import SAM_casadi
+from smarc_modelling.control.control import *
+import time
 
 class PIDControl:
     """
@@ -117,7 +118,7 @@ class DiveControllerInterface:
         actuator_state = self._dive_pub.get_actuator_states()
 
         if actuator_state == ActuatorStates.ENGAGED:
-            u_vbs_neutral = self.param['vbs_u_neutral']
+            u_vbs_neutral = self.param['vbs_u_neutral'] 
             u_lcg_neutral = self.param['lcg_u_neutral']
             u_tv_hor_neutral = self.param['tv_u_neutral']
             u_tv_ver_neutral = self.param['tv_u_neutral']
@@ -169,6 +170,8 @@ class DiveControllerInterface:
             return None
 
         state = ControlState()
+        state.header.frame_id = self._current_state.header.frame_id
+        state.header.stamp = self._current_state.header.stamp
         state.pose.x = self._current_state.pose.pose.position.x
         state.pose.y = self._current_state.pose.pose.position.y
         state.pose.z = self._current_state.pose.pose.position.z
@@ -250,6 +253,8 @@ class DiveControllerPID(DiveControllerInterface):
         """
         mission_state = self._dive_sub.get_mission_state()
 
+        #self._loginfo_once(f"DC: {mission_state}")
+
         if mission_state == MissionStates.RECEIVED:
             self._loginfo_once("Mission Received")
             self._set_actuators_neutral()
@@ -274,14 +279,15 @@ class DiveControllerPID(DiveControllerInterface):
         dive_pitch_setpoint = self._dive_sub.get_dive_pitch()
         heading_setpoint = self._dive_sub.get_heading_setpoint()
         rpm_setpoint = self._dive_sub.get_rpm_setpoint()
+        waypoint_odom = self._dive_sub.get_odom_waypoint()
+        waypoint_global = self._dive_sub.get_waypoint()
 
         # Get current states
-        self._current_state = self._dive_sub.get_states() # FIXME: why do we use this to begin with?
+        self._current_state = self._dive_sub.get_states()
         current_depth = self._dive_sub.get_depth()
         current_pitch = self._dive_sub.get_pitch()
         current_heading = self._dive_sub.get_heading()
-
-        #self._loginfo(f"state: {self._current_state}, depth: {current_depth}, pitch: {current_pitch}, heading: {current_heading}")
+        current_distance = self._dive_sub.get_distance()
 
         if not self._dive_sub.has_waypoint():
             return
@@ -290,73 +296,86 @@ class DiveControllerPID(DiveControllerInterface):
             self._loginfo("No depth setpoint yet")
             return
 
-        # FIXME: We might need this again
-        #distance = self._dive_sub.get_distance()
-        #goal_tolerance = self._dive_sub.get_goal_tolerance()
+        # Debug prints
+        s = ''
+        s += f'state: x: {self._current_state.pose.pose.position.x:.3f}'
+        s += f' y: {self._current_state.pose.pose.position.y:.3f}'
+        s += f' z: {self._current_state.pose.pose.position.z:.3f}\n'
+        s += f'wp odom: x: {waypoint_odom.position.x:.3f}'
+        s += f' y: {waypoint_odom.position.y:.3f}'
+        s += f' z: {waypoint_odom.position.z:.3f}'
+        s += f'wp global: x: {waypoint_global.pose.position.x:.3f}'
+        s += f' y: {waypoint_global.pose.position.y:.3f}'
+        s += f' z: {waypoint_global.pose.position.z:.3f}'
+
+        self._loginfo(s)
 
         # Sketchy minus signs...
-        # FIXME: Check that the depths are handled correctly. 
         depth_setpoint *= -1
         current_depth *= -1
 
-        # Choose active vs. static diving based on dive pitch angle
-        if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
-            self._dive_mode = "Active Diving"
-            pitch_setpoint = dive_pitch_setpoint
+        depth_error = depth_setpoint - current_depth
 
-            u_rpm = rpm_setpoint # FIXME: rpm1 and rpm2 can be set individually
+        # Choose active vs. static diving based on dive pitch angle
+        #if np.abs(dive_pitch_setpoint) <= self.param['max_dive_pitch']:
+
+        # Choose active vs. static diving based on depth error, needed when
+        # doing look ahead diving with fixed look ahead distance
+        if np.abs(depth_error) <= 0.5:
+            self._dive_mode = "Active Diving"
+            pitch_setpoint = dive_pitch_setpoint 
+
+            u_rpm = rpm_setpoint 
             u_vbs_raw = self.param['vbs_u_neutral']
             u_lcg_raw = self.param['lcg_u_neutral']
             u_vbs = u_vbs_raw
             u_lcg = u_lcg_raw
 
-            u_tv_hor, yaw_error, u_tv_hor_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
-            u_tv_ver, pitch_error, u_tv_ver_raw = self._pitch_tv_pid.get_control(current_pitch, pitch_setpoint, self._dt)
+            u_tv_rudder, yaw_error, u_tv_rudder_raw = self._yaw_pid.get_control(current_heading, heading_setpoint, self._dt)
+            u_tv_stern, pitch_error, u_tv_stern_raw = self._pitch_tv_pid.get_control(current_pitch, pitch_setpoint, self._dt)
             depth_error = depth_setpoint - current_depth
 
         else:
             self._dive_mode = "Static Diving"
             u_rpm = self.param['rpm_u_neutral']
-            u_tv_ver_raw = self.param['tv_u_neutral']
-            u_tv_hor_raw = self.param['tv_u_neutral']
-            u_tv_ver = u_tv_ver_raw
-            u_tv_hor = u_tv_hor_raw
+            u_tv_stern_raw = self.param['tv_u_neutral']
+            u_tv_rudder_raw = self.param['tv_u_neutral']
+            u_tv_stern = u_tv_stern_raw
+            u_tv_rudder = u_tv_rudder_raw
 
             u_vbs, depth_error, u_vbs_raw = self._depth_vbs_pid.get_control(current_depth, depth_setpoint, self._dt)
             u_lcg, pitch_error, u_lcg_raw = self._pitch_lcg_pid.get_control(current_pitch, pitch_setpoint, self._dt)
 
             yaw_error = heading_setpoint - current_heading
 
-        s_ctrl = ""
-        s_ctrl += f"current depth: {current_depth}\n"
-        s_ctrl += f"depth setpoint: {depth_setpoint}\n"
-        s_ctrl += f"depth error: {depth_error}\n"
-        s_ctrl += f"VBS: {u_vbs}\n"
-
-        self._loginfo(s_ctrl)
-
+        # Sketchy minus sign for the stern steering because we need a positive
+        # steering angle when compensating for a negative pitch
+        u_tv_stern = -u_tv_stern
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
-        self._dive_pub.set_thrust_vector(u_tv_hor, -u_tv_ver) 
+        self._dive_pub.set_thrust_vector(u_tv_rudder, u_tv_stern) 
         self._dive_pub.set_rpm(u_rpm, u_rpm) 
 
         # Convenience Topics
         self._ref = ControlReference()
         self._ref.z = depth_setpoint
         self._ref.pitch = pitch_setpoint
+        self._ref.x = waypoint_odom.position.x
+        self._ref.y = waypoint_odom.position.y
 
         self._error = ControlError()
         self._error.z = depth_error
         self._error.pitch = pitch_error
         self._error.yaw = yaw_error
         self._error.heading = current_heading
+        self._error.distance = current_distance
 
         self._input = ControlInput()
         self._input.vbs = u_vbs
         self._input.lcg = u_lcg
-        self._input.thrustervertical = u_tv_ver
-        self._input.thrusterhorizontal = u_tv_hor
+        self._input.thrustervertical = u_tv_stern
+        self._input.thrusterhorizontal = u_tv_rudder
         self._input.thrusterrpm = float(u_rpm)
 
         return
@@ -434,6 +453,7 @@ class DepthJoyControllerPID(DiveControllerInterface):
         # This is due to the fact that we want to move the LCG forward when
         # having a negative real pitch error.
 
+        # FIXME: This probably shouldn't be there now. The IMU is fixed
         pitch_setpoint *= -1.0
         current_pitch *= -1.0
 
@@ -500,596 +520,226 @@ class DepthJoyControllerPID(DiveControllerInterface):
         return
 
 
-
-#class DiveControllerMPC(DiveControllerInterface):
-#
-#    def __init__(self, node, dive_pub, dive_sub, rate=0.1):
-#
-#        self._node = node
-#        self._dive_sub = dive_sub 
-#        self._dive_pub = dive_pub  
-#        self._dt = rate
-#
-#
-#        super().__init__(self._node, self._dive_pub, self._dive_sub, self._dt)
-#
-#        self.param = DivingModelParam(self._node).get_param()
-#        # FIXME: This needs to be fixed. Acados places the generated C files in
-#        # the current directory. So we litter the whole ros workspace with
-#        # them. Not good, but all attempts to force it to use a specific
-#        # directory failed so far.
-#
-#        # Flag if you want to build the OCP or not
-#        build = False # NOTE: Don't change until the previous fixme is resolved.
-#        self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
-#
-#        # Convenience Topics
-#        self._current_state = None
-#        self._current_control = None
-#        self._ref = None
-#        self._error = None
-#        self._input = None
-#
-#        # Extract the CasADi model
-#        sam = SAM_casadi()
-#
-#        # create ocp object to formulate the OCP
-#        Ts = 0.1            # Sampling time
-#        self.N_horizon = 40      # Prediction horizon
-#        self.nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, build, self.acados_dir)
-#        self.nx = self.nmpc.nx        # State vector length + control vector
-#        self.nu = self.nmpc.nu        # Control derivative vector length
-#
-#        
-#        ref_is_traj = True
-#        if ref_is_traj:
-#            # load trajectory - Replace with your actual file path
-#            file_path = "/home/parallels/ros2_ws/src/smarc2/behaviours/sam_diving_controller/sam_diving_controller/trajectoryComplexity3.csv"
-#            self.trajectory = self._read_csv_to_array(file_path)
-#            #self.trajectory[:,0] = self.trajectory[:,0] # - self.trajectory[0,0]
-#            #self.trajectory[:,1] = self.trajectory[:,1] # - self.trajectory[0,1]
-#            #self.trajectory[:,2] = self.trajectory[:,2] # - self.trajectory[0,2]
-#
-#        else:
-#            # TODO: Check that everything is running by loading the trajectory
-#            # instead and fake the current position with the simulated one.
-#
-#            self.trajectory = np.zeros((self.N_horizon, 19))
-#            self.trajectory[:, 0] = 10.
-#            self.trajectory[:, 3] = 1.
-#            self.trajectory[0, 0] = 0.
-#            self.trajectory[0, 7] = 1e-7
-#            self.trajectory[0, 17] = 1e-7
-#            self.trajectory[0, 18] = 1e-7
-#        self.i = 0
-#
-#        # Declare duration of sim. and the x_axis in the plots
-#        self.Nsim = (self.trajectory.shape[0])            # The sim length should be equal to the number of waypoints
-#        x_axis = np.linspace(0, Ts*self.Nsim, self.Nsim)
-#
-#        self.simU = np.zeros((self.Nsim, self.nu))     # Matrix to store the optimal control derivative
-#        self.simX = np.zeros((self.Nsim+1, self.nx))     # Matrix to store the optimal control derivative
-#
-#
-#        # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
-#        self._initialized = False
-#        self._init_state = np.zeros(13)  #self._dive_sub.get_states()
-#        self._init_control = np.zeros(6) #self._dive_sub.get_control_input()
-#        self.x0 = np.zeros(19)
-#
-#        self.x0 = self.trajectory[0] 
-#        self.simX[0,:] = self.x0
-#
-#        # Augment the trajectory and control input r0.0eference 
-#        Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize fast control changes
-#        self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
-#
-#        self.ref = np.zeros(self.trajectory.shape)
-#
-#        ## Run the MPC setup
-#        #self.ocp_solver, self.integrator = nmpc.setup(self.x0)
-#
-#        ## Initialize the state and control vector as David does
-#        #for stage in range(self.N_horizon + 1):
-#        #    self.ocp_solver.set(stage, "x", self.x0)
-#        #for stage in range(self.N_horizon):
-#        #    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-#
-#        # Array to store the time values
-#        self.t = np.zeros((self.Nsim))
-#
-#        self._loginfo("Dive Controller created")
-#
-#
-#    # FIXME: This is for development only. The trajectory is later provided by
-#    # the planning node
-#    def _read_csv_to_array(self, file_path: str):
-#        """
-#        Reads a CSV file and converts the elements to a NumPy array.
-#
-#        Parameters:
-#        file_path (str): The path to the CSV file.
-#
-#        Returns:
-#        np.array: A NumPy array containing the CSV data.
-#        """
-#        data = []
-#        with open(file_path, 'r') as csvfile:
-#            csvreader = csv.reader(csvfile)
-#            next(csvreader)
-#            for row in csvreader:
-#                data.append([float(element) for element in row])
-#
-#        return np.array(data)
-#
-#
-#    def update(self):
-#        """
-#        This is where all the magic happens.
-#        """
-#
-#        if not self._initialized:
-#            # Declare the initial state based on where the robot is right now
-#            tmp = self._dive_sub.get_states()
-#            while tmp is None:
-#                self._loginfo(f"tmp: {tmp}")
-#                self._loginfo_once("Waiting for states")
-#                return
-#
-#            self._init_state = self._dive_sub.get_states()
-#            self._init_control = self._dive_sub.get_control_input()
-#            self._loginfo(f"init state: {self._init_state}")
-#            #self.x0 = np.zeros(19)
-#            #self.x0[0] = self._init_state.pose.pose.position.x
-#            #self.x0[1] = self._init_state.pose.pose.position.y
-#            #self.x0[2] = self._init_state.pose.pose.position.z 
-#            #self.x0[3] = self._init_state.pose.pose.orientation.w
-#            #self.x0[4] = self._init_state.pose.pose.orientation.x
-#            #self.x0[5] = self._init_state.pose.pose.orientation.y
-#            #self.x0[6] = self._init_state.pose.pose.orientation.z
-#            #self.x0[7] = self._init_state.twist.twist.linear.x
-#            #self.x0[8] = self._init_state.twist.twist.linear.y
-#            #self.x0[9] = self._init_state.twist.twist.linear.z
-#            #self.x0[10] = self._init_state.twist.twist.angular.x
-#            #self.x0[11] = self._init_state.twist.twist.angular.y
-#            #self.x0[12] = self._init_state.twist.twist.angular.z
-#            #self.x0[13] = self._init_control['vbs']
-#            #self.x0[14] = self._init_control['lcg']
-#            #self.x0[15] = self._init_control['stern']
-#            #self.x0[16] = self._init_control['rudder']
-#            #self.x0[17] = self._init_control['rpm1']
-#            #self.x0[18] = self._init_control['rpm2']
-#
-#            #x0 = self.trajectory[0] 
-#            #self.simX[0,:] = self.x0
-#            self.simX[0,0] = self.x0[0]
-#            self.simX[0,1] = self.x0[1]
-#            self.simX[0,2] = self.x0[2]
-#
-#            # Shift trajectory
-#            #for jj in range(self.trajectory.shape[0]):
-#            #    self.trajectory[jj,0] = self.trajectory[jj,0] + self.x0[0]
-#            #    self.trajectory[jj,1] = self.trajectory[jj,1] + self.x0[1]
-#            #    self.trajectory[jj,2] = self.trajectory[jj,2] + self.x0[2]
-#
-#            # Run the MPC setup
-#            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
-#
-#            # Initialize the state and control vector as David does
-#            for stage in range(self.N_horizon + 1):
-#                self.ocp_solver.set(stage, "x", self.x0)
-#            for stage in range(self.N_horizon):
-#                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-#
-#            self._initialized = True
-#
-#
-#        # Get setpoints
-#        waypoint = self._dive_sub.get_waypoint()
-#
-#        # Get current states
-#        self._current_state = self._dive_sub.get_states()
-#        self._current_control = self._dive_sub.get_control_input()
-#
-#        #x_current = self.simX[self.i,:]
-#        x_current_sim = self.simX[self.i,:]
-#        #x_current = self.simX[self.i,:]
-#        x_current = np.zeros(19)
-#        x_current[0] = self._current_state.pose.pose.position.x
-#        x_current[1] = self._current_state.pose.pose.position.y
-#        x_current[2] = self._current_state.pose.pose.position.z 
-#        x_current[3] = self._current_state.pose.pose.orientation.w
-#        x_current[4] = self._current_state.pose.pose.orientation.x
-#        x_current[5] = self._current_state.pose.pose.orientation.y
-#        x_current[6] = self._current_state.pose.pose.orientation.z
-#        x_current[7] = self._current_state.twist.twist.linear.x
-#        x_current[8] = self._current_state.twist.twist.linear.y
-#        x_current[9] = self._current_state.twist.twist.linear.z
-#        x_current[10] = self._current_state.twist.twist.angular.x
-#        x_current[11] = self._current_state.twist.twist.angular.y
-#        x_current[12] = self._current_state.twist.twist.angular.z
-#        x_current[13] = self._current_control['vbs']
-#        x_current[14] = self._current_control['lcg']
-#        x_current[15] = self._current_control['stern']
-#        x_current[16] = self._current_control['rudder']
-#        x_current[17] = self._current_control['rpm1']
-#        x_current[18] = self._current_control['rpm2']
-#        
-#        # Warm start?
-#        #for stage in range(self.N_horizon + 1):
-#        #    self.ocp_solver.set(stage, "x", x_current)
-#        #for stage in range(self.N_horizon):
-#        #    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-#
-#        # FIXME: This is for debugging only!
-#        if self.i == self.Nsim:
-#            self.i = 0
-#
-#        # extract the sub-trajectory for the horizon
-#        if self.i <= (self.Nsim - self.N_horizon):
-#            self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
-#        else:
-#            self.ref = self.trajectory[self.i:, :]
-#
-#
-#        # Update reference vector
-#        # If the end of the trajectory has been reached, (ref.shape < N_horizon)
-#        # set the following waypoints in the horizon to the last waypoint of the trajectory
-#        for stage in range(self.N_horizon):
-#            if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
-#                self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
-#            else:
-#                self.ocp_solver.set(stage, "p", self.ref[stage,:])
-#
-#        # Set the terminal state reference
-#        self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
-# 
-#        # Set current state
-#        self.ocp_solver.set(0, "lbx", x_current_sim)
-#        self.ocp_solver.set(0, "ubx", x_current_sim)
-#
-#        # solve ocp and get next control input
-#        status = self.ocp_solver.solve()
-#        stats = self.ocp_solver.get_stats('statistics')
-#        #self._loginfo(f"{stats}")
-#        #self.ocp_solver.print_statistics()
-#        #if status != 0:
-#            #print(f" Note: acados_ocp_solver returned status: {status}")
-#
-#        # simulate system
-#        self.t[self.i] = self.ocp_solver.get_stats('time_tot')
-#        self.simU[self.i, :] = self.ocp_solver.get(0, "u")
-#        #X_eval = self.ocp_solver.get(0, "x")
-#        mpc_solution = self.integrator.simulate(x=x_current_sim, u=self.simU[self.i, :])
-#
-#
-#        # TODO: Check that the outputs fit the actual actuators
-#        u_vbs = mpc_solution[13]
-#        u_lcg = mpc_solution[14]
-#        u_stern = mpc_solution[15] 
-#        u_rudder = mpc_solution[16]
-#        u_rpm1 = mpc_solution[17]
-#        u_rpm2 = mpc_solution[18]
-#
-#        s = "MPC Check: \n"
-#        s += "Vehicle state Unity: \n"
-#        s += f"Pos.: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f} \n"
-#        s += f"Quat: w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-#        s += "Vehicle state Sim: \n"
-#        s += f"Pos.: x: {x_current_sim[0]:.3f}, y: {x_current_sim[1]:.3f}, z: {x_current_sim[2]:.3f} \n"
-#        s += f"Quat: w: {x_current_sim[3]:.3f}, x: {x_current_sim[4]:.3f}, y: {x_current_sim[5]:.3f}, z: {x_current_sim[6]:.3f}\n"
-#        s += f"state unity: w: {x_current.shape}, state sim: {x_current_sim.shape}\n"
-#        s += f"Control: vbs: {u_vbs:.3f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.3f}, rpm2: {u_rpm2:.3f}\n"
-#        s += f"Ref: \n"
-#        s += f"Pos.: x: {self.ref[0,0]:.3f}, y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]} \n"
-#        s += f"Quat: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
-#        s += f"-----\n"
-#
-#        self._loginfo(s)
-#
-#
-#        self.simX[self.i+1, :] = mpc_solution
-#
-#        self._dive_pub.set_vbs(u_vbs)
-#        self._dive_pub.set_lcg(u_lcg)
-#        self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
-#        self._dive_pub.set_rpm(u_rpm1, u_rpm2)
-#
-#        # Convenience Topics
-#        if self.ref is not None:
-#            self._ref = ControlReference()
-#            self._ref.x = self.ref[0,0]
-#            self._ref.y = self.ref[0,1]
-#            self._ref.z = self.ref[0,2]
-#
-#        self._error = ControlError()
-#        self._error.x = self.ref[0,2] - x_current[2]
-#        self._error.z = self.ref[0,2] - x_current[2]
-#        self._error.z = self.ref[0,2] - x_current[2]
-#        # TODO: Finish this. Use euler_from_quaternion(quaternion) to do the conversion.
-#        self._error.pitch = 0.# pitch_error
-#        self._error.yaw =  0.#yaw_error
-#        self._error.heading =  0.#current_heading
-#
-#        self._input = ControlInput()
-#        self._input.vbs = u_vbs
-#        self._input.lcg = u_lcg
-#        self._input.thrustervertical = u_stern
-#        self._input.thrusterhorizontal = u_rudder
-#        self._input.thrusterrpm = float(u_rpm1)
-#
-#        self.i += 1
-#
-#        return
-#
-#
-#
-## TODO: Write unit tests here that do one loop of everything
-#
-#
-
 class DiveControllerMPC(DiveControllerInterface):
 
     def __init__(self, node, dive_pub, dive_sub, param, rate=0.1):
 
         self._node = node
         self._dive_sub = dive_sub 
-        self._dive_pub = dive_pub  
+        self._dive_pub = dive_pub 
+        self.param = param 
         self._dt = rate
-        self.param = param
 
         super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
 
-        # FIXME: This needs to be fixed. Acados places the generated C files in
-        # the current directory. So we litter the whole ros workspace with
-        # them. Not good, but all attempts to force it to use a specific
-        # directory failed so far.
-
-        # Flag if you want to build the OCP or not
-        build = False # NOTE: Don't change until the previous fixme is resolved.
-        self.acados_dir = f"{Path(__file__).resolve().parents[0]}" 
-
         # Convenience Topics
         self._current_state = None
+        self._current_state_in_odom = None
+        self._current_state_in_mocap = None
         self._current_control = None
         self._ref = None
         self._error = None
         self._input = None
 
-        # Extract the CasADi model
-        sam = SAM_casadi()
+        # Declare counter
+        self.i = 0
+        self.traj_len = 0
 
-        # create ocp object to formulate the OCP
-        Ts = 0.1            # Sampling time
-        self.N_horizon = 40      # Prediction horizon
-        self.nmpc = NMPC_trajectory(sam, Ts, self.N_horizon, build, self.acados_dir)
+        # Extract the CasADi model
+        sam = SAM_casadi(dt=self._dt)
+
+        # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
+        build = False
+
+        # create nmpc object for the OCP
+        self.N_horizon = 10 # Prediction horizon
+        self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
 
+        # Run the MPC setup
+        self.ocp_solver, self.integrator = self.nmpc.setup()
         
-        ref_is_traj = True
-        if ref_is_traj:
-            # load trajectory - Replace with your actual file path
-            file_path = "/home/parallels/ros2_ws/src/smarc2/behaviours/sam_diving_controller/sam_diving_controller/trajectoryComplexity3.csv"
-            self.trajectory = self._read_csv_to_array(file_path)
-            #self.trajectory[:,0] = self.trajectory[:,0] # - self.trajectory[0,0]
-            #self.trajectory[:,1] = self.trajectory[:,1] # - self.trajectory[0,1]
-            #self.trajectory[:,2] = self.trajectory[:,2] # - self.trajectory[0,2]
-
-        else:
-            # TODO: Check that everything is running by loading the trajectory
-            # instead and fake the current position with the simulated one.
-
-            self.trajectory = np.zeros((self.N_horizon, 19))
-            self.trajectory[:, 0] = 10.
-            self.trajectory[:, 3] = 1.
-            self.trajectory[0, 0] = 0.
-            self.trajectory[0, 7] = 1e-7
-            self.trajectory[0, 17] = 1e-7
-            self.trajectory[0, 18] = 1e-7
-        self.i = 0
-
-        # Declare duration of sim. and the x_axis in the plots
-        self.Nsim = (self.trajectory.shape[0])            # The sim length should be equal to the number of waypoints
-        x_axis = np.linspace(0, Ts*self.Nsim, self.Nsim)
-
-        self.simU = np.zeros((self.Nsim, self.nu))     # Matrix to store the optimal control derivative
-        self.simX = np.zeros((self.Nsim+1, self.nx))     # Matrix to store the optimal control derivative
-
-
-        # NOTE: This needs to happen in the update function with some check before proceeding. Otherwise, you don't get the right data from the dive sub node, because it's not yet spinning and thus doesn't get the topics yet. 
+        # NOTE: This needs to happen in the update function with some check
+        # before proceeding. Otherwise, you don't get the right data from the
+        # dive sub node, because it's not yet spinning and thus doesn't get the
+        # topics yet. 
         self._initialized = False
-        self._init_state = np.zeros(13)  #self._dive_sub.get_states()
-        self._init_control = np.zeros(6) #self._dive_sub.get_control_input()
-        self.x0 = np.zeros(19)
 
-        self.x0 = self.trajectory[0] 
-        self.simX[0,:] = self.x0
-
-        # Augment the trajectory and control input r0.0eference 
-        Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize fast control changes
-        self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
-
-        self.ref = np.zeros(self.trajectory.shape)
-
-        ## Run the MPC setup
-        #self.ocp_solver, self.integrator = nmpc.setup(self.x0)
-
-        ## Initialize the state and control vector as David does
-        #for stage in range(self.N_horizon + 1):
-        #    self.ocp_solver.set(stage, "x", self.x0)
-        #for stage in range(self.N_horizon):
-        #    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-
-        # Array to store the time values
-        self.t = np.zeros((self.Nsim))
-
+        # FIXME: This should change. We don't want to change code when
+        # switching between trajectories and waypoints
+        self.ref_is_traj = False # Flag to indicate if the reference is a trajectory or not
         self._loginfo("Dive Controller created")
 
-
-    # FIXME: This is for development only. The trajectory is later provided by
-    # the planning node
-    def _read_csv_to_array(self, file_path: str):
-        """
-        Reads a CSV file and converts the elements to a NumPy array.
-
-        Parameters:
-        file_path (str): The path to the CSV file.
-
-        Returns:
-        np.array: A NumPy array containing the CSV data.
-        """
-        data = []
-        with open(file_path, 'r') as csvfile:
-            csvreader = csv.reader(csvfile)
-            next(csvreader)
-            for row in csvreader:
-                data.append([float(element) for element in row])
-
-        return np.array(data)
-
+        self._acados_status = {0: "ACADOS_SUCCESS",
+                               1: "ACADOS_NAN_DETECTED",
+                               2: "ACADOS_MAXITER",
+                               3: "ACADOS_MINSTEP",
+                               4: "ACADOS_QP_FAILURE",
+                               5: "ACADOS_READY",
+                               6: "ACADOS_UNBOUNDED"}
 
     def update(self):
         """
         This is where all the magic happens.
         """
+        mission_state = self._dive_sub.get_mission_state()
+        if mission_state == MissionStates.RECEIVED:
+            self._loginfo_once("Mission Received")
+            self._set_actuators_neutral()
+            return
+
+        if mission_state == MissionStates.COMPLETED:
+            self._loginfo_once("Mission Complete")
+            self._set_actuators_neutral()
+            return
+
+        if mission_state == MissionStates.CANCELLED:
+            self._loginfo_once("Mission Cancelled")
+            self._set_actuators_neutral()
+            return
+        
+        # Engage actuators in case they were off before.
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
+        if self.ref_is_traj and not self._initialized:
+            self.trajectory = self._dive_sub.get_path()
+            
+            if self.trajectory is None:
+                self._loginfo_once("No trajectory received")
+                return
+            else:
+                self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
+
+            # Declare duration of sim. 
+            self.traj_len = self.trajectory.shape[0] 
+
+            # Augment the trajectory and control input reference 
+            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
+            self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
+
+
+            # NOTE: Remove this when running in actual SAM
+            # Used to match the starting position in unity with the one from
+            # the trajectory.
+            #self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
+            #self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
+            #self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
+
+        elif not self.ref_is_traj:
+            # TODO: Move this out of the else statement once you got it to run
+            # on SAM. Then you also don't need all these different states
+            # anymore.
+            # Get the current states
+            convert_state = False # Flag to convert states
+            self._current_state_in_odom = self._dive_sub.get_states()
+            self._current_state_in_mocap = self._dive_sub.get_states_in_mocap() 
+
+            self._current_state = self._current_state_in_mocap #self._dive_sub.get_states()
+
+            if self._current_state is None:
+                self._loginfo(f"No state available yet.")
+                return
+
+            if not self._dive_sub.has_waypoint():
+                self._loginfo(f"No waypoint available")
+                return
+
+            # TODO: Remove the different waypoints once you got it to run on
+            # SAM
+            # Get Waypoint information
+            waypoint_in_odom = self._dive_sub.get_waypoint_in_odom()
+            waypoint_in_body = self._dive_sub.get_waypoint_in_body()
+            waypoint_in_mocap = self._dive_sub.get_waypoint()
+
+            convert_waypoint = False
+
+            waypoint = waypoint_in_mocap 
+
+            if waypoint is None:
+                return
+            elif waypoint_in_odom is None:
+                return
+
+            wp_ref = self.get_ref_array(waypoint, convert_to_ned=convert_waypoint)
+
+        # Get the current states
+        #self._current_state = self._dive_sub.get_states()
+        self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
-            # Declare the initial state based on where the robot is right now
-            tmp = self._dive_sub.get_states()
-            while tmp is None:
-                self._loginfo(f"tmp: {tmp}")
+            while self._current_state is None:
                 self._loginfo_once("Waiting for states")
                 return
 
-            self._init_state = self._dive_sub.get_states()
-            self._init_control = self._dive_sub.get_control_input()
-            self._loginfo(f"init state: {self._init_state}")
-            #self.x0 = np.zeros(19)
-            #self.x0[0] = self._init_state.pose.pose.position.x
-            #self.x0[1] = self._init_state.pose.pose.position.y
-            #self.x0[2] = self._init_state.pose.pose.position.z 
-            #self.x0[3] = self._init_state.pose.pose.orientation.w
-            #self.x0[4] = self._init_state.pose.pose.orientation.x
-            #self.x0[5] = self._init_state.pose.pose.orientation.y
-            #self.x0[6] = self._init_state.pose.pose.orientation.z
-            #self.x0[7] = self._init_state.twist.twist.linear.x
-            #self.x0[8] = self._init_state.twist.twist.linear.y
-            #self.x0[9] = self._init_state.twist.twist.linear.z
-            #self.x0[10] = self._init_state.twist.twist.angular.x
-            #self.x0[11] = self._init_state.twist.twist.angular.y
-            #self.x0[12] = self._init_state.twist.twist.angular.z
-            #self.x0[13] = self._init_control['vbs']
-            #self.x0[14] = self._init_control['lcg']
-            #self.x0[15] = self._init_control['stern']
-            #self.x0[16] = self._init_control['rudder']
-            #self.x0[17] = self._init_control['rpm1']
-            #self.x0[18] = self._init_control['rpm2']
+            x0 = self.get_state_array(self._current_state,
+                                      self._current_control,
+                                      is_init_state=not self._initialized, 
+                                      is_trajectory=self.ref_is_traj,
+                                      convert_state=False)
 
-            #x0 = self.trajectory[0] 
-            #self.simX[0,:] = self.x0
-            self.simX[0,0] = self.x0[0]
-            self.simX[0,1] = self.x0[1]
-            self.simX[0,2] = self.x0[2]
-
-            # Shift trajectory
-            #for jj in range(self.trajectory.shape[0]):
-            #    self.trajectory[jj,0] = self.trajectory[jj,0] + self.x0[0]
-            #    self.trajectory[jj,1] = self.trajectory[jj,1] + self.x0[1]
-            #    self.trajectory[jj,2] = self.trajectory[jj,2] + self.x0[2]
-
-            # Run the MPC setup
-            self.ocp_solver, self.integrator = self.nmpc.setup(self.x0)
-
-            # Initialize the state and control vector as David does
+            # Initialize the state and control vector
             for stage in range(self.N_horizon + 1):
-                self.ocp_solver.set(stage, "x", self.x0)
+                self.ocp_solver.set(stage, "x", x0)
             for stage in range(self.N_horizon):
+                # u here is the rate of change, that's why we initialize it
+                # with 0
                 self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
 
             self._initialized = True
+                    
+        # Get the current state vector
+        x_current = self.get_state_array(self._current_state,
+                                         self._current_control,
+                                         is_init_state=self._initialized,
+                                         is_trajectory=self.ref_is_traj,
+                                         convert_state=convert_state)
+    
+        if self.ref_is_traj:
+            if self.i < self.traj_len:
+                # extract the sub-trajectory to track under the prediction horizon
+                if self.i <= (self.traj_len - self.N_horizon):
+                    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+                else:
+                    self.ref = self.trajectory[self.i:, :]
 
+            else:
+                self._loginfo_once("Trajectory Tracking Complete")
+                self._set_actuators_neutral()
+                return
 
-        # Get setpoints
-        waypoint = self._dive_sub.get_waypoint()
-
-        # Get current states
-        self._current_state = self._dive_sub.get_states()
-        self._current_control = self._dive_sub.get_control_input()
-
-        #x_current = self.simX[self.i,:]
-        x_current_sim = self.simX[self.i,:]
-        #x_current = self.simX[self.i,:]
-        x_current = np.zeros(19)
-        x_current[0] = self._current_state.pose.pose.position.x
-        x_current[1] = self._current_state.pose.pose.position.y
-        x_current[2] = self._current_state.pose.pose.position.z 
-        x_current[3] = self._current_state.pose.pose.orientation.w
-        x_current[4] = self._current_state.pose.pose.orientation.x
-        x_current[5] = self._current_state.pose.pose.orientation.y
-        x_current[6] = self._current_state.pose.pose.orientation.z
-        x_current[7] = self._current_state.twist.twist.linear.x
-        x_current[8] = self._current_state.twist.twist.linear.y
-        x_current[9] = self._current_state.twist.twist.linear.z
-        x_current[10] = self._current_state.twist.twist.angular.x
-        x_current[11] = self._current_state.twist.twist.angular.y
-        x_current[12] = self._current_state.twist.twist.angular.z
-        x_current[13] = self._current_control['vbs']
-        x_current[14] = self._current_control['lcg']
-        x_current[15] = self._current_control['stern']
-        x_current[16] = self._current_control['rudder']
-        x_current[17] = self._current_control['rpm1']
-        x_current[18] = self._current_control['rpm2']
-        
-        # Warm start?
-        #for stage in range(self.N_horizon + 1):
-        #    self.ocp_solver.set(stage, "x", x_current)
-        #for stage in range(self.N_horizon):
-        #    self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-
-        # FIXME: This is for debugging only!
-        if self.i == self.Nsim:
-            self.i = 0
-
-        # extract the sub-trajectory for the horizon
-        if self.i <= (self.Nsim - self.N_horizon):
-            self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
         else:
-            self.ref = self.trajectory[self.i:, :]
-
+            self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
+            self.ref[:,:] = wp_ref
 
         # Update reference vector
-        # If the end of the trajectory has been reached, (ref.shape < N_horizon)
-        # set the following waypoints in the horizon to the last waypoint of the trajectory
+        # NOTE: we use p bc. we have a custom cost function.
         for stage in range(self.N_horizon):
             if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
                 self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
             else:
                 self.ocp_solver.set(stage, "p", self.ref[stage,:])
 
-        # Set the terminal state reference
+        # FIXME: We also have a custom cost function for the terminal cost. So this might collide with it?
+        # Set the terminal state reference to the value at N_horizon
         self.ocp_solver.set(self.N_horizon, "yref", self.ref[-1,:self.nx])
- 
+
         # Set current state
-        self.ocp_solver.set(0, "lbx", x_current_sim)
-        self.ocp_solver.set(0, "ubx", x_current_sim)
+        self.ocp_solver.set(0, "lbx", x_current)
+        self.ocp_solver.set(0, "ubx", x_current)
 
         # solve ocp and get next control input
+        start_time = time.time()
         status = self.ocp_solver.solve()
-        stats = self.ocp_solver.get_stats('statistics')
-        #self._loginfo(f"{stats}")
-        #self.ocp_solver.print_statistics()
-        #if status != 0:
-            #print(f" Note: acados_ocp_solver returned status: {status}")
+        end_time = time.time()
 
-        # simulate system
-        self.t[self.i] = self.ocp_solver.get_stats('time_tot')
-        self.simU[self.i, :] = self.ocp_solver.get(0, "u")
-        #X_eval = self.ocp_solver.get(0, "x")
-        mpc_solution = self.integrator.simulate(x=x_current_sim, u=self.simU[self.i, :])
+        # simulate system: 
+        # NOTE: May be possible to use get(0, "x") to acquire the actual control input.
+        self.simU = self.ocp_solver.get(0, "u")
+        # The integrator of the control signal is needed, since u is the control derivative.
+        mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
-
-        # TODO: Check that the outputs fit the actual actuators
+        # Assign the calculated control signal to actuators
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
         u_stern = mpc_solution[15] 
@@ -1097,46 +747,13 @@ class DiveControllerMPC(DiveControllerInterface):
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
-        s = "MPC Check: \n"
-        s += "Vehicle state Unity: \n"
-        s += f"Pos.: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f} \n"
-        s += f"Quat: w: {x_current[3]:.3f}, x: {x_current[4]:.3f}, y: {x_current[5]:.3f}, z: {x_current[6]:.3f}\n"
-        s += "Vehicle state Sim: \n"
-        s += f"Pos.: x: {x_current_sim[0]:.3f}, y: {x_current_sim[1]:.3f}, z: {x_current_sim[2]:.3f} \n"
-        s += f"Quat: w: {x_current_sim[3]:.3f}, x: {x_current_sim[4]:.3f}, y: {x_current_sim[5]:.3f}, z: {x_current_sim[6]:.3f}\n"
-        s += f"state unity: w: {x_current.shape}, state sim: {x_current_sim.shape}\n"
-        s += f"Control: vbs: {u_vbs:.3f}, lcg: {u_lcg:.3f}, stern: {u_stern:.3f}, rudder: {u_rudder:.3f}, rpm1: {u_rpm1:.3f}, rpm2: {u_rpm2:.3f}\n"
-        s += f"Ref: \n"
-        s += f"Pos.: x: {self.ref[0,0]:.3f}, y: {self.ref[0,1]:.3f}, z: {self.ref[0,2]} \n"
-        s += f"Quat: w: {self.ref[0,3]:.3f}, x: {self.ref[0,4]:.3f}, z: {self.ref[0,5]:.3f}, w: {self.ref[0,6]:.3f}\n"
-        s += f"-----\n"
-
-        self._loginfo(s)
-
-
-        self.simX[self.i+1, :] = mpc_solution
-
+        # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
         self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
         self._dive_pub.set_rpm(u_rpm1, u_rpm2)
 
-        # Convenience Topics
-        if self.ref is not None:
-            self._ref = ControlReference()
-            self._ref.x = self.ref[0,0]
-            self._ref.y = self.ref[0,1]
-            self._ref.z = self.ref[0,2]
-
-        self._error = ControlError()
-        self._error.x = self.ref[0,2] - x_current[2]
-        self._error.z = self.ref[0,2] - x_current[2]
-        self._error.z = self.ref[0,2] - x_current[2]
-        # TODO: Finish this. Use euler_from_quaternion(quaternion) to do the conversion.
-        self._error.pitch = 0.# pitch_error
-        self._error.yaw =  0.#yaw_error
-        self._error.heading =  0.#current_heading
-
+        # Set control input (For convenience topics)
         self._input = ControlInput()
         self._input.vbs = u_vbs
         self._input.lcg = u_lcg
@@ -1144,10 +761,221 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input.thrusterhorizontal = u_rudder
         self._input.thrusterrpm = float(u_rpm1)
 
+        # Convenience Topics
+        if self.ref is not None:
+            # FIXME: This is messy. The position is converted to ENU again, but
+            # not the orientation.
+            self._ref = ControlReference()
+            self._ref.x = self.ref[0,0]
+            self._ref.y = self.ref[0,1]
+            self._ref.z = self.ref[0,2]
+
+            r = R.from_quat([self.ref[0,4], # x
+                            self.ref[0,5], # y
+                            self.ref[0,6], # z
+                            self.ref[0,3]]) # w
+            euler_angles = r.as_euler('xyz', degrees=False)
+            self._ref.roll  = euler_angles[0]
+            self._ref.pitch = euler_angles[1]
+            self._ref.yaw   = euler_angles[2]
+
+
+        # FIXME: Remove all the print statements here. They only should appear in the convenience node
+        s = f"\nNMPC INFO\n" # {self._dive_sub.current_idx}/{self.traj_len}:\n"
+        s += f"NMPC solver status: {self._acados_status[status]}\n"
+        s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
+        s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
+
+        #s += "Position:\n"
+        #s += f"State (x_current): x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        #s += (
+        #    f"State (mocap):     "
+        #    f"x: {self._current_state_in_mocap.pose.pose.position.x:.3f}, "
+        #    f"y: {self._current_state_in_mocap.pose.pose.position.y:.3f}, "
+        #    f"z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
+        #    )
+        #s += (
+        #        f"State (odom):      "
+        #        f"x: {self._current_state_in_odom.pose.pose.position.x:.3f}, "
+        #        f"y: {self._current_state_in_odom.pose.pose.position.y:.3f}, "
+        #        f"z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
+        #    )
+        #s += (
+        #        f"Ref (current): "
+        #        f"x: {self.ref[0,0]:.3f}, "
+        #        f"y: {self.ref[0,1]:.3f}, "
+        #        f"z: {self.ref[0,2]:.3f}\n"
+        #    )
+        #s += (
+        #       f"Ref (mocap):   "
+        #       f"x: {waypoint_in_mocap.pose.position.x:.3f}, "
+        #       f"y: {waypoint_in_mocap.pose.position.y:.3f}, "
+        #       f"z: {waypoint_in_mocap.pose.position.z:.3f}\n"
+        #    )
+        #s += (
+        #       f"Ref (odom):    "
+        #       f"x: {waypoint_in_odom.position.x:.3f}, "
+        #       f"y: {waypoint_in_odom.position.y:.3f}, "
+        #       f"z: {waypoint_in_odom.position.z:.3f}\n"
+        #    )
+        #s += (
+        #       f"Ref (body):    "
+        #       f"x: {waypoint_in_body.position.x:.3f}, "
+        #       f"y: {waypoint_in_body.position.y:.3f}, "
+        #       f"z: {waypoint_in_body.position.z:.3f}\n"
+        #)
+
+        ## Error calculation
+        #error_x_current = self.ref[0,0] - x_current[0]
+        #error_y_current = self.ref[0,1] - x_current[1]
+        #error_z_current = self.ref[0,2] - x_current[2]
+
+        #error_x_in_mocap = waypoint_in_mocap.pose.position.x - self._current_state_in_mocap.pose.pose.position.x
+        #error_y_in_mocap = waypoint_in_mocap.pose.position.y - self._current_state_in_mocap.pose.pose.position.y
+        #error_z_in_mocap = waypoint_in_mocap.pose.position.z - self._current_state_in_mocap.pose.pose.position.z
+
+        #error_x_in_odom = waypoint_in_odom.position.x - self._current_state_in_odom.pose.pose.position.x
+        #error_y_in_odom = waypoint_in_odom.position.y - self._current_state_in_odom.pose.pose.position.y
+        #error_z_in_odom = waypoint_in_odom.position.z - self._current_state_in_odom.pose.pose.position.z
+
+        #s += (
+        #        f"Error (current): "
+        #        f"x: {error_x_current:.3f}, "
+        #        f"y: {error_y_current:.3f}, "
+        #        f"z: {error_z_current:.3f}\n"
+        #    )
+        #s += (
+        #       f"Error (mocap):   "
+        #       f"x: {error_x_in_mocap:.3f}, "
+        #       f"y: {error_y_in_mocap:.3f}, "
+        #       f"z: {error_z_in_mocap:.3f}\n"
+        #    )
+        #s += (
+        #       f"Error (odom):    "
+        #       f"x: {error_x_in_odom:.3f}, "
+        #       f"y: {error_y_in_odom:.3f}, "
+        #       f"z: {error_z_in_odom:.3f}\n"
+        #    )
+
+        self._loginfo(s)
+
+        # Increment trajectory window index
         self.i += 1
+        self._dive_sub.set_current_idx(self.i)
 
         return
+    
+    def get_state_array(self, state_msg, control_msg,
+                        is_init_state=False,
+                        is_trajectory=False,
+                        convert_state=True):
+        """
+        Merges states and controls into numpy array and returns the state of
+        the controller as the state vector x (numpy array)
+
+        convert_state: state_msg is in ENU, x will be in NED
+        """
+        x = np.zeros(19)
+        if convert_state:
+            x[0] = state_msg.pose.pose.position.x
+            x[1] = -state_msg.pose.pose.position.y
+            x[2] = -state_msg.pose.pose.position.z 
+            x[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
+                                      state_msg.pose.pose.orientation.y,
+                                      state_msg.pose.pose.orientation.z,
+                                      state_msg.pose.pose.orientation.w])
+            x[7] = state_msg.twist.twist.linear.x
+            x[8] = -state_msg.twist.twist.linear.y
+            x[9] = -state_msg.twist.twist.linear.z
+            x[10] = state_msg.twist.twist.angular.x
+            x[11] = -state_msg.twist.twist.angular.y
+            x[12] = -state_msg.twist.twist.angular.z
+
+        else:
+            x[0] = state_msg.pose.pose.position.x
+            x[1] = state_msg.pose.pose.position.y
+            x[2] = state_msg.pose.pose.position.z 
+            x[3:7] = [state_msg.pose.pose.orientation.x,
+                      state_msg.pose.pose.orientation.y,
+                      state_msg.pose.pose.orientation.z,
+                      state_msg.pose.pose.orientation.w]
+            x[7] = state_msg.twist.twist.linear.x
+            x[8] = state_msg.twist.twist.linear.y
+            x[9] = state_msg.twist.twist.linear.z
+            x[10] = state_msg.twist.twist.angular.x
+            x[11] = state_msg.twist.twist.angular.y
+            x[12] = state_msg.twist.twist.angular.z
+        x[13] = control_msg['vbs']
+        x[14] = control_msg['lcg']
+        x[15] = control_msg['stern']
+        x[16] = control_msg['rudder']
+        x[17] = control_msg['rpm1']
+        x[18] = control_msg['rpm2']
+        
+        # Due to numerical reasons, we add a small noise to the rpms in
+        # waypoint following mode
+        if is_init_state:
+            if is_trajectory:
+                x[17] = control_msg['rpm1']
+                x[18] = control_msg['rpm2']
+            else:
+                x[17] = 1e-6 
+                x[18] = 1e-6 
+
+        return x
 
 
+    def get_ref_array(self, waypoint, convert_to_ned=False):
 
-# TODO: Write unit tests here that do one loop of everything
+        ref = np.zeros(self.nx + self.nu)
+
+        if isinstance(waypoint, PoseStamped):
+
+            ref[0] = waypoint.pose.position.x
+            ref[1] = waypoint.pose.position.y
+            ref[2] = waypoint.pose.position.z
+            ref[3] = waypoint.pose.orientation.w
+            ref[4] = waypoint.pose.orientation.x
+            ref[5] = waypoint.pose.orientation.y
+            ref[6] = waypoint.pose.orientation.z
+
+        else: 
+            ref[0] = waypoint.position.x
+            ref[1] = waypoint.position.y
+            ref[2] = waypoint.position.z
+            ref[3] = waypoint.orientation.w
+            ref[4] = waypoint.orientation.x
+            ref[5] = waypoint.orientation.y
+            ref[6] = waypoint.orientation.z
+
+        # Neutral actuator reference for VBS and LCG. Rest is 0
+        ref[13] = 50
+        ref[14] = 50
+
+        if convert_to_ned:
+
+            quat = self.enu_to_ned(ref[3:7])
+
+            ref[1] = -ref[1]
+            ref[2] = -ref[2]
+            ref[3:7] = quat
+
+        return ref
+
+
+    def enu_to_ned(self, quat_enu):
+
+        T = np.array([
+            [1, 0, 0],
+            [0, -1, 0],
+            [0, 0, -1]
+            ])
+        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
+        r_ned = T @ r_enu.as_matrix() @ T.T
+        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
+        quat_ned_right_order = np.array([quat_ned[3], # w
+                                        quat_ned[0],  # x
+                                        quat_ned[1],  # y
+                                        quat_ned[2]   # z
+                                        ])
+        return quat_ned_right_order
