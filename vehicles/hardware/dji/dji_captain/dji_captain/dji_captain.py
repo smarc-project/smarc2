@@ -14,7 +14,7 @@ from tf2_ros import Buffer, TransformListener
 
 from std_msgs.msg import Float32, Int8, String
 from std_srvs.srv import Trigger
-from sensor_msgs.msg import NavSatFix, Joy, BatteryState
+from sensor_msgs.msg import NavSatFix, Joy, BatteryState, JoyFeedback
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TwistStamped, Pose, PoseStamped, TransformStamped, QuaternionStamped, PointStamped, Vector3Stamped, Quaternion
 from geographic_msgs.msg import GeoPoint
@@ -22,6 +22,8 @@ from tf2_msgs.msg import TFMessage
 
 from psdk_interfaces.msg import PositionFused, ControlMode, EscData, EscStatusIndividual
 from smarc_msgs.msg import Topics as SmarcTopics
+from dji_msgs.msg import Links as DjiLinks
+from dji_msgs.msg import Topics as DjiTopics
 
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
@@ -51,45 +53,60 @@ class PSDKTopics(Enum):
     TAKEOFF_SRV         = WRAPPER_NS + "takeoff"
     LAND_SRV            = WRAPPER_NS + "land"
 
-    FLU_JOY             = WRAPPER_NS + "flight_control_setpoint_FLUvelocity_yawrate"
+    FLUvel_JOY          = WRAPPER_NS + "flight_control_setpoint_FLUvelocity_yawrate"
+    ENUvel_JOY          = WRAPPER_NS + "flight_control_setpoint_ENUvelocity_yawrate"
+    ENUpos_JOY          = WRAPPER_NS + "flight_control_setpoint_ENUposition_yaw"    
 
+
+
+class ControlModes(Enum):
+    FLUvel = "FLU Velocity"
+    ENUvel = "ENU Velocity"
+    ENUpos = "ENU Position"
 
 
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-        self._TF_NS = "Quadrotor/" #TODO take as rosparam...
-        self.declare_node_parameters()
+        self._node.declare_parameter("robot_name", "M350")
+        self._node.declare_parameter("controller_deadzone", 0.1)
+
+
+        self._TF_NS : str = f"{self._node.get_parameter('robot_name')}/"
+
+        self._CONTROLLER_DEADZONE : float = 0.1
+        v = self._node.get_parameter("controller_deadzone").value 
+        if v is not None: self._CONTROLLER_DEADZONE = v
+
         
+        self._control_mode = ControlModes.FLUvel
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : None | Timer = None
-        self._joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_JOY.value, qos_profile=10)
-        self._joy_ramp_time : float = 5.0
+        self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLUvel_JOY.value, qos_profile=10)
+        self._ENU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUvel_JOY.value, qos_profile=10)
+        self._ENU_pos_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUpos_JOY.value, qos_profile=10)
         self._setpoint_received_at : float|None = None
         
-        self.MOVE_TO_SETPOINT_TOPIC = "move_to_setpoint"
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 0.5 # seconds, how long we keep the move to setpoint before we consider it stale
-        self.JOY_MAX = 0.8
-        self.JOY_PERIOD = .1
+        self.JOY_PUB_MAX = 0.8
+        self.JOY_PUB_PERIOD = .1
+
         self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
         self.ERROR_HEIGHT_ABOVE_GROUND = 1
+        
         # this is the idle RPM/current for the ESCs, below this we consider the vehicle not flying
         self.NUM_PROPS = 4 # because the esc message always has 8 fields...
         self.ESC_IDLE_RPM = 1000  
-        self.ESC_IDLE_CURRENT = 200
-        # if things are below these values, we probably have no payload
-        self.ESC_NO_PAYLOAD_CURRENT_MAX = 3000
-        self.ESC_NO_PAYLOAD_RPM_MAX = 3000
 
-        self.UTM_FRAME = "utm"
-        self.ODOM_FRAME = self._TF_NS + "odom"
-        self.MAP_FRAME = self._TF_NS + "map"
-        self.BASE_FRAME = self._TF_NS + "base_link"
-        self.BASE_FLAT_FRAME = self._TF_NS + "base_flat_link"
-        self.BASE_ENU_FRAME = self._TF_NS + "base_ENU_link"
-        self.HOME_FRAME = self._TF_NS + "home_point"
+
+        self.ODOM_FRAME = self._TF_NS + DjiLinks.ODOM
+        self.MAP_FRAME = self._TF_NS + DjiLinks.MAP
+        self.BASE_FRAME = self._TF_NS + DjiLinks.BASE_LINK
+        self.BASE_FLAT_FRAME = self._TF_NS + DjiLinks.BASE_FLAT
+        self.BASE_ENU_FRAME = self._TF_NS + DjiLinks.BASE_ENU
+        self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
         self._utm_labeled_frame : str | None = None
 
 
@@ -118,7 +135,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = ["/Quadrotor/  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = ["{/Quadrotor/}  " + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -142,6 +159,10 @@ class DjiCaptain():
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
 
+        # a simple TTS node should be listening to this (robot_name/speak)
+        self._speak_pub = node.create_publisher(String, DjiTopics.TTS_TOPIC, qos_profile=10)
+        self._controller_vibrator_pub = node.create_publisher(JoyFeedback, DjiTopics.CONTROLLER_VIBRATION_TOPIC, qos_profile=10)
+        
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
@@ -215,12 +236,18 @@ class DjiCaptain():
         node.create_subscription(
             Joy,
             PSDKTopics.RC.value,
-            self._rc_cb,
+            self._dji_rc_cb,
+            qos_profile=10)
+        
+        node.create_subscription(
+            Joy,
+            DjiTopics.CONTROLLER_INPUT_TOPIC,
+            self._controller_callback,
             qos_profile=10)
 
         node.create_subscription(
             PoseStamped,
-            self.MOVE_TO_SETPOINT_TOPIC,
+            DjiTopics.MOVE_TO_SETPOINT_TOPIC,
             self._move_to_setpoint_callback,
             qos_profile=10)
 
@@ -233,34 +260,22 @@ class DjiCaptain():
         self._land_srv = node.create_client(Trigger, PSDKTopics.LAND_SRV.value)
 
 
-        while True:
+        while rclpy.ok():
             commands = "Commands:\n"
             commands += "  1: Take control  \n"
             commands += "  2: Release control\n"
             commands += "  3: Take off\n"
             commands += "  4: Land\n"
-            commands += "  5: Print status (also available on $ROBOT_NAME/captain_status topic) \n"
-            commands += "  8: EXIT \n"
+            commands += f"\n  8: Print status (also available on {self._TF_NS}captain_status topic) \n"
             commands += "  9: Set max joy to (DANGEROUS, DONT USE UNLESS YOUR NAME STARTS WITH O)\n"
+            commands += "  0: EXIT \n"
             try:
                 self.log(commands)
                 n = int(input("Enter number for command: \n"))
                 if n == 1: #Take control
-                    if not self._take_control_srv.wait_for_service(timeout_sec=5.0):
-                        self.log("Take control service not available...")
-                        continue
-                    future = self._take_control_srv.call_async(Trigger.Request())
-                    future.add_done_callback(
-                        lambda f: self.log(f"Take control service called, success: {f.result().success}, message: {f.result().message}")
-                    )
+                    self._take_control()
                 elif n == 2: #Release control
-                    if not self._release_control_srv.wait_for_service(timeout_sec=5.0):
-                        self.log("Release control service not available...")
-                        continue
-                    future = self._release_control_srv.call_async(Trigger.Request())
-                    future.add_done_callback(
-                        lambda f: self.log(f"Release control service called, success: {f.result().success}, message: {f.result().message}")
-                    )
+                    self._release_control()
                 elif n == 3: #Take off
                     if self._got_control is False:
                         self.log("You must take control first!")
@@ -291,14 +306,18 @@ class DjiCaptain():
                     future.add_done_callback(
                         lambda f: self.log(f"Land service called, success: {f.result().success}, message: {f.result().message}")
                     )
-                elif n == 5: #Print status
+                elif n == 8: #Print status
                     self.log(self.status_str)
-                elif n == 8:
-                    self.log("Exiting captain")
-                    break
                 elif n == 9: # set max joy
-                    self.JOY_MAX = float(input("Enter new max joy value: ") or "0")
-                    self.log(f"Set max joy to {self.JOY_MAX:.2f} (m/s?)")
+                    self.JOY_PUB_MAX = float(input("Enter new max joy value: ") or "0")
+                    self.log(f"Set max joy to {self.JOY_PUB_MAX:.2f} (m/s)")
+                elif n == 0:
+                    try:
+                        self.log("Exiting captain")
+                        self._speak("Bye bye.")
+                    except:
+                        print("Exiting captain.")
+                    break
 
             except:
                 self.log(f"Invalid input:{input}, please enter a number.")
@@ -333,6 +352,7 @@ class DjiCaptain():
         s += f"  TF: {self._tf_pub_status}\n"
 
         s += f"\n  Got Control: {self._got_control}\n"
+        s += f"  Control Mode: {self._control_mode.value}\n"
         s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)}\n"
         if self._base_pose_in_home is None: 
             s+= "  Flying: Unknown (base pose not set)\n"
@@ -346,13 +366,47 @@ class DjiCaptain():
         else:
             s += f"  Vehicle Health: WAITING\n"
 
-
-
         return s
+    
     
     def log(self, msg: str):
         self._node.get_logger().info(msg)
 
+
+    def _take_control(self):
+        def on_result(f):
+            self.log(f"Take control service called, success: {f.result().success}, message: {f.result().message}")
+            if f.result().success:
+                self._speak("Got control.")
+            else:
+                self._speak("Failed to get control.")
+
+        self.log("Taking control.")
+        self._speak("Taking control.")
+        if not self._take_control_srv.wait_for_service(timeout_sec=5.0):
+            self.log("Take control service not available...")
+            self._speak("Take control service not available.")
+            return
+        future = self._take_control_srv.call_async(Trigger.Request())
+        future.add_done_callback(on_result)
+
+
+    def _release_control(self):
+        def on_result(f):
+            self.log(f"Release control service called, success: {f.result().success}, message: {f.result().message}")
+            if f.result().success:
+                self._speak("Gave up control.")
+            else:
+                self._speak("Failed to release control.")
+
+        self.log("Releasing control.")
+        self._speak("Releasing control.")
+        if not self._release_control_srv.wait_for_service(timeout_sec=5.0):
+            self.log("Release control service not available...")
+            self._speak("Release control service not available.")
+            return
+        future = self._release_control_srv.call_async(Trigger.Request())
+        future.add_done_callback(on_result)
 
 
     def _geo_alt_cb(self, msg: Float32):
@@ -397,111 +451,212 @@ class DjiCaptain():
         self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         
         if self._joy_timer is None:
-            try:
-                tf = self._tf_buffer.lookup_transform(
-                    target_frame=self.BASE_ENU_FRAME,
-                    source_frame=self.BASE_FLAT_FRAME,
-                    time=Time(seconds=0),
-                    timeout=Duration(seconds=1)
-                )
-                velocity_as_pose_stamped = PoseStamped()
-                velocity_as_pose_stamped.header.frame_id = self.BASE_ENU_FRAME
-                velocity_as_pose_stamped.header.stamp = self.now_stamp
-                if(self._velocity_ground is not None):
-                    velocity_as_pose_stamped.pose.position.x = self._velocity_ground.vector.x
-                    velocity_as_pose_stamped.pose.position.y = self._velocity_ground.vector.y
-                    velocity_as_pose_stamped.pose.position.z = self._velocity_ground.vector.z
-                    velocity_as_pose_stamped_base_flat = do_transform_pose_stamped(velocity_as_pose_stamped, tf)
-                    self.prev_joy_vec = np.array([velocity_as_pose_stamped_base_flat.pose.position.x, \
-                                                  velocity_as_pose_stamped_base_flat.pose.position.y, \
-                                                  velocity_as_pose_stamped_base_flat.pose.position.z])
-                else:
-                    self.prev_joy_vec = np.array([0.0, 0.0, 0.0])
-                
-            except Exception as e:
-                self.log(f"Failed to transform velocity from {self.BASE_ENU_FRAME} to {self.BASE_FLAT_FRAME}: {e}")
-                self._move_to_setpoint = None
-                return
-                
+            if self._control_mode == ControlModes.FLUvel:
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_FLUvel)
+            elif self._control_mode == ControlModes.ENUvel:
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUvel)
+            elif self._control_mode == ControlModes.ENUpos:
+                self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self.move_towards_setpoint_ENUpos)
 
-            self._joy_timer = self._node.create_timer(self.JOY_PERIOD, self._move_with_joy)
             self._setpoint_received_at = time.time()
             self.log("Joy timer started to move with joy.")
 
 
+    def _buzz(self, intensity: float = 1.0):
+        self._controller_vibrator_pub.publish(JoyFeedback(
+                type=JoyFeedback.TYPE_RUMBLE,
+                id=0,
+                intensity=intensity))
+        
+    def _speak(self, msg: str):
+        self._speak_pub.publish(String(data=msg))
+
+    def _controller_callback(self, msg: Joy):
+        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
+            # malformed...
+            return
+        
+        now = self.now_stamp
+        # Check if the message is older than 0.1 seconds
+        msg_age = (now.sec - msg.header.stamp.sec) + (now.nanosec - msg.header.stamp.nanosec) * 1e-9
+        if msg_age > 0.1:
+            self.log(f"Controller message is older than 0.1s ({msg_age:.3f}s), ignoring.")
+            return
 
 
-    def _move_with_joy(self):
-        def cancel_joy_timer():
-            if self._joy_timer is not None:
-                self._joy_timer.cancel()
-                self._joy_timer = None
-                self._setpoint_received_at = None
-                self.log("Joy timer cancelled.")
+        # right stick = horizontal movement, left stick = vertical movement + yaw
+        # like the DJI RC controller
+        LH = msg.axes[0]  # left stick horizontal
+        LV = msg.axes[1]  # left stick vertical
+        RH = msg.axes[2]  # right stick horizontal
+        RV = msg.axes[3]  # right stick vertical
+        L2:float = msg.axes[4]  # L2 button 
+        R2:float = msg.axes[5]  # R2 button
+        south = msg.buttons[0]  # south button
+        east = msg.buttons[1]   # east button
+        west = msg.buttons[2]   # west button
+        north = msg.buttons[3]  # north button
+        select = msg.buttons[4] # select button
+        ps_button = msg.buttons[5]  # PS button
+        start = msg.buttons[6]  # start button
+        left_stick_in = msg.buttons[7]  # left stick in
+        right_stick_in = msg.buttons[8]  # right stick in
+        L1 = msg.buttons[9]  # L1 button
+        R1 = msg.buttons[10]  # R1 button
+        up = msg.buttons[11]  # up button
+        down = msg.buttons[12]  # down button
+        left = msg.buttons[13]  # left button
+        right = msg.buttons[14]  # right button
 
+        sticks_pushed = any(
+            [
+                abs(LH) > self._CONTROLLER_DEADZONE,
+                abs(LV) > self._CONTROLLER_DEADZONE,
+                abs(RH) > self._CONTROLLER_DEADZONE,
+                abs(RV) > self._CONTROLLER_DEADZONE
+            ]
+        )
+
+        if not self._got_control:
+            if start == 1 and ps_button == 1:
+                self._take_control()
+                return
+            
+            if sticks_pushed:
+                self.log("Sticks pushed without control!")
+                self._speak("You must first take control with the PS button and Start button.")
+                self._buzz()
+                return
+            
+        if self._move_to_setpoint is not None:
+            if sticks_pushed:
+                self.log("Sticks pushed, cancelling move to setpoint.")
+                self._speak("Move to setpoint cancelled because you touched the controller sticks!")
+                self._cancel_joy_timer()                
+        
+
+        if up:
+            self.JOY_PUB_MAX += 0.2
+            if self.JOY_PUB_MAX > 5.0:
+                self.JOY_PUB_MAX = 5.0
+            self.log(f"Joy max increased to {self.JOY_PUB_MAX:.2f} (m/s)")
+            self._speak(f"Joy max {self.JOY_PUB_MAX:.1f}")
+        if down:
+            self.JOY_PUB_MAX -= 0.2
+            if self.JOY_PUB_MAX < 0.0:
+                self.JOY_PUB_MAX = 0.0
+            self.log(f"Joy max decreased to {self.JOY_PUB_MAX:.2f} (m/s)")
+            self._speak(f"Joy max {self.JOY_PUB_MAX:.1f}")
+
+
+        control_modes = list(ControlModes)
+        if left:
+            self._control_mode = control_modes[(control_modes.index(self._control_mode) - 1) % len(control_modes)]
+            self.log(f"Control mode changed to {self._control_mode.value}")
+            self._speak(f"Control mode {self._control_mode.value}")
+        if right:
+            self._control_mode = control_modes[(control_modes.index(self._control_mode) + 1) % len(control_modes)]
+            self.log(f"Control mode changed to {self._control_mode.value}")
+            self._speak(f"Control mode {self._control_mode.value}")
+        
+
+            
+        if self._got_control and sticks_pushed:
+            joy_msg = Joy()
+            joy_msg.header.stamp = self.now_stamp
+            if self._control_mode == ControlModes.FLUvel:
+                # DJI expects Axes: [forward, left, up, yawrate]
+                joy_msg.axes = [RV, RH, LV, LH]
+                self._FLU_vel_joy_pub.publish(joy_msg)
+
+            elif self._control_mode == ControlModes.ENUvel:
+                self.log("Moving with ENU velocity control mode, be careful! Right stick is real East/North!")
+                # DJI expects Axes: [east, north, up, yawrate]
+                joy_msg.axes = [RV, RH, LV, LH]
+                self._ENU_vel_joy_pub.publish(joy_msg)
+
+            elif self._control_mode == ControlModes.ENUpos:
+                #TODO
+                pass
+
+        
+        
+    def _cancel_joy_timer(self):
+        self._setpoint_received_at = None
+        self._move_to_setpoint = None
+        self.log("Setpoint discarded.")
+        if self._joy_timer is not None:
+            self._joy_timer.cancel()
+            self._joy_timer = None
+            self.log("Joy timer cancelled.")
+
+
+      
+
+
+    def _move_towards_setpoint_FLUvel(self):
         if self._move_to_setpoint is None or self._setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
+            self._cancel_joy_timer()
             return
         
         if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
            (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
             self._move_to_setpoint = None
-            cancel_joy_timer()
+            self._cancel_joy_timer()
             return
         
         if not self._got_control:
             self.log("Not got control, cannot move with joy.")
-            cancel_joy_timer()
+            self._cancel_joy_timer()
+            return
+
+        try:
+            tf_diff = self._tf_buffer.lookup_transform(
+                target_frame = self.BASE_FLAT_FRAME,
+                source_frame = self._move_to_setpoint.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1))
+            target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
+        except:
+            self.log(f"Failed to transform move to setpoint from {self._move_to_setpoint.header.frame_id} to {self.BASE_FLAT_FRAME}, cancelling joy timer.")
+            self._cancel_joy_timer()
             return
 
         
-        tf_diff = self._tf_buffer.lookup_transform(
-            target_frame = self.BASE_FLAT_FRAME,
-            source_frame = self._move_to_setpoint.header.frame_id,
-            time=Time(seconds=0),
-            timeout=Duration(seconds=1))
-        
-        target_in_base = do_transform_pose_stamped(self._move_to_setpoint, tf_diff)
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y
         e_updn = target_in_base.pose.position.z # we like mirrors around a point
 
-        err = np.array([e_forw, e_left, e_updn])
-        now = time.time()
-        time_diff = now - self._setpoint_received_at
-        if time_diff < self._joy_ramp_time:
-            time_diff_mult = (time_diff / self._joy_ramp_time)
-        else:
-            time_diff_mult = 1.0
-        err_mag = np.linalg.norm(err) * time_diff_mult
+        # limit the horizontal velocity to the maximum joy value
+        e_horizontal = np.array([e_forw, e_left])
+        e_horizontal_norm = np.linalg.norm(e_horizontal)
+        if e_horizontal_norm > self.JOY_PUB_MAX:
+            e_horizontal = e_horizontal / e_horizontal_norm * self.JOY_PUB_MAX
+            e_forw, e_left = e_horizontal[0], e_horizontal[1]
 
-        if np.linalg.norm(err) > err_mag and np.linalg.norm(err) > 0:
-            err = err / np.linalg.norm(err) * err_mag
-
-        # Limit the magnitude to JOY_MAX
-        err = err * 0.7 #TODO make this actually competent
-
-        err_norm = np.linalg.norm(err)
-        if err_norm > self.JOY_MAX and err_norm > 0:
-            err = err / err_norm * self.JOY_MAX
-
-        j_forw, j_left, j_updn = err.tolist()
-        
-        
+        if np.abs(e_updn) > self.JOY_PUB_MAX:
+            e_updn = np.sign(e_updn) * self.JOY_PUB_MAX
 
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [j_forw, j_left, j_updn, 0.0]  # Assuming axes: [forward, left, up/down, yaw]
+        joy_msg.axes = [e_forw, e_left, e_updn, 0.0]  # Axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
-        self._joy_pub.publish(joy_msg)
+        self._FLU_vel_joy_pub.publish(joy_msg)
 
-    def declare_node_parameters(self):
-        self._node.declare_parameter("p_gain", 2.5)
-        self._node.declare_parameter("deriv_limit", .4)
 
-    def _rc_cb(self, msg: Joy):
+    def move_towards_setpoint_ENUpos(self):
+        self.log("move_towards_setpoint_ENUpos not implemented yet.")
+        self._cancel_joy_timer()
+
+    def move_towards_setpoint_ENUvel(self):
+        self.log("move_towards_setpoint_ENUvel not implemented yet.")
+        self._cancel_joy_timer()
+    
+
+    def _dji_rc_cb(self, msg: Joy):
         # if RC is touched by user, we give up control
         if not self._got_control: return
 
@@ -546,7 +701,22 @@ class DjiCaptain():
     def _control_mode_callback(self, msg: ControlMode):
         # hardcoded numbers from the psdk_ros2 interface
         # 1 = Has control authority, 4 = PSDK
-        self._got_control = msg.control_auth == 1 and msg.device_mode == 4
+        just_got_control = msg.control_auth == 1 and msg.device_mode == 4
+        if self._got_control == just_got_control:
+            return
+        
+        if self._got_control and not just_got_control:
+            self.log("Released control authority, stopping joy timer, discarding setpoint.")
+            self._speak("Released control.")
+            self._cancel_joy_timer()
+            self._got_control = False
+
+        elif not self._got_control and just_got_control:
+            self.log("Gained control authority.")
+            self._speak("Taken control.")
+            self._got_control = True
+        
+
 
     def _battery_callback(self, msg: BatteryState):
         self._battery_percent = msg.percentage*100
@@ -591,11 +761,9 @@ class DjiCaptain():
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
         self._base_pose_in_home.pose.orientation = msg.quaternion
 
-        rpy_enu_flat = [0.0, 0.0, rpy_enu[2]]  # we want a frame without roll and pitch for control reasons
         flat_quat = Quaternion()
         flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
         self._base_pose_flat_in_home.pose.orientation = flat_quat
-        rpy_enu_flat_no_yaw = [0.0, 0.0, 0.0]
         ENU_quat = Quaternion()
         ENU_quat.x, ENU_quat.y, ENU_quat.z, ENU_quat.w = quaternion_from_euler(0, 0, 0)
         self._base_pose_ENU_in_home.pose.orientation = ENU_quat
@@ -606,7 +774,7 @@ class DjiCaptain():
     def _home_point_callback(self, msg: NavSatFix):
         if self._home_point_in_utm is None:
             self._home_point_in_utm = PointStamped()
-            self._home_point_in_utm.header.frame_id = self.UTM_FRAME
+            self._home_point_in_utm.header.frame_id = DjiLinks.UTM
             self.log("Home point initialized in UTM.")
 
         gp = GeoPoint()
@@ -732,14 +900,14 @@ class DjiCaptain():
             utms = TransformStamped()
             utms.header.stamp = now
             utms.header.frame_id = self._utm_labeled_frame
-            utms.child_frame_id = self.UTM_FRAME
+            utms.child_frame_id = DjiLinks.UTM
             tf_msg.transforms.append(utms)
 
         if self._home_point_in_utm is not None:
             # Home point in UTM
             home_tf = TransformStamped()
             home_tf.header.stamp = now
-            home_tf.header.frame_id = self.UTM_FRAME
+            home_tf.header.frame_id = DjiLinks.UTM
             home_tf.child_frame_id = self.HOME_FRAME
             home_tf.transform.translation.x = self._home_point_in_utm.point.x
             home_tf.transform.translation.y = self._home_point_in_utm.point.y

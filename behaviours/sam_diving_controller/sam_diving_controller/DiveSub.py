@@ -55,6 +55,7 @@ class DiveSub():
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self._robot_base_link = robot_name + '/base_link'+ tf_suffix
+        self._odom_link = robot_name + '/odom'
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
@@ -65,14 +66,21 @@ class DiveSub():
         self._goal_tolerance = None
         self._waypoint_global = None
         self._waypoint_body = None
+        self._waypoint_odom = None
         self._received_waypoint = False
         self._joy_depth = None
         self._depth = None
         self._pitch = None
 
+        # Trajectory tracking variables.
+        self.path = None
+        self.path_len = None
+        self.current_idx = 0
+
         self._mission_state = MissionStates.NONE
 
         self._tf_base_link = None
+        self._tf_odom_link = None
 
         self._states = Odometry()
         self._received_states = False
@@ -160,6 +168,15 @@ class DiveSub():
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
 
+        try:
+            self._tf_odom_link = self._tf_buffer.lookup_transform(self._odom_link,
+                                                                  self._waypoint_global.header.frame_id,
+                                                                  rclpy.time.Time(seconds=0))
+        except Exception as ex:
+            self._loginfo(
+                f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
+            return
+
 
     def _transform_wp(self):
         if self._waypoint_global is None:
@@ -168,6 +185,7 @@ class DiveSub():
         if self._tf_base_link is None:
             return
 
+        self._waypoint_odom = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_odom_link)
         self._waypoint_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link)
 
 
@@ -258,20 +276,32 @@ class DiveSub():
         return distance
 
     def get_dive_pitch(self):
+        """
+        This is basically a look-ahead controller based on the distance to the waypoint.
+        """
         if self._waypoint_body is None:
             return None
 
         # With the ata2, we automatically get the desired diving pitch angle that corresponds to 
         # a ENU system, i.e. positive pitch for diving down, negative pitch for diving up
         current_depth = self.get_depth()
-        depth_error = np.abs(self._waypoint_global.pose.position.z) - np.abs(current_depth)
-        distance = self.get_distance()
-        dive_pitch = math.atan2(depth_error, distance)
+        depth_setpoint = self.get_depth_setpoint()
+        #depth_setpoint *= -1
+        #current_depth *= -1
+        depth_error = depth_setpoint - current_depth
+        look_ahead_distance = 3
+        dive_pitch = math.atan2(-depth_error, look_ahead_distance)
 
         return dive_pitch
 
     def get_waypoint(self):
         return self._waypoint_global
+
+    def get_odom_waypoint(self):
+        return self._waypoint_odom
+
+    def get_path(self):
+        return self.path
 
     def get_goal_tolerance(self):
 
@@ -313,6 +343,13 @@ class DiveSub():
             s = "(Terminal)"
 
         self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
+
+    def set_current_idx(self, idx):
+        """
+        Setting the current index of the trajectory we're following.
+        """
+        
+        self.current_idx = idx
 
     def update(self):
         """

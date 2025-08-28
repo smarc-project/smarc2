@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'teleop_node = sam_joy_teleop.teleop_node:main',
+            'test_thrust_node = sam_joy_teleop.test_thrust_vec:main',
         ],
     },
 )
