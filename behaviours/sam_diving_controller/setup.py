@@ -29,8 +29,8 @@ setup(
             'action_server_diving = sam_diving_controller.Node:action_server',
             'mpc_trajectory_tracking = sam_diving_controller.Node:mpc_trajectory_tracking',
             'setpoint = sam_diving_controller.SetpointNode:main',
-            'joy_depth = sam_diving_controller.JoyNode:joy_depth'
-            #'joy_depth = sam_diving_controller.Node:joy_depth'
+            'joy_depth = sam_diving_controller.JoyNode:joy_depth',
+            'nmpc_diving = sam_diving_controller.Node:nmpc_action_server',
         ],
     },
 )

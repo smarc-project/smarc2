@@ -14,9 +14,9 @@ from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Links as SamLinks
 
 try:
-    from .helpers.ros_helpers import rcl_time_to_stamp
+    from sam_dead_reckoning.helpers.ros_helpers import rcl_time_to_stamp
 except ImportError:
-    from helpers.ros_helpers import rcl_time_to_stamp
+    from sam_dead_reckoning.helpers.ros_helpers import rcl_time_to_stamp
 
 
 class Press2Depth(Node):
@@ -36,7 +36,7 @@ class Press2Depth(Node):
         self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"  # Unused
         # Removed depth frame
 
-        self.subs = self.create_subscription(msg_type=FluidPressure, topic="core/vbs_tank_pressure",
+        self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH20_TOPIC,
                                              callback=self.depthCB, qos_profile=10)
 
         self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC,

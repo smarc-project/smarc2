@@ -248,7 +248,6 @@ def main(args=None):
     import rclpy
     from rclpy.node import Node
     import uuid
-    from wasp_bt.vehicles.ros_vehicle import ROSVehicle
     from wasp_bt.vehicles.smarc_vehicle import GenericSMaRCVehicle
     from wasp_bt.vehicles.vehicle import UnderwaterVehicleState
 

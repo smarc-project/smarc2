@@ -36,7 +36,7 @@ class Press2Depth(Node):
         self.press_frame = f"{self.robot_name}_{SamLinks.PRESS_LINK}"  # Unused
         # Removed depth frame
 
-        self.subs = self.create_subscription(msg_type=FluidPressure, topic=SamTopics.PRESS_DEPTH300_TOPIC,
+        self.subs = self.create_subscription(msg_type=FluidPressure, topic="core/vbs_tank_pressure",
                                              callback=self.depthCB, qos_profile=10)
 
         self.pub = self.create_publisher(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC,
