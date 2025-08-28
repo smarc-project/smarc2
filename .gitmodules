@@ -6,17 +6,9 @@
 	path = external_packages/mqtt_bridge
 	url = https://github.com/KKalem/mqtt_bridge
 	branch = humble
-[submodule "simulation/SMARCUnityHDRP"]
-	path = simulation/SMARCUnityHDRP
-	url = https://github.com/smarc-project/SMARCUnityHDRP
-	branch = master
 [submodule "simulation/SMARCUnityAssets"]
 	path = simulation/SMARCUnityAssets
 	url = https://github.com/smarc-project/SMARCUnityAssets
-	branch = master
-[submodule "simulation/SMARCUnityStandard"]
-	path = simulation/SMARCUnityStandard
-	url = https://github.com/smarc-project/SMARCUnityStandard
 	branch = master
 [submodule "drivers/sbg_ros2_driver"]
 	path = drivers/sbg_ros2_driver
