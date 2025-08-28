@@ -43,3 +43,7 @@
 [submodule "utilities/serial_ping_pkg"]
 	path = utilities/serial_ping_pkg
 	url = https://github.com/NinjaTuna007/serial_ping_pkg.git
+[submodule "simulation/SMARCUnity"]
+	path = simulation/SMARCUnity
+	url = https://github.com/smarc-project/SMARCUnity
+	branch = master
