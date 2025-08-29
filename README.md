@@ -6,26 +6,31 @@ Each of the following directories also include more detailed readmes within.
 [This document](/documentation/Installing%20ROS2.md) has step-by-step instructions to get things running.
 
 
-## [Making a new Action for a robot? Check this example out](/behaviours/alars/alars/SuperSimpleActionServer.py)
-[This example](/behaviours/alars/alars/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 
+## [Making a new Action for a robot? Check this example out](/examples/SuperSimpleActionServer.py)
+[This example](/examples/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 
 It works with [the bt](./behaviours/wasp_bt/launch/wasp_bt.launch) out of the box.
 
 
 ## [The general architecture of smarc2](/documentation/Smarchitecture.md)
 An overview of the general ideas and structures that we use across different vehicles.
 
+## Folder structure
+
+Add more directories as needed.
+
+The main consideration is: where will this run, who will this be run by?
+
+- Make submodule ([see docs](./documentation/Working%20with%20submodules.md)) if:
+  - It only runs on _a specific setup_, like ONLY the sam harware or ONLY the sim.
+  - It is a single-use "I just need this data once and then I will forget about it" kind of thing
+
+- Make a normal dir if:
+  - It can be run anywhere. Like localization and control stuffs.
+  - It does not do anything until manually invoked. Like GUI stuff.
+
+- If it is a vehicle-specific _anything_, make a folder with vehicles name in the relevant top-level directory for it. Ex: `sam_diving_controller` lives under `behaviours/sam/sam_diving_controller`.
+
 ## Stuff in this repo
-
-> Add more directories as needed.
->
-> The main consideration is: where will this run?
-> - Make submodule ([see docs](./documentation/Working%20with%20submodules.md)) if:
->   - It only runs on _a specific setup_, like ONLY the sam harware or ONLY the sim.
->   - It is a single-use "I just need this data once and then I will forget about it" kind of thing
-> - Make a normal dir if:
->   - It can be run anywhere. Like localization and control stuffs.
->   - It does not do anything until manually invoked. Like GUI stuff.
-
 
 ### [Behaviours](/behaviours/)
 High-level constructs like action servers and behaviour trees.
@@ -56,9 +61,6 @@ Packages that we have not developed ourlseves entirely, but rely on.
 Maybe with edits from us that are not available upstream.
 **Always check the license of the package you put here!**
 
-### [Gui](/gui/)
-Packages related to external-to-robot control and monitoring. 
-Stuff like MQTT and node-red configurations.
 
 ### [Messages](/messages/)
 All ROS message, action and service definitions should live here.
@@ -78,6 +80,8 @@ Nodes that produce input for navigation usually.
 ### [Scripts](/scripts/)
 Where scripts for ease-of-use are stored.
 
+Vehicle bringups also live here.
+
 ### [Simulation](/simulation/)
 This is where our simulation-related packages live.
 If something is required ONLY for the sim and not anywhere else, that thing should be in here.
@@ -88,8 +92,6 @@ From the perspective of ROS, simulation is just another robot.
 Packages that by themselves aren't very useful, but contain commonly used things like LATLON <-> UTM conversion services, simple motion planners like a dubins vehicle and similar.
 
 ### [Vehicles](/vehicles/)
-#### [Bringups](/vehicles/bringups/)
-Scripts and launches to get the vehicles up
 
 #### [Descriptions](/vehicles/descriptions/)
 URDF files and the accompanying models of individual robots.
@@ -97,6 +99,6 @@ These are depended on by many packages and should require no dependencies.
 
 #### [Hardware](/vehicles/hardware/)
 Vehicles's hardware-specific packages. 
-It is likely that these packages will not compile or run on anything but the real SAM hardware.
+It is likely that these packages will not compile or run on anything but the real hardware.
 **These should be set up as submodules.**
 
