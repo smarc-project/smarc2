@@ -28,6 +28,8 @@ class MocapToEnuBroadcaster(Node):
         self.br_mocap_tank = tf2_ros.StaticTransformBroadcaster(self)
         self.br_utm_tank = tf2_ros.StaticTransformBroadcaster(self)
         self.br_local_tank = tf2_ros.StaticTransformBroadcaster(self)
+        self.br_mocap_sonar = tf2_ros.StaticTransformBroadcaster(self)
+        self.br_mocap_mocap_enu = tf2_ros.StaticTransformBroadcaster(self)
 
         t_utm = TransformStamped()
         t_utm.header.stamp = self.get_clock().now().to_msg()
@@ -85,6 +87,40 @@ class MocapToEnuBroadcaster(Node):
 
         self.br_mocap_tank.sendTransform(t)
         self.get_logger().info('Broadcasted mocap - tank_base transform')
+
+        t_sonar = TransformStamped()
+        t_sonar.header.stamp = self.get_clock().now().to_msg()
+        t_sonar.header.frame_id = 'mocap'
+        t_sonar.child_frame_id = 'sonar'
+        t_sonar.transform.translation.x = 0.276
+        t_sonar.transform.translation.y = 0.164
+        t_sonar.transform.translation.z = 0.231
+
+        q_local = quaternion_from_euler(0.09259, -0.332, -0.027)
+        t_sonar.transform.rotation.x = q_local[0]
+        t_sonar.transform.rotation.y = q_local[1]
+        t_sonar.transform.rotation.z = q_local[2]
+        t_sonar.transform.rotation.w = q_local[3]
+
+        self.br_mocap_sonar.sendTransform(t_sonar)
+        self.get_logger().info('Broadcasted utm - tank_base transform')
+
+        t_enu = TransformStamped()
+        t_enu.header.stamp = self.get_clock().now().to_msg()
+        t_enu.header.frame_id = 'mocap'
+        t_enu.child_frame_id = 'mocap_enu'
+        t_enu.transform.translation.x = 0.0
+        t_enu.transform.translation.y = 0.0
+        t_enu.transform.translation.z = 0.0
+
+        q_local = quaternion_from_euler(math.radians(180), 0, 0)
+        t_enu.transform.rotation.x = q_local[0]
+        t_enu.transform.rotation.y = q_local[1]
+        t_enu.transform.rotation.z = q_local[2]
+        t_enu.transform.rotation.w = q_local[3]
+
+        self.br_mocap_mocap_enu.sendTransform(t_enu)
+        self.get_logger().info('Broadcasted mocap -- mocap_enu transform')
 
         # Timer for broadcasting at 10 Hz
         # self.timer = self.create_timer(0.1, self.broadcast_transform)

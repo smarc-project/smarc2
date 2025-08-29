@@ -35,7 +35,7 @@ def generate_launch_description():
     # Bluerov model for visualization
 
     # robot_name = LaunchConfiguration('brov_name')
-    robot_name = "bluerov_saab"
+    robot_name = "itrl_rov_1"
     brov_package_dir = FindPackageShare(LaunchConfiguration('brov_package'))
     brov_path = PathJoinSubstitution([brov_package_dir, LaunchConfiguration('brov_package_path')])
 

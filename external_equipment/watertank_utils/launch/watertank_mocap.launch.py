@@ -23,7 +23,8 @@ def generate_launch_description():
             IncludeLaunchDescription(
             PathJoinSubstitution([FindPackageShare('mocap_qualisys'), 'launch', 'qualisys.launch.py']),
             launch_arguments={
-                'server_address': '192.168.32.32'}.items()
+                'server_address': '192.168.32.32',
+                'fixed_frame_id': 'mocap'}.items()
             ),
         ]),   
 
@@ -34,7 +35,7 @@ def generate_launch_description():
         launch_arguments={
             'sam_package': 'sam_description',
             'sam_package_path': PathJoinSubstitution(['robots', 'sam_auv_default.urdf.xacro']),
-            'brov_name': 'bluerov_saab',
+            'brov_name': 'itrl_rov_1',
             'brov_package': 'brov2heavy_description',
             'brov_package_path': PathJoinSubstitution(['robots', 'brov2heavy_default.urdf.xacro']),
             'tank_package': 'watertank_description',
@@ -53,13 +54,13 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level', 'info']),
 
-        Node(
-            package='watertank_utils',
-            executable='mocap_odom_sam',
-            name='mocap_odom_sam',
-            # parameters=[],
-            output='screen',
-            arguments=['--ros-args', '--log-level', 'info'])
+        # Node(
+        #     package='watertank_utils',
+        #     executable='mocap_odom_sam',
+        #     name='mocap_odom_sam',
+        #     # parameters=[],
+        #     output='screen',
+        #     arguments=['--ros-args', '--log-level', 'info'])
 
     ])
     
