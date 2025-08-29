@@ -179,7 +179,7 @@ class DepthMoveToServer(SMARCActionServer):
         Returns:
             tol_check (bool): true if vehicle is within zone
         """
-        if delta > min(tolerance, self.vehicle.limits["goal_tolerance_plane"]):
+        if delta > max(tolerance, self.vehicle.limits["goal_tolerance_plane"]):
             return False
         else:
             return True
