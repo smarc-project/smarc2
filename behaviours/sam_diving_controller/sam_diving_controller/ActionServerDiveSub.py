@@ -384,10 +384,6 @@ class HydropointServer(SMARCActionServer, DiveSub):
         self.logger.info(f"Distance frame {self.distance_frame}")
 
 
-
-
-
-
     def goal_callback(self, goal_request: ActionType.Goal) -> GoalResponse:
         """Considers a goal validity and evaluates whether it should be accepted or not.
 
@@ -534,6 +530,7 @@ class HydropointServer(SMARCActionServer, DiveSub):
         status = self.feedback_loop(hydropoint, goal_handle)
         if status == "cancelled":
             self.logger.info("Goal was cancelled by client.")
+            self.set_mission_state(MissionStates.CANCELLED, "AS")
             result_msg.success = False
             return result_msg
         
@@ -553,14 +550,25 @@ class HydropointServer(SMARCActionServer, DiveSub):
         d = self.compute_distance(pose_stamped)
         feedback = self.action_type.Feedback
         tol_check = self._tol_check(d)
+        start_time = self._node.get_clock().now()
         while not tol_check:
+            current_time = self._node.get_clock().now()
+            elapsed = (current_time - start_time).nanoseconds / 1e9  # seconds
             self._pub_setpoint.publish(pose_stamped)
             self.set_mission_state(MissionStates.RUNNING, "AS")
+
+            self.logger.info(f"elapsed: {elapsed}")
+
+            if elapsed > 5:
+                self.logger.info("Goal was cancelled by timeout.")
+                goal_handle.abort()
+                #self.publish_stop_setpoint()
+                return "cancelled"
 
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client.")
                 goal_handle.canceled()
-                self.publish_stop_setpoint()
+                #self.publish_stop_setpoint()
                 return "cancelled"
             
             feedback.feedback = self._json_ops.encode(d)
