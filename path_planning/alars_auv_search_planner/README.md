@@ -18,13 +18,23 @@ For now, it contains 4 algorithms:
 - Scipy: 1.15.2
 
 ## Launch
-The search planning can be run standalone or integrated in other procedures.  To run this package, In the simulator, go to the Quadrotor object (in Hierarchy) 
+The search planning can be run standalone or integrated in other procedures.  For that reason, 3 modes are available:
+- 'sim': It performs a full search based on the parameters in the config file. Useful for testing, it incorporates a mlflow
+pipeline so one can track the results. It's only available on sim as it involves teleporting sam and other sim-only procedures. Some
+visualization topics are available so the user can track what's happening.
+- 'srv': The search planning is triggered by a client requested and handled by a service. It only produces a path and it's not responsible for
+defining the setpoint, conversely to 'sim' mode. It consists of 2 services: one to trigger and set up the search planning and another to
+compute the next path. 
+- 'as': The search planning is managed by an Action Server. Similar to sim as it constantly publishes the next setpoint (and not the path) but the search planning
+needs to be triggered by the Action Client.
+
+To run this package, In the simulator, go to the Quadrotor object (in Hierarchy) 
 and set the parameter **Distance Error Cap** to **1** (in Inspector). Then, open two terminals:
 ```
 ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
 ```
 ```
-ros2 launch alars_auv_search_planner search_planning_launch.py
+ros2 launch alars_auv_search_planner search_planning_launch.py  mode:="'as'"
 ```
 
 If the user solely wants to test the package, the parameter "mode" should be changed to "sim". This will teleport SAM to the desired position, create the GPS ping and move the drone to the initial position immediately. 
@@ -57,3 +67,5 @@ source install/setup.sh
 ```
 ## Maintainer
 Francisco Miranda, framir@kth.se
+
+ros2 action send_goal /Quadrotor/alars_search smarc_mission_msgs/action/AlarsSearchAction "{gps: {latitude: 58.85058132601718, longitude: 17.67416659875381, altitude: 5.0}, radius: 100.0}"
