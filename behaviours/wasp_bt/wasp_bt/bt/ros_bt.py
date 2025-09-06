@@ -13,13 +13,12 @@ from py_trees.blackboard import Blackboard
 from py_trees.decorators import Inverter
 from py_trees.common import Status, ParallelPolicy
 from py_trees.behaviours import Running, Success, Failure
+from smarc_msgs.msg import Topics as SMaRCTopics
 
 from ..vehicles.vehicle import IVehicleStateContainer
 from ..vehicles.sensor import SensorNames
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .bb_keys import BBKeys
-from ..mission.i_action_client import IActionClient
 
 from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
@@ -29,12 +28,7 @@ from smarc_mission_msgs.action import BaseAction
 
 
 
-from .conditions import C_CheckMissionPlanState,\
-                        C_CheckSensorBool,\
-                        C_NotAborted,\
-                        C_SensorOperatorBlackboard,\
-                        C_MissionTimeoutOK,\
-                        C_TaskIs,\
+from .conditions import C_TaskIs,\
                         C_TaskStatus,\
                         C_AbortedPreviousTask,\
                         C_NoEmergencyAbortSignalDetected,\
@@ -57,6 +51,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                  vehicle_container:IVehicleStateContainer,
                  task_handler:WaraPSTaskHandler,
                  now_seconds_func: typing.Callable,
+                 get_ready_action: BTActionClient = None,
                  emergency_action: BTActionClient = None,
                  action_client_list: typing.List[BTActionClient] = None
                  ):
@@ -71,6 +66,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self.action_client_list = action_client_list
         self._now_seconds_func = now_seconds_func
         self.emergency_action = emergency_action
+        self.get_ready_action = get_ready_action
 
         self._last_state_str = ""
 
@@ -97,39 +93,24 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         return liveliness_tree
     
     def _health_tree(self):
+        """
+        A tree that checks the health status of the vehicle
+        """
+
         health_checks = Fallback("F_Health_Handler", memory=False, children=[
             Sequence("S_Health_Status", memory=False, children=[
-                C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health has been heard from in the last 10 seconds
+                # C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health returns SUCCESS (Vehicle is ready)
                 C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
-                C_VehicleHealthStatus(self._task_handler),
-
+                Fallback("F_Health_Checks", memory=False, children=[
+                    C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_READY),
+                    C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),
+                ]),
             ]),
             A_Abort(self._task_handler),
         ])
 
-        return health_checks                
- 
-    def _safety_tree(self):
-        safety_checks = Parallel("P_Safetty_Checks", policy=ParallelPolicy.SuccessOnAll(synchronise=False) , children=[
-            C_NotAborted(self),
-            C_CheckSensorBool(self, SensorNames.VEHICLE_HEALTHY),
-            Inverter("Not leaking", C_CheckSensorBool(self, SensorNames.LEAK)),
-            C_SensorOperatorBlackboard(self, SensorNames.ALTITUDE, operator.gt, BBKeys.MIN_ALTITUDE),
-            C_SensorOperatorBlackboard(self, SensorNames.DEPTH, operator.lt, BBKeys.MAX_DEPTH),
-            C_MissionTimeoutOK()
-        ])
+        return health_checks
 
-        safety_tree = Fallback("F_Safety", memory=False, children=[
-            safety_checks,
-            # modify mission?
-            Parallel("P_EMERGENCY", policy=ParallelPolicy.SuccessOnAll(synchronise=False), children=[
-                A_Abort(self),
-                Running("TODO: A_EmergencyAction")
-            ])
-        ])
-
-        return safety_tree
-    
     def _handle_emergency_tree(self):
         """
         A tree that handles emergency situations, such as aborting the mission
@@ -159,7 +140,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         return Fallback("F_HandleEmergency", memory=False, children=emergency_children)
                     
-    def _one_task_tree(self, task_name: str, action_client: IActionClient):
+    def _one_task_tree(self, task_name: str, action_client: BTActionClient):
         """
         A tree that handles a single task type, such as move-to or depth-move-to
         """
@@ -183,8 +164,47 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         return task_tree
 
+    def _get_ready_tree(self, task_name: str, action_client: BTActionClient):
+        """
+        A tree that handles a single task type, such as move-to or depth-move-to
+        """
 
-    def _task_handler_tree(self, action_client_list: typing.List[IActionClient] = None):
+
+        # check if the action server is alive (setup like below)
+        status = action_client._setup(num_iters=3)
+        if not status:
+            # if the action server is not alive, we cannot run the action
+            self._task_handler._node.get_logger().warn(f"Action server for {task_name} is not alive")
+            return None
+
+        ready_tree = Sequence(f"S_{task_name}", memory=False, children=[
+
+            Fallback("F_CanIGetReady?", memory=False, children = [
+                C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),
+                C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_READY),
+            ]),
+
+            C_TaskIs(self._task_handler, task_name),
+            Fallback("F_StatusCheck", memory=False, children=[
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.STARTED.value),
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.RESUMED.value),
+                C_TaskStatus(self._task_handler, WaraPSTaskStates.RUNNING.value),
+            ]),
+
+            # run the action client
+            A_ActionClient(
+                action_client,
+                bt = self,
+                task_handler = self._task_handler
+            ),
+            # when done, clear the task queue
+            A_ClearCurrentTask(self._task_handler),
+        ])
+
+        return ready_tree
+
+
+    def _task_handler_tree(self, action_client_list: typing.List[BTActionClient] = None):
         """
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
         """
@@ -197,6 +217,10 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             ]),
         ]
 
+        if self.get_ready_action is not None:
+            get_ready_tree = self._get_ready_tree("get-ready", self.get_ready_action)
+            if get_ready_tree is not None:
+                task_children.append(get_ready_tree)
 
         # create a action_client_list from the heartbeats of action clients, as stored by the WaraPSTaskHandler
 
@@ -209,7 +233,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             ros_task_name = tasks_available[i]["ros_name"]
             
             # only append to the list of available task if it's not the emergency task. We don't want emergency to be available to the user in the task handler tree.
-            if "emergency" not in ros_task_name:
+            if "emergency" not in ros_task_name and "ready" not in ros_task_name:
                 ros_task_names.append(ros_task_name)
             
         # self._task_handler._node.get_logger().info(f"Available tasks: {ros_task_names}")
@@ -220,10 +244,14 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             
             action_client_list = [BTActionClient(self._task_handler._node, ros_task_name, action_type) for ros_task_name in ros_task_names]
 
+        mission_children = [
+            C_VehicleHealthStatus(self._task_handler, desired_status=SMaRCTopics.VEHICLE_HEALTH_READY)
+        ]
+
+        mission_task_children = []
 
         # we will append the task trees to this list programmatically
         if action_client_list is not None:
-            #TODO: implement this
             self._task_handler._node.get_logger().info(f"Action clients: {[ac.get_action_name() for ac in action_client_list]}")
 
             for action_client in action_client_list:
@@ -241,7 +269,20 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                 task_name = action_client.get_action_name().split('/')[-1].replace("_", "-")
 
                 task_tree = self._one_task_tree(task_name, action_client)
-                task_children.append(task_tree)
+                mission_task_children.append(task_tree)
+
+        # make a fallback out of mission_task_children
+        mission_task_fallback = Fallback("F_Tasks", memory=False, children=mission_task_children)
+
+        # add mission_task_fallback to the mission_children
+        mission_children.append(mission_task_fallback)
+
+        # construct the mission tree
+        mission_tree = Sequence("S_Mission", memory=False, children=mission_children)
+
+
+        # add the mission tree to task handler
+        task_children.append(mission_tree)
 
         # add the chill task
         task_children.append(A_Chilling(self))
@@ -319,7 +360,11 @@ def wasp_bt():
     # agent = SAMAuv(node)
     agent = GenericSMaRCVehicle(node, UnderwaterVehicleState)
     action_type = ActionType(BaseAction)
-        
+    
+    # get-ready action client: None if does not exist, else
+    get_ready_action_client = BTActionClient(node, "get_ready", action_type)
+    # get_ready_action_client = None
+
     # emergency action
     emergency_action_client = BTActionClient(node, "emergency_action", action_type)
     # emergency_action_client = None
@@ -359,6 +404,7 @@ def wasp_bt():
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
+            get_ready_action = get_ready_action_client,
             emergency_action = emergency_action_client,
             # action_client_list = action_client_list,
             # the commented out line above means that you're listening for available tasks from the WaraPSTaskHandler. You can also provide a list of action clients to use if you like.

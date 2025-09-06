@@ -1,9 +1,0 @@
-.npm
-node_modules
-*.backup
-DEPCNT.*
-.config.**.sessions.json
-package-lock.json
-mqtt_nodered/node-red/projects/
-mqtt_nodered/node-red/.*.json
-.vscode
