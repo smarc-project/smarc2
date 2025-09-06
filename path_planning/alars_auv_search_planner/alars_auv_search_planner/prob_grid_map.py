@@ -69,16 +69,16 @@ class ProbabilisticGridMap(Node):
         # initiate pubs and subs
         self.create_subscription(
             msg_type = Odometry,
-            topic = '/Quadrotor/odom_gt',
+            topic = params["topics.drone_odom"],
             callback = self.drone_odom_callback,
             qos_profile= 10)
         self.create_subscription(
             msg_type= Odometry,
-            topic = '/sam_auv_v1/smarc/odom',
+            topic = params["topics.sam_odom"],
             callback=self.sam_odom_callback,
             qos_profile= 10)  
-        self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = '/Quadrotor/grid_map', qos_profile = 10)
-        self.cell_pub = self.create_publisher(msg_type=PointStamped, topic = '/Quadrotor/max_prob_cell', qos_profile = 10)
+        self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = params["topics.pub_grid_map"], qos_profile = 10)
+        self.cell_pub = self.create_publisher(msg_type=PointStamped, topic = params["topics.pub_likely_sam_location"], qos_profile = 10)
 
 
         
@@ -126,6 +126,8 @@ class ProbabilisticGridMap(Node):
 
         # publishing cell with highest probability for visualization purposes
         self.pub_max_prob_cell()
+
+        return self.map_seen()
     
     
     def kernel(self):
@@ -328,7 +330,8 @@ class ProbabilisticGridMap(Node):
         self.Y = self.Y[::-1]
         self.Ncells_x, self.Ncells_y = self.X.shape[1], self.X.shape[0]
         self.map_Time = np.empty([self.Ncells_x, self.Ncells_y])
-        self.map_Time[:,:] = self.get_clock().now().nanoseconds   
+        self.init_timestamp = self.get_clock().now().nanoseconds
+        self.map_Time[:,:] = self.init_timestamp  
 
         # create grid map as ros msg
         self.grid_map_translation = [int((self.w/2)/self.resol), int((self.h/2)/self.resol)]
@@ -350,7 +353,13 @@ class ProbabilisticGridMap(Node):
         self.map.info.width = self.Ncells_x
         self.map.info.height = self.Ncells_y
         self.map.info.resolution = self.resol
-        self.map.info.origin = self.origin     
+        self.map.info.origin = self.origin  
+
+    def map_seen(self):
+        """ Compute the ratio of the map area already seen by the search planner """
+        mask  = self.map_Time !=  self.init_timestamp
+        return np.sum(mask,axis = None) / (mask.shape[0]*mask.shape[1])
+
 
     def map_probabilities(self, data):
         """ Map probabilities to values between 0 and 100, as required by OccupancyGrid message in ros"""

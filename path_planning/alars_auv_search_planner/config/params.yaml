@@ -1,13 +1,13 @@
 /**/SearchPlanner_Controller:
   ros__parameters:
-    mode: "sim"
+    mode: "as"
     path_planner: "spiral"
 
     sam:
-      init_pos: [1260.0, 1150.0]
-      init_pos_variance: 0.1
+      init_pos: [1220.0, 1150.0]
+      init_pos_variance: 1.0
       vel_variance: 4.0
-      max_floating_vel: 2.0
+      max_floating_vel: 5.0
 
     drone:
       init_pos: [5.0, 5.0]
@@ -43,10 +43,10 @@
 
     grid_map:
       workspace:
-        width: 120.0
-        height: 120.0
+        width: 300
+        height: 300
         resol: 2.0
-        variance: 10.0
+        variance: 20.0
       update:
         rate: 0.5
         true_detection_rate: 0.9999999999  # 1.0 - 1e-10
@@ -65,3 +65,11 @@
     
     topics:
       move_drone: "/Quadrotor/move_to_setpoint"
+      teleport_sam: '/sam_auv_v1/teleport'
+      drone_odom: '/Quadrotor/odom_gt'
+      sam_odom: '/sam_auv_v1/smarc/odom'
+      sam_detection: 'dji_msgs/Topics_SAM_DETECTION_TOPIC'
+
+      pub_path: '/Quadrotor/path'
+      pub_grid_map: '/Quadrotor/grid_map'
+      pub_likely_sam_location: '/Quadrotor/max_prob_cell'
