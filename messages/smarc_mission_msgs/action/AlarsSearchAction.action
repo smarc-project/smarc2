@@ -1,0 +1,9 @@
+# goal message
+geographic_msgs/GeoPoint gps
+float64 radius 
+---
+# result message
+bool success
+---
+# feedback message
+std_msgs/String feedback
