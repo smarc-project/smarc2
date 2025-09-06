@@ -18,7 +18,6 @@ from smarc_action_base.smarc_action_base import (
 )
 from smarc_mission_msgs.action import AlarsSearchAction
 from smarc_msgs.msg import Topics as SmarcTopics
-import inspect
 
 
 class SearchPlannerAction():

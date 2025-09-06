@@ -65,7 +65,7 @@ class SearchPlannerController(Node):
         else:
             self.countsToInitializeMap = 0
             self.countsToUpdateMap = 1
-        self.countsToInitializePlanner = int(self.model_params["grid_map.update.time_margin"]/self.path_update_dt)
+        self.countsToInitializePlanner = self.countsToUpdateMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
 
 
         

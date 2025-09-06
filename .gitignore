@@ -12,7 +12,3 @@ results.csv
 
 
 COLCON_IGNORE
-path_planning/alars/alars_auv_search_planner/
-perception/auv_yolo_detector/bags
-perception/auv_yolo_detector/images
-perception/auv_yolo_detector/venv
