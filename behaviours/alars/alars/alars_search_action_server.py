@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import rclpy
-import json
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import  PointStamped
@@ -8,17 +7,7 @@ from smarc_utilities.georef_utils import convert_latlon_to_utm
 from alars_auv_search_planner.search_planner_controller import SearchPlannerController
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
-from collections.abc import Callable
-from rclpy.action import CancelResponse, GoalResponse
-from rclpy.action.server import ServerGoalHandle
-from smarc_action_base.smarc_action_base import (
-    ActionResult,
-    ActionType,
-    SMARCActionServer,
-)
-from smarc_mission_msgs.action import AlarsSearchAction
-from smarc_msgs.msg import Topics as SmarcTopics
-
+from smarc_action_base.gentler_action_server import GentlerActionServer
 
 class SearchPlannerAction():
     def __init__(self,
@@ -48,8 +37,7 @@ class SearchPlannerAction():
 
         # Initialize any necessary state for your specific action
         # These have nothing to do with the action server itself
-        self._looped_for = 0
-        self._loop_max = 2000
+        self.MAP_SEEN_MAX = 80
         self._radius = 0
         self._gps = None
         self.sam_position = None
@@ -61,22 +49,27 @@ class SearchPlannerAction():
         Return True to accept the goal, False to reject it
         """ 
         self._node.get_logger().info(f"Received goal request: {goal_request}")
-        self._radius : float = goal_request["radius"]
-        self._gps : GeoPoint = goal_request["gps"]
+        self._gps = GeoPoint()
+        self._radius = 0
 
-        def _assert_goal_request():
-            if(
-                isinstance(self._gps, GeoPoint) and
-                isinstance(self._gps.latitude, float) and
-                isinstance(self._gps.longitude, float) and
-                isinstance(self._gps.altitude, float) and
-                isinstance(self._radius, float) and
-                self._radius > 0
-            ):
-                return True
-            else: return False
+        if "radius" in goal_request and "gps" in goal_request:
+            if 'latitude' in goal_request['gps'] and'longitude' in goal_request['gps'] and 'altitude' in goal_request['gps']:
+                self._radius = goal_request["radius"]
+                self._gps.latitude = goal_request['gps']['latitude']
+                self._gps.longitude = goal_request['gps']['longitude']
+                self._gps.altitude = goal_request['gps']['altitude']
+                if(
+                    isinstance(self._gps, GeoPoint) and
+                    isinstance(self._gps.latitude, float) and
+                    isinstance(self._gps.longitude, float) and
+                    isinstance(self._gps.altitude, float) and
+                    isinstance(self._radius, float) and
+                    self._radius > 0
+                ):
+                    return True
+        else: return False
 
-        return _assert_goal_request()
+    
     
     def _on_cancel_received(self) -> bool:
         """
@@ -93,8 +86,7 @@ class SearchPlannerAction():
         Here you would typically set up any necessary state or resources
         This is run once before the loop starts, after you accept the goal
         """
-        self._node.get_logger().info("Preparing loop for action execution")
-        self._looped_for = 0
+        self._node.get_logger().info("Preparing loop for search action execution")
 
         # if activated by client, quadrotor doesn't perform initial movement (assigning purposes only)
         self.spcontroller.drone_init_pos = PointStamped()
@@ -116,13 +108,13 @@ class SearchPlannerAction():
         Return True to indicate success, False for failure, or None to continue
         This is run after _prepare_loop call at "loop_frequency" Hz
         """
-        self._looped_for += 1
-        if self._looped_for >= self._loop_max :
-            self._node.get_logger().warn("Reached maximum loop iterations, completing action")
+
+        if round(self.map_seen*100,2) >= self.MAP_SEEN_MAX :
+            self._node.get_logger().warn(f"{self.MAP_SEEN_MAX} % of the map was seen, calling off search!")
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
         elif self.sam_position is not None:
-            self._node.get_logger().warn("SAM was detected, finishing search")
+            self._node.get_logger().warn("SAM was detected, finishing search!")
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return True
         
@@ -139,7 +131,7 @@ class SearchPlannerAction():
         
     
     def _give_feedback(self) -> str:
-        feedback = f"Action is in progress: {self._looped_for}/{self._loop_max} iter., {round(self.map_seen*100,2)} % of the map was seen"
+        feedback = f"{round(self.map_seen*100,2)} % of the map was seen"
         self._node.get_logger().info(feedback)
         # Here you would typically generate feedback for the action
         # This is run after each _loop_inner call
@@ -149,71 +141,6 @@ class SearchPlannerAction():
         self.sam_position = msg
 
 
-
-class GentlerActionServer(SMARCActionServer):
-    """
-    Action server that wraps the AlarsSearchAction for gentler interactions.
-    """
-    def __init__(self,
-                 node: Node,
-                 action_name : str,
-                 on_goal_received : Callable[[dict], bool],
-                 on_cancel_received : Callable[[], bool],
-                 prepare_loop : Callable[[], None],
-                 loop_inner: Callable[[], bool | None],
-                 give_feedback: Callable[[], str],
-                 loop_frequency: float = 5.0):
-        
-        super().__init__(
-            node,
-            action_name,
-            ActionType(AlarsSearchAction),
-            SmarcTopics.WARA_PS_ACTION_SERVER_HB_TOPIC)
-        
-        self._on_goal_received :   Callable[[dict], bool]    = on_goal_received
-        self._on_cancel_received : Callable[[], bool]        = on_cancel_received
-        self._prepare_loop :       Callable[[], None]        = prepare_loop
-        self._loop_inner :         Callable[[], bool | None] = loop_inner
-        self._give_feedback :      Callable[[], str]         = give_feedback
-        self._loop_frequency :     float                     = loop_frequency
-
-
-    def goal_callback(self, goal_request) -> GoalResponse:
-        return  GoalResponse.ACCEPT if self._on_goal_received({"gps": goal_request.gps, "radius": goal_request.radius}) else GoalResponse.REJECT
-
-
-    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
-        return  CancelResponse.ACCEPT if self._on_cancel_received() else CancelResponse.REJECT
-    
-
-    def execution_callback(self, goal_handle) -> ActionResult:
-        result_msg = AlarsSearchAction.Result()
-        feedback_msg = AlarsSearchAction.Feedback()
-
-        self._prepare_loop()
-
-        rate = self._node.create_rate(self._loop_frequency)
-
-        while rclpy.ok() and not goal_handle.is_cancel_requested:
-            loop_status : bool|None = self._loop_inner()
-            if loop_status is None:
-                # loop continues, not successful or failed yet
-                feedback_msg.feedback.data = self._give_feedback()
-                goal_handle.publish_feedback(feedback_msg)
-            else:
-                result_msg.success = loop_status
-                rate.destroy()
-                if result_msg.success:
-                    goal_handle.succeed()
-                else:
-                    goal_handle.abort()
-                return result_msg
-            
-            rate.sleep()
-        
-        result_msg.success = False
-        goal_handle.canceled()
-        return result_msg
 
 
 def main():
