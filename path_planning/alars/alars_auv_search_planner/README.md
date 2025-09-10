@@ -32,7 +32,7 @@ needs to be triggered by the Action Client.
 
 Examples of service client scripts are available within the package. If one wants to use the action server, it can run via CLI:
 ```
- ros2 action send_goal /Quadrotor/alars_search smarc_mission_msgs/action/AlarsSearchAction "{gps: {latitude: 58.85058132601718, longitude: 17.67436659875381, altitude: 5.0}, radius: 100.0}"
+ros2 action send_goal /Quadrotor/alars_search smarc_mission_msgs/action/BaseAction '{goal: {data: "{\"gps\": {\"latitude\": 58.85058132601718, \"longitude\": 17.67436659875381, \"altitude\": 5.0}, \"radius\": 100.0}"}}'
 ```
 To run the search planning standalone, open two terminals and type:
 ```
