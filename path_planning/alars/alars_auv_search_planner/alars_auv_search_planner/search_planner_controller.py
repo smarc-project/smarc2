@@ -16,6 +16,13 @@ from geometry_msgs.msg import PoseArray, Pose, PointStamped
 from .prob_grid_map import ProbabilisticGridMap 
 from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
 from smarc_utilities.georef_utils import convert_latlon_to_utm
+from dji_msgs.msg import Topics as Topics_dji
+from dji_msgs.msg import Links as Links_dji
+from drone_msgs.msg import Topics as Topics_drone
+from drone_msgs.msg import Links as Links_drone
+from smarc_msgs.msg import Topics as Topics_smarc
+from sam_msgs.msg import Links as Links_sam
+
 
 class SearchPlannerController(Node):
     """ 
@@ -27,10 +34,18 @@ class SearchPlannerController(Node):
     """
     def __init__(self):
         super().__init__(
-            'SearchPlanner_Controller',
+            'search_planner_controller',
             allow_undeclared_parameters=True,
             automatically_declare_parameters_from_overrides=True
         )
+        self.dji_topics = Topics_dji()
+        self.dji_links = Links_dji()
+        self.drone_topics = Topics_drone()
+        self.drone_links = Links_drone()
+        self.smarc_topics = Topics_smarc()
+        self.sam_links = Links_sam()
+        self.drone_namespace = self.get_namespace()
+        self.sam_namespace = '/sam_auv_v1/'
         self.get_params() 
         
         # set up depending on mode
@@ -88,11 +103,12 @@ class SearchPlannerController(Node):
                         'greedy': GreedyPathModel,
                         'astar': AStarPathModel,
                         'apf': APFPathModel}
-        try: 
-            self.planner = planner_dict[self.model_params['path_planner']](params = self.model_params, grid_map = self.grid_map)
-        except: 
-            self.get_logger().error('Incorrect path planner label! Check launch and README files')
-            assert False, "path planner param only accepts 'spiral', 'greedy', 'astar' or 'apf'"
+        self.planner = planner_dict[self.model_params['path_planner']](params = self.model_params, grid_map = self.grid_map)
+        # try: 
+        #     self.planner = planner_dict[self.model_params['path_planner']](params = self.model_params, grid_map = self.grid_map)
+        # except: 
+        #     self.get_logger().error('Incorrect path planner label! Check launch and README files')
+        #     assert False, "path planner param only accepts 'spiral', 'greedy', 'astar' or 'apf'"
 
 
     def init_search_srv_callback(self, request, response):
@@ -187,6 +203,7 @@ class SearchPlannerController(Node):
         x_odom, y_odom = self.planner.generate_waypoint(self.drone_init_pos.point.x,
                                         self.drone_init_pos.point.y,
                                         self.drone_init_pos.point.z)
+
         if dist([x_odom, y_odom], [self.drone_init_pos.point.x, self.drone_init_pos.point.y]) < 0.5:
             self.relocate_timer.cancel()
             self.init_done = True
@@ -273,7 +290,7 @@ class SearchPlannerController(Node):
     """ --- Parameters declaration """
 
     def get_params(self):
-        # Retrieve parameters
+        # Retrieve parameters common to all modes
         self.model_params = {
             "mode": self.get_parameter("mode").value,
             "path_planner": self.get_parameter("path_planner").value,
@@ -315,25 +332,35 @@ class SearchPlannerController(Node):
             "grid_map.update.true_detection_rate": self.get_parameter("grid_map.update.true_detection_rate").value,
             "grid_map.update.time_margin": self.get_parameter("grid_map.update.time_margin").value,
 
-            "battery.discharge_rate": self.get_parameter("battery.discharge_rate").value,
-            "battery.threshold": self.get_parameter("battery.threshold").value,
-            "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value,
+            'frames.id.map': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.MAP,
+            'frames.id.quadrotor_odom': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.ODOM,
 
-            'frames.id.map': self.get_parameter('frames.id.map').value,
-            'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
-            'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value,
+            'topics.move_drone': self.drone_namespace + "/" + self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
+            'topics.drone_odom': self.drone_namespace + "/" + self.smarc_topics.ODOM_TOPIC, 
+            #'topics.sam_detection': self.drone_namespace + "/" + self.dji_topics.SAM_DETECTION_TOPICS, #TODO: uncomment when it's updated
 
-            'topics.move_drone': self.get_parameter('topics.move_drone').value,
-            'topics.teleport_sam': self.get_parameter('topics.teleport_sam').value,
-            'topics.drone_odom': self.get_parameter('topics.drone_odom').value,
-            'topics.sam_odom': self.get_parameter('topics.sam_odom').value,
-            'topics.sam_detection': self.get_parameter('topics.sam_detection').value,
-
-            'topics.pub_path': self.get_parameter('topics.pub_path').value,
-            'topics.pub_grid_map': self.get_parameter('topics.pub_grid_map').value,
-            'topics.pub_likely_sam_location': self.get_parameter('topics.pub_likely_sam_location').value
-            
+            'topics.pub_path': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_path').value,
+            'topics.pub_grid_map': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_grid_map').value,
+            'topics.pub_likely_sam_location': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_likely_sam_location').value
         }
+
+        if self.model_params["mode"] != "asTODO": #TODO: remove later on
+            self.model_params.update({
+                'frames.id.map': self.get_parameter('frames.id.map').value, #TODO: map_gt or Quadrotor/map ?
+                'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
+                'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value,
+
+                'topics.drone_odom': self.get_parameter("topics.drone_odom").value,
+                'topics.sam_detection': self.get_parameter("topics.sam_detection").value, 
+                'topics.sam_odom': self.sam_namespace + self.smarc_topics.ODOM_TOPIC,
+                'topics.teleport_sam': self.get_parameter('topics.teleport_sam').value,
+                'topics.drone_battery': self.drone_namespace + '/core/battery',
+
+                "battery.discharge_rate": self.get_parameter("battery.discharge_rate").value,
+                "battery.threshold": self.get_parameter("battery.threshold").value,
+                "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value,
+                
+            })
     
     def finish_experiment(self):
         """ 
