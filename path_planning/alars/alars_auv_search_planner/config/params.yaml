@@ -1,11 +1,11 @@
-/**/SearchPlanner_Controller:
+/**/search_planner_controller:
   ros__parameters:
     mode: "as"
     path_planner: "spiral"
 
     sam:
       init_pos: [1220.0, 1150.0]
-      init_pos_variance: 1.0
+      init_pos_variance: 20.0
       vel_variance: 4.0
       max_floating_vel: 5.0
 
@@ -70,6 +70,6 @@
       sam_odom: '/sam_auv_v1/smarc/odom'
       sam_detection: 'dji_msgs/Topics_SAM_DETECTION_TOPIC'
 
-      pub_path: '/Quadrotor/path'
-      pub_grid_map: '/Quadrotor/grid_map'
-      pub_likely_sam_location: '/Quadrotor/max_prob_cell'
+      pub_path: 'path'
+      pub_grid_map: 'grid_map'
+      pub_likely_sam_location: 'max_prob_cell'
