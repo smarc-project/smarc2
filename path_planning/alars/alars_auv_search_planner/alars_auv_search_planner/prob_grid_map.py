@@ -34,16 +34,6 @@ class ProbabilisticGridMap(Node):
     def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping:PointStamped = None):
         super().__init__(name)
         self.get_logger().info('Grid map initialized')
-    
-        self.GPS_ping = GPS_ping
-        self.GPS_ping_odom = None
-        self.drone_pos_odom_gt = None
-        self.prior = None
-
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.drone_position = PointStamped()
-        self.sam_vel = Vector3Stamped()
 
         if params:
 
@@ -59,12 +49,21 @@ class ProbabilisticGridMap(Node):
             self.camera_fov = (pi/180)*params["drone.camera_fov"]
             self.flight_height = params["drone.flight_height"]
 
-            self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
-            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
 
         else:
             self.get_logger().error("No parameters received")
+
+        # initialize grid map vars. 
+        self.GPS_ping = GPS_ping
+        self.GPS_ping_odom = None
+        self.drone_pos_odom_gt = None
+        self.prior = None
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.drone_position = PointStamped()
+        self.sam_vel = Vector3Stamped()
 
         # initiate pubs and subs
         self.create_subscription(
@@ -72,16 +71,25 @@ class ProbabilisticGridMap(Node):
             topic = params["topics.drone_odom"],
             callback = self.drone_odom_callback,
             qos_profile= 10)
-        self.create_subscription(
-            msg_type= Odometry,
-            topic = params["topics.sam_odom"],
-            callback=self.sam_odom_callback,
-            qos_profile= 10)  
+
         self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = params["topics.pub_grid_map"], qos_profile = 10)
         self.cell_pub = self.create_publisher(msg_type=PointStamped, topic = params["topics.pub_likely_sam_location"], qos_profile = 10)
 
+        # If mode = as, sam vel is not accessible -> assume zero
+        if params["mode"] == "as":
+            self.sam_vel.vector.x = .0
+            self.sam_vel.vector.y = .0
+            self.sam_vel.vector.z = .0
+            self.sam_vel.header.frame_id = self.drone_odom_frame_id
+            self.sam_vel.header.stamp = self.get_clock().now().to_msg()
 
-        
+            self.create_subscription(
+                msg_type= Odometry,
+                topic = params["topics.sam_odom"],
+                callback=self.sam_odom_callback,
+                qos_profile= 10)  
+
+
     def initiate_grid_map(self) -> None: 
         """ 
         Initializes grid map , ie, initializes the grid map coordinates and the timestamp of each cell. 

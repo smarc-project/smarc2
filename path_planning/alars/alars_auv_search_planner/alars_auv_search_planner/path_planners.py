@@ -54,8 +54,8 @@ class InitializeActions(Node):
 
 
     Notes:
-        This class should only be useful in SIM. In real life, the GPS measurement needs to be passed as argument to different objects in the 
-        SearchPlannerController class (search_planner_controller.py).
+        This class should only be useful in "sim" mode. In real life, the GPS measurement needs to be passed as 
+        argument to different objects in the SearchPlannerController class (search_planner_controller.py).
 
     """
     def __init__(self, name = 'init_actions', params = None):
@@ -181,7 +181,6 @@ class SearchPlanner(Node, ABC):
     """
     def __init__(self, name="pathplanner_parent", params = None, grid_map:ProbabilisticGridMap = None):
         super().__init__(node_name = name)
-        self.get_logger().info('Parent search planner initialized')
 
         self.params = params
         self.grid_map = grid_map
@@ -191,7 +190,7 @@ class SearchPlanner(Node, ABC):
         self.drone_position = PointStamped()
         self.drone_vel = None
         self.sam_position = PointStamped()
-        self.sam_vel = None
+        self.sam_vel = np.array([0, 0])
         self.distance_thresh = 0.1
 
         # flags to avoid blocking operations
@@ -223,18 +222,7 @@ class SearchPlanner(Node, ABC):
             msg_type = Odometry,
             topic = params['topics.drone_odom'],
             callback = self.drone_odom_callback,
-            qos_profile= 10)
-        self.create_subscription(
-            msg_type = Odometry,
-            topic = params['topics.sam_odom'],
-            callback = self.sam_odom_callback,
-            qos_profile= 10)
-        self.create_subscription(
-            msg_type= BatteryState,
-            topic = '/Quadrotor/core/battery',
-            callback=self.drone_battery_callback,
-            qos_profile= 10)     
-        
+            qos_profile= 10)   
         self.point_publisher = self.create_publisher(
             msg_type = PoseStamped,
             topic = params['topics.move_drone'], 
@@ -243,10 +231,19 @@ class SearchPlanner(Node, ABC):
             msg_type = Path,
             topic = params['topics.pub_path'] ,
             qos_profile= 10)
-        self.sam_pos_publisher = self.create_publisher( # visualization purposes only
-            msg_type = PointStamped,
-            topic = '/sam_auv_v1/position',
-            qos_profile= 10)
+        
+        if params["mode"] == "sim":
+            self.create_subscription(
+                msg_type = Odometry,
+                topic = params['topics.sam_odom'],
+                callback = self.sam_odom_callback,
+                qos_profile= 10)
+            self.create_subscription(
+                msg_type= BatteryState,
+                topic = params['topics.drone_battery'],
+                callback=self.drone_battery_callback,
+                qos_profile= 10)  
+
         
 
     @abstractmethod     
@@ -382,12 +379,13 @@ class SearchPlanner(Node, ABC):
         self.drone_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
 
     def sam_odom_callback(self, msg: Odometry):
-        """ Retrieve SAM's velocity from odometry and publish it's position for visualization purposes"""
+        """ 
+        Retrieve SAM's velocity from odometry and publish it's position for visualization purposes.
+        Only available in sim, sam_position allows to detect when experiment is finished
+        """
         self.sam_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
+        self.sam_position = PointStamped()
         self.sam_position.point = msg.pose.pose.position
-        self.sam_position.header = msg.header
-        self.sam_pos_publisher.publish(self.sam_position)
-
 
 
     def drone_battery_callback(self, msg):
@@ -466,14 +464,11 @@ class SpiralPathModel(SearchPlanner):
                 self.path_needed = True if self.params['mode'] == 'srv' else False
                 
             elif self.phase == 'spiral': 
-                # NOTE: if sam odom and quadrotor ain't aligned, this needs to be changed
-                sam_vel = self.sam_vel
-
                 # generate moving spiral with increasing radius -> estimate period with current drone velocity
                 predicted_T = 2*pi*self.R/np.linalg.norm(self.drone_vel)
-                spiral_displacement = self.vel_factor*sam_vel*predicted_T
+                spiral_displacement = self.vel_factor*self.sam_vel*predicted_T
                 theta = np.arange(0,self.i*(2*pi+self.delta_theta),self.i*self.delta_theta)
-                delta_r = self.r*(1-sqrt(np.linalg.norm(sam_vel)/self.sam_max_vel)) # radius increment accounting for sam velocity
+                delta_r = self.r*(1-sqrt(np.linalg.norm(self.sam_vel)/self.sam_max_vel)) # radius increment accounting for sam velocity
                 r = np.linspace(self.R, self.R + delta_r, theta.shape[0])
                 self.R  += delta_r 
                 x = self.grid_map.GPS_ping_odom[0] + np.multiply(r, np.cos(theta)) + np.linspace(0, spiral_displacement[0], theta.shape[0]) + self.previous_spiral_displacement[0] 
