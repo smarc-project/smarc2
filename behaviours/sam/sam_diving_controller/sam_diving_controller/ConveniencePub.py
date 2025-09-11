@@ -2,13 +2,15 @@
 import sys
 import rclpy
 from rclpy.node import Node
+from rclpy.clock import Clock
 
 import numpy as np
 
 from smarc_control_msgs.msg import Topics as ControlTopics
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 
-from geometry_msgs.msg import PoseWithCovarianceStamped 
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Pose
+from nav_msgs.msg import Odometry, Path
 
 try:
     from .IDivePub import IDivePub
@@ -23,15 +25,16 @@ class ConveniencePub(IDivePub):
 
         self._node = node
 
-        #self._node.declare_parameter('robot_name', 'sam0')
         self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
 
-        self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
+        #self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
+        self._state_pub = node.create_publisher(Odometry, ControlTopics.STATES_CONV, 10)
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
-        self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, ControlTopics.WAYPOINT_CONV, 10)
-
+        #self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, ControlTopics.WAYPOINT_CONV, 10)
+        self._waypoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT_CONV, 10)
+        self._mpc_pred_pub = node.create_publisher(Path, ControlTopics.MPC_PRED, 10)
 
         self._state_msg = None
         self._ref_msg = None
@@ -86,24 +89,67 @@ class ConveniencePub(IDivePub):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        self._waypoint = self._dive_sub.get_waypoint_in_odom()
+        #self._waypoint = self._dive_sub.get_waypoint_in_odom()
+        self._waypoint = self._dive_controller.get_wp()
         self._goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         if self._waypoint is None:
             return
 
-        self._waypoint_msg = PoseWithCovarianceStamped()
-        self._waypoint_msg.header.frame_id = self._robot_name + 'odom'
-        self._waypoint_msg.pose.pose = self._waypoint
-        self._waypoint_msg.pose.pose.orientation.w = 1.0
-        cov = np.zeros([6,6])
-        cov[0][0] = np.sqrt(self._goal_tolerance)
-        cov[1][1] = np.sqrt(self._goal_tolerance)
-        cov[2][2] = np.sqrt(self._goal_tolerance)
-        cov_vec = cov.reshape(36)
-        self._waypoint_msg.pose.covariance = cov_vec.tolist()
+        #self._waypoint_msg = PoseWithCovarianceStamped()
+        #self._waypoint_msg.header.frame_id = self._robot_name + 'odom'
+        #self._waypoint_msg.pose.pose = self._waypoint
+        #self._waypoint_msg.pose.pose.orientation.w = 1.0
+        #cov = np.zeros([6,6])
+        #cov[0][0] = np.sqrt(self._goal_tolerance)
+        #cov[1][1] = np.sqrt(self._goal_tolerance)
+        #cov[2][2] = np.sqrt(self._goal_tolerance)
+        #cov_vec = cov.reshape(36)
+        #self._waypoint_msg.pose.covariance = cov_vec.tolist()
 
-        self._waypoint_pub.publish(self._waypoint_msg)
+        #self._waypoint_pub.publish(self._waypoint_msg)
+        self._waypoint_pub.publish(self._waypoint)
+
+
+    def _publish_predicted_path(self):
+        x_pred = self._dive_controller.get_mpc_pred()
+        current_attitude = np.array([1, 0, 0, 0])
+
+        now = self._node.get_clock().now()
+
+        predicted_path_msg = Path()
+        predicted_path_msg.header.stamp = now.to_msg()
+        predicted_path_msg.header.frame_id = 'map'
+
+        for i, predicted_state in enumerate(x_pred):
+            # Calculate future time offset
+            future_time = now + rclpy.duration.Duration(seconds=i * 0.1)
+
+            # Create PoseStamped
+            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], current_attitude)
+            pose_stamped.header.stamp = future_time.to_msg()
+            pose_stamped.header.frame_id = 'mocap'
+
+            predicted_path_msg.poses.append(pose_stamped)
+
+        self._mpc_pred_pub.publish(predicted_path_msg)
+
+
+    def _vector2PoseMsg(self, frame_id, position, attitude):
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = self._node.get_clock().now().to_msg()
+        pose_msg.header.frame_id = frame_id
+        # Some NED -> ENU conversion for plotting...?
+        pose_msg.pose.position.x = float(position[1])
+        pose_msg.pose.position.y = float(position[0])
+        pose_msg.pose.position.z = float(-position[2])
+        pose_msg.pose.orientation.w = float(attitude[0])
+        pose_msg.pose.orientation.x = float(attitude[1])
+        pose_msg.pose.orientation.y = float(attitude[2])
+        pose_msg.pose.orientation.z = float(attitude[3])
+
+        return pose_msg
+
 
     def _print_state(self) -> None:
         # Get all info and print it
@@ -112,12 +158,12 @@ class ConveniencePub(IDivePub):
             s += f"No state msg yet."
         else:
             s += "States:\n"
-            s += f"   x: {self._state_msg.pose.x:.3f}, "\
-                 f"y: {self._state_msg.pose.y:.3f}, "\
-                 f"z: {self._state_msg.pose.z:.3f}, "\
-                 f"roll: {self._state_msg.pose.roll:.3f}, "\
-                 f"pitch: {self._state_msg.pose.pitch:.3f}, "\
-                 f"yaw: {self._state_msg.pose.yaw:.3f}\n"
+            #s += f"   x: {self._state_msg.pose.x:.3f}, "\
+            #     f"y: {self._state_msg.pose.y:.3f}, "\
+            #     f"z: {self._state_msg.pose.z:.3f}, "\
+            #     f"roll: {self._state_msg.pose.roll:.3f}, "\
+            #     f"pitch: {self._state_msg.pose.pitch:.3f}, "\
+            #     f"yaw: {self._state_msg.pose.yaw:.3f}\n"
             s += f"   DiveController mission state: {self._dive_sub.get_mission_state()}\n"
 
         if self._input_msg is None:
@@ -172,5 +218,6 @@ class ConveniencePub(IDivePub):
         self._update_error()
         self._update_input()
         self._update_waypoint()
-        self._print_state()
+        #self._print_state()
+        self._publish_predicted_path()
 
