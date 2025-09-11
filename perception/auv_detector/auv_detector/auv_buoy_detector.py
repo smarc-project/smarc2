@@ -11,29 +11,37 @@ class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
 
-        #################################################################################  Frequent Change 
-        # when running on jetson, please change it into 0, so the publish rate can keep 30 hz
-        self.debug_imshow = 2     # 0: no show,  1: show one,   2: show all  
+        ################################################################################
+        # Frequent Adjustments
+        # Note: On Jetson, set to 0 to maintain a publish rate of ~30 Hz
+        self.debug_imshow = 0     # 0: disable display, 1: show one frame, 2: show all frames  
 
-        # Color Mask Adjustment 
-        # buoy
+        # Color Mask Thresholds
+        # Buoy detection (orange range)
         self.buoy_color_lower_orange = np.array([8, 121, 35]) 
         self.buoy_color_upper_orange = np.array([40, 157, 247])
-        # auv
+        self.buoy_min_area = 20   
+                                                   
+        # AUV detection (yellow range)
         self.auv_color_lower_yellow = np.array([25, 0, 169]) 
         self.auv_color_upper_yellow = np.array([46, 103, 221])
+        self.auv_min_area = 200   # Minimum contour area for buoy detection 
+                                  # Lower values = more sensitive (detects small objects)
+                                  # Higher values = stricter (requires larger buoy size)   
+        
 
 
-        ################################################################################  Not Frequent Change 
-        # Enable detector  # 0: turn off, ,  1: enable 
+        ################################################################################
+        # Occasional Adjustments
+        # Enable or disable specific detectors  
+        self.buoy_detector = 1     # 0: off, 1: enabled
+        self.auv_detector = 1      # 0: off, 1: largest contour center, 2: best rectangle center    
+        self.rope_detector = 0     # 0: off, 1: spline line, 2: multi-frame, 3: both    
 
-        self.buoy_detector = 1
-        self.auv_detector = 2      # 1 centroid center  # 2 rectangle center    
-        self.rope_detector = 0
 
-
-        ################################################################################  No Changed 
-        # Publishers
+        ################################################################################
+        # Rarely Changed
+        # ROS2 publishers for detection topics
         self.buoy_pub = self.create_publisher(Float32MultiArray, "alars_detection/buoy", 10)
         self.auv_pub = self.create_publisher(Float32MultiArray, "alars_detection/auv", 10)
         self.middle_pub = self.create_publisher(Float32MultiArray, "alars_detection/middle", 10)
@@ -83,6 +91,10 @@ class DetectionNode(Node):
 
             for cnt in contours:
                 area = cv2.contourArea(cnt)
+                
+                if area < self.buoy_min_area:
+                    continue
+                
                 if area > max_area:
                     max_area = area
                     max_contour = cnt
@@ -142,6 +154,10 @@ class DetectionNode(Node):
 
                 for cnt in contours:
                     area = cv2.contourArea(cnt)
+
+                    if area < self.auv_min_area:
+                        continue
+
                     if area > max_area:
                         max_area = area
                         max_contour = cnt
@@ -177,14 +193,13 @@ class DetectionNode(Node):
 
             if self.auv_detector == 2:
                 # Missle-Shape detector Parameters
-                min_area = 300
                 min_aspect_ratio = 2.5  # Tune this: 2.5 means at least 2.5x longer than wide
                 best_contour = None
                 best_ratio = 0
 
                 for cnt in contours:
                     area = cv2.contourArea(cnt)
-                    if area < min_area:
+                    if area < self.auv_min_area:
                         continue
 
                     # Fit rotated rectangle to get aspect ratio
@@ -212,6 +227,8 @@ class DetectionNode(Node):
                     auv_position_msg = Float32MultiArray()
                     auv_position_msg.data = [float(center[0]), float(center[1])]  # Publish the coordinates of the AUV
                     self.auv_pub.publish(auv_position_msg)
+
+                    center_auv = np.array([center[0], center[1]]) # update for middle point
         
                     if self.debug_imshow >= 2:
                         cv2.circle(preview_auv, center, 3, (0, 0, 255), -1)
