@@ -1,10 +1,11 @@
 import numpy as np
-from ament_copyright.main import main
 import pytest
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
+from ament_index_python.packages import get_package_share_directory
+import os
 
-from rl_control.ONNXManager import ONNXManager
+from sam_diving_controller.ONNXManager import ONNXManager
 
 sut: ONNXManager
 
@@ -13,7 +14,10 @@ sut: ONNXManager
 def test_before_after():
     # Code that will run before your test, for example:
     global sut
-    sut = ONNXManager("/home/mart/colcon_ws/src/smarc2/behaviours/rl_control/resource/SAMSimple.onnx")
+
+    pkg_share = get_package_share_directory("sam_diving_controller")
+    onnx_path = os.path.join(pkg_share, "resource", "SAMSimple.onnx")
+    sut = ONNXManager(onnx_path)
     # A test function will be run at this point
     yield
     # Code that will run after your test
@@ -94,7 +98,8 @@ def test_rescale_outputs_customconfig_testset():
     assert outputs[3] == pytest.approx(0.07, 0.0001)
     assert outputs[4] == pytest.approx(30, 0.0001)
 
+
 def test_prepare_state():
     state = sut.prepare_state((Odometry(), Pose(), 1))
 
-    assert state.shape == (1,14), 'Output shape is incorrect.'
+    assert state.shape == (1, 14), 'Output shape is incorrect.'
