@@ -241,15 +241,8 @@ class DiveSub():
             return
 
         self._states_in_mocap.header.frame_id = self._waypoint_global.header.frame_id
+        self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_odom_global)
 
-        self._states_in_mocap.pose.pose.position.x = self._tf_mocap_base_link.transform.translation.x
-        self._states_in_mocap.pose.pose.position.y = self._tf_mocap_base_link.transform.translation.y
-        self._states_in_mocap.pose.pose.position.z = self._tf_mocap_base_link.transform.translation.z
-        self._states_in_mocap.pose.pose.orientation.x = self._tf_mocap_base_link.transform.rotation.x
-        self._states_in_mocap.pose.pose.orientation.y = self._tf_mocap_base_link.transform.rotation.y
-        self._states_in_mocap.pose.pose.orientation.z = self._tf_mocap_base_link.transform.rotation.z
-        self._states_in_mocap.pose.pose.orientation.w = self._tf_mocap_base_link.transform.rotation.w
-        self._states_in_mocap.twist = self._states.twist
 
     # Get methods
     def get_depth_setpoint(self):
