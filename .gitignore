@@ -5,3 +5,5 @@ __pycache__
 
 mpc_codegen
 c_generated_code
+
+COLCON_IGNORE

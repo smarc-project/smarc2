@@ -4,8 +4,8 @@
     <!-- Set to _gt if you want to use the ground truth from the sim -->
     <arg name="link_suffix" default=""/>
     <arg name="agent_type" default="air"/>
-    <arg name="levels" default="['sensor','direct_execution']"/>
-    <arg name="pulse_rate" default="1"/>
+    <arg name="pulse_rate" default="1.0"/>
+    <arg name="bt_log_mode" default="verbose"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -14,8 +14,8 @@
                 <param name="link_suffix" value="$(var link_suffix)"/>
                 <param name="robot_name" value="$(var robot_name)"/>
                 <param name="agent_type" value="$(var agent_type)"/>
-                <param name="levels" value="$(var levels)"/>
                 <param name="pulse_rate" value="$(var pulse_rate)"/>
+                <param name="bt_log_mode" value="$(var bt_log_mode)"/>
             </node>
     </group>
 
@@ -24,7 +24,6 @@
         <arg name="use_sim_time" value="$(var use_sim_time)"/>
         <arg name="link_suffix" value="$(var link_suffix)"/>
         <arg name="agent_type" value="$(var agent_type)"/>
-        <arg name="levels" value="$(var levels)"/>
         <arg name="pulse_rate" value="$(var pulse_rate)"/>
     </include>
 </launch>

@@ -6,7 +6,7 @@ package_name = 'wasp_bt'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(exclude=['test'], include=['wasp_bt', 'wasp_bt.*']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -25,11 +25,6 @@ setup(
         'console_scripts': [
             "wasp_bt = wasp_bt.bt.ros_bt:wasp_bt",
             "waraps_vehicle = wasp_bt.waraps.waraps_vehicle:main",
-            "test_ros_vehicle = wasp_bt.vehicles.ros_vehicle:test_ros_vehicle",
-            "test_sam_auv = wasp_bt.vehicles.sam_auv:test_sam_auv",
-            "test_bt_conditions = wasp_bt.bt.ros_bt:test_bt_conditions",
-            "send_test_mission = wasp_bt.mission.ros_mission_updater:send_test_mission_control",
-            "test_dubins_planner_caller = wasp_bt.mission.ros_dubins_planner_caller:test_dubins_planner_caller"
         ],
     },
 )

@@ -1,0 +1,18 @@
+<launch>
+  <!--Launch file for testing the INS -> ODOM, map_odom_initializer_node is used to define odom's fixed transform -->
+  <arg name="robot_name" default="sam" />
+
+  <node pkg="sam_health_checker" exec="sam_rate_health_node" name="sam_rate_health_node" output="screen" namespace="$(var robot_name)">
+<!--     <param name="leak_topic" value="..." /> -->
+<!--     <param name="battery_topic" value="..." /> -->
+    <param name="battery_min_voltage" value="20.0" />
+    <param name="battery_min_capacity" value="0.25" />
+
+    <param name="initial_timeout_time_sec" value="60.0" />
+    <param name="timeout_time_sec" value="7.5" />
+
+    <param name="verbose" value="True" />
+
+  </node>
+
+</launch>

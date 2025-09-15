@@ -6,17 +6,9 @@
 	path = external_packages/mqtt_bridge
 	url = https://github.com/KKalem/mqtt_bridge
 	branch = humble
-[submodule "simulation/SMARCUnityHDRP"]
-	path = simulation/SMARCUnityHDRP
-	url = https://github.com/smarc-project/SMARCUnityHDRP
-	branch = master
 [submodule "simulation/SMARCUnityAssets"]
 	path = simulation/SMARCUnityAssets
 	url = https://github.com/smarc-project/SMARCUnityAssets
-	branch = master
-[submodule "simulation/SMARCUnityStandard"]
-	path = simulation/SMARCUnityStandard
-	url = https://github.com/smarc-project/SMARCUnityStandard
 	branch = master
 [submodule "drivers/sbg_ros2_driver"]
 	path = drivers/sbg_ros2_driver
@@ -29,6 +21,18 @@
 	path = drivers/nmea_navsat_driver
 	url = git@github.com:smarc-project/nmea_navsat_driver.git
 	branch = ros2
+[submodule "drivers/stim300"]
+	path = drivers/stim300
+	url = git@github.com:smarc-project/stim300.git
+	branch = humble
+[submodule "drivers/dvl-a50-ros-driver"]
+	path = drivers/dvl-a50-ros-driver
+	url = git@github.com:smarc-project/dvl-a50-ros-driver.git
+	branch = humble
+[submodule "drivers/ublox"]
+	path = drivers/ublox
+	url = https://github.com/KumarRobotics/ublox.git
+	branch = ros2
 [submodule "external_packages/smarc_modelling"]
 	path = external_packages/smarc_modelling
 	url = https://github.com/smarc-project/smarc_modelling.git
@@ -36,4 +40,10 @@
 	path = vehicles/hardware/dji/psdk_ros2
 	url = https://gitr.sys.kth.se/smarc-project/dji_psdk_wrapper.git
 	branch = smarc
-
+[submodule "utilities/serial_ping_pkg"]
+	path = utilities/serial_ping_pkg
+	url = https://github.com/NinjaTuna007/serial_ping_pkg.git
+[submodule "simulation/SMARCUnity"]
+	path = simulation/SMARCUnity
+	url = https://github.com/smarc-project/SMARCUnity
+	branch = master

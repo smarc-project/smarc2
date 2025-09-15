@@ -3,8 +3,7 @@
     <arg name="use_sim_time" default="true"/>
     <arg name="link_suffix" default=""/>
     <arg name="agent_type" default="air"/>
-    <arg name="levels" default="['sensor','direct_execution']"/>
-    <arg name="pulse_rate" default="1"/>
+    <arg name="pulse_rate" default="1.0"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -13,7 +12,6 @@
         <param name="link_suffix" value="$(var link_suffix)"/>
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="agent_type" value="$(var agent_type)"/>
-        <param name="levels" value="$(var levels)"/>
         <param name="pulse_rate" value="$(var pulse_rate)"/>
     </node>
     </group>

@@ -1,16 +1,18 @@
 <launch>
   <arg name="robot_name" default="lolo"/>
   <arg name="robot_urdf" default="lolo_auv.urdf"/>
-  <arg name="prefix" default="$(var robot_name)/"/>
+<!--   <arg name="prefix" default="$(var robot_name)/"/> -->
+  <!-- No prefix required, handled by the URDF   -->
+  <arg name="prefix" default=""/>
 
   <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
-
+    <!--
     <node name="joint_state_publisher" pkg="joint_state_publisher" exec="joint_state_publisher">
       <param name="rate" value="300"/>
       <param name="source_list" value="['command_states']"/>
     </node>
-
+    -->
     <!--This is from the ROS1 version of the launch file, It hasnt been tested-->
     <!--<node pkg="lolo_description" type="joint_state_converter.py" name="joint_state_converter" output="screen"/>-->
 

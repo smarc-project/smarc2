@@ -9,9 +9,7 @@ from py_trees.behaviour import Behaviour
 
 from .i_has_vehicle_container import HasVehicleContainer
 from .i_has_clock import HasClock
-from .common import VehicleBehaviour, MissionPlanBehaviour, bool_to_status
-from .bb_keys import BBKeys
-from ..mission.mission_plan import MissionPlanStates
+from .common import VehicleBehaviour, bool_to_status
 from ..vehicles.sensor import SensorNames       
 
 from ..waraps.waraps_task_handler import HasWaraPSTaskHandler, WaraPSTaskHandler, WaraPSTaskStates
@@ -92,43 +90,7 @@ class C_NotAborted(VehicleBehaviour):
         
         return Status.SUCCESS
 
-
-class C_CheckMissionPlanState(MissionPlanBehaviour):
-    def __init__(self, expected_state: MissionPlanStates):
-        self._expected_state = expected_state
-        name = f"{self.__class__.__name__}({self._expected_state})"
-        super().__init__(name)
-        self._bb = Blackboard()
-        
-
-    def update(self) -> Status:
-        self.feedback_message = ""
-        plan = self._get_plan()
-        if plan is None: return Status.FAILURE
-
-        if plan.state != self._expected_state:
-            self.feedback_message = f"Expected:{self._expected_state} found:{plan.state}"
-            return Status.FAILURE
-
-        return Status.SUCCESS
     
-
-class C_MissionTimeoutOK(MissionPlanBehaviour):
-    def __init__(self):
-        name = f"{self.__class__.__name__}"
-        super().__init__(name)
-        self._bb = Blackboard()
-
-    def update(self) -> Status:
-        self.feedback_message = ""
-        plan = self._get_plan()
-        if plan is None: return Status.SUCCESS
-        
-        self.feedback_message = f"({plan.seconds_to_timeout}) to timeout"
-        if plan.timeout_reached: 
-            return Status.FAILURE
-        return Status.SUCCESS
-
 class C_AbortedPreviousTask(Behaviour):
     def __init__(self, wara_ps_task_handler: WaraPSTaskHandler):
         """
@@ -165,6 +127,68 @@ class C_NoEmergencyAbortSignalDetected(Behaviour):
         else:
             self.feedback_message = "No emergency abort signal detected"
             return Status.SUCCESS
+        
+    def terminate(self, new_status: Status) -> None:
+        """
+        clean up the feedback message
+        """
+        self.feedback_message = ""
+        super().terminate(new_status)
+
+from smarc_msgs.msg import Topics
+
+class C_LastHealthy(Behaviour):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, timeout: float = 10.0):
+        """
+        Returns S if the last healthy status is ok
+        """
+        self._wara_ps_task_handler = wara_ps_task_handler
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+        self._timeout = timeout
+
+    def update(self) -> Status:
+        now_time = self._wara_ps_task_handler.current_time()
+        if now_time - self._wara_ps_task_handler.health_last_time >  self._timeout:
+            self.feedback_message = f"Not heard from vehicle in {now_time - self._wara_ps_task_handler.health_last_time:.2f} seconds. Aborting!"
+            return Status.FAILURE
+        else:
+            self.feedback_message = "Comms are fine. Vehicle health is up to date."
+            return Status.SUCCESS
+
+
+class C_VehicleHealthStatus(Behaviour):
+    def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, desired_status: Topics):
+        """
+        Returns S if the vehicle is healthy
+        """
+        self._wara_ps_task_handler = wara_ps_task_handler
+        self._desired_status = desired_status
+
+        self.status_dict = {
+            0: "READY",
+            1: "WAITING",
+            2: "ERROR"
+        }
+        
+        desired_status_str = self.status_dict[desired_status]
+        name = f"{self.__class__.__name__}({desired_status_str})"
+        super().__init__(name)
+        self._health_status = self._wara_ps_task_handler.health_status
+        self.feedback_message = ""
+
+    def update(self) -> Status:
+
+        # update the health status from the task handler
+        self._health_status = self._wara_ps_task_handler.health_status
+
+        if self._health_status == self._desired_status:
+            self.feedback_message = f"Vehicle health status is {self._health_status}"
+            return Status.SUCCESS
+        else:
+            self.feedback_message = f"Vehicle health status is {self._health_status}. Unknown status"
+            return Status.FAILURE
+
         
     def terminate(self, new_status: Status) -> None:
         """
@@ -224,3 +248,25 @@ class C_TaskStatus(Behaviour):
         else:
             self.feedback_message = f"Current task status is {current_executing_tasks[0]['status']}"
             return Status.FAILURE
+        
+class C_HasHeardFromVehicleHealth(Behaviour):
+    """
+    An action that keeps "running" until a parameter on the task handler is true.
+    """
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        
+        """
+        Returns S if the vehicle health has been received
+        """
+        self._task_handler = task_handler
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+        self.feedback_message = ""
+
+    def update(self) -> Status:
+        if self._task_handler.health_last_time is not None:
+            self.feedback_message = "Vehicle health received."
+            return Status.SUCCESS
+        else:
+            self.feedback_message = "Waiting for vehicle health to be published..."
+            return Status.RUNNING
