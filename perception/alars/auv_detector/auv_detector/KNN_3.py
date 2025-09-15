@@ -44,10 +44,8 @@ class KNN(Node):
         self.realdata_topic = self.get_parameter("realdata.topic").value
         self.realdata = self.get_parameter("realdata.enabled").value
         # self.realdata_path = self.get_parameter("realdata.path").value
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
-=======
+
         self.SHOW_DEBUG = self.get_parameter("show_debug").value
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
 
         # Initialization (in __init__ or once)
         self.rope_img_buffer = deque(maxlen=5)
@@ -143,20 +141,12 @@ class KNN(Node):
         self.declare_parameter("realdata.enabled", P.REALDATA)
         # self.declare_parameter("realdata_path", P.REALDATA_PATH)
 
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
-=======
-        self.declare_parameter("show_debug", False)  # Show debug images in separate windows
-
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
 
         
     def listener_callback(self, msg):
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
         cv_image_noted = cv_image.copy()
-=======
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
         # cv_image = self.enhance_saturation(cv_image, saturation_factor=1.5) TODO : increase saturation and see if results improve
         #enhance saturation values
         sat_factor = 1
@@ -218,7 +208,6 @@ class KNN(Node):
                 # Put area text
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
                 
 
                 cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
@@ -227,8 +216,6 @@ class KNN(Node):
                 cv2.putText(cv_image_noted, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-=======
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
         #cv2.imshow('HSV_buoy', preview_buoy)
 
         #########################################################################################  auv
@@ -270,11 +257,8 @@ class KNN(Node):
                 center_auv = np.array([cx, cy])
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
                 cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
 
-=======
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
                 auv_position_msg = Float32MultiArray()
                 auv_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the AUV
                 self.auv_pub.publish(auv_position_msg)
@@ -282,16 +266,11 @@ class KNN(Node):
                 # Put area text
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
                 
                 cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
-=======
-
-        if self.SHOW_DEBUG: cv2.imshow('HSV_auv', preview_auv)
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
 
 
 
@@ -333,11 +312,7 @@ class KNN(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
 
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
         cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
-=======
-        if self.SHOW_DEBUG: cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv_2)
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
         #########################################################################################   rope
 
         # HSV filter for rope
@@ -347,13 +322,8 @@ class KNN(Node):
         preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
         cv2.imshow('HSV_rope', preview_rope)
         center_x_rope = None
-=======
-        if self.SHOW_DEBUG: cv2.imshow('HSV_rope', preview_rope)
-
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
 
         # Rope Reconstruction method 1 
         # # Step 1: Find rope points
@@ -481,11 +451,7 @@ class KNN(Node):
 
             cv2.putText(preview_rope_2, "Heading Point", (center_x_rope + 10, center_y_rope - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
             cv2.imshow("Curve Fitting", preview_rope_2)
-=======
-            if self.SHOW_DEBUG: cv2.imshow("Curve Fitting", preview_rope_2)
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
         # grid-based search require fully connection 
         # path_px = self.grid_path_from_rope(preview_rope_3, center_buoy, center_auv, cell_size=5)
 
@@ -505,16 +471,12 @@ class KNN(Node):
 
             middle_position_msg = Float32MultiArray()
             middle_position_msg.data = [float(center_between_auv_and_buoy[0]), float(center_between_auv_and_buoy[1])]  # Publish the coordinates of the middle point between auv and buoy
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
             self.middle_pub.publish(middle_position_msg) 
 
             cx = int(center_between_auv_and_buoy[0])  
             cy = int(center_between_auv_and_buoy[1])  
             cv2.circle(cv_image_noted, (cx, cy), 5, (0, 0, 255), -1) 
             cv2.putText(cv_image_noted, f"Middle Point", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
-=======
-            self.middle_pub.publish(middle_position_msg)    
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
             
             direction_between_auv_and_buoy =  center_auv - center_buoy
             direction_between_auv_and_buoy = direction_between_auv_and_buoy / np.linalg.norm(direction_between_auv_and_buoy)  # Normalize
@@ -554,7 +516,6 @@ class KNN(Node):
             
 
             # Draw heading
-<<<<<<< HEAD:perception/auv_detector/auv_detector/KNN_3.py
             if center_x_rope is not None:
                 arrow_start_point = (target_u, target_v)
                 arrow_end_point = (center_x_rope, center_y_rope)
@@ -572,23 +533,6 @@ class KNN(Node):
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
         cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
-=======
-            arrow_start_point = (target_u, target_v)
-            arrow_end_point = (center_x_rope, center_y_rope)
-            cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
-
-            # Final 3D heading in camera frame
-            heading_x = (center_x_rope - cam_x) * cam_Z / fx
-            heading_y = (center_y_rope - cam_y) * cam_Z / fy
-
-            # Publish Target
-            target_position_msg = Float32MultiArray()
-            target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
-            self.target_pub.publish(target_position_msg) 
-
-        # Show the combined result
-        if self.SHOW_DEBUG: cv2.imshow('Combined_HSV', combined_preview)
->>>>>>> upstream/humble:perception/alars/auv_detector/auv_detector/KNN_3.py
         #########################################################################################
 
         # Apply the connected component filtering
