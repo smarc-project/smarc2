@@ -6,6 +6,8 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from dji_msgs.msg import Topics
+from std_srvs.srv import Trigger
+
 
 class DetectionNode(Node):
     def __init__(self):
@@ -55,9 +57,43 @@ class DetectionNode(Node):
         )
         self.bridge = CvBridge()
 
-        self.get_logger().info("DetectionNode initialized and subscribed to /Quadrotor/gimbal_camera/image_raw")
+        self.get_logger().info(f"DetectionNode initialized and subscribed to '{Topics.CAMERA_TOPIC}'")
+
+
+        ################################################################################
+        # Detector enabled flag (controlled via service)
+        self.detector_enabled = True
+
+        ################################################################################
+        # Service to enable/disable the detector (use std_srvs/SetBool)
+        # Service name also without leading slash so it will be namespaced properly.
+        self.create_service(Trigger, 'alars_detector', self.handle_enable_detector)
+
+
+        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.CAMERA_TOPIC}'. Service 'enable_detector' ready.")
+
+    
+    
+    ################################################################################
+    # Service callback: SetBool request.data True -> enable, False -> disable
+
+    def handle_enable_detector(self, request, response):
+        # Toggle the detector enabled flag
+        self.detector_enabled = not self.detector_enabled
+        response.success = True
+        response.message = 'detector enabled' if self.detector_enabled else 'detector disabled'
+        self.get_logger().info(f"Service called: detector_enabled = {self.detector_enabled}")
+        return response
+
+
 
     def image_callback(self, msg: Image):
+
+        if not self.detector_enabled:
+            # Detector disabled — do minimal processing / return quickly.
+            # Could still forward camera frames or publish heartbeat if desired.
+            return
+
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         cv_image_noted = cv_image.copy()
