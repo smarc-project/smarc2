@@ -5,7 +5,7 @@ from std_msgs.msg import Float32MultiArray
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
-
+from dji_msgs.msg import Topics
 
 class DetectionNode(Node):
     def __init__(self):
@@ -14,7 +14,7 @@ class DetectionNode(Node):
         ################################################################################
         # Frequent Adjustments
         # Note: On Jetson, set to 0 to maintain a publish rate of ~30 Hz
-        self.debug_imshow = 0     # 0: disable display, 1: show one frame, 2: show all frames  
+        self.debug_imshow = 1     # 0: disable display, 1: show one frame, 2: show all frames  
 
         # Color Mask Thresholds
         # Buoy detection (orange range)
@@ -42,15 +42,14 @@ class DetectionNode(Node):
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
-        self.buoy_pub = self.create_publisher(Float32MultiArray, "alars_detection/buoy", 10)
-        self.auv_pub = self.create_publisher(Float32MultiArray, "alars_detection/auv", 10)
-        self.middle_pub = self.create_publisher(Float32MultiArray, "alars_detection/middle", 10)
-        self.target_pub = self.create_publisher(Float32MultiArray, "alars_detection/target", 10)
+        self.buoy_pub = self.create_publisher(Float32MultiArray, Topics.BUOY_TOPIC, 10)
+        self.auv_pub = self.create_publisher(Float32MultiArray, Topics.AUV_TOPIC, 10)
+        self.middle_pub = self.create_publisher(Float32MultiArray, Topics.MIDDLE_TOPIC, 10)
 
         # Subscriber
         self.subscription = self.create_subscription(
             Image,
-            "/Quadrotor/gimbal_camera/image_raw",
+            Topics.CAMERA_TOPIC,
             self.image_callback,
             10
         )
