@@ -123,4 +123,10 @@ Sample rviz layout to follow the vehicle and visualize the waypoints.
 
 Sample plotjuggler layout to analyse rosbags.
 
+# Running Tests
 
+Either run the test directly from the file or run the package test suite using:
+
+```bash
+colcon test --packages-select sam_diving_controller --event-handlers console_cohesion+
+```

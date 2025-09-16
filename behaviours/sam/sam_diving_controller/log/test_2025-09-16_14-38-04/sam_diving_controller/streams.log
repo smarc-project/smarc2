@@ -1,0 +1,15 @@
+[0.191s] Invoking command in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller': PYTEST_ADDOPTS=--tb=short --junit-xml=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/pytest.xml --junit-prefix=sam_diving_controller -o cache_dir=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/.pytest_cache PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m pytest
+[0.375s] [1m============================= test session starts ==============================[0m
+[0.375s] platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0
+[0.378s] cachedir: build/sam_diving_controller/.pytest_cache
+[0.378s] rootdir: /home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller
+[0.378s] plugins: launch-testing-ros-0.19.7, launch-testing-1.0.6, ament-flake8-0.12.11, ament-lint-0.12.11, ament-pep257-0.12.11, ament-copyright-0.12.11, ament-xmllint-0.12.11, colcon-core-0.18.4, cov-3.0.0
+[0.547s] [1mcollecting ... [0m[1m
+[0.547s] collected 10 items                                                             [0m
+[0.547s] 
+[0.550s] test/test_copyright.py [33ms[0m[32m                                                 [ 10%][0m
+[0.618s] test/controllers/test_ONNXManager.py [32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                           [100%][0m
+[0.618s] 
+[0.618s] - generated xml file: /home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/pytest.xml -
+[0.618s] [32m========================= [32m[1m9 passed[0m, [33m1 skipped[0m[32m in 0.24s[0m[32m =========================[0m
+[0.655s] Invoked command in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller' returned '0': PYTEST_ADDOPTS=--tb=short --junit-xml=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/pytest.xml --junit-prefix=sam_diving_controller -o cache_dir=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/.pytest_cache PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m pytest

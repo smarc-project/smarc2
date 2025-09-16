@@ -1,0 +1,70 @@
+[0.488s] [34mcolcon[0m [1;30mDEBUG[0m [32mCommand line arguments: ['/usr/bin/colcon', 'test', '--packages-select', 'sam_diving_controller', '--event-handlers', 'console_cohesion+'][0m
+[0.488s] [34mcolcon[0m [1;30mDEBUG[0m [32mParsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='test', build_base='build', install_base='install', merge_install=False, test_result_base=None, retest_until_fail=0, retest_until_pass=0, abort_on_error=False, return_code_on_test_failure=False, executor='parallel', parallel_workers=32, event_handlers=['console_cohesion+'], ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['sam_diving_controller'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], ctest_args=None, python_testing=None, pytest_args=None, pytest_with_coverage=False, unittest_args=None, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x765b5f77c070>, verb_extension=<colcon_core.verb.test.TestVerb object at 0x765b5f745ae0>, main=<bound method TestVerb.main of <colcon_core.verb.test.TestVerb object at 0x765b5f745ae0>>, mixin_verb=('test',))[0m
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(colcon_meta) check parameters
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(recursive) check parameters
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(ignore) check parameters
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(path) check parameters
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(colcon_meta) discover
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(recursive) discover
+[0.601s] [34mcolcon.colcon_core.package_discovery[0m [1;30mINFO[0m Crawling recursively for packages in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller'
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extension 'ignore'
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extension 'ignore_ament_install'
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extensions ['colcon_pkg']
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extension 'colcon_pkg'
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extensions ['colcon_meta']
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extension 'colcon_meta'
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extensions ['ros']
+[0.601s] [34mcolcon.colcon_core.package_identification[0m [1;30mLevel 1[0m _identify(.) by extension 'ros'
+[0.609s] [34mcolcon.colcon_core.package_identification[0m [1;30mDEBUG[0m [32mPackage '.' with type 'ros.ament_python' and name 'sam_diving_controller'[0m
+[0.609s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(recursive) using defaults
+[0.609s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(ignore) discover
+[0.609s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(ignore) using defaults
+[0.609s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(path) discover
+[0.609s] [34mcolcon.colcon_core.package_discovery[0m [1;30mLevel 1[0m discover_packages(path) using defaults
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'ctest_args' from command line to 'None'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'python_testing' from command line to 'None'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'pytest_args' from command line to 'None'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'pytest_with_coverage' from command line to 'False'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'unittest_args' from command line to 'None'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'retest_until_pass' from command line to '0'
+[0.610s] [34mcolcon.colcon_core.verb[0m [1;30mLevel 5[0m set package 'sam_diving_controller' test argument 'retest_until_fail' from command line to '0'
+[0.610s] [34mcolcon.colcon_core.verb.test[0m [1;30mDEBUG[0m [32mTesting package 'sam_diving_controller' with the following arguments: {'build_base': '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller', 'ctest_args': None, 'install_base': '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/install/sam_diving_controller', 'path': '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller', 'pytest_args': None, 'pytest_with_coverage': False, 'python_testing': None, 'retest_until_fail': 0, 'retest_until_pass': 0, 'test_result_base': None, 'unittest_args': None}[0m
+[0.610s] [34mcolcon.colcon_core.executor[0m [1;30mINFO[0m Executing jobs using 'parallel' executor
+[0.611s] [34mcolcon.colcon_parallel_executor.executor.parallel[0m [1;30mDEBUG[0m [32mrun_until_complete[0m
+[0.611s] [34mcolcon.colcon_ros.task.ament_python.test[0m [1;30mINFO[0m Testing ROS package in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller' with build type'ament_python'
+[0.611s] [34mcolcon.colcon_core.task.python.test[0m [1;30mINFO[0m Testing Python package in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller'
+[0.613s] [34mcolcon.colcon_core.plugin_system[0m [1;30mINFO[0m Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.613s] [34mcolcon.colcon_core.shell[0m [1;30mINFO[0m Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.613s] [34mcolcon.colcon_core.shell[0m [1;30mDEBUG[0m [32mSkip shell extension 'dsv' for command environment[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/utm_latlon_converter' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/tf_convenience_topics' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/smarc_nodered' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/smarc_bt' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/sam_dead_reckoning' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.614s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/rl_control' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.615s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/drone_dr' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.615s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/dive_control' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.615s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/basic_go_to_waypoint' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.615s] [34mcolcon.colcon_ros.prefix_path.ament[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/basic_depth_pitch_control' in the environment variable AMENT_PREFIX_PATH doesn't exist[0m
+[0.615s] [34mcolcon.colcon_ros.prefix_path.catkin[0m [1;30mWARNING[0m [33mThe path '/home/mart/colcon_ws/install/tf_convenience_topics' in the environment variable CMAKE_PREFIX_PATH doesn't exist[0m
+[0.617s] [34mcolcon.colcon_core.shell[0m [1;30mWARNING[0m [33mThe following packages are in the workspace but haven't been built:
+- sam_diving_controller
+They are being used from the following locations instead:
+- /home/mart/colcon_ws/install/sam_diving_controller
+To suppress this warning ignore these packages in the workspace:
+--packages-ignore sam_diving_controller[0m
+[0.802s] [34mcolcon.colcon_core.task.python.test[0m [1;30mLevel 1[0m test() by extension 'pytest'
+[0.802s] [34mcolcon.colcon_core.task.python.test[0m [1;30mLevel 1[0m test.step() by extension 'pytest'
+[0.803s] [34mcolcon.colcon_core.event_handler.log_command[0m [1;30mDEBUG[0m [32mInvoking command in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller': PYTEST_ADDOPTS=--tb=short --junit-xml=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/pytest.xml --junit-prefix=sam_diving_controller -o cache_dir=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/.pytest_cache PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m pytest[0m
+[1.267s] [34mcolcon.colcon_parallel_executor.executor.parallel[0m [1;30mDEBUG[0m [32mclosing loop[0m
+[1.267s] [34mcolcon.colcon_parallel_executor.executor.parallel[0m [1;30mDEBUG[0m [32mloop closed[0m
+[1.267s] [34mcolcon.colcon_parallel_executor.executor.parallel[0m [1;30mDEBUG[0m [32mrun_until_complete finished with '0'[0m
+[1.267s] [34mcolcon.colcon_core.event_reactor[0m [1;30mDEBUG[0m [32mjoining thread[0m
+[1.267s] [34mcolcon.colcon_core.event_handler.log_command[0m [1;30mDEBUG[0m [32mInvoked command in '/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller' returned '0': PYTEST_ADDOPTS=--tb=short --junit-xml=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/pytest.xml --junit-prefix=sam_diving_controller -o cache_dir=/home/mart/colcon_ws/src/smarc2/behaviours/sam/sam_diving_controller/build/sam_diving_controller/.pytest_cache PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m pytest[0m
+[1.383s] [34mcolcon.colcon_core.plugin_system[0m [1;30mINFO[0m Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[1.383s] [34mcolcon.colcon_core.plugin_system[0m [1;30mINFO[0m Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[1.383s] [34mcolcon.colcon_core.plugin_system[0m [1;30mINFO[0m Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[1.383s] [34mcolcon.colcon_notification.desktop_notification[0m [1;30mINFO[0m Sending desktop notification using 'notify2'
+[1.385s] [34mcolcon.colcon_notification.desktop_notification.notify2[0m [1;30mDEBUG[0m [32mFailed to initialize notify2: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.Notifications was not provided by any .service files[0m
+[1.385s] [34mcolcon.colcon_core.event_reactor[0m [1;30mDEBUG[0m [32mjoined thread[0m
