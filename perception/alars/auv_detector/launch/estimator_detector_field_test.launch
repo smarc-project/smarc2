@@ -4,7 +4,6 @@
     
     <group>
         <push-ros-namespace namespace="$(var robot_name)"/>
-<<<<<<< HEAD:perception/auv_detector/launch/estimator_detector_field_test.launch
 
         <node
             name="auv_relative_estimator_node"
@@ -46,8 +45,6 @@
          
         </node>
 
-=======
->>>>>>> upstream/humble:perception/alars/auv_detector/launch/estimator_detector_field_test.launch
         <node
             name="detector_node"
             pkg="auv_detector"
