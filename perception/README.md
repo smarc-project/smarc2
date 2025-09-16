@@ -19,10 +19,16 @@ python3 auv_buoy_detector.py
 Tip: On Jetson devices, set `self.debug_imshow = 0` in the script to save computational resources and maintain a publishing rate of ~30 Hz.
 
 
-To toggle the AUV detector via ROS 2 service:
+To enable the AUV detector via ROS 2 service:
 ```bash
-ros2 service call /alars_detector std_srvs/srv/Trigger
+ros2 service call /enable_alars_detector std_srvs/srv/Trigger
 ```
+
+To disable the AUV detector via ROS 2 service:
+```bash
+ros2 service call /disable_alars_detector std_srvs/srv/Trigger
+```
+
 
 To test using a recorded ROS 2 bag:
 ```bash
