@@ -44,9 +44,9 @@ class DetectionNode(Node):
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
-        self.buoy_pub = self.create_publisher(Float32MultiArray, Topics.BUOY_TOPIC, 10)
-        self.auv_pub = self.create_publisher(Float32MultiArray, Topics.AUV_TOPIC, 10)
-        self.middle_pub = self.create_publisher(Float32MultiArray, Topics.MIDDLE_TOPIC, 10)
+        self.buoy_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_BUOY_TOPIC, 10)
+        self.auv_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_AUV_TOPIC, 10)
+        self.middle_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_MIDDLE_TOPIC, 10)
 
         # Subscriber
         self.subscription = self.create_subscription(

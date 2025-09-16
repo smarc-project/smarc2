@@ -7,6 +7,7 @@ string TTS_TOPIC = 'speak'
 
 
 string CAMERA_TOPIC = 'Quadrotor/gimbal_camera/image_raw'
-string BUOY_TOPIC = 'alars_detection/buoy'
-string AUV_TOPIC = 'alars_detection/auv'
-string MIDDLE_TOPIC = 'alars_detection/middle'
+string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy'
+string ESTIMATED_AUV_TOPIC = 'alars_detection/auv'
+string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle'
+string ALARS_DETECTOR_SERVICE_TOPIC = 'alars_detector'
