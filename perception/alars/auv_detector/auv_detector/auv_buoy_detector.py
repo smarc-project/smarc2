@@ -67,10 +67,12 @@ class DetectionNode(Node):
         ################################################################################
         # Service to enable/disable the detector (use std_srvs/SetBool)
         # Service name also without leading slash so it will be namespaced properly.
-        self.create_service(Trigger, 'alars_detector', self.handle_enable_detector)
-
+        self.create_service(Trigger, Topics.ENABLE_ALARS_DETECTOR_SERVICE_TOPIC , self.handle_enable_detector)
+        self.create_service(Trigger, Topics.DISABLE_ALARS_DETECTOR_SERVICE_TOPIC , self.handle_disable_detector)
 
         self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.CAMERA_TOPIC}'. Service 'enable_detector' ready.")
+        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.CAMERA_TOPIC}'. Service 'disable_detector' ready.")
+
 
     
     
@@ -79,7 +81,15 @@ class DetectionNode(Node):
 
     def handle_enable_detector(self, request, response):
         # Toggle the detector enabled flag
-        self.detector_enabled = not self.detector_enabled
+        self.detector_enabled = True
+        response.success = True
+        response.message = 'detector enabled' if self.detector_enabled else 'detector disabled'
+        self.get_logger().info(f"Service called: detector_enabled = {self.detector_enabled}")
+        return response
+
+    def handle_disable_detector(self, request, response):
+        # Toggle the detector enabled flag
+        self.detector_enabled = False
         response.success = True
         response.message = 'detector enabled' if self.detector_enabled else 'detector disabled'
         self.get_logger().info(f"Service called: detector_enabled = {self.detector_enabled}")
