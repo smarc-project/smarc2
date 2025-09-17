@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from nav_msgs.msg import Odometry
 import numpy as np
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from tf_transformations import euler_from_quaternion
 from scipy.spatial.transform import Rotation as R
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Pose
 
 #from .ParamUtils import DivingModelParam
 from .IDivePub import MissionStates, ActuatorStates
@@ -100,6 +101,7 @@ class DiveControllerInterface:
         self._error = None
         self._input = None
         self._dive_mode = None
+        self.waypoint = None
 
         self.param = param
 
@@ -162,6 +164,15 @@ class DiveControllerInterface:
         self._input.thrusterhorizontal = u_tv_hor_emergency
         self._input.thrusterrpm = float(u_rpm_emergency)
 
+    def get_wp(self):
+        '''
+        For the ConveniencePub
+        '''
+        if self.waypoint is None:
+            return None
+
+        return self.waypoint
+
     def get_state(self):
         '''
         For the ConveniencePub
@@ -169,26 +180,26 @@ class DiveControllerInterface:
         if self._current_state is None:
             return None
 
-        state = ControlState()
-        state.header.frame_id = self._current_state.header.frame_id
-        state.header.stamp = self._current_state.header.stamp
-        state.pose.x = self._current_state.pose.pose.position.x
-        state.pose.y = self._current_state.pose.pose.position.y
-        state.pose.z = self._current_state.pose.pose.position.z
+        #state = ControlState()
+        #state.header.frame_id = self._current_state.header.frame_id
+        #state.header.stamp = self._current_state.header.stamp
+        #state.pose.x = self._current_state.pose.pose.position.x
+        #state.pose.y = self._current_state.pose.pose.position.y
+        #state.pose.z = self._current_state.pose.pose.position.z
 
-        rpy = euler_from_quaternion([
-            self._current_state.pose.pose.orientation.x,
-            self._current_state.pose.pose.orientation.y,
-            self._current_state.pose.pose.orientation.z,
-            self._current_state.pose.pose.orientation.w])
+        #rpy = euler_from_quaternion([
+        #    self._current_state.pose.pose.orientation.x,
+        #    self._current_state.pose.pose.orientation.y,
+        #    self._current_state.pose.pose.orientation.z,
+        #    self._current_state.pose.pose.orientation.w])
 
-        state.pose.roll = rpy[0]
-        state.pose.pitch = rpy[1]
-        state.pose.yaw = rpy[2]
+        #state.pose.roll = rpy[0]
+        #state.pose.pitch = rpy[1]
+        #state.pose.yaw = rpy[2]
 
         # TODO: Add the velocity
 
-        return state
+        return self._current_state
 
     def get_ref(self):
         return self._ref
@@ -540,6 +551,9 @@ class DiveControllerMPC(DiveControllerInterface):
         self._ref = None
         self._error = None
         self._input = None
+        self.waypoint = None
+
+        self.pred_mpc = []
 
         # Declare counter
         self.i = 0
@@ -556,6 +570,8 @@ class DiveControllerMPC(DiveControllerInterface):
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
+
+        self.wp_array = np.zeros(self.nx + self.nu)
 
         # Run the MPC setup
         self.ocp_solver, self.integrator = self.nmpc.setup()
@@ -584,133 +600,52 @@ class DiveControllerMPC(DiveControllerInterface):
         This is where all the magic happens.
         """
         mission_state = self._dive_sub.get_mission_state()
-        if mission_state == MissionStates.RECEIVED:
-            self._loginfo_once("Mission Received")
+        #if mission_state == MissionStates.RECEIVED:
+        #    self._loginfo_once("Mission Received")
+        #    self._set_actuators_neutral()
+        #    return
+
+        #if mission_state == MissionStates.COMPLETED:
+        #    self._loginfo_once("Mission Complete")
+        #    self._set_actuators_neutral()
+        #    return
+
+        #if mission_state == MissionStates.CANCELLED:
+        #    self._loginfo_once("Mission Cancelled")
+        #    self._set_actuators_neutral()
+        #    return
+
+        if mission_state != MissionStates.RUNNING:
+            self._loginfo_once("Mission not running")
             self._set_actuators_neutral()
             return
 
-        if mission_state == MissionStates.COMPLETED:
-            self._loginfo_once("Mission Complete")
-            self._set_actuators_neutral()
-            return
-
-        if mission_state == MissionStates.CANCELLED:
-            self._loginfo_once("Mission Cancelled")
-            self._set_actuators_neutral()
-            return
-        
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
-        if self.ref_is_traj and not self._initialized:
-            self.trajectory = self._dive_sub.get_path()
-            
-            if self.trajectory is None:
-                self._loginfo_once("No trajectory received")
-                return
-            else:
-                self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
-
-            # Declare duration of sim. 
-            self.traj_len = self.trajectory.shape[0] 
-
-            # Augment the trajectory and control input reference 
-            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
-            self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
-
-
-            # NOTE: Remove this when running in actual SAM
-            # Used to match the starting position in unity with the one from
-            # the trajectory.
-            #self.trajectory[:,0] +=  x0[0] - self.trajectory[0,0]
-            #self.trajectory[:,1] +=  x0[1] - self.trajectory[0,1]
-            #self.trajectory[:,2] +=  x0[2] - self.trajectory[0,2]
-
-        elif not self.ref_is_traj:
-            # TODO: Move this out of the else statement once you got it to run
-            # on SAM. Then you also don't need all these different states
-            # anymore.
-            # Get the current states
-            convert_state = False # Flag to convert states
-            self._current_state_in_odom = self._dive_sub.get_states()
-            self._current_state_in_mocap = self._dive_sub.get_states_in_mocap() 
-
-            self._current_state = self._current_state_in_mocap #self._dive_sub.get_states()
-
-            if self._current_state is None:
-                self._loginfo(f"No state available yet.")
-                return
-
-            if not self._dive_sub.has_waypoint():
-                self._loginfo(f"No waypoint available")
-                return
-
-            # TODO: Remove the different waypoints once you got it to run on
-            # SAM
-            # Get Waypoint information
-            waypoint_in_odom = self._dive_sub.get_waypoint_in_odom()
-            waypoint_in_body = self._dive_sub.get_waypoint_in_body()
-            waypoint_in_mocap = self._dive_sub.get_waypoint()
-
-            convert_waypoint = False
-
-            waypoint = waypoint_in_mocap 
-
-            if waypoint is None:
-                return
-            elif waypoint_in_odom is None:
-                return
-
-            wp_ref = self.get_ref_array(waypoint, convert_to_ned=convert_waypoint)
+        if not self.get_reference():
+            return
 
         # Get the current states
-        #self._current_state = self._dive_sub.get_states()
+        convert_state = True # Flag to convert states
+        self._current_state_in_odom = self._dive_sub.get_states()
+        self._current_state_in_mocap = self._dive_sub.get_states_in_mocap() 
+
+        if self._current_state_in_odom is None:
+            self._loginfo(f"No state available yet.")
+            return
+
+        self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
         self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
-            while self._current_state is None:
-                self._loginfo_once("Waiting for states")
-                return
+            self.initialize_mpc()
 
-            x0 = self.get_state_array(self._current_state,
-                                      self._current_control,
-                                      is_init_state=not self._initialized, 
-                                      is_trajectory=self.ref_is_traj,
-                                      convert_state=False)
-
-            # Initialize the state and control vector
-            for stage in range(self.N_horizon + 1):
-                self.ocp_solver.set(stage, "x", x0)
-            for stage in range(self.N_horizon):
-                # u here is the rate of change, that's why we initialize it
-                # with 0
-                self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
-
-            self._initialized = True
-                    
-        # Get the current state vector
         x_current = self.get_state_array(self._current_state,
                                          self._current_control,
                                          is_init_state=self._initialized,
-                                         is_trajectory=self.ref_is_traj,
-                                         convert_state=convert_state)
-    
-        if self.ref_is_traj:
-            if self.i < self.traj_len:
-                # extract the sub-trajectory to track under the prediction horizon
-                if self.i <= (self.traj_len - self.N_horizon):
-                    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
-                else:
-                    self.ref = self.trajectory[self.i:, :]
-
-            else:
-                self._loginfo_once("Trajectory Tracking Complete")
-                self._set_actuators_neutral()
-                return
-
-        else:
-            self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
-            self.ref[:,:] = wp_ref
+                                         is_trajectory=self.ref_is_traj)
+        self.get_current_ref_array()
 
         # Update reference vector
         # NOTE: we use p bc. we have a custom cost function.
@@ -736,9 +671,314 @@ class DiveControllerMPC(DiveControllerInterface):
         # simulate system: 
         # NOTE: May be possible to use get(0, "x") to acquire the actual control input.
         self.simU = self.ocp_solver.get(0, "u")
+
+        self.pred_mpc = []
+        for j in range(self.N_horizon+1):
+                self.pred_mpc.append(self.ocp_solver.get(j,'x'))
+
         # The integrator of the control signal is needed, since u is the control derivative.
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
+        self.set_publishers(mpc_solution)
+
+
+        # FIXME: Remove all the print statements here. They only should appear in the convenience node
+        s = f"\nNMPC INFO\n" # {self._dive_sub.current_idx}/{self.traj_len}:\n"
+        s += f"NMPC solver status: {self._acados_status[status]}\n"
+        s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
+        s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
+
+        s += f"\n ----\n"
+        s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
+        s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
+        s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
+        s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
+        s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
+        s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
+        s += f"current: x: {self._current_state.pose.pose.position.x:.3f}"
+        s += f" y: {self._current_state.pose.pose.position.y:.3f}"
+        s += f" z: {self._current_state.pose.pose.position.z:.3f}\n"
+
+        self._loginfo(s)
+
+        # Increment trajectory window index
+        self.i += 1
+        self._dive_sub.set_current_idx(self.i)
+
+        return
+    
+
+    def get_reference(self):
+        # TODO: refactor this if-statement as function.
+        if self.ref_is_traj and not self._initialized:
+            self.trajectory = self._dive_sub.get_path()
+            
+            if self.trajectory is None:
+                self._loginfo_once("No trajectory received")
+                return False
+            else:
+                self.trajectory = np.array(self.trajectory)  # Convert/make sure it is a numpy array
+
+            # Declare duration of sim. 
+            self.traj_len = self.trajectory.shape[0] 
+
+            # Augment the trajectory and control input reference 
+            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
+            self.trajectory = np.concatenate((self.trajectory, Uref), axis=1) 
+
+
+        elif not self.ref_is_traj:
+
+            if not self._dive_sub.has_waypoint():
+                self._loginfo(f"No waypoint available")
+                return False
+
+            # Get Waypoint information
+            waypoint_in_mocap = self._dive_sub.get_waypoint()
+
+            # FIXME: This might be useless.
+            if waypoint_in_mocap is None:
+                self._loginfo(f"waypoint_in_mocap is None")
+                return False
+
+            self.waypoint = self.convert_wp_to_odometry(waypoint_in_mocap)
+
+            self.wp_array = self.get_wp_array(self.waypoint)
+
+        return True
+
+#    def convert_flu_to_frd(self, flu_msg, convert_state=True):
+#        """
+#        If convert_state, it converts an odometry message from FLU to FRD
+#
+#        """
+#        frd_odometry = Odometry()
+#        frd_odometry.header.frame_id = flu_msg.header.frame_id
+#        frd_odometry.header.stamp = flu_msg.header.stamp
+#        if convert_state:
+#            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
+#            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
+#            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
+#            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
+#                                      flu_msg.pose.pose.orientation.y,
+#                                      flu_msg.pose.pose.orientation.z,
+#                                      flu_msg.pose.pose.orientation.w])
+#            frd_odometry.pose.pose.orientation.x = quat[0]
+#            frd_odometry.pose.pose.orientation.y = quat[1]
+#            frd_odometry.pose.pose.orientation.z = quat[2]
+#            frd_odometry.pose.pose.orientation.w = quat[3]
+#
+#            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
+#            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
+#            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
+#            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
+#            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
+#            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
+#
+#        else:
+#            frd_odometry = flu_msg
+#
+#        return frd_odometry
+
+
+    def convert_enu_to_ned(self, enu_msg, convert_state=True):
+        """
+        If convert_state, it converts an odometry message from ENU to NED
+
+        """
+        ned_odometry = Odometry()
+        ned_odometry.header.frame_id = "/mocap" #state_msg.header.frame_id# + "_conv"
+        ned_odometry.header.stamp = enu_msg.header.stamp
+        if convert_state:
+            ned_odometry.pose.pose.position.x = enu_msg.pose.pose.position.y
+            ned_odometry.pose.pose.position.y = enu_msg.pose.pose.position.x
+            ned_odometry.pose.pose.position.z = -enu_msg.pose.pose.position.z 
+            ned_odometry.pose.pose.orientation = enu_msg.pose.pose.orientation
+
+            quat = self.quat_enu_to_ned([enu_msg.pose.pose.orientation.x,
+                                      enu_msg.pose.pose.orientation.y,
+                                      enu_msg.pose.pose.orientation.z,
+                                      enu_msg.pose.pose.orientation.w])
+            ned_odometry.pose.pose.orientation.x = quat[0]
+            ned_odometry.pose.pose.orientation.y = quat[1]
+            ned_odometry.pose.pose.orientation.z = quat[2]
+            ned_odometry.pose.pose.orientation.w = quat[3]
+
+            ned_odometry.twist.twist.linear.x = enu_msg.twist.twist.linear.y
+            ned_odometry.twist.twist.linear.y = enu_msg.twist.twist.linear.x
+            ned_odometry.twist.twist.linear.z = -enu_msg.twist.twist.linear.z
+            ned_odometry.twist.twist.angular.x = enu_msg.twist.twist.angular.y
+            ned_odometry.twist.twist.angular.y = enu_msg.twist.twist.angular.x
+            ned_odometry.twist.twist.angular.z = -enu_msg.twist.twist.angular.z
+
+        else:
+            ned_odometry = enu_msg
+
+        return ned_odometry
+
+
+    def quat_enu_to_ned(self, quat_enu):
+        """
+        Transform quaternion from ENU to NED.
+        """
+
+        q = quat_enu
+
+        q_ned = 1/np.sqrt(2) * np.array([q[0] + q[3], q[1] + q[2], q[1] - q[2], q[0] - q[3]])
+        q_ned /= np.linalg.norm(q_ned)
+
+        return q_ned
+
+
+    def convert_wp_to_odometry(self, wp_msg):
+        """
+        Returns waypoint as Odometry
+        """
+        odom_wp = Odometry()
+
+        if isinstance(wp_msg, PoseStamped):
+            odom_wp.header.frame_id = wp_msg.header.frame_id
+            odom_wp.header.stamp = wp_msg.header.stamp
+
+            odom_wp.pose.pose = wp_msg.pose
+
+        elif isinstance(wp_msg, Pose): 
+            odom_wp.header.frame_id = '/mocap'
+            odom_wp.header.stamp = self._node.get_clock().now().to_msg()
+            odom_wp.pose.pose.position    = wp_msg.position
+            odom_wp.pose.pose.orientation = wp_msg.orientation
+
+        elif isinstance(wp_msg, Odometry): 
+            odom_wp = wp_msg
+
+        else:
+            return None
+
+        return odom_wp
+
+
+    def get_state_array(self, state_msg, control_msg,
+                        is_init_state=False,
+                        is_trajectory=False):
+        """
+        Merges states and controls into numpy array and returns the state of
+        the controller as the state vector x (numpy array)
+
+        convert_state: state_msg is in ENU, x will be in NED
+        """
+        x = np.zeros(19)
+
+        x[0] = state_msg.pose.pose.position.x
+        x[1] = state_msg.pose.pose.position.y
+        x[2] = state_msg.pose.pose.position.z 
+        x[3:7] = [state_msg.pose.pose.orientation.x,
+                  state_msg.pose.pose.orientation.y,
+                  state_msg.pose.pose.orientation.z,
+                  state_msg.pose.pose.orientation.w]
+        x[7] = state_msg.twist.twist.linear.x
+        x[8] = state_msg.twist.twist.linear.y
+        x[9] = state_msg.twist.twist.linear.z
+        x[10] = state_msg.twist.twist.angular.x
+        x[11] = state_msg.twist.twist.angular.y
+        x[12] = state_msg.twist.twist.angular.z
+        x[13] = control_msg['vbs']
+        x[14] = control_msg['lcg']
+        x[15] = control_msg['stern']
+        x[16] = control_msg['rudder']
+        x[17] = control_msg['rpm1']
+        x[18] = control_msg['rpm2']
+        
+        # Due to numerical reasons, we add a small noise to the rpms in
+        # waypoint following mode
+        if is_init_state:
+            if is_trajectory:
+                x[17] = control_msg['rpm1']
+                x[18] = control_msg['rpm2']
+            else:
+                x[17] = 1e-6 
+                x[18] = 1e-6 
+
+        return x
+
+
+    def get_wp_array(self, waypoint):
+
+        ref = np.zeros(self.nx + self.nu)
+
+        ref[0] = waypoint.pose.pose.position.x
+        ref[1] = waypoint.pose.pose.position.y
+        ref[2] = waypoint.pose.pose.position.z
+        ref[3] = waypoint.pose.pose.orientation.w
+        ref[4] = waypoint.pose.pose.orientation.x
+        ref[5] = waypoint.pose.pose.orientation.y
+        ref[6] = waypoint.pose.pose.orientation.z
+
+        # Neutral actuator reference for VBS and LCG. Rest is 0
+        ref[13] = 50
+        ref[14] = 50
+
+        return ref
+
+
+#    def quat_flu_to_frd(self, quat_enu):
+#
+#        rot = R.from_euler('x', 180, degrees=True)
+#        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
+#        r_ned = rot.as_matrix() @ r_enu.as_matrix() 
+#        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
+#        quat_ned_right_order = np.array([quat_ned[3], # w
+#                                        quat_ned[0],  # x
+#                                        quat_ned[1],  # y
+#                                        quat_ned[2]   # z
+#                                        ])
+#        return quat_ned_right_order
+
+
+    def initialize_mpc(self):
+        """
+        Set the initial state for the MPC
+        """
+        x0 = self.get_state_array(self._current_state,
+                                  self._current_control,
+                                  is_init_state=not self._initialized, 
+                                  is_trajectory=self.ref_is_traj)
+
+        # Initialize the state and control vector
+        for stage in range(self.N_horizon + 1):
+            self.ocp_solver.set(stage, "x", x0)
+        for stage in range(self.N_horizon):
+            # u here is the rate of change, that's why we initialize it
+            # with 0
+            self.ocp_solver.set(stage, "u", np.zeros(self.nu,))
+
+        self._initialized = True
+
+
+    def get_current_ref_array(self):
+        """
+        Populate reference array depending on whether we have a trajectory or waypoint.
+        """
+        if self.ref_is_traj:
+            if self.i < self.traj_len:
+                # extract the sub-trajectory to track under the prediction horizon
+                if self.i <= (self.traj_len - self.N_horizon):
+                    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
+                else:
+                    self.ref = self.trajectory[self.i:, :]
+
+            else:
+                self._loginfo_once("Trajectory Tracking Complete")
+                self._set_actuators_neutral()
+                return
+
+        else:
+            self.ref = np.zeros((self.N_horizon, (self.nx+self.nu)))
+            self.ref[:,:] = self.wp_array
+
+    def set_publishers(self, mpc_solution):
+        """
+        Set the corresponding publishers for the actuators and convenience topics
+        """
         # Assign the calculated control signal to actuators
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
@@ -762,9 +1002,8 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input.thrusterrpm = float(u_rpm1)
 
         # Convenience Topics
+        # FIXME: This if statement is weird.
         if self.ref is not None:
-            # FIXME: This is messy. The position is converted to ENU again, but
-            # not the orientation.
             self._ref = ControlReference()
             self._ref.x = self.ref[0,0]
             self._ref.y = self.ref[0,1]
@@ -780,202 +1019,9 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.yaw   = euler_angles[2]
 
 
-        # FIXME: Remove all the print statements here. They only should appear in the convenience node
-        s = f"\nNMPC INFO\n" # {self._dive_sub.current_idx}/{self.traj_len}:\n"
-        s += f"NMPC solver status: {self._acados_status[status]}\n"
-        s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
-        s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
-
-        #s += "Position:\n"
-        #s += f"State (x_current): x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        #s += (
-        #    f"State (mocap):     "
-        #    f"x: {self._current_state_in_mocap.pose.pose.position.x:.3f}, "
-        #    f"y: {self._current_state_in_mocap.pose.pose.position.y:.3f}, "
-        #    f"z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
-        #    )
-        #s += (
-        #        f"State (odom):      "
-        #        f"x: {self._current_state_in_odom.pose.pose.position.x:.3f}, "
-        #        f"y: {self._current_state_in_odom.pose.pose.position.y:.3f}, "
-        #        f"z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
-        #    )
-        #s += (
-        #        f"Ref (current): "
-        #        f"x: {self.ref[0,0]:.3f}, "
-        #        f"y: {self.ref[0,1]:.3f}, "
-        #        f"z: {self.ref[0,2]:.3f}\n"
-        #    )
-        #s += (
-        #       f"Ref (mocap):   "
-        #       f"x: {waypoint_in_mocap.pose.position.x:.3f}, "
-        #       f"y: {waypoint_in_mocap.pose.position.y:.3f}, "
-        #       f"z: {waypoint_in_mocap.pose.position.z:.3f}\n"
-        #    )
-        #s += (
-        #       f"Ref (odom):    "
-        #       f"x: {waypoint_in_odom.position.x:.3f}, "
-        #       f"y: {waypoint_in_odom.position.y:.3f}, "
-        #       f"z: {waypoint_in_odom.position.z:.3f}\n"
-        #    )
-        #s += (
-        #       f"Ref (body):    "
-        #       f"x: {waypoint_in_body.position.x:.3f}, "
-        #       f"y: {waypoint_in_body.position.y:.3f}, "
-        #       f"z: {waypoint_in_body.position.z:.3f}\n"
-        #)
-
-        ## Error calculation
-        #error_x_current = self.ref[0,0] - x_current[0]
-        #error_y_current = self.ref[0,1] - x_current[1]
-        #error_z_current = self.ref[0,2] - x_current[2]
-
-        #error_x_in_mocap = waypoint_in_mocap.pose.position.x - self._current_state_in_mocap.pose.pose.position.x
-        #error_y_in_mocap = waypoint_in_mocap.pose.position.y - self._current_state_in_mocap.pose.pose.position.y
-        #error_z_in_mocap = waypoint_in_mocap.pose.position.z - self._current_state_in_mocap.pose.pose.position.z
-
-        #error_x_in_odom = waypoint_in_odom.position.x - self._current_state_in_odom.pose.pose.position.x
-        #error_y_in_odom = waypoint_in_odom.position.y - self._current_state_in_odom.pose.pose.position.y
-        #error_z_in_odom = waypoint_in_odom.position.z - self._current_state_in_odom.pose.pose.position.z
-
-        #s += (
-        #        f"Error (current): "
-        #        f"x: {error_x_current:.3f}, "
-        #        f"y: {error_y_current:.3f}, "
-        #        f"z: {error_z_current:.3f}\n"
-        #    )
-        #s += (
-        #       f"Error (mocap):   "
-        #       f"x: {error_x_in_mocap:.3f}, "
-        #       f"y: {error_y_in_mocap:.3f}, "
-        #       f"z: {error_z_in_mocap:.3f}\n"
-        #    )
-        #s += (
-        #       f"Error (odom):    "
-        #       f"x: {error_x_in_odom:.3f}, "
-        #       f"y: {error_y_in_odom:.3f}, "
-        #       f"z: {error_z_in_odom:.3f}\n"
-        #    )
-
-        self._loginfo(s)
-
-        # Increment trajectory window index
-        self.i += 1
-        self._dive_sub.set_current_idx(self.i)
-
-        return
-    
-    def get_state_array(self, state_msg, control_msg,
-                        is_init_state=False,
-                        is_trajectory=False,
-                        convert_state=True):
+    def get_mpc_pred(self):
         """
-        Merges states and controls into numpy array and returns the state of
-        the controller as the state vector x (numpy array)
-
-        convert_state: state_msg is in ENU, x will be in NED
+        Get method for the MPC predictions
         """
-        x = np.zeros(19)
-        if convert_state:
-            x[0] = state_msg.pose.pose.position.x
-            x[1] = -state_msg.pose.pose.position.y
-            x[2] = -state_msg.pose.pose.position.z 
-            x[3:7] = self.enu_to_ned([state_msg.pose.pose.orientation.x,
-                                      state_msg.pose.pose.orientation.y,
-                                      state_msg.pose.pose.orientation.z,
-                                      state_msg.pose.pose.orientation.w])
-            x[7] = state_msg.twist.twist.linear.x
-            x[8] = -state_msg.twist.twist.linear.y
-            x[9] = -state_msg.twist.twist.linear.z
-            x[10] = state_msg.twist.twist.angular.x
-            x[11] = -state_msg.twist.twist.angular.y
-            x[12] = -state_msg.twist.twist.angular.z
 
-        else:
-            x[0] = state_msg.pose.pose.position.x
-            x[1] = state_msg.pose.pose.position.y
-            x[2] = state_msg.pose.pose.position.z 
-            x[3:7] = [state_msg.pose.pose.orientation.x,
-                      state_msg.pose.pose.orientation.y,
-                      state_msg.pose.pose.orientation.z,
-                      state_msg.pose.pose.orientation.w]
-            x[7] = state_msg.twist.twist.linear.x
-            x[8] = state_msg.twist.twist.linear.y
-            x[9] = state_msg.twist.twist.linear.z
-            x[10] = state_msg.twist.twist.angular.x
-            x[11] = state_msg.twist.twist.angular.y
-            x[12] = state_msg.twist.twist.angular.z
-        x[13] = control_msg['vbs']
-        x[14] = control_msg['lcg']
-        x[15] = control_msg['stern']
-        x[16] = control_msg['rudder']
-        x[17] = control_msg['rpm1']
-        x[18] = control_msg['rpm2']
-        
-        # Due to numerical reasons, we add a small noise to the rpms in
-        # waypoint following mode
-        if is_init_state:
-            if is_trajectory:
-                x[17] = control_msg['rpm1']
-                x[18] = control_msg['rpm2']
-            else:
-                x[17] = 1e-6 
-                x[18] = 1e-6 
-
-        return x
-
-
-    def get_ref_array(self, waypoint, convert_to_ned=False):
-
-        ref = np.zeros(self.nx + self.nu)
-
-        if isinstance(waypoint, PoseStamped):
-
-            ref[0] = waypoint.pose.position.x
-            ref[1] = waypoint.pose.position.y
-            ref[2] = waypoint.pose.position.z
-            ref[3] = waypoint.pose.orientation.w
-            ref[4] = waypoint.pose.orientation.x
-            ref[5] = waypoint.pose.orientation.y
-            ref[6] = waypoint.pose.orientation.z
-
-        else: 
-            ref[0] = waypoint.position.x
-            ref[1] = waypoint.position.y
-            ref[2] = waypoint.position.z
-            ref[3] = waypoint.orientation.w
-            ref[4] = waypoint.orientation.x
-            ref[5] = waypoint.orientation.y
-            ref[6] = waypoint.orientation.z
-
-        # Neutral actuator reference for VBS and LCG. Rest is 0
-        ref[13] = 50
-        ref[14] = 50
-
-        if convert_to_ned:
-
-            quat = self.enu_to_ned(ref[3:7])
-
-            ref[1] = -ref[1]
-            ref[2] = -ref[2]
-            ref[3:7] = quat
-
-        return ref
-
-
-    def enu_to_ned(self, quat_enu):
-
-        T = np.array([
-            [1, 0, 0],
-            [0, -1, 0],
-            [0, 0, -1]
-            ])
-        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
-        r_ned = T @ r_enu.as_matrix() @ T.T
-        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
-        quat_ned_right_order = np.array([quat_ned[3], # w
-                                        quat_ned[0],  # x
-                                        quat_ned[1],  # y
-                                        quat_ned[2]   # z
-                                        ])
-        return quat_ned_right_order
+        return self.pred_mpc

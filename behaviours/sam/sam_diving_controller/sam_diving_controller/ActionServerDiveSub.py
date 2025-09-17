@@ -285,9 +285,6 @@ class HydropointServer(SMARCActionServer, DiveSub):
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)
 
-        self._pub_setpoint = self._node.create_publisher(
-            PoseStamped, ControlTopics.WAYPOINT, 2
-        )
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self._json_ops: HydrobaticPointAction = HydrobaticPointAction()
 
@@ -524,9 +521,6 @@ class HydropointServer(SMARCActionServer, DiveSub):
         self.logger.info(f"Hydropoint sent: {hydropoint}")
 
         # Action succeeded
-        # FIXME: Why is there this timer?
-        #time.sleep(5)
-        self._pub_setpoint.publish(hydropoint)
         status = self.feedback_loop(hydropoint, goal_handle)
         if status == "cancelled":
             self.logger.info("Goal was cancelled by client.")
@@ -554,21 +548,18 @@ class HydropointServer(SMARCActionServer, DiveSub):
         while not tol_check:
             current_time = self._node.get_clock().now()
             elapsed = (current_time - start_time).nanoseconds / 1e9  # seconds
-            self._pub_setpoint.publish(pose_stamped)
             self.set_mission_state(MissionStates.RUNNING, "AS")
 
             self.logger.info(f"elapsed: {elapsed}")
 
-            if elapsed > 5:
+            if elapsed > 50:
                 self.logger.info("Goal was cancelled by timeout.")
                 goal_handle.abort()
-                #self.publish_stop_setpoint()
                 return "cancelled"
 
             if goal_handle.is_cancel_requested:
                 self.logger.info("Goal was cancelled by client.")
                 goal_handle.canceled()
-                #self.publish_stop_setpoint()
                 return "cancelled"
             
             feedback.feedback = self._json_ops.encode(d)
