@@ -3,13 +3,14 @@ import numpy as np
 from pathlib import Path
 
 from sam_diving_controller.DiveController import DiveControllerInterface
+from sam_diving_controller.controllers.ONNXManager import ONNXManager
 from tf_transformations import euler_from_quaternion
 from scipy.spatial.transform import Rotation as R
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
 from geometry_msgs.msg import PoseStamped, Pose
 
-#from .ParamUtils import DivingModelParam
+# from .ParamUtils import DivingModelParam
 from behaviours.sam.sam_diving_controller.sam_diving_controller.IDivePub import MissionStates, ActuatorStates
 
 import time
@@ -18,14 +19,7 @@ import time
 class DiveControllerMPC(DiveControllerInterface):
 
     def __init__(self, node, dive_pub, dive_sub, param, rate=0.2):
-
-        self._node = node
-        self._dive_sub = dive_sub
-        self._dive_pub = dive_pub
-        self.param = param
-        self._dt = rate
-
-        super().__init__(self._node, self._dive_pub, self._dive_sub, self.param, self._dt)
+        super().__init__(node, dive_pub, dive_sub, param, rate)
 
         # Convenience Topics
         self._current_state = None
@@ -37,28 +31,11 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input = None
         self.waypoint = None
 
-        self.pred_mpc = []
-
         # Declare counter
         self.i = 0
         self.traj_len = 0
 
-        # Extract the CasADi model
-        sam = SAM_casadi(dt=self._dt)
-
-        # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
-
-        # create nmpc object for the OCP
-        self.N_horizon = 10  # Prediction horizon
-        self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
-        self.nx = self.nmpc.nx  # State vector length + control vector
-        self.nu = self.nmpc.nu  # Control derivative vector length
-
-        self.wp_array = np.zeros(self.nx + self.nu)
-
-        # Run the MPC setup
-        self.ocp_solver, self.integrator = self.nmpc.setup()
+        self.onnx_manager = ONNXManager("DR_temp")
 
         # NOTE: This needs to happen in the update function with some check
         # before proceeding. Otherwise, you don't get the right data from the
@@ -80,9 +57,6 @@ class DiveControllerMPC(DiveControllerInterface):
                                6: "ACADOS_UNBOUNDED"}
 
     def update(self):
-        """
-        This is where all the magic happens.
-        """
         mission_state = self._dive_sub.get_mission_state()
         # if mission_state == MissionStates.RECEIVED:
         #    self._loginfo_once("Mission Received")
@@ -205,7 +179,8 @@ class DiveControllerMPC(DiveControllerInterface):
             self.traj_len = self.trajectory.shape[0]
 
             # Augment the trajectory and control input reference
-            Uref = np.zeros((self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
+            Uref = np.zeros(
+                (self.trajectory.shape[0], self.nu))  # Derivative reference - set to 0 to penalize large rate of change
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1)
 
 

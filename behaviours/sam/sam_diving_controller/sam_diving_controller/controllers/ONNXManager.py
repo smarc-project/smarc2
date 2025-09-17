@@ -1,6 +1,9 @@
 #!/usr/bin/python3
+import os
+
 import numpy as np
 import onnxruntime as ort
+from ament_index_python import get_package_share_directory
 
 
 class ONNXManager():
@@ -14,17 +17,21 @@ class ONNXManager():
         return self.rescale_outputs(self.get_control(x))
 
     def __init__(self,
-                 model_resource: str,
+                 model_resource: str = "DR_temp",
                  rpm_max: float = 1000,
                  aileron_angle_max: float = 0.2,
                  rudder_angle_max: float = 0.2,
                  vbs_max: float = 100,
                  lcg_max: float = 100,
                  ):
-        #options = ort.SessionOptions()
-      #  options.use_deterministic_compute = True
-        self.onnx_inferenceSession = ort.InferenceSession(model_resource,
-                                                         # sess_options=options
+        # options = ort.SessionOptions()
+        # options.use_deterministic_compute = True
+
+        pkg_share = get_package_share_directory("sam_diving_controller")
+        onnx_path = os.path.join(pkg_share, "resource", f"{model_resource}.onnx")
+
+        self.onnx_inferenceSession = ort.InferenceSession(onnx_path,
+                                                          # sess_options=options
                                                           )  # TODO: If non-determinisim cant be solved, might need to load it as a torch model
 
         self.rpm_max = rpm_max

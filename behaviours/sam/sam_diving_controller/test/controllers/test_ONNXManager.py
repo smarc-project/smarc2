@@ -12,14 +12,12 @@ sut: ONNXManager
 
 @pytest.fixture(autouse=True)
 def test_before_after():
-    # Code that will run before your test, for example:
+    # Code that will run before your test
     global sut
 
-    pkg_share = get_package_share_directory("sam_diving_controller")
-    onnx_path = os.path.join(pkg_share, "resource", "SAM_DR.onnx")
-    sut = ONNXManager(onnx_path)
-    # A test function will be run at this point
-    yield
+    sut = ONNXManager("DR_temp")
+
+    yield  # A test function will be run at this point
     # Code that will run after your test
 
 
