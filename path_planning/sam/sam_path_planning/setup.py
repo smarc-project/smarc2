@@ -25,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'sam_planner_node = sam_path_planning.sam_planner_node:main',
-            'topic_collector_node = sam_path_planning.topic_collector:main'
+            'topic_collector_node = sam_path_planning.topic_collector:main',
+            'publish_hula_pose = sam_path_planning.pose_publisher:main'
         ],
     },
 )
