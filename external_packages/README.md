@@ -20,3 +20,5 @@ Needed to speak to the SMaRC GUI over mqtt. Not availble any other way... There 
 
 This is the node Unity needs to communicate with ROS(2). Run with `ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1`. It can keep running and works with Unity restarts.
 
+## smarc_modelling
+Analytical model of the SAM AUV, eventually.
