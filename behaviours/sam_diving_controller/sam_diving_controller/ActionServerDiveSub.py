@@ -559,7 +559,7 @@ class HydropointServer(SMARCActionServer, DiveSub):
 
             self.logger.info(f"elapsed: {elapsed}")
 
-            if elapsed > 5:
+            if elapsed > 20:
                 self.logger.info("Goal was cancelled by timeout.")
                 goal_handle.abort()
                 #self.publish_stop_setpoint()

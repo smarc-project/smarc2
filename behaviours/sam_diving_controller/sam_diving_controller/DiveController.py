@@ -552,7 +552,7 @@ class DiveControllerMPC(DiveControllerInterface):
         build = False
 
         # create nmpc object for the OCP
-        self.N_horizon = 10 # Prediction horizon
+        self.N_horizon = 20 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -741,6 +741,9 @@ class DiveControllerMPC(DiveControllerInterface):
 
         if mpc_solution is None:
             self._set_actuators_neutral()
+        elif status != 0:
+            self._loginfo("Solver status: {status}")
+            self._set_actuators_neutral()
 
         else:
             # Assign the calculated control signal to actuators
@@ -757,13 +760,13 @@ class DiveControllerMPC(DiveControllerInterface):
             self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
             self._dive_pub.set_rpm(u_rpm1, u_rpm2)
 
-        # Set control input (For convenience topics)
-        self._input = ControlInput()
-        self._input.vbs = u_vbs
-        self._input.lcg = u_lcg
-        self._input.thrustervertical = u_stern
-        self._input.thrusterhorizontal = u_rudder
-        self._input.thrusterrpm = float(u_rpm1)
+            # Set control input (For convenience topics)
+            self._input = ControlInput()
+            self._input.vbs = u_vbs
+            self._input.lcg = u_lcg
+            self._input.thrustervertical = u_stern
+            self._input.thrusterhorizontal = u_rudder
+            self._input.thrusterrpm = float(u_rpm1)
 
         # Convenience Topics
         if self.ref is not None:
