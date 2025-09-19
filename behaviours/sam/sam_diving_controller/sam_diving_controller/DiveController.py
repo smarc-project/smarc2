@@ -566,7 +566,7 @@ class DiveControllerMPC(DiveControllerInterface):
         build = False
 
         # create nmpc object for the OCP
-        self.N_horizon = 20 # Prediction horizon
+        self.N_horizon = 10 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -634,13 +634,13 @@ class DiveControllerMPC(DiveControllerInterface):
         self._current_state_in_odom = self._dive_sub.get_states()
         self._current_state_in_mocap = self._dive_sub.get_states_in_mocap() 
 
-        if self._current_state_in_odom is None:
+        if self._current_state_in_mocap is None:
             self._loginfo(f"No state available yet.")
             return
 
         #self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
         #self._current_state = self._current_state_in_mocap
-        self._current_control = self.convert_flu_to_frd(self._current_state_in_mocap, convert_state)
+        self._current_state = self.convert_flu_to_frd(self._current_state_in_mocap, convert_state)
         self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
@@ -686,9 +686,11 @@ class DiveControllerMPC(DiveControllerInterface):
 
         if mpc_solution is None:
             self._set_actuators_neutral()
+            return
         elif status != 0:
-            self._loginfo("Solver status: {status}")
+            self._loginfo(f"Solver status: {status}")
             self._set_actuators_neutral()
+            return
 
         self.set_publishers(mpc_solution)
 
@@ -785,17 +787,17 @@ class DiveControllerMPC(DiveControllerInterface):
                                       flu_msg.pose.pose.orientation.y,
                                       flu_msg.pose.pose.orientation.z,
                                       flu_msg.pose.pose.orientation.w])
-            frd_odometry.pose.pose.orientation.x = quat[0]
-            frd_odometry.pose.pose.orientation.y = quat[1]
-            frd_odometry.pose.pose.orientation.z = quat[2]
-            frd_odometry.pose.pose.orientation.w = quat[3]
+            frd_odometry.pose.pose.orientation.x = quat[1]
+            frd_odometry.pose.pose.orientation.y = quat[2]
+            frd_odometry.pose.pose.orientation.z = quat[3]
+            frd_odometry.pose.pose.orientation.w = quat[0]
 
             frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
-            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
-            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
+            frd_odometry.twist.twist.linear.y = -flu_msg.twist.twist.linear.y
+            frd_odometry.twist.twist.linear.z = -flu_msg.twist.twist.linear.z
             frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
-            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
-            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
+            frd_odometry.twist.twist.angular.y = -flu_msg.twist.twist.angular.y
+            frd_odometry.twist.twist.angular.z = -flu_msg.twist.twist.angular.z
 
         else:
             frd_odometry = flu_msg
@@ -942,18 +944,18 @@ class DiveControllerMPC(DiveControllerInterface):
         return ref
 
 
-#    def quat_flu_to_frd(self, quat_enu):
-#
-#        rot = R.from_euler('x', 180, degrees=True)
-#        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
-#        r_ned = rot.as_matrix() @ r_enu.as_matrix() 
-#        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
-#        quat_ned_right_order = np.array([quat_ned[3], # w
-#                                        quat_ned[0],  # x
-#                                        quat_ned[1],  # y
-#                                        quat_ned[2]   # z
-#                                        ])
-#        return quat_ned_right_order
+    def quat_flu_to_frd(self, quat_enu):
+
+        rot = R.from_euler('x', 180, degrees=True)
+        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
+        r_ned =  r_enu.as_matrix() @ rot.as_matrix()
+        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
+        quat_ned_right_order = np.array([quat_ned[3], # w
+                                        quat_ned[0],  # x
+                                        quat_ned[1],  # y
+                                        quat_ned[2]   # z
+                                        ])
+        return quat_ned_right_order
 
 
     def initialize_mpc(self):
@@ -1008,30 +1010,20 @@ class DiveControllerMPC(DiveControllerInterface):
         u_rudder = mpc_solution[16]
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
->>>>>>> d07b9ffea6c5b28e17e5665fcecc90a6250abca3:behaviours/sam/sam_diving_controller/sam_diving_controller/DiveController.py
 
-        else:
-            # Assign the calculated control signal to actuators
-            u_vbs = mpc_solution[13]
-            u_lcg = mpc_solution[14]
-            u_stern = mpc_solution[15] 
-            u_rudder = mpc_solution[16]
-            u_rpm1 = mpc_solution[17]
-            u_rpm2 = mpc_solution[18]
+        # Publish the control input
+        self._dive_pub.set_vbs(u_vbs)
+        self._dive_pub.set_lcg(u_lcg)
+        self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
+        self._dive_pub.set_rpm(u_rpm1, u_rpm2)
 
-            # Publish the control input
-            self._dive_pub.set_vbs(u_vbs)
-            self._dive_pub.set_lcg(u_lcg)
-            self._dive_pub.set_thrust_vector(u_rudder, u_stern) 
-            self._dive_pub.set_rpm(u_rpm1, u_rpm2)
-
-            # Set control input (For convenience topics)
-            self._input = ControlInput()
-            self._input.vbs = u_vbs
-            self._input.lcg = u_lcg
-            self._input.thrustervertical = u_stern
-            self._input.thrusterhorizontal = u_rudder
-            self._input.thrusterrpm = float(u_rpm1)
+        # Set control input (For convenience topics)
+        self._input = ControlInput()
+        self._input.vbs = u_vbs
+        self._input.lcg = u_lcg
+        self._input.thrustervertical = u_stern
+        self._input.thrusterhorizontal = u_rudder
+        self._input.thrusterrpm = float(u_rpm1)
 
         # Convenience Topics
         # FIXME: This if statement is weird.
