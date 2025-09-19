@@ -13,9 +13,6 @@ class ONNXManager():
     If you are not sure what values were used for training, do not touch this.
     """
 
-    def get_control_scaled(self, x):
-        return self.rescale_outputs(self.get_control(x))
-
     def __init__(self,
                  model_resource: str = "DR_temp",
                  rpm_max: float = 1000,
@@ -40,20 +37,27 @@ class ONNXManager():
         self.vbs_max = vbs_max
         self.lcg_max = lcg_max
 
+    def get_control_scaled(self, x):
+        return self.rescale_outputs(self.get_control(x))
+
     def get_control(self, x, prep_state_func=lambda x: x):
         """
-        Inputs (1,14):
-            x[0-3] = Orientation quaternion
-            x[4-6] = Linear velocity
-            x[7-9] = Angular velocity
-            x[10-12] = Relative vector to waypoint
-            x[13] = Desired speed (magnitude of linear velocity vector)
+        Inputs (1,27):
+            x[0-3] = Orientation. Mocap frame. NED, Quaternion
+            x[4-6] = Linear velocity. Body Frame, FLU, Vector3
+            x[7-9] = Angular velocity. Body Frame, FLU, Vector3
+            x[10-12] = Relative vector to waypoint. Body Frame, NED, Vector3
+            x[13-16] = Relative orientation of waypoint w.r.p body. Body Frame, NED, Quaternion
+            x[17-19] = Absolute position. Mocap frame, NED, Vector3
+            x[20-24] = Previous "action" vector. Feedback output of NN from t-1
+            x[25] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
+            x[26] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
 
         Outputs:
             y[0] = rpm1 // rpm2
-            y[1] = VBS
-            y[2] = Aileron
-            y[3] = Rudder
+            y[1] = Aileron
+            y[2] = Rudder
+            y[3] = VBS
             y[4] = LCG
         """
         x = prep_state_func(x)
@@ -94,8 +98,8 @@ class ONNXManager():
 
         y = np.clip(y, -1, 1)
         y[0] = y[0] * self.rpm_max
-        y[1] = ((y[1] + 1) * 0.5) * self.vbs_max
-        y[2] = y[2] * self.aileron_angle_max
-        y[3] = y[3] * self.rudder_angle_max
-        y[4] = ((y[4] + 1) * 0.5) * self.vbs_max
+        y[1] = y[1] * self.aileron_angle_max
+        y[2] = y[2] * self.rudder_angle_max
+        y[3] = ((y[3] + 1) * 0.5) * self.vbs_max
+        y[4] = ((y[4] + 1) * 0.5) * self.lcg_max
         return y
