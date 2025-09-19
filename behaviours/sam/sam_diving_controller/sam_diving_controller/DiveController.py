@@ -638,8 +638,9 @@ class DiveControllerMPC(DiveControllerInterface):
             self._loginfo(f"No state available yet.")
             return
 
-        self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
+        #self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
         #self._current_state = self._current_state_in_mocap
+        self._current_control = self.convert_flu_to_frd(self._current_state_in_mocap, convert_state)
         self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
@@ -762,38 +763,38 @@ class DiveControllerMPC(DiveControllerInterface):
 
         return True
 
-#    def convert_flu_to_frd(self, flu_msg, convert_state=True):
-#        """
-#        If convert_state, it converts an odometry message from FLU to FRD
-#
-#        """
-#        frd_odometry = Odometry()
-#        frd_odometry.header.frame_id = flu_msg.header.frame_id
-#        frd_odometry.header.stamp = flu_msg.header.stamp
-#        if convert_state:
-#            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
-#            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
-#            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
-#            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
-#                                      flu_msg.pose.pose.orientation.y,
-#                                      flu_msg.pose.pose.orientation.z,
-#                                      flu_msg.pose.pose.orientation.w])
-#            frd_odometry.pose.pose.orientation.x = quat[0]
-#            frd_odometry.pose.pose.orientation.y = quat[1]
-#            frd_odometry.pose.pose.orientation.z = quat[2]
-#            frd_odometry.pose.pose.orientation.w = quat[3]
-#
-#            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
-#            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
-#            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
-#            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
-#            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
-#            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
-#
-#        else:
-#            frd_odometry = flu_msg
-#
-#        return frd_odometry
+    def convert_flu_to_frd(self, flu_msg, convert_state=True):
+        """
+        If convert_state, it converts an odometry message from FLU to FRD
+
+        """
+        frd_odometry = Odometry()
+        frd_odometry.header.frame_id = flu_msg.header.frame_id
+        frd_odometry.header.stamp = flu_msg.header.stamp
+        if convert_state:
+            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
+            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
+            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
+            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
+                                      flu_msg.pose.pose.orientation.y,
+                                      flu_msg.pose.pose.orientation.z,
+                                      flu_msg.pose.pose.orientation.w])
+            frd_odometry.pose.pose.orientation.x = quat[0]
+            frd_odometry.pose.pose.orientation.y = quat[1]
+            frd_odometry.pose.pose.orientation.z = quat[2]
+            frd_odometry.pose.pose.orientation.w = quat[3]
+
+            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
+            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
+            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
+            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
+            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
+            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
+
+        else:
+            frd_odometry = flu_msg
+
+        return frd_odometry
 
 
     def convert_enu_to_ned(self, enu_msg, convert_state=True):
