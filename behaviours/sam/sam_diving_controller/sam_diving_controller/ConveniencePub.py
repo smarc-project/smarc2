@@ -119,14 +119,15 @@ class ConveniencePub(IDivePub):
 
         predicted_path_msg = Path()
         predicted_path_msg.header.stamp = now.to_msg()
-        predicted_path_msg.header.frame_id = 'map'
+        predicted_path_msg.header.frame_id = 'mocap'
 
         for i, predicted_state in enumerate(x_pred):
             # Calculate future time offset
             future_time = now + rclpy.duration.Duration(seconds=i * 0.1)
 
             # Create PoseStamped
-            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], current_attitude)
+            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], predicted_state[3:7])
+            #pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], current_attitude)
             pose_stamped.header.stamp = future_time.to_msg()
             pose_stamped.header.frame_id = 'mocap'
 
@@ -141,9 +142,9 @@ class ConveniencePub(IDivePub):
         pose_msg.header.frame_id = frame_id
         # FIXME: Check these!
         # Some NED -> ENU conversion for plotting...?
-        pose_msg.pose.position.x = float(position[1])
-        pose_msg.pose.position.y = float(position[0])
-        pose_msg.pose.position.z = float(-position[2])
+        pose_msg.pose.position.x = float(position[0])
+        pose_msg.pose.position.y = float(position[1])
+        pose_msg.pose.position.z = float(position[2])
         pose_msg.pose.orientation.w = float(attitude[0])
         pose_msg.pose.orientation.x = float(attitude[1])
         pose_msg.pose.orientation.y = float(attitude[2])
