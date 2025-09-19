@@ -49,7 +49,7 @@ class ONNXManager():
             x[10-12] = Relative vector to waypoint. Body Frame, NED, Vector3
             x[13-16] = Relative orientation of waypoint w.r.p body. Body Frame, NED, Quaternion
             x[17-19] = Absolute position. Mocap frame, NED, Vector3
-            x[20-24] = Previous "action" vector. Feedback output of NN from t-1
+            x[20-24] = Previous/current "action" vector.
             x[25] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
             x[26] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
 
@@ -65,34 +65,63 @@ class ONNXManager():
         return np.array(controls[0], dtype=np.float32).flatten()
 
     def prepare_state(self, state):
-        odometry = state[0]
-        heading = state[1]
+        mocap_ned = state[0]
+        control = state[2]
+        waypoint = state[3]
 
         x = np.zeros((1, 27), dtype=np.float32)
 
-        x[0, 0] = odometry.pose.pose.orientation.x
-        x[0, 1] = odometry.pose.pose.orientation.y
-        x[0, 2] = odometry.pose.pose.orientation.z
-        x[0, 3] = odometry.pose.pose.orientation.w
+        # x[0-3] = Orientation. Mocap frame. NED, Quaternion
+        x[0, 0] = mocap_ned.pose.pose.orientation.x
+        x[0, 1] = mocap_ned.pose.pose.orientation.y
+        x[0, 2] = mocap_ned.pose.pose.orientation.z
+        x[0, 3] = mocap_ned.pose.pose.orientation.w
 
-        x[0, 4] = odometry.twist.twist.linear.x
-        x[0, 5] = odometry.twist.twist.linear.y
-        x[0, 6] = odometry.twist.twist.linear.z
+        # x[4-6] = Linear velocity. Body Frame, FLU, Vector3
+        x[0, 4] = 0
+        x[0, 5] = 0
+        x[0, 6] = 0
 
-        x[0, 7] = odometry.twist.twist.angular.x / 0.5
-        x[0, 8] = odometry.twist.twist.angular.y / 0.5
-        x[0, 9] = odometry.twist.twist.angular.z / 0.5
+        # x[7-9] = Angular velocity. Body Frame, FLU, Vector3
+        x[0, 7] = 0
+        x[0, 8] = 0
+        x[0, 9] = 0
 
-        x[0, 10] = heading.position.x / 90
-        x[0, 11] = heading.position.y / 90
-        x[0, 12] = heading.position.z / 90
+        # x[10-12] = Relative vector to waypoint. Body Frame, NED, Vector3
+        x[0, 10] = 0
+        x[0, 11] = 0
+        x[0, 12] = 0
 
-        x[0, 13] = state[2]
-        return x
+        # x[13-16] = Relative orientation of waypoint w.r.p body. Body Frame, NED, Quaternion
+        x[0, 13] = 0
+        x[0, 14] = 0
+        x[0, 15] = 0
+        x[0, 16] = 0
+
+        # x[17-19] = Absolute position. Mocap frame, NED, Vector3
+        x[0, 17] = mocap_ned.pose.pose.position.x
+        x[0, 18] = mocap_ned.pose.pose.position.y
+        x[0, 19] = mocap_ned.pose.pose.position.z
+
+        # x[20-24] = Previous/current "action" vector.
+        x[0, 20] = control['rpm1'] / 1000
+        x[0, 21] = control['stern'] / 0.2
+        x[0, 22] = control['rudder'] / 0.2
+        x[0, 23] = ((control['vbs'] / 100) + 1) / 2
+        x[0, 24] = ((control['lcg'] / 100) + 1) / 2
+
+        # x[25] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
+        # x[26] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
+        x[0, 25] = control['lcg'] / 100  # Normalized differently, unfortunately
+        x[0, 26] = control['vbs'] / 100
+
+        return np.clip(x, -1, 1)
 
     def rescale_outputs(self, y):
         """
-        Rescale outputs to values actually used by SAM during training.
+        Rescale NN outputs to values actually used by SAM.
+        Note, this depends on how the NN was configured during training.
+        Must be cross-referenced to the training configuration in Unity.
         """
         y = np.array(y, dtype=np.float32)
 

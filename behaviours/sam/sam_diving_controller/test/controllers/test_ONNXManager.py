@@ -2,8 +2,6 @@ import numpy as np
 import pytest
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
-from ament_index_python.packages import get_package_share_directory
-import os
 
 from sam_diving_controller.controllers.ONNXManager import ONNXManager
 
