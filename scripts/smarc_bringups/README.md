@@ -34,6 +34,13 @@ the WARA-PS MQTT Broker instead, use uncomment the last two lines instead.
 
 In the beginning of the script, you can set whether you're on SAM or not.
 
+### dji_bringup.sh
+
+Launches everything related to DJI drones. 
+You will need this folder: `https://github.com/umdlife/psdk_ros2/tree/main/psdk_interfaces` in your colcon workspace (next to smarc2 is a good place) for the captain to work.
+
+You _could_ clone the whole `psdk_ros2` repo, but it takes forever to build :)
+
 
 ## TMUX Cheatsheet
 - `C-x` means "press control and `x`" at the same time. If its `C-X`, then its "Control Shift x".
