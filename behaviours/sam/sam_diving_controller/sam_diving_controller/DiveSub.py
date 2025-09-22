@@ -415,7 +415,9 @@ class DiveSub():
             #self._waypoint_global = None 
             s = "(Terminal)"
 
-        self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}")
+        if old_state == new_state:
+            return
+        self._loginfo(f"DiveController state: from {node_name}: {old_state} --> {new_state}{s}") 
 
     def set_current_idx(self, idx):
         """

@@ -550,7 +550,7 @@ class HydropointServer(SMARCActionServer, DiveSub):
             elapsed = (current_time - start_time).nanoseconds / 1e9  # seconds
             self.set_mission_state(MissionStates.RUNNING, "AS")
 
-            self.logger.info(f"elapsed: {elapsed}")
+            #self.logger.info(f"elapsed: {elapsed}")
 
             if elapsed > 50:
                 self.logger.info("Goal was cancelled by timeout.")
