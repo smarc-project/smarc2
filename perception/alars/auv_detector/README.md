@@ -169,6 +169,7 @@ When set it False, the detector will use the real-time simulation in Unity.
 ---
 
 ## CNN AUV-Buoy Rope Detector
+2025.Sep.23, move files to simulation/cnn/
 
 ```bash
 python3 save_img_for_cnn_training.py
