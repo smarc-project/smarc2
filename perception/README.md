@@ -7,11 +7,18 @@ Usually compute-intensive and doesn't need to run all the time. So a service to 
 ### Running the Detector
 
 Navigate to the detector folder and run the Python script:
+Modify _ns:="/Quadrotor" to change the namespace
+
+```bash
+ros2 run auv_detector auv_buoy_detector --ros-args -r __ns:=/Quadrotor
+```
+or 
 
 ```bash
 cd /colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector
 python3 auv_buoy_detector.py
 ```
+
 [Tutorial Video](https://youtu.be/dcXlofACp_I)
 
 
