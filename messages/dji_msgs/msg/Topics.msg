@@ -6,7 +6,7 @@ string CONTROLLER_VIBRATION_TOPIC = 'joy/set_feedback'
 string TTS_TOPIC = 'speak'
 
 
-string CAMERA_TOPIC = 'Quadrotor/gimbal_camera/image_raw'
+string CAMERA_TOPIC = 'gimbal_camera/image_raw'
 string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy'
 string ESTIMATED_AUV_TOPIC = 'alars_detection/auv'
 string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle'
