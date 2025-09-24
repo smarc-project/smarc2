@@ -96,6 +96,12 @@ def test_rescale_outputs_customconfig_testset():
 
 
 def test_prepare_state():
-    state = sut.prepare_state((Odometry(), Pose(), 1))
+    state = sut.prepare_state((Odometry(), Odometry(), Odometry(), {
+        "rpm1": 1000,
+        "stern": 0.2,
+        "rudder": 0,
+        "vbs": 50,
+        "lcg": 50,
+    }))
 
     assert state.shape == (1, 27), 'Output shape is incorrect.'

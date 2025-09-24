@@ -60,9 +60,9 @@ class DiveControllerONNX(DiveControllerInterface):
         control_input = self._dive_sub.get_control_input()
 
         onnx_input = self.onnx_manager.prepare_state((odometry_mocap_ned,
-                                                      control_input,
                                                       odometry_body_ned,
-                                                      waypoint_body_ned))
+                                                      waypoint_body_ned,
+                                                      control_input))
         control_output = self.onnx_manager.get_control_scaled(onnx_input)
 
         self.set_publishers(control_output)
@@ -185,8 +185,11 @@ class DiveControllerONNX(DiveControllerInterface):
         odom.child_frame_id = ""
         odom.header.frame_id = "base_link"
         odom.header.stamp = self._node.get_clock().now().to_msg()
-        odom.pose.pose.position = TransformUtils.point_odom_to_base(mocap_odometry, odometry.pose.pose.position)
-        odom.pose.pose.orientation = TransformUtils.rotate_quat_into_child_frame(mocap_odometry, odometry.pose.pose.orientation)
-        odom.twist.twist.linear = TransformUtils.rotate_vector_from_parent_to_child(mocap_odometry, odometry.twist.twist.linear)
-        odom.twist.twist.angular = TransformUtils.rotate_vector_from_parent_to_child(mocap_odometry, odometry.twist.twist.angular)
+
+        odom.pose.pose.position = TransformUtils.transform_point_to_child(mocap_odometry, odometry.pose.pose.position)
+        odom.pose.pose.orientation = TransformUtils.rotate_quat_to_child(mocap_odometry, odometry.pose.pose.orientation)
+
+        odom.twist.twist.linear = TransformUtils.rotate_vector_to_child(mocap_odometry, odometry.twist.twist.linear)
+        odom.twist.twist.angular = TransformUtils.rotate_vector_to_child(mocap_odometry, odometry.twist.twist.angular)
+
         return odom

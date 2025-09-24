@@ -65,17 +65,18 @@ class ONNXManager():
         return np.array(controls[0], dtype=np.float32).flatten()
 
     def prepare_state(self, state):
-        mocap_ned = state[0]
-        control = state[2]
-        waypoint = state[3]
+        odom_mocap_ned = state[0]
+        odom_body_ned = state[1]
+        waypoint = state[2]
+        control = state[3]
 
         x = np.zeros((1, 27), dtype=np.float32)
 
         # x[0-3] = Orientation. Mocap frame. NED, Quaternion
-        x[0, 0] = mocap_ned.pose.pose.orientation.x
-        x[0, 1] = mocap_ned.pose.pose.orientation.y
-        x[0, 2] = mocap_ned.pose.pose.orientation.z
-        x[0, 3] = mocap_ned.pose.pose.orientation.w
+        x[0, 0] = odom_mocap_ned.pose.pose.orientation.x
+        x[0, 1] = odom_mocap_ned.pose.pose.orientation.y
+        x[0, 2] = odom_mocap_ned.pose.pose.orientation.z
+        x[0, 3] = odom_mocap_ned.pose.pose.orientation.w
 
         # x[4-6] = Linear velocity. Body Frame, FLU, Vector3
         x[0, 4] = 0
@@ -99,9 +100,9 @@ class ONNXManager():
         x[0, 16] = 0
 
         # x[17-19] = Absolute position. Mocap frame, NED, Vector3
-        x[0, 17] = mocap_ned.pose.pose.position.x
-        x[0, 18] = mocap_ned.pose.pose.position.y
-        x[0, 19] = mocap_ned.pose.pose.position.z
+        x[0, 17] = odom_mocap_ned.pose.pose.position.x
+        x[0, 18] = odom_mocap_ned.pose.pose.position.y
+        x[0, 19] = odom_mocap_ned.pose.pose.position.z
 
         # x[20-24] = Previous/current "action" vector.
         x[0, 20] = control['rpm1'] / 1000
