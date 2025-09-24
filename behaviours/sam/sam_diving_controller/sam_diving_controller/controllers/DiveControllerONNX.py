@@ -1,16 +1,15 @@
 from nav_msgs.msg import Odometry
 import numpy as np
 
+import numpy as np
+from geometry_msgs.msg import PoseStamped, Pose
+from nav_msgs.msg import Odometry
 from sam_diving_controller.DiveController import DiveControllerInterface
 from sam_diving_controller.controllers.ONNXManager import ONNXManager
-from scipy.spatial.transform import Rotation as R
+from smarc_control_msgs.msg import ControlInput
 
-from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference, ControlState
-from geometry_msgs.msg import PoseStamped, Pose
-
+from behaviours.sam.sam_diving_controller.sam_diving_controller import TransformUtils
 from behaviours.sam.sam_diving_controller.sam_diving_controller.IDivePub import MissionStates, ActuatorStates
-
-import time
 
 
 class DiveControllerONNX(DiveControllerInterface):
@@ -43,8 +42,8 @@ class DiveControllerONNX(DiveControllerInterface):
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
-        waypoint = self._get_waypoint()
-        if waypoint is None:
+        waypoint_mocap_frd = self._get_waypoint()
+        if waypoint_mocap_frd is None:
             return
 
         # Get the current states
@@ -55,10 +54,15 @@ class DiveControllerONNX(DiveControllerInterface):
             self._loginfo(f"No state available yet.")
             return
 
-        mocap_ned = self.convert_enu_to_ned(current_state_in_mocap, convert_state=True)
+        odometry_mocap_ned = self.convert_enu_to_ned(current_state_in_mocap, convert_state=True)
+        odometry_body_ned = self.convert_to_body(current_state_in_mocap, odometry_mocap_ned)
+        waypoint_body_ned = self.convert_to_body(current_state_in_mocap, waypoint_mocap_frd)
         control_input = self._dive_sub.get_control_input()
 
-        onnx_input = self.onnx_manager.prepare_state((mocap_ned, control_input, waypoint))
+        onnx_input = self.onnx_manager.prepare_state((odometry_mocap_ned,
+                                                      control_input,
+                                                      odometry_body_ned,
+                                                      waypoint_body_ned))
         control_output = self.onnx_manager.get_control_scaled(onnx_input)
 
         self.set_publishers(control_output)
@@ -110,33 +114,6 @@ class DiveControllerONNX(DiveControllerInterface):
 
         return q_ned
 
-    def convert_wp_to_odometry(self, wp_msg):
-        """
-        Returns waypoint as Odometry
-        """
-        odom_wp = Odometry()
-
-        if isinstance(wp_msg, PoseStamped):
-            odom_wp.header.frame_id = wp_msg.header.frame_id
-            odom_wp.header.stamp = wp_msg.header.stamp
-
-            odom_wp.pose.pose = wp_msg.pose
-
-        elif isinstance(wp_msg, Pose):
-            odom_wp.header.frame_id = '/mocap'
-            odom_wp.header.stamp = self._node.get_clock().now().to_msg()
-            odom_wp.pose.pose.position = wp_msg.position
-            odom_wp.pose.pose.orientation = wp_msg.orientation
-
-        elif isinstance(wp_msg, Odometry):
-            odom_wp = wp_msg
-
-        else:
-            return None
-
-        return odom_wp
-
-
     def set_publishers(self, mpc_solution):
         """
         Set the corresponding publishers for the actuators and convenience topics
@@ -173,5 +150,43 @@ class DiveControllerONNX(DiveControllerInterface):
             return False
 
         odometry = self.convert_wp_to_odometry(waypoint_in_mocap)
-        # TODO: Convert waypoint to body frame
         return odometry
+
+    def convert_wp_to_odometry(self, wp_msg):
+        """
+        Returns waypoint as Odometry
+        """
+        odom_wp = Odometry()
+
+        if isinstance(wp_msg, PoseStamped):
+            odom_wp.header.frame_id = wp_msg.header.frame_id
+            odom_wp.header.stamp = wp_msg.header.stamp
+
+            odom_wp.pose.pose = wp_msg.pose
+
+        elif isinstance(wp_msg, Pose):
+            odom_wp.header.frame_id = '/mocap'
+            odom_wp.header.stamp = self._node.get_clock().now().to_msg()
+
+            odom_wp.pose.pose.position = wp_msg.position
+            odom_wp.pose.pose.orientation = wp_msg.orientation
+
+        elif isinstance(wp_msg, Odometry):
+            odom_wp = wp_msg
+
+        else:
+            return None
+
+        return odom_wp
+
+    def convert_to_body(self, mocap_odometry: Odometry, odometry: Odometry):
+        odom = Odometry()
+
+        odom.child_frame_id = ""
+        odom.header.frame_id = "base_link"
+        odom.header.stamp = self._node.get_clock().now().to_msg()
+        odom.pose.pose.position = TransformUtils.point_odom_to_base(mocap_odometry, odometry.pose.pose.position)
+        odom.pose.pose.orientation = TransformUtils.rotate_quat_into_child_frame(mocap_odometry, odometry.pose.pose.orientation)
+        odom.twist.twist.linear = TransformUtils.rotate_vector_from_parent_to_child(mocap_odometry, odometry.twist.twist.linear)
+        odom.twist.twist.angular = TransformUtils.rotate_vector_from_parent_to_child(mocap_odometry, odometry.twist.twist.angular)
+        return odom
