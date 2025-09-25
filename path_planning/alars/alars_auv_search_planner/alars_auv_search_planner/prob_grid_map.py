@@ -83,6 +83,7 @@ class ProbabilisticGridMap(Node):
             self.sam_vel.header.frame_id = self.drone_odom_frame_id
             self.sam_vel.header.stamp = self.get_clock().now().to_msg()
 
+        else:
             self.create_subscription(
                 msg_type= Odometry,
                 topic = params["topics.sam_odom"],
@@ -95,6 +96,7 @@ class ProbabilisticGridMap(Node):
         Initializes grid map , ie, initializes the grid map coordinates and the timestamp of each cell. 
         It's then published for rviz visualization 
         """
+        self.get_logger().info(f'GPS = {self.GPS_ping}')
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
         self.GPS_ping_odom, _ = self.transform_point(self.GPS_ping)
@@ -157,8 +159,7 @@ class ProbabilisticGridMap(Node):
                         (0,-1), (-1/sqrt(2),-1/sqrt(2)), (-1,0), (-1/sqrt(2),1/sqrt(2))]
         dot_products = [np.dot(sam_vel_odom, base_vector) for base_vector in base_vectors]
         mapped_direction = base_vectors[np.argmax(dot_products)]
-        blur_factor = 10 # the neighbouring cells will also have an impact. Higher the blur factor, higher the impact
-
+        blur_factor = 10 # the neighbouring cells will also have an impact. Higher the blur factor, smaller the impact (should be called unblur factor maybe)
         direction_dict = {
             (0,1):                      np.array([[q/blur_factor,q,q/blur_factor],
                                                     [0,Q,0],
@@ -217,13 +218,14 @@ class ProbabilisticGridMap(Node):
         d = min(sam_vel*update_period, d_max)
         d_ratio_lb = 1e-3 # value from which steeper linear function is applied
         weight_ratio_lb = 1e-8 # slope value for smaller velocities
-        weight_ratio_ub = 0.9 # slope value for bigger velocities. Decrease if predict step is "convolving too fast".
+        weight_ratio_ub = 0.1 # slope value for bigger velocities. Decrease if predict step is "convolving too fast".
         #TODO: define a function that receives resol, bayes update dt and outputs the best weight
         
         piecewise_ratio = lambda d_ratio: d_ratio*weight_ratio_lb if d_ratio < d_ratio_lb else max(weight_ratio_lb, weight_ratio_ub*d_ratio)
-        piecewise = lambda d: (1, 1/piecewise_ratio(d/d_max))
+
+        piecewise = lambda d: (1, min(1/max(piecewise_ratio(d/d_max), sys.float_info.min), sys.float_info.max))
         linear = lambda d:  (d*(sys.float_info.max-1)/d_max +1, -d*(sys.float_info.max-1)/d_max + sys.float_info.max)
-        rational = lambda d: ( d_max/(d_max-d), (d_max-d)/d )
+        rational = lambda d: ( d_max/(d_max-d), (d_max-d)/d)
         logarithmic = lambda d: ( log(d_max/(d_max-d))+1, log((d_max-d)/d)+1 )
 
         fcn_dict = {
@@ -266,7 +268,7 @@ class ProbabilisticGridMap(Node):
         sub_X, sub_Y, sub_Time = self.X[base_mask_filtered], self.Y[base_mask_filtered], self.map_Time[base_mask_filtered]
         condition_mask = (
             ((np.power(sub_X - x, 2) + np.power(sub_Y - y, 2)) < detection_radius ** 2)
-            & ((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin)
+            & (((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin) | (sub_Time == self.init_timestamp))
         )
         condition_rows, condition_cols = np.where(condition_mask)
         rows = condition_rows + yc_cell-encirclements
