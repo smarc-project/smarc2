@@ -2,19 +2,22 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from geometry_msgs.msg import  PointStamped
+from geometry_msgs.msg import  PointStamped, PoseStamped
 from smarc_utilities.georef_utils import convert_latlon_to_utm
 from alars_auv_search_planner.search_planner_controller import SearchPlannerController
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 from smarc_action_base.gentler_action_server import GentlerActionServer
-
 class SearchPlannerAction():
     def __init__(self,
                  node: Node,
                  action_name: str):
         self._node = node
         self.spcontroller = SearchPlannerController()
+        self.point_publisher = self._node.create_publisher(
+            msg_type = PoseStamped,
+            topic = self.spcontroller.model_params['topics.move_drone'], 
+            qos_profile= 10)
 
         # Initialize the action server with the node and action name
         # Give it all the necessary callbacks
@@ -30,10 +33,13 @@ class SearchPlannerAction():
         )
 
         # Subscribe from detection topic to know when to stop search
-        self._node.create_subscription(PointStamped, 
-                                       self.spcontroller.model_params["topics.sam_detection"],
-                                       self._sam_detection_callback,
-                                       10)
+        try:
+            self._node.create_subscription(PointStamped, 
+                                        self.spcontroller.model_params["topics.sam_detection"],
+                                        self._sam_detection_callback,
+                                        10)
+        except:
+            self._node.get_logger().error("Sam detection topic wasn't updated on search_planner_controller.py (check TODO). Waiting for dji_msgs.Topics.msg to be updated.")
 
         # Initialize any necessary state for your specific action
         # These have nothing to do with the action server itself
@@ -52,12 +58,12 @@ class SearchPlannerAction():
         self._gps = GeoPoint()
         self._radius = 0
 
-        if "radius" in goal_request and "gps" in goal_request:
-            if 'latitude' in goal_request['gps'] and'longitude' in goal_request['gps'] and 'altitude' in goal_request['gps']:
-                self._radius = goal_request["radius"]
-                self._gps.latitude = goal_request['gps']['latitude']
-                self._gps.longitude = goal_request['gps']['longitude']
-                self._gps.altitude = goal_request['gps']['altitude']
+        if "Tolerance" in goal_request and "waypoint" in goal_request:
+            if 'latitude' in goal_request['waypoint'] and'longitude' in goal_request['waypoint'] and 'altitude' in goal_request['waypoint']:
+                self._radius = goal_request["Tolerance"]
+                self._gps.latitude = goal_request['waypoint']['latitude']
+                self._gps.longitude = goal_request['waypoint']['longitude']
+                self._gps.altitude = goal_request['waypoint']['altitude']
                 if(
                     isinstance(self._gps, GeoPoint) and
                     isinstance(self._gps.latitude, float) and
@@ -66,8 +72,11 @@ class SearchPlannerAction():
                     isinstance(self._radius, float) and
                     self._radius > 0
                 ):
+                    self._node.get_logger().info('Action goal is valid')
                     return True
-        else: return False
+        else:
+            self._node.get_logger().error('Action goal is not valid: check "Tolerance" and "waypoint" fields') 
+            return False
 
     
     
@@ -121,7 +130,8 @@ class SearchPlannerAction():
         # Update planner and grid map ()
         try:
             self.map_seen = self.spcontroller.update_grid_map()
-            self.spcontroller.update_path()
+            pose2pub = self.spcontroller.update_path()
+            if pose2pub is not None: self.point_publisher.publish(pose2pub)
             return None
         except:
             self._node.get_logger().warn("Something failed in searching, finishing action")
