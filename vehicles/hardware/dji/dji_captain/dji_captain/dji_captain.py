@@ -73,12 +73,15 @@ class DjiCaptain():
         self._node.declare_parameter("robot_name", "M350")
         self._node.declare_parameter("controller_deadzone", 0.1)
         self._node.declare_parameter("controller_yawrate_multiplier", 0.3)
+        self._node.declare_parameter("home_altitude_above_water", 10.0)
 
         self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
         self._TF_NS : str = f"{self.ROBOT_NAME}/"
 
         self._CONTROLLER_DEADZONE : float = self._node.get_parameter("controller_deadzone").get_parameter_value().double_value
         self._CONTROLLER_YAWRATE_MULTIPLIER : float = self._node.get_parameter("controller_yawrate_multiplier").get_parameter_value().double_value
+        
+        self._HOME_ALT_ABOVE_WATER = self._node.get_parameter("home_altitude_above_water").get_parameter_value().double_value
 
         
         
@@ -1033,7 +1036,7 @@ class DjiCaptain():
             home_tf.child_frame_id = self.HOME_FRAME
             home_tf.transform.translation.x = self._home_point_in_utm.point.x 
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z 
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z + self._HOME_ALT_ABOVE_WATER
             tf_msg.transforms.append(home_tf)
 
 
@@ -1110,6 +1113,8 @@ class DjiCaptain():
             tf_msg.transforms.append(move_to_setpoint_tf)
 
         self._tf_pub.publish(tf_msg) 
+
+
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
             return
