@@ -12,14 +12,12 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from math import dist
 from smarc_mission_msgs.srv import DronePath, InitAUVSearch
-from geometry_msgs.msg import PoseArray, Pose, PointStamped
+from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped
 from .prob_grid_map import ProbabilisticGridMap 
 from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel
 from smarc_utilities.georef_utils import convert_latlon_to_utm
 from dji_msgs.msg import Topics as Topics_dji
 from dji_msgs.msg import Links as Links_dji
-from drone_msgs.msg import Topics as Topics_drone
-from drone_msgs.msg import Links as Links_drone
 from smarc_msgs.msg import Topics as Topics_smarc
 from sam_msgs.msg import Links as Links_sam
 
@@ -40,12 +38,10 @@ class SearchPlannerController(Node):
         )
         self.dji_topics = Topics_dji()
         self.dji_links = Links_dji()
-        self.drone_topics = Topics_drone()
-        self.drone_links = Links_drone()
         self.smarc_topics = Topics_smarc()
         self.sam_links = Links_sam()
-        self.drone_namespace = self.get_namespace()
-        self.sam_namespace = '/sam_auv_v1/'
+        self.drone_namespace = self.get_parameter("namespace").value #M350
+        self.sam_namespace = '/HollowSam'
         self.get_params() 
         
         # set up depending on mode
@@ -74,13 +70,13 @@ class SearchPlannerController(Node):
 
         self.path_update_dt = 0.2 # it's not that relevant, therefore there isn't need to be in the launch file
         self.grid_update_dt = self.model_params['grid_map.update.rate']
-        if self.model_params["mode"] == "sim": # in sim we have to "manually" ensure the grid map and path are set up before we start
-            self.countsToInitializeMap =  int(self.model_params['initialization.time_delay']/self.grid_update_dt) + 1
-            self.countsToUpdateMap = self.countsToInitializeMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
-        else:
-            self.countsToInitializeMap = 0
-            self.countsToUpdateMap = 1
-        self.countsToInitializePlanner = self.countsToUpdateMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
+        # if self.model_params["mode"] == "sim": # in sim we have to "manually" ensure the grid map and path are set up before we start
+        #     self.countsToInitializeMap =  int(self.model_params['initialization.time_delay']/self.grid_update_dt) + 1
+        #     self.countsToUpdateMap = self.countsToInitializeMap + int(self.model_params["grid_map.update.time_margin"]/self.grid_update_dt)
+        # else:
+        self.countsToInitializeMap = 0
+        self.countsToUpdateMap = 1
+        self.countsToInitializePlanner = self.countsToUpdateMap + 1
 
 
         
@@ -88,7 +84,7 @@ class SearchPlannerController(Node):
         self.drone_init_pos = None
         self.GPS_ping = None
         if self.model_params['mode'] == 'sim':
-            self.sim_commands.teleport_sam()
+            # self.sim_commands.teleport_sam()
             self.PATH_DISTANCE, self.PATH_TIME = [], []
             try:
                 load_dotenv()
@@ -182,14 +178,12 @@ class SearchPlannerController(Node):
             if self.model_params['mode'] == 'sim':
                 if self.drone_init_pos is None:
                     self.drone_init_pos = self.sim_commands.get_init_quadrotor_position()
-
                 if self.GPS_ping is None:
-                    self.GPS_ping = self.sim_commands.get_GPSxy_ping()
+                    self.GPS_ping: PointStamped = self.sim_commands.get_GPSxy_ping()
 
-            if self.drone_init_pos is not None and self.GPS_ping is not None:
+            if self.GPS_ping is not None:
                 self.initial_info.cancel()
                 self.grid_map.GPS_ping = self.GPS_ping
-                self.get_logger().info(f'Received GPS ping (x,y) = {round(float(self.GPS_ping.point.x),2), round(float(self.GPS_ping.point.y),2)}')
                 if None in (self.drone_init_pos.point.x, self.drone_init_pos.point.y,  self.drone_init_pos.point.z):
                     self.init_done = True
                 else: # create timer to relocate drone (valid only in mode = sim)
@@ -203,7 +197,8 @@ class SearchPlannerController(Node):
         x_odom, y_odom = self.planner.generate_waypoint(self.drone_init_pos.point.x,
                                         self.drone_init_pos.point.y,
                                         self.drone_init_pos.point.z)
-
+        if None in (x_odom, y_odom): return
+        self.get_logger().info(f'Current position = {x_odom, y_odom}, distance to goal = {dist([x_odom, y_odom], [self.drone_init_pos.point.x, self.drone_init_pos.point.y])}')
         if dist([x_odom, y_odom], [self.drone_init_pos.point.x, self.drone_init_pos.point.y]) < 0.5:
             self.relocate_timer.cancel()
             self.init_done = True
@@ -216,9 +211,13 @@ class SearchPlannerController(Node):
         self.path_timer = self.create_timer(self.path_update_dt, self.update_path)
 
     
-    def update_path(self):
-        """ Path planner timer callback. It will continously see if a new path needs to be produced or if a new waypoint
-        needs to be published, which is done in the generate_path method """
+    def update_path(self) -> PoseStamped:
+        """ 
+        Path planner timer callback. It will continously see if a new path needs to be produced or if a new waypoint
+        needs to be published, which is done in the generate_path method
+         
+        pose2pub (planner attribute) is returned as is (it might be None in the beginning of the movement) 
+        and in mode = 'as', the action server is responsible for publishing it"""
         if self.init_done:
             if self.path_node_time_count <= self.countsToInitializePlanner: 
                 self.path_node_time_count += 1
@@ -244,6 +243,8 @@ class SearchPlannerController(Node):
                 finally:
                     self.callback_running = False
 
+        return self.planner.pose2pub
+
     """ --- Management of grid map """
 
     def run_grid_map(self):
@@ -256,7 +257,11 @@ class SearchPlannerController(Node):
         map_seen = 0
         if self.init_done:
             if self.gridmap_node_time_count == self.countsToInitializeMap:
-                self.planner.grid_map.initiate_grid_map()
+                try:
+                    self.planner.grid_map.initiate_grid_map()
+                except:
+                    self.get_logger().warn("Couldn't transform GPS ping, retrying ...")
+                    return map_seen
             elif self.gridmap_node_time_count >= self.countsToUpdateMap and self.path_initiated:
                 map_seen = self.planner.grid_map.apply_bayes_filter()
                 if self.gridmap_node_time_count > self.countsToUpdateMap:
@@ -332,7 +337,7 @@ class SearchPlannerController(Node):
             "grid_map.update.true_detection_rate": self.get_parameter("grid_map.update.true_detection_rate").value,
             "grid_map.update.time_margin": self.get_parameter("grid_map.update.time_margin").value,
 
-            'frames.id.map': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.MAP,
+            'frames.id.map': self.get_parameter('frames.id.map').value, #self.drone_namespace.removeprefix("/") + "/" + self.dji_links.MAP,
             'frames.id.quadrotor_odom': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.ODOM,
 
             'topics.move_drone': self.drone_namespace + "/" + self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
@@ -344,23 +349,21 @@ class SearchPlannerController(Node):
             'topics.pub_likely_sam_location': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_likely_sam_location').value
         }
 
-        if self.model_params["mode"] != "asTODO": #TODO: remove later on
+        if self.model_params["mode"] != "as": 
             self.model_params.update({
-                'frames.id.map': self.get_parameter('frames.id.map').value, #TODO: map_gt or Quadrotor/map ?
-                'frames.id.quadrotor_odom': self.get_parameter('frames.id.quadrotor_odom').value,
-                'frames.id.sam_odom': self.get_parameter('frames.id.sam_odom').value,
+                'frames.id.sam_odom': self.sam_namespace.removeprefix("/") + "/" + self.sam_links.ODOM_LINK, #not in "as"
 
-                'topics.drone_odom': self.get_parameter("topics.drone_odom").value,
-                'topics.sam_detection': self.get_parameter("topics.sam_detection").value, 
-                'topics.sam_odom': self.sam_namespace + self.smarc_topics.ODOM_TOPIC,
-                'topics.teleport_sam': self.get_parameter('topics.teleport_sam').value,
-                'topics.drone_battery': self.drone_namespace + '/core/battery',
+                'topics.sam_detection': self.get_parameter("topics.sam_detection").value, #not in "as"
+                'topics.sam_odom': self.sam_namespace + "/" + self.smarc_topics.ODOM_TOPIC, #not in "as"
+                'topics.drone_battery': self.drone_namespace + "/" + self.smarc_topics.BATTERY_PERCENT_TOPIC, #not in "as"
 
-                "battery.discharge_rate": self.get_parameter("battery.discharge_rate").value,
-                "battery.threshold": self.get_parameter("battery.threshold").value,
-                "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value,
+                "battery.discharge_rate": self.get_parameter("battery.discharge_rate").value, #not in "as"
+                "battery.threshold": self.get_parameter("battery.threshold").value, ##not in "as"
+                "battery.equivalent_drone_vel": self.get_parameter("battery.equivalent_drone_vel").value, #not in "as"
                 
             })
+
+
     
     def finish_experiment(self):
         """ 
