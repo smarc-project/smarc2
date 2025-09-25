@@ -8,4 +8,9 @@
     <param name="use_sim_time" value="$(var use_sim_time)" />
   </node>
 
+  <!--<node pkg="sam_path_planning" exec="publish_hula_pose" name="hula_pose_publisher" output="screen" namespace="">
+    <param name="robot_name" value="$(var robot_name)" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+  </node>-->
+
 </launch>

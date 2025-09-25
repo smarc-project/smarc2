@@ -599,26 +599,29 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
+        # FIXME: This doesn't quite work. Replacing it with checking if
+        # mission_state == RUNNING blocked the whole controller and it wouldn't
+        # get the waypoint either.
         mission_state = self._dive_sub.get_mission_state()
-        #if mission_state == MissionStates.RECEIVED:
-        #    self._loginfo_once("Mission Received")
-        #    self._set_actuators_neutral()
-        #    return
-
-        #if mission_state == MissionStates.COMPLETED:
-        #    self._loginfo_once("Mission Complete")
-        #    self._set_actuators_neutral()
-        #    return
-
-        #if mission_state == MissionStates.CANCELLED:
-        #    self._loginfo_once("Mission Cancelled")
-        #    self._set_actuators_neutral()
-        #    return
-
-        if mission_state != MissionStates.RUNNING:
-            self._loginfo_once("Mission not running")
+        if mission_state == MissionStates.RECEIVED:
+            self._loginfo_once("Mission Received")
             self._set_actuators_neutral()
             return
+
+        if mission_state == MissionStates.COMPLETED:
+            self._loginfo_once("Mission Complete")
+            self._set_actuators_neutral()
+            return
+
+        if mission_state == MissionStates.CANCELLED:
+            self._loginfo_once("Mission Cancelled")
+            self._set_actuators_neutral()
+            return
+
+        #if mission_state != MissionStates.RUNNING:
+        #    self._loginfo_once("Mission not running")
+        #    self._set_actuators_neutral()
+        #    return
 
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
@@ -635,7 +638,9 @@ class DiveControllerMPC(DiveControllerInterface):
             self._loginfo(f"No state available yet.")
             return
 
-        self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
+        #self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
+        #self._current_state = self._current_state_in_mocap
+        self._current_control = self.convert_flu_to_frd(self._current_state_in_mocap, convert_state)
         self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
@@ -685,19 +690,30 @@ class DiveControllerMPC(DiveControllerInterface):
         # FIXME: Remove all the print statements here. They only should appear in the convenience node
         s = f"\nNMPC INFO\n" # {self._dive_sub.current_idx}/{self.traj_len}:\n"
         s += f"NMPC solver status: {self._acados_status[status]}\n"
-        s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
-        s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
+        #s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
+        #s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
 
-        s += f"\n ----\n"
-        s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
-        s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
-        s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
-        s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
-        s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
-        s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
-        s += f"current: x: {self._current_state.pose.pose.position.x:.3f}"
-        s += f" y: {self._current_state.pose.pose.position.y:.3f}"
-        s += f" z: {self._current_state.pose.pose.position.z:.3f}\n"
+        #s += f"\n[---- States ----]\n"
+        #s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
+        #s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
+        #s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
+        #s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
+        #s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
+        #s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
+        #s += f"current: x: {self._current_state.pose.pose.position.x:.3f}"
+        #s += f" y: {self._current_state.pose.pose.position.y:.3f}"
+        #s += f" z: {self._current_state.pose.pose.position.z:.3f}\n"
+
+        #s += f"[---- WP ----]\n"
+        ##s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
+        ##s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
+        ##s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
+        ##s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
+        ##s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
+        ##s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
+        #s += f"current: x: {self.waypoint.pose.pose.position.x:.3f}"
+        #s += f" y: {self.waypoint.pose.pose.position.y:.3f}"
+        #s += f" z: {self.waypoint.pose.pose.position.z:.3f}\n"
 
         self._loginfo(s)
 
@@ -747,38 +763,38 @@ class DiveControllerMPC(DiveControllerInterface):
 
         return True
 
-#    def convert_flu_to_frd(self, flu_msg, convert_state=True):
-#        """
-#        If convert_state, it converts an odometry message from FLU to FRD
-#
-#        """
-#        frd_odometry = Odometry()
-#        frd_odometry.header.frame_id = flu_msg.header.frame_id
-#        frd_odometry.header.stamp = flu_msg.header.stamp
-#        if convert_state:
-#            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
-#            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
-#            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
-#            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
-#                                      flu_msg.pose.pose.orientation.y,
-#                                      flu_msg.pose.pose.orientation.z,
-#                                      flu_msg.pose.pose.orientation.w])
-#            frd_odometry.pose.pose.orientation.x = quat[0]
-#            frd_odometry.pose.pose.orientation.y = quat[1]
-#            frd_odometry.pose.pose.orientation.z = quat[2]
-#            frd_odometry.pose.pose.orientation.w = quat[3]
-#
-#            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
-#            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
-#            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
-#            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
-#            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
-#            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
-#
-#        else:
-#            frd_odometry = flu_msg
-#
-#        return frd_odometry
+    def convert_flu_to_frd(self, flu_msg, convert_state=True):
+        """
+        If convert_state, it converts an odometry message from FLU to FRD
+
+        """
+        frd_odometry = Odometry()
+        frd_odometry.header.frame_id = flu_msg.header.frame_id
+        frd_odometry.header.stamp = flu_msg.header.stamp
+        if convert_state:
+            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
+            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
+            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
+            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
+                                      flu_msg.pose.pose.orientation.y,
+                                      flu_msg.pose.pose.orientation.z,
+                                      flu_msg.pose.pose.orientation.w])
+            frd_odometry.pose.pose.orientation.x = quat[0]
+            frd_odometry.pose.pose.orientation.y = quat[1]
+            frd_odometry.pose.pose.orientation.z = quat[2]
+            frd_odometry.pose.pose.orientation.w = quat[3]
+
+            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
+            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
+            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
+            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
+            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
+            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
+
+        else:
+            frd_odometry = flu_msg
+
+        return frd_odometry
 
 
     def convert_enu_to_ned(self, enu_msg, convert_state=True):

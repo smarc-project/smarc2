@@ -67,17 +67,20 @@ class ControlModes(Enum):
 
 class DjiCaptain():
     def __init__(self, node: Node):
+        self._prev_log_msg = ""
+
         self._node = node
         self._node.declare_parameter("robot_name", "M350")
         self._node.declare_parameter("controller_deadzone", 0.1)
+        self._node.declare_parameter("controller_yawrate_multiplier", 0.3)
 
+        self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
+        self._TF_NS : str = f"{self.ROBOT_NAME}/"
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
+        self._CONTROLLER_DEADZONE : float = self._node.get_parameter("controller_deadzone").get_parameter_value().double_value
+        self._CONTROLLER_YAWRATE_MULTIPLIER : float = self._node.get_parameter("controller_yawrate_multiplier").get_parameter_value().double_value
 
-        self._CONTROLLER_DEADZONE : float = 0.1
-        v = self._node.get_parameter("controller_deadzone").value 
-        if v is not None: self._CONTROLLER_DEADZONE = v
-
+        
         
         self._control_mode = ControlModes.FLUvel
         self._move_to_setpoint : PoseStamped | None = None
@@ -137,7 +140,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self.ROBOT_NAME + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -168,6 +171,8 @@ class DjiCaptain():
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+
+
 
         node.create_subscription(
             NavSatFix,
@@ -372,7 +377,10 @@ class DjiCaptain():
     
     
     def log(self, msg: str):
+        if msg == self._prev_log_msg:
+            return
         self._node.get_logger().info(msg)
+        self._prev_log_msg = msg
 
 
     def _take_control(self):
@@ -590,10 +598,11 @@ class DjiCaptain():
                     self.log("No left stick, cannot move with ENUpos control mode.")
                     return
                 
-                yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
-                altitude = self._base_pose_flat_in_home.pose.position.z #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
-                joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
-                self._ENU_pos_joy_pub.publish(joy_msg.axes)
+                yaw = math.pi/2 - math.radians(self._heading_deg)
+                yaw_move = yaw + LH * self._CONTROLLER_YAWRATE_MULTIPLIER
+                altitude = self._base_pose_flat_in_home.pose.position.z
+                joy_msg.axes = [RV, RH, altitude + LV, yaw_move]
+                self._ENU_pos_joy_pub.publish(joy_msg)
                 
 
         
@@ -830,7 +839,7 @@ class DjiCaptain():
 
     def _position_fused_callback(self, msg: PositionFused):
         if self._home_point_in_utm is None:
-            self.log("Home point not set, cannot process position fused message.")
+            self.log("Home point not set, ignoring position fused until it is...")
             return
         
         if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_pose_ENU_in_home is None:
@@ -840,6 +849,7 @@ class DjiCaptain():
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_ENU_in_home = PoseStamped()
             self._base_pose_ENU_in_home.header.frame_id = self.ODOM_FRAME
+            self.log("Base pose initialized in home frame.")
             
         self._base_pose_in_home.pose.position.x = msg.position.x
         self._base_pose_in_home.pose.position.y = msg.position.y
@@ -878,16 +888,21 @@ class DjiCaptain():
         
 
     def _home_point_callback(self, msg: NavSatFix):
+        try:
+            gp = GeoPoint()
+            gp.latitude = math.degrees(msg.latitude) # for some reason these are in radians...
+            gp.longitude = math.degrees(msg.longitude)
+            gp.altitude = msg.altitude
+            utm = convert_latlon_to_utm(gp)
+        except Exception as e:
+            self.log(f"Failed to convert home point to UTM: {e}")
+            return
+
         if self._home_point_in_utm is None:
             self._home_point_in_utm = PointStamped()
             self._home_point_in_utm.header.frame_id = DjiLinks.UTM
             self.log("Home point initialized in UTM.")
 
-        gp = GeoPoint()
-        gp.latitude = math.degrees(msg.latitude) # for some reason these are in radians...
-        gp.longitude = math.degrees(msg.longitude)
-        gp.altitude = msg.altitude
-        utm = convert_latlon_to_utm(gp)
         self._home_point_in_utm.point.x = utm.point.x
         self._home_point_in_utm.point.y = utm.point.y
         self._home_point_in_utm.point.z = 0.0
@@ -902,7 +917,7 @@ class DjiCaptain():
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message yet.")
             return
         
         if self._gps_point_in_home is None:
