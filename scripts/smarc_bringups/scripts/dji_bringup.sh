@@ -46,15 +46,19 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux send-keys "ros2 run dji_captain dji_captain --ros-args -r __ns:=/$ROBOT_NAME" C-m
 
     tmux select-pane -t $SESSION:0.2
+    tmux send-keys "fast-discovery-server -i 0" C-m
+    
+    tmux select-pane -t $SESSION:0.3
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
-    tmux select-pane -t $SESSION:0.3
-    # tmux send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
-    tmux send-keys "fast-discovery-server -i 0" C-m
 else
     tmux select-window -t $SESSION:0
-    tmux select-pane -t $SESSION:0.1
+    tmux split-window -h -t $SESSION:0.0
+    tmux select-pane -t $SESSION:0.0
     tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+
+    tmux select-pane -t $SESSION:0.1
+    tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 fi
 
 
