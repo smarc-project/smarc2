@@ -654,6 +654,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Update reference vector
         # NOTE: we use p bc. we have a custom cost function.
+        # NOTE: This might be on e issue, we don't have a trajectory, just one array.
         for stage in range(self.N_horizon):
             if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
                 self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
@@ -684,15 +685,19 @@ class DiveControllerMPC(DiveControllerInterface):
         # The integrator of the control signal is needed, since u is the control derivative.
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
+        #np.set_printoptions(precision=3)
+        #self._loginfo(f"x_current: {x_current}, simU: {self.simU}")
+        #self._loginfo(f"MPC Solution after integration: {mpc_solution}")
+
         if mpc_solution is None:
             self._set_actuators_neutral()
-            return
+            #return
         elif status != 0:
-            self._loginfo(f"Solver status: {status}")
+            #self._loginfo(f"Solver status: {status}")
             self._set_actuators_neutral()
-            return
-
-        self.set_publishers(mpc_solution)
+            #return
+        else:
+            self.set_publishers(mpc_solution)
 
 
         # FIXME: Remove all the print statements here. They only should appear in the convenience node
@@ -787,10 +792,11 @@ class DiveControllerMPC(DiveControllerInterface):
                                       flu_msg.pose.pose.orientation.y,
                                       flu_msg.pose.pose.orientation.z,
                                       flu_msg.pose.pose.orientation.w])
-            frd_odometry.pose.pose.orientation.x = quat[1]
-            frd_odometry.pose.pose.orientation.y = quat[2]
-            frd_odometry.pose.pose.orientation.z = quat[3]
-            frd_odometry.pose.pose.orientation.w = quat[0]
+            # Setting orientation to 0 for debugging!
+            frd_odometry.pose.pose.orientation.x = 0.0 #quat[1]
+            frd_odometry.pose.pose.orientation.y = 0.0 #quat[2]
+            frd_odometry.pose.pose.orientation.z = 0.0 #quat[3]
+            frd_odometry.pose.pose.orientation.w = 1.0 #quat[0]
 
             frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
             frd_odometry.twist.twist.linear.y = -flu_msg.twist.twist.linear.y
@@ -803,6 +809,19 @@ class DiveControllerMPC(DiveControllerInterface):
             frd_odometry = flu_msg
 
         return frd_odometry
+
+    def quat_flu_to_frd(self, quat_enu):
+
+        rot = R.from_euler('x', 180, degrees=True)
+        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
+        r_ned =  r_enu.as_matrix() @ rot.as_matrix()
+        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
+        quat_ned_right_order = np.array([quat_ned[3], # w
+                                        quat_ned[0],  # x
+                                        quat_ned[1],  # y
+                                        quat_ned[2]   # z
+                                        ])
+        return quat_ned_right_order
 
 
     def convert_enu_to_ned(self, enu_msg, convert_state=True):
@@ -878,6 +897,13 @@ class DiveControllerMPC(DiveControllerInterface):
         else:
             return None
 
+        # FOr debugging only!
+
+        odom_wp.pose.pose.orientation.x = 0.0
+        odom_wp.pose.pose.orientation.y = 0.0
+        odom_wp.pose.pose.orientation.z = 0.0
+        odom_wp.pose.pose.orientation.w = 1.0
+
         return odom_wp
 
 
@@ -944,18 +970,6 @@ class DiveControllerMPC(DiveControllerInterface):
         return ref
 
 
-    def quat_flu_to_frd(self, quat_enu):
-
-        rot = R.from_euler('x', 180, degrees=True)
-        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
-        r_ned =  r_enu.as_matrix() @ rot.as_matrix()
-        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
-        quat_ned_right_order = np.array([quat_ned[3], # w
-                                        quat_ned[0],  # x
-                                        quat_ned[1],  # y
-                                        quat_ned[2]   # z
-                                        ])
-        return quat_ned_right_order
 
 
     def initialize_mpc(self):
@@ -1041,6 +1055,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.roll  = euler_angles[0]
             self._ref.pitch = euler_angles[1]
             self._ref.yaw   = euler_angles[2]
+
 
 
     def get_mpc_pred(self):
