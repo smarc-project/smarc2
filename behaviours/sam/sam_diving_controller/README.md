@@ -127,6 +127,6 @@ Sample plotjuggler layout to analyse rosbags.
 
 Either run the test directly from the file or run the package test suite using:
 
-```bash
+```shell
 colcon test --packages-select sam_diving_controller --event-handlers console_cohesion+
 ```
