@@ -24,14 +24,14 @@ def test_model_load():
 
 
 def test_get_control_dummy():
-    control = sut.get_control(np.zeros((1, 27), dtype=np.float32))
+    control = sut.get_control(np.zeros((1, 28), dtype=np.float32))
 
     assert control is not None, 'Output is None'
     assert control.shape == (5,), 'Output shape is incorrect.'''
 
 
 def test_get_control_scaled():
-    control = sut.get_control_scaled(np.ones((1, 27), dtype=np.float32) / 2)
+    control = sut.get_control_scaled(np.ones((1, 28), dtype=np.float32) / 2)
 
     assert control is not None, 'Output is None'
     assert control.shape == (5,), 'Output shape is incorrect.'
@@ -104,4 +104,4 @@ def test_prepare_state():
         "lcg": 50,
     }))
 
-    assert state.shape == (1, 27), 'Output shape is incorrect.'
+    assert state.shape == (1, 28), 'Output shape is incorrect.'

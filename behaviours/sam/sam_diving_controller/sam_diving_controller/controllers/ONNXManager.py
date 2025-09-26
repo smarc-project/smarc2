@@ -48,10 +48,11 @@ class ONNXManager():
             x[7-9] = Angular velocity. Body Frame, FLU, Vector3
             x[10-12] = Relative vector to waypoint. Body Frame, NED, Vector3
             x[13-16] = Relative orientation of waypoint w.r.p body. Body Frame, NED, Quaternion
-            x[17-19] = Absolute position. Mocap frame, NED, Vector3
-            x[20-24] = Previous/current "action" vector.
-            x[25] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
-            x[26] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
+            x[17] = Target velocity magnitude. Between 0.1 - 0.5.
+            x[18-20] = Absolute position. Mocap frame, NED, Vector3
+            x[21-25] = Previous/current "action" vector.
+            x[26] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
+            x[27] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
 
         Outputs:
             y[0] = rpm1 // rpm2
@@ -70,7 +71,7 @@ class ONNXManager():
         waypoint = state[2]
         control = state[3]
 
-        x = np.zeros((1, 27), dtype=np.float32)
+        x = np.zeros((1, 28), dtype=np.float32)
 
         # x[0-3] = Orientation. Mocap frame. NED, Quaternion
         x[0, 0] = odom_mocap_ned.pose.pose.orientation.x
@@ -99,22 +100,25 @@ class ONNXManager():
         x[0, 15] = waypoint.pose.pose.orientation.z
         x[0, 16] = waypoint.pose.pose.orientation.w
 
-        # x[17-19] = Absolute position. Mocap frame, NED, Vector3
-        x[0, 17] = odom_mocap_ned.pose.pose.position.x
-        x[0, 18] = odom_mocap_ned.pose.pose.position.y
-        x[0, 19] = odom_mocap_ned.pose.pose.position.z
+        # x[17] = Target velocity magnitude. Between 0.1 - 0.5.
+        x[0, 17] = 1
 
-        # x[20-24] = Previous/current "action" vector.
-        x[0, 20] = control['rpm1'] / 1000
-        x[0, 21] = control['stern'] / 0.2
-        x[0, 22] = control['rudder'] / 0.2
-        x[0, 23] = ((control['vbs'] / 100) + 1) / 2
-        x[0, 24] = ((control['lcg'] / 100) + 1) / 2
+        # x[18-20] = Absolute position. Mocap frame, NED, Vector3
+        x[0, 18] = odom_mocap_ned.pose.pose.position.x
+        x[0, 19] = odom_mocap_ned.pose.pose.position.y
+        x[0, 20] = odom_mocap_ned.pose.pose.position.z
 
-        # x[25] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
-        # x[26] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
-        x[0, 25] = control['lcg'] / 100  # Normalized differently, unfortunately
-        x[0, 26] = control['vbs'] / 100
+        # x[21-25] = Previous/current "action" vector.
+        x[0, 21] = control['rpm1'] / 1000
+        x[0, 22] = control['stern'] / 0.2
+        x[0, 23] = control['rudder'] / 0.2
+        x[0, 24] = ((control['vbs'] / 100) + 1) / 2
+        x[0, 25] = ((control['lcg'] / 100) + 1) / 2
+
+        # x[26] = LCG feedback. Normalized to [0, 1] (Divide percentage by 100)
+        # x[27] = VBS feedback. Normalized to [0, 1] (Divide percentage by 100)
+        x[0, 26] = control['lcg'] / 100  # Normalized differently, unfortunately
+        x[0, 27] = control['vbs'] / 100
 
         return np.clip(x, -1, 1)
 
