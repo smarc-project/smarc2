@@ -24,7 +24,6 @@ class DiveControllerONNX(DiveControllerInterface):
         self._current_control = None
         self._ref = None
         self._error = None
-        self._input = None
         self.waypoint = None
 
         self.onnx_manager = ONNXManager("DR_temp")
@@ -114,30 +113,22 @@ class DiveControllerONNX(DiveControllerInterface):
 
         return q_ned
 
-    def set_publishers(self, mpc_solution):
+    def set_publishers(self, outputs):
         """
         Set the corresponding publishers for the actuators and convenience topics
         """
-        u_rpm1 = mpc_solution[0]
-        u_rpm2 = mpc_solution[0]
-        u_stern = mpc_solution[1]
-        u_rudder = mpc_solution[2]
-        u_vbs = mpc_solution[3]
-        u_lcg = mpc_solution[4]
+        u_rpm1 = outputs[0]
+        u_rpm2 = outputs[0]
+        u_stern = outputs[1]
+        u_rudder = outputs[2]
+        u_vbs = outputs[3]
+        u_lcg = outputs[4]
 
         # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
         self._dive_pub.set_thrust_vector(u_rudder, u_stern)
         self._dive_pub.set_rpm(u_rpm1, u_rpm2)
-
-        # Set control input (For convenience topics)
-        self._input = ControlInput()
-        self._input.vbs = u_vbs
-        self._input.lcg = u_lcg
-        self._input.thrustervertical = u_stern
-        self._input.thrusterhorizontal = u_rudder
-        self._input.thrusterrpm = float(u_rpm1)
 
     def _get_waypoint(self):
         if not self._dive_sub.has_waypoint():
