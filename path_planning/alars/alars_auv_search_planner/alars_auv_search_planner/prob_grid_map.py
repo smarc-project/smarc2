@@ -274,6 +274,11 @@ class ProbabilisticGridMap(Node):
         rows = condition_rows + yc_cell-encirclements
         columns = condition_cols + xc_cell-encirclements
 
+        # remove negative elements from rows and columns -> we don't want to wrap around the grid map
+        mask = (0 <= rows) & (rows < self.Ncells_y) & (0 <= columns) & (columns < self.Ncells_x)
+        rows = rows[mask]
+        columns = columns[mask]
+
         return rows, columns
 
     def find_cell(self, x_coord, y_coord):
