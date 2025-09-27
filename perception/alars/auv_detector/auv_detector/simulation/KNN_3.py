@@ -15,6 +15,11 @@ from sklearn.neighbors import NearestNeighbors
 from collections import deque
 import heapq
 
+from tf2_ros import TransformListener, Buffer
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformException
+
+
 class KNN(Node):
     def __init__(self):
         super().__init__('k_nearest_neighbors')
@@ -40,6 +45,8 @@ class KNN(Node):
         self.realdata = self.get_parameter("realdata.enabled").value
         # self.realdata_path = self.get_parameter("realdata.path").value
 
+        self.SHOW_DEBUG = self.get_parameter("show_debug").value
+
         # Initialization (in __init__ or once)
         self.rope_img_buffer = deque(maxlen=5)
         self.rope_mask_buffer = deque(maxlen=5)
@@ -47,27 +54,70 @@ class KNN(Node):
         if(P.REALDATA) :
             self.subscription = self.create_subscription(
                 Image,
-                f"/{self.robot_name}/{self.realdata_topic}",
+                f"/Quadrotor/gimbal_camera/image_raw",
                 self.listener_callback,            
                 10)
+
+            # self.subscription = self.create_subscription(
+            #     Image,
+            #     f"/{self.robot_name}/{self.realdata_topic}",
+            #     self.listener_callback,            
+            #     10)
         else:
             self.subscription = self.create_subscription(
                 Image,
-                f"/{self.robot_name}/{DroneTopics.CAMERA_DATA_TOPIC}",
+                f"/Quadrotor/gimbal_camera/image_raw",
                 self.listener_callback,            
                 10)
+            # self.subscription = self.create_subscription(
+            #     Image,
+            #     f"/{self.robot_name}/{DroneTopics.CAMERA_DATA_TOPIC}",
+            #     self.listener_callback,            
+            #     10)
         self.subscription
         self.bridge = CvBridge()
         self.mask_publisher = self.create_publisher(Image, f"/{self.robot_name}/{DroneTopics.CAMERA_PROCESSED_TOPIC}", 10)
         # self.foreground_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_foreground', 10)
         # self.detection_publisher = self.create_publisher(Image, 'Quadrotor/core/fpcamera/image_detection', 10)
         self.buoy_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.BUOY_DETECTOR_ESTIMATE_TOPIC}", 10)
+        self.buoy_pub_3 = self.create_publisher(Float32MultiArray, f"alars_detection/buoy", 10)
+
         self.sam_lowest_pub = self.create_publisher(Float32MultiArray, f"/{self.robot_name}/{ DroneTopics.SAM_LOWEST_POINT_ESTIMATE_TOPIC}", 10)
-        
+        self.auv_pub = self.create_publisher(Float32MultiArray, f"alars_detection/auv", 10)
+
         self.target_pub = self.create_publisher(Float32MultiArray, f"/target", 10)  # [diving x, diving y, heading x, heading y]
+        self.middle_pub = self.create_publisher(Float32MultiArray, f"alars_detection/middle", 10)
 
         self.knn = cv2.createBackgroundSubtractorKNN(history=500, dist2Threshold=self.knn_lowerbound,detectShadows=False)
         #self.knn = cv2.createBackgroundSubtractorKNN(history=1000, dist2Threshold=10,detectShadows=False)
+
+
+        # Initialize the tf buffer and listener
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
+        # Use a timer to periodically check for transform
+        #self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz
+
+        # Set parent and child frame
+        self.parent_frame = 'map_gt'
+        #self.child_frame = 'Quadrotor/camera_gt'
+        self.child_frame = 'Quadrotor/winch_link'
+
+    # def timer_callback(self):
+    #     try:
+    #         now = rclpy.time.Time()
+    #         trans: TransformStamped = self.tf_buffer.lookup_transform(
+    #             self.parent_frame,
+    #             self.child_frame,
+    #             now
+    #         )
+    #         pos = trans.transform.translation
+    #         self.get_logger().info(f"[{self.child_frame}] Position in [{self.parent_frame}]: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
+    #     except TransformException as e:
+    #         self.get_logger().warn(f'Could not transform {self.parent_frame} -> {self.child_frame}: {str(e)}')
+
+
 
     def declare_node_parameters(self):
         """
@@ -96,6 +146,7 @@ class KNN(Node):
     def listener_callback(self, msg):
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        cv_image_noted = cv_image.copy()
         # cv_image = self.enhance_saturation(cv_image, saturation_factor=1.5) TODO : increase saturation and see if results improve
         #enhance saturation values
         sat_factor = 1
@@ -108,13 +159,13 @@ class KNN(Node):
         cv_image = imgrgb
         # Apply the MOG2 algorithm to get the foreground mask
         foreground_mask = self.knn.apply(cv_image)
-        cv2.imshow('KNN', foreground_mask)
+        #cv2.imshow('KNN', foreground_mask)
 
         #########################################################################################  buoy
 
         # HSV filter for buoy
-        lower_orange = np.array([16, 0, 255])  # manual hsv detector
-        upper_orange = np.array([25, 152, 255])
+        lower_orange = np.array([26, 190, 0])  # manual hsv detector
+        upper_orange = np.array([36, 231, 245])
         hsv_thresh_buoy = cv2.inRange(imghsv, lower_orange, upper_orange)
         preview_buoy = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_buoy)
         #cv2.imshow('HSV_buoy', preview_buoy)
@@ -149,6 +200,7 @@ class KNN(Node):
                 buoy_position_msg = Float32MultiArray()
                 buoy_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the point
                 self.buoy_pub.publish(buoy_position_msg)
+                self.buoy_pub_3.publish(buoy_position_msg)
                 #self.get_logger().info(f"detect buoy")
 
                 cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
@@ -156,14 +208,22 @@ class KNN(Node):
                 # Put area text
                 cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                
+
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
+                # Put area text
+                cv2.putText(cv_image_noted, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
         #cv2.imshow('HSV_buoy', preview_buoy)
 
         #########################################################################################  auv
 
 
         # HSV filter for sam auv
-        lower_yellow = np.array([0, 55, 153])  # manual hsv detector
-        upper_yellow = np.array([195, 97, 254])
+        lower_yellow = np.array([25, 0, 169])  # manual hsv detector
+        upper_yellow = np.array([46, 103, 221])
         hsv_thresh_auv = cv2.inRange(imghsv, lower_yellow, upper_yellow)
         preview_auv = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_auv)
         preview_auv_2 = preview_auv.copy()
@@ -197,8 +257,17 @@ class KNN(Node):
                 center_auv = np.array([cx, cy])
                 cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
 
+                cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
+
+                auv_position_msg = Float32MultiArray()
+                auv_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the AUV
+                self.auv_pub.publish(auv_position_msg)
+
                 # Put area text
                 cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                
+                cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
         cv2.imshow('HSV_auv', preview_auv)
@@ -247,14 +316,14 @@ class KNN(Node):
         #########################################################################################   rope
 
         # HSV filter for rope
-        lower_rope = np.array([3, 146, 82])  # manual hsv detector
-        upper_rope = np.array([13, 255, 245])
+        lower_rope = np.array([6, 61, 165])  # manual hsv detector
+        upper_rope = np.array([22, 120, 187])
         hsv_thresh_rope = cv2.inRange(imghsv, lower_rope, upper_rope)
         preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
         preview_rope_2 = preview_rope.copy()
         preview_rope_3 = preview_rope.copy()
         cv2.imshow('HSV_rope', preview_rope)
-
+        center_x_rope = None
 
         # Rope Reconstruction method 1 
         # # Step 1: Find rope points
@@ -356,7 +425,7 @@ class KNN(Node):
         # Use this dilated result for binary mask and grid processing
         rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
         _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
-        cv2.imshow("Dilation", rope_bin)
+        #cv2.imshow("Dilation", rope_bin)
 
         # Curve fitting 
 
@@ -391,7 +460,6 @@ class KNN(Node):
         #     cv2.line(preview_rope_3, path_px[i-1], path_px[i], (0, 255, 0), 2)
         # cv2.imshow("Grid-Based Rope Path Reconstructed", preview_rope_3)
 
-
         #########################################################################################
 
         # Just add the filtered images directly
@@ -400,6 +468,16 @@ class KNN(Node):
 
         if center_auv is not None and center_buoy is not None:
             center_between_auv_and_buoy = (center_auv + center_buoy) / 2
+
+            middle_position_msg = Float32MultiArray()
+            middle_position_msg.data = [float(center_between_auv_and_buoy[0]), float(center_between_auv_and_buoy[1])]  # Publish the coordinates of the middle point between auv and buoy
+            self.middle_pub.publish(middle_position_msg) 
+
+            cx = int(center_between_auv_and_buoy[0])  
+            cy = int(center_between_auv_and_buoy[1])  
+            cv2.circle(cv_image_noted, (cx, cy), 5, (0, 0, 255), -1) 
+            cv2.putText(cv_image_noted, f"Middle Point", (cx + 10, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+            
             direction_between_auv_and_buoy =  center_auv - center_buoy
             direction_between_auv_and_buoy = direction_between_auv_and_buoy / np.linalg.norm(direction_between_auv_and_buoy)  # Normalize
 
@@ -438,21 +516,23 @@ class KNN(Node):
             
 
             # Draw heading
-            arrow_start_point = (target_u, target_v)
-            arrow_end_point = (center_x_rope, center_y_rope)
-            cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
+            if center_x_rope is not None:
+                arrow_start_point = (target_u, target_v)
+                arrow_end_point = (center_x_rope, center_y_rope)
+                cv2.arrowedLine(combined_preview, arrow_start_point, arrow_end_point, (0, 255, 0), thickness=1, tipLength=0.3)
 
-            # Final 3D heading in camera frame
-            heading_x = (center_x_rope - cam_x) * cam_Z / fx
-            heading_y = (center_y_rope - cam_y) * cam_Z / fy
+                # Final 3D heading in camera frame
+                heading_x = (center_x_rope - cam_x) * cam_Z / fx
+                heading_y = (center_y_rope - cam_y) * cam_Z / fy
 
-            # Publish Target
-            target_position_msg = Float32MultiArray()
-            target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
-            self.target_pub.publish(target_position_msg) 
+                # Publish Target
+                target_position_msg = Float32MultiArray()
+                target_position_msg.data = [float(target_camera[0]), float(target_camera[1]), float(heading_x), float(heading_y)] # diving point and heading 
+                self.target_pub.publish(target_position_msg) 
 
         # Show the combined result
         cv2.imshow('Combined_HSV', combined_preview)
+        cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
         #########################################################################################
 
         # Apply the connected component filtering
@@ -461,7 +541,7 @@ class KNN(Node):
         avg_rgb = cv2.mean(masked_image, mask=filtered_mask)
         #self.get_logger().info(f"average rgb : {avg_rgb}")  #BGR
         # # Display the mask from KNN
-        cv2.imshow('Detected Foreground', filtered_mask)
+        #cv2.imshow('Detected Foreground', filtered_mask)
         cv2.waitKey(1)
         # Apply morphological operations to remove noise and fill gaps
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -473,7 +553,7 @@ class KNN(Node):
 
         debug_contour_img = cv_image.copy()
         cv2.drawContours(debug_contour_img, large_contours, -1, (0, 255, 0), 2)  # green contours
-        cv2.imshow("Large Contours", debug_contour_img)
+        #cv2.imshow("Large Contours", debug_contour_img)
 
 
         for cnt in large_contours:
@@ -558,6 +638,7 @@ class KNN(Node):
                 min_gradient_msg = Float32MultiArray()
                 min_gradient_msg.data = [max_point[0], max_point[1]]
                 self.sam_lowest_pub.publish(min_gradient_msg)
+                
 
                 # Draw the fitted curve on the image
                 for i in range(len(original_fitted_points) - 1):

@@ -12,4 +12,9 @@ string TTS_TOPIC = 'speak' # String
 # camera
 string GIMBAL_CAMERA_RAW_TOPIC = 'gimbal_camera/image_raw' # Image
 
-
+string CAMERA_TOPIC = 'gimbal_camera/image_raw'
+string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy'
+string ESTIMATED_AUV_TOPIC = 'alars_detection/auv'
+string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle'
+string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector'
+string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector'
