@@ -6,6 +6,10 @@ The `auv_detector` package is responsible for performing perception and estimati
 
 This package contains different modules for sensor fusion, state prediction, and data filtering. The estimators and detection methods can be launched separately or together based on the use case.
 
+## Usage
+Run: `ros2 run auv_detector auv_buoy_detector --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME`
+
+
 ## Dependencies
 
 ### System Requirements
@@ -25,18 +29,22 @@ Ensure that the following ROS 2 packages are installed:
 - `sensor_msgs`
 - `geometry_msgs`
 - `tf2_ros` (for TF tree manipulation)
-- `drone_msgs`
+- `dji_msgs`
 You can install msg by  
 ```bash
 cd /home/user/colcon_ws
-colcon build --packages-select drone_msgs
+colcon build --packages-select dji_msgs
 source install/setup.bash
 ```
 
 ### External Tools/Hardware:
-- The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and an the data is fused to make a gloval georeferenced estimate of the AUV.
+- The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and the data is fused to make a global georeferenced estimate of the AUV.
 
 ---
+
+
+# Outdated
+**The following bits need some cleanup...**
 
 ## Nodes
 
@@ -168,10 +176,29 @@ When set it False, the detector will use the real-time simulation in Unity.
 
 ---
 
+## CNN AUV-Buoy Rope Detector
+2025.Sep.23, move files to simulation/cnn/
+
+```bash
+python3 save_img_for_cnn_training.py
+```
+
+
+## Visual UAV Hook Detector 
+
+
+
+
+---
 ## Maintainer
 
 **Aryan Dolas**
 - Email: aryand@kth.se
+
+**LiFan**
+- Email: keystoradio@gmail.com
+
+
 
 Feel free to contribute, report issues, or suggest improvements!
 

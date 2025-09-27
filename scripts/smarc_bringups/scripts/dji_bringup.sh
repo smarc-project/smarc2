@@ -131,7 +131,21 @@ tmux rename-window "Cam"
 tmux select-window -t $SESSION:4
 tmux split-window -h -t $SESSION:4.0
 tmux select-pane -t $SESSION:4.0
-tmux send-keys "echo 'This will be the sam/buoy detector node'" C-m
+
+SHOW_DEBUG=0
+ENABLE_DETECTOR_ON_START=0
+if [[ $USE_SIM_TIME = "True" ]]; then
+    SHOW_DEBUG=1
+    ENABLE_DETECTOR_ON_START=1
+fi
+tmux send-keys "ros2 run auv_detector auv_buoy_detector --ros-args \
+-r __ns:=/$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME \
+-p debug_imshow:=$SHOW_DEBUG \
+-p enable_buoy_detector:=1 \
+-p enable_auv_detector:=1 \
+-p enable_rope_detector:=0 \
+-p enable_on_start:=$ENABLE_DETECTOR_ON_START" C-m
 
 # the cam driver is needed just for the real thing
 if [[ $USE_SIM_TIME = "False" ]]; then
