@@ -51,13 +51,13 @@ class DetectionNode(Node):
         # Subscriber
         self.subscription = self.create_subscription(
             Image,
-            Topics.CAMERA_TOPIC,
+            Topics.GIMBAL_CAMERA_RAW_TOPIC,
             self.image_callback,
             10
         )
         self.bridge = CvBridge()
 
-        self.get_logger().info(f"DetectionNode initialized and subscribed to '{Topics.CAMERA_TOPIC}'")
+        self.get_logger().info(f"DetectionNode initialized and subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'")
 
 
         ################################################################################
@@ -70,8 +70,8 @@ class DetectionNode(Node):
         self.create_service(Trigger, Topics.ENABLE_ALARS_DETECTOR_SERVICE_TOPIC , self.handle_enable_detector)
         self.create_service(Trigger, Topics.DISABLE_ALARS_DETECTOR_SERVICE_TOPIC , self.handle_disable_detector)
 
-        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.CAMERA_TOPIC}'. Service 'enable_detector' ready.")
-        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.CAMERA_TOPIC}'. Service 'disable_detector' ready.")
+        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'. Service 'enable_detector' ready.")
+        self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'. Service 'disable_detector' ready.")
 
 
     
