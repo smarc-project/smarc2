@@ -354,17 +354,13 @@ class DjiCaptain():
         s = "\nDjiCaptain Status:\n"
         s += f"  UTM Frame: {self._utm_labeled_frame}\n"
         s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)}\n"
-        s += f"  GPS in Home: {format_point_stamped(self._gps_point_in_home)}\n"
-        s += f"  RTK in Home: {format_point_stamped(self._rtk_point_in_home)}\n"
 
         s += f"\n  Position in Home: {format_pose_stamped(self._base_pose_in_home)}\n"
-        s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
-        s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
-        s += f"  Geo Altitude: {self._geo_altitude}\n"
-        s += f"  Home Geo Altitude: {self._home_geo_altitude}\n"
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
+        s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
+        s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
         
         s += f"\n  Smarc Topics: {self._smarc_pub_status}\n"
         s += f"  TF: {self._tf_pub_status}\n"
@@ -668,7 +664,6 @@ class DjiCaptain():
 
         if (self._prev_joy_output is None):
             self._prev_joy_output = np.array([FLU_vel.pose.position.x, FLU_vel.pose.position.y, FLU_vel.pose.position.z])
-            #TODO DJURO FRIDAY test this with 0s.
 
         try:
             tf_diff = self._tf_buffer.lookup_transform(
