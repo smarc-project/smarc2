@@ -8,7 +8,7 @@
     vbs_pid_ki: 5.0
     vbs_pid_kd: 1.0
     vbs_pid_kaw: 1.0
-    vbs_u_neutral: 45.0
+    vbs_u_neutral: 0.0
     vbs_u_min: 0.0
     vbs_u_max: 100.0
     lcg_pid_kp: 20.0
