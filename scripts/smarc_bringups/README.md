@@ -36,10 +36,8 @@ In the beginning of the script, you can set whether you're on SAM or not.
 
 ### dji_bringup.sh
 
-Launches everything related to DJI drones. 
-You will need this folder: `https://github.com/umdlife/psdk_ros2/tree/main/psdk_interfaces` in your colcon workspace (next to smarc2 is a good place) for the captain to work.
-
-You _could_ clone the whole `psdk_ros2` repo, but it takes forever to build :)
+Launches everything related to DJI drones and the ALARS project.
+**You will need the submodule in `messages/psdk_interfaces` to run the captain this bringup launches.**
 
 
 ## TMUX Cheatsheet

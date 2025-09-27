@@ -2,14 +2,40 @@
 ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
 
+MQTT_ADDR=20.240.40.232
+MQTT_PORT=1884
+
 if [[ "$(whoami)" == *"alars"* ]]; then
     USE_SIM_TIME=False
     MAP_FRAME=$ROBOT_NAME/map
+    REALSIM="real"
 else
     USE_SIM_TIME=True
     MAP_FRAME=map_gt
+    REALSIM="simulation"
 fi
 
+# the mqtt stuff on unity on linux is wonky, so use localhost for that
+# a broker will be launched in a tmux pane later.
+if [[ "$(uname)" == "Linux" ]]; then
+    ON_LINUX=True
+else
+    ON_LINUX=False
+fi
+
+
+if [[ $ON_LINUX == "True" && $USE_SIM_TIME == "True" ]]; then
+    MQTT_ADDR=localhost
+    MQTT_PORT=1889
+fi
+
+HOME_ABOVE_WATER=$1
+if [[ -z "$HOME_ABOVE_WATER" ]]; then
+    echo "You must pass the home altitude above water level as the first argument!"
+    echo "This is required for the dji_captain node to function properly."
+    echo "Exiting."
+    exit 1
+fi
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=air
@@ -17,6 +43,8 @@ PULSE_RATE=10.0
 
 # create a tmux session with a name
 tmux -2 new-session -d -s $SESSION
+
+
 
 
 # create a bunch of windows. These are the "tabs" you'll
@@ -27,7 +55,7 @@ tmux -2 new-session -d -s $SESSION
 tmux new-window -t $SESSION:0 -n 'Captains'
 tmux rename-window "Captains"
 # only launch if not the simulator
-if [ "$USE_SIM_TIME" = "False" ]; then
+if [[ $USE_SIM_TIME = "False" ]]; then
     # PSDK_ROS2_BRIDGE
     
     tmux select-window -t $SESSION:0
@@ -43,24 +71,28 @@ if [ "$USE_SIM_TIME" = "False" ]; then
     tmux send-keys "ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper" C-m
     
     tmux select-pane -t $SESSION:0.1
-    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -r __ns:=/$ROBOT_NAME" C-m
+    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME  -p home_altitude_above_water:=$HOME_ABOVE_WATER -r __ns:=/$ROBOT_NAME " C-m
 
     tmux select-pane -t $SESSION:0.2
+    tmux send-keys "fast-discovery-server -i 0" C-m
+    
+    tmux select-pane -t $SESSION:0.3
     tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 
-    tmux select-pane -t $SESSION:0.3
-    # tmux send-keys "cd ~ && ./record_bag_ex_camComp.sh" C-m
-    tmux send-keys "fast-discovery-server -i 0" C-m
 else
     tmux select-window -t $SESSION:0
+    tmux split-window -h -t $SESSION:0.0
+    tmux select-pane -t $SESSION:0.0
+    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME  -p home_altitude_above_water:=$HOME_ABOVE_WATER -r __ns:=/$ROBOT_NAME " C-m
+
     tmux select-pane -t $SESSION:0.1
-    tmux send-keys "ros2 run dji_captain dji_captain --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+    tmux send-keys "ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data" C-m
 fi
 
 
 # action servers
-tmux new-window -t $SESSION:1 -n 'action servers'
-tmux rename-window "move-to"
+tmux new-window -t $SESSION:1 -n 'ALARSActions'
+tmux rename-window "ALARSActions"
 tmux select-window -t $SESSION:1
 tmux split-window -h -t $SESSION:1.0      # Split window into left (0.0) and right (0.1)
 tmux split-window -v -t $SESSION:1.0      # Split left pane into top-left (0.0) and bottom-left (0.2)
@@ -68,54 +100,71 @@ tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1
 tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
 
 tmux select-pane -t $SESSION:1.0
-tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
+tmux send-keys "echo 'This will be alars-search'" C-m
 
 tmux select-pane -t $SESSION:1.1
-tmux send-keys "ros2 run alars search_and_track_auv_action --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+tmux send-keys "echo 'This will be alars-localize'" C-m
 
 tmux select-pane -t $SESSION:1.2
-tmux send-keys "ros2 run alars rescuepoint_server --ros-args -p use_sim_time:=$USE_SIM_TIME -r __ns:=/$ROBOT_NAME" C-m
+tmux send-keys "echo 'This will be alars-recover'" C-m
+
+tmux select-pane -t $SESSION:1.3
+tmux send-keys "echo 'This will be alars-checkload'" C-m
+
 
 # bt
-tmux new-window -t $SESSION:2 -n 'bt'
-tmux rename-window "bt"
+tmux new-window -t $SESSION:2 -n 'BT'
+tmux rename-window "BT"
 tmux select-window -t $SESSION:2
 tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
+# move-to
+tmux new-window -t $SESSION:3 -n 'MoveTo'
+tmux rename-window "MoveTo"
+tmux select-window -t $SESSION:3
+tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME setpoint_topic:=move_to_setpoint" C-m
+
+
+# camera and detection node
+tmux new-window -t $SESSION:4 -n 'Camera'
+tmux rename-window "Cam"
+tmux select-window -t $SESSION:4
+tmux split-window -h -t $SESSION:4.0
+tmux select-pane -t $SESSION:4.0
+tmux send-keys "echo 'This will be the sam/buoy detector node'" C-m
+
+# the cam driver is needed just for the real thing
+if [[ $USE_SIM_TIME = "False" ]]; then
+    tmux select-pane -t $SESSION:4.1
+    tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args -r __ns:=/$ROBOT_NAME/gimbal_camera" C-m
+fi
 
 
 # mqtt bridge
-tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
-tmux rename-window "mqtt_bridge"
-tmux select-window -t $SESSION:3
-if [ "$USE_SIM_TIME" = "True" ]; then
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=simulation broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
-    tmux new-window -t $SESSION:4 -n 'ROS2Bridge'
-    tmux select-window -t $SESSION:4
+tmux new-window -t $SESSION:8 -n 'MQTTBridge'
+tmux rename-window "MQTTBridge"
+tmux select-window -t $SESSION:8
+tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=$REALSIM broker_addr:=$MQTT_ADDR broker_port:=$MQTT_PORT context:=alars" C-m
+
+
+# only needed when running the sim
+if [[ $USE_SIM_TIME = "True" ]]; then
+    # ROS2Bridge
+    tmux new-window -t $SESSION:9 -n 'SimConn'
+    tmux select-window -t $SESSION:9
     tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_ip:=localhost -p tcp_port:=10000" C-m
-else
-    tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=air realsim:=real broker_addr:=20.240.40.232 broker_port:=1884 context:=alars" C-m
+    if [[ $ON_LINUX = "True" ]]; then
+        # mqtt broker
+        tmux split-window -h -t $SESSION:9.0
+        tmux select-pane -t $SESSION:9.1
+        tmux send-keys "mosquitto -p $MQTT_PORT" C-m
+    fi
 fi
 
-
-
-# only launch if not the simulator
-# camera node
-if [ "$USE_SIM_TIME" = "False" ]; then
-    tmux new-window -t $SESSION:4 -n 'cam'
-    tmux rename-window "cam"
-    tmux select-window -t $SESSION:4
-    tmux split-window -h -t $SESSION:4.0
-    tmux select-pane -t $SESSION:4.0
-    tmux send-keys "ros2 run usb_cam usb_cam_node_exe --ros-args -r __ns:=/$ROBOT_NAME/gimbal_camera" C-m
-    tmux select-pane -t $SESSION:4.1
-    tmux send-keys "ros2 launch auv_detector estimator_detector_field_test.launch robot_name:=$ROBOT_NAME" C-m
-fi
-
-
-
-# Set default window
+# Set default window to either the captain 
+# or the psdk node depending on real/sim
+# both are on 0.0
 tmux select-window -t $SESSION:0
-tmux select-pane -t $SESSION:0.1
+tmux select-pane -t $SESSION:0.0
 # attach to the new session
 tmux -2 attach-session -t $SESSION
