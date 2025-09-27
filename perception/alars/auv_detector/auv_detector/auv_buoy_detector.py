@@ -13,10 +13,16 @@ class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
 
+        self.declare_parameter('debug_imshow', 1)
+        self.declare_parameter('enable_buoy_detector', 1)
+        self.declare_parameter('enable_auv_detector', 1)
+        self.declare_parameter('enable_rope_detector', 0)
+        self.declare_parameter('enable_on_start', 1)
+
         ################################################################################
         # Frequent Adjustments
         # Note: On Jetson, set to 0 to maintain a publish rate of ~30 Hz
-        self.debug_imshow = 1     # 0: disable display, 1: show one frame, 2: show all frames  
+        self.debug_imshow = int(self.get_parameter('debug_imshow').value)  # 0: disable display, 1: show one frame, 2: show all frames
 
         # Color Mask Thresholds
         # Buoy detection (orange range)
@@ -36,9 +42,9 @@ class DetectionNode(Node):
         ################################################################################
         # Occasional Adjustments
         # Enable or disable specific detectors  
-        self.buoy_detector = 1     # 0: off, 1: enabled
-        self.auv_detector = 1      # 0: off, 1: largest contour center, 2: best rectangle center    
-        self.rope_detector = 0     # 0: off, 1: spline line, 2: multi-frame, 3: both    
+        self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
+        self.auv_detector = int(self.get_parameter('enable_auv_detector').value)      # 0: off, 1: largest contour center, 2: best rectangle center    
+        self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: spline line, 2: multi-frame, 3: both
 
 
         ################################################################################
@@ -62,7 +68,7 @@ class DetectionNode(Node):
 
         ################################################################################
         # Detector enabled flag (controlled via service)
-        self.detector_enabled = True
+        self.detector_enabled = bool(self.get_parameter('enable_on_start').value)  # Start enabled or disabled based on parameter
 
         ################################################################################
         # Service to enable/disable the detector (use std_srvs/SetBool)
@@ -155,10 +161,13 @@ class DetectionNode(Node):
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
                     #center_buoy = (cx, cy)
-                    center_buoy = np.array([cx, cy])
+                    # Normalize coordinates between -1 and 1, with 0 at the image center
+                    img_h, img_w = cv_image.shape[:2]
+                    norm_cx = 2 * (cx / img_w) - 1
+                    norm_cy = 2 * (cy / img_h) - 1
 
                     buoy_position_msg = Float32MultiArray()
-                    buoy_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the point
+                    buoy_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the point
                     self.buoy_pub.publish(buoy_position_msg)
                     #self.get_logger().info(f"detect buoy")
 
@@ -217,6 +226,11 @@ class DetectionNode(Node):
                     if M["m00"] != 0:
                         cx = int(M["m10"] / M["m00"])
                         cy = int(M["m01"] / M["m00"])
+                        # Normalize coordinates between -1 and 1, with 0 at the image center
+                        img_h, img_w = cv_image.shape[:2]
+                        norm_cx = 2 * (cx / img_w) - 1
+                        norm_cy = 2 * (cy / img_h) - 1
+
                         #center_auv = (cx,cy)
                         center_auv = np.array([cx, cy])
                         cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
@@ -224,7 +238,7 @@ class DetectionNode(Node):
                         cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
 
                         auv_position_msg = Float32MultiArray()
-                        auv_position_msg.data = [float(cx), float(cy)]  # Publish the coordinates of the AUV
+                        auv_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the AUV
                         self.auv_pub.publish(auv_position_msg)
 
                         # Put area text
@@ -269,8 +283,12 @@ class DetectionNode(Node):
 
                     # Get center from rect
                     center = tuple(map(int, rect[0]))
+                    # Normalize coordinates between -1 and 1, with 0 at the image center
+                    img_h, img_w = cv_image.shape[:2]
+                    norm_cx = 2 * (center[0] / img_w) - 1
+                    norm_cy = 2 * (center[1] / img_h) - 1
                     auv_position_msg = Float32MultiArray()
-                    auv_position_msg.data = [float(center[0]), float(center[1])]  # Publish the coordinates of the AUV
+                    auv_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the AUV
                     self.auv_pub.publish(auv_position_msg)
 
                     center_auv = np.array([center[0], center[1]]) # update for middle point
