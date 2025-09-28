@@ -634,12 +634,11 @@ class DiveControllerMPC(DiveControllerInterface):
         self._current_state_in_odom = self._dive_sub.get_states()
         self._current_state_in_mocap = self._dive_sub.get_states_in_mocap() 
 
-        if self._current_state_in_odom is None:
+        if self._current_state_in_mocap is None:
             self._loginfo(f"No state available yet.")
             return
 
-        self._current_state = self.convert_enu_to_ned(self._current_state_in_odom, convert_state)
-        #self._current_state = self._current_state_in_mocap
+        self._current_state = self.convert_flu_to_frd(self._current_state_in_mocap, convert_state)
         self._current_control = self._dive_sub.get_control_input()
 
         if not self._initialized:
@@ -653,6 +652,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Update reference vector
         # NOTE: we use p bc. we have a custom cost function.
+        # NOTE: This might be on e issue, we don't have a trajectory, just one array.
         for stage in range(self.N_horizon):
             if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
                 self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0]-1,:])
@@ -683,7 +683,16 @@ class DiveControllerMPC(DiveControllerInterface):
         # The integrator of the control signal is needed, since u is the control derivative.
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
-        self.set_publishers(mpc_solution)
+
+        if mpc_solution is None:
+            self._set_actuators_neutral()
+            #return
+        elif status != 0:
+            #self._loginfo(f"Solver status: {status}")
+            self._set_actuators_neutral()
+            #return
+        else:
+            self.set_publishers(mpc_solution)
 
 
         # FIXME: Remove all the print statements here. They only should appear in the convenience node
@@ -691,28 +700,6 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"NMPC solver status: {self._acados_status[status]}\n"
         #s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
         #s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
-
-        #s += f"\n[---- States ----]\n"
-        #s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
-        #s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
-        #s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
-        #s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
-        #s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
-        #s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
-        #s += f"current: x: {self._current_state.pose.pose.position.x:.3f}"
-        #s += f" y: {self._current_state.pose.pose.position.y:.3f}"
-        #s += f" z: {self._current_state.pose.pose.position.z:.3f}\n"
-
-        #s += f"[---- WP ----]\n"
-        ##s += f"mocap: x: {self._current_state_in_mocap.pose.pose.position.x:.3f}"
-        ##s += f" y: {self._current_state_in_mocap.pose.pose.position.y:.3f}"
-        ##s += f" z: {self._current_state_in_mocap.pose.pose.position.z:.3f}\n"
-        ##s += f"odom: x: {self._current_state_in_odom.pose.pose.position.x:.3f}"
-        ##s += f" y: {self._current_state_in_odom.pose.pose.position.y:.3f}"
-        ##s += f" z: {self._current_state_in_odom.pose.pose.position.z:.3f}\n"
-        #s += f"current: x: {self.waypoint.pose.pose.position.x:.3f}"
-        #s += f" y: {self.waypoint.pose.pose.position.y:.3f}"
-        #s += f" z: {self.waypoint.pose.pose.position.z:.3f}\n"
 
         self._loginfo(s)
 
@@ -762,38 +749,55 @@ class DiveControllerMPC(DiveControllerInterface):
 
         return True
 
-#    def convert_flu_to_frd(self, flu_msg, convert_state=True):
-#        """
-#        If convert_state, it converts an odometry message from FLU to FRD
-#
-#        """
-#        frd_odometry = Odometry()
-#        frd_odometry.header.frame_id = flu_msg.header.frame_id
-#        frd_odometry.header.stamp = flu_msg.header.stamp
-#        if convert_state:
-#            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
-#            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
-#            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
-#            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.x,
-#                                      flu_msg.pose.pose.orientation.y,
-#                                      flu_msg.pose.pose.orientation.z,
-#                                      flu_msg.pose.pose.orientation.w])
-#            frd_odometry.pose.pose.orientation.x = quat[0]
-#            frd_odometry.pose.pose.orientation.y = quat[1]
-#            frd_odometry.pose.pose.orientation.z = quat[2]
-#            frd_odometry.pose.pose.orientation.w = quat[3]
-#
-#            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
-#            frd_odometry.twist.twist.linear.y = flu_msg.twist.twist.linear.y
-#            frd_odometry.twist.twist.linear.z = flu_msg.twist.twist.linear.z
-#            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
-#            frd_odometry.twist.twist.angular.y = flu_msg.twist.twist.angular.y
-#            frd_odometry.twist.twist.angular.z = flu_msg.twist.twist.angular.z
-#
-#        else:
-#            frd_odometry = flu_msg
-#
-#        return frd_odometry
+    def convert_flu_to_frd(self, flu_msg, convert_state=True):
+        """
+        If convert_state, it converts an odometry message from FLU to FRD
+
+        """
+        frd_odometry = Odometry()
+        frd_odometry.header.frame_id = flu_msg.header.frame_id
+        frd_odometry.header.stamp = flu_msg.header.stamp
+        if convert_state:
+            frd_odometry.pose.pose.position.x = flu_msg.pose.pose.position.x
+            frd_odometry.pose.pose.position.y = flu_msg.pose.pose.position.y
+            frd_odometry.pose.pose.position.z = flu_msg.pose.pose.position.z 
+            quat = self.quat_flu_to_frd([flu_msg.pose.pose.orientation.w,
+                                         flu_msg.pose.pose.orientation.x,
+                                      flu_msg.pose.pose.orientation.y,
+                                      flu_msg.pose.pose.orientation.z])
+            frd_odometry.pose.pose.orientation.x = quat[1]
+            frd_odometry.pose.pose.orientation.y = quat[2]
+            frd_odometry.pose.pose.orientation.z = quat[3]
+            frd_odometry.pose.pose.orientation.w = quat[0]
+
+            frd_odometry.twist.twist.linear.x = flu_msg.twist.twist.linear.x
+            frd_odometry.twist.twist.linear.y = -flu_msg.twist.twist.linear.y
+            frd_odometry.twist.twist.linear.z = -flu_msg.twist.twist.linear.z
+            frd_odometry.twist.twist.angular.x = flu_msg.twist.twist.angular.x
+            frd_odometry.twist.twist.angular.y = -flu_msg.twist.twist.angular.y
+            frd_odometry.twist.twist.angular.z = -flu_msg.twist.twist.angular.z
+
+        else:
+            frd_odometry = flu_msg
+
+        return frd_odometry
+
+    def quat_flu_to_frd(self, q_flu):
+        """
+        quat_flu = [q0, q1, q2, q3], with q0 the scalar part
+        """
+        quat_flu = np.array([q_flu[1], q_flu[2], q_flu[3], q_flu[0]])
+
+        rot = R.from_euler('x', 180, degrees=True)
+        r_flu = R.from_quat(quat_flu)  # Convert ENU quaternion to rotation object, assumes scalar last
+        r_frd =  r_flu.as_matrix() @ rot.as_matrix()
+        quat_frd = R.from_matrix(r_frd).as_quat()  # Convert back to quaternion with scalar last
+        quat_frd_right_order = np.array([quat_frd[3], # w
+                                        quat_frd[0],  # x
+                                        quat_frd[1],  # y
+                                        quat_frd[2]   # z
+                                        ])
+        return quat_frd_right_order
 
 
     def convert_enu_to_ned(self, enu_msg, convert_state=True):
@@ -810,14 +814,14 @@ class DiveControllerMPC(DiveControllerInterface):
             ned_odometry.pose.pose.position.z = -enu_msg.pose.pose.position.z 
             ned_odometry.pose.pose.orientation = enu_msg.pose.pose.orientation
 
-            quat = self.quat_enu_to_ned([enu_msg.pose.pose.orientation.x,
-                                      enu_msg.pose.pose.orientation.y,
-                                      enu_msg.pose.pose.orientation.z,
-                                      enu_msg.pose.pose.orientation.w])
-            ned_odometry.pose.pose.orientation.x = quat[0]
-            ned_odometry.pose.pose.orientation.y = quat[1]
-            ned_odometry.pose.pose.orientation.z = quat[2]
-            ned_odometry.pose.pose.orientation.w = quat[3]
+            quat = self.quat_enu_to_ned([enu_msg.pose.pose.orientation.w,
+                                         enu_msg.pose.pose.orientation.x,
+                                         enu_msg.pose.pose.orientation.y,
+                                         enu_msg.pose.pose.orientation.z])
+            ned_odometry.pose.pose.orientation.x = quat[1]
+            ned_odometry.pose.pose.orientation.y = quat[2]
+            ned_odometry.pose.pose.orientation.z = quat[3]
+            ned_odometry.pose.pose.orientation.w = quat[0]
 
             ned_odometry.twist.twist.linear.x = enu_msg.twist.twist.linear.y
             ned_odometry.twist.twist.linear.y = enu_msg.twist.twist.linear.x
@@ -835,6 +839,7 @@ class DiveControllerMPC(DiveControllerInterface):
     def quat_enu_to_ned(self, quat_enu):
         """
         Transform quaternion from ENU to NED.
+        q = [q0, q1, q2, q3], where q0 is the scalar part.
         """
 
         q = quat_enu
@@ -880,16 +885,18 @@ class DiveControllerMPC(DiveControllerInterface):
         the controller as the state vector x (numpy array)
 
         convert_state: state_msg is in ENU, x will be in NED
+
+        Note: The MPC wants the quaternion scalar part first, [w, x, y, z]!
         """
         x = np.zeros(19)
 
         x[0] = state_msg.pose.pose.position.x
         x[1] = state_msg.pose.pose.position.y
         x[2] = state_msg.pose.pose.position.z 
-        x[3:7] = [state_msg.pose.pose.orientation.x,
+        x[3:7] = [state_msg.pose.pose.orientation.w,
+                  state_msg.pose.pose.orientation.x,
                   state_msg.pose.pose.orientation.y,
-                  state_msg.pose.pose.orientation.z,
-                  state_msg.pose.pose.orientation.w]
+                  state_msg.pose.pose.orientation.z]
         x[7] = state_msg.twist.twist.linear.x
         x[8] = state_msg.twist.twist.linear.y
         x[9] = state_msg.twist.twist.linear.z
@@ -933,20 +940,6 @@ class DiveControllerMPC(DiveControllerInterface):
         ref[14] = 50
 
         return ref
-
-
-#    def quat_flu_to_frd(self, quat_enu):
-#
-#        rot = R.from_euler('x', 180, degrees=True)
-#        r_enu = R.from_quat(quat_enu)  # Convert ENU quaternion to rotation object
-#        r_ned = rot.as_matrix() @ r_enu.as_matrix() 
-#        quat_ned = R.from_matrix(r_ned).as_quat()  # Convert back to quaternion with scalar first
-#        quat_ned_right_order = np.array([quat_ned[3], # w
-#                                        quat_ned[0],  # x
-#                                        quat_ned[1],  # y
-#                                        quat_ned[2]   # z
-#                                        ])
-#        return quat_ned_right_order
 
 
     def initialize_mpc(self):
@@ -1032,6 +1025,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.roll  = euler_angles[0]
             self._ref.pitch = euler_angles[1]
             self._ref.yaw   = euler_angles[2]
+
 
 
     def get_mpc_pred(self):

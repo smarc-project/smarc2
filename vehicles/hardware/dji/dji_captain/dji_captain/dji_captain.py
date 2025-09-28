@@ -67,17 +67,31 @@ class ControlModes(Enum):
 
 class DjiCaptain():
     def __init__(self, node: Node):
+        self._prev_log_msg = ""
+
         self._node = node
         self._node.declare_parameter("robot_name", "M350")
         self._node.declare_parameter("controller_deadzone", 0.1)
+        self._node.declare_parameter("controller_yawrate_multiplier", 0.3)
+        # give an error-causing default value to force the user to pass this parameter every time
+        # there is no safe assumption that can be made for this.
+        self._node.declare_parameter("home_altitude_above_water", -1.0)
 
+        self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
+        self._TF_NS : str = f"{self.ROBOT_NAME}/"
 
-        self._TF_NS : str = f"{self._node.get_parameter('robot_name').value}/"
+        self._CONTROLLER_DEADZONE : float = self._node.get_parameter("controller_deadzone").get_parameter_value().double_value
+        self._CONTROLLER_YAWRATE_MULTIPLIER : float = self._node.get_parameter("controller_yawrate_multiplier").get_parameter_value().double_value
+        
+        self._HOME_ALT_ABOVE_WATER = self._node.get_parameter("home_altitude_above_water").get_parameter_value().double_value
 
-        self._CONTROLLER_DEADZONE : float = 0.1
-        v = self._node.get_parameter("controller_deadzone").value 
-        if v is not None: self._CONTROLLER_DEADZONE = v
+        if self._HOME_ALT_ABOVE_WATER <= 0:
+            self.log("Warning: home_altitude_above_water parameter not set or invalid! It is {self._HOME_ALT_ABOVE_WATER}")
+            self.log("YOU MUST PASS THIS PARAMETER AND MAKE SURE IT IS CORRECT!")
+            self.log("Captain will not run. Exiting.")
+            sys.exit(1)
 
+        
         
         self._control_mode = ControlModes.FLUvel
         self._move_to_setpoint : PoseStamped | None = None
@@ -137,7 +151,7 @@ class DjiCaptain():
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
-        topics = [self._node.get_parameter("robot_name").value + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
+        topics = [self.ROBOT_NAME + "/" + PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
         self.log(f"Subscribed to PSDK topics: --topics {' '.join(topics)}")
        
 
@@ -168,6 +182,8 @@ class DjiCaptain():
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+
+
 
         node.create_subscription(
             NavSatFix,
@@ -338,17 +354,13 @@ class DjiCaptain():
         s = "\nDjiCaptain Status:\n"
         s += f"  UTM Frame: {self._utm_labeled_frame}\n"
         s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)}\n"
-        s += f"  GPS in Home: {format_point_stamped(self._gps_point_in_home)}\n"
-        s += f"  RTK in Home: {format_point_stamped(self._rtk_point_in_home)}\n"
 
         s += f"\n  Position in Home: {format_pose_stamped(self._base_pose_in_home)}\n"
-        s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
-        s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
-        s += f"  Geo Altitude: {self._geo_altitude}\n"
-        s += f"  Home Geo Altitude: {self._home_geo_altitude}\n"
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
+        s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
+        s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
         
         s += f"\n  Smarc Topics: {self._smarc_pub_status}\n"
         s += f"  TF: {self._tf_pub_status}\n"
@@ -356,11 +368,8 @@ class DjiCaptain():
         s += f"\n  Got Control: {self._got_control}\n"
         s += f"  Control Mode: {self._control_mode.value}\n"
         s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)}\n"
-        if self._base_pose_in_home is None: 
-            s+= "  Flying: Unknown (base pose not set)\n"
-        else:
-            s += f"  Flying: {self._flying} ({self._base_pose_in_home.pose.position.z:.3f} >? {self.READY_HEIGHT_ABOVE_GROUND})\n"
-        # s += f"  Carrying Payload: {self._carrying_payload}\n"
+        s += f"  Flying: {self._flying}\n"
+
         if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
             s += f"  Vehicle Health: READY\n"
         elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
@@ -372,7 +381,10 @@ class DjiCaptain():
     
     
     def log(self, msg: str):
+        if msg == self._prev_log_msg:
+            return
         self._node.get_logger().info(msg)
+        self._prev_log_msg = msg
 
 
     def _take_control(self):
@@ -590,10 +602,11 @@ class DjiCaptain():
                     self.log("No left stick, cannot move with ENUpos control mode.")
                     return
                 
-                yaw = math.pi/2 - math.radians(self._heading_deg) #Should be the current yaw. Not 100% certain on this, but I think _heading_deg is in NED and needs to be in ENU. "The commanded yaw is assumed to be following REP 103, thus a FLU rotation wrt to ENU frame"
-                altitude = self._base_pose_flat_in_home.pose.position.z #This is super sketchy. I think that this is the same altitude that the as the command wants ("This command is relative to the global Cartesian frame where the aircraft has been initialized."), as it is from PositionFused, but if I am wrong it will either fly away or fall aggressively.
-                joy_msg.axes = [RV, RH, altitude + LV, yaw + LH]
-                self._ENU_pos_joy_pub.publish(joy_msg.axes)
+                yaw = math.pi/2 - math.radians(self._heading_deg)
+                yaw_move = yaw + LH * self._CONTROLLER_YAWRATE_MULTIPLIER
+                altitude = self._base_pose_flat_in_home.pose.position.z
+                joy_msg.axes = [RV, RH, altitude + LV, yaw_move]
+                self._ENU_pos_joy_pub.publish(joy_msg)
                 
 
         
@@ -636,11 +649,13 @@ class DjiCaptain():
             self._move_to_setpoint = None
             self._cancel_joy_timer()
             return
+        
         tf = self._tf_buffer.lookup_transform(
             target_frame = self.BASE_FLAT_FRAME,
             source_frame = self._velocity_ground.header.frame_id,
             time=Time(seconds=0),
             timeout=Duration(seconds=1))
+        
         vel_pose = PoseStamped()
         vel_pose.pose.position.x = self._velocity_ground.vector.x
         vel_pose.pose.position.y = self._velocity_ground.vector.y
@@ -721,6 +736,7 @@ class DjiCaptain():
             self.log("Not got control, cannot move with joy.")
             self._cancel_joy_timer()
             return
+        
         try:
             tf_diff = self._tf_buffer.lookup_transform(
                 target_frame = self.BASE_ENU_FRAME, #This is the frame centered on the baselink but locked to ENU rotationally
@@ -768,6 +784,7 @@ class DjiCaptain():
 
         if msg.axes[0] != 0.0 or msg.axes[1] != 0.0 or msg.axes[2] != 0.0 or msg.axes[3] != 0.0:
             self.log("RC touched, giving up control.")
+            self._got_control = False # even if the service call fails, we assume we lost control!
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
                 lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
             )
@@ -830,7 +847,7 @@ class DjiCaptain():
 
     def _position_fused_callback(self, msg: PositionFused):
         if self._home_point_in_utm is None:
-            self.log("Home point not set, cannot process position fused message.")
+            self.log("Home point not set, ignoring position fused until it is...")
             return
         
         if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_pose_ENU_in_home is None:
@@ -840,6 +857,7 @@ class DjiCaptain():
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_ENU_in_home = PoseStamped()
             self._base_pose_ENU_in_home.header.frame_id = self.ODOM_FRAME
+            self.log("Base pose initialized in home frame.")
             
         self._base_pose_in_home.pose.position.x = msg.position.x
         self._base_pose_in_home.pose.position.y = msg.position.y
@@ -878,19 +896,28 @@ class DjiCaptain():
         
 
     def _home_point_callback(self, msg: NavSatFix):
+        try:
+            gp = GeoPoint()
+            gp.latitude = math.degrees(msg.latitude) # for some reason these are in radians...
+            gp.longitude = math.degrees(msg.longitude)
+            gp.altitude = msg.altitude
+            utm = convert_latlon_to_utm(gp)
+        except Exception as e:
+            self.log(f"Failed to convert home point to UTM: {e}")
+            return
+
         if self._home_point_in_utm is None:
             self._home_point_in_utm = PointStamped()
             self._home_point_in_utm.header.frame_id = DjiLinks.UTM
             self.log("Home point initialized in UTM.")
 
-        gp = GeoPoint()
-        gp.latitude = math.degrees(msg.latitude) # for some reason these are in radians...
-        gp.longitude = math.degrees(msg.longitude)
-        gp.altitude = msg.altitude
-        utm = convert_latlon_to_utm(gp)
         self._home_point_in_utm.point.x = utm.point.x
         self._home_point_in_utm.point.y = utm.point.y
-        self._home_point_in_utm.point.z = 0.0
+        # we set the altitude of home point to a constant above water level
+        # since almost everything we do is relative to the water level, and not geographical altitude
+        # in sim, we can _know_ this altitude, but in real life we can't, so we take it as a param from
+        # the user. 
+        self._home_point_in_utm.point.z = self._HOME_ALT_ABOVE_WATER
         self._home_point_in_utm.header.stamp = self.now_stamp
 
     def _home_point_altitude_callback(self, msg: Float32):
@@ -902,7 +929,7 @@ class DjiCaptain():
 
     def _gps_callback(self, msg: NavSatFix):
         if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message.")
+            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message yet.")
             return
         
         if self._gps_point_in_home is None:
@@ -953,20 +980,18 @@ class DjiCaptain():
         position_ok = self._home_point_in_utm is not None and self._base_pose_in_home is not None
         gps_ok = self._gps_point_in_home is not None and self._home_point_in_utm is not None
         battery_ok = self._battery_percent is not None and self._battery_percent > self.READY_BATTERY_PERCENTAGE
-        height_ok = self._base_pose_in_home.pose.position.z > self.READY_HEIGHT_ABOVE_GROUND
         control_ok = self._got_control
 
-        if all([position_ok, gps_ok, battery_ok, height_ok, control_ok]):
+        if all([position_ok, gps_ok, battery_ok, control_ok]):
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
 
 
         # collect all the rpms and currents into lists
-        #TODO use the currents/speed to determine if we are carrying a payload eventually.
         speeds = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
         # currents = [esc.current for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
         # check if all of the rpms are above the idle rpm
-        speeds_flying = all(rpm > self.ESC_IDLE_RPM for rpm in speeds)
-        self._flying = speeds_flying and height_ok
+        # we cant check position above home, because it is very possible that we launched high and flew down...
+        self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in speeds)
 
 
 
@@ -1018,7 +1043,7 @@ class DjiCaptain():
             home_tf.child_frame_id = self.HOME_FRAME
             home_tf.transform.translation.x = self._home_point_in_utm.point.x 
             home_tf.transform.translation.y = self._home_point_in_utm.point.y
-            home_tf.transform.translation.z = self._home_point_in_utm.point.z 
+            home_tf.transform.translation.z = self._home_point_in_utm.point.z
             tf_msg.transforms.append(home_tf)
 
 
@@ -1095,6 +1120,8 @@ class DjiCaptain():
             tf_msg.transforms.append(move_to_setpoint_tf)
 
         self._tf_pub.publish(tf_msg) 
+
+
     def _publish_smarc(self):
         if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
             return
@@ -1133,9 +1160,14 @@ class DjiCaptain():
         base_in_utm.point.x = self._base_pose_in_home.pose.position.x + self._home_point_in_utm.point.x
         base_in_utm.point.y = self._base_pose_in_home.pose.position.y + self._home_point_in_utm.point.y
         base_in_geopoint = convert_utm_to_latlon(base_in_utm)
-        base_in_geopoint.altitude = self._base_pose_in_home.pose.position.z
+        
+        # this is specific to smarc, since we take the water level as basis for everything
+        alt_above_water = self._HOME_ALT_ABOVE_WATER + self._base_pose_in_home.pose.position.z
+
+        base_in_geopoint.altitude = alt_above_water
         self._pos_latlon_pub.publish(base_in_geopoint)
-        self._altitude_pub.publish(Float32(data=self._base_pose_in_home.pose.position.z))
+
+        self._altitude_pub.publish(Float32(data = alt_above_water))
 
 
         if self._heading_deg is not None:

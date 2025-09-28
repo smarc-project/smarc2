@@ -32,7 +32,6 @@ class ConveniencePub(IDivePub):
         self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
-        #self._waypoint_pub = node.create_publisher(PoseWithCovarianceStamped, ControlTopics.WAYPOINT_CONV, 10)
         self._waypoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT_CONV, 10)
         self._mpc_pred_pub = node.create_publisher(Path, ControlTopics.MPC_PRED, 10)
 
@@ -89,25 +88,12 @@ class ConveniencePub(IDivePub):
         self._input_pub.publish(self._input_msg)
 
     def _update_waypoint(self) -> None:
-        #self._waypoint = self._dive_sub.get_waypoint_in_odom()
         self._waypoint = self._dive_controller.get_wp()
         self._goal_tolerance = self._dive_sub.get_goal_tolerance()
 
         if self._waypoint is None:
             return
 
-        #self._waypoint_msg = PoseWithCovarianceStamped()
-        #self._waypoint_msg.header.frame_id = self._robot_name + 'odom'
-        #self._waypoint_msg.pose.pose = self._waypoint
-        #self._waypoint_msg.pose.pose.orientation.w = 1.0
-        #cov = np.zeros([6,6])
-        #cov[0][0] = np.sqrt(self._goal_tolerance)
-        #cov[1][1] = np.sqrt(self._goal_tolerance)
-        #cov[2][2] = np.sqrt(self._goal_tolerance)
-        #cov_vec = cov.reshape(36)
-        #self._waypoint_msg.pose.covariance = cov_vec.tolist()
-
-        #self._waypoint_pub.publish(self._waypoint_msg)
         self._waypoint_pub.publish(self._waypoint)
 
 
@@ -119,14 +105,14 @@ class ConveniencePub(IDivePub):
 
         predicted_path_msg = Path()
         predicted_path_msg.header.stamp = now.to_msg()
-        predicted_path_msg.header.frame_id = 'map'
+        predicted_path_msg.header.frame_id = 'mocap'
 
         for i, predicted_state in enumerate(x_pred):
             # Calculate future time offset
             future_time = now + rclpy.duration.Duration(seconds=i * 0.1)
 
             # Create PoseStamped
-            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], current_attitude)
+            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], predicted_state[3:7])
             pose_stamped.header.stamp = future_time.to_msg()
             pose_stamped.header.frame_id = 'mocap'
 
@@ -139,11 +125,9 @@ class ConveniencePub(IDivePub):
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self._node.get_clock().now().to_msg()
         pose_msg.header.frame_id = frame_id
-        # FIXME: Check these!
-        # Some NED -> ENU conversion for plotting...?
-        pose_msg.pose.position.x = float(position[1])
-        pose_msg.pose.position.y = float(position[0])
-        pose_msg.pose.position.z = float(-position[2])
+        pose_msg.pose.position.x = float(position[0])
+        pose_msg.pose.position.y = float(position[1])
+        pose_msg.pose.position.z = float(position[2])
         pose_msg.pose.orientation.w = float(attitude[0])
         pose_msg.pose.orientation.x = float(attitude[1])
         pose_msg.pose.orientation.y = float(attitude[2])
@@ -162,11 +146,37 @@ class ConveniencePub(IDivePub):
             s += f"   x: {self._state_msg.pose.pose.position.x:.3f}, "\
                  f"y: {self._state_msg.pose.pose.position.y:.3f}, "\
                  f"z: {self._state_msg.pose.pose.position.z:.3f}, "\
-            # TODO: State is now an odom message, fix the angles, since they're quaternions.
-                 #f"roll: {self._state_msg.pose.pose.orientation.roll:.3f}, "\
-                 #f"pitch: {self._state_msg.pose.pose.pitch:.3f}, "\
-                 #f"yaw: {self._state_msg.pose.yaw:.3f}\n"
+                 f"qx: {self._state_msg.pose.pose.orientation.x:.3f}, "\
+                 f"qy: {self._state_msg.pose.pose.orientation.y:.3f}, "\
+                 f"qz: {self._state_msg.pose.pose.orientation.z:.3f}, "\
+                 f"qw: {self._state_msg.pose.pose.orientation.w:.3f}\n"
             s += f"   DiveController mission state: {self._dive_sub.get_mission_state()}\n"
+
+        if self._waypoint is None:
+            s += "No Waypoint Yet\n"
+        else:
+            distance = self._dive_sub.get_distance()
+            heading = self._dive_sub.get_heading()
+            dive_pitch = self._dive_sub.get_dive_pitch()
+
+            # Somehow we get None every now and then and that crashes everything. 
+            distance_str = f"{distance:.3f}" if distance is not None else "None"
+            heading_str = f"{heading:.3f}" if heading is not None else "None"
+            dive_pitch_str = f"{dive_pitch:.3f}" if dive_pitch is not None else "None"
+
+            s += f"Waypoint:\n"
+            s += f"   x: {self._waypoint.pose.pose.position.x:.3f}, "\
+                 f"y: {self._waypoint.pose.pose.position.y:.3f}, "\
+                 f"z: {self._waypoint.pose.pose.position.z:.3f}, "\
+                 f"qx: {self._waypoint.pose.pose.orientation.x:.3f}, "\
+                 f"qy: {self._waypoint.pose.pose.orientation.y:.3f}, "\
+                 f"qz: {self._waypoint.pose.pose.orientation.z:.3f}, "\
+                 f"qw: {self._waypoint.pose.pose.orientation.w:.3f}\n"
+
+            s += f"Waypoint Following\n"
+            s += f"   distance: " + distance_str + \
+                 f" heading: " + heading_str + \
+                 f" dive pitch: " + dive_pitch_str + "\n"
 
         if self._input_msg is None:
             s += f"No inputs yet\n"
@@ -179,22 +189,6 @@ class ConveniencePub(IDivePub):
                  f"TV rudder: {self._input_msg.thrusterhorizontal:.3f}, "\
                  f"RPM: {self._input_msg.thrusterrpm:.3f}\n"
 
-        if self._waypoint_msg is None:
-            s += "No Waypoint Yet\n"
-        else:
-            distance = self._dive_sub.get_distance()
-            heading = self._dive_sub.get_heading()
-            dive_pitch = self._dive_sub.get_dive_pitch()
-
-            # Somehow we get None every now and then and that crashes everything. 
-            distance_str = f"{distance:.3f}" if distance is not None else "None"
-            heading_str = f"{heading:.3f}" if heading is not None else "None"
-            dive_pitch_str = f"{dive_pitch:.3f}" if dive_pitch is not None else "None"
-
-            s += f"Waypoint Following\n"
-            s += f"   distance: " + distance_str + \
-                 f" heading: " + heading_str + \
-                 f" dive pitch: " + dive_pitch_str + "\n"
 
         if self._error_msg is None:
             s += "No control yet\n"

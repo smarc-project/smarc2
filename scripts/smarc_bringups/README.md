@@ -34,6 +34,11 @@ the WARA-PS MQTT Broker instead, use uncomment the last two lines instead.
 
 In the beginning of the script, you can set whether you're on SAM or not.
 
+### dji_bringup.sh
+
+Launches everything related to DJI drones and the ALARS project.
+**You will need the submodule in `messages/psdk_interfaces` to run the captain this bringup launches.**
+
 
 ## TMUX Cheatsheet
 - `C-x` means "press control and `x`" at the same time. If its `C-X`, then its "Control Shift x".

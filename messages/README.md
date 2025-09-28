@@ -28,3 +28,7 @@ This also makes it very easy for IDEs to auto-suggest you the topics~
 Message definitions that don't belong anywhere else.
 
 Contains vehicle-agnostic topics that _all_ vehicles should be aware of at the very least.
+
+
+## psdk_interfaces
+A submodule containing messages related to DJI drones. If you aren't planning on interacting with the drones over ROS, you do not need this submodule.
