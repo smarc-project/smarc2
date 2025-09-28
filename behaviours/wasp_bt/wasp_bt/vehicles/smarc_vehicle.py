@@ -40,6 +40,7 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._battery_sub = node.create_subscription(Float32, Topics.BATTERY_PERCENT_TOPIC, self._battery_cb, 10)
         self._speed_sub = node.create_subscription(Float32, Topics.SPEED_TOPIC, self._speed_cb, 10)
         self._depth_sub = node.create_subscription(Float32, Topics.DEPTH_TOPIC, self._depth_cb, 10)
+        self._altitude_sub = node.create_subscription(Float32, Topics.ALTITUDE_TOPIC, self._altitude_cb, 10)
 
         self._odom_sub = node.create_subscription(Odometry, Topics.ODOM_TOPIC, self._odom_cb, 10)
         
@@ -73,11 +74,14 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
     def _gps_cb(self, data: GeoPoint):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.GLOBAL_POSITION, [data.latitude, data.longitude], sec)
-        self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.altitude], sec)
 
     def _depth_cb(self, data: Float32):
         sec = self.current_time()
         self._vehicle_state.update_sensor(SensorNames.DEPTH, [data.data], sec)
+
+    def _altitude_cb(self, data: Float32):
+        sec = self.current_time()
+        self._vehicle_state.update_sensor(SensorNames.ALTITUDE, [data.data], sec)
 
     def _heading_cb(self, data: Float32):
         sec = self.current_time()
