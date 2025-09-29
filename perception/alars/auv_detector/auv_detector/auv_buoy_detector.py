@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 from dji_msgs.msg import Topics
 from std_srvs.srv import Trigger
+from std_msgs.msg import Float32
 
 
 class DetectionNode(Node):
@@ -41,8 +42,7 @@ class DetectionNode(Node):
         self.buoy_color_upper_orange = np.array(
             self.get_parameter('buoy_color_upper_orange').value, dtype=np.uint8
         )
-        self.buoy_min_area = 20   
-                                                   
+
         # AUV detection (yellow range)
         self.auv_color_lower_yellow = np.array(
             self.get_parameter('auv_color_lower_yellow').value, dtype=np.uint8
@@ -50,10 +50,19 @@ class DetectionNode(Node):
         self.auv_color_upper_yellow = np.array(
             self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
         )
-        self.auv_min_area = 200   # Minimum contour area for buoy detection 
-                                  # Lower values = more sensitive (detects small objects)
-                                  # Higher values = stricter (requires larger buoy size)   
-        
+
+        # Here, I set the area thresholds based on AUV height. 
+        # If the AUV height is less than 10 meters, buoy_min_area_by_height[0] is used. 
+        # If it is greater than 10 meters, buoy_min_area_by_height[1] is used. 
+        # Using the same logic, you can extend the thresholds to [10, 25, ...] 
+        # and define corresponding areas as self.buoy_min_area_by_height = [20, 10, 1, ...]
+
+        self.auv_height = [10, 25]  # meters  
+        self.buoy_min_area_by_height = [20, 10, 1]
+        self.buoy_max_area_by_height = [800, 180, 150]
+
+        self.auv_min_area_by_height = [180, 10, 1]
+        self.auv_max_area_by_height = [1500, 800, 700]
 
 
         ################################################################################
@@ -78,6 +87,15 @@ class DetectionNode(Node):
             self.image_callback,
             10
         )
+
+        # Subscribe to quadrotor altitude
+        self.altitude_sub = self.create_subscription(
+            Float32,                     # or the actual type of the altitude topic
+            Topics.ALTITUDE,
+            self.altitude_callback,
+            10
+        )
+
         self.bridge = CvBridge()
 
         self.get_logger().info(f"DetectionNode initialized and subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'")
@@ -95,8 +113,15 @@ class DetectionNode(Node):
 
         self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'. Service 'enable_detector' ready.")
         self.get_logger().info(f"DetectionNode initialized. Subscribed to '{Topics.GIMBAL_CAMERA_RAW_TOPIC}'. Service 'disable_detector' ready.")
+        self.current_altitude = 0.0
 
-
+        # The area values will be real-time adjusted according to UAV's alititude, so we do not need to change the values
+        self.buoy_min_area = 20   # Minimum contour area for buoy detection     
+                                  # Lower values = more sensitive (detects small objects)
+                                  # Higher values = stricter (requires larger buoy size)  
+        self.buoy_max_area = 800 
+        self.auv_min_area = 200                     
+        self.auv_max_area = 1500
     
     
     ################################################################################
@@ -119,6 +144,24 @@ class DetectionNode(Node):
         return response
 
 
+    def altitude_callback(self, msg: Float32):
+        self.current_altitude = msg.data
+        # Scale minimum detection areas with altitude
+
+        # Default to the last area values
+        self.buoy_min_area = self.buoy_min_area_by_height[-1]
+        self.buoy_max_area = self.buoy_max_area_by_height[-1]
+        self.auv_min_area = self.auv_min_area_by_height[-1]
+        self.auv_max_area = self.auv_max_area_by_height[-1]
+
+        # Loop through heights
+        for i, height in enumerate(self.auv_height):
+            if self.current_altitude < height:
+                self.buoy_min_area = self.buoy_min_area_by_height[i]
+                self.buoy_max_area = self.buoy_max_area_by_height[i]
+                self.auv_min_area = self.auv_min_area_by_height[i]
+                self.auv_max_area = self.auv_max_area_by_height[i]
+                break
 
     def image_callback(self, msg: Image):
 
@@ -134,7 +177,6 @@ class DetectionNode(Node):
         self.buoy_color_upper_orange = np.array(
             self.get_parameter('buoy_color_upper_orange').value, dtype=np.uint8
         )
-        self.buoy_min_area = 20   
                                                    
 
         # Refresh HSV thresholds live of AUV
@@ -179,6 +221,10 @@ class DetectionNode(Node):
                 area = cv2.contourArea(cnt)
                 
                 if area < self.buoy_min_area:
+                    continue
+                
+                # Skip contours that are too large
+                if area > self.buoy_max_area:
                     continue
                 
                 if area > max_area:
@@ -248,6 +294,10 @@ class DetectionNode(Node):
                     area = cv2.contourArea(cnt)
 
                     if area < self.auv_min_area:
+                        continue
+
+                    # Skip contours that are too large
+                    if area > self.auv_max_area:
                         continue
 
                     if area > max_area:
@@ -380,6 +430,16 @@ class DetectionNode(Node):
         if self.debug_imshow >=2:
             cv2.imshow('Combined_HSV', combined_preview)
         if self.debug_imshow >=1:
+            if hasattr(self, 'current_altitude'):
+                cv2.putText(
+                    cv_image_noted,
+                    f"Altitude: {self.current_altitude:.2f} m",
+                    (10, 30),     # top-left corner
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,          # font scale
+                    (0, 255, 0),  # color (green)
+                    2             # thickness
+                )
             cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
 
         cv2.waitKey(1)
