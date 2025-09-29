@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             "search_and_track_auv_action = alars.SearchAndTrackAuvAction:main",
             "rescuepoint_server= alars.rescuepoint_server:main",
+            "alars_search_action_server = alars.alars_search_action_server:main",
         ],
     },
 )

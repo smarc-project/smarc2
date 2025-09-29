@@ -1,5 +1,5 @@
 import rclpy
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_mission_msgs.msg import Topics
 from smarc_action_base.smarc_action_base import (
     ActionFeedback,

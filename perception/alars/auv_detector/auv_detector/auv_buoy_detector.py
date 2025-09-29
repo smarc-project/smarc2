@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -18,6 +18,8 @@ class DetectionNode(Node):
         self.declare_parameter('enable_auv_detector', 1)
         self.declare_parameter('enable_rope_detector', 0)
         self.declare_parameter('enable_on_start', 1)
+
+        self._CAMERA_PIXELS_FRAME = "camera_pixels_normalized"  # Frame for publishing detected points
 
         ################################################################################
         # Frequent Adjustments
@@ -50,9 +52,9 @@ class DetectionNode(Node):
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
-        self.buoy_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_BUOY_TOPIC, 10)
-        self.auv_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_AUV_TOPIC, 10)
-        self.middle_pub = self.create_publisher(Float32MultiArray, Topics.ESTIMATED_MIDDLE_TOPIC, 10)
+        self.buoy_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_BUOY_TOPIC, 10)
+        self.auv_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_AUV_TOPIC, 10)
+        self.middle_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_MIDDLE_TOPIC, 10)
 
         # Subscriber
         self.subscription = self.create_subscription(
@@ -166,8 +168,11 @@ class DetectionNode(Node):
                     norm_cx = 2 * (cx / img_w) - 1
                     norm_cy = 2 * (cy / img_h) - 1
 
-                    buoy_position_msg = Float32MultiArray()
-                    buoy_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the point
+                    buoy_position_msg = PointStamped()
+                    buoy_position_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+                    buoy_position_msg.header.stamp = self.get_clock().now().to_msg()
+                    buoy_position_msg.point.x = float(norm_cx)
+                    buoy_position_msg.point.y = float(norm_cy)
                     self.buoy_pub.publish(buoy_position_msg)
                     #self.get_logger().info(f"detect buoy")
 
@@ -237,8 +242,11 @@ class DetectionNode(Node):
 
                         cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
 
-                        auv_position_msg = Float32MultiArray()
-                        auv_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the AUV
+                        auv_position_msg = PointStamped()
+                        auv_position_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+                        auv_position_msg.header.stamp = self.get_clock().now().to_msg()
+                        auv_position_msg.point.x = float(norm_cx)
+                        auv_position_msg.point.y = float(norm_cy)
                         self.auv_pub.publish(auv_position_msg)
 
                         # Put area text
@@ -287,8 +295,11 @@ class DetectionNode(Node):
                     img_h, img_w = cv_image.shape[:2]
                     norm_cx = 2 * (center[0] / img_w) - 1
                     norm_cy = 2 * (center[1] / img_h) - 1
-                    auv_position_msg = Float32MultiArray()
-                    auv_position_msg.data = [float(norm_cx), float(norm_cy)]  # Publish the coordinates of the AUV
+                    auv_position_msg = PointStamped()
+                    auv_position_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+                    auv_position_msg.header.stamp = self.get_clock().now().to_msg()
+                    auv_position_msg.point.x = float(norm_cx)
+                    auv_position_msg.point.y = float(norm_cy)
                     self.auv_pub.publish(auv_position_msg)
 
                     center_auv = np.array([center[0], center[1]]) # update for middle point
@@ -316,9 +327,15 @@ class DetectionNode(Node):
         if center_auv is not None and center_buoy is not None:
             center_between_auv_and_buoy = (center_auv + center_buoy) / 2
 
-            middle_position_msg = Float32MultiArray()
-            middle_position_msg.data = [float(center_between_auv_and_buoy[0]), float(center_between_auv_and_buoy[1])]  # Publish the coordinates of the middle point between auv and buoy
-            self.middle_pub.publish(middle_position_msg) 
+            img_h, img_w = cv_image.shape[:2]
+            norm_cx = 2 * (center_between_auv_and_buoy[0] / img_w) - 1
+            norm_cy = 2 * (center_between_auv_and_buoy[1] / img_h) - 1
+            middle_position_msg = PointStamped()
+            middle_position_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+            middle_position_msg.header.stamp = self.get_clock().now().to_msg()
+            middle_position_msg.point.x = float(norm_cx)
+            middle_position_msg.point.y = float(norm_cy)
+            self.middle_pub.publish(middle_position_msg)
 
             cx = int(center_between_auv_and_buoy[0])  
             cy = int(center_between_auv_and_buoy[1])  

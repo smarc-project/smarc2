@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
+find_package(geographic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -16,8 +17,10 @@ find_package(std_msgs REQUIRED)
 # Generate drone-related message and service interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"         # Topics for the drone
-  "msg/Links.msg"          #links for drone        
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
+  "msg/Links.msg"          #links for drone      
+  "srv/DronePath.srv"
+  "srv/InitAUVSearch.srv"  
+  DEPENDENCIES geometry_msgs sensor_msgs std_msgs geographic_msgs
 )
 
 # Add build tests (if testing is enabled)
