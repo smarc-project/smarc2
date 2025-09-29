@@ -8,6 +8,8 @@ import numpy as np
 from dji_msgs.msg import Topics
 from std_srvs.srv import Trigger
 
+import ast
+
 
 class DetectionNode(Node):
     def __init__(self):
@@ -28,14 +30,22 @@ class DetectionNode(Node):
 
         # Color Mask Thresholds
         # Buoy detection (orange range)
-        self.buoy_color_lower_orange = np.array([8, 121, 35]) 
-        self.buoy_color_upper_orange = np.array([40, 157, 247])
-        self.buoy_min_area = 20   
+        # self.buoy_color_lower_orange = np.array([8, 121, 35]) 
+        # self.buoy_color_upper_orange = np.array([40, 157, 247])
+        # self.buoy_min_area = 20
+        # sim-tested values at 10m height from water:
+        self.buoy_color_lower_orange = np.array([0, 35, 200]) 
+        self.buoy_color_upper_orange = np.array([20, 255, 255])
+        self.buoy_min_area = 9
                                                    
         # AUV detection (yellow range)
-        self.auv_color_lower_yellow = np.array([25, 0, 169]) 
-        self.auv_color_upper_yellow = np.array([46, 103, 221])
-        self.auv_min_area = 200   # Minimum contour area for buoy detection 
+        # self.auv_color_lower_yellow = np.array([25, 0, 169]) 
+        # self.auv_color_upper_yellow = np.array([46, 103, 221])
+        # self.auv_min_area = 200
+        # sim-tested values at 10m height from water:
+        self.auv_color_lower_yellow = np.array([25, 60, 120])
+        self.auv_color_upper_yellow = np.array([255, 255, 255])
+        self.auv_min_area = 40    # Minimum contour area for buoy detection 
                                   # Lower values = more sensitive (detects small objects)
                                   # Higher values = stricter (requires larger buoy size)   
         

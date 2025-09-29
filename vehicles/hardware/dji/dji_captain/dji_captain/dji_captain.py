@@ -102,7 +102,8 @@ class DjiCaptain():
         self._setpoint_received_at : float|None = None
         
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
-        self.JOY_PUB_MAX = 0.8
+        self._MAX_SETPOINT_DISTANCE : float = 50.0 # meters, max distance from current position to accept a move to setpoint
+        self.JOY_PUB_MAX = 1.5
         self.JOY_PUB_PERIOD = .1
 
         self._prev_joy_output : None | np.ndarray = None
@@ -356,6 +357,7 @@ class DjiCaptain():
         s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)}\n"
 
         s += f"\n  Position in Home: {format_pose_stamped(self._base_pose_in_home)}\n"
+        s += f"  Altitude from water: {self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER} m\n"
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
@@ -436,17 +438,6 @@ class DjiCaptain():
             self.log(s)
             self._move_to_setpoint = None
             return
-        
-        # Check if the new setpoint is the same as the current one
-        if self._move_to_setpoint is not None:
-            curr = self._move_to_setpoint.pose.position
-            new = msg.pose.position
-            if abs(curr.x - new.x) > 1e-6 and \
-               abs(curr.y - new.y) > 1e-6 and \
-               abs(curr.z - new.z) > 1e-6:
-                self.log(f"New move to setpoint received: {format_pose_stamped(msg)}")
-                self._setpoint_received_at = time.time()
-                
 
         if msg.header.frame_id != self.ODOM_FRAME:
             try:
@@ -458,11 +449,38 @@ class DjiCaptain():
                 )
                 self._move_to_setpoint = do_transform_pose_stamped(msg, tf)
             except Exception as e:
-                self.log(f"Failed to transform move to setpoint from {msg.header.frame_id} to {self.ODOM_FRAME}: {e}")
+                s = f"Could not transform move to setpoint from {msg.header.frame_id} to {self.ODOM_FRAME}: {e}"
+                s+= f"\nIgnoring this setpoint:\n{msg}"
+                self.log(s)
                 self._move_to_setpoint = None
                 return
         else:
             self._move_to_setpoint = msg
+
+
+        # At this point, the setpoint is in ODOM=HOME frame.
+
+        # Check if the new setpoint is the same as the current one
+        if self._move_to_setpoint is not None:
+            curr = self._move_to_setpoint.pose.position
+            new = msg.pose.position
+            if abs(curr.x - new.x) > 1e-6 and \
+               abs(curr.y - new.y) > 1e-6 and \
+               abs(curr.z - new.z) > 1e-6:
+                self.log(f"New move to setpoint received: {format_pose_stamped(msg)}")
+                self._setpoint_received_at = time.time()
+
+        # Check if it is too far
+        if self._base_pose_in_home is not None and self._move_to_setpoint is not None:
+            dx = self._move_to_setpoint.pose.position.x - self._base_pose_in_home.pose.position.x
+            dy = self._move_to_setpoint.pose.position.y - self._base_pose_in_home.pose.position.y
+            dz = self._move_to_setpoint.pose.position.z - self._base_pose_in_home.pose.position.z
+            dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+            if dist > self._MAX_SETPOINT_DISTANCE:
+                self.log(f"Move to setpoint is too far away ({dist:.1f}m), ignoring it.")
+                self._speak("Setpoint too far away, ignoring it.")
+                self._move_to_setpoint = None
+                return
 
         # self.log(f"Move to setpoint received: {format_pose_stamped(self._move_to_setpoint)}")
         

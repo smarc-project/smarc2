@@ -43,12 +43,12 @@ class HSVDetectorNode(Node):
         if not self.image_path:
             self.subscription = self.create_subscription(
                 Image,
-                '/Quadrotor/gimbal_camera/image_raw',
+                '/M350/gimbal_camera/image_raw',
                 self.image_callback,
                 10
             )
             #self.get_logger().info("Subscribed to /Quadrotor/core/fpcamera/image")
-            self.get_logger().info("Subscribed to /Quadrotor/gimbal_camera/image_raw")
+            self.get_logger().info("Subscribed to /M350/gimbal_camera/image_raw")
 
     def image_callback(self, msg):
         try:
