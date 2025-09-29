@@ -7,11 +7,9 @@ MQTT_PORT=1884
 
 if [[ "$(whoami)" == *"alars"* ]]; then
     USE_SIM_TIME=False
-    MAP_FRAME=$ROBOT_NAME/map
     REALSIM="real"
 else
     USE_SIM_TIME=True
-    MAP_FRAME=map_gt
     REALSIM="simulation"
 fi
 

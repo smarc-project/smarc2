@@ -339,7 +339,8 @@ class SearchPlannerController(Node):
             "grid_map.update.true_detection_rate": self.get_parameter("grid_map.update.true_detection_rate").value,
             "grid_map.update.time_margin": self.get_parameter("grid_map.update.time_margin").value,
 
-            'frames.id.map': self.get_parameter('frames.id.map').value, #self.drone_namespace.removeprefix("/") + "/" + self.dji_links.MAP,
+            # 'frames.id.map': self.get_parameter('frames.id.map').value, #self.drone_namespace.removeprefix("/") + "/" + self.dji_links.MAP,
+            'frames.id.map': self.drone_namespace.removeprefix("/") + '/' + self.dji_links.MAP,
             'frames.id.quadrotor_odom': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.ODOM,
 
             'topics.move_drone': self.drone_namespace + "/" + self.dji_topics.MOVE_TO_SETPOINT_TOPIC,

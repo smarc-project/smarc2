@@ -58,25 +58,25 @@ class SearchPlannerAction():
         self._gps = GeoPoint()
         self._radius = 0
 
-        if "Tolerance" in goal_request and "waypoint" in goal_request:
-            if 'latitude' in goal_request['waypoint'] and'longitude' in goal_request['waypoint'] and 'altitude' in goal_request['waypoint']:
-                self._radius = goal_request["Tolerance"]
-                self._gps.latitude = goal_request['waypoint']['latitude']
-                self._gps.longitude = goal_request['waypoint']['longitude']
-                self._gps.altitude = goal_request['waypoint']['altitude']
-                if(
-                    isinstance(self._gps, GeoPoint) and
-                    isinstance(self._gps.latitude, float) and
-                    isinstance(self._gps.longitude, float) and
-                    isinstance(self._gps.altitude, float) and
-                    isinstance(self._radius, float) and
-                    self._radius > 0
-                ):
-                    self._node.get_logger().info('Action goal is valid')
-                    return True
-        else:
-            self._node.get_logger().error('Action goal is not valid: check "Tolerance" and "waypoint" fields') 
+        try:
+            p = goal_request['search_position']
+            self._gps.latitude = p['latitude']
+            self._gps.longitude = p['longitude']
+            self._gps.altitude = float(p['altitude'])
+            self._radius = float(p['tolerance'])
+            if self._radius <= 0:
+                self._node.get_logger().error('Action goal had invalid radius(tolerance) value!')
+                return False
+            if self._gps.altitude <= 0:
+                self._node.get_logger().error('Action goal had invalid altitude value!')
+                return False
+
+        except:
+            self._node.get_logger().error('Action goal could not be parsed?') 
             return False
+
+        self._node.get_logger().info(f"Accepted goal request with search position: {self._gps} and radius: {self._radius} m")
+        return True
 
     
     
@@ -119,22 +119,34 @@ class SearchPlannerAction():
         """
 
         if round(self.map_seen*100,2) >= self.MAP_SEEN_MAX :
-            self._node.get_logger().warn(f"{self.MAP_SEEN_MAX} % of the map was seen, calling off search!")
+            self._node.get_logger().warn(f"{self.MAP_SEEN_MAX} % of the map was seen without finding auv, failing search!")
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
         elif self.sam_position is not None:
-            self._node.get_logger().warn("SAM was detected, finishing search!")
+            self._node.get_logger().warn("SAM was detected, search success!")
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return True
         
         # Update planner and grid map ()
         try:
             self.map_seen = self.spcontroller.update_grid_map()
+        except:
+            self._node.get_logger().warn("update_grid_map failed, failing action")
+            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            return False
+        
+        try:
             pose2pub = self.spcontroller.update_path()
+        except:
+            self._node.get_logger().warn("update_path failed, failing action")
+            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            return False
+        
+        try:
             if pose2pub is not None: self.point_publisher.publish(pose2pub)
             return None
         except:
-            self._node.get_logger().warn("Something failed in searching, finishing action")
+            self._node.get_logger().warn("point_publisher failed, failing action")
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
 

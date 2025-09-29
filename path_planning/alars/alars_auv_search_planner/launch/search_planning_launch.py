@@ -5,6 +5,8 @@ from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+from dji_msgs.msg import Links as DJILinks
+
 # Main parameters: change them manually or via CLI
 MODE = "as"  # sim, srv, as
 PLANNER = "spiral"  # spiral, greedy, astar, apf
