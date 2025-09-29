@@ -48,8 +48,12 @@ class SearchPlannerAction():
         self.MAP_SEEN_MAX = 80
         self._radius = 0
         self._gps = None
+        self._reset_search()
+
+    def _reset_search(self):
         self.sam_position = None
         self.map_seen = 0
+        self.spcontroller.init_done = False
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         """
@@ -88,7 +92,7 @@ class SearchPlannerAction():
         Return True to accept the cancel, False to reject it
         """
         self._node.get_logger().warn("Received cancel request, cancelling search")
-        self.spcontroller.init_done = False # flag to stop planner and grid map update
+        self._reset_search()
         return True
 
     
@@ -101,6 +105,8 @@ class SearchPlannerAction():
         if self._gps is None:
             self._node.get_logger().error("Search position (self._gps) was None at _prepare_loop!")
             return
+
+        self._reset_search()
 
         # if activated by client, quadrotor doesn't perform initial movement (assigning purposes only)
         self.spcontroller.drone_init_pos = PointStamped()
@@ -125,11 +131,11 @@ class SearchPlannerAction():
 
         if round(self.map_seen*100,2) >= self.MAP_SEEN_MAX :
             self._node.get_logger().warn(f"{self.MAP_SEEN_MAX} % of the map was seen without finding auv, failing search!")
-            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            self._reset_search()
             return False
         elif self.sam_position is not None:
             self._node.get_logger().warn("SAM was detected, search success!")
-            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            self._reset_search()
             return True
         
         # Update planner and grid map ()
@@ -139,7 +145,7 @@ class SearchPlannerAction():
             self._node.get_logger().warn("### update_grid_map failed, failing action")
             self._node.get_logger().warn(str(e))
             self._node.get_logger().warn(traceback.format_exc())
-            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            self._reset_search()
             return False
         
         try:
@@ -148,7 +154,7 @@ class SearchPlannerAction():
             self._node.get_logger().warn("### update_path failed, failing action")
             self._node.get_logger().warn(str(e))
             self._node.get_logger().warn(traceback.format_exc())
-            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            self._reset_search()
             return False
         
         try:
@@ -157,7 +163,7 @@ class SearchPlannerAction():
             self._node.get_logger().warn("### point_publisher failed, failing action")
             self._node.get_logger().warn(str(e))
             self._node.get_logger().warn(traceback.format_exc())
-            self.spcontroller.init_done = False # flag to stop planner and grid map update
+            self._reset_search()
             return False
 
         # everything went well, continue search
@@ -172,6 +178,7 @@ class SearchPlannerAction():
         return feedback
     
     def _sam_detection_callback(self, msg):
+        self._node.get_logger().info(f"SAM detected: {msg.point}")
         self.sam_position = msg
 
 
