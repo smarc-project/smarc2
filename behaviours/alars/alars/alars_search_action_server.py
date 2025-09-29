@@ -158,7 +158,10 @@ class SearchPlannerAction():
             return False
         
         try:
-            if pose2pub is not None: self.point_publisher.publish(pose2pub)
+            if pose2pub is not None: 
+                if pose2pub.header.stamp.sec == 0 and pose2pub.header.stamp.nanosec == 0:
+                    pose2pub.header.stamp = self._node.get_clock().now().to_msg()
+                self.point_publisher.publish(pose2pub)
         except Exception as e:
             self._node.get_logger().warn("### point_publisher failed, failing action")
             self._node.get_logger().warn(str(e))
