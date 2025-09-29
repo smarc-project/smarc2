@@ -13,11 +13,17 @@ class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
 
-        self.declare_parameter('debug_imshow', 1)
+        self.declare_parameter('debug_imshow', 2)
         self.declare_parameter('enable_buoy_detector', 1)
         self.declare_parameter('enable_auv_detector', 1)
         self.declare_parameter('enable_rope_detector', 0)
         self.declare_parameter('enable_on_start', 1)
+
+        self.declare_parameter('buoy_color_lower_orange', [8, 121, 35])
+        self.declare_parameter('buoy_color_upper_orange', [40, 157, 247])
+
+        self.declare_parameter('auv_color_lower_yellow', [25, 0, 169])
+        self.declare_parameter('auv_color_upper_yellow', [46, 103, 221])
 
         self._CAMERA_PIXELS_FRAME = "camera_pixels_normalized"  # Frame for publishing detected points
 
@@ -28,13 +34,22 @@ class DetectionNode(Node):
 
         # Color Mask Thresholds
         # Buoy detection (orange range)
-        self.buoy_color_lower_orange = np.array([8, 121, 35]) 
-        self.buoy_color_upper_orange = np.array([40, 157, 247])
+
+        self.buoy_color_lower_orange = np.array(
+            self.get_parameter('buoy_color_lower_orange').value, dtype=np.uint8
+        )
+        self.buoy_color_upper_orange = np.array(
+            self.get_parameter('buoy_color_upper_orange').value, dtype=np.uint8
+        )
         self.buoy_min_area = 20   
                                                    
         # AUV detection (yellow range)
-        self.auv_color_lower_yellow = np.array([25, 0, 169]) 
-        self.auv_color_upper_yellow = np.array([46, 103, 221])
+        self.auv_color_lower_yellow = np.array(
+            self.get_parameter('auv_color_lower_yellow').value, dtype=np.uint8
+        )
+        self.auv_color_upper_yellow = np.array(
+            self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
+        )
         self.auv_min_area = 200   # Minimum contour area for buoy detection 
                                   # Lower values = more sensitive (detects small objects)
                                   # Higher values = stricter (requires larger buoy size)   
@@ -111,6 +126,24 @@ class DetectionNode(Node):
             # Detector disabled — do minimal processing / return quickly.
             # Could still forward camera frames or publish heartbeat if desired.
             return
+
+        # Refresh HSV thresholds live of Buoy
+        self.buoy_color_lower_orange = np.array(
+            self.get_parameter('buoy_color_lower_orange').value, dtype=np.uint8
+        )
+        self.buoy_color_upper_orange = np.array(
+            self.get_parameter('buoy_color_upper_orange').value, dtype=np.uint8
+        )
+        self.buoy_min_area = 20   
+                                                   
+
+        # Refresh HSV thresholds live of AUV
+        self.auv_color_lower_yellow = np.array(
+            self.get_parameter('auv_color_lower_yellow').value, dtype=np.uint8
+        )
+        self.auv_color_upper_yellow = np.array(
+            self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
+        )
 
         # self.get_logger().info("Received an image!")
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')

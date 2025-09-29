@@ -1,6 +1,6 @@
 #! /bin/bash
 
-source ~/colcon_ws/install/setup.bash
+#source ~/colcon_ws/install/setup.bash
 
 ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
@@ -152,6 +152,10 @@ tmux send-keys "ros2 run auv_detector auv_buoy_detector --ros-args \
 -p enable_buoy_detector:=1 \
 -p enable_auv_detector:=1 \
 -p enable_rope_detector:=0 \
+-p buoy_color_lower_orange:='[8,121,35]' \
+-p buoy_color_upper_orange:='[40,157,247]' \
+-p auv_color_lower_yellow:='[25, 0, 169]' \
+-p auv_color_upper_yellow:='[46, 103, 221]' \
 -p enable_on_start:=$ENABLE_DETECTOR_ON_START" C-m
 
 # the cam driver is needed just for the real thing
