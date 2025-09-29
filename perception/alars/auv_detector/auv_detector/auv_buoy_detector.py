@@ -8,7 +8,7 @@ import numpy as np
 from dji_msgs.msg import Topics
 from std_srvs.srv import Trigger
 from std_msgs.msg import Float32
-
+from smarc_msgs.msg import Topics as SMARCTopics
 
 class DetectionNode(Node):
     def __init__(self):
@@ -91,7 +91,7 @@ class DetectionNode(Node):
         # Subscribe to quadrotor altitude
         self.altitude_sub = self.create_subscription(
             Float32,                     # or the actual type of the altitude topic
-            Topics.ALTITUDE,
+            SMARCTopics.ALTITUDE_TOPIC,
             self.altitude_callback,
             10
         )
