@@ -344,7 +344,7 @@ class SearchPlannerController(Node):
 
             'topics.move_drone': self.drone_namespace + "/" + self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
             'topics.drone_odom': self.drone_namespace + "/" + self.smarc_topics.ODOM_TOPIC, 
-            #'topics.sam_detection': self.drone_namespace + "/" + self.dji_topics.SAM_DETECTION_TOPICS, #TODO: uncomment when it's updated
+            'topics.sam_detection': self.drone_namespace + "/" + self.dji_topics.ESTIMATED_AUV_TOPIC,
 
             'topics.pub_path': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_path').value,
             'topics.pub_grid_map': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_grid_map').value,

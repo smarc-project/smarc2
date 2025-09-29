@@ -12,10 +12,10 @@ string TTS_TOPIC = 'speak' # String
 # gimbal camera
 string GIMBAL_CAMERA_RAW_TOPIC = 'gimbal_camera/image_raw' # Image
 
-# object detectors
-string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy' # Float32MultiArray
-string ESTIMATED_AUV_TOPIC = 'alars_detection/auv' # Float32MultiArray
-string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle' # Float32MultiArray
+# object detectors, these are in normalized camera pixel coordinates
+string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy' # PointStamped
+string ESTIMATED_AUV_TOPIC = 'alars_detection/auv' # PointStamped
+string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle' # PointStamped
 
 # services
 string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
