@@ -8,29 +8,55 @@ For now, it contains 4 algorithms:
     - Pure Greedy: Each path consists of a straight line to the final point
     - A* based: The grid map is randomly populated with pseudo-obstacles. Cells with lower probability will be randomly chosen to define
         line obstacles. The objective is to give priority to paths that pass through cells with higher probability. After defining the
-        obstacles, the regular A* algorithm is run.
+        obstacles, the regular A* algorithm is run (it needs some improvements, so it shouldn't be used for now)
     - Artificial Potential Field: The highest probability cell exerts an attractive force on the drone whereas the remaining cells exert a 
         repulsive force, which is more intense for lower probability cells. The resultant force defines the movement direction.
 ## Dependencies (minimum)
 - ROS2 Humble
 - Python: 3.10.12
-- Numpy: 2.2.3
-- Scipy: 1.15.2
+- Numpy: 1.23.5
+- Scipy: 1.8.0
+- MLFlow: 3.3.1
+- dotenv 
 
 ## Launch
-The search planning can be run standalone or integrated in other procedures.  To run this package, In the simulator, go to the Quadrotor object (in Hierarchy) 
-and set the parameter **Distance Error Cap** to **1** (in Inspector). Then, open two terminals:
+The search planning can be run standalone or integrated in other procedures.  For that reason, 3 modes are available:
+- 'sim': It performs a full search based on the parameters in the config file. Useful for testing, it incorporates a mlflow
+pipeline so one can track the results. It's only available on sim as it involves teleporting sam and other sim-only procedures. Some
+visualization topics are available so the user can track what's happening.
+- 'srv': The search planning is triggered by a client requested and handled by a service. It only produces a path and it's not responsible for
+defining the setpoint, conversely to 'sim' mode. It consists of 2 services: one to trigger and set up the search planning and another to
+compute the next path. 
+- 'as': The search planning is managed by an Action Server. Similar to sim (it constantly publishes the next setpoint and not the path) but the search planning
+needs to be triggered by the Action Client.
+
+Examples of service client scripts are available within the package. If one wants to use the action server, it can run via CLI:
+```
+ros2 action send_goal /M350/alars_search smarc_mission_msgs/action/BaseAction '{goal: {data: "{\"waypoint\": {\"latitude\": 59.30742603191439, \"longitude\": 18.710217247261326, \"altitude\": 5.0}, \"Tolerance\": 100.0}"}}'
+```
+To run the search planning standalone, open two terminals and type:
 ```
 ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
 ```
 ```
-ros2 launch alars_auv_search_planner search_planning_launch.py
+ros2 run smarc_bringups dji_bringup.sh 
 ```
+```
+ros2 launch alars_auv_search_planner search_planning_launch.py  mode:="'sim'" namespace:="'/M350'"
+```
+Note that the mode parameter is mandatory, which prevents the user from selecting the wrong mode. If namespace isn't defined, "/Quadrotor" is assumed.
 
-If the user solely wants to test the package, the parameter "mode" should be changed to "sim". This will teleport SAM to the desired position, create the GPS ping and move the drone to the initial position immediately. 
+### Note: 
+While in the simulator, it's highly recommended to go to the Quadrotor object (in Hierarchy) 
+and set the parameter **Distance Error Cap** to **1** (in Inspector). 
 
-If the user wants to integrate this in a broader task, two clients have to be created. The services are as follows (check *smarc_mission_msgs*):
-## **(ROS) Srv**
+## **ROS Action**
+| Action name | Components | 
+| --- | ---| 
+| AlarsSearchAction | gps (GeoPoint), radius (float) | 
+---
+
+## **ROS Srv**
 | Service name | Service Type | Description |
 | --- | ---| ---|
 | 'init_auv_search' | InitAUVSearch | It initiates the **PGM**. It should be requested when the search planning is about to initiate. It needs the search radius around the GPS ping, the GPS ping (GeoPoint msg) and the drone's initial altitude wrt to the water level. It can be called several times in a single simulation since the planner and the grid map are reinitialized when this service is requested|
@@ -41,7 +67,7 @@ Check *test_initmap_srv.py* and *test_getpath_srv.py* to see how the client can 
 The launch file includes all parameters that may require fine-tuning and brief explanations for each.
 RVIZ2 is highly recommended to see the grid map and the planned path. 
 
-## **New Topics**
+## **Visualization Topics**
 | Topic | Type | Description |
 | --- | ---| --- |
 | /Quadrotor/path | RVIZ2 visualization | Path computed by any of the existing algorithms|
@@ -57,3 +83,5 @@ source install/setup.sh
 ```
 ## Maintainer
 Francisco Miranda, framir@kth.se
+
+ros2 action send_goal /Quadrotor/alars_search smarc_mission_msgs/action/AlarsSearchAction "{gps: {latitude: 58.85058132601718, longitude: 17.67416659875381, altitude: 5.0}, radius: 100.0}"

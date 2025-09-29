@@ -24,7 +24,7 @@ from smarc_action_base.smarc_action_base import (
     ActionClientState,
     SMARCActionClient,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 import pytest
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 

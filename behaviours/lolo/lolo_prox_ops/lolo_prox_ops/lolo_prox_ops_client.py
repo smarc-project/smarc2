@@ -10,7 +10,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionClient,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from std_msgs.msg import String
 import math
 
