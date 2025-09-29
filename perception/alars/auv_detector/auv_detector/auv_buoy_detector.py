@@ -43,7 +43,7 @@ class DetectionNode(Node):
         # Occasional Adjustments
         # Enable or disable specific detectors  
         self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
-        self.auv_detector = int(self.get_parameter('enable_auv_detector').value)      # 0: off, 1: largest contour center, 2: best rectangle center    
+        self.auv_detector = int(self.get_parameter('enable_auv_detector').value)       # 0: off, 1: largest contour center, 2: best rectangle center    
         self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: spline line, 2: multi-frame, 3: both
 
 
@@ -160,7 +160,7 @@ class DetectionNode(Node):
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
-                    #center_buoy = (cx, cy)
+                    center_buoy = (cx, cy)
                     # Normalize coordinates between -1 and 1, with 0 at the image center
                     img_h, img_w = cv_image.shape[:2]
                     norm_cx = 2 * (cx / img_w) - 1
