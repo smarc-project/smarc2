@@ -343,13 +343,13 @@ class SearchPlannerController(Node):
             'frames.id.map': self.drone_namespace.removeprefix("/") + '/' + self.dji_links.MAP,
             'frames.id.quadrotor_odom': self.drone_namespace.removeprefix("/") + "/" + self.dji_links.ODOM,
 
-            'topics.move_drone': self.drone_namespace + "/" + self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
-            'topics.drone_odom': self.drone_namespace + "/" + self.smarc_topics.ODOM_TOPIC, 
-            'topics.sam_detection': self.drone_namespace + "/" + self.dji_topics.ESTIMATED_AUV_TOPIC,
+            'topics.move_drone': self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
+            'topics.drone_odom': self.smarc_topics.ODOM_TOPIC, 
+            'topics.sam_detection': self.dji_topics.ESTIMATED_AUV_TOPIC,
 
-            'topics.pub_path': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_path').value,
-            'topics.pub_grid_map': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_grid_map').value,
-            'topics.pub_likely_sam_location': self.drone_namespace + "/rviz/" + self.get_parameter('topics.pub_likely_sam_location').value
+            'topics.pub_path': "rviz/" + self.get_parameter('topics.pub_path').value,
+            'topics.pub_grid_map': "rviz/" + self.get_parameter('topics.pub_grid_map').value,
+            'topics.pub_likely_sam_location': "rviz/" + self.get_parameter('topics.pub_likely_sam_location').value
         }
 
         if self.model_params["mode"] != "as": 

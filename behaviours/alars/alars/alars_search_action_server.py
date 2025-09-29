@@ -8,6 +8,8 @@ from alars_auv_search_planner.search_planner_controller import SearchPlannerCont
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 from smarc_action_base.gentler_action_server import GentlerActionServer
+import traceback
+
 class SearchPlannerAction():
     def __init__(self,
                  node: Node,
@@ -96,6 +98,9 @@ class SearchPlannerAction():
         This is run once before the loop starts, after you accept the goal
         """
         self._node.get_logger().info("Preparing loop for search action execution")
+        if self._gps is None:
+            self._node.get_logger().error("Search position (self._gps) was None at _prepare_loop!")
+            return
 
         # if activated by client, quadrotor doesn't perform initial movement (assigning purposes only)
         self.spcontroller.drone_init_pos = PointStamped()
@@ -130,26 +135,33 @@ class SearchPlannerAction():
         # Update planner and grid map ()
         try:
             self.map_seen = self.spcontroller.update_grid_map()
-        except:
-            self._node.get_logger().warn("update_grid_map failed, failing action")
+        except Exception as e:
+            self._node.get_logger().warn("### update_grid_map failed, failing action")
+            self._node.get_logger().warn(str(e))
+            self._node.get_logger().warn(traceback.format_exc())
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
         
         try:
             pose2pub = self.spcontroller.update_path()
-        except:
-            self._node.get_logger().warn("update_path failed, failing action")
+        except Exception as e:
+            self._node.get_logger().warn("### update_path failed, failing action")
+            self._node.get_logger().warn(str(e))
+            self._node.get_logger().warn(traceback.format_exc())
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
         
         try:
             if pose2pub is not None: self.point_publisher.publish(pose2pub)
-            return None
-        except:
-            self._node.get_logger().warn("point_publisher failed, failing action")
+        except Exception as e:
+            self._node.get_logger().warn("### point_publisher failed, failing action")
+            self._node.get_logger().warn(str(e))
+            self._node.get_logger().warn(traceback.format_exc())
             self.spcontroller.init_done = False # flag to stop planner and grid map update
             return False
 
+        # everything went well, continue search
+        return None
         
     
     def _give_feedback(self) -> str:

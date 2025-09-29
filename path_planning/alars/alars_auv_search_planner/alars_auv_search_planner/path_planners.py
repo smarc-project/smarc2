@@ -383,9 +383,8 @@ class SearchPlanner(Node, ABC):
         
     def drone_odom_callback(self, msg: Odometry):
         """ Retrieve drone position (currently odometry gives in map_gt)"""
+        self.drone_position.header = msg.header
         self.drone_position.point =  msg.pose.pose.position 
-        self.drone_position.header.stamp = self.get_clock().now().to_msg()
-        self.drone_position.header.frame_id = msg.header.frame_id 
         self.drone_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
 
     def sam_odom_callback(self, msg: Odometry):
