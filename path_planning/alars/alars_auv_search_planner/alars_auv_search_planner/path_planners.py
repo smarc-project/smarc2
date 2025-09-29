@@ -29,13 +29,16 @@ from geometry_msgs.msg import PointStamped, Pose, PoseStamped
 from nav_msgs.msg import Odometry, Path
 from sensor_msgs.msg import BatteryState
 from geographic_msgs.msg import GeoPoint
-import tf2_ros
 import tf2_geometry_msgs
 from tf2_ros import Buffer, TransformListener
 import numpy as np
 from math import cos, sin, pi, sqrt, tan, factorial, dist
 from .Astar import AStar
 from .prob_grid_map import ProbabilisticGridMap
+import time
+from typing import Tuple, Union
+
+
 
 class InitializeActions(Node):
     """
@@ -46,12 +49,12 @@ class InitializeActions(Node):
 
     Attributes (the relevant ones):
         sam_pos: position (x,y) from odometry
-        gps_ping: GeoPoint msg from the GPS. #TODO: use this instead of adding noise directly to sam_pos
+        gps_ping: GeoPoint msg from the GPS. 
 
 
     Notes:
-        This class should only be useful in SIM. In real life, the GPS measurement needs to be passed as argument to different objects in the 
-        SearchPlannerController class (search_planner_controller.py).
+        This class should only be useful in "sim" mode, otherwise it isn't instantiated. In real life, the GPS 
+        measurement needs to be passed as argument to different objects in the SearchPlannerController class (search_planner_controller.py).
 
     """
     def __init__(self, name = 'init_actions', params = None):
@@ -71,18 +74,19 @@ class InitializeActions(Node):
             self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
             self.sam_odom_frame_id = params['frames.id.sam_odom'] 
+
         else:
             self.get_logger().error("No valid parameters received in SearchPlanner node")
 
-        self.teleport_sam_publisher = self.create_publisher(
-            msg_type = PoseStamped,
-            topic = '/sam_auv_v1/teleport',
-            qos_profile= 10)
+        # self.teleport_sam_publisher = self.create_publisher(
+        #     msg_type = PoseStamped,
+        #     topic = params['topics.teleport_sam'],
+        #     qos_profile= 10)
         
         self.sam_odom_callback = self.create_subscription(
             msg_type = Odometry,
             callback= self.sam_odom_callback,
-            topic = '/sam_auv_v1/smarc/odom',
+            topic = params['topics.sam_odom'],
             qos_profile= 10)
         self.gps_ping_geo = self.create_subscription(
             msg_type = GeoPoint,
@@ -91,7 +95,7 @@ class InitializeActions(Node):
             qos_profile= 10)
         self.drone_pos_sub = self.create_subscription(
             msg_type = Odometry,
-            topic = '/Quadrotor/odom_gt',
+            topic = params['topics.drone_odom'],
             callback = self.drone_odom_callback,
             qos_profile= 10)
         
@@ -103,7 +107,7 @@ class InitializeActions(Node):
         in SAM's odom frame.
         """
         msg = PoseStamped()
-        msg.header.frame_id = self.drone_odom_frame_id # CHECK
+        msg.header.frame_id = self.sam_odom_frame_id 
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position.x =  self.sam_init_pos[0]
         msg.pose.position.y =  self.sam_init_pos[1]
@@ -129,7 +133,7 @@ class InitializeActions(Node):
         """
         if self.sam_pos is not None:
             cov = [[self.sam_pos_var, 0], [0, self.sam_pos_var]] #TODO: change to sam_pos
-            X = np.random.multivariate_normal(self.sam_init_pos[0:2], cov)
+            X = np.random.multivariate_normal(self.sam_pos, cov)
             GPS_ping = PointStamped()
             GPS_ping.header.stamp = self.get_clock().now().to_msg()
             GPS_ping.header.frame_id = self.map_frame_id 
@@ -170,13 +174,13 @@ class SearchPlanner(Node, ABC):
         distance_thresh: minimum distance to publish next waypoint. If the distance of the drone to the current waypoint if smaller
                         than this threshold, the next waypoint will be published regardless of drone's velocity
         drone_position, drone_vel, sam_vel: 1*2 arrays with x,y elements (position or velocity)
+        pose2pub: PoseStamped that indicates next waypoint. Useful when mode = 'as' in order to publish waypoint through action server
 
     Notes:
 
     """
     def __init__(self, name="pathplanner_parent", params = None, grid_map:ProbabilisticGridMap = None):
         super().__init__(node_name = name)
-        self.get_logger().info('Parent search planner initialized')
 
         self.params = params
         self.grid_map = grid_map
@@ -185,14 +189,15 @@ class SearchPlanner(Node, ABC):
         self.battery_state = None
         self.drone_position = PointStamped()
         self.drone_vel = None
+        self.pose2pub = None
         self.sam_position = PointStamped()
-        self.sam_vel = None
+        self.sam_vel = np.array([0, 0])
         self.distance_thresh = 0.1
 
         # flags to avoid blocking operations
         self.path_needed = True
         self.path_completed = False
-        self.wait_finished = True
+
 
         if params:        
             self.planner_type = params["path_planner"]
@@ -200,14 +205,14 @@ class SearchPlanner(Node, ABC):
             self.flight_height = params["drone.flight_height"]
             self.lat = params["drone.look_ahead_time"]
             self.intermediate_dt = params["drone.intermediate_dt"]
-
-            self.battery_discharge_rate = params['battery.discharge_rate']
-            self.battery_threshold = params['battery.threshold']
-            self.equivalent_drone_vel = params['battery.equivalent_drone_vel'] 
-
             self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
-            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
+
+            if params["mode"] != "as": 
+                self.sam_odom_frame_id = params['frames.id.sam_odom']
+                self.battery_discharge_rate = params['battery.discharge_rate']
+                self.battery_threshold = params['battery.threshold']
+                self.equivalent_drone_vel = params['battery.equivalent_drone_vel'] 
         else:
             self.get_logger().error("No valid parameters received in Path Model")
 
@@ -216,41 +221,44 @@ class SearchPlanner(Node, ABC):
 
         self.create_subscription(
             msg_type = Odometry,
-            topic = '/Quadrotor/odom_gt',
+            topic = params['topics.drone_odom'],
             callback = self.drone_odom_callback,
-            qos_profile= 10)
-        self.create_subscription(
-            msg_type = Odometry,
-            topic = '/sam_auv_v1/smarc/odom',
-            callback = self.sam_odom_callback,
-            qos_profile= 10)
-        self.create_subscription(
-            msg_type= BatteryState,
-            topic = '/Quadrotor/core/battery',
-            callback=self.drone_battery_callback,
-            qos_profile= 10)     
-        
+            qos_profile= 10)   
         self.point_publisher = self.create_publisher(
             msg_type = PoseStamped,
             topic = params['topics.move_drone'], 
             qos_profile= 10)
         self.path_publisher = self.create_publisher( # visualization purposes only
             msg_type = Path,
-            topic = '/Quadrotor/path',
+            topic = params['topics.pub_path'] ,
             qos_profile= 10)
-        self.sam_pos_publisher = self.create_publisher( # visualization purposes only
-            msg_type = PointStamped,
-            topic = '/sam_auv_v1/position',
-            qos_profile= 10)
+        
+        if params["mode"] == "sim":
+            self.create_subscription(
+                msg_type = Odometry,
+                topic = params['topics.sam_odom'],
+                callback = self.sam_odom_callback,
+                qos_profile= 10)
+            self.create_subscription(
+                msg_type= BatteryState,
+                topic = params['topics.drone_battery'],
+                callback=self.drone_battery_callback,
+                qos_profile= 10)  
+
         
 
     @abstractmethod     
-    def generate_path(self) -> bool:
-        """ Common method to all children classes that generates a path and publishes the next waypoint. It returns false
-        if the battery's low (return to base) and true if everything's good"""
+    def generate_path(self) -> Tuple[bool, Path, float, float]:
+        """ Common method to all children classes that generates a path and publishes the next waypoint. It returns:
+            - false in case search has to stop (eg: battery's low -> need to return to base) and true if everything's good
+            - computed Path
+            - path distance
+            - path elapsed time
+            
+            """
         pass
 
-    def generate_waypoint(self, x, y, z):
+    def generate_waypoint(self, x, y, z) -> Union[Tuple[float, float], Tuple[None, None]]:
         """ Method to publish a single waypoint for the drone. Return current drone position as feedback"""
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
@@ -261,15 +269,18 @@ class SearchPlanner(Node, ABC):
         self.point_publisher.publish(pose_msg)
 
         # return current position as feedback
-        current_pos_odom = self.transform_point(self.drone_position)
-        return current_pos_odom.point.x, current_pos_odom.point.y
+        try:
+            current_pos_odom = self.transform_point(self.drone_position)
+            return current_pos_odom.point.x, current_pos_odom.point.y
+        except:
+            return None, None
         
     def transform_point(self, point:PointStamped, frame:str = None) -> PointStamped:
         if frame is None: frame =  self.drone_odom_frame_id
-        # transform desired position (relative position) to odom frame
+        # transform desired position (relative position) to specified frame
         t = self.tf_buffer.lookup_transform(
             target_frame = frame,  
-            source_frame = point.header.frame_id, #point.header.frame_id, #self.map_frame_id,                 
+            source_frame = point.header.frame_id,                 
             time=rclpy.time.Time() )
         return tf2_geometry_msgs.do_transform_point(point, t)
     
@@ -284,7 +295,7 @@ class SearchPlanner(Node, ABC):
     def battery_ok(self, path) -> bool: 
         """ 
         Prediction of the total battery consumption while traversing  the path + return trip to origin.
-        It's a very simple estimation assuming battery consumption varies linearly over time  
+        It's a very simple estimation assuming battery consumption varies linearly over time. Only called when mode = "sim"
         """
         vel = max(self.equivalent_drone_vel, np.linalg.norm(self.drone_vel)) # when drone is hovering for example, vel = 0 but there's still battery consumption
         time = 0
@@ -321,40 +332,41 @@ class SearchPlanner(Node, ABC):
             path_msg.poses.append(pose_msg)
         self.path_publisher.publish(path_msg)
 
-    def publish_waypoint(self, min_threshold: float, current_pos_odom: Pose) -> None:
+    def publish_waypoint(self, min_threshold: float, current_pos_odom: Pose) -> Union[None, PoseStamped]:
         """ 
         It checks if drone is too close to the next waypoint and in that case, publishes next point. The distance threshold is linearly 
         dependent on velocity: the greater the velocity, the sooner the next waypoint will be published. This calculation is based on
         the defined "look ahead time" -> check launch file
 
-        It will only publish on 'sim' mode. In real mode, it's assumed the user only needs the path.
+        It will only publish on  simulation ('sim) compute next waypoint. In service ('srv') mode, 
+        it's assumed the user only needs the path. Besides, in 'sim' mode it publishes the waypoint right away,
+        while in 'as' mode it returns it so it can be published by the action server
+
         Args: 
             min_threshold: distance up to which next waypoint is always published. Chech class documentation (distance_thresh attribute)
             current_pos_odom: current drone's pose
         """
-        if self.params['mode'] == 'sim':
+        if self.params['mode'] == 'sim' or self.params['mode'] == 'as':
             lad = np.linalg.norm(self.drone_vel)*self.lat # "look ahead distance"
             distance2goal = sqrt((self.path[0][0]-current_pos_odom.point.x)**2 + (self.path[0][1]-current_pos_odom.point.y)**2)
-            if ((distance2goal < min_threshold or distance2goal < lad or len(self.path) == self.path_num_points)
-                and self.wait_finished): 
-                dt = 0.01 if distance2goal > min_threshold else self.intermediate_dt # if we're far from goal, we want to publish the next goal asap.
-                self.wait2publish_goal_timer = self.create_timer(dt, self.publish_waypoint_timer)
-                self.wait_finished = False 
-        
 
-    def publish_waypoint_timer(self) -> None:
-        """ Waypoint publication timer callback. It publishes the next point of the path"""
-        pose_msg = PoseStamped()
-        self.path.pop(0)
-        if len(self.path) != 0:
-            pose_msg.header.frame_id = self.drone_odom_frame_id
-            pose_msg.header.stamp = self.get_clock().now().to_msg()
-            pose_msg.pose.position.x = self.path[0][0]
-            pose_msg.pose.position.y = self.path[0][1]
-            pose_msg.pose.position.z = self.flight_height - 1.16 #- self.drone_init_pos.point.z 
-            self.point_publisher.publish(pose_msg)
-        self.wait_finished = True
-        self.wait2publish_goal_timer.cancel()  
+            if ((distance2goal < min_threshold or distance2goal < lad or len(self.path) == self.path_num_points)): 
+                self.path.pop(0)
+
+            pose_msg = PoseStamped()
+            if len(self.path) != 0:
+                pose_msg.header.frame_id = self.drone_odom_frame_id
+                pose_msg.header.stamp = self.get_clock().now().to_msg()
+                pose_msg.pose.position.x = self.path[0][0]
+                pose_msg.pose.position.y = self.path[0][1]
+                pose_msg.pose.position.z = self.flight_height - 1.16 if self.params['mode'] == 'sim' else self.flight_height #- self.drone_init_pos.point.z 
+                
+            if self.params['mode'] == 'sim':
+                self.point_publisher.publish(pose_msg)
+
+            return pose_msg
+        return None
+            
 
 
     def return_to_base(self):
@@ -366,17 +378,6 @@ class SearchPlanner(Node, ABC):
         self.point_publisher.publish(pose_msg)
         odom_position = self.transform_point(self.drone_position)
         return odom_position.point.x, odom_position.point.y
-    
-    def reinitialize_planner(self):
-        """ 
-        Reinitializes grid map and planner state (called when client makes requests a new service and 
-        the search planning has to be reinitiated without destroying the node)
-        """
-        if self.params['path_planner'] == 'spiral': self.phase = 'line'
-        self.path_needed = True
-        self.path_completed = False
-        self.wait_finished = True
-        self.grid_map.initiate_grid_map()
         
 
         
@@ -388,12 +389,13 @@ class SearchPlanner(Node, ABC):
         self.drone_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
 
     def sam_odom_callback(self, msg: Odometry):
-        """ Retrieve SAM's velocity from odometry and publish it's position for visualization purposes"""
+        """ 
+        Retrieve SAM's velocity from odometry and publish it's position for visualization purposes.
+        Only available in sim, sam_position allows to detect when experiment is finished
+        """
         self.sam_vel = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y])
+        self.sam_position = PointStamped()
         self.sam_position.point = msg.pose.pose.position
-        self.sam_position.header = msg.header
-        self.sam_pos_publisher.publish(self.sam_position)
-
 
 
     def drone_battery_callback(self, msg):
@@ -439,21 +441,23 @@ class SpiralPathModel(SearchPlanner):
         self.previous_spiral_displacement = np.array([0,0])
 
 
-    def generate_path(self) -> bool:
+    def generate_path(self) -> Tuple[bool, Path, float, float]:
         """ 
         The spiral planner consists of three movements: a straight line to the GPS ping, an initial circle around that point and
         consecutive spirals after that. The spiral radius increases consecutively and the spiral center moves according to 
         SAM's estimated velocity
+        
         """
+        start = time.time()
         current_pos_odom = self.transform_point(self.drone_position)
         if self.path_needed:
             if self.phase == 'line':
                 self.path = [[current_pos_odom.point.x, current_pos_odom.point.y], self.grid_map.GPS_ping_odom]
                 self.phase = 'circle'
                 self.path_needed = False
-                # if mode = real, the next path is generated as soon service receives request. If mode = sim, we use distance feeback to
-                # determine when to publish next path
-                if self.params['mode'] == 'real': self.path_needed = True  
+                # if mode = 'srv', the next path is generated as soon service receives request. If mode = 'sim' or 'as', 
+                # we use distance feeback to determine when to publish next path
+                if self.params['mode'] == 'srv': self.path_needed = True  
 
             elif self.phase == 'circle':
                 # check velocity direction to produce points smoothly
@@ -467,46 +471,55 @@ class SpiralPathModel(SearchPlanner):
                 y = self.r*np.sin(theta) + self.grid_map.GPS_ping_odom[1]
                 self.path = list(zip(x,y))
                 self.phase = 'spiral'
-                self.path_needed = True if self.params['mode'] == 'real' else False
+                self.path_needed = True if self.params['mode'] == 'srv' else False
                 
             elif self.phase == 'spiral': 
-                # NOTE: if sam odom and quadrotor ain't aligned, this needs to be changed
-                sam_vel = self.sam_vel
-
                 # generate moving spiral with increasing radius -> estimate period with current drone velocity
                 predicted_T = 2*pi*self.R/np.linalg.norm(self.drone_vel)
-                spiral_displacement = self.vel_factor*sam_vel*predicted_T
+                spiral_displacement = self.vel_factor*self.sam_vel*predicted_T
                 theta = np.arange(0,self.i*(2*pi+self.delta_theta),self.i*self.delta_theta)
-                delta_r = self.r*(1-sqrt(np.linalg.norm(sam_vel)/self.sam_max_vel)) # radius increment accounting for sam velocity
+                delta_r = self.r*(1-sqrt(np.linalg.norm(self.sam_vel)/self.sam_max_vel)) # radius increment accounting for sam velocity
                 r = np.linspace(self.R, self.R + delta_r, theta.shape[0])
                 self.R  += delta_r 
                 x = self.grid_map.GPS_ping_odom[0] + np.multiply(r, np.cos(theta)) + np.linspace(0, spiral_displacement[0], theta.shape[0]) + self.previous_spiral_displacement[0] 
                 y = self.grid_map.GPS_ping_odom[1] + np.multiply(r, np.sin(theta)) + np.linspace(0, spiral_displacement[1], theta.shape[0]) + self.previous_spiral_displacement[1] 
                 self.path = list(zip(x,y))
                 self.previous_spiral_displacement = spiral_displacement
-                self.path_needed = True if self.params['mode'] == 'real' else False
+                self.path_needed = True if self.params['mode'] == 'srv' else False
                 
             self.path_num_points = len(self.path)
             
             # publish path for visualization in rviz
+            end = time.time()
             self.publish_path()
 
             #check battery
-            if not self.battery_ok(self.path): 
-                return False, self.path
+            # if self.params['mode'] == 'sim':
+            #     return self.battery_ok(self.path), self.path, 0, 0
 
         elif not self.path_needed and not self.path_completed:
+            end = start
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
-                self.publish_waypoint(self.distance_thresh, current_pos_odom)
+                self.pose2pub = self.publish_waypoint(self.distance_thresh, current_pos_odom)
                
         else:
+            end = start
             self.path_needed = True
             self.path_completed = False
             self.phase == 'line'
+
+        # compute distance between drone initial position and sam initial position to log on metrics
+        if self.phase != "line":
+            distance = 0
+            for i, pt in enumerate(self.path):
+                 if i < len(self.path)-1: distance += dist(pt, self.path[i+1]) 
+        else:
+            distance = dist(self.path[0], self.path[-1])
+        distance = distance if end != start else 0
  
-        return True, self.path
+        return True, self.path, distance, end-start
 
 
 
@@ -532,11 +545,12 @@ class GreedyPathModel(SearchPlanner):
             self.get_logger().error("No valid parameters received in Greedy Path Model")
 
 
-    def generate_path(self) -> bool:
+    def generate_path(self) -> Tuple[bool, Path, float, float]:
         """ It makes use of the grid map to generate a striaght line between current position and cell
         with highest probability. This cell can be retrieved using the full map or using a region around
         the drone's current position. In the latter case, the radius has to be specified -> horizon
         """
+        start = time.time()
         if self.path_needed:
             self.get_logger().info(f'Path is needed, running {self.params["path_planner"]}) path planner')
             self.path_needed = False
@@ -563,34 +577,41 @@ class GreedyPathModel(SearchPlanner):
             self.path_num_points = len(self.path)
 
             # publish path for visualization in rviz
+            end = time.time()
             self.publish_path()
 
             #check battery
-            if not self.battery_ok(self.path): 
-                return False, self.path
+            # if self.params['mode'] == 'sim':
+            #     return self.battery_ok(self.path), self.path, 0, 0
             
-            # if mode = real, the next path is generated as soon service receives request. If mode = sim, we use distance feeback to
-            # determine when to publish next path
-            if self.params['mode'] == 'real': self.path_needed = True  
+            # If mode = 'srv', the next path is generated as soon service receives request. 
+            # If mode = 'sim' or 'as', we use distance feeback to determine when to publish next path
+            if self.params['mode'] == 'srv': self.path_needed = True  
 
 
         elif not self.path_needed and not self.path_completed:
+            end = start
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
                 current_pos_odom = self.transform_point(self.drone_position)
-                self.publish_waypoint(self.distance_thresh, current_pos_odom)            
+                self.pose2pub = self.publish_waypoint(self.distance_thresh, current_pos_odom)            
         
         else:
+            end = start
             self.path_needed = True
             self.path_completed = False
+
+        distance =  dist(self.path[0], self.path[-1]) if self.phase != "circle" else 2*pi*self.r
+        distance = distance if end != start else 0
             
-        return True, self.path
+        return True, self.path, distance, end - start
     
 """ --------------------- A*  path planners --------------------------------------"""
 
 class AStarPathModel(SearchPlanner):
     """ 
+    DEPRECATED -> #TODO: remove or improve & update
     Args: 
         name: ros node name
         params: dictionary with all relevant parameters for search planning. They can me changed in the launch file
@@ -663,12 +684,12 @@ class AStarPathModel(SearchPlanner):
             self.publish_path()
 
             #check battery
-            if not self.battery_ok(self.path): 
-                return False, self.path
+            # if self.params['mode'] == 'sim':
+            #     return self.battery_ok(self.path), self.path, 0, 0
             
-            # if mode = real, the next path is generated as soon service receives request. If mode = sim, we use distance feeback to
-            # determine when to publish next path
-            self.path_needed = True if self.params['mode'] == 'real' else False
+            # if mode = 'srv', the next path is generated as soon service receives request. If mode = 'sim' or 'as', 
+            # we use distance feeback to determine when to publish next path
+            self.path_needed = True if self.params['mode'] == 'srv' else False
 
 
         elif not self.path_needed and not self.path_completed:
@@ -677,7 +698,7 @@ class AStarPathModel(SearchPlanner):
                 self.path_completed = True 
             else:
                 current_pos_odom = self.transform_point(self.drone_position)
-                self.publish_waypoint(self.distance_thresh, current_pos_odom)            
+                self.pose2pub = self.publish_waypoint(self.distance_thresh, current_pos_odom)            
         
         else:
             self.path_needed = True
@@ -849,7 +870,7 @@ class APFPathModel(SearchPlanner):
             self.get_logger().error("No valid parameters received in ARF Path Model")
 
 
-    def generate_path(self) -> bool:
+    def generate_path(self) -> Tuple[bool, Path, float, float]:
         """ 
         We consider the goal cell to exert an attractive force and the remaining cells to exert a repulsive force.
         Similar to regular artifical potential field algorithms but we use probability as well: cells with lower probability will
@@ -857,6 +878,7 @@ class APFPathModel(SearchPlanner):
         
         The resultant of forces is then convert to a displacement vector, which is proportional to the force.
         """
+        start = time.time()
         if self.path_needed:
 
             # get current position in odom and cell with highets prob in a given radius
@@ -880,29 +902,35 @@ class APFPathModel(SearchPlanner):
             self.path_num_points = len(self.path)
 
             # publish path for visualization in rviz
+            end = time.time()
             self.publish_path()
             
             #check battery
-            if not self.battery_ok(self.path): 
-                return False, self.path
+            # if self.params['mode'] == 'sim':
+            #     return self.battery_ok(self.path), self.path, 0, 0
 
-            # if mode = real, the next path is generated as soon service receives request. If mode = sim, we use distance feeback to
-            # determine when to publish next path
-            self.path_needed = True if self.params['mode'] == 'real' else False
+            # if mode = 'srv', the next path is generated as soon service receives request. If mode = 'sim' or 'as', 
+            # we use distance feeback to determine when to publish next path
+            self.path_needed = True if self.params['mode'] == 'srv' else False
         
 
         elif not self.path_needed and not self.path_completed:
+            end = start
             if len(self.path) == 0:
                 self.path_completed = True 
             else:
                 current_pos_odom = self.transform_point(self.drone_position)
-                self.publish_waypoint(self.distance_thresh, current_pos_odom)            
+                self.pose2pub = self.publish_waypoint(self.distance_thresh, current_pos_odom)            
         
         else:
+            end = start
             self.path_needed = True
             self.path_completed = False
-            
-        return True, self.path
+
+        distance =  dist(self.path[0], self.path[-1]) if self.phase != "circle" else 2*pi*self.r
+        distance = distance if end != start else 0
+
+        return True, self.path, distance, end-start
     
 
     def create_forces(self, X, Y, prior, start:np.array):

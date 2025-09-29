@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Empty.action"
   "action/BaseAction.action"
   "action/GotoWaypoint.action"
+  "action/AlarsSearchAction.action"
   "srv/DubinsPlan.srv"
   "srv/UTMLatLon.srv"
   "srv/DronePath.srv"
