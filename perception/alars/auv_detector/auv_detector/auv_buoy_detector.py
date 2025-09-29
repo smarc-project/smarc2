@@ -50,6 +50,16 @@ class DetectionNode(Node):
         self.auv_color_upper_yellow = np.array(
             self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
         )
+        # Minimum and maximum area thresholds at 8 meters, so you can intuitively estimate
+        # what percentage of the image the buoy and AUV will occupy.
+        self.initial_altitude = 8.7                              # unit: meter  
+        self.buoy_area_percent_at_initial_altitude = 0.007*0.01  # unit: percentage 
+        self.auv_area_percent_at_initial_altitude = 0.149*0.01   # unit: percentage 
+        self.sensitivity_area_percent =  0.04*0.01               # unit: percentage 
+
+
+        # The lower bound of the detection is usually set to 10 to remove environmental noise. 
+        self.least_area_pixels = 10                              # unit: Pixel 
 
         # Here, I set the area thresholds based on AUV height. 
         # If the AUV height is less than 10 meters, buoy_min_area_by_height[0] is used. 
@@ -57,12 +67,12 @@ class DetectionNode(Node):
         # Using the same logic, you can extend the thresholds to [10, 25, ...] 
         # and define corresponding areas as self.buoy_min_area_by_height = [20, 10, 1, ...]
 
-        self.auv_height = [10, 25]  # meters  
-        self.buoy_min_area_by_height = [20, 10, 1]
-        self.buoy_max_area_by_height = [800, 180, 150]
+        # self.auv_height = [10, 25]  # meters  
+        # self.buoy_min_area_by_height = [20, 10, 1]
+        # self.buoy_max_area_by_height = [800, 180, 150]
 
-        self.auv_min_area_by_height = [180, 10, 1]
-        self.auv_max_area_by_height = [1500, 800, 700]
+        # self.auv_min_area_by_height = [180, 10, 1]
+        # self.auv_max_area_by_height = [1500, 800, 700]
 
 
         ################################################################################
@@ -122,6 +132,8 @@ class DetectionNode(Node):
         self.buoy_max_area = 800 
         self.auv_min_area = 200                     
         self.auv_max_area = 1500
+        self.camera_height = 480
+        self.camera_width = 640
     
     
     ################################################################################
@@ -148,20 +160,38 @@ class DetectionNode(Node):
         self.current_altitude = msg.data
         # Scale minimum detection areas with altitude
 
-        # Default to the last area values
-        self.buoy_min_area = self.buoy_min_area_by_height[-1]
-        self.buoy_max_area = self.buoy_max_area_by_height[-1]
-        self.auv_min_area = self.auv_min_area_by_height[-1]
-        self.auv_max_area = self.auv_max_area_by_height[-1]
 
-        # Loop through heights
-        for i, height in enumerate(self.auv_height):
-            if self.current_altitude < height:
-                self.buoy_min_area = self.buoy_min_area_by_height[i]
-                self.buoy_max_area = self.buoy_max_area_by_height[i]
-                self.auv_min_area = self.auv_min_area_by_height[i]
-                self.auv_max_area = self.auv_max_area_by_height[i]
-                break
+        buoy_area_percent = self.buoy_area_percent_at_initial_altitude * (self.current_altitude / self.initial_altitude)**2
+        self.buoy_min_area = (buoy_area_percent - self.sensitivity_area_percent) *self.camera_height*self.camera_width
+        self.buoy_max_area = (buoy_area_percent + self.sensitivity_area_percent) *self.camera_height*self.camera_width
+
+
+        auv_area_percent = self.auv_area_percent_at_initial_altitude * (self.current_altitude / self.initial_altitude)**2
+        self.auv_min_area = (auv_area_percent - self.sensitivity_area_percent) *self.camera_height*self.camera_width
+        self.auv_max_area = (auv_area_percent + self.sensitivity_area_percent) *self.camera_height*self.camera_width
+
+
+        # The lower bound of the detection is usually set to 10 to remove environmental noise. 
+        if self.buoy_min_area < self.least_area_pixels:
+            self.buoy_min_area = self.least_area_pixels
+        if self.auv_min_area < self.least_area_pixels:
+            self.buoy_min_area = self.least_area_pixels
+
+
+        # # Default to the last area values
+        # self.buoy_min_area = self.buoy_min_area_by_height[-1]
+        # self.buoy_max_area = self.buoy_max_area_by_height[-1]
+        # self.auv_min_area = self.auv_min_area_by_height[-1]
+        # self.auv_max_area = self.auv_max_area_by_height[-1]
+
+        # # Loop through heights
+        # for i, height in enumerate(self.auv_height):
+        #     if self.current_altitude < height:
+        #         self.buoy_min_area = self.buoy_min_area_by_height[i]
+        #         self.buoy_max_area = self.buoy_max_area_by_height[i]
+        #         self.auv_min_area = self.auv_min_area_by_height[i]
+        #         self.auv_max_area = self.auv_max_area_by_height[i]
+        #         break
 
     def image_callback(self, msg: Image):
 
@@ -191,15 +221,19 @@ class DetectionNode(Node):
         cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         cv_image_noted = cv_image.copy()
 
+        # Get image size
+        self.camera_height, self.camera_width = cv_image.shape[:2]
+        total_pixels = self.camera_height*self.camera_width
 
-        sat_factor = 1
+        # Uncomment the code, If you need saturation changes
+        # sat_factor = 1
         imghsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV).astype("float32")
-        (h, s, v) = cv2.split(imghsv)
-        s = s*sat_factor
-        s = np.clip(s,0,255)
-        imghsv = cv2.merge([h,s,v])
-        imgrgb = cv2.cvtColor(imghsv.astype("uint8"), cv2.COLOR_HSV2BGR)
-        cv_image = imgrgb
+        # (h, s, v) = cv2.split(imghsv)
+        # s = s*sat_factor
+        # s = np.clip(s,0,255)
+        # imghsv = cv2.merge([h,s,v])
+        # imgrgb = cv2.cvtColor(imghsv.astype("uint8"), cv2.COLOR_HSV2BGR)
+        # cv_image = imgrgb
 
         #########################################################################################  buoy
 
@@ -255,17 +289,20 @@ class DetectionNode(Node):
                     self.buoy_pub.publish(buoy_position_msg)
                     #self.get_logger().info(f"detect buoy")
 
+                    # --- calculate percentage of image covered by the contour ---
+                    buoy_area = max_area / total_pixels  # value between 0 and 1
+
                     cv2.circle(preview_buoy, (cx, cy), 10, (0, 0, 255), 1)
 
                     # Put area text
-                    cv2.putText(preview_buoy, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                    cv2.putText(preview_buoy, f"Area: {int(max_area)} ({buoy_area:.3%})", (cx + 10, cy - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-                    
+                    cv2.drawContours(preview_buoy, [max_contour], -1, (0, 255, 0), 1)                    
 
                     cv2.circle(cv_image_noted, (cx, cy), 10, (0, 0, 255), 1)
 
                     # Put area text
-                    cv2.putText(cv_image_noted, f"Area: {int(max_area)}", (cx + 10, cy - 10),
+                    cv2.putText(cv_image_noted, f"Area: {int(max_area)} ({buoy_area:.3%})", (cx + 10, cy - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
             if self.debug_imshow >= 2:
@@ -319,6 +356,9 @@ class DetectionNode(Node):
                         norm_cx = 2 * (cx / img_w) - 1
                         norm_cy = 2 * (cy / img_h) - 1
 
+                        # --- calculate percentage of image covered by the contour ---
+                        auv_area = max_area / total_pixels  # value between 0 and 1
+
                         #center_auv = (cx,cy)
                         center_auv = np.array([cx, cy])
                         cv2.circle(preview_auv, (cx, cy), 10, (0, 0, 255), 1)
@@ -333,10 +373,11 @@ class DetectionNode(Node):
                         self.auv_pub.publish(auv_position_msg)
 
                         # Put area text
-                        cv2.putText(preview_auv, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                        cv2.putText(preview_auv, f"AUV Area: {int(max_area)} ({auv_area:.3%})", (cx + 10, cy - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-                        
-                        cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)}", (cx + 10, cy - 10),
+                        cv2.drawContours(preview_auv, [max_contour], -1, (0, 255, 0), 1) 
+
+                        cv2.putText(cv_image_noted, f"AUV Area: {int(max_area)} ({auv_area:.3%})", (cx + 10, cy - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 if self.debug_imshow >= 2:
                     cv2.imshow('HSV_auv', preview_auv)
@@ -440,6 +481,32 @@ class DetectionNode(Node):
                     (0, 255, 0),  # color (green)
                     2             # thickness
                 )
+
+
+            if hasattr(self, 'buoy_min_area'):
+                cv2.putText(
+                    cv_image_noted,
+                    f"Buoy Threshold: {int(self.buoy_min_area)}~{int(self.buoy_max_area)}",
+                    (10, 60),     # top-left corner
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,          # font scale
+                    (255, 255, 255),  # color (green)
+                    1             # thickness
+                )
+
+
+            if hasattr(self, 'auv_min_area'):
+                cv2.putText(
+                    cv_image_noted,
+                    f"AUV Threshold: {int(self.auv_min_area)}~{int(self.auv_max_area)}",
+                    (10, 80),     # top-left corner
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,          # font scale
+                    (255, 255, 255),  # color (green)
+                    1             # thickness
+                )
+
+
             cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
 
         cv2.waitKey(1)
