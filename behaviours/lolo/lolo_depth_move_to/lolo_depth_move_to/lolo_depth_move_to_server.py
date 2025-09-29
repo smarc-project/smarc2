@@ -14,7 +14,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import Topics
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformException, TransformListener

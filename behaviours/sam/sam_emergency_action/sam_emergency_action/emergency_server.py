@@ -15,7 +15,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, Topics
 from sam_msgs.msg import Topics as SamTopics
 from std_msgs.msg import String

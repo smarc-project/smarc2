@@ -11,7 +11,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionClient,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 
 from go_to_geopoint.action_parsing import ActionSubMsg as ActS
 from go_to_geopoint.action_parsing import GeoActionParsing

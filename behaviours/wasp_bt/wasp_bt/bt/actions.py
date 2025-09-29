@@ -14,7 +14,7 @@ import json
 
 from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskHandler, WaraPSTaskStates
 
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_action_base.smarc_action_base import SMARCActionClient
 from wasp_bt.bt.client import BTActionClient
 

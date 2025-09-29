@@ -9,7 +9,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionClient,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 
 from lolo_loiter.loiter_goal import LoiterGoal
 from lolo_loiter.action_parsing import ActionSubMsg as ActMsg

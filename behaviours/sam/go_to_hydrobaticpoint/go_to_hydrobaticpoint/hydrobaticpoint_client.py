@@ -11,7 +11,7 @@ from smarc_action_base.smarc_action_base import (
     SMARCActionClient,
     ActionClientState,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from geometry_msgs.msg import Pose, PoseStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
 

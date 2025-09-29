@@ -24,7 +24,7 @@ from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskH
 
 from smarc_action_base.smarc_action_base import ActionType
 from wasp_bt.bt.client import BTActionClient
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 
 
 
@@ -338,7 +338,7 @@ def wasp_bt():
         ActionType,
         SMARCActionClient,
     )
-    from smarc_mission_msgs.action import BaseAction
+    from smarc_msgs.action import BaseAction
 
     import rclpy, sys
     import uuid

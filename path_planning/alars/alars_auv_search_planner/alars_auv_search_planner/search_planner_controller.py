@@ -11,7 +11,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from math import dist
-from smarc_mission_msgs.srv import DronePath, InitAUVSearch
+from dji_msgs.srv import DronePath, InitAUVSearch
 from geometry_msgs.msg import PoseArray, Pose, PointStamped, PoseStamped
 from .prob_grid_map import ProbabilisticGridMap 
 from .path_planners import InitializeActions, SpiralPathModel, GreedyPathModel, AStarPathModel, APFPathModel

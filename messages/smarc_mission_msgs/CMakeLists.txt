@@ -19,17 +19,9 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"
-  "msg/BTCommand.msg"
   "msg/GotoWaypoint.msg"
-  "msg/MissionControl.msg"
   "action/Empty.action"
-  "action/BaseAction.action"
-  "action/GotoWaypoint.action"
-  "action/AlarsSearchAction.action"
   "srv/DubinsPlan.srv"
-  "srv/UTMLatLon.srv"
-  "srv/DronePath.srv"
-  "srv/InitAUVSearch.srv"
   "srv/GeoFenceChecker.srv"
   DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs builtin_interfaces
  )
