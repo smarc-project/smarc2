@@ -100,7 +100,8 @@ tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1
 tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
 
 tmux select-pane -t $SESSION:1.0
-tmux send-keys "echo 'This will be alars-search'" C-m
+tmux send-keys "ros2 launch alars_auv_search_planner search_planning_launch.py  mode:=\"'as'\" namespace:=\"'$ROBOT_NAME'\"" C-m
+# the line above with all the quotes is annyoing but it works...
 
 tmux select-pane -t $SESSION:1.1
 tmux send-keys "echo 'This will be alars-localize'" C-m
@@ -116,7 +117,12 @@ tmux send-keys "echo 'This will be alars-checkload'" C-m
 tmux new-window -t $SESSION:2 -n 'BT'
 tmux rename-window "BT"
 tmux select-window -t $SESSION:2
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch \
+robot_name:=$ROBOT_NAME \
+agent_type:=$AGENT_TYPE \
+pulse_rate:=$PULSE_RATE \
+use_sim_time:=$USE_SIM_TIME \
+bt_timeout:=5.0" C-m
 
 # move-to
 tmux new-window -t $SESSION:3 -n 'MoveTo'

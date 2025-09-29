@@ -4,8 +4,6 @@ import os
 from math import tan, dist, pi
 import time
 import numpy as np
-from dotenv import load_dotenv
-import mlflow
 
 import rclpy
 from rclpy.node import Node
@@ -87,6 +85,10 @@ class SearchPlannerController(Node):
             # self.sim_commands.teleport_sam()
             self.PATH_DISTANCE, self.PATH_TIME = [], []
             try:
+                #HACK horrible, horrible thing to do... but this is what happens when 
+                # you dont separate your research from your software development properly
+                from dotenv import load_dotenv
+                import mlflow
                 load_dotenv()
                 uri = os.getenv('URI')
                 mlflow.set_tracking_uri(uri=uri) #NOTE set the tracking server's uri for experiment puporses 
