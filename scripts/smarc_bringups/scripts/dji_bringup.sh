@@ -1,4 +1,7 @@
 #! /bin/bash
+
+source ~/colcon_ws/install/setup.bash
+
 ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
 
