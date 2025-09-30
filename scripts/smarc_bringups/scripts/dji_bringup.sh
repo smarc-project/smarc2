@@ -111,7 +111,8 @@ tmux send-keys "ros2 launch alars_auv_search_planner search_planning_launch.py  
 # the line above with all the quotes is annyoing but it works...
 
 tmux select-pane -t $SESSION:1.1
-tmux send-keys "ros2 run alars alars_localize_action_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 run alars alars_localize_action_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME \
+-p tracking_tolerance:=0.1 -p tracking_aggressiveness:=3.0" C-m
 
 tmux select-pane -t $SESSION:1.2
 tmux send-keys "echo 'This will be alars-recover'" C-m

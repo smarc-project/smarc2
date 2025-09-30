@@ -27,8 +27,12 @@ class LocalizeAction():
 
         self.GIMBAL_FRAME : str = self._robot_name + '/' + DJILinks.GIMBAL_CAMERA_LINK
         self._MAX_DETECTION_AGE : float = 2.0  # seconds
-        self._TRACKING_TOLERANCE : float = 0.1  # normalized image coordinates
-        self._TRACKING_AGGRESSIVENESS : float = 1.0
+        
+        self._node.declare_parameter('tracking_tolerance', 0.1)
+        self._TRACKING_TOLERANCE : float = self._node.get_parameter('tracking_tolerance').get_parameter_value().double_value
+
+        self._node.declare_parameter('tracking_aggressiveness', 1.0)
+        self._TRACKING_AGGRESSIVENESS : float = self._node.get_parameter('tracking_aggressiveness').get_parameter_value().double_value
 
         self._auv_position : PointStamped = PointStamped()
         self._buoy_position : PointStamped = PointStamped()
