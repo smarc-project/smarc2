@@ -1,7 +1,7 @@
 ---
 /*/**:
   ros__parameters:
-    debug_imshow: 2
+    debug_imshow: 1
     enable_buoy_detector: 1
     enable_auv_detector: 1
     enable_rope_detector: 0
@@ -12,6 +12,6 @@
     auv_color_upper_yellow: [70, 255, 255]
     calibration_altitude: 10.0
     buoy_area_percent_at_calibration_altitude: 0.005
-    auv_area_percent_at_calibration_altitude: 0.150
+    auv_area_percent_at_calibration_altitude: 0.19
     sensitivity_area_percent: 0.1
     least_area_pixels: 5

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from email.header import Header
 import rclpy, sys, math, time
 import numpy as np
 from enum import Enum
@@ -652,8 +653,11 @@ class DjiCaptain():
             self._joy_timer = None
             self.log("Joy timer cancelled.")
 
+        # send a zero joy message to stop the vehicle
+        zero_joy = Joy()
+        zero_joy.header.stamp = self.now_stamp
+        self._FLU_vel_joy_pub.publish(zero_joy)
 
-      
 
 
     def _move_towards_setpoint_FLUvel(self):
@@ -1061,9 +1065,11 @@ class DjiCaptain():
 
         # 0-transform for base_link -> gimbal_camera_link as well, for now
         # until we have a better idea of where the gimbal is...
+        # and we do this in the _flat_ frame, so roll and pitch are zeroed out
+        # like the gimbal in theory does.
         gimbal_in_base = TransformStamped()
         gimbal_in_base.header.stamp = now
-        gimbal_in_base.header.frame_id = self.BASE_FRAME
+        gimbal_in_base.header.frame_id = self.BASE_FLAT_FRAME
         gimbal_in_base.child_frame_id = self.GIMBAL_FRAME
         tf_msg.transforms.append(gimbal_in_base)
 
