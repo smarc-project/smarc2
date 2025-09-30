@@ -8,7 +8,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import Topics as SmarcTopics
 from lolo_msgs.msg import Topics as LoloTopics
 from std_msgs.msg import Empty

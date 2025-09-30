@@ -1,7 +1,7 @@
 import sys
 import rclpy
 from rclpy.node import Node
-from smarc_mission_msgs.srv import DronePath, InitAUVSearch
+from dji_msgs.srv import DronePath, InitAUVSearch
 from geometry_msgs.msg import PointStamped
 from geographic_msgs.msg import GeoPoint
 

@@ -916,9 +916,12 @@ class WaraPSTaskHandler:
         """
         Sets the status of the current mission.
         """
-        self.mission_command["status"] = status
-        
-        
+        if self.mission_command is not None:
+            self.mission_command["status"] = status
+        else:
+            self._node.get_logger().error("No mission_command to set status for")
+            return None
+
     def move_task_to_past(self):
         """
         Moves the current task to the past tasks list.
