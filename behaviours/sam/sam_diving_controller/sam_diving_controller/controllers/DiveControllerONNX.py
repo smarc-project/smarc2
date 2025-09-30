@@ -1,12 +1,8 @@
-from nav_msgs.msg import Odometry
-import numpy as np
-
 import numpy as np
 from geometry_msgs.msg import PoseStamped, Pose
 from nav_msgs.msg import Odometry
-from sam_diving_controller.DiveController import DiveControllerInterface
+from sam_diving_controller.controllers.DiveControllerInterface import DiveControllerInterface
 from sam_diving_controller.controllers.ONNXManager import ONNXManager
-from smarc_control_msgs.msg import ControlInput
 
 from behaviours.sam.sam_diving_controller.sam_diving_controller import TransformUtils
 from behaviours.sam.sam_diving_controller.sam_diving_controller.IDivePub import MissionStates, ActuatorStates
