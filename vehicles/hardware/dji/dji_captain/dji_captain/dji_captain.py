@@ -430,6 +430,12 @@ class DjiCaptain():
 
 
     def _move_to_setpoint_callback(self, msg: PoseStamped):
+        # check if the message even has anything in it
+        if msg.pose.position.x == 0 and msg.pose.position.y == 0 and msg.pose.position.z == 0:
+            self.log(f"Move to setpoint message is all zeros, ignoring it.\nSetpoint msg:\n{msg}")
+            self._move_to_setpoint = None
+            return
+        
         # check if the message is too old
         if (self.now_stamp.sec - msg.header.stamp.sec) + \
            (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
