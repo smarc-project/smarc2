@@ -1,4 +1,5 @@
 import json
+import math
 from typing import Type
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -88,6 +89,17 @@ class WaraPSVehicle():
         """
         return self._wara_ps_dict
     
+    def _is_valid_sensor_value(self, value):
+        """
+        Check if a sensor value is valid (not None, not infinity, not NaN)
+        """
+        if value is None:
+            return False
+        try:
+            return not (math.isinf(value) or math.isnan(value))
+        except (TypeError, ValueError):
+            return False
+    
     def _direct_exec_callback(self, msg: String):
         """
         If any message is received on the direct execution topic, this means the vehicle must include "direct_execution" in the levels.
@@ -160,23 +172,43 @@ class WaraPSVehicle():
         self._wara_ps_sensor_info_pub.publish(msg)
 
                                     
+        # 2. publish position data with altitude from dedicated altitude topic
         try:
             lat = self._vehicle_state[SensorNames.GLOBAL_POSITION]['lat']
             lon = self._vehicle_state[SensorNames.GLOBAL_POSITION]['lon']
-            alt = self._vehicle_state[SensorNames.ALTITUDE][0] if self._vehicle_state[SensorNames.ALTITUDE][0] is not None else 0
-            if lat is not None and lon is not None and alt is not None:
-                position_msg = {
-                    "latitude": lat,
-                    "longitude": lon,
-                    "altitude": alt,
-                    "type": "GeoPoint"
-                }
-                msg = String()
-                msg.data = json.dumps(position_msg)
-                self._wara_ps_position_pub.publish(msg)
-                # self._node.get_logger().info('Published Position message')
-        except Exception:
-            self._node.get_logger().error("Failed to publish position data. Check if the vehicle state has valid position data.")
+            
+            # Get altitude from dedicated SMaRC altitude topic with proper validation
+            alt = 0  # Default altitude
+            try:
+                alt_data = self._vehicle_state[SensorNames.ALTITUDE][0]
+                if self._is_valid_sensor_value(alt_data):
+                    alt = alt_data
+                elif alt_data is not None:
+                    # Log warning for invalid altitude values
+                    self._node.get_logger().warn(f"Invalid altitude value detected: {alt_data}. Using default altitude 0.")
+                    alt = 0
+            except (KeyError, IndexError, TypeError):
+                # Altitude sensor not available or invalid, use default
+                pass
+
+            if lat is not None and lon is not None:
+                # Also validate lat/lon for infinity/NaN
+                if self._is_valid_sensor_value(lat) and self._is_valid_sensor_value(lon):
+                    
+                    position_msg = {
+                        "latitude": lat,
+                        "longitude": lon,
+                        "altitude": alt,
+                        "type": "GeoPoint"
+                    }
+                    msg = String()
+                    msg.data = json.dumps(position_msg)
+                    self._wara_ps_position_pub.publish(msg)
+                    # self._node.get_logger().info('Published Position message')
+                else:
+                    self._node.get_logger().warn(f"Invalid lat/lon values detected: lat={lat}, lon={lon}")
+        except Exception as e:
+            self._node.get_logger().error(f"Failed to publish position data: {e}")
             
 
 
@@ -185,7 +217,7 @@ class WaraPSVehicle():
         # 3. publish course data
         try:
             c = self._vehicle_state[SensorNames.COURSE_DEG][0]
-            if c != None:
+            if self._is_valid_sensor_value(c):
                 self._wara_ps_course_pub.publish(String(data=f"{c}"))
             # self._node.get_logger().info('Published Course message')
         except Exception:
@@ -193,9 +225,8 @@ class WaraPSVehicle():
 
         # 3.5 publish heading data
         try:
-            heading_msg = String()
             h = self._vehicle_state[SensorNames.GLOBAL_HEADING_DEG][0]
-            if h != None:
+            if self._is_valid_sensor_value(h):
                 self._wara_ps_heading_pub.publish(String(data=f"{h}"))
             # self._node.get_logger().info('Published Heading message')
         except Exception:
@@ -204,8 +235,8 @@ class WaraPSVehicle():
         # 4. publish speed data
         try:
             s = self._vehicle_state[SensorNames.SPEED][0]
-            if s != None:
-                self._wara_ps_speed_pub.publish(String)
+            if self._is_valid_sensor_value(s):
+                self._wara_ps_speed_pub.publish(String(data=f"{s}"))
             # self._node.get_logger().info('Published Speed message')
         except:
             pass
@@ -215,7 +246,7 @@ class WaraPSVehicle():
         # # 5. publish roll data
         try:
             roll = self._vehicle_state[SensorNames.ORIENTATION_EULER]['roll']
-            if roll != None:
+            if self._is_valid_sensor_value(roll):
                 self._wara_ps_roll_pub.publish(String(data=f"{roll}"))
             # self._node.get_logger().info('Published Roll message')
         except Exception:
@@ -224,7 +255,7 @@ class WaraPSVehicle():
         # 6. publish pitch data
         try: 
             pitch = self._vehicle_state[SensorNames.ORIENTATION_EULER]['pitch']
-            if pitch != None:
+            if self._is_valid_sensor_value(pitch):
                 self._wara_ps_pitch_pub.publish(String(data=f"{pitch}"))
             # self._node.get_logger().info('Published Pitch message')
         except Exception:
@@ -233,7 +264,7 @@ class WaraPSVehicle():
         # 7. publish depth data
         try:
             d = self._vehicle_state[SensorNames.DEPTH][0]
-            if d != None:
+            if self._is_valid_sensor_value(d):
                 self._wara_ps_depth_pub.publish(String(data=f"{d}"))
         except:
             pass

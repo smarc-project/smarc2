@@ -6,6 +6,7 @@
     <arg name="agent_type" default="air"/>
     <arg name="pulse_rate" default="1.0"/>
     <arg name="bt_log_mode" default="verbose"/>
+    <arg name="bt_timeout" default="10.0"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -16,6 +17,7 @@
                 <param name="agent_type" value="$(var agent_type)"/>
                 <param name="pulse_rate" value="$(var pulse_rate)"/>
                 <param name="bt_log_mode" value="$(var bt_log_mode)"/>
+                <param name="bt_timeout" value="$(var bt_timeout)"/>
             </node>
     </group>
 

@@ -11,7 +11,7 @@ from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rcl_interfaces.msg import ParameterDescriptor
 
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_mission_msgs.msg import Topics as MissionTopics
 from smarc_msgs.msg import Topics as SMaRCTopics
 
@@ -50,7 +50,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics
 
@@ -348,7 +348,7 @@ class HydropointServer(SMARCActionServer, DiveSub):
 
         self._setpoint_tol: float = node.declare_parameter(
             "setpoint_tolerance",
-            0.25,
+            1.25,
             ParameterDescriptor(
                 description="Setpoint tolerance for when the goal is considered achieved (Euclidean norm)."
             ),

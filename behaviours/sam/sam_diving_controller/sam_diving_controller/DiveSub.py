@@ -222,6 +222,15 @@ class DiveSub():
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
 
+        try:
+            self._tf_global_odom = self._tf_buffer.lookup_transform(self._waypoint_global.header.frame_id,
+                                                                    self._odom_link,
+                                                                  rclpy.time.Time(seconds=0))
+        except Exception as ex:
+            self._loginfo(
+                f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
+            return
+
 
     def _transform_wp(self):
         if self._waypoint_global is None:
@@ -241,7 +250,7 @@ class DiveSub():
             return
 
         self._states_in_mocap.header.frame_id = self._waypoint_global.header.frame_id
-        self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_odom_global)
+        self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_global_odom)
 
 
     # Get methods

@@ -15,7 +15,7 @@ from smarc_action_base.smarc_action_base import (
     ActionType,
     SMARCActionServer,
 )
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics
 

@@ -34,16 +34,6 @@ class ProbabilisticGridMap(Node):
     def __init__(self, name = "SearchPlanner_gridmap", params:dict = None, GPS_ping:PointStamped = None):
         super().__init__(name)
         self.get_logger().info('Grid map initialized')
-    
-        self.GPS_ping = GPS_ping
-        self.GPS_ping_odom = None
-        self.drone_pos_odom_gt = None
-        self.prior = None
-
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.drone_position = PointStamped()
-        self.sam_vel = Vector3Stamped()
 
         if params:
 
@@ -59,34 +49,54 @@ class ProbabilisticGridMap(Node):
             self.camera_fov = (pi/180)*params["drone.camera_fov"]
             self.flight_height = params["drone.flight_height"]
 
-            self.map_frame_id = params['frames.id.map'] 
             self.drone_odom_frame_id = params['frames.id.quadrotor_odom'] 
-            self.sam_odom_frame_id = params['frames.id.sam_odom'] 
 
         else:
             self.get_logger().error("No parameters received")
 
+        # initialize grid map vars. 
+        self.GPS_ping = GPS_ping
+        self.GPS_ping_odom = None
+        self.drone_pos_odom_gt = None
+        self.prior = None
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.drone_position = PointStamped()
+        self.sam_vel = Vector3Stamped()
+
         # initiate pubs and subs
         self.create_subscription(
             msg_type = Odometry,
-            topic = '/Quadrotor/odom_gt',
+            topic = params["topics.drone_odom"],
             callback = self.drone_odom_callback,
             qos_profile= 10)
-        self.create_subscription(
-            msg_type= Odometry,
-            topic = '/sam_auv_v1/smarc/odom',
-            callback=self.sam_odom_callback,
-            qos_profile= 10)  
-        self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = '/Quadrotor/grid_map', qos_profile = 10)
-        self.cell_pub = self.create_publisher(msg_type=PointStamped, topic = '/Quadrotor/max_prob_cell', qos_profile = 10)
+
+        self.grid_map_pub = self.create_publisher(msg_type=OccupancyGrid, topic = params["topics.pub_grid_map"], qos_profile = 10)
+        self.cell_pub = self.create_publisher(msg_type=PointStamped, topic = params["topics.pub_likely_sam_location"], qos_profile = 10)
+
+        # If mode = as, sam vel is not accessible -> assume zero
+        if params["mode"] == "as":
+            self.sam_vel.vector.x = .0
+            self.sam_vel.vector.y = .0
+            self.sam_vel.vector.z = .0
+            self.sam_vel.header.frame_id = self.drone_odom_frame_id
+            self.sam_vel.header.stamp = self.get_clock().now().to_msg()
+
+        else:
+            self.create_subscription(
+                msg_type= Odometry,
+                topic = params["topics.sam_odom"],
+                callback=self.sam_odom_callback,
+                qos_profile= 10)  
 
 
-        
     def initiate_grid_map(self) -> None: 
         """ 
         Initializes grid map , ie, initializes the grid map coordinates and the timestamp of each cell. 
         It's then published for rviz visualization 
         """
+        self.get_logger().info(f'GPS = {self.GPS_ping}')
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
         self.GPS_ping_odom, _ = self.transform_point(self.GPS_ping)
@@ -126,6 +136,8 @@ class ProbabilisticGridMap(Node):
 
         # publishing cell with highest probability for visualization purposes
         self.pub_max_prob_cell()
+
+        return self.map_seen()
     
     
     def kernel(self):
@@ -147,8 +159,7 @@ class ProbabilisticGridMap(Node):
                         (0,-1), (-1/sqrt(2),-1/sqrt(2)), (-1,0), (-1/sqrt(2),1/sqrt(2))]
         dot_products = [np.dot(sam_vel_odom, base_vector) for base_vector in base_vectors]
         mapped_direction = base_vectors[np.argmax(dot_products)]
-        blur_factor = 10 # the neighbouring cells will also have an impact. Higher the blur factor, higher the impact
-
+        blur_factor = 10 # the neighbouring cells will also have an impact. Higher the blur factor, smaller the impact (should be called unblur factor maybe)
         direction_dict = {
             (0,1):                      np.array([[q/blur_factor,q,q/blur_factor],
                                                     [0,Q,0],
@@ -207,13 +218,14 @@ class ProbabilisticGridMap(Node):
         d = min(sam_vel*update_period, d_max)
         d_ratio_lb = 1e-3 # value from which steeper linear function is applied
         weight_ratio_lb = 1e-8 # slope value for smaller velocities
-        weight_ratio_ub = 0.9 # slope value for bigger velocities. Decrease if predict step is "convolving too fast".
+        weight_ratio_ub = 0.1 # slope value for bigger velocities. Decrease if predict step is "convolving too fast".
         #TODO: define a function that receives resol, bayes update dt and outputs the best weight
         
         piecewise_ratio = lambda d_ratio: d_ratio*weight_ratio_lb if d_ratio < d_ratio_lb else max(weight_ratio_lb, weight_ratio_ub*d_ratio)
-        piecewise = lambda d: (1, 1/piecewise_ratio(d/d_max))
+
+        piecewise = lambda d: (1, min(1/max(piecewise_ratio(d/d_max), sys.float_info.min), sys.float_info.max))
         linear = lambda d:  (d*(sys.float_info.max-1)/d_max +1, -d*(sys.float_info.max-1)/d_max + sys.float_info.max)
-        rational = lambda d: ( d_max/(d_max-d), (d_max-d)/d )
+        rational = lambda d: ( d_max/(d_max-d), (d_max-d)/d)
         logarithmic = lambda d: ( log(d_max/(d_max-d))+1, log((d_max-d)/d)+1 )
 
         fcn_dict = {
@@ -256,11 +268,16 @@ class ProbabilisticGridMap(Node):
         sub_X, sub_Y, sub_Time = self.X[base_mask_filtered], self.Y[base_mask_filtered], self.map_Time[base_mask_filtered]
         condition_mask = (
             ((np.power(sub_X - x, 2) + np.power(sub_Y - y, 2)) < detection_radius ** 2)
-            & ((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin)
+            & (((self.get_clock().now().nanoseconds) - sub_Time > self.time_margin) | (sub_Time == self.init_timestamp))
         )
         condition_rows, condition_cols = np.where(condition_mask)
         rows = condition_rows + yc_cell-encirclements
         columns = condition_cols + xc_cell-encirclements
+
+        # remove negative elements from rows and columns -> we don't want to wrap around the grid map
+        mask = (0 <= rows) & (rows < self.Ncells_y) & (0 <= columns) & (columns < self.Ncells_x)
+        rows = rows[mask]
+        columns = columns[mask]
 
         return rows, columns
 
@@ -328,7 +345,8 @@ class ProbabilisticGridMap(Node):
         self.Y = self.Y[::-1]
         self.Ncells_x, self.Ncells_y = self.X.shape[1], self.X.shape[0]
         self.map_Time = np.empty([self.Ncells_x, self.Ncells_y])
-        self.map_Time[:,:] = self.get_clock().now().nanoseconds   
+        self.init_timestamp = self.get_clock().now().nanoseconds
+        self.map_Time[:,:] = self.init_timestamp  
 
         # create grid map as ros msg
         self.grid_map_translation = [int((self.w/2)/self.resol), int((self.h/2)/self.resol)]
@@ -350,7 +368,13 @@ class ProbabilisticGridMap(Node):
         self.map.info.width = self.Ncells_x
         self.map.info.height = self.Ncells_y
         self.map.info.resolution = self.resol
-        self.map.info.origin = self.origin     
+        self.map.info.origin = self.origin  
+
+    def map_seen(self):
+        """ Compute the ratio of the map area already seen by the search planner """
+        mask  = self.map_Time !=  self.init_timestamp
+        return np.sum(mask,axis = None) / (mask.shape[0]*mask.shape[1])
+
 
     def map_probabilities(self, data):
         """ Map probabilities to values between 0 and 100, as required by OccupancyGrid message in ros"""

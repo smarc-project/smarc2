@@ -24,7 +24,7 @@ from wasp_bt.waraps.waraps_task_handler import WaraPSTaskHandler, HasWaraPSTaskH
 
 from smarc_action_base.smarc_action_base import ActionType
 from wasp_bt.bt.client import BTActionClient
-from smarc_mission_msgs.action import BaseAction
+from smarc_msgs.action import BaseAction
 
 
 
@@ -53,7 +53,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                  now_seconds_func: typing.Callable,
                  get_ready_action: BTActionClient = None,
                  emergency_action: BTActionClient = None,
-                 action_client_list: typing.List[BTActionClient] = None
+                 action_client_list: typing.List[BTActionClient] = None,
+                 bt_timeout: float = 10.0
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -69,6 +70,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self.get_ready_action = get_ready_action
 
         self._last_state_str = ""
+
+        self._bt_timeout = bt_timeout
 
 
     @property
@@ -100,7 +103,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         health_checks = Fallback("F_Health_Handler", memory=False, children=[
             Sequence("S_Health_Status", memory=False, children=[
                 # C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health returns SUCCESS (Vehicle is ready)
-                C_LastHealthy(self._task_handler, timeout=15.0),  # check if the last heartbeat was within 10 seconds
+                C_LastHealthy(self._task_handler, timeout=self._bt_timeout),  # check if the last heartbeat was within 10 seconds
                 Fallback("F_Health_Checks", memory=False, children=[
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_READY),
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),
@@ -335,7 +338,7 @@ def wasp_bt():
         ActionType,
         SMARCActionClient,
     )
-    from smarc_mission_msgs.action import BaseAction
+    from smarc_msgs.action import BaseAction
 
     import rclpy, sys
     import uuid
@@ -401,6 +404,11 @@ def wasp_bt():
     node.declare_parameter("bt_log_mode", "verbose") # can be "verbose" or "compact"
     bt_log_mode = node.get_parameter("bt_log_mode").value
 
+    # get the BT timeout ros parameter
+    node.declare_parameter("bt_timeout", 300.0) # seconds
+    bt_timeout = node.get_parameter("bt_timeout").value
+
+
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
@@ -408,7 +416,9 @@ def wasp_bt():
             emergency_action = emergency_action_client,
             # action_client_list = action_client_list,
             # the commented out line above means that you're listening for available tasks from the WaraPSTaskHandler. You can also provide a list of action clients to use if you like.
-            now_seconds_func  = ros_seconds_float)
+            now_seconds_func  = ros_seconds_float,
+            bt_timeout        = bt_timeout
+            )
     # bt.setup()
     need_bt_setup = False
     is_bt_setup = False

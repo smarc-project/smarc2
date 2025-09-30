@@ -47,3 +47,7 @@
 	path = simulation/SMARCAssets
 	url = https://github.com/smarc-project/SMARCAssets
 	branch = master
+[submodule "messages/psdk_interfaces"]
+	path = messages/psdk_interfaces
+	url = git@github.com:KKalem/psdk_interfaces.git
+	branch = interfaces_only
