@@ -26,6 +26,13 @@ class DetectionNode(Node):
         self.declare_parameter('auv_color_lower_yellow', [25, 0, 169])
         self.declare_parameter('auv_color_upper_yellow', [46, 103, 221])
 
+        # default values from field test rosbag
+        self.declare_parameter('calibration_altitude', 8.7)
+        self.declare_parameter('buoy_area_percent_at_calibration_altitude', 0.007)
+        self.declare_parameter('auv_area_percent_at_calibration_altitude', 0.149)
+        self.declare_parameter('sensitivity_area_percent', 0.10)
+        self.declare_parameter('least_area_pixels', 10)
+
         self._CAMERA_PIXELS_FRAME = "camera_pixels_normalized"  # Frame for publishing detected points
 
         ################################################################################
@@ -43,6 +50,8 @@ class DetectionNode(Node):
             self.get_parameter('buoy_color_upper_orange').value, dtype=np.uint8
         )
 
+        
+
         # AUV detection (yellow range)
         self.auv_color_lower_yellow = np.array(
             self.get_parameter('auv_color_lower_yellow').value, dtype=np.uint8
@@ -50,17 +59,30 @@ class DetectionNode(Node):
         self.auv_color_upper_yellow = np.array(
             self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
         )
+
+        
         # Minimum and maximum area thresholds at 8 meters, so you can intuitively estimate
         # what percentage of the image the buoy and AUV will occupy.
-        self.initial_altitude = 8.7                              # unit: meter  
-        self.buoy_area_percent_at_initial_altitude = 0.007*0.01  # unit: percentage 
-        self.auv_area_percent_at_initial_altitude = 0.149*0.01   # unit: percentage 
-        self.sensitivity_area_percent =  0.10*0.01               # unit: percentage 
+        # unit: meter
+        self.initial_altitude = self.get_parameter('calibration_altitude').get_parameter_value().double_value  
+        # unit: percentage
+        self.buoy_area_percent_at_initial_altitude = 0.01 * self.get_parameter('buoy_area_percent_at_calibration_altitude').get_parameter_value().double_value
+        self.auv_area_percent_at_initial_altitude = 0.01 * self.get_parameter('auv_area_percent_at_calibration_altitude').get_parameter_value().double_value
+        self.sensitivity_area_percent = 0.01 * self.get_parameter('sensitivity_area_percent').get_parameter_value().double_value
 
 
         # The lower bound of the detection is usually set to 10 to remove environmental noise. 
-        self.least_area_pixels = 10                              # unit: Pixel 
+        # unit: Pixel
+        self.least_area_pixels = self.get_parameter('least_area_pixels').get_parameter_value().integer_value
     
+        self.get_logger().info(f"Buoy HSV Lower: {self.buoy_color_lower_orange}, Upper: {self.buoy_color_upper_orange}")
+        self.get_logger().info(f"AUV HSV Lower: {self.auv_color_lower_yellow}, Upper: {self.auv_color_upper_yellow}")
+        self.get_logger().info(f"Initial Altitude: {self.initial_altitude} m")
+        self.get_logger().info(f"Buoy Area at Initial Altitude: {self.buoy_area_percent_at_initial_altitude*100:.2f} %")
+        self.get_logger().info(f"AUV Area at Initial Altitude: {self.auv_area_percent_at_initial_altitude*100:.2f} %")
+        self.get_logger().info(f"Sensitivity Area Percent: {self.sensitivity_area_percent*100:.2f} %")
+        self.get_logger().info(f"Least Area Pixels: {self.least_area_pixels} pixels")
+
         # Here, I set the area thresholds based on AUV height. 
         # If the AUV height is less than 10 meters, buoy_min_area_by_height[0] is used. 
         # If it is greater than 10 meters, buoy_min_area_by_height[1] is used. 
