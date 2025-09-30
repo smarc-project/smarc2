@@ -74,7 +74,7 @@ class SearchPlannerAction():
                 self._node.get_logger().error('Action goal had invalid radius(tolerance) value!')
                 return False
             if self._gps.altitude <= 0:
-                self._node.get_logger().error('Action goal had invalid altitude value!')
+                self._node.get_logger().error('Action goal had negative altitude value!')
                 return False
 
         except:
