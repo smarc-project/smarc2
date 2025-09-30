@@ -28,7 +28,7 @@ class LocalizeAction():
         self.GIMBAL_FRAME : str = self._robot_name + '/' + DJILinks.GIMBAL_CAMERA_LINK
         self._MAX_DETECTION_AGE : float = 2.0  # seconds
         self._TRACKING_TOLERANCE : float = 0.1  # normalized image coordinates
-        self._TRACKING_AGGRESSIVENESS : float = 0.5
+        self._TRACKING_AGGRESSIVENESS : float = 1.0
 
         self._auv_position : PointStamped = PointStamped()
         self._buoy_position : PointStamped = PointStamped()
@@ -166,15 +166,17 @@ class LocalizeAction():
         # not done tracking, do P control i guess
         self._setpoint.header.stamp = self._node.get_clock().now().to_msg()
 
+        # IMPORTANT: x is left/right in image, y is up/down, but for robot, x is forward/backward, y is left/right
         if abs(target_position.point.x) > self._TRACKING_TOLERANCE:
-            self._setpoint.pose.position.x = -target_position.point.x * self._TRACKING_AGGRESSIVENESS
-        else:
-            self._setpoint.pose.position.x = 0.0
-
-        if abs(target_position.point.y) > self._TRACKING_TOLERANCE:
-            self._setpoint.pose.position.y = -target_position.point.y * self._TRACKING_AGGRESSIVENESS
+            # minus sign, because positive x in image is right, but positive y in robot frame is left
+            self._setpoint.pose.position.y = -target_position.point.x * self._TRACKING_AGGRESSIVENESS
         else:
             self._setpoint.pose.position.y = 0.0
+
+        if abs(target_position.point.y) > self._TRACKING_TOLERANCE:
+            self._setpoint.pose.position.x = -target_position.point.y * self._TRACKING_AGGRESSIVENESS
+        else:
+            self._setpoint.pose.position.x = 0.0
 
         self._setpoint_pub.publish(self._setpoint)
 
