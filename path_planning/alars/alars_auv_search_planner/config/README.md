@@ -66,12 +66,6 @@ A brief explanation of each parameter:
 | `grid_map.update.true_detection_rate` | Probability of a true positive in the Bayes Filter.                  |
 | `grid_map.update.time_margin`         | Prevents re-updating of recently updated cells (within `x` seconds). |
 
-## Battery params
-| **Parameter**                  | **Description**                                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------- |
-| `battery.discharge_rate`       | Drone battery discharge rate (% per minute).                                        |
-| `battery.threshold`            | If estimated battery drops below this after planning, the drone returns to base.    |
-| `battery.equivalent_drone_vel` | Fallback velocity \[m/s] used in path duration estimate if the drone is stationary. |
 
 ## TF params
 | **Parameter**              | **Description**                   |

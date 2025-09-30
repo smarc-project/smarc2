@@ -9,6 +9,6 @@ c_generated_code
 mlartifacts
 mlruns
 results.csv
-
+psdk_interfaces
 
 COLCON_IGNORE
