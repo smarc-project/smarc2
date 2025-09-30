@@ -78,7 +78,7 @@ class HasWaraPSTaskHandler:
         self._robot_name = value["name"] if value else None
 
 class WaraPSTaskHandler:
-    def __init__(self, node:Node, wara_ps_dict:Type[dict]):
+    def __init__(self, node:Node, wara_ps_dict:Type[dict], start_offset:float=5.0):
         """
         A class to handle the parts of the BT that need to interact with MQTT. This will later double up as the Mission Command and Updator.
 
@@ -91,6 +91,7 @@ class WaraPSTaskHandler:
         # public: outsiders can access this        
         self._wara_ps_dict = wara_ps_dict
         self._robot_name = wara_ps_dict["name"]
+        self.start_offset = start_offset
 
         self.tasks_available = []
         self.past_tasks = []
@@ -1065,7 +1066,7 @@ class WaraPSTaskHandler:
         """
         Returns the current time in seconds.
         """
-        return self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9
+        return self._node.get_clock().now().to_msg().sec + self._node.get_clock().now().to_msg().nanosec * 1e-9 - self.start_offset
     
 
     def publish_bt_tip(self, tip: str):

@@ -7,6 +7,7 @@
     <arg name="pulse_rate" default="1.0"/>
     <arg name="bt_log_mode" default="verbose"/>
     <arg name="bt_timeout" default="10.0"/>
+    <arg name="start_offset" default="5.0"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -18,6 +19,7 @@
                 <param name="pulse_rate" value="$(var pulse_rate)"/>
                 <param name="bt_log_mode" value="$(var bt_log_mode)"/>
                 <param name="bt_timeout" value="$(var bt_timeout)"/>
+                <param name="start_offset" value="$(var start_offset)"/>
             </node>
     </group>
 
