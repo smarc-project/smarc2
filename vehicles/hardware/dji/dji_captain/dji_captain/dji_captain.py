@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from email.header import Header
 import rclpy, sys, math, time
 import numpy as np
 from enum import Enum
