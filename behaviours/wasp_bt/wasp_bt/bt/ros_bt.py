@@ -406,15 +406,15 @@ def wasp_bt():
 
     
     # start_offset = 5.0
-    node.declare_parameter("start_offset", 5.0) # seconds
-    start_offset = node.get_parameter("start_offset").value
+    node.declare_parameter("bt_launch_delay", 5.0) # seconds
+    bt_launch_delay = node.get_parameter("bt_launch_delay").value
 
     # get the BT timeout ros parameter
     node.declare_parameter("bt_timeout", 15.0) # seconds
     bt_timeout = node.get_parameter("bt_timeout").value
 
 
-    wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict, start_offset=start_offset)
+    wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict, start_offset=bt_launch_delay)
     bt = BT(vehicle_container = agent,
             task_handler    = wara_ps_task_handler,
             get_ready_action = get_ready_action_client,
@@ -521,10 +521,10 @@ def wasp_bt():
 
         if not is_bt_setup:
             # if the BT is not ticking, we can start it
-            if now_time - start_time > start_offset: # give 5 seconds for living action servers to provide a heartbeat to the WaraPSTaskHandler object
+            if now_time - start_time > bt_launch_delay: # give 5 seconds for living action servers to provide a heartbeat to the WaraPSTaskHandler object
                 need_bt_setup = True
             else:
-                node.get_logger().info(f"Launching WaraPS BT in {start_offset - (now_time - start_time):.2f} seconds...")
+                node.get_logger().info(f"Launching WaraPS BT in {bt_launch_delay - (now_time - start_time):.2f} seconds...")
 
     node.create_timer(1.0/wara_ps_task_handler.wara_ps_dict["pulse_rate"], wara_ps_lvl_2_comms)
 
