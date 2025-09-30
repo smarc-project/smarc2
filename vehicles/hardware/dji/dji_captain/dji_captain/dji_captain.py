@@ -125,6 +125,7 @@ class DjiCaptain():
         self.BASE_ENU_FRAME = self._TF_NS + DjiLinks.BASE_ENU
         self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
         self._utm_labeled_frame : str | None = None
+        self.GIMBAL_FRAME = self._TF_NS + DjiLinks.GIMBAL_CAMERA_LINK
 
 
         self._base_pose_in_home : PoseStamped | None = None
@@ -1057,6 +1058,14 @@ class DjiCaptain():
         odom_in_home.header.frame_id = self.HOME_FRAME
         odom_in_home.child_frame_id = self.ODOM_FRAME
         tf_msg.transforms.append(odom_in_home)
+
+        # 0-transform for base_link -> gimbal_camera_link as well, for now
+        # until we have a better idea of where the gimbal is...
+        gimbal_in_base = TransformStamped()
+        gimbal_in_base.header.stamp = now
+        gimbal_in_base.header.frame_id = self.BASE_FRAME
+        gimbal_in_base.child_frame_id = self.GIMBAL_FRAME
+        tf_msg.transforms.append(gimbal_in_base)
 
         if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
