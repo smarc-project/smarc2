@@ -357,7 +357,12 @@ class DjiCaptain():
         s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)}\n"
 
         s += f"\n  Position in Home: {format_pose_stamped(self._base_pose_in_home)}\n"
-        s += f"  Altitude from water: {self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER} m\n"
+        
+        if self._base_pose_in_home is not None:
+            s += f"  Altitude from water: {self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER} m\n"
+        else:
+            s += f"  Altitude from water: N/A, base pose in home not known!\n"
+
         s += f"  Heading: {self._heading_deg}\n"
         s += f"  Course: {self._course_deg}\n"
         s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
