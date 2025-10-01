@@ -42,10 +42,9 @@ class DiveControllerONNX(DiveControllerInterface):
             return
 
         # Get the current states
-        current_state_in_odom = self._dive_sub.get_states()
         current_state_in_mocap = self._dive_sub.get_states_in_mocap()
 
-        if current_state_in_odom is None:
+        if current_state_in_mocap is None:
             self._loginfo(f"No state available yet.")
             return
 

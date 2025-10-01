@@ -1,4 +1,4 @@
-from sam_diving_controller.DiveController import PIDControl
+from sam_diving_controller.controllers.PIDControl import PIDControl
 from sam_diving_controller.controllers.DiveControllerInterface import DiveControllerInterface
 
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference
