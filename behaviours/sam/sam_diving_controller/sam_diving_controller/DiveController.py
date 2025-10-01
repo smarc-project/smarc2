@@ -108,6 +108,9 @@ class DiveControllerInterface:
     def _loginfo(self, s):
         self._node.get_logger().info(s)
 
+    def _logwarn(self, s):
+        self._node.get_logger().warning(s)
+
     def _loginfo_once(self, s):
         self._node.get_logger().info(s, once=True)
 
@@ -563,10 +566,10 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
+        build = True
 
         # create nmpc object for the OCP
-        self.N_horizon = 10 # Prediction horizon
+        self.N_horizon = 30 # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx        # State vector length + control vector
         self.nu = self.nmpc.nu        # Control derivative vector length
@@ -671,6 +674,15 @@ class DiveControllerMPC(DiveControllerInterface):
         start_time = time.time()
         status = self.ocp_solver.solve()
         end_time = time.time()
+
+        # Get slack variabls
+        sl = []
+        for stage in range(self.N_horizon):
+            sl = self.ocp_solver.get(stage, "sl")
+            if (sl > 1e-6).any():  # tolerance
+                s = f"Stage {stage}: soft constraint violated, slack = {sl}"
+                self._logwarn(s)
+
 
         # simulate system: 
         # NOTE: May be possible to use get(0, "x") to acquire the actual control input.

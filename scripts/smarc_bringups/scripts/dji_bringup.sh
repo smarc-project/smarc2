@@ -1,9 +1,15 @@
 #! /bin/bash
 
-#source ~/colcon_ws/install/setup.bash
-
 ROBOT_NAME=M350
 SESSION=${ROBOT_NAME}_bringup
+
+# check if there is already a tmux session with this name
+if tmux has-session -t $SESSION 2>/dev/null; then
+    echo "There is already a tmux session named $SESSION."
+    echo "Please close it before launching this script."
+    echo "Exiting."
+    exit 1
+fi
 
 MQTT_ADDR=20.240.40.232
 MQTT_PORT=1884
@@ -105,7 +111,8 @@ tmux send-keys "ros2 launch alars_auv_search_planner search_planning_launch.py  
 # the line above with all the quotes is annyoing but it works...
 
 tmux select-pane -t $SESSION:1.1
-tmux send-keys "echo 'This will be alars-localize'" C-m
+tmux send-keys "ros2 run alars alars_localize_action_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME \
+-p tracking_tolerance:=0.1 -p tracking_aggressiveness:=3.0" C-m
 
 tmux select-pane -t $SESSION:1.2
 tmux send-keys "echo 'This will be alars-recover'" C-m
@@ -139,24 +146,16 @@ tmux select-window -t $SESSION:4
 tmux split-window -h -t $SESSION:4.0
 tmux select-pane -t $SESSION:4.0
 
-SHOW_DEBUG=0
-ENABLE_DETECTOR_ON_START=0
+# auv buoy detector
+AUV_DETECTOR_CONFIG_FILENAME=auv_detector_field_calibration.yaml
 if [[ $USE_SIM_TIME = "True" ]]; then
-    SHOW_DEBUG=1
-    ENABLE_DETECTOR_ON_START=1
+    AUV_DETECTOR_CONFIG_FILENAME=auv_detector_sim_calibration.yaml
 fi
+AUV_DETECTOR_CONFIG_FILE=$(ros2 pkg prefix auv_detector --share)/config/$AUV_DETECTOR_CONFIG_FILENAME
+
 tmux send-keys "ros2 run auv_detector auv_buoy_detector --ros-args \
--r __ns:=/$ROBOT_NAME \
--p use_sim_time:=$USE_SIM_TIME \
--p debug_imshow:=$SHOW_DEBUG \
--p enable_buoy_detector:=1 \
--p enable_auv_detector:=1 \
--p enable_rope_detector:=0 \
--p buoy_color_lower_orange:='[8,121,35]' \
--p buoy_color_upper_orange:='[40,157,247]' \
--p auv_color_lower_yellow:='[25, 0, 169]' \
--p auv_color_upper_yellow:='[46, 103, 221]' \
--p enable_on_start:=$ENABLE_DETECTOR_ON_START" C-m
+-r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME \
+--params-file $AUV_DETECTOR_CONFIG_FILE" C-m
 
 # the cam driver is needed just for the real thing
 if [[ $USE_SIM_TIME = "False" ]]; then

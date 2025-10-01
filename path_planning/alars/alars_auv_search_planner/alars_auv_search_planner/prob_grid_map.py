@@ -15,7 +15,7 @@ from tf2_ros import Buffer, TransformListener
 class ProbabilisticGridMap(Node):
     """ 
     Node that creates and updates probabilistic grid map using Bayes Filtering. We'll update using meshgrids but will publish ROS 
-    msg to facilitate integration with other nodes.
+    msg to facilitate integration with other nodes. The grid map is constructed in drone's odom frame
 
     Args: 
         name: ros node name
@@ -40,7 +40,7 @@ class ProbabilisticGridMap(Node):
             self.w = params["grid_map.workspace.width"]
             self.h = params["grid_map.workspace.height"]
             self.resol = params["grid_map.workspace.resol"]
-            self.variance = params["grid_map.sam_variance"]
+            self.variance = params["grid_map.workspace.variance"]
 
             self.dt = params['grid_map.update.rate']
             self.beta = params["grid_map.update.true_detection_rate"]
@@ -94,9 +94,9 @@ class ProbabilisticGridMap(Node):
     def initiate_grid_map(self) -> None: 
         """ 
         Initializes grid map , ie, initializes the grid map coordinates and the timestamp of each cell. 
-        It's then published for rviz visualization 
+        It's then published for rviz visualization.
+        If transformation fails, controller will try again in next loop cycle
         """
-        self.get_logger().info(f'GPS = {self.GPS_ping}')
 
         # create grid map without probabilities (just its dimensions) as class attributes and ros msg.
         self.GPS_ping_odom, _ = self.transform_point(self.GPS_ping)
@@ -121,7 +121,7 @@ class ProbabilisticGridMap(Node):
         self.prior /= np.sum(self.prior)
 
         ## Update Step
-        self.map.header.stamp = self.get_clock().now().to_msg() 
+        self.map.header.stamp = self.drone_position.header.stamp #self.get_clock().now().to_msg() 
         rows, columns = self.find_cells2update()
         
         # #TODO: do update properly (subscribe from detection node)

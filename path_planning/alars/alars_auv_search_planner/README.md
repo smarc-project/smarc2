@@ -32,18 +32,20 @@ needs to be triggered by the Action Client.
 
 Examples of service client scripts are available within the package. If one wants to use the action server, it can run via CLI:
 ```
-ros2 action send_goal /M350/alars_search smarc_mission_msgs/action/BaseAction '{goal: {data: "{\"waypoint\": {\"latitude\": 59.30742603191439, \"longitude\": 18.710217247261326, \"altitude\": 5.0}, \"Tolerance\": 100.0}"}}'
+ros2 action send_goal /M350/alars_search smarc_msgs/action/BaseAction '{ "goal": { "data": "{\"search_position\": {\"latitude\": 59.30642603191439, \"longitude\": 18.710217247261326, \"altitude\": 5.0, \"tolerance\": 100.0}}"}}'
 ```
-To run the search planning standalone, open two terminals and type:
+To run the search planning standalone, run this command before starting the sim (take-off height as example)
+
 ```
-ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1
+ros2 run smarc_bringups dji_bringup.sh 7.0
 ```
+After starting the sim and connecting the ros bridge, run:
+
 ```
-ros2 run smarc_bringups dji_bringup.sh 
+ros2 launch alars_auv_search_planner search_planning_launch.py  mode:="'as'" namespace:="'/M350'"
 ```
-```
-ros2 launch alars_auv_search_planner search_planning_launch.py  mode:="'sim'" namespace:="'/M350'"
-```
+You may want to run ``` tmux kill-server ``` after stoping the dji_bringup.
+
 Note that the mode parameter is mandatory, which prevents the user from selecting the wrong mode. If namespace isn't defined, "/Quadrotor" is assumed.
 
 ### Note: 
@@ -53,7 +55,7 @@ and set the parameter **Distance Error Cap** to **1** (in Inspector).
 ## **ROS Action**
 | Action name | Components | 
 | --- | ---| 
-| AlarsSearchAction | gps (GeoPoint), radius (float) | 
+| BaseSearchAction | string ('search_position' with latitude, longitude, altitude and tolerance) | 
 ---
 
 ## **ROS Srv**
@@ -67,7 +69,7 @@ Check *test_initmap_srv.py* and *test_getpath_srv.py* to see how the client can 
 The launch file includes all parameters that may require fine-tuning and brief explanations for each.
 RVIZ2 is highly recommended to see the grid map and the planned path. 
 
-## **Visualization Topics**
+## **Visualization Topics (namespace dependent)**
 | Topic | Type | Description |
 | --- | ---| --- |
 | /Quadrotor/path | RVIZ2 visualization | Path computed by any of the existing algorithms|
@@ -78,10 +80,9 @@ RVIZ2 is highly recommended to see the grid map and the planned path.
 ## Outro
 Don't forget to
 ```
-colcon build --symlink-install --packages-select search_planning 
+colcon build --symlink-install --packages-select <package_name>
 source install/setup.sh
 ```
 ## Maintainer
 Francisco Miranda, framir@kth.se
 
-ros2 action send_goal /Quadrotor/alars_search smarc_mission_msgs/action/AlarsSearchAction "{gps: {latitude: 58.85058132601718, longitude: 17.67416659875381, altitude: 5.0}, radius: 100.0}"
