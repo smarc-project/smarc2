@@ -146,11 +146,25 @@ class C_LastHealthy(Behaviour):
         name = f"{self.__class__.__name__}"
         super().__init__(name)
         self._timeout = timeout
+        self.start_time = None
+
+    def setup(self) -> None:
+        self.start_time = self._wara_ps_task_handler.current_time()
 
     def update(self) -> Status:
         now_time = self._wara_ps_task_handler.current_time()
+
+        if self._wara_ps_task_handler.health_last_time is None:
+            # if started more than timeout seconds ago, return failure
+            if now_time - self.start_time > self._timeout:
+                self.feedback_message = f"Haven't heard from vehicle in {now_time - self.start_time:.2f} seconds. Aborting!"
+                return Status.FAILURE
+            else:
+                self.feedback_message = "Haven't heard from vehicle yet, but within timeout."
+                return Status.RUNNING
+
         if now_time - self._wara_ps_task_handler.health_last_time >  self._timeout:
-            self.feedback_message = f"Not heard from vehicle in {now_time - self._wara_ps_task_handler.health_last_time:.2f} seconds. Aborting!"
+            self.feedback_message = f"Last heard from vehicle was {now_time - self._wara_ps_task_handler.health_last_time:.2f} seconds ago. Aborting!"
             return Status.FAILURE
         else:
             self.feedback_message = "Comms are fine. Vehicle health is up to date."

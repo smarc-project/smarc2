@@ -54,7 +54,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
                  get_ready_action: BTActionClient = None,
                  emergency_action: BTActionClient = None,
                  action_client_list: typing.List[BTActionClient] = None,
-                 bt_timeout: float = 10.0
+                 bt_health_timeout: float = 10.0
                  ):
         """
         vehicle_container: An object that has a field "vehicle_state" which
@@ -71,8 +71,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
 
         self._last_state_str = ""
 
-        self._bt_timeout = bt_timeout
-
+        self._bt_health_timeout = bt_health_timeout
 
     @property
     def vehicle_container(self) -> IVehicleStateContainer:
@@ -103,7 +102,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         health_checks = Fallback("F_Health_Handler", memory=False, children=[
             Sequence("S_Health_Status", memory=False, children=[
                 # C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health returns SUCCESS (Vehicle is ready)
-                C_LastHealthy(self._task_handler, timeout=self._bt_timeout),  # check if the last heartbeat was within 10 seconds
+                C_LastHealthy(self._task_handler, timeout=self._bt_health_timeout),  # check if the last heartbeat was within 10 seconds
                 Fallback("F_Health_Checks", memory=False, children=[
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_READY),
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),
@@ -410,8 +409,8 @@ def wasp_bt():
     bt_launch_delay = node.get_parameter("bt_launch_delay").value
 
     # get the BT timeout ros parameter
-    node.declare_parameter("bt_timeout", 15.0) # seconds
-    bt_timeout = node.get_parameter("bt_timeout").value
+    node.declare_parameter("bt_health_timeout", 15.0) # seconds
+    bt_health_timeout = node.get_parameter("bt_health_timeout").value
 
 
     wara_ps_task_handler = WaraPSTaskHandler(node, agent_waraps_dict, start_offset=bt_launch_delay)
@@ -422,7 +421,7 @@ def wasp_bt():
             # action_client_list = action_client_list,
             # the commented out line above means that you're listening for available tasks from the WaraPSTaskHandler. You can also provide a list of action clients to use if you like.
             now_seconds_func  = ros_seconds_float,
-            bt_timeout        = bt_timeout
+            bt_health_timeout        = bt_health_timeout
             )
     # bt.setup()
     need_bt_setup = False
