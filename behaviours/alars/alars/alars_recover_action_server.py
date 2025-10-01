@@ -116,30 +116,19 @@ class RecoverAction():
             return False
                 
         if dist >= self.width_goal_threshold:
-            self._loginfo(f"Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self.width_goal_threshold:.1f}")
+            self._loginfo(f"Rejecting goal due to violating distance threshold between sam and buoy. Criteria: {dist:.1f} >= {self.width_goal_threshold:.1f}")
             return False
 
         try:
             dist = self.compute_distance(self.SAM_pose_odom, self.quad_pose_stamped)
             if dist >= self.dist_goal_threshold:
-                err_str = f'Rejecting goal due to violating distance threshold. Criteria: {dist:.1f} >= {self.dist_goal_threshold:.1f}'
+                err_str = f'Rejecting goal due to violating distance threshold between sam and quad. Criteria: {dist:.1f} >= {self.dist_goal_threshold:.1f}'
                 self._loginfo(err_str)
                 return False
         except:
             self._loginfo("Could not successfully compute distance between sam and quad in odom frame. Rejecting goal!\n")
             return False
-        
-        # Accepts as all criteria fulfilled
-        self._loginfo(f"Accepting Goal: {goal_request}")
-        return True
 
-
-    def _on_cancel_received(self) -> bool:
-        self._loginfo("Cancelled!")
-        return True
-
-
-    def _prepare_loop(self) -> None:
         self._read_parameters()
 
         self.pickup_traj_start_point    = None   # starting point of the pick up trajectory, it is in perpendicular plane to the target
@@ -181,7 +170,51 @@ class RecoverAction():
 
         self.touchdown = mid3D + np.array([0.0, 0.0, self.min_height_above_water])
 
+
+        # do these numbers even make sense?
+        # the trajectory is thus:
+        # A                       F
+        #  |                     /
+        #    \                  /
+        #      -- B____C______D
+        # A-B is a curved trajectory defined by tau-law
+        # B-C-D is a straight line parallel to water, at height min_height_above_water above water
+        # D-F is a straight incline at defined by raise_horizontal and raise_vertical
+        # A = pickup_traj_start_point
+        # B = touchdown point
+        # C = where we expect rope to be
+        # D = where we expect to be after straight_distance, designed to accomodate rope lengths etc.
+
+
+        if self.swoop_vertical <= 0 or self.swoop_horizontal <= 0 or self.raise_horizontal <= 0 or self.raise_vertical <= 0:
+            self._loginfo(f"Rejecting goal due to non-positive swoop_vertical, swoop_horizontal, raise_horizontal or raise_vertical ({self.swoop_vertical}, {self.swoop_horizontal}, {self.raise_horizontal}, {self.raise_vertical})")
+            return False
+        
+        if self.straight_before_rope >= self.straight_distance:
+            self._loginfo(f"Rejecting goal due to straight_before_rope >= straight_distance ({self.straight_before_rope} >= {self.straight_distance})")
+            return False
+
+        if self.swoop_vertical < self.min_height_above_water:
+            self._loginfo(f"Rejecting goal due to swoop_vertical < min_height_above_water ({self.swoop_vertical} < {self.min_height_above_water})")
+            return False
+        
+        if self.raise_vertical < self.min_height_above_water:
+            self._loginfo(f"Rejecting goal due to raise_vertical < min_height_above_water ({self.raise_vertical} < {self.min_height_above_water})")
+            return False
+        
+        # Accepts as all criteria fulfilled
+        self._loginfo(f"Accepting Goal: {goal_request}")
         self._loginfo(f'Using start pos {self.pickup_traj_start_point} → touchdown pos {self.touchdown}')
+        return True
+
+
+    def _on_cancel_received(self) -> bool:
+        self._loginfo("Cancelled!")
+        return True
+
+
+    def _prepare_loop(self) -> None:
+        return
 
 
     def _loop_inner(self) -> bool|None:
@@ -218,7 +251,7 @@ class RecoverAction():
             vec = self.pickup_traj_start_point - self.quad_pose
 
             dist = np.linalg.norm(vec)
-            if dist <= self._node.get_parameter("tau_trajectory_starting_threshold").value:
+            if dist <= self.tau_trajectory_starting_threshold:
                 # Arrived at start location
                 self.reached_start = True
                 # Precompute tau-law trajectory from start to touchdown
@@ -245,7 +278,7 @@ class RecoverAction():
         # 4. Phase 2: publish tau-law trajectory or switch to flat phase
         if not self.forward_phase and self.step_index < len(self.waypoints):
             current_pos = self.quad_pose
-            target_pos = self.waypoints[self.target_index_offset]
+            target_pos = self.waypoints[self.target_index]
             next_pos = self.waypoints[self.step_index + 1]
             final_pos   = self.waypoints[-1]
             dist_to_sam = np.linalg.norm(current_pos - final_pos)
@@ -310,7 +343,7 @@ class RecoverAction():
             self.incline_final = self.quad_pose + vec3D
             self.incline_distance = np.linalg.norm(self.quad_pose - self.incline_final)
             self.incline_phase     = True
-            self._loginfo('Starting incline phase at 45°')
+            self._loginfo('>> Starting incline phase...')
         
         if self.incline_distance is None:
             self._loginfo('incline_distance is None, failing')
@@ -456,7 +489,7 @@ class RecoverAction():
         typed_param_declare(
             node,
             "setpoint_tolerance",
-            0.1,
+            0.2,
             "Setpoint tolerance for when the goal is considered achieved (Euclidean norm).",
         )
         
@@ -490,13 +523,6 @@ class RecoverAction():
         )
 
 
-        typed_param_declare( #TODO: Make goal, and make a height
-            node,
-            "incline_angle_degrees",
-            30,
-            "Angle (in degrees) that the drone ascends along during recovery",
-        )
-
         typed_param_declare(
             node,
             "target_index_offset",
@@ -518,7 +544,6 @@ class RecoverAction():
         self.num_steps = self._node.get_parameter("num_steps").get_parameter_value().integer_value
         self.width_goal_threshold = self._node.get_parameter("width_goal_threshold").get_parameter_value().double_value
         self.dist_goal_threshold = self._node.get_parameter("dist_goal_threshold").get_parameter_value().double_value
-        self.incline_angle_degrees = self._node.get_parameter("incline_angle_degrees").get_parameter_value().double_value
         self.target_index_offset = self._node.get_parameter("target_index_offset").get_parameter_value().integer_value
         self.tau_trajectory_starting_threshold = self._node.get_parameter("tau_trajectory_starting_threshold").get_parameter_value().double_value
 
