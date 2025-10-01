@@ -18,14 +18,14 @@ def transform_point_to_child(odom_parent: Odometry, point_in_odom):
     transform_parent_to_child = invert_transform(transform_child_to_parent)
 
     if isinstance(point_in_odom, PointStamped):
-        pass
+        return tf2_geometry_msgs.do_transform_point(point_in_odom, transform_parent_to_child)
     if isinstance(point_in_odom, Point):
         new_point = PointStamped()
         new_point.header = odom_parent.header
         new_point.point = point_in_odom
         point_in_odom = new_point
-
-    return tf2_geometry_msgs.do_transform_point(point_in_odom, transform_parent_to_child)
+        transform_point = tf2_geometry_msgs.do_transform_point(point_in_odom, transform_parent_to_child).point
+        return Point(x=transform_point.x, y=transform_point.y, z=transform_point.z)
 
 
 def invert_transform(transform_to_inv: TransformStamped):
@@ -80,8 +80,11 @@ def rotate_quat_into_parent_frame(odom_msg: Odometry, q_in_child):
 def rotate_quat_to_child(odom_msg: Odometry, q_in_parent):
     q_parent_from_child = quat_msg_to_list(odom_msg.pose.pose.orientation)
     q_child_from_parent = quaternion_inverse(q_parent_from_child)
-    q_in_child = quaternion_multiply(q_child_from_parent, q_in_parent)
-    return q_in_child
+
+    if isinstance(q_in_parent, Quaternion):
+        q_in_child = quaternion_multiply(q_child_from_parent, quat_msg_to_list(q_in_parent))
+        return Quaternion(x=q_in_child[0], y=q_in_child[1], z=q_in_child[2], w=q_in_child[3])
+    return quaternion_multiply(q_child_from_parent, quat_msg_to_list(q_in_parent))
 
 
 def quat_msg_to_list(q: Quaternion):

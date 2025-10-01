@@ -29,7 +29,7 @@ class DiveControllerONNX(DiveControllerInterface):
     def update(self):
         mission_state = self._dive_sub.get_mission_state()
 
-        if mission_state != MissionStates.RUNNING:
+        if mission_state == MissionStates.RECEIVED or mission_state == MissionStates.COMPLETED or mission_state == MissionStates.CANCELLED:
             self._loginfo_once(f"Mission not running. State: {mission_state}")
             self._set_actuators_neutral()
             return
@@ -173,7 +173,7 @@ class DiveControllerONNX(DiveControllerInterface):
         odom.header.frame_id = "base_link"
         odom.header.stamp = self._node.get_clock().now().to_msg()
 
-        odom.pose.pose.position = TransformUtils.transform_point_to_child(mocap_odometry, odometry.pose.pose.position)
+        odom.pose.pose.position = TransformUtils.transform_point_to_child(mocap_odometry, odometry.pose.pose.position).point
         odom.pose.pose.orientation = TransformUtils.rotate_quat_to_child(mocap_odometry, odometry.pose.pose.orientation)
 
         odom.twist.twist.linear = TransformUtils.rotate_vector_to_child(mocap_odometry, odometry.twist.twist.linear)

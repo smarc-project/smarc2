@@ -4,11 +4,13 @@ import rclpy
 from rclpy.node import Node
 import sys
 
+from controllers.DiveControllerPID import DiveControllerPID
+from controllers.DiveControllerMPC import DiveControllerMPC
+from controllers.DiveControllerJoyPID import DiveControllerJoyPID
 from .ParamUtils import DivingModelParam
 from .SAMDivePub import SAMDivePub
 from .ActionServerDiveSub import DiveActionServerSub, PathServer, HydropointServer
 from .DiveSub import DiveSub
-from .DiveController import DepthJoyControllerPID, DiveControllerPID, DiveControllerMPC 
 from .ConveniencePub import ConveniencePub
 from smarc_action_base.smarc_action_base import (
     ActionResult,
@@ -95,7 +97,7 @@ def joy_depth():
     param = DivingModelParam(node).get_param()
     dive_sub = DiveSub(node, param) 
     dive_pub = SAMDivePub(node, dive_sub, param)
-    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub, param, dive_controller_rate)
+    dive_controller = DiveControllerJoyPID(node, dive_pub, dive_sub, param, dive_controller_rate)
 
     #convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
