@@ -68,8 +68,30 @@ class ControlModes(Enum):
 class DjiCaptain():
     def __init__(self, node: Node):
         self._prev_log_msg = ""
-
         self._node = node
+
+
+        try:
+            self._RUNNING_IN_SIM : bool = self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
+        except:
+            self._RUNNING_IN_SIM : bool = False
+
+        # Velocity controller parameters
+        #Tuning: For large movements, k_pose will have essentially no impact on the startup. r_sigma dominates in this range, with a larger r_sigma producing a smoother 
+        #start and a smaller r_sigma producing a faster start. When stopping, both variables matter. A larger r_sigma will produce more overshoot in the target position.
+        #A smaller k_pose will cause this to behave more like a normal proportional controller, reducing overshoot by making the deceleration happen over a greater 
+        #distance. A larger k_pose will decrease the time spent decelerating, which could either increase or decrease overshoot, depending on how large it is. The best 
+        #choice for these values is also dependent on JOY_PUB_MAX and even more so on JOY_PUB_PERIOD, so make sure to be very careful and retune after adjusting these.
+
+        if self._RUNNING_IN_SIM:
+            self._k_pose = .4
+            self._r_sigma = 0.8
+        else:
+            # these are tested and liked for the real M350 as of writing this (Oct 1st, 2025)
+            self._k_pose = .5 #proportional gain
+            self._r_sigma = .9 #"gain" on previous output, between 0 and 1 (kind of, the "desired output" is multiplied by 1 - r_sigma and the previous output is multiplied by r_sigma).
+
+
         self._node.declare_parameter("robot_name", "M350")
         self._node.declare_parameter("controller_deadzone", 0.1)
         self._node.declare_parameter("controller_yawrate_multiplier", 0.3)
@@ -86,7 +108,7 @@ class DjiCaptain():
         self._HOME_ALT_ABOVE_WATER = self._node.get_parameter("home_altitude_above_water").get_parameter_value().double_value
 
         if self._HOME_ALT_ABOVE_WATER <= 0:
-            self.log("Warning: home_altitude_above_water parameter not set or invalid! It is {self._HOME_ALT_ABOVE_WATER}")
+            self.log(f"Warning: home_altitude_above_water parameter not set or invalid! It is {self._HOME_ALT_ABOVE_WATER}")
             self.log("YOU MUST PASS THIS PARAMETER AND MAKE SURE IT IS CORRECT!")
             self.log("Captain will not run. Exiting.")
             sys.exit(1)
@@ -739,13 +761,9 @@ class DjiCaptain():
             self._cancel_joy_timer()
             return
         
-        #Tuning: For large movements, k_pose will have essentially no impact on the startup. r_sigma dominates in this range, with a larger r_sigma producing a smoother 
-        #start and a smaller r_sigma producing a faster start. When stopping, both variables matter. A larger r_sigma will produce more overshoot in the target position.
-        #A smaller k_pose will cause this to behave more like a normal proportional controller, reducing overshoot by making the deceleration happen over a greater 
-        #distance. A larger k_pose will decrease the time spent decelerating, which could either increase or decrease overshoot, depending on how large it is. The best 
-        #choice for these values is also dependent on JOY_PUB_MAX and even more so on JOY_PUB_PERIOD, so make sure to be very careful and retune after adjusting these.
-        k_pose = .5 #proportional gain
-        r_sigma = .9 #"gain" on previous output, between 0 and 1 (kind of, the "desired output" is multiplied by 1 - r_sigma and the previous output is multiplied by r_sigma).
+        
+        k_pose = self._k_pose
+        r_sigma = self._r_sigma
 
         e_forw = target_in_base.pose.position.x # error about each axis
         e_left = target_in_base.pose.position.y

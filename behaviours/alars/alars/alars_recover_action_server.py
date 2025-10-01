@@ -492,19 +492,11 @@ class RecoverAction():
             0.2,
             "Setpoint tolerance for when the goal is considered achieved (Euclidean norm).",
         )
-        
-
-        typed_param_declare(
-            node,
-            "dt",
-            .05,
-            "# time interval [s] between waypoint publishes",
-        )
 
         typed_param_declare(
             node,
             "num_steps",
-            400,
+            100,
             "# number of tau-law waypoints"
         )
 
@@ -540,7 +532,6 @@ class RecoverAction():
 
     def _read_parameters(self):
         self.setpoint_tolerance = self._node.get_parameter("setpoint_tolerance").get_parameter_value().double_value
-        self.dt = self._node.get_parameter("dt").get_parameter_value().double_value
         self.num_steps = self._node.get_parameter("num_steps").get_parameter_value().integer_value
         self.width_goal_threshold = self._node.get_parameter("width_goal_threshold").get_parameter_value().double_value
         self.dist_goal_threshold = self._node.get_parameter("dist_goal_threshold").get_parameter_value().double_value
