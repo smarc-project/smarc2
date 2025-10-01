@@ -150,6 +150,13 @@ class DjiCaptain():
         self._flying : bool = False
         self._carrying_payload : bool = False
         self._battery_percent : float | None = None
+        
+        # this could be a param, but really we likely will never run this on anything except
+        # the M350 which has a nominal 3kg max payload, so hardcoding it here is fine.
+        # I set it to 4kg to have some momentary overshoot margins due to motion etc.
+        self._MAX_LOAD_KG : float = 4.0 # kg, max payload we consider safe to carry
+        self._load_cell_weight : float | None = None
+
 
 
         topics = [PSDKTopics.__dict__[t].value for t in PSDKTopics.__members__.keys()]
@@ -270,6 +277,13 @@ class DjiCaptain():
             DjiTopics.MOVE_TO_SETPOINT_TOPIC,
             self._move_to_setpoint_callback,
             qos_profile=10)
+        
+        node.create_subscription(
+            Float32,
+            DjiTopics.LOAD_CELL_WEIGHT_TOPIC,
+            self._load_cell_callback,
+            qos_profile=10)
+        
 
         
         # services to take and give-up control + take-off and land
@@ -354,19 +368,30 @@ class DjiCaptain():
     @property
     def status_str(self) -> str:
         s = "\nDjiCaptain Status:\n"
-        s += f"  UTM Frame: {self._utm_labeled_frame}\n"
-        s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)}\n"
-
+        s += f"  Home in UTM: {format_point_stamped(self._home_point_in_utm)} ({self._utm_labeled_frame})\n"
         s += f"\n  Position in Home: {format_pose_stamped(self._base_pose_in_home)}\n"
         
+        if self._battery_percent is not None:
+            s += f"  Battery Percent: {self._battery_percent:.2f} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
+        else:
+            s += f"  Battery Percent: N/A\n"
+        
+        if self._load_cell_weight is not None:
+            s += f"  Load Cell Weight: {self._load_cell_weight:.2f} kg (max: {self._MAX_LOAD_KG} kg)\n"
+        else:
+            s += f"  Load Cell Weight: N/A\n"
+        
         if self._base_pose_in_home is not None:
-            s += f"  Altitude from water: {self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER} m\n"
+            s += f"  Altitude from water: {self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER:.2f} m\n"
         else:
             s += f"  Altitude from water: N/A, base pose in home not known!\n"
 
-        s += f"  Heading: {self._heading_deg}\n"
-        s += f"  Course: {self._course_deg}\n"
-        s += f"  Battery Percent: {self._battery_percent} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
+        if self._heading_deg is not None: s += f"  Heading: {self._heading_deg:.2f}\n"
+        else: s += f"  Heading: N/A\n"
+
+        if self._course_deg is not None: s += f"  Course: {self._course_deg:.2f}\n"
+        else: s += f"  Course: N/A\n"
+
         s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
         s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
         
@@ -433,6 +458,9 @@ class DjiCaptain():
 
     def _geo_alt_cb(self, msg: Float32):
         self._geo_altitude = msg.data
+
+    def _load_cell_callback(self, msg: Float32):
+        self._load_cell_weight = msg.data
 
 
     def _move_to_setpoint_callback(self, msg: PoseStamped):
@@ -1015,8 +1043,9 @@ class DjiCaptain():
         gps_ok = self._gps_point_in_home is not None and self._home_point_in_utm is not None
         battery_ok = self._battery_percent is not None and self._battery_percent > self.READY_BATTERY_PERCENTAGE
         control_ok = self._got_control
+        weight_ok = self._load_cell_weight is not None and self._load_cell_weight < self._MAX_LOAD_KG
 
-        if all([position_ok, gps_ok, battery_ok, control_ok]):
+        if all([position_ok, gps_ok, battery_ok, control_ok, weight_ok]):
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
 
 
@@ -1028,13 +1057,16 @@ class DjiCaptain():
         self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in speeds)
 
 
-
         if self._flying:
             battery_error = self._battery_percent is not None and self._battery_percent < self.ERROR_BATTERY_PERCENTAGE
-
             if battery_error:
                 self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_ERROR
                 self.log(f"BATTERY BELOW LIMIT: {self._battery_percent:.2f} < {self.ERROR_BATTERY_PERCENTAGE:.2f}")
+
+            weight_error = self._load_cell_weight is not None and self._load_cell_weight > self._MAX_LOAD_KG
+            if weight_error:
+                self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_ERROR
+                self.log(f"WEIGHT ABOVE LIMIT: {self._load_cell_weight:.2f} > {self._MAX_LOAD_KG:.2f}")
 
 
         self._vehicle_health_pub.publish(self._vehicle_health)
