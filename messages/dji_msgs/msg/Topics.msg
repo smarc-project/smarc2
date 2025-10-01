@@ -20,3 +20,6 @@ string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle' # PointStamped
 # services
 string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
 string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector' # Trigger
+
+# sensors that are not coming from PSDK
+string LOAD_CELL_WEIGHT_TOPIC = 'sensor/load_cell_weight' # Float32

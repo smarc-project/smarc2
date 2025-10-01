@@ -1,23 +1,30 @@
 # Search planning parameters
 A brief explanation of each parameter:
 
-## Launch arguments (params that are changed regularly)
+## Launch arguments (params that are changed regularly and mau be defined via CLI)
 
 | **Parameter**    | **Description**                                                                                                                |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `mode`           | If `sim`, it's assumed the user wants to test the package standalone. If `real`, appropriate service requests have to be made. |
-| `path_planner`   | `spiral`, `greedy`, `astar`, or `apf` → Path planner type. See code documentation for details.                                      |
-| `sam.init_pos`   | Position to which SAM will teleport (in map). User-defined, only useful in `sim`.                                              |
-| `drone.init_pos` | Position to which the drone will move (in `odom`) at the beginning. User-defined, only useful in `sim`.                                                             |
+| `mode`           | If `sim`, it's assumed the user wants to test the package standalone. If `srv`, appropriate service requests have to be made. If 'as', it works via Action Server / goal request (check main readme) |
+| `namespace`      | Robot namespace - important to get correct links names                                                                         |
+| `path_planner`   | `spiral`, `greedy`, `astar`, or `apf` → Path planner type. See code documentation for details.                                 |
+
 
 ## Drone params
 | **Parameter**               | **Description**                                                                                                        |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `initialization.time_delay` | Time (in seconds) between node execution and grid map initialization.                                                  |
+| `drone.init_pos` | Position to which the drone will move (in `odom`) at the beginning. User-defined, only useful in `sim`.                        |
 | `drone.flight_height`       | \[m] Constant flight height of the drone.                                                                              |
 | `drone.camera_fov`          | \[degrees] Horizontal camera field of view.                                                                            |
 | `drone.intermediate_dt`     | Time step between path points if the drone becomes unstable.                                                           |
 | `drone.look_ahead_time`     | Look-ahead time \[s] × velocity sets the waypoint distance threshold. Spiral = 0.6, Greedy = 3, A\* = 2 (recommended). |
+
+## Movement params
+| **Parameter**               | **Description**                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `distance_threshold` | Threshold distance to waypoint that triggers next waypoint publication                        |
+| `path_update_rate` | Frequency of waypoint publication; In 'as' mode, it's useless as it's the grid_map.update.rate that defines that                        |
+
 
 ## Spiral params
 | **Parameter**       | **Description**                                                                                |
@@ -52,7 +59,6 @@ A brief explanation of each parameter:
 | **Parameter**           | **Description**                                                            |
 | ----------------------- | -------------------------------------------------------------------------- |
 | `sam.init_pos_variance` | Variance used when simulating the GPS ping (adds noise to position).       |
-| `sam.vel_variance`      | Variance used when simulating velocity noise. Currently unused.            |
 | `sam.max_floating_vel`  | Max SAM velocity due to wind/water. Used to adapt spiral motion correctly. |
 
 ## Grid map params
@@ -66,12 +72,6 @@ A brief explanation of each parameter:
 | `grid_map.update.true_detection_rate` | Probability of a true positive in the Bayes Filter.                  |
 | `grid_map.update.time_margin`         | Prevents re-updating of recently updated cells (within `x` seconds). |
 
-## Battery params
-| **Parameter**                  | **Description**                                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------- |
-| `battery.discharge_rate`       | Drone battery discharge rate (% per minute).                                        |
-| `battery.threshold`            | If estimated battery drops below this after planning, the drone returns to base.    |
-| `battery.equivalent_drone_vel` | Fallback velocity \[m/s] used in path duration estimate if the drone is stationary. |
 
 ## TF params
 | **Parameter**              | **Description**                   |
