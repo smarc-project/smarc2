@@ -6,7 +6,7 @@ import sys
 from .SAMDivePub import SAMDivePub
 from .ActionServerDiveSub import DiveActionServerSub
 from .DiveSub import DiveSub
-from .DiveController import DepthJoyControllerPID
+from controllers.DiveControllerJoyPID import DiveControllerJoyPID
 from .ConveniencePub import ConveniencePub
 from .ParamUtils import DivingModelParam
 
@@ -36,7 +36,7 @@ def joy_depth():
     param = DivingModelParam(node).get_param()
     dive_sub = DiveSub(node, param) 
     dive_pub = SAMDivePub(node, dive_sub, param)
-    dive_controller = DepthJoyControllerPID(node, dive_pub, dive_sub,param, dive_controller_rate)
+    dive_controller = DiveControllerJoyPID(node, dive_pub, dive_sub,param, dive_controller_rate)
 
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
