@@ -1,6 +1,6 @@
 import numpy as np
 import tf2_geometry_msgs
-from geometry_msgs.msg import PointStamped, TransformStamped, Point, Quaternion
+from geometry_msgs.msg import PointStamped, TransformStamped, Point, Quaternion, Vector3
 from nav_msgs.msg import Odometry
 from tf_transformations import quaternion_matrix, quaternion_multiply, quaternion_inverse
 
@@ -10,7 +10,11 @@ def rotate_vector_to_child(odom_msg: Odometry, vec_in_parent):
     rotation_child_parent = quaternion_matrix([q.x, q.y, q.z, q.w])[:3, :3]
 
     rotation_parent_child = rotation_child_parent.T
-    return rotation_parent_child.dot(vec_in_parent)
+    rotated_vector = rotation_parent_child.dot(vector_to_list(vec_in_parent))
+    if isinstance(vec_in_parent, Vector3):
+        return Vector3(x=rotated_vector[0], y=rotated_vector[1], z=rotated_vector[2])
+
+    return rotated_vector
 
 
 def transform_point_to_child(odom_parent: Odometry, point_in_odom):
@@ -84,8 +88,13 @@ def rotate_quat_to_child(odom_msg: Odometry, q_in_parent):
     if isinstance(q_in_parent, Quaternion):
         q_in_child = quaternion_multiply(q_child_from_parent, quat_msg_to_list(q_in_parent))
         return Quaternion(x=q_in_child[0], y=q_in_child[1], z=q_in_child[2], w=q_in_child[3])
-    return quaternion_multiply(q_child_from_parent, quat_msg_to_list(q_in_parent))
+
+    return quaternion_multiply(q_child_from_parent, q_in_parent)
 
 
 def quat_msg_to_list(q: Quaternion):
     return [q.x, q.y, q.z, q.w]
+
+
+def vector_to_list(v):
+    return [v.x, v.y, v.z]

@@ -172,7 +172,7 @@ class DiveControllerONNX(DiveControllerInterface):
         odom.header.frame_id = "base_link"
         odom.header.stamp = self._node.get_clock().now().to_msg()
 
-        odom.pose.pose.position = TransformUtils.transform_point_to_child(mocap_odometry, odometry.pose.pose.position).point
+        odom.pose.pose.position = TransformUtils.transform_point_to_child(mocap_odometry, odometry.pose.pose.position)
         odom.pose.pose.orientation = TransformUtils.rotate_quat_to_child(mocap_odometry, odometry.pose.pose.orientation)
 
         odom.twist.twist.linear = TransformUtils.rotate_vector_to_child(mocap_odometry, odometry.twist.twist.linear)

@@ -35,7 +35,7 @@ def test_set_publishers():
     dive_pub.set_lcg.assert_called_once_with(55)
     dive_pub.set_thrust_vector.assert_called_once_with(0.1, 0.2)
 
-def test_sth():
+def test_integration_convert_to_body():
     t = Time(sec=123, nanosec=456)
     node.get_clock.return_value.now.return_value.to_msg.return_value = t
 
