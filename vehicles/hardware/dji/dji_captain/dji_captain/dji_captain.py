@@ -206,6 +206,8 @@ class DjiCaptain():
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
 
+        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
+
         # a simple TTS node should be listening to this (robot_name/speak)
         self._speak_pub = node.create_publisher(String, DjiTopics.TTS_TOPIC, qos_profile=10)
         self._controller_vibrator_pub = node.create_publisher(JoyFeedback, DjiTopics.CONTROLLER_VIBRATION_TOPIC, qos_profile=10)
@@ -719,7 +721,6 @@ class DjiCaptain():
         if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
            (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
-            self._move_to_setpoint = None
             self._cancel_joy_timer()
             return
         
@@ -730,7 +731,6 @@ class DjiCaptain():
         
         if(self._velocity_ground == None):
             self.log(f"Ground Velocity not defined, cancelling Joy")
-            self._move_to_setpoint = None
             self._cancel_joy_timer()
             return
         
@@ -1061,7 +1061,7 @@ class DjiCaptain():
         gps_ok = self._gps_point_in_home is not None and self._home_point_in_utm is not None
         battery_ok = self._battery_percent is not None and self._battery_percent > self.READY_BATTERY_PERCENTAGE
         control_ok = self._got_control
-        weight_ok = self._load_cell_weight is not None and self._load_cell_weight < self._MAX_LOAD_KG
+        weight_ok = self._load_cell_weight is None or self._load_cell_weight < self._MAX_LOAD_KG
 
         if all([position_ok, gps_ok, battery_ok, control_ok, weight_ok]):
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
@@ -1279,6 +1279,9 @@ class DjiCaptain():
 
         if self._battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self._battery_percent))
+
+        if self._utm_labeled_frame is not None:
+            self._labeled_utm_frame_pub.publish(String(data=self._utm_labeled_frame))
                         
         
 
