@@ -140,18 +140,18 @@ class PosePublisher(Node):
             target_x = self.current_x - offset_y   # forward and back 
             target_y = self.current_y - offset_x   # left right
 
-            self.publish_pose(target_x, target_y, 6.0, yaw_deg=45.0)
+            self.publish_pose(target_x, target_y, 10.0)
             self.get_logger().info(f"Tracking middle: norm=({norm_x:.2f},{norm_y:.2f}) -> offset=({offset_x:.2f},{offset_y:.2f}) -> waypoint=({target_x:.2f},{target_y:.2f})")
 
             # Check tolerance
             if abs(offset_x) < goal_tolerance and abs(offset_y) < goal_tolerance:
                 self.get_logger().info("Middle point centered!")
                 self.reached_time = time.time()
-                self.state = "wait_middle"
+                self.state = "descend"
             elif elapsed >= 10.0:
                 self.get_logger().info("Wait time exceeded! Switching to descend")
                 self.reached_time = time.time()
-                self.state = "wait_middle"
+                self.state = "descend"
 
         elif self.state == "descend":
             # Calculate elapsed and remaining rest time
