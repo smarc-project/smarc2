@@ -16,6 +16,9 @@ from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int32MultiArray
 from collections import deque
 
+from sensor_msgs.msg import CameraInfo
+import math
+
 # ==== CNN Definition (same as in training file) ====
 class AnchorPointCNN(nn.Module):
     def __init__(self):
@@ -47,10 +50,24 @@ class AnchorPointPredictor(Node):
 
         self.subscription = self.create_subscription(
             Image,
-            '/Quadrotor/core/fpcamera/image',
+            '/M350/gimbal_camera/image_raw',
             self.listener_callback,
             10
         )
+        # /Quadrotor/core/fpcamera/image
+        # /M350/gimbal_camera/image_raw
+
+
+
+        # Subscribe once to camera info to get FOV
+        self.cam_info_sub = self.create_subscription(
+            CameraInfo,
+            '/M350/gimbal_camera/cam_info',
+            self.cam_info_callback,
+            1)
+        self.cam_info_received = False
+
+
         self.bridge = CvBridge()
         self.model = AnchorPointCNN()
         self.model.load_state_dict(torch.load('anchor_point_cnn.pth', map_location=torch.device('cpu')))
@@ -64,6 +81,24 @@ class AnchorPointPredictor(Node):
         ])
         self.rope_img_buffer = deque(maxlen=10)
 
+    def cam_info_callback(self, msg: CameraInfo):
+        # Only subscribe once
+        if not self.cam_info_received:
+            fx = msg.k[0]
+            fy = msg.k[4]
+            width = msg.width
+            height = msg.height
+
+            # Compute horizontal and vertical FOV
+            self.fov_x = 2 * math.atan(width / (2 * fx))
+            self.fov_y = 2 * math.atan(height / (2 * fy))
+            self.get_logger().info(f"Camera FOV received: FOV_x={math.degrees(self.fov_x):.1f}°, FOV_y={math.degrees(self.fov_y):.1f}°")
+            self.cam_info_received = True
+
+            # Unsubscribe after receiving
+            self.destroy_subscription(self.cam_info_sub)
+
+
     def listener_callback(self, msg):
         try:
             # Convert ROS image to OpenCV
@@ -76,8 +111,12 @@ class AnchorPointPredictor(Node):
             #########################################################################################  buoy
             imghsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype("float32")
             # HSV filter for buoy
-            lower_orange = np.array([16, 0, 255])  # manual hsv detector
-            upper_orange = np.array([25, 152, 255])
+            #lower_orange = np.array([16, 0, 255])  # manual hsv detector
+            #upper_orange = np.array([25, 152, 255])
+
+            lower_orange = np.array([6, 148, 0])  # manual hsv detector
+            upper_orange = np.array([67, 255, 250])
+
             hsv_thresh_buoy = cv2.inRange(imghsv, lower_orange, upper_orange)
             preview_buoy = cv2.bitwise_and(image, image, mask=hsv_thresh_buoy)
             #cv2.imshow('HSV_buoy', preview_buoy)
@@ -125,8 +164,12 @@ class AnchorPointPredictor(Node):
             #########################################################################################  auv
 
             # HSV filter for sam auv
-            lower_yellow = np.array([0, 55, 153])  # manual hsv detector
-            upper_yellow = np.array([195, 97, 254])
+            lower_yellow = np.array([25, 31, 0])  # manual hsv detector
+            upper_yellow = np.array([51, 255, 255])
+
+
+            # lower_yellow = np.array([0, 55, 153])  # manual hsv detector
+            # upper_yellow = np.array([195, 97, 254])
             hsv_thresh_auv = cv2.inRange(imghsv, lower_yellow, upper_yellow)
             preview_auv = cv2.bitwise_and(image, image, mask=hsv_thresh_auv)
             preview_auv_2 = preview_auv.copy()
@@ -214,8 +257,12 @@ class AnchorPointPredictor(Node):
             #########################################################################################   rope
 
             # HSV filter for rope
-            lower_rope = np.array([3, 146, 82])  # manual hsv detector
-            upper_rope = np.array([13, 255, 245])
+            #lower_rope = np.array([3, 146, 82])  # manual hsv detector
+            #upper_rope = np.array([13, 255, 245])
+
+            lower_rope = np.array([9, 105, 200])  # manual hsv detector
+            upper_rope = np.array([23, 176, 255])
+
             hsv_thresh_rope = cv2.inRange(imghsv, lower_rope, upper_rope)
             preview_rope = cv2.bitwise_and(image, image, mask=hsv_thresh_rope)
             preview_rope_2 = preview_rope.copy()
