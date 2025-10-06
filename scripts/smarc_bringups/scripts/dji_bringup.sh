@@ -125,8 +125,15 @@ tmux send-keys "ros2 run alars alars_recover_action_server --ros-args -r __ns:=/
 -p use_sim_time:=$USE_SIM_TIME \
 -p setpoint_tolerance:=$ALARS_RECOVER_SETPOINT_TOLERANCE" C-m
 
+
 tmux select-pane -t $SESSION:1.3
-tmux send-keys "echo 'This will be alars-checkload'" C-m
+MOVE_TO_SETPOINT_TOLERANCE=0.3
+if [[ $USE_SIM_TIME = "True" ]]; then
+    MOVE_TO_SETPOINT_TOLERANCE=1.0
+fi
+tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME \
+setpoint_topic:=move_to_setpoint \
+setpoint_tolerance:=$MOVE_TO_SETPOINT_TOLERANCE" C-m
 
 
 # bt
@@ -140,17 +147,12 @@ pulse_rate:=$PULSE_RATE \
 use_sim_time:=$USE_SIM_TIME \
 bt_timeout:=5.0" C-m
 
-MOVE_TO_SETPOINT_TOLERANCE=0.3
-if [[ $USE_SIM_TIME = "True" ]]; then
-    MOVE_TO_SETPOINT_TOLERANCE=1.0
-fi
-# move-to
-tmux new-window -t $SESSION:3 -n 'MoveTo'
-tmux rename-window "MoveTo"
+
+# alars-bt
+tmux new-window -t $SESSION:3 -n 'alars-bt'
+tmux rename-window "alars-bt"
 tmux select-window -t $SESSION:3
-tmux send-keys "ros2 launch go_to_geopoint go_to_geopoint_server.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME \
-setpoint_topic:=move_to_setpoint \
-setpoint_tolerance:=$MOVE_TO_SETPOINT_TOLERANCE" C-m
+tmux send-keys "ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
 
 
 # camera and detection node
