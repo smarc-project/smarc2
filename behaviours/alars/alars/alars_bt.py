@@ -5,10 +5,7 @@ import sys
 
 import rclpy
 from rclpy.node import Node
-from rclpy.time import Time, Duration
 from rclpy.executors import MultiThreadedExecutor
-from tf2_ros import Buffer, TransformListener
-from tf2_geometry_msgs import do_transform_pose_stamped
 
 
 import py_trees as pt
@@ -16,26 +13,20 @@ from py_trees.composites import Selector as Fallback
 from py_trees.composites import Sequence, Parallel
 from py_trees.decorators import Inverter
 from py_trees.common import Status, ParallelPolicy
-from py_trees.behaviours import Running, Success, Failure
 from py_trees.trees import BehaviourTree
 
 from std_msgs.msg import String, Float32
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import  PointStamped, PoseStamped, Point
+from geometry_msgs.msg import  PointStamped
 
 
-from smarc_msgs.action import BaseAction
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from smarc_action_base.smarc_action_base import ActionClientState
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
-
-
 from smarc_msgs.msg import Topics as SmarcTopics
 from dji_msgs.msg import Topics as DJITopics
-from dji_msgs.msg import Links as DJILinks
 
 
 
@@ -47,6 +38,7 @@ class AlarsBT():
 
             self.raise_to_delivery_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='raise_to_delivery')
             self.move_to_delivery_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='move_to_delivery')
+            self.lower_to_localize_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='lower_to_localize')
             self.search_action = A_ActionClient(node, 'alars_search')
             self.localize_auv_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_auv')
             self.localize_buoy_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_buoy')
@@ -198,6 +190,7 @@ class AlarsBT():
         self.search_action.set_goal(None)
         self.raise_to_delivery_action.set_goal(None)
         self.move_to_delivery_action.set_goal(None)
+        self.lower_to_localize_action.set_goal(None)
         self.localize_auv_action.set_goal(None)
         self.localize_buoy_action.set_goal(None)
         self.recover_action.set_goal(None)
@@ -281,6 +274,22 @@ class AlarsBT():
             self.log("Failed to set move_to RTH altitude goal.")
             return False
         
+    def _set_goal_lower_to_localize(self) -> bool:
+        if self._drone_geopoint is None:
+            self.log("Drone geopoint not known, cannot set lower to localize goal.")
+            return False
+        try:
+            g = {"waypoint":{
+                    "latitude": self._drone_geopoint.latitude,
+                    "longitude": self._drone_geopoint.longitude,
+                    "altitude": float(self._goal["search_position"]["altitude"]),
+                    "tolerance": 1.0
+                }}
+            self.lower_to_localize_action.set_goal(json.dumps(g))
+            return True
+        except:
+            self.log("Failed to set lower to localize goal.")
+            return False
     
     def _set_recover_goal(self) -> bool:
         if self._auv_geopoint is None or self._buoy_geopoint is None:
@@ -399,7 +408,12 @@ class AlarsBT():
         if self.raise_to_delivery_action.state != ActionClientState.READY:
             self.log("raise_to_delivery_action failed to setup! State: " + str(self.raise_to_delivery_action.state))
             return False
-        
+
+        self.lower_to_localize_action.setup()
+        if self.lower_to_localize_action.state != ActionClientState.READY:
+            self.log("lower_to_localize_action failed to setup! State: " + str(self.lower_to_localize_action.state))
+            return False
+
         self.search_action.setup()
         if self.search_action.state != ActionClientState.READY:
             self.log("search_action failed to setup! State: " + str(self.search_action.state))
@@ -456,6 +470,8 @@ class AlarsBT():
         # So we dont exactly know where the auv and buoy are, but do we at least see the AUV so we can localize it?
         localize = Sequence("SQ Localize AUV", memory=True)
         localize.add_child(FuncToStatus("AUV in view?", lambda: self.auv_in_view))
+        localize.add_child(FuncToStatus("Set goal: Lower to localize", self._set_goal_lower_to_localize))
+        localize.add_child(self.lower_to_localize_action)
         localize.add_child(FuncToStatus("Set goal: Localize auv", self._set_goal_localize_auv))
         localize.add_child(self.localize_auv_action)
         localize.add_child(FuncToStatus("Set AUV Position", self._set_auv_position_from_drone))
