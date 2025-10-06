@@ -3,6 +3,7 @@
 
 # moving around
 string MOVE_TO_SETPOINT_TOPIC = 'move_to_setpoint' # PoseStamped
+string LABELED_UTM_TOPIC = 'labeled_utm_topic' # String, formatted: "utm_{zone}_{band}"
 
 # user feedback
 string CONTROLLER_INPUT_TOPIC = 'joy' # Joy
