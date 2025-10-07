@@ -43,6 +43,16 @@ class AlarsBT():
             self.localize_auv_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_auv')
             self.localize_buoy_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_buoy')
             self.recover_action = A_ActionClient(node, 'alars_recover')
+            
+            self._action_clients = [
+                self.raise_to_delivery_action,
+                self.move_to_delivery_action,
+                self.lower_to_localize_action,
+                self.search_action,
+                self.localize_auv_action,
+                self.localize_buoy_action,
+                self.recover_action
+            ]
 
             self._node.create_subscription(GeoPoint,
                                            SmarcTopics.POS_LATLON_TOPIC,
@@ -175,28 +185,22 @@ class AlarsBT():
 
         return True
 
-
-    def _on_cancel_received(self) -> bool:
-        self.log("Received goal cancel request.")
-        self._reset_states()
-        return True
-    
     def _reset_states(self):
         self.delivered = False
         self.captured_auv = False
         self.auv_in_view = False
         self.both_geopoints_known = False
         self.first_search_done = False
-        self.search_action.set_goal(None)
-        self.raise_to_delivery_action.set_goal(None)
-        self.move_to_delivery_action.set_goal(None)
-        self.lower_to_localize_action.set_goal(None)
-        self.localize_auv_action.set_goal(None)
-        self.localize_buoy_action.set_goal(None)
-        self.recover_action.set_goal(None)
+        for ac in self._action_clients:
+            ac.terminate(Status.INVALID)
+
         self.log("States reset")
 
-
+    def _on_cancel_received(self) -> bool:
+        self.log("Received goal cancel request.")
+        self._reset_states()
+        return True
+    
     def _prepare_loop(self) -> None:
         self._reset_states()
     
@@ -399,40 +403,11 @@ class AlarsBT():
     def setup(self) -> bool:
         self.log("Setting up actions...")
 
-        self.move_to_delivery_action.setup()
-        if self.move_to_delivery_action.state != ActionClientState.READY:
-            self.log("move_to_action failed to setup! State: " + str(self.move_to_delivery_action.state))
-            return False
-        
-        self.raise_to_delivery_action.setup()
-        if self.raise_to_delivery_action.state != ActionClientState.READY:
-            self.log("raise_to_delivery_action failed to setup! State: " + str(self.raise_to_delivery_action.state))
-            return False
-
-        self.lower_to_localize_action.setup()
-        if self.lower_to_localize_action.state != ActionClientState.READY:
-            self.log("lower_to_localize_action failed to setup! State: " + str(self.lower_to_localize_action.state))
-            return False
-
-        self.search_action.setup()
-        if self.search_action.state != ActionClientState.READY:
-            self.log("search_action failed to setup! State: " + str(self.search_action.state))
-            return False
-        
-        self.localize_auv_action.setup()
-        if self.localize_auv_action.state != ActionClientState.READY:
-            self.log("localize_auv_action failed to setup! State: " + str(self.localize_auv_action.state))
-            return False
-        
-        self.localize_buoy_action.setup()
-        if self.localize_buoy_action.state != ActionClientState.READY:
-            self.log("localize_buoy_action failed to setup! State: " + str(self.localize_buoy_action.state))
-            return False
-        
-        self.recover_action.setup()
-        if self.recover_action.state != ActionClientState.READY:
-            self.log("recover_action failed to setup! State: " + str(self.recover_action.state))
-            return False
+        for ac in self._action_clients:
+            ac.setup()
+            if ac.state != ActionClientState.READY:
+                self.log(f"{ac.name} failed to setup! State: {str(ac.state)}")
+                return False
         
         self.log("All actions setup successfully!")
 
