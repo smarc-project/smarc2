@@ -89,11 +89,10 @@ class A_ActionClient(Behaviour):
         self._ac._setup(**kwargs)
 
 
-    def set_goal(self, msg_str: str|None) -> None:
+    def set_goal(self, msg_str: str) -> None:
         # Give the goal message to send when the action is run
         # Should be a string of a JSON
         self._goal_str = msg_str
-
 
     def initialise(self) -> None: # this function is called when this Action is ticked for the first time
         if self._goal_str is None:
