@@ -507,10 +507,19 @@ class DjiCaptain():
             return
         
         msg_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        
+        # check if message time makes sense. sim time vs real time etc
+        if msg_time > self.now_time + 2.0:
+            s = f"Move to setpoint message time is >2s in the future, ignoring it. Probably because the publisher and captain have different time sources."
+            s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
+            self.log(s)
+            self._move_to_setpoint = None
+            return
+        
         # check if the message is too old
         if self.now_time - msg_time > self.MOVE_TO_SETPOINT_MAX_AGE:
             s = f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it."
-            s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}"
+            s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
             self.log(s)
             self._move_to_setpoint = None
             return

@@ -107,7 +107,7 @@ tmux split-window -v -t $SESSION:1.1      # Split right pane into top-right (0.1
 tmux select-layout -t $SESSION:1 tiled    # Arrange as a 2x2 grid
 
 tmux select-pane -t $SESSION:1.0
-tmux send-keys "ros2 launch alars_auv_search_planner search_planning_launch.py  mode:=\"'as'\" namespace:=\"'$ROBOT_NAME'\"" C-m
+tmux send-keys "ros2 launch alars_auv_search_planner search_planning_launch.py  mode:=\"'as'\" namespace:=\"'$ROBOT_NAME'\" use_sim_time:=$USE_SIM_TIME" C-m
 # the line above with all the quotes is annyoing but it works...
 
 tmux select-pane -t $SESSION:1.1
