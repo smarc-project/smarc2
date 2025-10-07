@@ -15,7 +15,7 @@ from py_trees.decorators import Inverter
 from py_trees.common import Status, ParallelPolicy
 from py_trees.trees import BehaviourTree
 
-from std_msgs.msg import String, Float32
+from std_msgs.msg import String, Float32, Int32
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import  PointStamped
@@ -74,6 +74,11 @@ class AlarsBT():
                                            self._load_cell_weight_cb,
                                            10)
             
+            self._node.create_subscription(Int32,
+                                           DJITopics.LOAD_CELL_RAW_TOPIC,
+                                           self._load_cell_raw_cb,
+                                           10)
+            
             self._node.create_subscription(PointStamped,
                                            DJITopics.ESTIMATED_AUV_TOPIC,
                                            self._auv_detection_cb,
@@ -89,9 +94,13 @@ class AlarsBT():
             self.auv_in_view : bool = False
 
 
+            # calibrated loadcell might not be available, so we also subscribe to raw
+            # we use the calibrated one if available, otherwise raw
             self._node.declare_parameter('loaded_weight_kg', 2.0)
             self.LOADED_WEIGHT_KG : float = self._node.get_parameter('loaded_weight_kg').get_parameter_value().double_value
             self._load_cell_weight : float|None = None
+            self._node.declare_parameter('loaded_loadcell_raw', 300000)
+            self.LOADED_LOADCELL_RAW : int = self._node.get_parameter('loaded_loadcell_raw').get_parameter_value().integer_value
             self.captured_auv : bool = False
 
 
@@ -167,6 +176,9 @@ class AlarsBT():
     def _load_cell_weight_cb(self, msg: Float32):
         self._load_cell_weight = msg.data
 
+    def _load_cell_raw_cb(self, msg: Int32):
+        self._load_cell_raw = msg.data
+
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         self.log(f"Received new goal request: {goal_request}")
@@ -214,9 +226,18 @@ class AlarsBT():
             self.log("Haven't received drone geopoint, failing...")
             return False
         
+
         # Update states
         # captured is latched, once we have it, we keep it
-        self.captured_auv = self.captured_auv or self._load_cell_weight is not None and self._load_cell_weight >= self.LOADED_WEIGHT_KG
+        # we use calibrated load cell if available, otherwise raw
+        if self._load_cell_weight is not None:
+            self.captured_auv = self.captured_auv or self._load_cell_weight >= self.LOADED_WEIGHT_KG
+        elif self._load_cell_raw is not None:
+            self.captured_auv = self.captured_auv or self._load_cell_raw >= self.LOADED_LOADCELL_RAW
+        else:
+            self.captured_auv = self.captured_auv or False
+
+            
         self.auv_in_view = self._auv_detection_camera is not None and not self._msg_is_older_than(self._auv_detection_camera, self.MAX_DETECTION_AGE)
         self.both_geopoints_known = self._auv_geopoint is not None and self._buoy_geopoint is not None
         
@@ -225,7 +246,12 @@ class AlarsBT():
         str = pt.display.ascii_tree(self._bt.root, show_status=True)
         str += "\n\nStates:"
         str += f"\n Delivered: {self.delivered}"
-        str += f"\n Captured AUV (load cell): {self.captured_auv}({self._load_cell_weight})"
+        if self._load_cell_weight is not None:
+            str += f"\n Captured AUV (load cell): {self.captured_auv}({self._load_cell_weight})"
+        elif self._load_cell_raw is not None:
+            str += f"\n Captured AUV (load cell raw): {self.captured_auv}({self._load_cell_raw})"
+        else:
+            str += f"\n Captured AUV: {self.captured_auv} (no load cell data)"
         str += f"\n AUV in view: {self.auv_in_view}"
         str += f"\n Both geopoints known: {self.both_geopoints_known}"
         str += f"\n First search done: {self.first_search_done}"

@@ -23,4 +23,5 @@ string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
 string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector' # Trigger
 
 # sensors that are not coming from PSDK
+string LOAD_CELL_RAW_TOPIC = 'sensor/load_cell_raw' # Int32
 string LOAD_CELL_WEIGHT_TOPIC = 'sensor/load_cell_weight' # Float32
