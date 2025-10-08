@@ -146,6 +146,9 @@ class A_ActionClient(Behaviour):
 
         if s == ActionClientState.READY:
             goal = BaseAction.Goal()
+            if self._goal_str is None:
+                self.feedback_message = "No goal string set! Use set_goal() to set a goal before ticking this Action."
+                return Status.FAILURE
             goal.goal.data = self._goal_str 
             self._ac.send_goal(goal)
             self.feedback_message = f"Goal sent to action client:\n{self._goal_str}"
