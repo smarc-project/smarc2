@@ -104,7 +104,7 @@ class AlarsBT():
             self.auv_in_view : bool = False
 
 
-            self._node.declare_parameter('loaded_weight_kg', 1.5)
+            self._node.declare_parameter('loaded_weight_kg', 1.0)
             self.LOADED_WEIGHT_KG : float = self._node.get_parameter('loaded_weight_kg').get_parameter_value().double_value
             self._load_cell_weight : float|None = None
             self._node.declare_parameter('loaded_loadcell_raw', 300000)
@@ -511,7 +511,8 @@ class AlarsBT():
         # Go home if we have the AUV
         go_deliver = Sequence("SQ Deliver the AUV", memory=False)
         go_deliver.add_child(FuncToStatus("Got AUV?", lambda: self.captured_auv))
-
+        go_deliver.add_child(FuncToStatus("Searched once?", lambda: self.first_search_done))
+        go_deliver.add_child(FuncToStatus("Both geopoints known?", lambda: self.both_geopoints_known))
         deliver = Sequence("SQ Deliver", memory=True)
         deliver.add_child(FuncToStatus("Set goal: Delivery altitude", self._set_move_to_goal_delivery_altitude))
         deliver.add_child(self.raise_to_delivery_action)

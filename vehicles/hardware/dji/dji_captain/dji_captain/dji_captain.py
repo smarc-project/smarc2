@@ -722,12 +722,6 @@ class DjiCaptain():
             self._joy_timer = None
             self.log("Joy timer cancelled.")
 
-        # send a zero joy message to stop the vehicle
-        zero_joy = Joy()
-        zero_joy.header.stamp = self.now_stamp
-        self._FLU_vel_joy_pub.publish(zero_joy)
-
-
 
     def _move_towards_setpoint_FLUvel(self):
 
@@ -802,6 +796,7 @@ class DjiCaptain():
         joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
         joy_msg.buttons = []
 
+        self.log(f"Moving towards setpoint with FLUvel joy: {joy_msg.axes}")
         self._FLU_vel_joy_pub.publish(joy_msg)
         self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
 
