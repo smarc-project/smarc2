@@ -390,6 +390,14 @@ class DetectionNode(Node):
                         (255, 255, 255),  # color (green)
                         1             # thickness
                     )               
+                # Use only the largest contour region from the RGB image as input to the CNN
+                if self.cnn_detector > 0:
+                    mask = np.zeros_like(hsv_thresh_buoy)
+                    # Apply mask to RGB image — keep only max contour region
+                    cv2.drawContours(mask, [max_contour], -1, 255, thickness=cv2.FILLED)
+                    preview_buoy_initial = cv2.bitwise_and(cv_image, cv_image, mask=mask)
+                    cv2.imshow('Test largest buoy region', preview_buoy_initial)
+
 
                 if self.buoy_min_area <= max_area <= self.buoy_max_area:
                     # Get center
@@ -482,6 +490,14 @@ class DetectionNode(Node):
                             (255, 255, 255),  # color (green)
                             1             # thickness
                         )     
+
+                    # Use only the largest contour region from the RGB image as input to the CNN
+                    if self.cnn_detector > 0:
+                        mask = np.zeros_like(hsv_thresh_auv)
+                        # Apply mask to RGB image — keep only max contour region
+                        cv2.drawContours(mask, [max_contour], -1, 255, thickness=cv2.FILLED)
+                        preview_auv_initial = cv2.bitwise_and(cv_image, cv_image, mask=mask)
+                        cv2.imshow('Test largest auv region', preview_auv_initial)
 
                     if self.auv_min_area <= max_area <= self.auv_max_area:
                         # Now, pick the edge center closer to buoy
@@ -670,9 +686,26 @@ class DetectionNode(Node):
         ######################################################################################### CNN 
 
         if self.cnn_detector > 0:
+            # --- Procee CNN input data --- (Consider AUV, Buoy largest contour,  Still need to consider Rope's largest contour and overexposure)
             preview_buoy_auv = cv2.add(preview_buoy_initial, preview_auv_initial)   # no text 
-            buoy_auv_rope_preview = cv2.add(preview_buoy_auv, preview_rope_multi)
-            cv2.imshow('buoy_auv_rope_preview', buoy_auv_rope_preview)
+            #buoy_auv_rope_preview = cv2.add(preview_buoy_auv, preview_rope_multi)
+            
+            
+            # Create a mask where buoy_auv image has non-black pixels
+            mask = cv2.cvtColor(preview_buoy_auv, cv2.COLOR_BGR2GRAY)
+            _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
+            # Invert mask for background
+            mask_inv = cv2.bitwise_not(mask)
+            # Keep rope where buoy_auv is black
+            background = cv2.bitwise_and(preview_rope_multi, preview_rope_multi, mask=mask_inv)
+            # Keep buoy_auv where it has content
+            foreground = cv2.bitwise_and(preview_buoy_auv, preview_buoy_auv, mask=mask)
+            # Combine both — buoy_auv on top
+            buoy_auv_rope_preview = cv2.add(background, foreground)
+            
+            cv2.imshow('CNN Detecting Buoy, AUV and Rope', buoy_auv_rope_preview)
+            # --- ---------------------------------- ---
+
 
 
             original_image = cv_image.copy()
