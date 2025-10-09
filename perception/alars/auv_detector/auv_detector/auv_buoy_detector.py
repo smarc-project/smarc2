@@ -793,20 +793,20 @@ class DetectionNode(Node):
 
             #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
 
-            # CNN publisher threshold 1:   buoy and auv should be deteced
-            # CNN publisher threshold 2:   distance between the AUV and the buoy, mean rope is complex
-            # CNN publisher threshold 3:   HoughCircle should exsit, mean the curve of the rope is detected
-            # CNN publisher threshold 4:   CNN prediction should inside the HoughCircle radius, mean the reasonable prediction 
+            # CNN Publisher Threshold Logic:
+            # Threshold 1: Both buoy and AUV must be detected.
+            # Threshold 2: Distance between the AUV and buoy must be within a predefined limit. This ensures that the rope is not too complex.
+            # Threshold 3: A Hough Circle must exist, meaning the curve of the rope has been detected.
+            # Threshold 4: The CNN prediction must lie within the Hough Circle radius, ensuring a reasonable prediction.
 
-
-            # CNN publisher threshold 1
+            # Threshold 1: Check that both AUV and buoy centers are detected
             if center_auv is not None and center_buoy is not None:
                 distance_between_auv_and_buoy = np.linalg.norm(center_buoy - center_auv) # Compute Euclidean distance (in pixels)
 
-                # CNN publisher threshold 2
+                # Threshold 2: Verify distance between AUV and buoy
                 if distance_between_auv_and_buoy <= self.dist_threshold_between_auv_and_buoy:
 
-                    # CNN publisher threshold 3
+                    # Threshold 4: Ensure CNN prediction is within Hough Circle radius
                     if HoughCircle_r is not None: 
                         center_HoughCircle  = np.array([HoughCircle_x,HoughCircle_y])
                         cnn_P1 = np.array([x1,y1])
@@ -815,14 +815,15 @@ class DetectionNode(Node):
                         # CNN publisher threshold 4
                         if distance_between_P1_and_HoughCircle <= HoughCircle_r:
 
-                            # publish center_HoughCircle as P1 and CNN prediction as P2 
+                            # Publish center_HoughCircle as P1 and CNN prediction as P2
                             # Draw the radius and center_HoughCircle and P2 vector
                             # cv2.circle(cv_image_noted, (HoughCircle_x, HoughCircle_y), HoughCircle_r, (0, 255, 255), 1)   # Draw the circle
                             cv2.circle(cv_image_noted, (HoughCircle_x, HoughCircle_y), 2, (0, 255, 255), 2)     # Draw the center        
 
+                            # Compute and draw directional vector from Hough Circle center to P2
                             direction_vector = np.array([x2 - HoughCircle_x, y2 - HoughCircle_y])
                             norm = np.linalg.norm(direction_vector)
-                            # prevent divide-by-zero
+                            # Prevent divide-by-zero and scale vector
                             if norm > 1e-5:
                                 direction_vector = direction_vector / norm * 20  # scale to 10 pixels
                             else:
