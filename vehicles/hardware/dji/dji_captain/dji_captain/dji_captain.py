@@ -589,8 +589,9 @@ class DjiCaptain():
         self._speak_pub.publish(String(data=msg))
 
     def _pub_flu_vel_joy(self, joy: list[float]):
-        if abs(joy[0]) < 1e-5 or abs(joy[1]) < 1e-5 or abs(joy[2]) < 1e-5:
+        if abs(joy[0]) < 1e-5 and abs(joy[1]) < 1e-5 and abs(joy[2]) < 1e-5:
             # publishing 0s on F,L,U axes crashes the PSDK bridge...
+            self.log("Not publishing zero joy on FLU velocity, ignoring.")
             return
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
