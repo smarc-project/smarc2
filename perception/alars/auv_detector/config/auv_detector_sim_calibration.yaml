@@ -4,12 +4,14 @@
     debug_imshow: 1
     enable_buoy_detector: 1
     enable_auv_detector: 1
-    enable_rope_detector: 0
+    enable_rope_detector: 1
     enable_on_start: 1
     buoy_color_lower_orange: [0, 0, 255]
     buoy_color_upper_orange: [255, 255, 255]
     auv_color_lower_yellow: [25, 60, 0]
     auv_color_upper_yellow: [70, 255, 255]
+    rope_color_lower: [0, 92, 242]
+    rope_color_upper: [86, 255, 255]
     calibration_altitude: 10.0
     buoy_area_percent_at_calibration_altitude: 0.005
     auv_area_percent_at_calibration_altitude: 0.19
