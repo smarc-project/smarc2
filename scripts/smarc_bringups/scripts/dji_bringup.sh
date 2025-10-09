@@ -209,7 +209,7 @@ if [[ $USE_SIM_TIME = "False" ]]; then
     tmux new-window -t $SESSION:7 -n 'LoadCell'
     tmux rename-window "LoadCell"
     tmux select-window -t $SESSION:7
-    tmux send-keys "ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/M350" C-m
+    tmux send-keys "ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/$ROBOT_NAME" C-m
 fi
 
 # Set default window to either the captain 
