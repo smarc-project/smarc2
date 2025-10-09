@@ -18,11 +18,13 @@ def generate_launch_description():
     namespace_arg = DeclareLaunchArgument('namespace', default_value=NAMESPACE)
     mode_arg = DeclareLaunchArgument('mode', default_value=MODE)
     path_planner_arg = DeclareLaunchArgument('path_planner', default_value=PLANNER)
+    use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
 
     # ... and as node params
     namespace = LaunchConfiguration('namespace')
     mode = LaunchConfiguration('mode')
     path_planner = LaunchConfiguration('path_planner')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # ---- rarely changed params from yaml (yaml has every parameter but launch arguments will override)
     config_file = PathJoinSubstitution([
@@ -44,6 +46,7 @@ def generate_launch_description():
                 'namespace': namespace,
                 'mode': mode,
                 'path_planner': path_planner,
+                'use_sim_time': use_sim_time,
             }
         ],
         condition=IfCondition(PythonExpression([mode, " == 'as'"]))
@@ -61,6 +64,7 @@ def generate_launch_description():
                 'namespace': namespace,
                 'mode': mode,
                 'path_planner': path_planner,
+                'use_sim_time': use_sim_time,
             }
         ],
         condition=IfCondition(PythonExpression([mode, " != 'as'"]))

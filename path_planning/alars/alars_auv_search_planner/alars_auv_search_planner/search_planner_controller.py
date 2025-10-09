@@ -15,7 +15,7 @@ from smarc_utilities.georef_utils import convert_latlon_to_utm
 from dji_msgs.msg import Topics as Topics_dji
 from dji_msgs.msg import Links as Links_dji
 from smarc_msgs.msg import Topics as Topics_smarc
-from sam_msgs.msg import Links as Links_sam
+
 
 class SearchPlannerController(Node):
     """ 
@@ -31,11 +31,6 @@ class SearchPlannerController(Node):
             allow_undeclared_parameters=True,
             automatically_declare_parameters_from_overrides=True
         )
-        # get names of topics and links from messages package
-        self.dji_topics = Topics_dji()
-        self.dji_links = Links_dji()
-        self.smarc_topics = Topics_smarc()
-        self.sam_links = Links_sam()
 
         # declare parameters and store in self.model_params; 
         self.get_params() 
@@ -375,27 +370,41 @@ class SearchPlannerController(Node):
             if not k.startswith("frames") and not k.startswith("topics")
         }
 
+        if self.model_params["mode"] != "as":
+            # dont want a depeendency on sam_msgs for the real drone...
+            from sam_msgs.msg import Links as Links_sam
+
         # check if link and topics names from message packages are valid
-        external_constants = [
-            self.dji_links.MAP,
-            self.dji_links.ODOM,
-            self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
-            self.dji_topics.ESTIMATED_AUV_TOPIC,
-            self.smarc_topics.ODOM_TOPIC,
-            self.sam_links.ODOM_LINK,
-        ]  
+        # If we use sim, there are additional topics/links/parameters we need to declare
+        if self.model_params["mode"] != "as":
+            external_constants = [
+                Links_dji.MAP,
+                Links_dji.ODOM,
+                Topics_dji.MOVE_TO_SETPOINT_TOPIC,
+                Topics_dji.ESTIMATED_AUV_TOPIC,
+                Topics_smarc.ODOM_TOPIC,
+                Links_sam.ODOM_LINK,
+            ]  
+        else:
+            external_constants = [
+                Links_dji.MAP,
+                Links_dji.ODOM,
+                Topics_dji.MOVE_TO_SETPOINT_TOPIC,
+                Topics_dji.ESTIMATED_AUV_TOPIC,
+                Topics_smarc.ODOM_TOPIC,
+            ]
         for _, name in enumerate(external_constants):
             if not isinstance(name, str):
                 raise TypeError(f"One of the links/frames name should be str, got {type(name).__name__}; check import from one of the messages packages")   
                 
         # include frames and links names
         self.model_params.update({
-            "frames.id.map": self.model_params['namespace'].removeprefix("/") + '/' + self.dji_links.MAP,
-            "frames.id.quadrotor_odom": self.model_params['namespace'].removeprefix("/") + "/" + self.dji_links.ODOM,
+            "frames.id.map": self.model_params['namespace'].removeprefix("/") + '/' + Links_dji.MAP,
+            "frames.id.quadrotor_odom": self.model_params['namespace'].removeprefix("/") + "/" + Links_dji.ODOM,
 
-            "topics.move_drone": self.dji_topics.MOVE_TO_SETPOINT_TOPIC,
-            "topics.drone_odom": self.smarc_topics.ODOM_TOPIC,
-            "topics.sam_detection": self.dji_topics.ESTIMATED_AUV_TOPIC,
+            "topics.move_drone": Topics_dji.MOVE_TO_SETPOINT_TOPIC,
+            "topics.drone_odom": Topics_smarc.ODOM_TOPIC,
+            "topics.sam_detection": Topics_dji.ESTIMATED_AUV_TOPIC,
             "topics.pub_path": self.get_parameter('topics.pub_path').value,
             "topics.pub_grid_map": self.get_parameter('topics.pub_grid_map').value,
             "topics.pub_likely_sam_location": self.get_parameter('topics.pub_likely_sam_location').value,
@@ -410,8 +419,8 @@ class SearchPlannerController(Node):
         # If we use sim, there are additional topics/links/parameters we need to declare
         if self.model_params["mode"] != "as":
             sim_parameters = {
-                "frames.id.sam_odom": self.sam_namespace.removeprefix("/") + "/" + self.sam_links.ODOM_LINK,
-                "topics.sam_odom": self.sam_namespace + "/" + self.smarc_topics.ODOM_TOPIC,
+                "frames.id.sam_odom": self.sam_namespace.removeprefix("/") + "/" + Links_sam.ODOM_LINK,
+                "topics.sam_odom": self.sam_namespace + "/" + Topics_smarc.ODOM_TOPIC,
             }
             self.model_params.update(sim_parameters)
 

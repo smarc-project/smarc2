@@ -26,6 +26,7 @@ setup(
             "alars_recover_action_server = alars.alars_recover_action_server:main",
             "alars_search_action_server = alars.alars_search_action_server:main",
             "alars_localize_action_server = alars.alars_localize_action_server:main",
+            "alars_bt = alars.alars_bt:main",
         ],
     },
 )

@@ -341,6 +341,12 @@ class SMARCActionClient(abc.ABC):
     @property
     def state(self):
         return self._state
+    
+    def _loginfo(self, msg: str):
+        self._node.get_logger().info(f"[action-base:{self._action_name}] {msg}")
+
+    def _logerr(self, msg: str):
+        self._node.get_logger().error(f"[action-base:{self._action_name}] {msg}")
 
     @state.setter
     def state(self, val):
@@ -355,29 +361,27 @@ class SMARCActionClient(abc.ABC):
             else:
                 name = self._action_name
             if prev_state != self._state:
-                self._node.get_logger().info(
-                    f"[action-base] Client State ({name}) transitioned from {prev_state} to {self._state}"
+                self._loginfo(
+                    f"Client State ({name}) transitioned from {prev_state} to {self._state}"
                 )
         except ValueError as err:
             self._state = ActionClientState.ERROR
             err_str = traceback.format_exc()
-            self._node.get_logger().error(f"[action-base] {err_str}")
+            self._logerr(err_str)
 
     def _setup(self, num_iters: int = 3):
         server_status = False
         iters = 0
         while not server_status and iters < num_iters:
             iters += 1
-            self._node.get_logger().info("[action-base] Waiting for server to start.")
+            self._loginfo("Waiting for server to start.")
             server_status = self._client.wait_for_server(timeout_sec=1.0)
         
         if server_status:
-            self._node.get_logger().info("[action-base] Server found.")
+            self._loginfo("Server found.")
             self.state = ActionClientState.READY
         else:
-            self._node.get_logger().error(
-                f"[action-base] Server not found. Cannot send goals to {self._action_name}."
-            )
+            self._logerr(f"Server not found. Cannot send goals to {self._action_name}.")
             self.state = ActionClientState.DISCONNECTED
         
         return server_status
@@ -403,9 +407,7 @@ class SMARCActionClient(abc.ABC):
         if raw_result is None:
             # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
             # otherwise the callback would not be called
-            self._node.get_logger().error(
-                f"[action-base] Result or status is none and should not be ({raw_result})"
-            )
+            self._logerr(f"Result or status is none and should not be ({raw_result})")
             self.state = ActionClientState.ERROR
             return
         result: ActionResult = raw_result.result
@@ -431,9 +433,7 @@ class SMARCActionClient(abc.ABC):
         if self._goal_handle is None:
             self.state = ActionClientState.ERROR
             return
-        self._node.get_logger().debug(
-            f"[action-base] Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}"
-        )
+        self._loginfo(f"Recieved Goal Response Callback in Client Accepted:{self._goal_handle.accepted}")
         if self._goal_handle.accepted:
             self.state = ActionClientState.ACCEPTED
             self._get_result()
@@ -504,19 +504,15 @@ class SMARCActionClient(abc.ABC):
         if result is None:
             # NOTE: these values should not be none to my understanding as they are guaranteed to by complete
             # otherwise the callback would not be called
-            self._node.get_logger().error(
-                "[action-base] Future result is None which should not occur with callback setup."
-            )
+            self._logerr("Future result is None which should not occur with callback setup.")
             self.state = ActionClientState.ERROR
             return
         # checking before user to see if goal got cancelled already (duplicate check but necessary)
-        self._node.get_logger().debug(f"[action-base] {result}")
+        self._loginfo(f"{result}")
         if len(result.goals_canceling) > 0:
             self.state = ActionClientState.CANCELLED
         else:
-            self._node.get_logger().debug(
-                "[action-base] smarc_action_base client goal failed to cancel."
-            )
+            self._loginfo("Goal failed to cancel.")
         user_callback(result)
 
     def cancel_goal(self, usr_callback: Callable[..., Any]):
@@ -526,15 +522,13 @@ class SMARCActionClient(abc.ABC):
             - Docs on Structure: https://docs.ros2.org/foxy/api/action_msgs/srv/CancelGoal.html
         """
         if self._goal_handle is not None:
-            self._node.get_logger().debug(f"[action-base] Cancelling goal in smarc_action_base.")
+            self._loginfo("Cancelling goal in smarc_action_base.")
             self.state = ActionClientState.CANCELLING
             future = self._goal_handle.cancel_goal_async()
             func = partial(self._wrap_cancel_callback, usr_callback)
             future.add_done_callback(func)
         else:
-            self._node.get_logger().debug(
-                "[action-base] No goal present to cancel. Skipping cancellation."
-            )
+            self._loginfo("No goal present to cancel. Skipping cancellation.")
 
     def send_goal(self, goal_msg: ActionGoal):
         """Send goal to action server via an asynchronous callback.
