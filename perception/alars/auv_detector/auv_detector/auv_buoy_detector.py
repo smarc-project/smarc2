@@ -9,6 +9,7 @@ from dji_msgs.msg import Topics
 from std_srvs.srv import Trigger
 from std_msgs.msg import Float32
 from smarc_msgs.msg import Topics as SMARCTopics
+from collections import deque
 
 class DetectionNode(Node):
     def __init__(self):
@@ -17,7 +18,7 @@ class DetectionNode(Node):
         self.declare_parameter('debug_imshow', 2)
         self.declare_parameter('enable_buoy_detector', 1)
         self.declare_parameter('enable_auv_detector', 1)
-        self.declare_parameter('enable_rope_detector', 0)
+        self.declare_parameter('enable_rope_detector', 1)
         self.declare_parameter('enable_on_start', 1)
 
         self.declare_parameter('buoy_color_lower_orange', [8, 121, 35])
@@ -25,6 +26,9 @@ class DetectionNode(Node):
 
         self.declare_parameter('auv_color_lower_yellow', [25, 0, 169])
         self.declare_parameter('auv_color_upper_yellow', [46, 103, 221])
+
+        self.declare_parameter('rope_color_lower', [0, 92, 242])
+        self.declare_parameter('rope_color_upper', [86, 255, 255])        
 
         # default values from field test rosbag
         self.declare_parameter('calibration_altitude', 8.7)
@@ -58,6 +62,15 @@ class DetectionNode(Node):
         )
         self.auv_color_upper_yellow = np.array(
             self.get_parameter('auv_color_upper_yellow').value, dtype=np.uint8
+        )
+
+
+        # Rope detection 
+        self.rope_color_lower = np.array(
+            self.get_parameter('rope_color_lower').value, dtype=np.uint8
+        )
+        self.rope_color_upper = np.array(
+            self.get_parameter('rope_color_upper').value, dtype=np.uint8
         )
 
         
@@ -102,9 +115,8 @@ class DetectionNode(Node):
         # Enable or disable specific detectors  
         self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
         self.auv_detector = int(self.get_parameter('enable_auv_detector').value)       # 0: off, 1: largest contour center, 2: best rectangle center    
-        self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: spline line, 2: multi-frame, 3: both
-
-
+        self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: multi-frame, 2: single, 3: spline
+        self.rope_img_buffer = deque(maxlen=5)   # decide how many frame save for rope
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
@@ -158,7 +170,6 @@ class DetectionNode(Node):
         self.camera_width = 640
         self.auv_area_no_bound = 0
         self.buoy_area_no_bound = 0
-    
     
     ################################################################################
     # Service callback: SetBool request.data True -> enable, False -> disable
@@ -534,6 +545,20 @@ class DetectionNode(Node):
 
                 if self.debug_imshow >= 2:
                     cv2.imshow('HSV_auv_Missle_Shape Detect', preview_auv)
+        #########################################################################################  rope
+        if self.auv_detector > 0: 
+            # HSV filter for sam auv
+            hsv_thresh_rope = cv2.inRange(imghsv, self.rope_color_lower, self.rope_color_upper)
+            preview_rope = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_rope)
+            #cv2.imshow('preview_rope', preview_rope)
+            preview_rope_multi = preview_rope.copy()
+
+
+            self.rope_img_buffer.append(preview_rope_multi)
+            for img_tmp in self.rope_img_buffer:
+                preview_rope_multi = cv2.add(preview_rope_multi, img_tmp)
+            #cv2.imshow("N frames rope detect", preview_rope_multi)
+
 
         #########################################################################################
 
