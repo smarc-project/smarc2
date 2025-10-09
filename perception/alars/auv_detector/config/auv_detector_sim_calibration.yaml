@@ -5,6 +5,7 @@
     enable_buoy_detector: 1
     enable_auv_detector: 1
     enable_rope_detector: 1
+    enable_cnn_detector: 1
     enable_on_start: 1
     buoy_color_lower_orange: [0, 0, 255]
     buoy_color_upper_orange: [255, 255, 255]

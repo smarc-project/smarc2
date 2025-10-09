@@ -11,6 +11,39 @@ from std_msgs.msg import Float32
 from smarc_msgs.msg import Topics as SMARCTopics
 from collections import deque
 
+
+
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import transforms
+from PIL import Image as PILImage
+from collections import deque
+
+# ==== CNN Definition (same as in training file) ====
+class AnchorPointCNN(nn.Module):
+    def __init__(self):
+        super(AnchorPointCNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 16, 3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, 3, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(64 * 28 * 28, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 4)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return self.fc3(x)
+
+
+
 class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
@@ -19,6 +52,7 @@ class DetectionNode(Node):
         self.declare_parameter('enable_buoy_detector', 1)
         self.declare_parameter('enable_auv_detector', 1)
         self.declare_parameter('enable_rope_detector', 1)
+        self.declare_parameter('enable_cnn_detector', 1)
         self.declare_parameter('enable_on_start', 1)
 
         self.declare_parameter('buoy_color_lower_orange', [8, 121, 35])
@@ -115,14 +149,20 @@ class DetectionNode(Node):
         # Enable or disable specific detectors  
         self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
         self.auv_detector = int(self.get_parameter('enable_auv_detector').value)       # 0: off, 1: largest contour center, 2: best rectangle center    
-        self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: multi-frame, 2: single, 3: spline
-        self.rope_img_buffer = deque(maxlen=5)   # decide how many frame save for rope
+        self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: enabled 
+        self.rope_img_buffer = deque(maxlen=8)                                         # 5: Stores the last N frames to merge for more robust rope detection'
+        self.cnn_detector = int(self.get_parameter('enable_cnn_detector').value)       # 0: off, 1: enabled 
+                                                                                       # cnn_detector requires buoy, auv, rope detectors are enabled
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
         self.buoy_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_BUOY_TOPIC, 10)
         self.auv_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_AUV_TOPIC, 10)
         self.middle_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_MIDDLE_TOPIC, 10)
+
+        # Before Catching, anchor point [P1x, P1y]
+        # After Catching, uav flys point [P2x, P2y]
+        self.cnn_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_TOPIC, 10)   # [P1x, P1y, P2x, P2y]
 
         # Subscriber
         self.subscription = self.create_subscription(
@@ -170,7 +210,21 @@ class DetectionNode(Node):
         self.camera_width = 640
         self.auv_area_no_bound = 0
         self.buoy_area_no_bound = 0
-    
+        ################################################################################ 
+        # CNN Initialization
+
+        # self.model = AnchorPointCNN()
+        # self.model.load_state_dict(torch.load('anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
+
+        # self.model.eval()
+
+        # self.input_size = (224, 224)
+        # self.orig_size = (640, 480)
+        # self.transform = transforms.Compose([
+        #     transforms.Resize(self.input_size),
+        #     transforms.ToTensor()
+        # ])
+
     ################################################################################
     # Service callback: SetBool request.data True -> enable, False -> disable
 
@@ -600,6 +654,95 @@ class DetectionNode(Node):
         # Just add the filtered images directly
         combined_preview = cv2.add(preview_buoy, preview_auv)
 
+        ######################################################################################### CNN 
+
+        # if self.cnn_detector > 0:
+
+        #     buoy_auv_rope_preview = cv2.add(combined_preview, preview_rope_multi)
+        #     cv2.imshow('buoy_auv_rope_preview', buoy_auv_rope_preview)
+
+
+        #     original_image = cv_image.copy()
+
+        #     # --- Convert to numpy for ROI detection ---
+        #     np_img = combined_preview.copy()
+        #     gray = np_img.mean(axis=2)  # average intensity
+        #     mask = gray > 30  # brightness threshold
+
+        #     if not mask.any():
+        #         # fallback to full image if object not found
+        #         left, top, right, bottom = 0, 0, np_img.shape[1], np_img.shape[0]
+        #     else:
+        #         ys, xs = np.where(mask)
+        #         top, bottom = ys.min(), ys.max()
+        #         left, right = xs.min(), xs.max()
+        #         pad = 10  # optional padding
+        #         left = max(0, left - pad)
+        #         top = max(0, top - pad)
+        #         right = min(np_img.shape[1], right + pad)
+        #         bottom = min(np_img.shape[0], bottom + pad)
+
+        #     # --- Crop the image to ROI ---
+        #     roi_img = np_img[top:bottom, left:right, :]
+
+        #     # --- Save top-left pixel coordinates ---
+        #     x0, y0 = left, top
+
+        #     # Preprocess for CNN
+        #     #pil_image = PILImage.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+        #     #pil_image = PILImage.fromarray(cv2.cvtColor(combined_preview, cv2.COLOR_BGR2RGB))
+        #     # --- Prepare ROI image for CNN ---
+        #     #cv2.imshow("roi_img", roi_img)
+        #     pil_image = PILImage.fromarray(cv2.cvtColor(roi_img, cv2.COLOR_BGR2RGB))
+        #     input_tensor = self.transform(pil_image).unsqueeze(0)
+
+        #     # Inference
+        #     with torch.no_grad():
+        #         output = self.model(input_tensor).squeeze().numpy()
+
+        #     # --- Rescale prediction to ROI size ---
+        #     roi_width, roi_height = right - left, bottom - top
+
+
+        #     # --- Rescale prediction to ROI size ---
+        #     x1_norm, y1_norm, x2_norm, y2_norm = output  # normalized [0,1]
+
+        #     x1 = int(x1_norm * roi_width)
+        #     y1 = int(y1_norm * roi_height)
+        #     x2 = int(x2_norm * roi_width)
+        #     y2 = int(y2_norm * roi_height)
+
+        #     # --- Add top-left pixel offset to restore to original image ---
+        #     x1 += x0
+        #     y1 += y0
+        #     x2 += x0
+        #     y2 += y0
+
+        #     # Clamp to original image
+        #     x1 = int(np.clip(x1, 0, cv_image.shape[1]-1))
+        #     y1 = int(np.clip(y1, 0, cv_image.shape[0]-1))
+        #     x2 = int(np.clip(x2, 0, cv_image.shape[1]-1))
+        #     y2 = int(np.clip(y2, 0, cv_image.shape[0]-1))
+
+        #     # Draw predicted points
+        #     cv2.circle(original_image, (x1, y1), 6, (0, 255, 0), -1)  # P1: Green
+        #     cv2.circle(original_image, (x2, y2), 6, (0, 0, 255), -1)  # P2: Red
+        #     cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        #     cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+
+        #     #cnn_predict_msg = Int32MultiArray()
+        #     #cnn_predict_msg.data = [x1, y1, x2, y2]  # Publish the center and radius of Hough circle
+        #     #self.cnn_pub.publish(cnn_predict_msg)
+
+        #     # Show image with overlay
+        #     cv2.imshow("Anchor Points Prediction", original_image)
+        #     cv2.waitKey(1)
+
+        #     #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
+
+
+        #########################################################################################
         if center_auv is not None and center_buoy is not None:
             center_between_auv_and_buoy = (center_auv + center_buoy) / 2
 
