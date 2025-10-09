@@ -348,6 +348,9 @@ class DetectionNode(Node):
             preview_buoy = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_buoy)
             #cv2.imshow('HSV_buoy', preview_buoy)
 
+            if self.cnn_detector > 0:
+                preview_buoy_initial = preview_buoy.copy()
+
             # Find contours
             contours, _ = cv2.findContours(hsv_thresh_buoy, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -434,6 +437,10 @@ class DetectionNode(Node):
             preview_auv = cv2.bitwise_and(cv_image, cv_image, mask=hsv_thresh_auv)
             #cv2.imshow('HSV_auv', preview_auv)
             
+            if self.cnn_detector > 0:
+                preview_auv_initial = preview_auv.copy()
+
+
             # Find contours
             contours, _ = cv2.findContours(hsv_thresh_auv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -660,26 +667,18 @@ class DetectionNode(Node):
 
             #cv2.imshow("Hough Circle", rope_dilated)
 
-
-
-
-        #########################################################################################
-
-        # Just add the filtered images directly
-        combined_preview = cv2.add(preview_buoy, preview_auv)
-
         ######################################################################################### CNN 
 
         if self.cnn_detector > 0:
-
-            buoy_auv_rope_preview = cv2.add(combined_preview, preview_rope_multi)
+            preview_buoy_auv = cv2.add(preview_buoy_initial, preview_auv_initial)   # no text 
+            buoy_auv_rope_preview = cv2.add(preview_buoy_auv, preview_rope_multi)
             cv2.imshow('buoy_auv_rope_preview', buoy_auv_rope_preview)
 
 
             original_image = cv_image.copy()
 
             # --- Convert to numpy for ROI detection ---
-            np_img = combined_preview.copy()
+            np_img = buoy_auv_rope_preview.copy()
             gray = np_img.mean(axis=2)  # average intensity
             mask = gray > 30  # brightness threshold
 
@@ -755,6 +754,10 @@ class DetectionNode(Node):
 
             #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
 
+        #########################################################################################
+
+        # Just add the filtered images directly
+        combined_preview = cv2.add(preview_buoy, preview_auv)   # with text and circle
 
         #########################################################################################
         if center_auv is not None and center_buoy is not None:
