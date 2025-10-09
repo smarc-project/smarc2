@@ -153,6 +153,7 @@ class DetectionNode(Node):
         self.rope_img_buffer = deque(maxlen=8)                                         # 5: Stores the last N frames to merge for more robust rope detection'
         self.cnn_detector = int(self.get_parameter('enable_cnn_detector').value)       # 0: off, 1: enabled 
                                                                                        # cnn_detector requires buoy, auv, rope detectors are enabled
+        self.dist_threshold_between_auv_and_buoy = 80                                  # CNN publisher threshold, determined by the distance between the AUV and the buoy
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
@@ -396,7 +397,7 @@ class DetectionNode(Node):
                     # Apply mask to RGB image — keep only max contour region
                     cv2.drawContours(mask, [max_contour], -1, 255, thickness=cv2.FILLED)
                     preview_buoy_initial = cv2.bitwise_and(cv_image, cv_image, mask=mask)
-                    cv2.imshow('Test largest buoy region', preview_buoy_initial)
+                    #cv2.imshow('Test largest buoy region', preview_buoy_initial)
 
 
                 if self.buoy_min_area <= max_area <= self.buoy_max_area:
@@ -497,7 +498,7 @@ class DetectionNode(Node):
                         # Apply mask to RGB image — keep only max contour region
                         cv2.drawContours(mask, [max_contour], -1, 255, thickness=cv2.FILLED)
                         preview_auv_initial = cv2.bitwise_and(cv_image, cv_image, mask=mask)
-                        cv2.imshow('Test largest auv region', preview_auv_initial)
+                        #cv2.imshow('Test largest auv region', preview_auv_initial)
 
                     if self.auv_min_area <= max_area <= self.auv_max_area:
                         # Now, pick the edge center closer to buoy
@@ -703,7 +704,7 @@ class DetectionNode(Node):
             # Combine both — buoy_auv on top
             buoy_auv_rope_preview = cv2.add(background, foreground)
             
-            cv2.imshow('CNN Detecting Buoy, AUV and Rope', buoy_auv_rope_preview)
+            cv2.imshow('The input image of CNN: Buoy, AUV and Rope', buoy_auv_rope_preview)
             # --- ---------------------------------- ---
 
 
@@ -776,7 +777,6 @@ class DetectionNode(Node):
             cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-
             #cnn_predict_msg = Int32MultiArray()
             #cnn_predict_msg.data = [x1, y1, x2, y2]  # Publish the center and radius of Hough circle
             #self.cnn_pub.publish(cnn_predict_msg)
@@ -786,6 +786,12 @@ class DetectionNode(Node):
             cv2.waitKey(1)
 
             #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
+
+            if center_auv is not None and center_buoy is not None:
+                # Compute Euclidean distance (in pixels)
+                distance_between_auv_and_buoy = np.linalg.norm(center_buoy - center_auv)
+            else:
+                distance_between_auv_and_buoy = None
 
         #########################################################################################
 
@@ -875,8 +881,32 @@ class DetectionNode(Node):
                     1             # thickness
                 )
 
+            if self.cnn_detector > 0:
 
-            cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
+                cv2.putText(
+                    cv_image_noted,
+                    f"Buoy-AUV Distance Threshold: {self.dist_threshold_between_auv_and_buoy}",
+                    (10, 430),     # top-left corner
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,          # font scale
+                    (0, 255, 255),  # color (white)
+                    1             # thickness
+                )
+
+                distance_text = f"Buoy-AUV Distance: {distance_between_auv_and_buoy:.2f}" if distance_between_auv_and_buoy is not None else "Buoy-AUV Distance: None"
+                cv2.putText(
+                    cv_image_noted,
+                    distance_text,
+                    (10, 440),  # top-left corner, adjust as needed
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,        # font scale
+                    (0, 255, 255),  # color (yellow)
+                    1           # thickness
+                )
+
+                cv2.imshow("CNN Detecting AUV and Buoy and Rope", cv_image_noted)
+            else:
+                cv2.imshow("Detecting AUV and Buoy", cv_image_noted)
 
         cv2.waitKey(1)
 
