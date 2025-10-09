@@ -560,6 +560,41 @@ class DetectionNode(Node):
             #cv2.imshow("N frames rope detect", preview_rope_multi)
 
 
+
+            # Apply dilation to connect fragmented rope segments
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin
+            rope_dilated = cv2.dilate(preview_rope_multi, kernel, iterations=1)
+            # Use this dilated result for binary mask and grid processing
+            rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
+            _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+            #cv2.imshow("Dilation", rope_bin)
+
+            # Detect Hough circles
+            circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
+                                    param1=70, param2=25, minRadius=10, maxRadius=100)
+
+    
+            if circles is not None:
+                circles = np.uint16(np.around(circles[0]))  # Flatten to shape (N, 3)
+
+                # Find the biggest circle (with max radius)
+                biggest_circle = max(circles, key=lambda c: c[2])  # c = (cx, cy, radius)
+                cx, cy, r = biggest_circle
+
+                # Optional: Draw the biggest circle for visualization
+                cv2.circle(rope_dilated, (cx, cy), r, (0, 255, 0), 2)   # Draw the circle
+                cv2.circle(rope_dilated, (cx, cy), 2, (0, 0, 255), 3)   # Draw the center
+
+                # publish center and radius
+                #hough_position_msg = Float32MultiArray()
+                #hough_position_msg.data = [float(cx), float(cy), float(r)]  # Publish the center and radius of Hough circle
+                #self.hough_pub.publish(hough_position_msg)
+
+            #cv2.imshow("Hough Circle", rope_dilated)
+
+
+
+
         #########################################################################################
 
         # Just add the filtered images directly
