@@ -150,6 +150,7 @@ bt_timeout:=5.0" C-m
 
 
 # alars-bt
+LOADED_WEIGHT_KG=1.2 # real empty sam + hook + rope weight is 1.78kg, just the hook and rope is 0.79kg
 tmux new-window -t $SESSION:3 -n 'alars-bt'
 tmux rename-window "alars-bt"
 tmux select-window -t $SESSION:3
