@@ -301,6 +301,9 @@ class DetectionNode(Node):
 
         center_buoy = None  # Ensure center_buoy is always defined
 
+        if self.cnn_detector > 0:
+            HoughCircle_x, HoughCircle_y, HoughCircle_r = None, None, None
+
         if not self.detector_enabled:
             # Detector disabled — do minimal processing / return quickly.
             # Could still forward camera frames or publish heartbeat if desired.
@@ -677,6 +680,9 @@ class DetectionNode(Node):
                 cv2.circle(rope_dilated, (cx, cy), r, (0, 255, 0), 2)   # Draw the circle
                 cv2.circle(rope_dilated, (cx, cy), 2, (0, 0, 255), 3)   # Draw the center
 
+                if self.cnn_detector > 0:
+                    HoughCircle_x, HoughCircle_y, HoughCircle_r = biggest_circle
+
                 # publish center and radius
                 #hough_position_msg = Float32MultiArray()
                 #hough_position_msg.data = [float(cx), float(cy), float(r)]  # Publish the center and radius of Hough circle
@@ -787,9 +793,50 @@ class DetectionNode(Node):
 
             #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
 
+            # CNN publisher threshold 1:   buoy and auv should be deteced
+            # CNN publisher threshold 2:   distance between the AUV and the buoy, mean rope is complex
+            # CNN publisher threshold 3:   HoughCircle should exsit, mean the curve of the rope is detected
+            # CNN publisher threshold 4:   CNN prediction should inside the HoughCircle radius, mean the reasonable prediction 
+
+
+            # CNN publisher threshold 1
             if center_auv is not None and center_buoy is not None:
-                # Compute Euclidean distance (in pixels)
-                distance_between_auv_and_buoy = np.linalg.norm(center_buoy - center_auv)
+                distance_between_auv_and_buoy = np.linalg.norm(center_buoy - center_auv) # Compute Euclidean distance (in pixels)
+
+                # CNN publisher threshold 2
+                if distance_between_auv_and_buoy <= self.dist_threshold_between_auv_and_buoy:
+
+                    # CNN publisher threshold 3
+                    if HoughCircle_r is not None: 
+                        center_HoughCircle  = np.array([HoughCircle_x,HoughCircle_y])
+                        cnn_P1 = np.array([x1,y1])
+                        distance_between_P1_and_HoughCircle = np.linalg.norm(cnn_P1 - center_HoughCircle)
+                        
+                        # CNN publisher threshold 4
+                        if distance_between_P1_and_HoughCircle <= HoughCircle_r:
+
+                            # publish center_HoughCircle as P1 and CNN prediction as P2 
+                            # Draw the radius and center_HoughCircle and P2 vector
+                            # cv2.circle(cv_image_noted, (HoughCircle_x, HoughCircle_y), HoughCircle_r, (0, 255, 255), 1)   # Draw the circle
+                            cv2.circle(cv_image_noted, (HoughCircle_x, HoughCircle_y), 2, (0, 255, 255), 2)     # Draw the center        
+
+                            direction_vector = np.array([x2 - HoughCircle_x, y2 - HoughCircle_y])
+                            norm = np.linalg.norm(direction_vector)
+                            # prevent divide-by-zero
+                            if norm > 1e-5:
+                                direction_vector = direction_vector / norm * 20  # scale to 10 pixels
+                            else:
+                                direction_vector = np.array([0, 0], dtype=np.float32)
+                            #direction_vector = direction_vector / np.linalg.norm(direction_vector) * 10  # scale to 50 pixels
+                            arrow_tip = np.array([HoughCircle_x, HoughCircle_y]) + direction_vector
+                            cv2.arrowedLine(
+                                cv_image_noted,
+                                (int(HoughCircle_x), int(HoughCircle_y)),
+                                (int(arrow_tip[0]), int(arrow_tip[1])),
+                                (0, 255, 255), 2, tipLength=0.3
+                            )
+                            cv2.putText(cv_image_noted, f"CNN", (HoughCircle_x + 10, HoughCircle_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 255), 1)
+
             else:
                 distance_between_auv_and_buoy = None
 
@@ -889,7 +936,7 @@ class DetectionNode(Node):
                     (10, 430),     # top-left corner
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,          # font scale
-                    (0, 255, 255),  # color (white)
+                    (0, 255, 255),  # color (yellow)
                     1             # thickness
                 )
 
@@ -897,7 +944,7 @@ class DetectionNode(Node):
                 cv2.putText(
                     cv_image_noted,
                     distance_text,
-                    (10, 440),  # top-left corner, adjust as needed
+                    (10, 450),  # top-left corner, adjust as needed
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,        # font scale
                     (0, 255, 255),  # color (yellow)
