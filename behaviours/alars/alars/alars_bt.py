@@ -79,8 +79,7 @@ class AlarsBT():
                                            10)
             
             self._node.create_subscription(Float32,
-                                           #DJITopics.LOAD_CELL_WEIGHT_TOPIC,
-                                           "sensor/load_cell/raw",
+                                           DJITopics.LOAD_CELL_WEIGHT_TOPIC,
                                            self._load_cell_weight_cb,
                                            10)
             
@@ -104,7 +103,7 @@ class AlarsBT():
             self.auv_in_view : bool = False
 
 
-            self._node.declare_parameter('loaded_weight_kg', 1.0)
+            self._node.declare_parameter('loaded_weight_kg', 1.2)
             self.LOADED_WEIGHT_KG : float = self._node.get_parameter('loaded_weight_kg').get_parameter_value().double_value
             self._load_cell_weight : float|None = None
             self._node.declare_parameter('loaded_loadcell_raw', 300000)

@@ -153,7 +153,8 @@ bt_timeout:=5.0" C-m
 tmux new-window -t $SESSION:3 -n 'alars-bt'
 tmux rename-window "alars-bt"
 tmux select-window -t $SESSION:3
-tmux send-keys "ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME \
+-p loaded_weight_kg:=$LOADED_WEIGHT_KG" C-m
 
 
 # camera and detection node
