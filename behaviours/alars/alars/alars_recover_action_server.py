@@ -69,12 +69,12 @@ class RecoverAction():
             geopoint_SAM = GeoPoint()
             geopoint_SAM.latitude = goal_request['object_position']['latitude']
             geopoint_SAM.longitude = goal_request['object_position']['longitude']
-            geopoint_SAM.altitude = goal_request['object_position']['altitude']
+            geopoint_SAM.altitude = float(goal_request['object_position']['altitude'])
 
             geopoint_buoy = GeoPoint()
             geopoint_buoy.latitude = goal_request['buoy_position']['latitude']
             geopoint_buoy.longitude = goal_request['buoy_position']['longitude']
-            geopoint_buoy.altitude = goal_request['buoy_position']['altitude']
+            geopoint_buoy.altitude = float(goal_request['buoy_position']['altitude'])
 
             self.min_height_above_water = float(goal_request["min_height_above_water"])
             self.swoop_vertical = float(goal_request["swoop_vertical"])

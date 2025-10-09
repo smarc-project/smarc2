@@ -51,3 +51,6 @@
 	path = messages/psdk_interfaces
 	url = git@github.com:KKalem/psdk_interfaces.git
 	branch = interfaces_only
+[submodule "drivers/nau7802_ros2_driver"]
+	path = drivers/nau7802_ros2_driver
+	url = git@github.com:smarc-project/nau7802_ros2_driver.git

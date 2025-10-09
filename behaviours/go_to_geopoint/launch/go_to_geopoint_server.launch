@@ -8,6 +8,7 @@
   <arg name="setpoint_tolerance" default="0.25"/>
   <arg name="setpoint_topic" default="go_to_setpoint"/>
   <arg name="goal_threshold" default="10.0"/>
+  <arg name="use_sim_time" default="false"/>
 
   <!-- Node for the Geopoint Server -->
   <node name="geopoint_server" pkg="go_to_geopoint" exec="server" output="screen" namespace="$(var robot_name)">
@@ -19,5 +20,6 @@
     <param name="setpoint_tolerance" value="$(var setpoint_tolerance)"/>
     <param name="setpoint_topic" value="$(var setpoint_topic)"/>
     <param name="goal_threshold" value="$(var goal_threshold)"/>
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
   </node>
 </launch>
