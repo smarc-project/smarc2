@@ -588,6 +588,15 @@ class DjiCaptain():
     def _speak(self, msg: str):
         self._speak_pub.publish(String(data=msg))
 
+    def _pub_flu_vel_joy(self, joy: list[float]):
+        if abs(joy[0]) < 1e-5 or abs(joy[1]) < 1e-5 or abs(joy[2]) < 1e-5:
+            # publishing 0s on F,L,U axes crashes the PSDK bridge...
+            return
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = joy
+        self._FLU_vel_joy_pub.publish(joy_msg)
+
     def _controller_callback(self, msg: Joy):
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
             # malformed...
@@ -683,8 +692,7 @@ class DjiCaptain():
             joy_msg.header.stamp = self.now_stamp
             if self._control_mode == ControlModes.FLUvel:
                 # DJI expects Axes: [forward, left, up, yawrate]
-                joy_msg.axes = [RV, RH, LV, LH]
-                self._FLU_vel_joy_pub.publish(joy_msg)
+                self._pub_flu_vel_joy([RV, RH, LV, LH])
 
             elif self._control_mode == ControlModes.ENUvel:
                 self.log("Moving with ENU velocity control mode, be careful! Right stick is real East/North!")
@@ -791,14 +799,11 @@ class DjiCaptain():
         joy_net = (1 - r_sigma) * joy_net + r_sigma * self._prev_joy_output
         joy_net = self._normalize_max_speed(joy_net)
 
-        joy_msg = Joy()
-        joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
-        joy_msg.buttons = []
-
-        self.log(f"Moving towards setpoint with FLUvel joy: {joy_msg.axes}")
-        self._FLU_vel_joy_pub.publish(joy_msg)
+        J = [joy_net[0], joy_net[1], joy_net[2], 0.0]
+        self._pub_flu_vel_joy(J)
+        self.log(f"Moving towards setpoint with FLUvel joy: {J}")
         self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
+
 
     def _normalize_max_speed(self, joy_net):
         joy_norm = np.linalg.norm(joy_net)
@@ -806,6 +811,7 @@ class DjiCaptain():
             joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
         return joy_net
     
+
     def _move_towards_setpoint_ENUpos(self):
         if self._move_to_setpoint is None or self.setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")

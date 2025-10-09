@@ -170,15 +170,15 @@ class LocalizeAction():
         # not done tracking, do P control i guess
         self._setpoint.header.stamp = self._node.get_clock().now().to_msg()
 
-        # IMPORTANT: x is left/right in image, y is up/down, but for robot, x is forward/backward, y is left/right
+        # IMPORTANT: x is right, y is down in image frames, for bodies, x is forward, y is left
+        # we assume the camera is mounted looking straight down, so in image: x is right and y is backward
         if abs(target_position.point.x) > self._TRACKING_TOLERANCE:
-            # minus sign, because positive x in image is right, but positive y in robot frame is left
-            self._setpoint.pose.position.y = -target_position.point.x * self._TRACKING_AGGRESSIVENESS
+            self._setpoint.pose.position.y = target_position.point.x * self._TRACKING_AGGRESSIVENESS
         else:
             self._setpoint.pose.position.y = 0.0
 
         if abs(target_position.point.y) > self._TRACKING_TOLERANCE:
-            self._setpoint.pose.position.x = -target_position.point.y * self._TRACKING_AGGRESSIVENESS
+            self._setpoint.pose.position.x = target_position.point.y * self._TRACKING_AGGRESSIVENESS
         else:
             self._setpoint.pose.position.x = 0.0
 
