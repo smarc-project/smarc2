@@ -8,6 +8,12 @@ import math
 class PosePublisher(Node):
     def __init__(self):
         super().__init__('pose_publisher')
+
+        from rclpy.parameter import Parameter
+        self.set_parameters([
+            Parameter('use_sim_time', Parameter.Type.BOOL, True)
+        ])
+        
         self.publisher_ = self.create_publisher(PoseStamped, '/M350/move_to_setpoint', 10)
         timer_period = 0.1  # 10 Hz
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -33,7 +39,7 @@ class PosePublisher(Node):
         # Example setpoint (you can change this as needed)
         msg.pose.position.x = 0.0
         msg.pose.position.y = -15.0 # 0.0 #-15.0   # auv position
-        msg.pose.position.z = 6.0 # 1.0 # 5.0  #8.7
+        msg.pose.position.z = 7.0 # 8.7 # 1.0 # 5.0  #8.7
 
 
         # Orientation: yaw = 45° east
