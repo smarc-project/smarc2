@@ -34,6 +34,10 @@ class LocalizeAction():
         self._node.declare_parameter('tracking_aggressiveness', 1.0)
         self._TRACKING_AGGRESSIVENESS : float = self._node.get_parameter('tracking_aggressiveness').get_parameter_value().double_value
 
+        self._node.declare_parameter('wait_before_motion', 1.0)
+        self._WAIT_BEFORE_MOTION : float = self._node.get_parameter('wait_before_motion').get_parameter_value().double_value
+        self._started_action_time : float = 0.0
+
         self._auv_position : PointStamped = PointStamped()
         self._buoy_position : PointStamped = PointStamped()
         self._auv_altitude : float = 0.0
@@ -126,15 +130,19 @@ class LocalizeAction():
         self._loginfo("Cancelled.")
         self._reset()
         return True
-    
+
+    def _now_float(self) -> float:
+        now_stamp = self._node.get_clock().now().to_msg()
+        return now_stamp.sec + now_stamp.nanosec * 1e-9
+
     def _prepare_loop(self) -> None:
         # nothing to prepare for this, goal check already made sure
         # we have the necessary detections
+        self._started_action_time = self._now_float()
         return
     
     def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        now_stamp = self._node.get_clock().now().to_msg()
-        return (now_stamp.sec - msg.header.stamp.sec) + (now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > age_s
+        return self._now_float() - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
 
     def _loop_inner(self) -> bool|None:
         """
@@ -151,6 +159,11 @@ class LocalizeAction():
             self._loginfo("Not tracking anything, finishing with success.")
             self._reset()
             return True
+        
+        # wait a bit before starting to move, to let the gimbal stabilize
+        if self._now_float() - self._started_action_time < self._WAIT_BEFORE_MOTION:
+            self._loginfo("Waiting before motion...")
+            return None
 
         target_position = self._auv_position if self._track_auv else self._buoy_position
 
@@ -170,15 +183,15 @@ class LocalizeAction():
         # not done tracking, do P control i guess
         self._setpoint.header.stamp = self._node.get_clock().now().to_msg()
 
-        # IMPORTANT: x is left/right in image, y is up/down, but for robot, x is forward/backward, y is left/right
+        # IMPORTANT: x is right, y is down in image frames, for bodies, x is forward, y is left
+        # we assume the camera is mounted looking straight down, so in image: x is right and y is backward
         if abs(target_position.point.x) > self._TRACKING_TOLERANCE:
-            # minus sign, because positive x in image is right, but positive y in robot frame is left
-            self._setpoint.pose.position.y = -target_position.point.x * self._TRACKING_AGGRESSIVENESS
+            self._setpoint.pose.position.y = target_position.point.x * self._TRACKING_AGGRESSIVENESS
         else:
             self._setpoint.pose.position.y = 0.0
 
         if abs(target_position.point.y) > self._TRACKING_TOLERANCE:
-            self._setpoint.pose.position.x = -target_position.point.y * self._TRACKING_AGGRESSIVENESS
+            self._setpoint.pose.position.x = target_position.point.y * self._TRACKING_AGGRESSIVENESS
         else:
             self._setpoint.pose.position.x = 0.0
 

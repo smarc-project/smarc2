@@ -114,7 +114,8 @@ tmux select-pane -t $SESSION:1.1
 tmux send-keys "ros2 run alars alars_localize_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p tracking_tolerance:=0.1 \
--p tracking_aggressiveness:=3.0" C-m
+-p tracking_aggressiveness:=3.0 \
+-p wait_before_motion:=1.0" C-m
 
 tmux select-pane -t $SESSION:1.2
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2
@@ -149,10 +150,12 @@ bt_timeout:=5.0" C-m
 
 
 # alars-bt
+LOADED_WEIGHT_KG=1.2 # real empty sam + hook + rope weight is 1.78kg, just the hook and rope is 0.79kg
 tmux new-window -t $SESSION:3 -n 'alars-bt'
 tmux rename-window "alars-bt"
 tmux select-window -t $SESSION:3
-tmux send-keys "ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME \
+-p loaded_weight_kg:=$LOADED_WEIGHT_KG" C-m
 
 
 # camera and detection node
@@ -199,6 +202,14 @@ if [[ $USE_SIM_TIME = "True" ]]; then
         tmux select-pane -t $SESSION:9.1
         tmux send-keys "mosquitto -p $MQTT_PORT" C-m
     fi
+fi
+
+if [[ $USE_SIM_TIME = "False" ]]; then
+    # new window for load_cell_driver
+    tmux new-window -t $SESSION:7 -n 'LoadCell'
+    tmux rename-window "LoadCell"
+    tmux select-window -t $SESSION:7
+    tmux send-keys "ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/$ROBOT_NAME" C-m
 fi
 
 # Set default window to either the captain 
