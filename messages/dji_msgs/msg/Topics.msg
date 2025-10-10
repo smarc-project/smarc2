@@ -18,6 +18,7 @@ string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy' # PointStamped
 string ESTIMATED_AUV_TOPIC = 'alars_detection/auv' # PointStamped
 string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle' # PointStamped
 string ESTIMATED_CNN_TOPIC = 'alars_detection/cnn' # PointStamped
+string ESTIMATED_CNN_VEC_TOPIC = 'alars_detection/cnn_vec' # PointStamped
 
 # services
 string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger

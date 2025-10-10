@@ -162,8 +162,10 @@ class DetectionNode(Node):
         self.middle_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_MIDDLE_TOPIC, 10)
 
         # Before Catching, anchor point [P1x, P1y]
-        # After Catching, uav flys point [P2x, P2y]
-        self.cnn_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_TOPIC, 10)   # [P1x, P1y, P2x, P2y]
+        # After Catching, uav flys vector [P2x, P2y]
+        self.cnn_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_TOPIC, 10)       # [P1x, P1y] 
+        self.cnn_vec_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_VEC_TOPIC, 10)   # [P2x, P2y]
+
 
         # Subscriber
         self.subscription = self.create_subscription(
@@ -366,10 +368,8 @@ class DetectionNode(Node):
 
             for cnt in contours:
                 area = cv2.contourArea(cnt)
-                
                 # if area < self.buoy_min_area:
                 #     continue
-                
                 # # Skip contours that are too large
                 # if area > self.buoy_max_area:
                 #     continue
@@ -452,7 +452,6 @@ class DetectionNode(Node):
             if self.cnn_detector > 0:
                 preview_auv_initial = preview_auv.copy()
 
-
             # Find contours
             contours, _ = cv2.findContours(hsv_thresh_auv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -466,10 +465,8 @@ class DetectionNode(Node):
 
                 for cnt in contours:
                     area = cv2.contourArea(cnt)
-
                     # if area < self.auv_min_area:
                     #     continue
-
                     # # Skip contours that are too large
                     # if area > self.auv_max_area:
                     #     continue
@@ -648,13 +645,10 @@ class DetectionNode(Node):
             #cv2.imshow('preview_rope', preview_rope)
             preview_rope_multi = preview_rope.copy()
 
-
             self.rope_img_buffer.append(preview_rope_multi)
             for img_tmp in self.rope_img_buffer:
                 preview_rope_multi = cv2.add(preview_rope_multi, img_tmp)
             #cv2.imshow("N frames rope detect", preview_rope_multi)
-
-
 
             # Apply dilation to connect fragmented rope segments
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin
@@ -683,11 +677,6 @@ class DetectionNode(Node):
                 if self.cnn_detector > 0:
                     HoughCircle_x, HoughCircle_y, HoughCircle_r = biggest_circle
 
-                # publish center and radius
-                #hough_position_msg = Float32MultiArray()
-                #hough_position_msg.data = [float(cx), float(cy), float(r)]  # Publish the center and radius of Hough circle
-                #self.hough_pub.publish(hough_position_msg)
-
             #cv2.imshow("Hough Circle", rope_dilated)
 
         ######################################################################################### CNN 
@@ -709,8 +698,8 @@ class DetectionNode(Node):
             foreground = cv2.bitwise_and(preview_buoy_auv, preview_buoy_auv, mask=mask)
             # Combine both — buoy_auv on top
             buoy_auv_rope_preview = cv2.add(background, foreground)
-            
-            cv2.imshow('The input image of CNN: Buoy, AUV and Rope', buoy_auv_rope_preview)
+            if self.debug_imshow >=2:
+                cv2.imshow('The input image of CNN: Buoy, AUV and Rope', buoy_auv_rope_preview)
             # --- ---------------------------------- ---
 
 
@@ -782,16 +771,10 @@ class DetectionNode(Node):
             cv2.circle(original_image, (x2, y2), 6, (0, 0, 255), -1)  # P2: Red
             cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-            #cnn_predict_msg = Int32MultiArray()
-            #cnn_predict_msg.data = [x1, y1, x2, y2]  # Publish the center and radius of Hough circle
-            #self.cnn_pub.publish(cnn_predict_msg)
-
             # Show image with overlay
-            cv2.imshow("Anchor Points Prediction", original_image)
-            cv2.waitKey(1)
+            #cv2.imshow("Anchor Points Prediction", original_image)
+            #cv2.waitKey(1)
 
-            #self.get_logger().info(f"Predicted Points: ({x1}, {y1}), ({x2}, {y2})")
 
             # CNN Publisher Threshold Logic:
             # Threshold 1: Both buoy and AUV must be detected.
@@ -825,11 +808,11 @@ class DetectionNode(Node):
                             norm = np.linalg.norm(direction_vector)
                             # Prevent divide-by-zero and scale vector
                             if norm > 1e-5:
-                                direction_vector = direction_vector / norm * 20  # scale to 10 pixels
+                                direction_vector = direction_vector / norm 
                             else:
                                 direction_vector = np.array([0, 0], dtype=np.float32)
-                            #direction_vector = direction_vector / np.linalg.norm(direction_vector) * 10  # scale to 50 pixels
-                            arrow_tip = np.array([HoughCircle_x, HoughCircle_y]) + direction_vector
+                            #direction_vector = direction_vector / np.linalg.norm(direction_vector) 
+                            arrow_tip = np.array([HoughCircle_x, HoughCircle_y]) + direction_vector* 20  # scale to 20 pixels
                             cv2.arrowedLine(
                                 cv_image_noted,
                                 (int(HoughCircle_x), int(HoughCircle_y)),
@@ -837,6 +820,26 @@ class DetectionNode(Node):
                                 (0, 255, 255), 2, tipLength=0.3
                             )
                             cv2.putText(cv_image_noted, f"CNN", (HoughCircle_x + 10, HoughCircle_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 255), 1)
+
+
+                            # Normalize coordinates between -1 and 1, with 0 at the image center
+                            img_h, img_w = cv_image.shape[:2]
+                            norm_cx = 2 * (HoughCircle_x / img_w) - 1
+                            norm_cy = 2 * (HoughCircle_y / img_h) - 1
+                            cnn_position_msg = PointStamped()
+                            cnn_position_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+                            cnn_position_msg.header.stamp = self.get_clock().now().to_msg()
+                            cnn_position_msg.point.x = float(norm_cx)
+                            cnn_position_msg.point.y = float(norm_cy)
+                            self.cnn_pub.publish(cnn_position_msg)
+
+
+                            cnn_vec_msg = PointStamped()
+                            cnn_vec_msg.header.frame_id = self._CAMERA_PIXELS_FRAME
+                            cnn_vec_msg.header.stamp = self.get_clock().now().to_msg()
+                            cnn_vec_msg.point.x = float(direction_vector[0])
+                            cnn_vec_msg.point.y = float(direction_vector[1])
+                            self.cnn_vec_pub.publish(cnn_vec_msg)
 
             else:
                 distance_between_auv_and_buoy = None
