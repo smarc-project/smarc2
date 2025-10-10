@@ -108,7 +108,7 @@ class DetectionNode(Node):
         )
 
         
-        # Minimum and maximum area thresholds at 8 meters, so you can intuitively estimate
+        # Minimum and maximum area thresholds at 8.7 meters, so you can intuitively estimate
         # what percentage of the image the buoy and AUV will occupy.
         # unit: meter
         self.initial_altitude = self.get_parameter('calibration_altitude').get_parameter_value().double_value  
@@ -129,20 +129,6 @@ class DetectionNode(Node):
         self.get_logger().info(f"AUV Area at Initial Altitude: {self.auv_area_percent_at_initial_altitude*100:.2f} %")
         self.get_logger().info(f"Sensitivity Area Percent: {self.sensitivity_area_percent*100:.2f} %")
         self.get_logger().info(f"Least Area Pixels: {self.least_area_pixels} pixels")
-
-        # Here, I set the area thresholds based on AUV height. 
-        # If the AUV height is less than 10 meters, buoy_min_area_by_height[0] is used. 
-        # If it is greater than 10 meters, buoy_min_area_by_height[1] is used. 
-        # Using the same logic, you can extend the thresholds to [10, 25, ...] 
-        # and define corresponding areas as self.buoy_min_area_by_height = [20, 10, 1, ...]
-
-        # self.auv_height = [10, 25]  # meters  
-        # self.buoy_min_area_by_height = [20, 10, 1]
-        # self.buoy_max_area_by_height = [800, 180, 150]
-
-        # self.auv_min_area_by_height = [180, 10, 1]
-        # self.auv_max_area_by_height = [1500, 800, 700]
-
 
         ################################################################################
         # Occasional Adjustments
