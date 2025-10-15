@@ -121,7 +121,6 @@ class DjiCaptain():
         self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLUvel_JOY.value, qos_profile=10)
         self._ENU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUvel_JOY.value, qos_profile=10)
         self._ENU_pos_joy_pub = node.create_publisher(Joy, PSDKTopics.ENUpos_JOY.value, qos_profile=10)
-        self._setpoint_received_at : float|None = None
         
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #Usually .5, set to 1 for sim testing seconds, how long we keep the move to setpoint before we consider it stale
         self._MAX_SETPOINT_DISTANCE : float = 50.0 # meters, max distance from current position to accept a move to setpoint
@@ -205,6 +204,8 @@ class DjiCaptain():
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         self._tf_pub_status = "Not published yet"
         self._smarc_pub_status = "Not published yet"
+
+        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
 
         # a simple TTS node should be listening to this (robot_name/speak)
         self._speak_pub = node.create_publisher(String, DjiTopics.TTS_TOPIC, qos_profile=10)
@@ -386,6 +387,14 @@ class DjiCaptain():
     def now_stamp(self):
         return self._node.get_clock().now().to_msg()
     
+    @property
+    def now_time(self):
+        return self.now_stamp.sec + self.now_stamp.nanosec * 1e-9
+    
+    @property
+    def setpoint_received_at(self) -> float|None:
+        return self._move_to_setpoint.header.stamp.sec + self._move_to_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_setpoint is not None else None
+    
     
     @property
     def status_str(self) -> str:
@@ -422,7 +431,12 @@ class DjiCaptain():
 
         s += f"\n  Got Control: {self._got_control}\n"
         s += f"  Control Mode: {self._control_mode.value}\n"
-        s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)}\n"
+        if self.setpoint_received_at is None and self._move_to_setpoint is None:
+            s += f"  No setpoint set.\n"
+        elif self.setpoint_received_at is None and self._move_to_setpoint is not None:
+            s += f"  Setpoint received time unknown, this is a bug! FIX THIS\n"
+        elif self.setpoint_received_at is not None and self._move_to_setpoint is not None:
+            s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)} ({self.now_time - self.setpoint_received_at:.2f}s ago)\n"
         s += f"  Flying: {self._flying}\n"
 
         if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
@@ -492,11 +506,20 @@ class DjiCaptain():
             self._move_to_setpoint = None
             return
         
+        msg_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        
+        # check if message time makes sense. sim time vs real time etc
+        if msg_time > self.now_time + 2.0:
+            s = f"Move to setpoint message time is >2s in the future, ignoring it. Probably because the publisher and captain have different time sources."
+            s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
+            self.log(s)
+            self._move_to_setpoint = None
+            return
+        
         # check if the message is too old
-        if (self.now_stamp.sec - msg.header.stamp.sec) + \
-           (self.now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+        if self.now_time - msg_time > self.MOVE_TO_SETPOINT_MAX_AGE:
             s = f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it."
-            s += f"\nCurrent time: {self.now_stamp.sec}.{self.now_stamp.nanosec}\nSetpoint Time: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}"
+            s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
             self.log(s)
             self._move_to_setpoint = None
             return
@@ -530,7 +553,6 @@ class DjiCaptain():
                abs(curr.y - new.y) > 1e-6 and \
                abs(curr.z - new.z) > 1e-6:
                 self.log(f"New move to setpoint received: {format_pose_stamped(msg)}")
-                self._setpoint_received_at = time.time()
 
         # Check if it is too far
         if self._base_pose_in_home is not None and self._move_to_setpoint is not None:
@@ -554,7 +576,6 @@ class DjiCaptain():
             elif self._control_mode == ControlModes.ENUpos:
                 self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_ENUpos)
 
-            self._setpoint_received_at = time.time()
             self.log("Joy timer started to move with joy.")
 
 
@@ -566,6 +587,16 @@ class DjiCaptain():
         
     def _speak(self, msg: str):
         self._speak_pub.publish(String(data=msg))
+
+    def _pub_flu_vel_joy(self, joy: list[float]):
+        if abs(joy[0]) < 1e-5 and abs(joy[1]) < 1e-5 and abs(joy[2]) < 1e-5:
+            # publishing 0s on F,L,U axes crashes the PSDK bridge...
+            self.log("Not publishing zero joy on FLU velocity, ignoring.")
+            return
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = joy
+        self._FLU_vel_joy_pub.publish(joy_msg)
 
     def _controller_callback(self, msg: Joy):
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
@@ -662,8 +693,7 @@ class DjiCaptain():
             joy_msg.header.stamp = self.now_stamp
             if self._control_mode == ControlModes.FLUvel:
                 # DJI expects Axes: [forward, left, up, yawrate]
-                joy_msg.axes = [RV, RH, LV, LH]
-                self._FLU_vel_joy_pub.publish(joy_msg)
+                self._pub_flu_vel_joy([RV, RH, LV, LH])
 
             elif self._control_mode == ControlModes.ENUvel:
                 self.log("Moving with ENU velocity control mode, be careful! Right stick is real East/North!")
@@ -693,7 +723,6 @@ class DjiCaptain():
         
         
     def _cancel_joy_timer(self):
-        self._setpoint_received_at = None
         self._move_to_setpoint = None
         self._prev_joy_output = None
         self.log("Setpoint discarded.")
@@ -702,24 +731,16 @@ class DjiCaptain():
             self._joy_timer = None
             self.log("Joy timer cancelled.")
 
-        # send a zero joy message to stop the vehicle
-        zero_joy = Joy()
-        zero_joy.header.stamp = self.now_stamp
-        self._FLU_vel_joy_pub.publish(zero_joy)
-
-
 
     def _move_towards_setpoint_FLUvel(self):
 
-        if self._move_to_setpoint is None or self._setpoint_received_at is None:
+        if self._move_to_setpoint is None or self.setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             self._cancel_joy_timer()
             return
-        
-        if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
-           (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+
+        if self.now_time - self.setpoint_received_at > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
-            self._move_to_setpoint = None
             self._cancel_joy_timer()
             return
         
@@ -730,7 +751,6 @@ class DjiCaptain():
         
         if(self._velocity_ground == None):
             self.log(f"Ground Velocity not defined, cancelling Joy")
-            self._move_to_setpoint = None
             self._cancel_joy_timer()
             return
         
@@ -780,13 +800,11 @@ class DjiCaptain():
         joy_net = (1 - r_sigma) * joy_net + r_sigma * self._prev_joy_output
         joy_net = self._normalize_max_speed(joy_net)
 
-        joy_msg = Joy()
-        joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
-        joy_msg.buttons = []
-
-        self._FLU_vel_joy_pub.publish(joy_msg)
+        J = [joy_net[0], joy_net[1], joy_net[2], 0.0]
+        self._pub_flu_vel_joy(J)
+        self.log(f"Moving towards setpoint with FLUvel joy: {J}")
         self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
+
 
     def _normalize_max_speed(self, joy_net):
         joy_norm = np.linalg.norm(joy_net)
@@ -794,8 +812,9 @@ class DjiCaptain():
             joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
         return joy_net
     
+
     def _move_towards_setpoint_ENUpos(self):
-        if self._move_to_setpoint is None or self._setpoint_received_at is None:
+        if self._move_to_setpoint is None or self.setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
             self._cancel_joy_timer()
             return
@@ -805,8 +824,7 @@ class DjiCaptain():
             self._cancel_joy_timer()
             return
         
-        if (self.now_stamp.sec - self._move_to_setpoint.header.stamp.sec) + \
-           (self.now_stamp.nanosec - self._move_to_setpoint.header.stamp.nanosec) * 1e-9 > self.MOVE_TO_SETPOINT_MAX_AGE:
+        if self.now_time - self.setpoint_received_at > self.MOVE_TO_SETPOINT_MAX_AGE:
             self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
             self._move_to_setpoint = None
             self._cancel_joy_timer()
@@ -1061,7 +1079,7 @@ class DjiCaptain():
         gps_ok = self._gps_point_in_home is not None and self._home_point_in_utm is not None
         battery_ok = self._battery_percent is not None and self._battery_percent > self.READY_BATTERY_PERCENTAGE
         control_ok = self._got_control
-        weight_ok = self._load_cell_weight is not None and self._load_cell_weight < self._MAX_LOAD_KG
+        weight_ok = self._load_cell_weight is None or self._load_cell_weight < self._MAX_LOAD_KG
 
         if all([position_ok, gps_ok, battery_ok, control_ok, weight_ok]):
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
@@ -1279,6 +1297,9 @@ class DjiCaptain():
 
         if self._battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self._battery_percent))
+
+        if self._utm_labeled_frame is not None:
+            self._labeled_utm_frame_pub.publish(String(data=self._utm_labeled_frame))
                         
         
 

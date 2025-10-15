@@ -88,6 +88,7 @@ class DiveSub():
         self._received_states = False
 
         self._states_in_mocap = Odometry()
+        self._transformed_state_to_mocap = False
 
         self._control_input = {} 
         self._control_input['vbs'] = self.param['vbs_u_neutral']
@@ -243,6 +244,8 @@ class DiveSub():
         self._waypoint_in_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link_global)
 
     def _transform_state(self):
+        #self._loginfo(f"states_in_mocap: {self._states_in_mocap}")
+        # FIXME: This is never true, because we initialize self._states as Odometry...
         if self._states is None:
             return
 
@@ -251,6 +254,8 @@ class DiveSub():
 
         self._states_in_mocap.header.frame_id = self._waypoint_global.header.frame_id
         self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_global_odom)
+
+        self._transformed_state_to_mocap = True
 
 
     # Get methods
@@ -298,7 +303,7 @@ class DiveSub():
         # state you're interested in, then you can get them
         # directly.
         #return self._states
-        if self._received_states:
+        if self._transformed_state_to_mocap:
             return self._states_in_mocap
         else: 
             return None
@@ -442,6 +447,7 @@ class DiveSub():
         self._update_tf()
         self._transform_wp()
         self._transform_state()
+        #self._loginfo(f"Dive Sub update loop")
 
 
 
