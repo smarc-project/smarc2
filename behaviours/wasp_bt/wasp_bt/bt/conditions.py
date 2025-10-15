@@ -137,7 +137,7 @@ class C_NoEmergencyAbortSignalDetected(Behaviour):
 
 from smarc_msgs.msg import Topics
 
-class C_LastHealthy(Behaviour):
+class C_HealthNodeAlive(Behaviour):
     def __init__(self, wara_ps_task_handler: WaraPSTaskHandler, timeout: float = 10.0):
         """
         Returns S if the last healthy status is ok

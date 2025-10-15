@@ -357,7 +357,7 @@ class WaraPSTaskHandler:
         self._node.get_logger().info(f"Received command: {command}")
 
         # Refuse starts or signals if emergency flag is up
-        if (self.emergency_flag) and command["command"] in ["start-task", "signal-task"]:
+        if (self.emergency_flag) and command["command"] in ["start-task"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -367,10 +367,10 @@ class WaraPSTaskHandler:
             msg = String()
             msg.data = json.dumps(response_msg)
             self._wara_ps_exec_response_pub.publish(msg)
-            self._node.get_logger().warn("Rejected start/signal command due to emergency flag.")
+            self._node.get_logger().warn("Rejected start command due to emergency flag.")
             return
         # refuse start or signal if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task", "signal-task"]:
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),
@@ -380,7 +380,7 @@ class WaraPSTaskHandler:
             msg = String()
             msg.data = json.dumps(response_msg)
             self._wara_ps_exec_response_pub.publish(msg)
-            self._node.get_logger().warn(f"Rejected start/signal command due to vehicle health status: {self.health_status}.")
+            self._node.get_logger().warn(f"Rejected start command due to vehicle health status: {self.health_status}.")
             return
 
         # handle ping command
@@ -669,7 +669,7 @@ class WaraPSTaskHandler:
             return
         
         # Refuse starts or signals if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-tst", "signal-unit"]:
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-tst"]:
             response_msg = {
                 "agent-uuid": self._wara_ps_dict["agent-uuid"],
                 "com-uuid": command.get("com-uuid", ""),

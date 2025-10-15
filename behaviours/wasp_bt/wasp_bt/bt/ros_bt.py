@@ -33,7 +33,7 @@ from .conditions import C_TaskIs,\
                         C_AbortedPreviousTask,\
                         C_NoEmergencyAbortSignalDetected,\
                         C_VehicleHealthStatus,\
-                        C_LastHealthy,\
+                        C_HealthNodeAlive,\
                         C_HasHeardFromVehicleHealth
 
 from .actions import A_Abort,\
@@ -102,7 +102,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         health_checks = Fallback("F_Health_Handler", memory=False, children=[
             Sequence("S_Health_Status", memory=False, children=[
                 # C_HasHeardFromVehicleHealth(self._task_handler),  # check if the vehicle health returns SUCCESS (Vehicle is ready)
-                C_LastHealthy(self._task_handler, timeout=self._bt_health_timeout),  # check if the last heartbeat was within 10 seconds
+                C_HealthNodeAlive(self._task_handler, timeout=self._bt_health_timeout),  # check if the last heartbeat was within 10 seconds
                 Fallback("F_Health_Checks", memory=False, children=[
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_READY),
                     C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),
