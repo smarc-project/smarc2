@@ -203,6 +203,7 @@ class DetectionNode(Node):
         # CNN Initialization
 
         self.model = AnchorPointCNN()
+        model_path = '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
 
         # # Why only abolute path can work ? 
         # # Get the directory of the current Python file
@@ -216,9 +217,23 @@ class DetectionNode(Node):
         # # Load the model
         # self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
-        self.model.load_state_dict(torch.load('/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
+        #self.model.load_state_dict(torch.load('/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
         #self.model.load_state_dict(torch.load('anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
+        # https://purdue0-my.sharepoint.com/:f:/g/personal/wu1714_purdue_edu/EipFkxfwAChCs9_pB7qYX7oBZJphrxCcef63-rTvEa2O2g?e=liMWBs
+        
+        try:
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model file not found at: {model_path}")
+            
+            self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+            self.model.eval()
+            self.get_logger().info(f"AnchorPointCNN model loaded successfully from {model_path}")
 
+        except FileNotFoundError as e:
+            self.get_logger().error(f"ERROR: {e}")
+        except Exception as e:
+            self.get_logger().error(f"Unexpected error while loading CNN model: {e}")
+        
         self.model.eval()
 
         self.input_size = (224, 224)
