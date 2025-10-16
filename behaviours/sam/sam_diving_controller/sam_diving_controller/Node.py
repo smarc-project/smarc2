@@ -4,9 +4,9 @@ import rclpy
 from rclpy.node import Node
 import sys
 
-from controllers.DiveControllerPID import DiveControllerPID
-from controllers.DiveControllerMPC import DiveControllerMPC
-from controllers.DiveControllerJoyPID import DiveControllerJoyPID
+from .controllers.DiveControllerPID import DiveControllerPID
+from .controllers.DiveControllerMPC import DiveControllerMPC
+from .controllers.DiveControllerJoyPID import DiveControllerJoyPID
 from .ParamUtils import DivingModelParam
 from .SAMDivePub import SAMDivePub
 from .ActionServerDiveSub import DiveActionServerSub, PathServer, HydropointServer

@@ -146,7 +146,7 @@ robot_name:=$ROBOT_NAME \
 agent_type:=$AGENT_TYPE \
 pulse_rate:=$PULSE_RATE \
 use_sim_time:=$USE_SIM_TIME \
-bt_timeout:=5.0" C-m
+bt_health_timeout:=5.0" C-m
 
 
 # alars-bt
