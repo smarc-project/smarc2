@@ -6,10 +6,6 @@ The `auv_detector` package is responsible for performing perception and estimati
 
 This package contains different modules for sensor fusion, state prediction, and data filtering. The estimators and detection methods can be launched separately or together based on the use case.
 
-## Usage
-Run: `ros2 run auv_detector auv_buoy_detector --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME`
-
-
 ## Dependencies
 
 ### System Requirements
@@ -29,22 +25,18 @@ Ensure that the following ROS 2 packages are installed:
 - `sensor_msgs`
 - `geometry_msgs`
 - `tf2_ros` (for TF tree manipulation)
-- `dji_msgs`
+- `drone_msgs`
 You can install msg by  
 ```bash
 cd /home/user/colcon_ws
-colcon build --packages-select dji_msgs
+colcon build --packages-select drone_msgs
 source install/setup.bash
 ```
 
 ### External Tools/Hardware:
-- The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and the data is fused to make a global georeferenced estimate of the AUV.
+- The drone needs to be set up to provide real-time data such as depth sensor and camera, published to the correct topics in ROS 2 for proper state estimation. The estimator publishes a detection in the camera space whose subscription callback is where the estimator is called and an the data is fused to make a gloval georeferenced estimate of the AUV.
 
 ---
-
-
-# Outdated
-**The following bits need some cleanup...**
 
 ## Nodes
 
@@ -84,6 +76,21 @@ This script implements the EKF, which operates similarly to the Kalman Filter bu
 - The system dynamics and measurements are **non-linear**, meaning that a direct application of the Kalman Filter would be inaccurate.
 - The EKF works by **linearizing** the non-linear models at each time step using Jacobians.
 - In this context, the EKF is used for estimating the position of an AUV/ROV relative to a drone, where the **measurement model** converts feedback from **image space** (e.g., visual data) to real-world coordinates.
+
+---
+
+### **4. hook_estimator.py**
+
+#### **Purpose**
+- Estimates the swinging hook position compared to the quadrotor body. Validates the results through plots and RMSE. Publishes 'alars_detection/hook_est' and 'alars_detection/hook_ekf'.
+
+#### **Description**
+This script implements a pipeline to get the hook position from the feed of a single camera and rope length. Specifically:
+- The rope length is set as a parameter (in the future could take topic). Other important parameters to set before usage are rope color and camera intrinsic matrix.
+- The feed from the camera is filtered in order to get the rope tip (through triangle fitting or Hough lines)
+- The rope tip in pixel is converted into 3D position in different frames
+- The estimation obtained is filtered using basic EKF
+- Estimation and EKF are plotted against ground truth, and RMSE is calculated
 
 ---
 
@@ -129,6 +136,23 @@ ros2 launch auv_detector estimator_detector_auto_winch.launch
 ```
 This is Li-Fan's method, which simultaneously detects the rope and AUV, and suggests the UAV hooking point and flight direction.
 
+### 3. `hook_estimator.launch`
+This launch file starts only the `hook_estimator_node`, which executes the hook_estimator.py script.
+
+#### Usage
+1. Open Unity and start the simulation.
+2. Click the `Game` tab, then click `Connect` in the upper-right corner.
+3. Open a terminal and run:
+
+```bash
+cd /colcon_ws/src/smarc2/scripts
+/colcon_ws/src/smarc2/scripts$ ./unity_ros_bridge.sh 
+```
+Open the second terminal.  
+
+```bash
+ros2 launch auv_detector hook_estimator.launch
+```
 
 ---
 
@@ -176,29 +200,10 @@ When set it False, the detector will use the real-time simulation in Unity.
 
 ---
 
-## CNN AUV-Buoy Rope Detector
-2025.Sep.23, move files to simulation/cnn/
-
-```bash
-python3 save_img_for_cnn_training.py
-```
-
-
-## Visual UAV Hook Detector 
-
-
-
-
----
 ## Maintainer
 
 **Aryan Dolas**
 - Email: aryand@kth.se
-
-**LiFan**
-- Email: keystoradio@gmail.com
-
-
 
 Feel free to contribute, report issues, or suggest improvements!
 

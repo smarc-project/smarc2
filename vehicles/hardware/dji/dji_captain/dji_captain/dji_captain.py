@@ -147,6 +147,7 @@ class DjiCaptain():
         self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
         self._utm_labeled_frame : str | None = None
         self.GIMBAL_FRAME = self._TF_NS + DjiLinks.GIMBAL_CAMERA_LINK
+        self.WINCH_FRAME = self._TF_NS + DjiLinks.WINCH_LINK
 
 
         self._base_pose_in_home : PoseStamped | None = None
@@ -588,16 +589,6 @@ class DjiCaptain():
     def _speak(self, msg: str):
         self._speak_pub.publish(String(data=msg))
 
-    def _pub_flu_vel_joy(self, joy: list[float]):
-        if abs(joy[0]) < 1e-5 and abs(joy[1]) < 1e-5 and abs(joy[2]) < 1e-5:
-            # publishing 0s on F,L,U axes crashes the PSDK bridge...
-            self.log("Not publishing zero joy on FLU velocity, ignoring.")
-            return
-        joy_msg = Joy()
-        joy_msg.header.stamp = self.now_stamp
-        joy_msg.axes = joy
-        self._FLU_vel_joy_pub.publish(joy_msg)
-
     def _controller_callback(self, msg: Joy):
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
             # malformed...
@@ -693,7 +684,8 @@ class DjiCaptain():
             joy_msg.header.stamp = self.now_stamp
             if self._control_mode == ControlModes.FLUvel:
                 # DJI expects Axes: [forward, left, up, yawrate]
-                self._pub_flu_vel_joy([RV, RH, LV, LH])
+                joy_msg.axes = [RV, RH, LV, LH]
+                self._FLU_vel_joy_pub.publish(joy_msg)
 
             elif self._control_mode == ControlModes.ENUvel:
                 self.log("Moving with ENU velocity control mode, be careful! Right stick is real East/North!")
@@ -730,6 +722,12 @@ class DjiCaptain():
             self._joy_timer.cancel()
             self._joy_timer = None
             self.log("Joy timer cancelled.")
+
+        # send a zero joy message to stop the vehicle
+        zero_joy = Joy()
+        zero_joy.header.stamp = self.now_stamp
+        self._FLU_vel_joy_pub.publish(zero_joy)
+
 
 
     def _move_towards_setpoint_FLUvel(self):
@@ -800,11 +798,13 @@ class DjiCaptain():
         joy_net = (1 - r_sigma) * joy_net + r_sigma * self._prev_joy_output
         joy_net = self._normalize_max_speed(joy_net)
 
-        J = [joy_net[0], joy_net[1], joy_net[2], 0.0]
-        self._pub_flu_vel_joy(J)
-        self.log(f"Moving towards setpoint with FLUvel joy: {J}")
-        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
+        joy_msg = Joy()
+        joy_msg.header.stamp = self.now_stamp
+        joy_msg.axes = [joy_net[0], joy_net[1], joy_net[2], 0.0]  # Axes: [forward, left, up/down, yaw]
+        joy_msg.buttons = []
 
+        self._FLU_vel_joy_pub.publish(joy_msg)
+        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
 
     def _normalize_max_speed(self, joy_net):
         joy_norm = np.linalg.norm(joy_net)
@@ -812,7 +812,6 @@ class DjiCaptain():
             joy_net = joy_net / joy_norm * self.JOY_PUB_MAX
         return joy_net
     
-
     def _move_towards_setpoint_ENUpos(self):
         if self._move_to_setpoint is None or self.setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
@@ -1139,6 +1138,21 @@ class DjiCaptain():
         gimbal_in_base.header.frame_id = self.BASE_FLAT_FRAME
         gimbal_in_base.child_frame_id = self.GIMBAL_FRAME
         tf_msg.transforms.append(gimbal_in_base)
+
+        # sam as above, winch in base_link
+        winch_in_base = TransformStamped()
+        winch_in_base.header.stamp = now
+        winch_in_base.header.frame_id = self.BASE_FLAT_FRAME
+        winch_in_base.child_frame_id = self.WINCH_FRAME
+        # Set correct offset for winch_link:
+        winch_in_base.transform.translation.x = 0.0  # example values
+        winch_in_base.transform.translation.y = 0.0
+        winch_in_base.transform.translation.z = 0.5
+        winch_in_base.transform.rotation.x = 0.0
+        winch_in_base.transform.rotation.y = 0.0
+        winch_in_base.transform.rotation.z = 0.0
+        winch_in_base.transform.rotation.w = 1.0
+        tf_msg.transforms.append(winch_in_base)
 
         if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
