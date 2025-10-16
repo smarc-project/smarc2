@@ -149,8 +149,8 @@ class DetectionNode(Node):
 
         # Before Catching, anchor point [P1x, P1y]
         # After Catching, uav flys vector [P2x, P2y]
-        self.cnn_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_TOPIC, 10)       # [P1x, P1y] 
-        self.cnn_vec_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_VEC_TOPIC, 10)   # [P2x, P2y]
+        self.cnn_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_HOOK_ANCHOR_TOPIC, 10)       # [P1x, P1y] 
+        self.cnn_vec_pub = self.create_publisher(PointStamped, Topics.ESTIMATED_CNN_AFTER_CATCH_FLY_DIRECTION_TOPIC, 10)   # [P2x, P2y]
 
 
         # Subscriber

@@ -12,6 +12,21 @@ Run: `ros2 run auv_detector auv_buoy_detector --ros-args -r __ns:=/$ROBOT_NAME -
 
 ## Dependencies
 
+
+### Handling Complex Rope Pattern Scenarios
+
+To enable the CNN-based detector for complex rope patterns:
+
+1. Open either `auv_detector_sim_calibration.yaml` or `auv_detector_field_calibration.yaml`.  
+2. Set the parameter:
+
+   ```yaml
+   enable_rope_detector: 1
+   enable_cnn_detector: 1
+
+3. Download the CNN model file (`.pth`) from the following link: [Link](https://purdue0-my.sharepoint.com/:f:/g/personal/wu1714_purdue_edu/EipFkxfwAChCs9_pB7qYX7oBZJphrxCcef63-rTvEa2O2g?e=zMG8hA)
+
+
 ### System Requirements
 
 - ROS 2 Humble (or later)
