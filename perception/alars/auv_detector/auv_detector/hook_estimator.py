@@ -45,7 +45,7 @@ class hook_estimator(Node):
         self.declare_parameter('enabled', True)
         self.declare_parameter('robot_name', 'Quadrotor')
         self.declare_parameter('enable_visualization', True)
-        self.declare_parameter('current_length', 5.0) 
+        self.declare_parameter('rope_length', 5.0) 
 
         self.enabled = self.get_parameter('enabled').value
         self.robot_name = self.get_parameter('robot_name').value

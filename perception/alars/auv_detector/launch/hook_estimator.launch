@@ -3,7 +3,7 @@
     <arg name="use_sim_time" default="true"/>
     <arg name="enabled" default="true"/>
     <arg name="enable_visualization" default="true"/>
-    <arg name="current_length" default="5.0"/>
+    <arg name="rope_length" default="5.0"/>
 
     <group>
         <push-ros-namespace namespace="$(var robot_name)"/>
@@ -16,7 +16,7 @@
             <param name="robot_name" value="$(var robot_name)" />
             <param name="enable_visualization" value="$(var enable_visualization)" />
             <param name="use_sim_time" value="$(var use_sim_time)" />
-            <param name="current_length" value="$(var current_length)" />
+            <param name="rope_length" value="$(var rope_length)" />
         </node>
     </group>
 </launch>
