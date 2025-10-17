@@ -147,6 +147,7 @@ class DjiCaptain():
         self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
         self._utm_labeled_frame : str | None = None
         self.GIMBAL_FRAME = self._TF_NS + DjiLinks.GIMBAL_CAMERA_LINK
+        self.WINCH_FRAME = self._TF_NS + DjiLinks.WINCH_LINK
 
 
         self._base_pose_in_home : PoseStamped | None = None
@@ -1139,6 +1140,21 @@ class DjiCaptain():
         gimbal_in_base.header.frame_id = self.BASE_FLAT_FRAME
         gimbal_in_base.child_frame_id = self.GIMBAL_FRAME
         tf_msg.transforms.append(gimbal_in_base)
+
+        # same as above, winch in base_link
+        winch_in_base = TransformStamped()
+        winch_in_base.header.stamp = now
+        winch_in_base.header.frame_id = self.BASE_FLAT_FRAME
+        winch_in_base.child_frame_id = self.WINCH_FRAME
+        # Set offset for winch_link (example, not correct values):
+        winch_in_base.transform.translation.x = 0.0  # example values
+        winch_in_base.transform.translation.y = 0.0
+        winch_in_base.transform.translation.z = 0.5
+        winch_in_base.transform.rotation.x = 0.0
+        winch_in_base.transform.rotation.y = 0.0
+        winch_in_base.transform.rotation.z = 0.0
+        winch_in_base.transform.rotation.w = 1.0
+        tf_msg.transforms.append(winch_in_base)
 
         if self._utm_labeled_frame is not None: 
             utms = TransformStamped()
