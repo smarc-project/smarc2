@@ -45,14 +45,17 @@ class hook_estimator(Node):
         self.declare_parameter('enabled', True)
         self.declare_parameter('robot_name', 'Quadrotor')
         self.declare_parameter('enable_visualization', True)
+        self.declare_parameter('current_length', 5.0) 
 
         self.enabled = self.get_parameter('enabled').value
         self.robot_name = self.get_parameter('robot_name').value
         self.enable_visualization = self.get_parameter('enable_visualization').value
+        self.current_length = self.get_parameter('current_length').value
 
         self.get_logger().info(f'Node enabled: {self.enabled}')
         self.get_logger().info(f'Robot name: {self.robot_name}')
         self.get_logger().info(f'Visualization enabled: {self.enable_visualization}')
+        self.get_logger().info(f'Current rope length: {self.current_length} meters')
 
         # Subscriptions
         self.subscription_camera = self.create_subscription(
@@ -95,8 +98,6 @@ class hook_estimator(Node):
         self.ekf_est_hook_map_pos_to_save = deque(maxlen=2000)  # Store EKF hook estimated pos
         self.ekf_initialized = False
         self.last_ekf_time = None
-
-        self.current_length = 5.0  # Length of the rope in meters, can be changed by winch control
 
         # EKF setup
         self.ekf = ExtendedKalmanFilter(dim_x=6, dim_z=3)  # State: [p, v]; Measured: [r]
