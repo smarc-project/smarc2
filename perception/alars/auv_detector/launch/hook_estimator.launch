@@ -1,0 +1,22 @@
+<launch>
+    <arg name="robot_name" default="Quadrotor"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="enabled" default="true"/>
+    <arg name="enable_visualization" default="true"/>
+    <arg name="rope_length" default="5.0"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+        <node
+            name="hook_estimator_node"
+            pkg="auv_detector"
+            exec="hook_estimator"
+            output="screen">
+            <param name="enabled" value="$(var enabled)" />
+            <param name="robot_name" value="$(var robot_name)" />
+            <param name="enable_visualization" value="$(var enable_visualization)" />
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+            <param name="rope_length" value="$(var rope_length)" />
+        </node>
+    </group>
+</launch>

@@ -25,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'auv_buoy_detector = auv_detector.auv_buoy_detector:main', 
-	        'estimator = auv_detector.auv_detector:main', 
+            'hook_estimator = auv_detector.hook_estimator:main',
+            'estimator = auv_detector.auv_detector:main', 
             'manual_hsv_detector = auv_detector.manual_hsv_detector:main', 
             'winch = auv_detector.auv_detector_auto_winch:main', 
             'winch_3 = auv_detector.auv_detector_auto_winch_3:main', 
