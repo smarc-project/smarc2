@@ -13,6 +13,8 @@
     auv_color_upper_yellow: [70, 255, 255]
     rope_color_lower: [0, 92, 242]
     rope_color_upper: [86, 255, 255]
+    rope_erosion_scale: 0
+    rope_dilation_scale: 8
     rope_img_buffer: 8
     calibration_altitude: 10.0
     buoy_area_percent_at_calibration_altitude: 0.005
@@ -29,9 +31,12 @@
     # auv_color_upper_yellow: [46, 103, 221]
     # rope_color_lower: [2, 79, 147]
     # rope_color_upper: [20, 121, 217]
+    # rope_erosion_scale: 3
+    # rope_dilation_scale: 3    
     # rope_img_buffer: 5
     # calibration_altitude: 8.7
     # buoy_area_percent_at_calibration_altitude: 0.007
     # auv_area_percent_at_calibration_altitude: 0.149
     # sensitivity_area_percent: 0.7
     # least_area_pixels: 10
+    # model_path: '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
