@@ -20,6 +20,9 @@ from PIL import Image as PILImage
 from collections import deque
 import os
 
+from ament_index_python.packages import get_package_share_directory
+import yaml
+
 
 # ==== CNN Definition (same as in training file) ====
 class AnchorPointCNN(nn.Module):
@@ -62,7 +65,8 @@ class DetectionNode(Node):
         self.declare_parameter('auv_color_upper_yellow', [46, 103, 221])
 
         self.declare_parameter('rope_color_lower', [0, 92, 242])
-        self.declare_parameter('rope_color_upper', [86, 255, 255])        
+        self.declare_parameter('rope_color_upper', [86, 255, 255])     
+        self.declare_parameter('rope_img_buffer', 8)   
 
         # default values from field test rosbag
         self.declare_parameter('calibration_altitude', 8.7)
@@ -136,7 +140,7 @@ class DetectionNode(Node):
         self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
         self.auv_detector = int(self.get_parameter('enable_auv_detector').value)       # 0: off, 1: largest contour center, 2: best rectangle center    
         self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: enabled 
-        self.rope_img_buffer = deque(maxlen=8)                                         # 5: Stores the last N frames to merge for more robust rope detection'
+        self.rope_img_buffer = deque(maxlen=self.get_parameter('rope_img_buffer').value)       # 5: Stores the last N frames to merge for more robust rope detection'
         self.cnn_detector = int(self.get_parameter('enable_cnn_detector').value)       # 0: off, 1: enabled 
                                                                                        # cnn_detector requires buoy, auv, rope detectors are enabled
         self.dist_threshold_between_auv_and_buoy = 80                                  # CNN publisher threshold, determined by the distance between the AUV and the buoy
@@ -204,24 +208,23 @@ class DetectionNode(Node):
 
         self.model = AnchorPointCNN()
         model_path = '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
-
-        # # Why only abolute path can work ? 
-        # # Get the directory of the current Python file
-        # current_dir = os.path.dirname(os.path.abspath(__file__))
-        # print("Current directory:", current_dir)
-
-        # # Build the full path to the .pth file
-        # model_path = os.path.join(current_dir, 'anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth')
-        # print("Full model path:", model_path)
-
-        # # Load the model
-        # self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-
-        #self.model.load_state_dict(torch.load('/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
-        #self.model.load_state_dict(torch.load('anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth', map_location=torch.device('cpu')))
+        # To Download the CNN-trained file, please follow the github readme (Handling Complex Rope Pattern Scenarios)
+        # https://github.com/AlexWUrobot/smarc2/tree/humble/perception/alars/auv_detector
         # https://purdue0-my.sharepoint.com/:f:/g/personal/wu1714_purdue_edu/EipFkxfwAChCs9_pB7qYX7oBZJphrxCcef63-rTvEa2O2g?e=liMWBs
         
         try:
+            # package_name = 'smarc2'  # <-- change this to your actual package name
+            # package_share = get_package_share_directory(package_name)
+
+            # # Relative path inside your package share directory
+            # model_relative_path = os.path.join(
+            #     'perception', 'alars', 'auv_detector', 'auv_detector',
+            #     'anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
+            # )
+
+            # model_path = os.path.join(package_share, model_relative_path)
+
+
             if not os.path.exists(model_path):
                 raise FileNotFoundError(f"Model file not found at: {model_path}")
             
@@ -651,13 +654,18 @@ class DetectionNode(Node):
                 preview_rope_multi = cv2.add(preview_rope_multi, img_tmp)
             #cv2.imshow("N frames rope detect", preview_rope_multi)
 
+            # Apply erosion to remove noise
+            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            # preview_rope_multi = cv2.erode(preview_rope_multi, kernel, iterations=1)
+            # cv2.imshow("Erosion", preview_rope_multi)
+
             # Apply dilation to connect fragmented rope segments
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin,     3 is small dilated, 8 is large dilated
             rope_dilated = cv2.dilate(preview_rope_multi, kernel, iterations=1)
             # Use this dilated result for binary mask and grid processing
             rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
             _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
-            #cv2.imshow("Dilation", rope_bin)
+            cv2.imshow("Dilation", rope_bin)
 
             # Detect Hough circles
             circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
@@ -678,7 +686,8 @@ class DetectionNode(Node):
                 if self.cnn_detector > 0:
                     HoughCircle_x, HoughCircle_y, HoughCircle_r = biggest_circle
 
-            #cv2.imshow("Hough Circle", rope_dilated)
+            if self.debug_imshow >= 2:
+                cv2.imshow("Rope with Dilation and Hough Circle", rope_dilated)
 
         ######################################################################################### CNN 
 
@@ -724,6 +733,19 @@ class DetectionNode(Node):
                 top = max(0, top - pad)
                 right = min(np_img.shape[1], right + pad)
                 bottom = min(np_img.shape[0], bottom + pad)
+
+            if self.debug_imshow >=2:
+                # --- Draw ROI box ---
+                roi_preview = np_img.copy()
+                cv2.rectangle(
+                    roi_preview,
+                    (left, top), (right, bottom),
+                    (0, 255, 0), 2  # Green box, thickness=2
+                )
+
+                # --- Show the ROI visualization ---
+                cv2.imshow('ROI Visualization', roi_preview)
+
 
             # --- Crop the image to ROI ---
             roi_img = np_img[top:bottom, left:right, :]
@@ -773,7 +795,8 @@ class DetectionNode(Node):
             cv2.putText(original_image, f"P1", (x1+5, y1-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(original_image, f"P2", (x2+5, y2-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
             # Show image with overlay
-            #cv2.imshow("Anchor Points Prediction", original_image)
+            if self.debug_imshow >= 2:
+                cv2.imshow("Anchor Points Prediction", original_image)
             #cv2.waitKey(1)
 
 
