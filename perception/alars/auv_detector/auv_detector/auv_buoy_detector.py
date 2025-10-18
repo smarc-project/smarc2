@@ -67,6 +67,8 @@ class DetectionNode(Node):
         self.declare_parameter('rope_color_lower', [0, 92, 242])
         self.declare_parameter('rope_color_upper', [86, 255, 255])     
         self.declare_parameter('rope_img_buffer', 8)   
+        self.declare_parameter('rope_erosion_scale', 0)
+        self.declare_parameter('rope_dilation_scale', 8)
 
         # default values from field test rosbag
         self.declare_parameter('calibration_altitude', 8.7)
@@ -142,7 +144,9 @@ class DetectionNode(Node):
         self.buoy_detector = int(self.get_parameter('enable_buoy_detector').value)     # 0: off, 1: enabled
         self.auv_detector = int(self.get_parameter('enable_auv_detector').value)       # 0: off, 1: largest contour center, 2: best rectangle center    
         self.rope_detector = int(self.get_parameter('enable_rope_detector').value)     # 0: off, 1: enabled 
-        self.rope_img_buffer = deque(maxlen=self.get_parameter('rope_img_buffer').value)       # 5: Stores the last N frames to merge for more robust rope detection'
+        self.rope_img_buffer = deque(maxlen=self.get_parameter('rope_img_buffer').value)#        5: Stores the last N frames to merge for more robust rope detection'
+        self.rope_erosion_scale = int(self.get_parameter('rope_erosion_scale').value)  # 0: off,    higher values apply stronger erosion to the rope mask for noise reduction
+        self.rope_dilation_scale = int(self.get_parameter('rope_dilation_scale').value)# 0: off,    higher values apply stronger dilation to the rope mask for connecting the rope  
         self.cnn_detector = int(self.get_parameter('enable_cnn_detector').value)       # 0: off, 1: enabled 
                                                                                        # cnn_detector requires buoy, auv, rope detectors are enabled
         self.dist_threshold_between_auv_and_buoy = 80                                  # CNN publisher threshold, determined by the distance between the AUV and the buoy
@@ -658,18 +662,24 @@ class DetectionNode(Node):
                 preview_rope_multi = cv2.add(preview_rope_multi, img_tmp)
             #cv2.imshow("N frames rope detect", preview_rope_multi)
 
-            # Apply erosion to remove noise
-            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-            # preview_rope_multi = cv2.erode(preview_rope_multi, kernel, iterations=1)
-            # cv2.imshow("Erosion", preview_rope_multi)
+            if self.rope_erosion_scale > 0:
+                # Apply erosion to remove noise
+                kernel_size = self.rope_erosion_scale
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+                preview_rope_multi = cv2.erode(preview_rope_multi, kernel, iterations=1)
+                if self.debug_imshow >= 2:
+                    cv2.imshow("Erosion", preview_rope_multi)
 
-            # Apply dilation to connect fragmented rope segments
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))  # or (3,3) if rope is thin,     3 is small dilated, 8 is large dilated
-            rope_dilated = cv2.dilate(preview_rope_multi, kernel, iterations=1)
-            # Use this dilated result for binary mask and grid processing
-            rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
-            _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
-            cv2.imshow("Dilation", rope_bin)
+            if self.rope_dilation_scale > 0:
+                # Apply dilation to connect fragmented rope segments
+                kernel_size = self.rope_dilation_scale
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))  #  3 is small dilated, 8 is large dilated
+                rope_dilated = cv2.dilate(preview_rope_multi, kernel, iterations=1)
+                # Use this dilated result for binary mask and grid processing
+                rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
+                _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+                if self.debug_imshow >= 2:
+                    cv2.imshow("Dilation", rope_bin)
 
             # Detect Hough circles
             circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
