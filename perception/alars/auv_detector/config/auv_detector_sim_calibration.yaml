@@ -19,7 +19,7 @@
     auv_area_percent_at_calibration_altitude: 0.19
     sensitivity_area_percent: 0.1
     least_area_pixels: 5
-
+    model_path: '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
 
 
     # Run ROSBag Real Video

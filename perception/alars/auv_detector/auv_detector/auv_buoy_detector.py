@@ -77,6 +77,8 @@ class DetectionNode(Node):
 
         self._CAMERA_PIXELS_FRAME = "camera_pixels_normalized"  # Frame for publishing detected points
 
+        self.declare_parameter('model_path', '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth')
+
         ################################################################################
         # Frequent Adjustments
         # Note: On Jetson, set to 0 to maintain a publish rate of ~30 Hz
@@ -207,7 +209,9 @@ class DetectionNode(Node):
         # CNN Initialization
 
         self.model = AnchorPointCNN()
-        model_path = '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
+        # model_path = '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'
+        model_path = str(self.get_parameter('model_path').value)
+
         # To Download the CNN-trained file, please follow the github readme (Handling Complex Rope Pattern Scenarios)
         # https://github.com/AlexWUrobot/smarc2/tree/humble/perception/alars/auv_detector
         # https://purdue0-my.sharepoint.com/:f:/g/personal/wu1714_purdue_edu/EipFkxfwAChCs9_pB7qYX7oBZJphrxCcef63-rTvEa2O2g?e=liMWBs
