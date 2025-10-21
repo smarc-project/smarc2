@@ -16,6 +16,9 @@
     # rope_erosion_scale: 0
     # rope_dilation_scale: 8
     # rope_img_buffer: 8
+    # rope_hough_circle_min: 10
+    # rope_hough_circle_max: 100
+    # dist_threshold_between_auv_and_buoy: 80
     # calibration_altitude: 10.0
     # buoy_area_percent_at_calibration_altitude: 0.005
     # auv_area_percent_at_calibration_altitude: 0.19
@@ -33,7 +36,10 @@
     rope_color_upper: [20, 121, 217]
     rope_erosion_scale: 3
     rope_dilation_scale: 3    
-    rope_img_buffer: 5
+    rope_img_buffer: 3
+    rope_hough_circle_min: 10
+    rope_hough_circle_max: 40
+    dist_threshold_between_auv_and_buoy: 220
     calibration_altitude: 8.7
     buoy_area_percent_at_calibration_altitude: 0.007
     auv_area_percent_at_calibration_altitude: 0.149

@@ -69,6 +69,9 @@ class DetectionNode(Node):
         self.declare_parameter('rope_img_buffer', 8)   
         self.declare_parameter('rope_erosion_scale', 0)
         self.declare_parameter('rope_dilation_scale', 8)
+        self.declare_parameter('rope_hough_circle_min', 10)
+        self.declare_parameter('rope_hough_circle_max', 100)
+        self.declare_parameter('dist_threshold_between_auv_and_buoy',80)
 
         # default values from field test rosbag
         self.declare_parameter('calibration_altitude', 8.7)
@@ -147,9 +150,11 @@ class DetectionNode(Node):
         self.rope_img_buffer = deque(maxlen=self.get_parameter('rope_img_buffer').value)#        5: Stores the last N frames to merge for more robust rope detection'
         self.rope_erosion_scale = int(self.get_parameter('rope_erosion_scale').value)  # 0: off,    higher values apply stronger erosion to the rope mask for noise reduction
         self.rope_dilation_scale = int(self.get_parameter('rope_dilation_scale').value)# 0: off,    higher values apply stronger dilation to the rope mask for connecting the rope  
+        self.rope_hough_circle_min = int(self.get_parameter('rope_hough_circle_min').value) # Decide the expected radius of rope circle
+        self.rope_hough_circle_max = int(self.get_parameter('rope_hough_circle_max').value)
         self.cnn_detector = int(self.get_parameter('enable_cnn_detector').value)       # 0: off, 1: enabled 
                                                                                        # cnn_detector requires buoy, auv, rope detectors are enabled
-        self.dist_threshold_between_auv_and_buoy = 80                                  # CNN publisher threshold, determined by the distance between the AUV and the buoy
+        self.dist_threshold_between_auv_and_buoy = int(self.get_parameter('dist_threshold_between_auv_and_buoy').value)  # CNN publisher threshold, determined by the distance between the AUV and the buoy
         ################################################################################
         # Rarely Changed
         # ROS2 publishers for detection topics
@@ -682,9 +687,10 @@ class DetectionNode(Node):
                     cv2.imshow("Dilation", rope_bin)
 
             # Detect Hough circles
+            # circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
+            #                         param1=70, param2=25, minRadius=10, maxRadius=100)
             circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
-                                    param1=70, param2=25, minRadius=10, maxRadius=100)
-
+                                    param1=70, param2=25, minRadius=self.rope_hough_circle_min, maxRadius=self.rope_hough_circle_max)
     
             if circles is not None:
                 circles = np.uint16(np.around(circles[0]))  # Flatten to shape (N, 3)
