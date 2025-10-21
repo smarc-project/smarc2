@@ -275,7 +275,7 @@ class DetectionNode(Node):
 
 
     def altitude_callback(self, msg: Float32):
-        self.current_altitude = msg.data
+        self.current_altitude = msg.data  + 6.0
         # Scale minimum detection areas with altitude
 
         total_pixel = self.camera_height*self.camera_width
