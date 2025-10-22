@@ -280,7 +280,7 @@ class DetectionNode(Node):
 
 
     def altitude_callback(self, msg: Float32):
-        self.current_altitude = msg.data  + 6.0
+        self.current_altitude = msg.data  + 6.0  # rosbag2_2025_10_10-13_28_21_22.db3
         # Scale minimum detection areas with altitude
 
         total_pixel = self.camera_height*self.camera_width
@@ -662,29 +662,48 @@ class DetectionNode(Node):
             #cv2.imshow('preview_rope', preview_rope)
             preview_rope_multi = preview_rope.copy()
 
+            # Only Procee Rope for For CNN
             self.rope_img_buffer.append(preview_rope_multi)
             for img_tmp in self.rope_img_buffer:
                 preview_rope_multi = cv2.add(preview_rope_multi, img_tmp)
             #cv2.imshow("N frames rope detect", preview_rope_multi)
 
+            # Only Procee Rope for HoughCircle Not for CNN
+            rope_multi_H = preview_rope_multi.copy()
+            # Process Rope for HoughCircle and CNN
+            # rope_multi_H = preview_rope_multi
+
             if self.rope_erosion_scale > 0:
                 # Apply erosion to remove noise
                 kernel_size = self.rope_erosion_scale
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-                preview_rope_multi = cv2.erode(preview_rope_multi, kernel, iterations=1)
+                rope_multi_H = cv2.erode(rope_multi_H, kernel, iterations=1)
                 if self.debug_imshow >= 2:
-                    cv2.imshow("Erosion", preview_rope_multi)
+                    cv2.imshow("Erosion", rope_multi_H)
 
             if self.rope_dilation_scale > 0:
                 # Apply dilation to connect fragmented rope segments
                 kernel_size = self.rope_dilation_scale
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))  #  3 is small dilated, 8 is large dilated
-                rope_dilated = cv2.dilate(preview_rope_multi, kernel, iterations=1)
-                # Use this dilated result for binary mask and grid processing
-                rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
-                _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+                rope_multi_H = cv2.dilate(rope_multi_H, kernel, iterations=1)
                 if self.debug_imshow >= 2:
-                    cv2.imshow("Dilation", rope_bin)
+                    cv2.imshow("Dilation", rope_multi_H)
+                # # Use this dilated result for binary mask and grid processing
+                # rope_bin = cv2.cvtColor(rope_dilated, cv2.COLOR_BGR2GRAY)
+                # _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+                # if self.debug_imshow >= 2:
+                #     cv2.imshow("Dilation", rope_bin)
+
+            #rope_annotated = preview_rope_multi.copy()
+            # Hough Circle consider AUV, so combine rope and AUV
+            rope_and_auv_annotated =  cv2.add(rope_multi_H, preview_auv_initial)
+            rope_multi_H = rope_and_auv_annotated.copy()
+
+            # Use this dilated result for binary mask and grid processing
+            rope_bin = cv2.cvtColor(rope_multi_H, cv2.COLOR_BGR2GRAY)
+            _, rope_bin = cv2.threshold(rope_bin, 1, 255, cv2.THRESH_BINARY)
+            if self.debug_imshow >= 2:
+                cv2.imshow("Rope with Erosion Dilation and Binary mask", rope_bin)
 
             # Detect Hough circles
             # circles = cv2.HoughCircles(rope_bin, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20,
@@ -700,14 +719,14 @@ class DetectionNode(Node):
                 cx, cy, r = biggest_circle
 
                 # Optional: Draw the biggest circle for visualization
-                cv2.circle(rope_dilated, (cx, cy), r, (0, 255, 0), 2)   # Draw the circle
-                cv2.circle(rope_dilated, (cx, cy), 2, (0, 0, 255), 3)   # Draw the center
+                cv2.circle(rope_and_auv_annotated, (cx, cy), r, (0, 255, 0), 2)   # Draw the circle
+                cv2.circle(rope_and_auv_annotated, (cx, cy), 2, (0, 0, 255), 3)   # Draw the center
 
                 if self.cnn_detector > 0:
                     HoughCircle_x, HoughCircle_y, HoughCircle_r = biggest_circle
 
             if self.debug_imshow >= 2:
-                cv2.imshow("Rope with Dilation and Hough Circle", rope_dilated)
+                cv2.imshow("Rope and AUV with Hough Circle", rope_and_auv_annotated)
 
         ######################################################################################### CNN 
 
