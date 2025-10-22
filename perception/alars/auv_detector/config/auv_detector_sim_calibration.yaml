@@ -38,11 +38,11 @@
     rope_dilation_scale: 3    
     rope_img_buffer: 3
     rope_hough_circle_min: 10
-    rope_hough_circle_max: 40
-    dist_threshold_between_auv_and_buoy: 220
+    rope_hough_circle_max: 50
+    dist_threshold_between_auv_and_buoy: 100
     calibration_altitude: 8.7
     buoy_area_percent_at_calibration_altitude: 0.007
     auv_area_percent_at_calibration_altitude: 0.149
-    sensitivity_area_percent: 0.7
+    sensitivity_area_percent: 0.9
     least_area_pixels: 10
     model_path: '/home/lifan/colcon_ws/src/smarc2/perception/alars/auv_detector/auv_detector/anchor_point_cnn_dynamic_roi_validate_20251007_163547.pth'

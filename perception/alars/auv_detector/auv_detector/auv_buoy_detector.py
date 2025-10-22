@@ -473,6 +473,8 @@ class DetectionNode(Node):
             contours, _ = cv2.findContours(hsv_thresh_auv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             center_auv = None
+            if self.rope_detector > 0:
+                auv_image_with_correct_size = None
             
             if self.auv_detector == 1:
                 # Find largest contour
@@ -518,6 +520,10 @@ class DetectionNode(Node):
                         #cv2.imshow('Test largest auv region', preview_auv_initial)
 
                     if self.auv_min_area <= max_area <= self.auv_max_area:
+
+                        if self.rope_detector > 0:
+                            auv_image_with_correct_size = preview_auv_initial.copy()
+
                         # Now, pick the edge center closer to buoy
                         if center_buoy is None:
                             # No buoy, just use contour centroid
@@ -696,8 +702,11 @@ class DetectionNode(Node):
 
             #rope_annotated = preview_rope_multi.copy()
             # Hough Circle consider AUV, so combine rope and AUV
-            rope_and_auv_annotated =  cv2.add(rope_multi_H, preview_auv_initial)
-            rope_multi_H = rope_and_auv_annotated.copy()
+            if auv_image_with_correct_size is not None:  # find correct AUV size, use both rope and AUV to draw HoughCircle
+                rope_and_auv_annotated =  cv2.add(rope_multi_H, preview_auv_initial)
+                rope_multi_H = rope_and_auv_annotated.copy()
+            else: # cannot find correct AUV, just use rope to draw HoughCircle
+                rope_and_auv_annotated = rope_multi_H.copy()
 
             # Use this dilated result for binary mask and grid processing
             rope_bin = cv2.cvtColor(rope_multi_H, cv2.COLOR_BGR2GRAY)
