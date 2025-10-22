@@ -280,7 +280,7 @@ class DetectionNode(Node):
 
 
     def altitude_callback(self, msg: Float32):
-        self.current_altitude = msg.data  + 6.0  # rosbag2_2025_10_10-13_28_21_22.db3
+        self.current_altitude = msg.data  # + 6.0  # rosbag2_2025_10_10-13_28_21_22.db3
         # Scale minimum detection areas with altitude
 
         total_pixel = self.camera_height*self.camera_width
