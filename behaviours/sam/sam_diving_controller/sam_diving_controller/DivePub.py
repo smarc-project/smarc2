@@ -6,6 +6,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float64, Bool
 from smarc_msgs.msg import ThrusterRPM, PercentStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import MissionEvent 
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles, ThrusterRPMs
 
@@ -18,7 +19,7 @@ try:
 except:
     from IDivePub import IDivePub, MissionStates
 
-class SAMDivePub(IDivePub):
+class DivePub(IDivePub):
     """
     Implements the simple interface we defined in IDiveView for the SAM AUV.
     """
@@ -40,6 +41,7 @@ class SAMDivePub(IDivePub):
         self._thrust_vector_pub = node.create_publisher(ThrusterAngles, SamTopics.THRUST_VECTOR_CMD_TOPIC, 10)
         self._joy_thrust_vector_pub = node.create_publisher(Float64, ControlTopics.ELEVATOR_PID_CTRL, 10)
         self._joy_assisted_driving_pub = node.create_publisher(Bool, ControlTopics.ASSIST_ENABLE, qos_profile=10)
+        self._mission_event_pub = node.create_publisher(MissionEvent, "ctrl/conv/mission_event", qos_profile=10)
 
         # Messages
         self._vbs_msg = PercentStamped()
@@ -114,12 +116,29 @@ class SAMDivePub(IDivePub):
     def get_actuator_states(self):
         return self._actuator_state
 
+    def publish_mission_event(self, commanding, mission_state: MissionStates):
+        
+        if commanding:
+            details = "Start commanding"
+        else:
+            details = "Stop commanding"
+
+        event_msg = MissionEvent()
+        now = self._node.get_clock().now()
+        event_msg.header.stamp = now.to_msg()
+        event_msg.commanding = commanding
+        event_msg.details = details
+        event_msg.mission_state = f"{mission_state}"
+
+        self._mission_event_pub.publish(event_msg)
+
+
+
 
     def update(self) -> None:
         """
         Publish all actuator values
         """
-
         if self._actuator_state == ActuatorStates.DISENGAGED:
             #self._loginfo(f"Actuators disengaged")
             return

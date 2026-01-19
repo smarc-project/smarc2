@@ -2,7 +2,7 @@
 
 <robot name="floatsam" xmlns:xacro="http://www.ros.org/wiki/xacro" >
   <xacro:arg name="debug" default="0"/>
-  <xacro:arg name="namespace" default="floatsam"/>
+  <xacro:arg name="robot_name" default="floatsam"/>
   <xacro:include filename="$(find floatsam_description)/urdf/floatsam_usv.urdf.xacro"/>
-  <xacro:floatsam_usv namespace="$(arg namespace)" debug="$(arg debug)"/>
+  <xacro:floatsam_usv robot_name="$(arg robot_name)" debug="$(arg debug)"/>
 </robot>

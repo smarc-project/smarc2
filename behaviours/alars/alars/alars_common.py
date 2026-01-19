@@ -56,6 +56,13 @@ class DroneState():
     @property
     def drone_in_map(self) -> PoseStamped|None:
         return self._drone_in_map    
+
+    @property
+    def altitude(self) -> float|None:
+        if self._drone_in_map is not None:
+            return self._drone_in_map.pose.position.z
+        else:
+            return None
     
 
     def convert_geopoint_to_map_pose_stamped(self, gp: GeoPoint) -> PoseStamped:

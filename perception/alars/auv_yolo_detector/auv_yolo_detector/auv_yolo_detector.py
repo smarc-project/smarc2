@@ -7,27 +7,22 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.duration import Duration
 
-from math import sqrt, cos, sin, tan, pi
+from math import pi
 import numpy as np
 import cv2
 import torch
 from cv_bridge import CvBridge
-from image_geometry import PinholeCameraModel
 
 from ultralytics import YOLO
 from ultralytics.engine.results import OBB, Results
 
-import tf2_geometry_msgs
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped
-from nav_msgs.msg import Odometry
 from tf2_ros import Buffer, TransformListener
 from std_srvs.srv import Trigger
 
 from dji_msgs.msg import Topics
 from dji_msgs.msg import Links
-
-
 
 
 
@@ -38,28 +33,19 @@ class YOLODetector(Node):
                 automatically_declare_parameters_from_overrides=True)
         self.get_params()
 
-        # camera calibration matrix
-        K = np.array(self.model_params["camera.K"]).reshape(3,3)
-        self.invK = np.linalg.inv(K)
-
         # detection filtering params
         lw_ratio_margin = 4.0
         self.filt_params = {
             "sam_dim": [self.model_params['sam.width'], self.model_params['sam.length']],
             "lw_ratio_lb": self.model_params['sam.length']/self.model_params['sam.width'] - lw_ratio_margin, # requires fine-tuning
             "lw_ratio_ub": self.model_params['sam.length']/self.model_params['sam.width'] + lw_ratio_margin, # requires fine-tuning
-            "max_hor_vel": 0.08,
-            "max_ver_vel": 0.1,
-            "last_sam": [],
-            "last_buoy": [],
-            "horizon": 8
         }
         self.dircount = []
         self.horizon = 10
  
         
         # pubs, subs and tf2
-        self.create_subscription(Image, self.model_params["topics.raw_image"], self.image_callback, 10) # '/M350/gimbal_camera/camera/image_raw'
+        self.create_subscription(Image, self.model_params["topics.raw_image"], self.image_callback, 10) 
         self.annotated_img_pub = self.create_publisher(Image,
                                             self.model_params["topics.rviz.annotated_image"], 10)
         self.blurred_channel_pub = self.create_publisher(Image,
@@ -70,12 +56,9 @@ class YOLODetector(Node):
                                 self.model_params["topics.predicted_position.sam"], 10)
         self.buoy_position_pub = self.create_publisher(PointStamped, 
                                 self.model_params["topics.predicted_position.buoy"], 10)
-        # self.nf_annotated_img_pub = self.create_publisher(Image,"yolo_annotation_nf", 10)
 
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
         
-        # models (yolo and camera
+        # models 
         try:
             self.yolo_model = YOLO(self.model_params['model_path'])
             self.yolo_model.info()
@@ -83,7 +66,6 @@ class YOLODetector(Node):
             self.get_logger().warn(f'\n\nYOLO model import failed; check if the model_path rosparam is pointing to a valid model file! Readme has more details.\nGiven path:{self.model_params["model_path"]}\n\n')
             self.get_logger().warn(str(e))
             self.get_logger().warn(traceback.format_exc())
-        self.camera_model = PinholeCameraModel()
         self.bridge = CvBridge()
 
         # timer to simulate tracking
@@ -100,11 +82,10 @@ class YOLODetector(Node):
         """ 
         Callback that's running continuoysly at specified frequency. It only classified image if we
         have an image and if detector is enabled.
-        Infers with yolo model and publishes objects positions
+        Infers with yolo model and canny edge deetctor and publishes objects positions
         """
         
         if self.image is not None and self.detector_enabled:
-            # assert (self.image.width,self.image.height)  == (640, 480), "Image resolution isn't (640,480), YOLO model won't accept it"
             cv_image = self.bridge.imgmsg_to_cv2(self.image, desired_encoding='bgr8')
             results = self.yolo_model.predict(source = cv_image, 
                             conf = self.model_params['detection.confidence_threshold'],    
@@ -113,11 +94,6 @@ class YOLODetector(Node):
                             device = self.model_params['device'])
             result: Results = results[0]
             
-            ## publish non-filtered annotated image as ros msg
-            # im = result.plot()
-            # ros_img = self.bridge.cv2_to_imgmsg(im, encoding = 'bgr8')
-            # self.nf_annotated_img_pub.publish(ros_img)
-
             # filter detections and get head position
             result.obb, _ , sam_pixels, buoy_pixels = self.filter_detections(result.obb)
             head = self.identify_head(result.obb, cv_image)
@@ -140,12 +116,28 @@ class YOLODetector(Node):
 
 
     def identify_head(self, result: OBB, im: np.ndarray) -> tuple:
-        #xywhr (torch.Tensor | numpy.ndarray): Boxes in [x_center, y_center, width, height, rotation] format.
+        """
+        Head detection with Canny edge detector. It takes bounding box, slices and rotates window 
+        (bounding box + some slack to include the rope) and apply edge detector to see which side has 
+        the rope. To be robust against outliers, the argmax of last N detections is selected
+
+        Args:
+            - result: OBB instance, contains result from YOLO inference (bounding box, classifications, etc)
+            - im: raw image as numpy array instance
+
+        Return:
+            - tuple with head position (in pixels)
+
+        Vars:
+            - c4: list with the coordinates of the 4 corners of the bounding box
+            - thresh: threshold/slack given to define the window. 0 means window = box, 
+                      1 means = window = 2*box (roughly, check slice_image code for +info)
+        """
         
         cls : torch.Tensor = result.cls
-        xywhr: list = result.xywhr
+        xywhr: list = result.xywhr # [x_center, y_center, width, height, rotation]
         c4: list = result.xyxyxyxy
-        head, headc = None, None
+        head = None
         sam_index = np.nonzero(cls == 0).flatten()
         thresh = 0.8
 
@@ -182,10 +174,8 @@ class YOLODetector(Node):
             else:
                 sums = (np.sum(edges[0:coord_min, :]), np.sum(edges[coord_max:, :]))
    
-            # determine where are more edges on (left/bottom or right/top, respectively)
+            # determine where are more edges and update cumulative variable to get chosen side (left/bottom - 0; right/top - 1)
             argsum = np.argmax(np.array(sums))
-
-            #update cumulative variable to get chosen side (left/bottom - 0; right/top - 1)
             if len(self.dircount) >= self.horizon:
                 self.dircount.pop(0)
             self.dircount.append(argsum)
@@ -256,14 +246,14 @@ class YOLODetector(Node):
 
         return im[corners[3]:corners[1], corners[2]:corners[0]], c4 - corners[2:]
 
-    def filter_detections(self, results: OBB) -> Tuple[Results, torch.Tensor, Union[list, None], Union[list, None]]:
+    def filter_detections(self, obb: OBB) -> Tuple[Results, torch.Tensor, Union[list, None], Union[list, None]]:
         """
         Filter detections by choosing most likely detection for each class and filter according to 
         box ratio and temporal/velocity constraints
         """
 
-        cls : torch.Tensor = results.cls
-        conf: torch.Tensor = results.conf
+        cls : torch.Tensor = obb.cls
+        conf: torch.Tensor = obb.conf
         sam_index, buoy_index = None, None  
         
         # Keep most likely sam/buoy (sam = 0, buoy = 1)
@@ -277,44 +267,21 @@ class YOLODetector(Node):
 
         # Check length/width ratio of sam bounding box
         if sam_index is not None:
-            lw_ratio = max(results.xywhr[sam_index][2],results.xywhr[sam_index][3])/min(results.xywhr[sam_index][2],results.xywhr[sam_index][3]) 
+            lw_ratio = max(obb.xywhr[sam_index][2],obb.xywhr[sam_index][3])/min(obb.xywhr[sam_index][2],obb.xywhr[sam_index][3]) 
             if lw_ratio < self.filt_params["lw_ratio_lb"] or lw_ratio > self.filt_params["lw_ratio_ub"]: 
                 sam_index = None
 
         # return objects posiitons as lists
-        sam_pos = results.xywhr[sam_index][0:2] if sam_index is not None else None
-        buoy_pos = results.xywhr[buoy_index][0:2] if buoy_index is not None else None
+        sam_pos = obb.xywhr[sam_index][0:2] if sam_index is not None else None
+        buoy_pos = obb.xywhr[buoy_index][0:2] if buoy_index is not None else None
 
         # Create valid detections mask and return new result.obb object
         final_mask = np.full(cls.cpu().numpy().size, False)
         if sam_index is not None: final_mask[sam_index] = True 
         if buoy_index is not None: final_mask[buoy_index] = True 
 
-        return results[torch.from_numpy(final_mask)], torch.from_numpy(final_mask), sam_pos, buoy_pos
+        return obb[torch.from_numpy(final_mask)], torch.from_numpy(final_mask), sam_pos, buoy_pos
                    
-
-
-    def pixels2frame(self, u:float, v:float, Z:float, frame: str) -> PointStamped:
-        """
-        Apllies camera matrix to obtain object position in camera frame and transforms it to specified frame"""
-        camera_coord_norm = np.matmul(self.invK,np.array([u,v,1]))
-        camera_coord = camera_coord_norm*Z
-
-        pos = PointStamped()
-        pos.header.frame_id = self.model_params["frames.camera"]
-        pos.header.stamp = self.get_clock().now().to_msg()
-        pos.point.x = camera_coord[2] # x axis in camera frame is depth
-        pos.point.y = - camera_coord[0]
-        pos.point.z = camera_coord[1]
-
-        t = self.tf_buffer.lookup_transform(
-            target_frame = frame,  
-            source_frame = pos.header.frame_id,                 
-            time = rclpy.time.Time(),
-            timeout= Duration(seconds=0.5))
-        #self.get_logger().info(f'In desired frame, position = {tf2_geometry_msgs.do_transform_point(pos, t).point.x,tf2_geometry_msgs.do_transform_point(pos, t).point.y}')
-
-        return tf2_geometry_msgs.do_transform_point(pos, t)
     
     def published_normalized_position(self, p: tuple, wh: tuple, label: str) -> tuple:
         """
@@ -353,33 +320,21 @@ class YOLODetector(Node):
         self.get_logger().info(f"Service called: detector_enabled = {self.detector_enabled}")
         return response
     
-    def remove_outliers(self) -> bool:
-        """
-        TODO: implement simple outlier removel or kalman filter
-        """
-        if len(self.prev_detections) < 5:
-            return True
-        else:
-            return False
 
     def image_callback(self, msg):
         self.image = msg
 
     def get_params(self):
-        #TODO: include if mode == 'sim' 
+ 
         # expected types of parameters and create parameters dictionary 
         namespace = "/"+self.get_parameter("namespace").value
         expected_types = {
-            "mode": str,
             "device": (str, int),
             "model_path": str,
 
             "detection.inference_period": float,
             "detection.confidence_threshold": float,
             "detection.blur_variance": (float, int),         
-
-            "camera.fov": (int, float),
-            "camera.K": list,
 
             "sam.width": (float, int),
             "sam.length": (float, int),
@@ -397,9 +352,9 @@ class YOLODetector(Node):
             "frames.camera": str,
         }
         frames_topics = {
-            "topics.rviz.annotated_image": namespace + "/rviz/" + self.get_parameter("topics.rviz.annotated_image").value,
-            "topics.rviz.bw_blurred_sam": namespace + "/rviz/" + self.get_parameter("topics.rviz.bw_blurred_sam").value,
-            "topics.rviz.edges": namespace + "/rviz/" + self.get_parameter("topics.rviz.edges").value,
+            "topics.rviz.annotated_image": namespace + "/"  + self.get_parameter("topics.rviz.annotated_image").value,
+            "topics.rviz.bw_blurred_sam": namespace + "/"  + self.get_parameter("topics.rviz.bw_blurred_sam").value,
+            "topics.rviz.edges": namespace + "/"  + self.get_parameter("topics.rviz.edges").value,
 
             "topics.predicted_position.sam": namespace + "/" + Topics.ESTIMATED_AUV_TOPIC,
             "topics.predicted_position.buoy": namespace + "/" + Topics.ESTIMATED_BUOY_TOPIC,
@@ -421,6 +376,7 @@ class YOLODetector(Node):
         for key, expected in expected_types.items():
             if not isinstance(self.model_params[key], expected):
                 raise TypeError(f"{key} should be {expected}, got {type(self.model_params[key]).__name__}")
+           
             
             
 

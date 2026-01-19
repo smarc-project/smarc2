@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'csv_path_publisher = sam_path_following.path_publisher:main',
         ],
     },
 )

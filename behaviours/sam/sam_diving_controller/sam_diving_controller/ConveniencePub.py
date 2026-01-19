@@ -26,6 +26,7 @@ class ConveniencePub(IDivePub):
         self._node = node
 
         self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
+        self._mocap_frame = 'KTHTank/mocap'
 
         #self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._state_pub = node.create_publisher(Odometry, ControlTopics.STATES_CONV, 10)
@@ -36,6 +37,7 @@ class ConveniencePub(IDivePub):
         self._waypoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT_CONV, 10)
         #self._mpc_pred_pub = node.create_publisher(Path, ControlTopics.MPC_PRED, 10)
         self._mpc_pred_pub = node.create_publisher(Path, 'ctrl/mpc_pred', 10)
+        self._mpc_path_pub = node.create_publisher(Path, 'ctrl/mpc_path', 10)
 
         self._state_msg = None
         self._ref_msg = None
@@ -63,6 +65,9 @@ class ConveniencePub(IDivePub):
         if self._state_msg is None:
             return
 
+        now = self._node.get_clock().now()
+        self._state_msg.header.stamp = now.to_msg()
+
         self._state_pub.publish(self._state_msg)
 
     def _update_ref(self) -> None:
@@ -70,6 +75,9 @@ class ConveniencePub(IDivePub):
 
         if self._ref_msg is None:
             return
+
+        now = self._node.get_clock().now()
+        self._ref_msg.header.stamp = now.to_msg()
 
         self._ref_pub.publish(self._ref_msg)
 
@@ -87,6 +95,9 @@ class ConveniencePub(IDivePub):
         if self._input_msg is None:
             return
 
+        now = self._node.get_clock().now()
+        self._input_msg.header.stamp = now.to_msg()
+
         self._input_pub.publish(self._input_msg)
 
     def _update_ref_input(self) -> None:
@@ -94,6 +105,9 @@ class ConveniencePub(IDivePub):
 
         if self._ref_input_msg is None:
             return
+
+        now = self._node.get_clock().now()
+        self._ref_input_msg.header.stamp = now.to_msg()
 
         self._ref_input_pub.publish(self._ref_input_msg)
 
@@ -109,26 +123,36 @@ class ConveniencePub(IDivePub):
 
     def _publish_predicted_path(self):
         x_pred = self._dive_controller.get_mpc_pred()
-        current_attitude = np.array([1, 0, 0, 0])
+        predicted_path_msg = self._create_path_msg(x_pred, self._mocap_frame)
 
+        self._mpc_pred_pub.publish(predicted_path_msg)
+
+
+    def _publish_mpc_path_ref(self):
+        path_ref = self._dive_controller.get_mpc_path_ref()
+        mpc_path_msg = self._create_path_msg(path_ref, self._mocap_frame)
+
+        self._mpc_path_pub.publish(mpc_path_msg)
+
+
+    def _create_path_msg(self, path, frame_id):
         now = self._node.get_clock().now()
+        path_msg = Path()
+        path_msg.header.stamp = now.to_msg()
+        path_msg.header.frame_id = frame_id
 
-        predicted_path_msg = Path()
-        predicted_path_msg.header.stamp = now.to_msg()
-        predicted_path_msg.header.frame_id = 'mocap'
-
-        for i, predicted_state in enumerate(x_pred):
+        for i, path_state in enumerate(path):
             # Calculate future time offset
             future_time = now + rclpy.duration.Duration(seconds=i * 0.1)
 
             # Create PoseStamped
-            pose_stamped = self._vector2PoseMsg('mocap', predicted_state[0:3], predicted_state[3:7])
+            pose_stamped = self._vector2PoseMsg(frame_id, path_state[0:3], path_state[3:7])
             pose_stamped.header.stamp = future_time.to_msg()
-            pose_stamped.header.frame_id = 'mocap'
+            pose_stamped.header.frame_id = frame_id
 
-            predicted_path_msg.poses.append(pose_stamped)
+            path_msg.poses.append(pose_stamped)
 
-        self._mpc_pred_pub.publish(predicted_path_msg)
+        return path_msg
 
 
     def _vector2PoseMsg(self, frame_id, position, attitude):
@@ -197,7 +221,8 @@ class ConveniencePub(IDivePub):
                  f"LCG: {self._input_msg.lcg:.3f}, "\
                  f"TV stern: {self._input_msg.thrustervertical:.3f}, "\
                  f"TV rudder: {self._input_msg.thrusterhorizontal:.3f}, "\
-                 f"RPM: {self._input_msg.thrusterrpm:.3f}\n"
+                 f"RPM1: {self._input_msg.thrusterrpm1:.3f}\n" \
+                 f"RPM2: {self._input_msg.thrusterrpm2:.3f}\n"
 
 
         if self._error_msg is None:
@@ -227,4 +252,5 @@ class ConveniencePub(IDivePub):
         self._update_waypoint()
         self._print_state()
         self._publish_predicted_path()
+        self._publish_mpc_path_ref()
 

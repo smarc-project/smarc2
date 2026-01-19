@@ -25,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'watertank_tf_utils = watertank_utils.tf_utils_node:main',
-            'mocap_odom_sam = watertank_utils.mocap_odom:main'
+            'mocap_odom_sam = watertank_utils.mocap_odom:main',
+            'publish_frame = watertank_utils.publish_frame:main'
         ],
     },
 )

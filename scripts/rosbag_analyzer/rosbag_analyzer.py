@@ -15,7 +15,8 @@ typestore = smarc_types.construct_custom_typestore()
 
 # Path to the directory with the rosbag. Not the rosbag itself
 # due to the way ros2 records bags now.
-file ='src/smarc2/scripts/rosbag_analyzer/rosbag2_2024_10_15-11_47_37'
+#file ='src/smarc2/scripts/rosbag_analyzer/rosbag2_2024_10_15-11_47_37'
+file ='rosbag2_2024_10_15-11_47_37'
 
 states = {}
 states["t"] = []

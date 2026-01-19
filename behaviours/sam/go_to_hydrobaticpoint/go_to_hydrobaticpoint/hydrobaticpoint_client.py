@@ -14,7 +14,8 @@ from smarc_action_base.smarc_action_base import (
 from smarc_msgs.action import BaseAction
 from geometry_msgs.msg import Pose, PoseStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
+from nav_msgs.msg import Odometry   
 
 from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
 from go_to_hydrobaticpoint.hydrobaticpoint_action import HydrobaticPointAction
@@ -40,65 +41,96 @@ class HydropointClient(SMARCActionClient):
         self._json_ops = HydrobaticPointAction()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self.goal_processed = False
+        
+        if not self._setup(num_iters=100):
+            return
+
+        self.goal_msg = None
+        self.start_mission = False  
 
         # Wait for server
         # while not self._client.wait_for_server(timeout_sec=1.) and rclpy.ok():
         #     self.logger.info(f"Node {action_name} waiting for go_to_hydropoint server")
 
         self.logger.info(f"Node {action_name} connected to go_to_hydropoint server")
-
+        self.goal_msg = None
 
     def run(self):
         self.logger.info("Subscribing to mocap hydro point topic")
-        #self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
-        #                                                    ControlTopics.MOCAP_HYDROPOINT,
-        #                                                    self.mocap_hydro_cb, 1)
+        
         self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
+                                                           ControlTopics.MOCAP_HYDROPOINT,
+                                                           self.mocap_hydro_cb, 1)
+        
+        self.mocap_goal_mqtt_sub = self._node.create_subscription(PoseStamped, 
                                                              '/mqtt/hula/pose',
                                                              self.mqtt_hydro_cb, 1)
+        
+        self.uw_comm_goal_sub = self._node.create_subscription(Bool,    
+                                                              '/sam/uwgps/nachos',
+                                                              self.uwcomm_start_mission, 1)
+        
+        self._node.create_timer(1, self.timer_callback)
 
 
+    def timer_callback(self):
+
+        self.logger.debug("running timer callback")
+        if self.start_mission and self.goal_msg is not None:
+                self.logger.info("Starting hydrobatic point mission")
+                if not self.goal_processed:
+                    if self.state != ActionClientState.SENT:
+
+                        if self.state == ActionClientState.ACCEPTED or self.state == ActionClientState.RUNNING:
+                            self.goal_processed = True
+                            self.start_mission = False
+                            self.goal_msg = None
+                            #self._node.destroy_subscription(self.mocap_goal_sub)
+                            return
+                        
+                        self.send_goal(self.goal_msg)
+
+
+    def uwcomm_start_mission(self, start_msg: Bool):
+        self.logger.info(f"Start received from uwcomm: {start_msg.data}")
+        self.start_mission = True
+
+
+    # The next two callbacks save the goal when received from mqtt or mocap
+    # They are equivalent, they're just there for conveninence when debugging
     def mqtt_hydro_cb(self, mqtt_goal: String):
 
-        if not self.goal_processed:
-
-            if self.state != ActionClientState.SENT:
-
-                if self.state == ActionClientState.ACCEPTED or self.state == ActionClientState.RUNNING:
-                    self.goal_processed = True
-                    self._node.destroy_subscription(self.mocap_goal_sub)
-                    return
-
-                self.logger.info(f"Sending goal {mqtt_goal}")
-
-                # DEBUG ONLY!!
-                mqtt_goal.pose.position.x = 5.0
-                
-                goal_msg = BaseAction.Goal()
-                goal_msg.goal = self._json_ops.encode(mqtt_goal)
-                self.send_goal(goal_msg)
+        # DEBUG ONLY!!
+        #mqtt_goal.pose.position.x = 5.0
+        #mqtt_goal.pose.position.z = 2.0
+        
+        self.goal_msg = BaseAction.Goal()
+        self.goal_msg.goal = self._json_ops.encode(mqtt_goal)
+        self.logger.info(f"Goal received and saved {mqtt_goal}")
+        self._node.destroy_subscription(self.mocap_goal_mqtt_sub)
 
 
     def mocap_hydro_cb(self, mocap_goal: PoseStamped):
 
-        if self.state != ActionClientState.SENT:
+        self.goal_msg = BaseAction.Goal()
+        self.goal_msg.goal = self._json_ops.encode(mocap_goal)
+        self.logger.info(f"Goal received and saved {mocap_goal}")
+        self._node.destroy_subscription(self.mocap_goal_sub)
 
-            # if not self.goal_processed:
-            if self.state == ActionClientState.RUNNING:
-            #    self.goal_processed = True
-                self._node.destroy_subscription(self.mocap_goal_sub)
-                return
+        # if not self.goal_processed:
 
-            else:
-                # self.logger.info(f"Sending goal {mocap_goal}")
+        #     if self.state != ActionClientState.SENT:
 
-                # DEBUG ONLY!!
-                mocap_goal.pose.position.x = 4.0
+        #         if self.state == ActionClientState.ACCEPTED or self.state == ActionClientState.RUNNING:
+        #             self.goal_processed = True
+        #             self._node.destroy_subscription(self.mocap_goal_sub)
+        #             return
 
-                goal_msg = BaseAction.Goal()
-                goal_msg.goal = self._json_ops.encode(mocap_goal)
-                self.send_goal(goal_msg)
-
+        #         self.goal_msg = BaseAction.Goal()
+        #         self.goal_msg.goal = self._json_ops.encode(mocap_goal)
+                
+        #         self.logger.info(f"Sending goal {mocap_goal}")
+        #         self.send_goal(self.goal_msg)
 
     def declare_parameters(self):
         """Location to declare parameters."""

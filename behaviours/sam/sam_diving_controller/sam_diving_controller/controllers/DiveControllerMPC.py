@@ -42,7 +42,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # Declare counter
         self.i = 0
         self.traj_len = 0
-        self.traj_index = 0
+        self.traj_index = 5
 
         # Extract the CasADi model
         sam = SAM_casadi(dt=self._dt)
@@ -68,6 +68,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # dive sub node, because it's not yet spinning and thus doesn't get the
         # topics yet.
         self._initialized = False
+        self._prev_commanding = False
 
         self.ref_is_traj = ref_is_trajectory# Flag to indicate if the reference is a trajectory or not
         self._loginfo("Dive Controller created")
@@ -88,6 +89,15 @@ class DiveControllerMPC(DiveControllerInterface):
         # mission_state == RUNNING blocked the whole controller and it wouldn't
         # get the waypoint either.
         mission_state = self._dive_sub.get_mission_state()
+
+        has_ref = self.get_reference()  # you already call this later; do it once
+        commanding = (mission_state == MissionStates.RUNNING) and has_ref
+
+        # Marker for mission start and end
+        if commanding != self._prev_commanding:
+            self._dive_pub.publish_mission_event(commanding, mission_state)
+            self._prev_commanding = commanding
+
         if mission_state == MissionStates.RECEIVED:
             self._loginfo_once("Mission Received")
             self._set_actuators_neutral()
@@ -103,17 +113,10 @@ class DiveControllerMPC(DiveControllerInterface):
             self._set_actuators_neutral()
             return
 
-        # if mission_state != MissionStates.RUNNING:
-        #    self._loginfo_once("Mission not running")
-        #    self._set_actuators_neutral()
-        #    return
-        #self._loginfo("mission running")
-
-
         # Engage actuators in case they were off before.
         self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
 
-        if not self.get_reference():
+        if not has_ref:
             return
 
         self._loginfo("mission running")
@@ -197,11 +200,12 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"NMPC solver status: {status}\n"
         # s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
         # s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
-        s += f"current state: x: {x_current[0]}, y: {x_current[1]}, z: {x_current[2]}\n"
-        s += f"MPC pred: x: {simX[0]}, y: {simX[1]}, z: {simX[2]}\n"
+        s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
         s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0,:6]}\n"
-        s += f"u_vbs = {mpc_solution[13]}, u_lcg = {mpc_solution[14]} u_stern = {mpc_solution[15]} u_rudder = {mpc_solution[16]} u_rpm1 = {mpc_solution[17]} u_rpm2 = {mpc_solution[18]}\n"
-
+        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
+             u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \
+             u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
 
         self._loginfo(s)
 
@@ -225,6 +229,7 @@ class DiveControllerMPC(DiveControllerInterface):
             self._loginfo("get ref")
 
             # Declare duration of sim.
+            self._loginfo(f"trajectory: {self.trajectory}")
             self.traj_len = self.trajectory.shape[0]
 
             # Augment the trajectory and control input reference
@@ -386,6 +391,9 @@ class DiveControllerMPC(DiveControllerInterface):
         convert_state: state_msg is in ENU, x will be in NED
 
         Note: The MPC wants the quaternion scalar part first, [w, x, y, z]!
+        Also note: For running on SAM, the sign on the thrust vectoring has to
+            be switched due to different ways of viewing the thrust vecotring
+            angle in the model and on SAM.
         """
         x = np.zeros(19)
 
@@ -404,8 +412,8 @@ class DiveControllerMPC(DiveControllerInterface):
         x[12] = state_msg.twist.twist.angular.z
         x[13] = control_msg['vbs']
         x[14] = control_msg['lcg']
-        x[15] = control_msg['stern']
-        x[16] = control_msg['rudder']
+        x[15] = -control_msg['stern']
+        x[16] = -control_msg['rudder']
         x[17] = control_msg['rpm1']
         x[18] = control_msg['rpm2']
 
@@ -475,9 +483,8 @@ class DiveControllerMPC(DiveControllerInterface):
             y_current = self._current_state.pose.pose.position.y
             z_current = self._current_state.pose.pose.position.z
 
+            if self.traj_index < self.traj_len-1:
 
-            # Check if we have enough trajectory left for the prediction horizon
-            if self.traj_index + self.N_horizon < self.traj_len:
                 # Get distance to current waypoint
                 d_current = np.sqrt((x_current - self.trajectory[self.traj_index,0])**2 + 
                                     (y_current - self.trajectory[self.traj_index,1])**2 +
@@ -489,21 +496,33 @@ class DiveControllerMPC(DiveControllerInterface):
                                 (z_current - self.trajectory[self.traj_index+1,2])**2)
 
                 # Set trajectory index accordingly
-                if d_next < d_current:
+                if d_next <= d_current:
                     self.traj_index += 1
 
                 # Get subtrajectory starting at closest waypoint
-                self.ref = self.trajectory[self.traj_index:self.traj_index + self.N_horizon, :]
+                # Check if we have enough trajectory left for the prediction horizon
+                if self.traj_index + self.N_horizon < self.traj_len:
+                    self.ref = self.trajectory[self.traj_index:self.traj_index + self.N_horizon, :]
+                else:
+                    # Padding the trajectory with the last entry of the
+                    # trajectory when we're close to the end
+                    padding = self.N_horizon - (self.traj_len - self.traj_index)
+                    terminal_ref = np.tile(self.trajectory[-1,:], (padding,1))
+                    self.ref = np.concatenate((self.trajectory[self.traj_index:,:], terminal_ref))
+
 
                 # DEBUG
+                self.ref[:,2] += 1
                 #self.ref[:,0] = 4
                 #self.ref[:,1] = 0
                 #self.ref[:,2] = 0
-                #self.ref[:,3] = 1
-                #self.ref[:,4:] = 0
-                #self.ref[:,13] = 50
-                #self.ref[:,14] = 50
-                #self.ref[:,15:] = 0
+                self.ref[:,3] = 1
+                self.ref[:,4:] = 0
+                self.ref[:,13] = 50
+                self.ref[:,14] = 50
+                self.ref[:,15:] = 0
+
+                return
 
             else:
                 self._loginfo_once("Trajectory Tracking Complete")
@@ -514,17 +533,32 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ref = np.zeros((self.N_horizon, (self.nx + self.nu)))
             self.ref[:, :] = self.wp_array
 
+            return
+
     def set_publishers(self, mpc_solution):
         """
         Set the corresponding publishers for the actuators and convenience topics
         """
         # Assign the calculated control signal to actuators
+        # NOTE: We change the thrust vectoring sign bc. the MPC computes it
+        # w.r.t. the C frame, while on SAM the sign is w.r.t the yaw angle of
+        # SAM
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
-        u_stern = mpc_solution[15]
+        u_stern = -mpc_solution[15]
         u_rudder = -mpc_solution[16]
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
+
+        #        if np.abs(mpc_solution[17]) < 100:
+        #            u_rpm1 = 0
+        #        else: 
+        #            u_rpm1 = mpc_solution[17]
+        #
+        #        if np.abs(mpc_solution[18]) < 100:
+        #            u_rpm2 = 0
+        #        else: 
+        #            u_rpm2 = mpc_solution[18]
 
         # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
@@ -538,7 +572,8 @@ class DiveControllerMPC(DiveControllerInterface):
         self._input.lcg = u_lcg
         self._input.thrustervertical = u_stern
         self._input.thrusterhorizontal = u_rudder
-        self._input.thrusterrpm = float(u_rpm1)
+        self._input.thrusterrpm1 = float(u_rpm1)
+        self._input.thrusterrpm2 = float(u_rpm2)
 
         # Convenience Topics
         # FIXME: This if statement is weird.
@@ -557,20 +592,29 @@ class DiveControllerMPC(DiveControllerInterface):
             self._ref.pitch = euler_angles[1]
             self._ref.yaw = euler_angles[2]
 
+            self._ref.qx = self.ref[0, 4]
+            self._ref.qy = self.ref[0, 5]
+            self._ref.qz = self.ref[0, 6]
+            self._ref.qw = self.ref[0, 3]
+
             self._control_ref = ControlInput()
             self._control_ref.vbs = self.ref[0,13]
             self._control_ref.lcg = self.ref[0,14]
             self._control_ref.thrustervertical = self.ref[0,15]
             self._control_ref.thrusterhorizontal = self.ref[0,16]
-            self._control_ref.thrusterrpm = float(self.ref[0,17])
+            self._control_ref.thrusterrpm1 = float(self.ref[0,17])
+            self._control_ref.thrusterrpm2 = float(self.ref[0,18])
+
 
 
     def get_mpc_pred(self):
         """
         Get method for the MPC predictions
         """
-
         return self.pred_mpc
+
+    def get_mpc_path_ref(self):
+        return self.ref
 
     def get_ref_input(self):
         return self._control_ref

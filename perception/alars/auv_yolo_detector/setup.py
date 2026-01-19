@@ -26,7 +26,8 @@ setup(
     entry_points={
         'console_scripts': [
             "auv_yolo_detector = auv_yolo_detector.auv_yolo_detector:main",
-            "record_data = auv_yolo_detector.record_data:main", 
+            "record_data = aux_scripts.record_data:main", 
+            "label_frame = aux_scripts.automatic_label:main", 
         ],
     },
 )

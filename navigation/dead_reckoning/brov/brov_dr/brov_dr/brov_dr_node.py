@@ -19,6 +19,8 @@ from tf_transformations import (
 from geometry_msgs.msg import Quaternion
 import math
 
+# Brov Dead Reckoning Node: only for Saamarine with DVL
+# It just gets /mavros/local_position/odom and initializes the origin with a GPS fix
 class BrovDR(Node):
     
     def __init__(self):
@@ -30,7 +32,7 @@ class BrovDR(Node):
         self._transform_sent = False
         self.get_logger().info('Waiting for /fix to publish static TF world -> map')
 
-        # Parameters (can be overridden via ROS params)
+        # Parameters
         self.declare_parameter('odom_topic', '/mavros/local_position/odom')
         self.declare_parameter('map_frame', 'map')        # source frame
         self.declare_parameter('base_frame', 'saabmarine/base_link')   # target frame
@@ -114,7 +116,6 @@ class BrovDR(Node):
         # Pose actual
         p = msg.pose.pose.position
         q = msg.pose.pose.orientation
-
         current_position = (p.x, p.y, p.z)
         current_orientation = (q.x, q.y, q.z, q.w)
 

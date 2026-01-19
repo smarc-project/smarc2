@@ -55,7 +55,8 @@ class DiveControllerInterface:
             self._input.lcg = u_lcg_neutral
             self._input.thrustervertical = u_tv_ver_neutral
             self._input.thrusterhorizontal = u_tv_hor_neutral
-            self._input.thrusterrpm = float(u_rpm_neutral)
+            self._input.thrusterrpm1 = float(u_rpm_neutral)
+            self._input.thrusterrpm2 = float(u_rpm_neutral)
 
             self._dive_pub.set_actuator_states(ActuatorStates.NEUTRAL, "DC")
 
@@ -81,7 +82,8 @@ class DiveControllerInterface:
         self._input.lcg = u_lcg_emergency
         self._input.thrustervertical = u_tv_ver_emergency
         self._input.thrusterhorizontal = u_tv_hor_emergency
-        self._input.thrusterrpm = float(u_rpm_emergency)
+        self._input.thrusterrpm1 = float(u_rpm_emergency)
+        self._input.thrusterrpm2 = float(u_rpm_emergency)
 
     def get_wp(self):
         '''

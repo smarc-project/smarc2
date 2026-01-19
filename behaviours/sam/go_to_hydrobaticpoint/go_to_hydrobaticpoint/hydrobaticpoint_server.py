@@ -289,9 +289,9 @@ class HydropointServer(SMARCActionServer):
         if hydropoint == None:
             return GoalResponse.REJECT
         
-        pose_stamped = hydropoint
+        self.pose_stamped = hydropoint
         try:
-            dist = self.compute_distance(pose_stamped)
+            dist = self.compute_distance(self.pose_stamped)
         except TransformException as err:
             err_str = "Could not successfully compute transform. Rejecting goal!\n"
             exec_up = TransformException(err_str)
@@ -307,7 +307,7 @@ class HydropointServer(SMARCActionServer):
 
             # providing additional details if possible about error
             try:
-                pose = self.get_robot_pose_in_msg_frame(pose_stamped)
+                pose = self.get_robot_pose_in_msg_frame(self.pose_stamped)
                 err_str = "Robot pose in message frame is:" + self._str_posestamp(pose)
                 self.logger.debug(err_str)
             except TransformException:

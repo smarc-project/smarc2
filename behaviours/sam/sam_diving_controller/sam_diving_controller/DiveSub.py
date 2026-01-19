@@ -11,12 +11,13 @@ import math
 from tf2_geometry_msgs import PoseWithCovarianceStamped
 import tf2_geometry_msgs.tf2_geometry_msgs
 from std_msgs.msg import Float64
-from nav_msgs.msg import Odometry, Path
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from sensor_msgs.msg import Imu
 
 from smarc_msgs.msg import PercentStamped, ThrusterRPM, ThrusterFeedback
 from smarc_control_msgs.msg import Topics as ControlTopics
+from smarc_control_msgs.msg import TrajectoryMPC
 from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles, ThrusterRPMs
 from dead_reckoning_msgs.msg import Topics as DRTopics
@@ -100,14 +101,15 @@ class DiveSub():
         self._control_input['stern'] = self.param['tv_u_neutral']
         self._control_input['rudder'] = self.param['tv_u_neutral']
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic='odom_tf', callback=self._states_cb, qos_profile=10)
+        #self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
         self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
         self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
         self.pitch_sub = node.create_subscription(msg_type=Imu, topic=ControlTopics.PITCH, callback=self._pitch_cb, qos_profile=10)
 
         # Path subscriber - Added for trajectory tracking
-        self.path_sub = node.create_subscription(msg_type=Path, topic='planned_path', callback=self._path_cb, qos_profile=10)
+        #self.path_sub = node.create_subscription(msg_type=TrajectoryMPC, topic='planned_path', callback=self._path_cb, qos_profile=10)
 
         # Test of subscribers - excluding ctrl_synch_msg
         self.lcg_fb = node.create_subscription(msg_type=PercentStamped, topic=SamTopics.LCG_FB_TOPIC, callback=self._lcg_cb, qos_profile=10)
@@ -196,16 +198,8 @@ class DiveSub():
         self._control_input['rudder'] = thrust_vector_fb_msg.thruster_horizontal_radians
 
     def _update_tf(self):
-        # FIXME: THIS IS AN ISSUE NOW.
-        # Requirements:
-        #   - Handle different goal frames (from unity GUI, mocap)
-        #   - Handle path following, which needs to transform the state, but there's no goal, bc. there's no waypoint.
-        #   - Flexible enough to change, but not too complicated either.
-        #   - Avoid hard coded things...
         if self._waypoint_global is None:
             return
-        #self._waypoint_global = Odometry()
-        #self._waypoint_global.header.frame_id = 'mocap'
 
         try:
             self._tf_base_link_global = self._tf_buffer.lookup_transform(self._robot_base_link,

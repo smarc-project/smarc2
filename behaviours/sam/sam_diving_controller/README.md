@@ -74,7 +74,8 @@ but allows the operator to maneuver the AUV.
 
 #### DiveControllerMPC
 
-This implements a MPC for waypoint following.
+This implements a MPC for waypoint following. This can switch between
+trajectory tracking and waypoint following.
 
 ### IDivePub.py
 
@@ -109,7 +110,7 @@ Requires the following SamTopics:
 
 ### SetpointNode.py
 
-If you need to publihs a setpoint.
+If you need to publish a setpoint.
 
 ## config
 

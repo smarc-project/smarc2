@@ -1,18 +1,12 @@
 /**/auv_yolo_detector:
   ros__parameters:
-    mode: "sim" #overridden by launch
-    namespace: "Quadrotor" #overridden by launch
+    namespace: "M350" #overridden by launch
     device: 'cpu' #overridden by launch
-    model_path: '/home/alars/smarc2/best_real_2.pt' #overriden by launch
 
     detection:
       blur_variance: 1.5 #0.01 for not asko, 1.5 for asko
       inference_period: 0.1
-      confidence_threshold: 0.2
-
-    camera:
-      fov: 82.0
-      K: [369.5, 0.0, 320.0, 0.0, 415.69, 240.0, 0.0, 0.0, 1.0] #row-major order
+      confidence_threshold: 0.4
 
     sam:
       width: 0.2
@@ -20,18 +14,8 @@
 
     topics:
       rviz:
-        annotated_image: 'yolo_annotation'
-        bw_blurred_sam: 'blurred_sam'
-        edges: 'sam_edges'
-      predicted_position: # only in sim
-        sam: '/Quadrotor/pred_position/sam'
-        buoy: '/Quadrotor/pred_position/buoy'
-      raw_image: /Quadrotor/core/fpcamera/image # only in sim
-    
-    frames: # only in sim
-      map: "Quadrotor/map" # or "map_gt" in sim
-      quadrotor_odom: "Quadrotor/odom"
-      camera: "Quadrotor/camera"
-
+        annotated_image: 'rviz/yolo_annotation'
+        bw_blurred_sam: 'rviz/blurred_sam'
+        edges: 'rviz/sam_edges'
 
 

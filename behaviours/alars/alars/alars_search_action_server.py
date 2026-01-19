@@ -114,6 +114,7 @@ class SearchAction():
         Here you would typically validate the goal request
         Return True to accept the goal, False to reject it
         """ 
+        self._reset()
         self._loginfo(f"Received goal request: {goal_request}")
         search_center_gp = GeoPoint()
 

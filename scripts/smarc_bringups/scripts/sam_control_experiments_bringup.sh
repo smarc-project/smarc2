@@ -44,9 +44,9 @@ else
     #tmux select-window -t $SESSION:8
     #tmux send-keys "ros2 launch sam_drivers sam_payloads.launch sss_out_file:=$SSS_SAVE_PATH/ high_freq:=true robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
-    #tmux new-window -t $SESSION:9 -n uwcomms
-    #tmux select-window -t $SESSION:9
-    #tmux send-keys "ros2 launch sam_drivers sam_uwcomms.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+    tmux new-window -t $SESSION:9 -n uwcomms
+    tmux select-window -t $SESSION:9
+    tmux send-keys "ros2 launch sam_drivers sam_uwcomms.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
     # Mostly static stuff that wont be giving much feedback
     # for robot description launch. so we get base_link -> everything else
@@ -79,16 +79,17 @@ tmux new-window -t $SESSION:4 -n 'smcp'
 tmux select-window -t $SESSION:4
 tmux send-keys "ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME" C-m
 
-# for the mqtt bridge.
-#tmux new-window -t $SESSION:5 -n 'mqtt'
-## Set your MQTT Broker IP and Port in your bashrc
-#tmux select-window -t $SESSION:5
+# for the mqtt bridge to the babypool pc.
+tmux new-window -t $SESSION:5 -n 'mqtt'
+# Set your MQTT Broker IP and Port in your bashrc
+tmux select-window -t $SESSION:5
+tmux send-keys "ros2 launch mqtt_bridge demo.launch.py" C-m
 #tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME" C-m
 
-#tmux new-window -t $SESSION:6 -n 'emergency'
-#tmux select-window -t $SESSION:6
+tmux new-window -t $SESSION:6 -n 'hydropoint client'
+tmux select-window -t $SESSION:6
 # tmux send-keys "ros2 launch smarc_bringups dummies.launch robot_name:=$ROBOT_NAME" C-m
-#tmux send-keys "ros2 launch sam_emergency_action sam_emergency_action.launch robot_name:=$ROBOT_NAME" C-m
+tmux send-keys "ros2 launch sam_path_planning hydroppoint_client.launch robot_name:=$ROBOT_NAME" C-m
 #
 # utility stuff like dubins planning and lat/lon conversions that other stuff rely on
 # tmux new-window -t $SESSION:5 -n 'utils'

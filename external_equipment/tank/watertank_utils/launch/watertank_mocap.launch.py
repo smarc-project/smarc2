@@ -41,7 +41,13 @@ def generate_launch_description():
             'tank_package': 'watertank_description',
             'tank_package_path': PathJoinSubstitution(['robots', 'watertank_default.urdf.xacro']),
             'hula_package': 'hula_description',
-            'hula_package_path': PathJoinSubstitution(['robots', 'hula_default.urdf.xacro'])
+            'hula_package_path': PathJoinSubstitution(['robots', 'hula_default.urdf.xacro']),
+            'cf_package': 'crazyflie_description',
+            'cf_package_path': PathJoinSubstitution(['robots', 'crazyflie_uav_default.urdf.xacro']),
+            'launch_pad_package': 'launch_pad_description',
+            'launch_pad_package_path': PathJoinSubstitution(['robots', 'launch_pad_default.urdf.xacro']),
+            'floatsam_package': 'floatsam_description',
+            'floatsam_package_path': PathJoinSubstitution(['robots', 'floatsam_usv_default.urdf.xacro'])
             }.items()
         ),
 

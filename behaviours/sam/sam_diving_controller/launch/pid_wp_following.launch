@@ -7,7 +7,7 @@
    
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
-       <node name="diving_node" pkg="sam_diving_controller" exec="action_server_diving" output="screen">
+       <node name="diving_node" pkg="sam_diving_controller" exec="pid_wp_following" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
 	<param from="$(var control_yaml)"/>
@@ -16,7 +16,7 @@
 	<param name="distance_frame" value="base_link" />
 	<param name="distance_frame_suffix" value="" />
 	<param name="frame_suffix" value="" />
-	<param name="setpoint_tolerance" value="1.0" />
+	<param name="setpoint_tolerance" value="0.3" />
         <param name="goal_threshold" value="9" />
        </node>
     </group>

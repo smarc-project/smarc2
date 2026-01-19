@@ -1,0 +1,9 @@
+/**/auv_yolo_detector:
+  paths:
+    yolo_model: '/config/yolo_model.pt'
+    bags: "/home/smarc/aa_francisco_ws/colcon_ws/src/smarc2/perception/alars/auv_yolo_detector/bags/november_25"
+
+  rosbag:
+    duration: 20.0 # [s]
+    frame_period: 1.0 # [s] approximated time between frames
+    initial_frame_index: 500 # change to a non-zero if u already have frames within directory

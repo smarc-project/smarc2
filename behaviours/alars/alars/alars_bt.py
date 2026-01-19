@@ -25,6 +25,8 @@ from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStat
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from smarc_action_base.smarc_action_base import ActionClientState
 
+from alars.alars_common import DroneState
+
 from smarc_msgs.msg import Topics as SmarcTopics
 from dji_msgs.msg import Topics as DJITopics
 
@@ -45,6 +47,11 @@ class AlarsBT():
             self.recover_action = A_ActionClient(node, 'alars_recover')
 
             self.move_to_delivery_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='move_to_delivery')
+
+            self._node.declare_parameter('robot_name', 'M350')
+            self._robot_name : str = self._node.get_parameter('robot_name').get_parameter_value().string_value
+            self._drone_state = DroneState(node, self._robot_name)
+
             
             self._action_clients = [
                 self.move_to_delivery_action,
@@ -59,10 +66,6 @@ class AlarsBT():
                                            self._pos_latlon_cb,
                                            10)
             
-            self._node.create_subscription(Odometry,
-                                           SmarcTopics.ODOM_TOPIC,
-                                           self._odom_cb,
-                                           10)
             
             self._node.create_subscription(String,
                                            DJITopics.LABELED_UTM_TOPIC,
@@ -167,9 +170,6 @@ class AlarsBT():
     def _labeled_utm_cb(self, msg: String):
         self.UTM_FRAME = msg.data
 
-    def _odom_cb(self, msg: Odometry):
-        self._drone_in_odom = msg.pose.pose.position
-
 
     def _auv_detection_cb(self, msg: PointStamped):
         self._auv_detection_camera = msg
@@ -184,6 +184,7 @@ class AlarsBT():
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         self.log(f"Received new goal request: {goal_request}")
+        self._reset_states()
 
         # make sure all required fields are present
         try:
@@ -205,6 +206,8 @@ class AlarsBT():
         self.auv_in_view = False
         self.both_geopoints_known = False
         self.first_search_done = False
+        self._auv_geopoint_stamped = None
+        self._buoy_geopoint_stamped = None
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
 
@@ -427,7 +430,9 @@ class AlarsBT():
         root.add_child(done)
 
         # Go home if we have the AUV
+        #TODO if the delivey position is lower than raising alt, this will fail!
         go_deliver = Sequence("SQ Deliver the AUV", memory=False)
+        go_deliver.add_child(FuncToStatus("At raising alt?", lambda: self._drone_state.altitude >= self._goal["raising_altitude"] * 0.9 if self._drone_state.altitude is not None else False))
         go_deliver.add_child(FuncToStatus("Got AUV?", lambda: self.captured_auv))
         deliver = Sequence("SQ Deliver", memory=True)
         deliver.add_child(FuncToStatus("Set goal: Move to delivery point", self._set_move_to_goal_delivery))
