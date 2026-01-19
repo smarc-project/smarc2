@@ -414,14 +414,14 @@ class DiveControllerMPC(DiveControllerInterface):
         x[14] = control_msg['lcg']
         x[15] = -control_msg['stern']
         x[16] = -control_msg['rudder']
-        x[17] = control_msg['rpm1']
+        x[17] = -control_msg['rpm1'] # NOTE: The ESC is not inverted, that's why the -.
         x[18] = control_msg['rpm2']
 
         # Due to numerical reasons, we add a small noise to the rpms in
         # waypoint following mode
         if is_init_state:
             if is_trajectory:
-                x[17] = control_msg['rpm1']
+                x[17] = -control_msg['rpm1']
                 x[18] = control_msg['rpm2']
             else:
                 x[17] = 1e-6
@@ -512,7 +512,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
 
                 # DEBUG
-                self.ref[:,2] += 1
+                #self.ref[:,2] += 1
                 #self.ref[:,0] = 4
                 #self.ref[:,1] = 0
                 #self.ref[:,2] = 0
@@ -547,7 +547,7 @@ class DiveControllerMPC(DiveControllerInterface):
         u_lcg = mpc_solution[14]
         u_stern = -mpc_solution[15]
         u_rudder = -mpc_solution[16]
-        u_rpm1 = mpc_solution[17]
+        u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
         u_rpm2 = mpc_solution[18]
 
         #        if np.abs(mpc_solution[17]) < 100:
