@@ -625,8 +625,8 @@ class MPCPathServer(PathServer, DiveSub):
 
         # Set global waypoint to trigger update_tf in DiveSub. Ugly, but works for now.
         self._waypoint_global = Odometry()
-        self._waypoint_global.header.frame_id = 'KTHTank/mocap'
-        #self._waypoint_global.header.frame_id = 'mocap'
+        #self._waypoint_global.header.frame_id = 'KTHTank/mocap'
+        self._waypoint_global.header.frame_id = 'mocap'
         
         path = []
         for i in range(0, len(goal_path.trajectory)):

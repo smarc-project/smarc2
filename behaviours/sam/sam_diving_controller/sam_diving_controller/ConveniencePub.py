@@ -26,7 +26,8 @@ class ConveniencePub(IDivePub):
         self._node = node
 
         self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self._mocap_frame = 'KTHTank/mocap'
+        #self._mocap_frame = 'KTHTank/mocap' # For the sim
+        self._mocap_frame = '/mocap'
 
         #self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._state_pub = node.create_publisher(Odometry, ControlTopics.STATES_CONV, 10)
