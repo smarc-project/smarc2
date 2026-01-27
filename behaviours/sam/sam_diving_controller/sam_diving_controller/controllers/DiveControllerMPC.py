@@ -203,9 +203,15 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
         s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0,:6]}\n"
-        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
-             u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \
-             u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
+        #s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
+        #     u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \
+        #     u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
+        s += f"rate: vbs: {self.simU[0]}"
+        s += f" lcg: {self.simU[1]}"
+        s += f" stern: {self.simU[2]}"
+        s += f" rudder: {self.simU[3]}"
+        s += f" rpm1: {self.simU[4]}"
+        s += f" rpm2: {self.simU[5]}\n"
 
         self._loginfo(s)
 
@@ -421,6 +427,10 @@ class DiveControllerMPC(DiveControllerInterface):
         # waypoint following mode
         if is_init_state:
             if is_trajectory:
+                #x[13] = 1   # vbs
+                #x[14] = 50  # lcg
+                #x[17] = -1 #-control_msg['rpm1']
+                #x[18] = 1 #control_msg['rpm2']
                 x[17] = -control_msg['rpm1']
                 x[18] = control_msg['rpm2']
             else:
@@ -512,15 +522,24 @@ class DiveControllerMPC(DiveControllerInterface):
 
 
                 # DEBUG
-                #self.ref[:,2] += 1
-                #self.ref[:,0] = 4
-                #self.ref[:,1] = 0
-                #self.ref[:,2] = 0
+                # Manually restricting certain states
+                # Orientation
                 self.ref[:,3] = 1
-                self.ref[:,4:] = 0
-                self.ref[:,13] = 50
-                self.ref[:,14] = 50
-                self.ref[:,15:] = 0
+                self.ref[:,4:7] = 0
+
+                # velocities
+                self.ref[:,7] = 0   # vel x
+                self.ref[:,8] = 0   # vel y 
+                self.ref[:,9] = 0  # vel z 
+                self.ref[:,10:13] = 0 # angular velocities
+
+                # Actuators
+                self.ref[:,13] = 50 # VBS
+                self.ref[:,14] = 50 # LCG
+                self.ref[:,15] = 0  # stern
+                self.ref[:,16] = 0  # rudder 
+                self.ref[:,17] = 0  # rpm1
+                self.ref[:,18] = 0  # rpm2
 
                 return
 
@@ -550,15 +569,15 @@ class DiveControllerMPC(DiveControllerInterface):
         u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
         u_rpm2 = mpc_solution[18]
 
-        #        if np.abs(mpc_solution[17]) < 100:
-        #            u_rpm1 = 0
-        #        else: 
-        #            u_rpm1 = mpc_solution[17]
+        #if np.abs(mpc_solution[17]) < 200:
+        #    u_rpm1 = 0
+        #else: 
+        #    u_rpm1 = -(mpc_solution[17] + np.sign(mpc_solution[17])*210)
         #
-        #        if np.abs(mpc_solution[18]) < 100:
-        #            u_rpm2 = 0
-        #        else: 
-        #            u_rpm2 = mpc_solution[18]
+        #if np.abs(mpc_solution[18]) < 200:
+        #    u_rpm2 = 0
+        #else: 
+        #    u_rpm2 = mpc_solution[18] + np.sign(mpc_solution[18]) * 210
 
         # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
@@ -578,24 +597,39 @@ class DiveControllerMPC(DiveControllerInterface):
         # Convenience Topics
         # FIXME: This if statement is weird.
         if self.ref is not None:
-            self._ref = ControlReference()
-            self._ref.x = self.ref[0, 0]
-            self._ref.y = self.ref[0, 1]
-            self._ref.z = self.ref[0, 2]
+            #self._ref = ControlReference()
+            #self._ref.x = self.ref[0, 0]
+            #self._ref.y = self.ref[0, 1]
+            #self._ref.z = self.ref[0, 2]
 
-            r = R.from_quat([self.ref[0, 4],  # x
-                             self.ref[0, 5],  # y
-                             self.ref[0, 6],  # z
-                             self.ref[0, 3]])  # w
-            euler_angles = r.as_euler('xyz', degrees=False)
-            self._ref.roll = euler_angles[0]
-            self._ref.pitch = euler_angles[1]
-            self._ref.yaw = euler_angles[2]
+            #r = R.from_quat([self.ref[0, 4],  # x
+            #                 self.ref[0, 5],  # y
+            #                 self.ref[0, 6],  # z
+            #                 self.ref[0, 3]])  # w
+            #euler_angles = r.as_euler('xyz', degrees=False)
+            #self._ref.roll = euler_angles[0]
+            #self._ref.pitch = euler_angles[1]
+            #self._ref.yaw = euler_angles[2]
 
-            self._ref.qx = self.ref[0, 4]
-            self._ref.qy = self.ref[0, 5]
-            self._ref.qz = self.ref[0, 6]
-            self._ref.qw = self.ref[0, 3]
+            #self._ref.qx = self.ref[0, 4]
+            #self._ref.qy = self.ref[0, 5]
+            #self._ref.qz = self.ref[0, 6]
+            #self._ref.qw = self.ref[0, 3]
+
+            self._ref = Odometry()
+            self._ref.pose.pose.position.x = self.ref[0,0]
+            self._ref.pose.pose.position.y = self.ref[0,1]
+            self._ref.pose.pose.position.z = self.ref[0,2]
+            self._ref.pose.pose.orientation.w = self.ref[0,3]
+            self._ref.pose.pose.orientation.x = self.ref[0,4]
+            self._ref.pose.pose.orientation.y = self.ref[0,5]
+            self._ref.pose.pose.orientation.z = self.ref[0,6]
+            self._ref.twist.twist.linear.x = self.ref[0,7]
+            self._ref.twist.twist.linear.y = self.ref[0,8]
+            self._ref.twist.twist.linear.z = self.ref[0,9]
+            self._ref.twist.twist.angular.x = self.ref[0,10]
+            self._ref.twist.twist.angular.y = self.ref[0,11]
+            self._ref.twist.twist.angular.z = self.ref[0,12]
 
             self._control_ref = ControlInput()
             self._control_ref.vbs = self.ref[0,13]

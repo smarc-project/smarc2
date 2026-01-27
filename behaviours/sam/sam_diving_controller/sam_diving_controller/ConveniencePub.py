@@ -31,7 +31,8 @@ class ConveniencePub(IDivePub):
 
         #self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._state_pub = node.create_publisher(Odometry, ControlTopics.STATES_CONV, 10)
-        self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
+        #self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
+        self._ref_pub = node.create_publisher(Odometry, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
         self._ref_input_pub = node.create_publisher(ControlInput, 'ctrl/ref_input', 10)
