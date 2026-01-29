@@ -46,10 +46,14 @@ class PathClient(SMARCActionClient):
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self.goal_processed = False
 
-        self.frame_id = '/mocap'
+        self.world_prefix = self._node.get_parameter('world_prefix').get_parameter_value().string_value
+
+        self.frame_id = self.world_prefix + 'mocap'
 
         self.path_msg = Path()
-        self.publisher_ = self._node.create_publisher(Path, 'sam/ctrl/conv/planned_trajectory', 10)
+        self.trajectory_msg = TrajectoryMPC()
+        self.path_pub = self._node.create_publisher(Path, '/ctrl/conv/planned_path', 10)
+        self.trajectory_pub = self._node.create_publisher(TrajectoryMPC, '/ctrl/conv/planned_trajectory', 10)
 
         # Wait for server
         # while not self._client.wait_for_server(timeout_sec=1.) and rclpy.ok():
@@ -59,30 +63,23 @@ class PathClient(SMARCActionClient):
 
     def declare_parameters(self):
         """Location to declare parameters."""
-        pass
+        self._node.declare_parameter('world_prefix', '')    # choose if we're in the tank of not
 
 
     def run(self):
         # DEBUGGING the trajectory tracking
-        #file_path = "/home/parallels/ros2_ws/src/smarc2/behaviours/sam/sam_diving_controller/sam_diving_controller/simple_path_complexity_1.csv"
-        #file_path = "/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/trajectories/straight_trajectory_1.csv"
-        #file_path = "/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/trajectories/straight_trajectory_1_mod_z.csv"
-        file_path = "/home/parallels/ros2_ws/src/smarc2/behaviours/sam/sam_diving_controller/sam_diving_controller/trajectories/straight_trajectory_1.csv"
+        HERE = Path(__file__).resolve().parent  # resolves the directory of the script.
+        file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
 
         np_path = self.read_csv_to_array(file_path)
-        
-        path = self.convert_np_path_to_trajectory(np_path)
+        mpc_trajectory = self.convert_np_path_to_trajectory(np_path)
         self.create_path_msg(FilePath(file_path))
 
-        #self.path_msg.header.stamp = self._node.get_clock().now().to_msg()
-        #for p in self.path_msg.poses:
-        #    p.header.stamp = self.path_msg.header.stamp
-        #self.publisher_.publish(self.path_msg)
+        self.send_path(mpc_trajectory)
 
-        self.send_path(path)
+        self.logger.info("Trajectory sent")
 
-        self.logger.info("Path sent")
-
+        self.trajectory_msg = mpc_trajectory
         self.timer = self._node.create_timer(1.0, self.timer_callback)
 
         pass
@@ -95,7 +92,8 @@ class PathClient(SMARCActionClient):
         self.path_msg.header.stamp = self._node.get_clock().now().to_msg()
         for p in self.path_msg.poses:
             p.header.stamp = self.path_msg.header.stamp
-        self.publisher_.publish(self.path_msg)
+        self.path_pub.publish(self.path_msg)
+        self.trajectory_pub.publish(self.trajectory_msg)
 
     def read_csv_to_array(self, file_path: str):                    
         """                                                         
@@ -161,11 +159,13 @@ class PathClient(SMARCActionClient):
                 pose.pose.position.x = float(row['x'])
                 pose.pose.position.y = float(row['y'])
                 pose.pose.position.z = float(row['z'])
-                # orientation left as default (0,0,0,1)
+                pose.pose.orientation.x = float(row['q1'])
+                pose.pose.orientation.y = float(row['q2'])
+                pose.pose.orientation.z = float(row['q3'])
+                pose.pose.orientation.w = float(row['q0'])
                 self.path_msg.poses.append(pose)
 
         self.logger.info(f'Loaded {len(self.path_msg.poses)} poses from {csv_path}')
-        #return path_msg
 
     def send_path(self, path: Path):
 
@@ -237,7 +237,7 @@ def main(args=None):
     node_name = "path_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-    path_client = PathClient(node, "sam_david/auv_trajectory_tracking", action_type)
+    path_client = PathClient(node, "auv_trajectory_tracking", action_type)
     path_client._setup()
     path_client.run()
     rclpy.spin(node)

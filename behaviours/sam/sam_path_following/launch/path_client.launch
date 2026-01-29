@@ -1,0 +1,16 @@
+<launch>
+
+    <arg name="robot_name" default="sam0"/>
+    <arg name="tf_suffix" default=""/>
+    <arg name="world_prefix" default=""/>
+   
+    <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+       <node name="path_client_node" pkg="sam_path_following" exec="path_client" output="screen">
+        <param name="robot_name" value="$(var robot_name)"/>
+        <param name="tf_suffix" value="$(var tf_suffix)"/>
+        <param name="world_prefix" value="$(var world_prefix)"/>
+       </node>
+    </group>
+
+</launch>
