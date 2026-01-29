@@ -70,6 +70,7 @@ class PathClient(SMARCActionClient):
         # DEBUGGING the trajectory tracking
         HERE = Path(__file__).resolve().parent  # resolves the directory of the script.
         file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
+        #file_path = "/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/trajectories/2026-01-19__straight_trajectory_1m.csv"
 
         np_path = self.read_csv_to_array(file_path)
         mpc_trajectory = self.convert_np_path_to_trajectory(np_path)
@@ -237,7 +238,11 @@ def main(args=None):
     node_name = "path_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
+<<<<<<< HEAD
     path_client = PathClient(node, "auv_trajectory_tracking", action_type)
+=======
+    path_client = PathClient(node, "sam/auv_trajectory_tracking", action_type)
+>>>>>>> origin/real_sam_mpc_trajectory_tracking
     path_client._setup()
     path_client.run()
     rclpy.spin(node)

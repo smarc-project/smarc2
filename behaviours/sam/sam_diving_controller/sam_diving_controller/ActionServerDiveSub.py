@@ -659,6 +659,7 @@ class MPCPathServer(PathServer, DiveSub):
         self._waypoint_global = Odometry()
         self._waypoint_global.header.frame_id = self.world_prefix + 'mocap'
         #self._waypoint_global.header.frame_id = 'mocap'
+        #self._waypoint_global.header.frame_id = 'KTHTank/mocap'
         
         path = []
         for i in range(0, len(goal_path.trajectory)):

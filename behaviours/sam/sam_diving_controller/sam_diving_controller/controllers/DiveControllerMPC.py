@@ -199,9 +199,15 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
         s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0,:6]}\n"
-        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
-             u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \
-             u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
+        #s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
+        #     u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \
+        #     u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
+        s += f"rate: vbs: {self.simU[0]}"
+        s += f" lcg: {self.simU[1]}"
+        s += f" stern: {self.simU[2]}"
+        s += f" rudder: {self.simU[3]}"
+        s += f" rpm1: {self.simU[4]}"
+        s += f" rpm2: {self.simU[5]}\n"
 
         self._loginfo(s)
 
@@ -410,14 +416,14 @@ class DiveControllerMPC(DiveControllerInterface):
         x[14] = control_msg['lcg']
         x[15] = -control_msg['stern']
         x[16] = -control_msg['rudder']
-        x[17] = control_msg['rpm1']
+        x[17] = -control_msg['rpm1'] # NOTE: The ESC is not inverted, that's why the -.
         x[18] = control_msg['rpm2']
 
         # Due to numerical reasons, we add a small noise to the rpms in
         # waypoint following mode
         if is_init_state:
             if is_trajectory:
-                x[17] = control_msg['rpm1']
+                x[17] = -control_msg['rpm1']
                 x[18] = control_msg['rpm2']
             else:
                 x[17] = 1e-6
@@ -502,18 +508,28 @@ class DiveControllerMPC(DiveControllerInterface):
 
 
                 # DEBUG
+                # Manually restricting certain states
+                # Position
                 #self.ref[:,0] = 4
                 #self.ref[:,1] = 0
                 #self.ref[:,2] = 0
+                # Orientation
                 self.ref[:,3] = 1
                 self.ref[:,4:7] = 0
+
+                # velocities
                 #self.ref[:,7] = 0   # vel x
-                self.ref[:,8] = 0   # vel y
-                #self.ref[:,9] = 0  # vel z
-                self.ref[:,10:] = 0
-                self.ref[:,13] = 50
-                self.ref[:,14] = 50
-                self.ref[:,15:] = 0
+                self.ref[:,8] = 0   # vel y 
+                #self.ref[:,9] = 0  # vel z 
+                self.ref[:,10:13] = 0 # angular velocities
+
+                # Actuators
+                self.ref[:,13] = 50 # VBS
+                self.ref[:,14] = 50 # LCG
+                self.ref[:,15] = 0  # stern
+                self.ref[:,16] = 0  # rudder 
+                self.ref[:,17] = 0  # rpm1
+                self.ref[:,18] = 0  # rpm2
 
                 return
 
@@ -540,7 +556,7 @@ class DiveControllerMPC(DiveControllerInterface):
         u_lcg = mpc_solution[14]
         u_stern = -mpc_solution[15]
         u_rudder = -mpc_solution[16]
-        u_rpm1 = mpc_solution[17]
+        u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
         u_rpm2 = mpc_solution[18]
 
         # Publish the control input

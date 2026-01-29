@@ -13,18 +13,15 @@ Check their individual READMEs for details specific to each.
 **Documentation of the simulation components, methods, vehicles, systems etc. are inside the Assets submodule where the code for most of it lives.**
 
 ### The packages
-**Assets**: Common package that contains all the sensors, prefabs, vehicles, etc.
-Should be imported from the package manager in Unity. This is where MOST of the useful things are.
+**SmarcAssets**: Common package that contains all the sensors, prefabs, vehicles, etc.
+Should be imported from the package manager in Unity if used in a different project. This is where MOST of the useful things are.
 
-**HDRP**: Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
+**SmarcUnity**: Uses the High Def. Render Pipeline to produce some good looking water and realistic waves. 
 Runs fast enough for realtime usage while looking pretty. Requires a decent GPU to run smoothly.
 
-**Standard**: Uses the "Unity Standard" rendering pipeline, trading graphical fidelity for _speed_.
-If you need to do some reinforcement learning or similar "try a million times" approaches, this is the way to go. This version can also be very easily ran without graphics.
-
 ### First time installation
-- Clone SMARCUnityHDRP and/or SMARCUnityStandard (referred to as "**the project**" going forward) and SMARCUnityAssets (**Assets**) repositories into the the *same folder*.
-  - **The project** is configured to access **Assets** as a sibling.
+- Clone SMARCUnity (referred to as "**the project**" going forward) and SMARCAssets (**Assets**) repositories into the the *same folder*.
+  - **The project** is pre-configured to access **Assets** as a sibling.
   - If you want to arrange them differently, you will need to modify the `manifest.json` file in `TheProject/Packages` to point to wherever you placed **Assets**.
   - Do not place **Assets** inside **the project**.
 - Open Unity Hub
@@ -34,10 +31,9 @@ If you need to do some reinforcement learning or similar "try a million times" a
   - It will take a bit of time to compile everything for the first time, let it be.
   - **The project** should now appear in the hub going forward.
 
-> You can also acquire the latest released binaries from the [releases section of github](https://github.com/smarc-project/smarc2/releases). These are usually outdated, but likely more stable. If you encounter bugs here, try a cloned version first.
 
 #### ROS connection
-- Both the Standard and HDRP versions use the [ROS-TCP-Endpoint](https://github.com/KKalem/ROS-TCP-Endpoint) package to speak to ROS2. 
+- We use the [ROS-TCP-Endpoint](https://github.com/KKalem/ROS-TCP-Endpoint) package to speak to ROS2. 
   - You can use [this simple script](../scripts/unity_ros_bridge.sh) to run the bridge and then use `rviz2` and `rqt` to check what things look like in ROS.
 - The ROS connection is especially useful when you are running headless.
 
@@ -48,8 +44,8 @@ If you need to do some reinforcement learning or similar "try a million times" a
 These are generated from within the editor:
 - Robotics -> Generate ROS Messages...
 - Fill in the fields in the pop-up
-  - Usually you can not generate these INTO the SMARCUnityAssets package, so place the RosMessages folder anywhere for now
-- Cut/Paste the generated RosMessages folder into `SMARCUnityAssets/Runtime/Scripts/VehicleComponents/ROS/Core/RosMessages`
+  - Usually you can not generate these INTO the SMARCAssets package, so place the RosMessages folder anywhere for now
+- Cut/Paste the generated RosMessages folder into `SMARCAssets/Runtime/Scripts/VehicleComponents/ROS/Core/RosMessages`
 
 ### Running headless
 > This was only tested with the Standard setup.
@@ -68,7 +64,7 @@ To do so, run the [unity bridge node](../scripts/unity_ros_bridge.sh) in the sam
 
 See [the docker readme!](../docker/README.md)
 
-## Running on Macs with ROS
+## Running on Macs with VM/Docker or Windows with WSL
 > Intel-based macs should just use a VM of Ubuntu 22.04 if ROS is desired, otherwise all packages can be run within MacOS and the following part can be ignored.
 
 Apple silicon macs can do the following to get the sim + ros working.
@@ -78,7 +74,7 @@ Do these to get stuff running:
 - Either [use docker](../docker/README.md) or a VM to get Ubunbtu 22.04 and all the ROS stuff.
   - This part will work fine because you will be compiling things on the apple silicon.
   - If you followed the docker example, the sim in docker WONT run. Because the binaries are for x86 systems and you are on apple.
-- Install Unity Hub on mac.
+- Install Unity Hub on mac/win.
   - Get personal license.
   - No need to install an editor at this point.
 - Clone **the project** and **assets** as described above
