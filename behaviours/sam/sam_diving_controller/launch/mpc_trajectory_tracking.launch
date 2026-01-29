@@ -2,6 +2,7 @@
 
     <arg name="robot_name" default="sam0"/>
     <arg name="tf_suffix" default=""/>
+    <arg name="world_prefix" default=""/>
     <arg name="control_yaml" default="$(find-pkg-share sam_diving_controller)/config/sam_diving_controller_config.yaml"/>
    
     <group>
@@ -9,6 +10,7 @@
        <node name="diving_node" pkg="sam_diving_controller" exec="mpc_trajectory_tracking" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
+        <param name="world_prefix" value="$(var world_prefix)"/>
 	<param from="$(var control_yaml)"/>
        </node>
     </group>

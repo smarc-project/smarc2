@@ -36,7 +36,6 @@ class DiveControllerMPC(DiveControllerInterface):
         self._control_ref = None
         self.waypoint = None
 
-
         self.pred_mpc = []
 
         # Declare counter
@@ -85,12 +84,9 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
-        # FIXME: This doesn't quite work. Replacing it with checking if
-        # mission_state == RUNNING blocked the whole controller and it wouldn't
-        # get the waypoint either.
         mission_state = self._dive_sub.get_mission_state()
 
-        has_ref = self.get_reference()  # you already call this later; do it once
+        has_ref = self.get_reference()  
         commanding = (mission_state == MissionStates.RUNNING) and has_ref
 
         # Marker for mission start and end
@@ -471,12 +467,6 @@ class DiveControllerMPC(DiveControllerInterface):
         Populate reference array depending on whether we have a trajectory or waypoint.
         """
         if self.ref_is_traj:
-            #if self.i < self.traj_len:
-                # extract the sub-trajectory to track under the prediction horizon
-                #if self.i <= (self.traj_len - self.N_horizon):
-                #    self.ref = self.trajectory[self.i:self.i + self.N_horizon, :]
-                #else:
-                #    self.ref = self.trajectory[self.i:, :]
 
             # Get current position
             x_current = self._current_state.pose.pose.position.x
@@ -512,12 +502,15 @@ class DiveControllerMPC(DiveControllerInterface):
 
 
                 # DEBUG
-                self.ref[:,2] += 1
                 #self.ref[:,0] = 4
                 #self.ref[:,1] = 0
                 #self.ref[:,2] = 0
                 self.ref[:,3] = 1
-                self.ref[:,4:] = 0
+                self.ref[:,4:7] = 0
+                #self.ref[:,7] = 0   # vel x
+                self.ref[:,8] = 0   # vel y
+                #self.ref[:,9] = 0  # vel z
+                self.ref[:,10:] = 0
                 self.ref[:,13] = 50
                 self.ref[:,14] = 50
                 self.ref[:,15:] = 0
@@ -550,16 +543,6 @@ class DiveControllerMPC(DiveControllerInterface):
         u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
-        #        if np.abs(mpc_solution[17]) < 100:
-        #            u_rpm1 = 0
-        #        else: 
-        #            u_rpm1 = mpc_solution[17]
-        #
-        #        if np.abs(mpc_solution[18]) < 100:
-        #            u_rpm2 = 0
-        #        else: 
-        #            u_rpm2 = mpc_solution[18]
-
         # Publish the control input
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
@@ -578,24 +561,39 @@ class DiveControllerMPC(DiveControllerInterface):
         # Convenience Topics
         # FIXME: This if statement is weird.
         if self.ref is not None:
-            self._ref = ControlReference()
-            self._ref.x = self.ref[0, 0]
-            self._ref.y = self.ref[0, 1]
-            self._ref.z = self.ref[0, 2]
+            #self._ref = ControlReference()
+            #self._ref.x = self.ref[0, 0]
+            #self._ref.y = self.ref[0, 1]
+            #self._ref.z = self.ref[0, 2]
 
-            r = R.from_quat([self.ref[0, 4],  # x
-                             self.ref[0, 5],  # y
-                             self.ref[0, 6],  # z
-                             self.ref[0, 3]])  # w
-            euler_angles = r.as_euler('xyz', degrees=False)
-            self._ref.roll = euler_angles[0]
-            self._ref.pitch = euler_angles[1]
-            self._ref.yaw = euler_angles[2]
+            #r = R.from_quat([self.ref[0, 4],  # x
+            #                 self.ref[0, 5],  # y
+            #                 self.ref[0, 6],  # z
+            #                 self.ref[0, 3]])  # w
+            #euler_angles = r.as_euler('xyz', degrees=False)
+            #self._ref.roll = euler_angles[0]
+            #self._ref.pitch = euler_angles[1]
+            #self._ref.yaw = euler_angles[2]
 
-            self._ref.qx = self.ref[0, 4]
-            self._ref.qy = self.ref[0, 5]
-            self._ref.qz = self.ref[0, 6]
-            self._ref.qw = self.ref[0, 3]
+            #self._ref.qx = self.ref[0, 4]
+            #self._ref.qy = self.ref[0, 5]
+            #self._ref.qz = self.ref[0, 6]
+            #self._ref.qw = self.ref[0, 3]
+
+            self._ref = Odometry()
+            self._ref.pose.pose.position.x = self.ref[0,0]
+            self._ref.pose.pose.position.y = self.ref[0,1]
+            self._ref.pose.pose.position.z = self.ref[0,2]
+            self._ref.pose.pose.orientation.w = self.ref[0,3]
+            self._ref.pose.pose.orientation.x = self.ref[0,4]
+            self._ref.pose.pose.orientation.y = self.ref[0,5]
+            self._ref.pose.pose.orientation.z = self.ref[0,6]
+            self._ref.twist.twist.linear.x = self.ref[0,7]
+            self._ref.twist.twist.linear.y = self.ref[0,8]
+            self._ref.twist.twist.linear.z = self.ref[0,9]
+            self._ref.twist.twist.angular.x = self.ref[0,10]
+            self._ref.twist.twist.angular.y = self.ref[0,11]
+            self._ref.twist.twist.angular.z = self.ref[0,12]
 
             self._control_ref = ControlInput()
             self._control_ref.vbs = self.ref[0,13]

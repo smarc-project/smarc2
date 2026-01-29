@@ -401,6 +401,9 @@ class HydropointServer(SMARCActionServer, DiveSub):
         hydro_setpoint = self._json_ops.decode(goal_request, 0)
         self.logger.info(f"Recieved setpoint at {hydro_setpoint}")
         pose_stamped = hydro_setpoint
+
+        pose_stamped.header.frame_id = self.normalize_frame_id(pose_stamped.header.frame_id, self.world_prefix)
+
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
@@ -427,6 +430,35 @@ class HydropointServer(SMARCActionServer, DiveSub):
         # Saves and accepts as all criteria fulfilled
         self._save_wp(pose_stamped)
         return GoalResponse.ACCEPT
+
+
+    def normalize_frame_id(self, frame_id: str, world_prefix: str) -> str:
+        """
+        Ensures frame_id is prefixed with world_prefix exactly once.
+
+        Examples:
+          frame_id='map', world_prefix='sim/'   -> 'sim/map'
+          frame_id='sim/map', world_prefix='sim/' -> 'sim/map'
+          frame_id='map', world_prefix=''       -> 'map'
+        """
+        if not world_prefix:
+            return frame_id
+
+        # Normalize inputs
+        prefix = self._strip_leading_slash(world_prefix)
+        if not prefix.endswith('/'):
+            prefix += '/'
+
+        fid = self._strip_leading_slash(frame_id)
+
+        if fid.startswith(prefix):
+            return frame_id  # already correct
+
+        return prefix + fid
+
+    def _strip_leading_slash(self, s: str) -> str:
+        return s[1:] if s.startswith('/') else s
+
 
     def compute_distance(self, pose_stamped: PoseStamped) -> float:
         """Euclidean distance to target.
@@ -625,7 +657,7 @@ class MPCPathServer(PathServer, DiveSub):
 
         # Set global waypoint to trigger update_tf in DiveSub. Ugly, but works for now.
         self._waypoint_global = Odometry()
-        self._waypoint_global.header.frame_id = 'KTHTank/mocap'
+        self._waypoint_global.header.frame_id = self.world_prefix + 'mocap'
         #self._waypoint_global.header.frame_id = 'mocap'
         
         path = []
