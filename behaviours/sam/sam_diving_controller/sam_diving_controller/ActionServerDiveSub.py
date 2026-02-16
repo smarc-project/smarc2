@@ -290,7 +290,8 @@ class HydropointServer(SMARCActionServer, DiveSub):
         # We get the waypoint from the action server instead
         node.destroy_subscription(self.waypoint_sub)
 
-        self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        #self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
+        self.logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
         self._json_ops: HydrobaticPointAction = HydrobaticPointAction()
 
         self.logger.info("Hydropoint AS created")
@@ -658,8 +659,7 @@ class MPCPathServer(PathServer, DiveSub):
         # Set global waypoint to trigger update_tf in DiveSub. Ugly, but works for now.
         self._waypoint_global = Odometry()
         self._waypoint_global.header.frame_id = self.world_prefix + 'mocap'
-        #self._waypoint_global.header.frame_id = 'mocap'
-        #self._waypoint_global.header.frame_id = 'KTHTank/mocap'
+        self.logger.info(f"Frame id: {self._waypoint_global.header.frame_id}")
         
         path = []
         for i in range(0, len(goal_path.trajectory)):
@@ -746,6 +746,7 @@ class MPCPathServer(PathServer, DiveSub):
             goal_handle.publish_feedback(feedback)
             rate.sleep()
 
+        self.set_mission_state(MissionStates.COMPLETED, "AS")
         goal_handle.succeed()
         rate.destroy()
         return "done"

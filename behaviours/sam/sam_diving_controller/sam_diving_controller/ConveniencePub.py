@@ -28,20 +28,15 @@ class ConveniencePub(IDivePub):
         self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self.world_prefix = self._node.get_parameter('world_prefix').get_parameter_value().string_value
         self._mocap_frame = self.world_prefix + 'mocap'
-        #self._mocap_frame = 'KTHTank/mocap' # For the sim
-        #self._mocap_frame = '/mocap'
 
-        #self._state_pub = node.create_publisher(ControlState, ControlTopics.STATES_CONV, 10)
         self._state_pub = node.create_publisher(Odometry, ControlTopics.STATES_CONV, 10)
-        #self._ref_pub = node.create_publisher(ControlReference, ControlTopics.REF_CONV, 10)
         self._ref_pub = node.create_publisher(Odometry, ControlTopics.REF_CONV, 10)
         self._error_pub = node.create_publisher(ControlError, ControlTopics.CONTROL_ERROR_CONV, 10)
         self._input_pub = node.create_publisher(ControlInput, ControlTopics.CONTROL_INPUT_CONV, 10)
-        self._ref_input_pub = node.create_publisher(ControlInput, 'ctrl/ref_input', 10)
+        self._ref_input_pub = node.create_publisher(ControlInput, 'ctrl/conv/ref_input', 10)
         self._waypoint_pub = node.create_publisher(Odometry, ControlTopics.WAYPOINT_CONV, 10)
-        #self._mpc_pred_pub = node.create_publisher(Path, ControlTopics.MPC_PRED, 10)
-        self._mpc_pred_pub = node.create_publisher(Path, 'ctrl/mpc_pred', 10)
-        self._mpc_path_pub = node.create_publisher(Path, 'ctrl/mpc_path', 10)
+        self._mpc_pred_pub = node.create_publisher(Path, 'ctrl/conv/mpc_pred', 10)
+        self._mpc_path_pub = node.create_publisher(Path, 'ctrl/conv/mpc_path', 10)
 
         self._state_msg = None
         self._ref_msg = None
@@ -82,6 +77,7 @@ class ConveniencePub(IDivePub):
 
         now = self._node.get_clock().now()
         self._ref_msg.header.stamp = now.to_msg()
+        self._ref_msg.header.frame_id = self._mocap_frame
 
         self._ref_pub.publish(self._ref_msg)
 
@@ -121,6 +117,10 @@ class ConveniencePub(IDivePub):
 
         if self._waypoint is None:
             return
+
+        now = self._node.get_clock().now()
+        self._waypoint.header.stamp = now.to_msg()
+        self._waypoint.header.frame_id = self._mocap_frame
 
         self._waypoint_pub.publish(self._waypoint)
 
@@ -254,7 +254,7 @@ class ConveniencePub(IDivePub):
         self._update_input()
         self._update_ref_input()
         self._update_waypoint()
-        self._print_state()
+        #self._print_state()
         self._publish_predicted_path()
         self._publish_mpc_path_ref()
 
