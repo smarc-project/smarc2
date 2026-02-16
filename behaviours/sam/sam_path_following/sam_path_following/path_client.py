@@ -1,25 +1,27 @@
 import csv
 from pathlib import Path as FilePath
-import numpy as np
 
+import numpy as np
 import rclpy
 from action_msgs.msg import GoalStatus
 from geographic_msgs.msg import GeoPoint
+from geometry_msgs.msg import Pose, PoseStamped
+from nav_msgs.msg import Path
 from rclpy.action import CancelResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.node import Node
+from rclpy.time import Time
 from smarc_action_base.smarc_action_base import (
+    ActionClientState,
     ActionFeedback,
     ActionResult,
     ActionType,
     SMARCActionClient,
-    ActionClientState,
 )
-from smarc_msgs.action import BaseAction
-from geometry_msgs.msg import Pose, PoseStamped
 from smarc_control_msgs.msg import Topics as ControlTopics
-from smarc_control_msgs.msg import WpMPC, TrajectoryMPC
-from nav_msgs.msg import Path
+from smarc_control_msgs.msg import TrajectoryMPC, WpMPC
+from smarc_msgs.action import BaseAction
+from tf2_ros import TransformException
 
 from sam_path_following.path_action import ActionComponent as ActC
 from sam_path_following.path_action import PathAction
@@ -46,31 +48,44 @@ class PathClient(SMARCActionClient):
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self.goal_processed = False
 
-        self.world_prefix = self._node.get_parameter('world_prefix').get_parameter_value().string_value
+        self.world_prefix = (
+            self._node.get_parameter("world_prefix").get_parameter_value().string_value
+        )
 
-        self.frame_id = self.world_prefix + 'mocap'
+        self.world_prefix = (
+            self._node.get_parameter("world_prefix").get_parameter_value().string_value
+        )
+
+        self.frame_id = self.world_prefix + "mocap"
 
         self.path_msg = Path()
         self.trajectory_msg = TrajectoryMPC()
-        self.path_pub = self._node.create_publisher(Path, '/ctrl/conv/planned_path', 10)
-        self.trajectory_pub = self._node.create_publisher(TrajectoryMPC, '/ctrl/conv/planned_trajectory', 10)
+        self.path_pub = self._node.create_publisher(Path, "ctrl/conv/planned_path", 10)
+        self.trajectory_pub = self._node.create_publisher(
+            TrajectoryMPC, "ctrl/conv/planned_trajectory", 10
+        )
 
         # Wait for server
         # while not self._client.wait_for_server(timeout_sec=1.) and rclpy.ok():
         #     self.logger.info(f"Node {action_name} waiting for go_to_hydropoint server")
 
         self.logger.info(f"Node {action_name} connected to go_to_hydropoint server")
+        self.logger.info(f"Frame id: {self.frame_id}")
 
     def declare_parameters(self):
         """Location to declare parameters."""
-        self._node.declare_parameter('world_prefix', '')    # choose if we're in the tank of not
-
+        self._node.declare_parameter(
+            "world_prefix", ""
+        )  # choose if we're in the tank of not
 
     def run(self):
         # DEBUGGING the trajectory tracking
-        HERE = Path(__file__).resolve().parent  # resolves the directory of the script.
-        file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
-        #file_path = "/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/trajectories/2026-01-19__straight_trajectory_1m.csv"
+        HERE = FilePath(__file__).parent  # resolves the directory of the script.
+        # file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
+        # file_path = HERE / "trajectories" / "turbo_turn_N11_alpha180_radius2.csv"
+        file_path = (
+            HERE / "trajectories" / "turbo_turn_N11_alpha180_radius2_interp2.csv"
+        )
 
         np_path = self.read_csv_to_array(file_path)
         mpc_trajectory = self.convert_np_path_to_trajectory(np_path)
@@ -84,61 +99,69 @@ class PathClient(SMARCActionClient):
         self.timer = self._node.create_timer(1.0, self.timer_callback)
 
         pass
-        #self.logger.info("Subscribing to mocap hydro point topic")
-        #self.mocap_goal_sub = self._node.create_subscription(PoseStamped, 
+        # self.logger.info("Subscribing to mocap hydro point topic")
+        # self.mocap_goal_sub = self._node.create_subscription(PoseStamped,
         #                                                     ControlTopics.MOCAP_HYDROPOINT,
         #                                                     self.mocap_hydro_cb, 1)
 
     def timer_callback(self):
-        self.path_msg.header.stamp = self._node.get_clock().now().to_msg()
+        now = self._node.get_clock().now()
+        stamp = now.to_msg()
+
+        self.path_msg.header.stamp = stamp
         for p in self.path_msg.poses:
-            p.header.stamp = self.path_msg.header.stamp
+            p.header.stamp = stamp
+
         self.path_pub.publish(self.path_msg)
         self.trajectory_pub.publish(self.trajectory_msg)
 
-    def read_csv_to_array(self, file_path: str):                    
-        """                                                         
+    def read_csv_to_array(self, file_path: str):
+        """
         Reads a CSV file and converts the elements to a NumPy array.
-                                                                    
-        Parameters:                                                 
-        file_path (str): The path to the CSV file.                  
-                                                                    
-        Returns:                                                    
-        np.array: A NumPy array containing the CSV data.            
-        """                                                         
-        data = []                                                   
-        with open(file_path, 'r') as csvfile:                       
-            csvreader = csv.reader(csvfile)                         
-            next(csvreader)                                         
-            for row in csvreader:                                   
-                data.append([float(element) for element in row])    
-                                                                    
+
+        Parameters:
+        file_path (str): The path to the CSV file.
+
+        Returns:
+        np.array: A NumPy array containing the CSV data.
+        """
+        data = []
+        with open(file_path, "r") as csvfile:
+            csvreader = csv.reader(csvfile)
+            next(csvreader)
+            for row in csvreader:
+                data.append([float(element) for element in row])
+
         return np.array(data)
 
     def convert_np_path_to_trajectory(self, np_path):
         path = TrajectoryMPC()
         path.header.frame_id = self.frame_id
-        for i in range(0,np_path.shape[0]):
+        for i in range(0, np_path.shape[0]):
             i_wp = WpMPC()
-            i_wp.wp.pose.position.x = np_path[i,0]
-            i_wp.wp.pose.position.y = np_path[i,1]
-            i_wp.wp.pose.position.z = np_path[i,2]
-            i_wp.wp.pose.orientation.w = np_path[i,3]
-            i_wp.wp.pose.orientation.x = np_path[i,4]
-            i_wp.wp.pose.orientation.y = np_path[i,5]
-            i_wp.wp.pose.orientation.z = np_path[i,6]
-            i_wp.velocities.linear.x = np_path[i,7]  
-            i_wp.velocities.linear.y = np_path[i,8]  
-            i_wp.velocities.linear.z = np_path[i,9]  
-            i_wp.velocities.angular.x = np_path[i,10]
-            i_wp.velocities.angular.y = np_path[i,11]
-            i_wp.velocities.angular.z = np_path[i,12]
-            i_wp.nominal_control.vbs.value = np_path[i,13]
-            i_wp.nominal_control.lcg.value = np_path[i,14]
-            i_wp.nominal_control.rpms.thruster_1_rpm = int(np_path[i,17])
-            i_wp.nominal_control.rpms.thruster_2_rpm = int(np_path[i,18])
-            i_wp.nominal_control.thruster_angles.thruster_vertical_radians = np_path[i,15]
-            i_wp.nominal_control.thruster_angles.thruster_horizontal_radians = np_path[i,16]
+            i_wp.wp.pose.position.x = np_path[i, 0]
+            i_wp.wp.pose.position.y = np_path[i, 1]
+            i_wp.wp.pose.position.z = np_path[i, 2]
+            i_wp.wp.pose.orientation.w = np_path[i, 3]
+            i_wp.wp.pose.orientation.x = np_path[i, 4]
+            i_wp.wp.pose.orientation.y = np_path[i, 5]
+            i_wp.wp.pose.orientation.z = np_path[i, 6]
+            i_wp.velocities.linear.x = np_path[i, 7]
+            i_wp.velocities.linear.y = np_path[i, 8]
+            i_wp.velocities.linear.z = np_path[i, 9]
+            i_wp.velocities.angular.x = np_path[i, 10]
+            i_wp.velocities.angular.y = np_path[i, 11]
+            i_wp.velocities.angular.z = np_path[i, 12]
+            i_wp.nominal_control.vbs.value = np_path[i, 13]
+            i_wp.nominal_control.lcg.value = np_path[i, 14]
+            i_wp.nominal_control.rpms.thruster_1_rpm = int(np_path[i, 17])
+            i_wp.nominal_control.rpms.thruster_2_rpm = int(np_path[i, 18])
+            i_wp.nominal_control.thruster_angles.thruster_vertical_radians = np_path[
+                i, 15
+            ]
+            i_wp.nominal_control.thruster_angles.thruster_horizontal_radians = np_path[
+                i, 16
+            ]
 
             path.trajectory.append(i_wp)
 
@@ -147,43 +170,43 @@ class PathClient(SMARCActionClient):
     def create_path_msg(self, csv_path):
         self.path_msg.header.frame_id = self.frame_id
 
-        #if not csv_path.exists():
+        # if not csv_path.exists():
         #    self.get_logger().error(f'CSV file not found: {csv_path}')
-        #    return 
+        #    return
 
         with csv_path.open() as f:
             reader = csv.DictReader(f)
-            #for row in csvreader:
+            # for row in csvreader:
             for row in reader:
                 pose = PoseStamped()
                 pose.header.frame_id = self.frame_id
-                pose.pose.position.x = float(row['x'])
-                pose.pose.position.y = float(row['y'])
-                pose.pose.position.z = float(row['z'])
-                pose.pose.orientation.x = float(row['q1'])
-                pose.pose.orientation.y = float(row['q2'])
-                pose.pose.orientation.z = float(row['q3'])
-                pose.pose.orientation.w = float(row['q0'])
+                pose.pose.position.x = float(row["x"])
+                pose.pose.position.y = float(row["y"])
+                pose.pose.position.z = float(row["z"])
+                pose.pose.orientation.x = float(row["q1"])
+                pose.pose.orientation.y = float(row["q2"])
+                pose.pose.orientation.z = float(row["q3"])
+                pose.pose.orientation.w = float(row["q0"])
                 self.path_msg.poses.append(pose)
 
-        self.logger.info(f'Loaded {len(self.path_msg.poses)} poses from {csv_path}')
+        self.logger.info(f"Loaded {len(self.path_msg.poses)} poses from {csv_path}")
 
     def send_path(self, path: Path):
 
         if not self.goal_processed:
-
             if self.state != ActionClientState.SENT:
-
-                if self.state == ActionClientState.ACCEPTED or self.state == ActionClientState.RUNNING:
+                if (
+                    self.state == ActionClientState.ACCEPTED
+                    or self.state == ActionClientState.RUNNING
+                ):
                     self.goal_processed = True
-                    #self._node.destroy_subscription(self.mocap_goal_sub)
+                    # self._node.destroy_subscription(self.mocap_goal_sub)
                     return
 
                 self.logger.info(f"Sending trajectory")
                 goal_msg = BaseAction.Goal()
                 goal_msg.goal = self._json_ops.encode(path)
                 self.send_goal(goal_msg)
-
 
     def goal_response_callback(self, goal_handle: ClientGoalHandle):
         """Result when a goal is sent to the server."""
@@ -192,7 +215,6 @@ class PathClient(SMARCActionClient):
             return
         else:
             self.logger.info("Goal was accepted")
-
 
     def feedback_callback(self, feedback_msg: ActionFeedback):
         """Result when a goal is sent to the server."""
@@ -231,18 +253,12 @@ class PathClient(SMARCActionClient):
         self.cancel_goal(self.cancel_callback)
 
 
-
-
 def main(args=None):
     rclpy.init(args=args)
     node_name = "path_client"
     node = Node(node_name)
     action_type = ActionType(BaseAction)
-<<<<<<< HEAD
     path_client = PathClient(node, "auv_trajectory_tracking", action_type)
-=======
-    path_client = PathClient(node, "sam/auv_trajectory_tracking", action_type)
->>>>>>> origin/real_sam_mpc_trajectory_tracking
     path_client._setup()
     path_client.run()
     rclpy.spin(node)
