@@ -31,12 +31,12 @@ def yaw_to_quaternion(yaw):
 radius = 2
 alpha_deg = 180
 alpha = np.deg2rad(alpha_deg)
-N = 11
+N = 3
 
 # Option to add intermediate waypoints to guide turn direction
 # This helps prevent the MPC from turning the "wrong way" around
 N_INTERMEDIATE = (
-    2  # Number of intermediate waypoints between each main waypoint (0 = none)
+    0  # Number of intermediate waypoints between each main waypoint (0 = none)
     # NOTE: Too many creates tight spacing infeasible for nonholonomic turns!
 )
 
@@ -67,39 +67,46 @@ turn_sign = 1.0 if Y_MID_OFFSET >= 0 else -1.0
 # 1) straight approach
 # 2) gradual turn to +/-90 deg while moving off centerline
 # 3) add extra straight-line waypoints first, then densify turn to 180
-x = np.array([3.0, 4.5, 6.0, 5.5, 4.5, 4.25, 4.05, 3.80, 3.30, 2.55, 2.00])
-y = np.array(
-    [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.45 * turn_sign,
-        0.90 * turn_sign,
-        0.75 * turn_sign,
-        0.50 * turn_sign,
-        0.25 * turn_sign,
-        0.10 * turn_sign,
-        0.0,
-    ]
-)
-z = np.zeros(len(x))
+# x = np.array([3.0, 4.5, 6.0, 5.5, 4.5, 4.25, 4.05, 3.80, 3.30, 2.55, 2.00])
+# y = np.array(
+#     [
+#         0.0,
+#         0.0,
+#         0.0,
+#         0.0,
+#         0.45 * turn_sign,
+#         0.90 * turn_sign,
+#         0.75 * turn_sign,
+#         0.50 * turn_sign,
+#         0.25 * turn_sign,
+#         0.10 * turn_sign,
+#         0.0,
+#     ]
+# )
+# z = np.zeros(len(x))
+# 
+# yaw = np.array(
+#     [
+#         0.0,  # straight
+#         0.0,  # straight
+#         0.0,  # straight
+#         0.0,  # straight
+#         -turn_sign * np.deg2rad(35),
+#         -turn_sign * np.deg2rad(90),
+#         -turn_sign * np.deg2rad(100),
+#         -turn_sign * np.deg2rad(110),
+#         -turn_sign * np.deg2rad(130),
+#         -turn_sign * np.deg2rad(155),
+#         -np.pi,  # final reverse direction
+#     ]
+# )
 
-yaw = np.array(
-    [
-        0.0,  # straight
-        0.0,  # straight
-        0.0,  # straight
-        0.0,  # straight
-        -turn_sign * np.deg2rad(35),
-        -turn_sign * np.deg2rad(90),
-        -turn_sign * np.deg2rad(100),
-        -turn_sign * np.deg2rad(110),
-        -turn_sign * np.deg2rad(130),
-        -turn_sign * np.deg2rad(155),
-        -np.pi,  # final reverse direction
-    ]
-)
+# Single turn:
+x = np.array([6.0, 3.0, 3.0])
+y = np.array([0.0, 0.0, 0.0])
+z = np.array([0.0, 0.0, 0.0])
+yaw = np.array([0.0, np.deg2rad(180), np.deg2rad(180)])
+
 
 # NOTE:
 # These yaw values are intentionally authored directly for the test scenario.
