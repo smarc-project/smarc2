@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'simple_tts = smarc_utilities.tts:main',
+            'beckholmen_vis = smarc_utilities.beckholmen_vis:main',
         ],
     },
 )

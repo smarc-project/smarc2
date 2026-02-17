@@ -824,6 +824,18 @@ class WaraPSTaskHandler:
             # start mission timer
             self.mission_start_time = self.current_time()
 
+            # Publish acknowledgment that TST was accepted and queued
+            response_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": command.get("com-uuid", ""),
+                "response": "accepted",
+                "response-to": command.get("com-uuid", "")
+            }
+            msg = String()
+            msg.data = json.dumps(response_msg)
+            self._wara_ps_tst_response_pub.publish(msg)
+            self._node.get_logger().info(f"Published TST acceptance response for command {command.get('com-uuid', '')}")
+
         return        
     
     def _vehicle_health_cb(self, data: Int8):
@@ -916,11 +928,14 @@ class WaraPSTaskHandler:
         """
         Sets the status of the current mission.
         """
+        # Set the instance variable that A_Chilling checks
+        self.mission_status = status
+        
+        # Also set it in mission_command dict if it exists
         if self.mission_command is not None:
             self.mission_command["status"] = status
         else:
-            self._node.get_logger().error("No mission_command to set status for")
-            return None
+            self._node.get_logger().warn("No mission_command to set status for, but mission_status set anyway")
 
     def move_task_to_past(self):
         """

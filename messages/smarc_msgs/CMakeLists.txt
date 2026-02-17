@@ -30,6 +30,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Topics.msg"
   "msg/StringStamped.msg"
   "msg/CTD.msg"
+  "msg/ISSS.msg"
   "action/BaseAction.action"
   DEPENDENCIES geometry_msgs geographic_msgs nav_msgs sensor_msgs std_msgs builtin_interfaces
 )

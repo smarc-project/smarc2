@@ -34,7 +34,8 @@ from .conditions import C_TaskIs,\
                         C_NoEmergencyAbortSignalDetected,\
                         C_VehicleHealthStatus,\
                         C_HealthNodeAlive,\
-                        C_HasHeardFromVehicleHealth
+                        C_HasHeardFromVehicleHealth,\
+                        C_MissionNotInError
 
 from .actions import A_Abort,\
                      A_Heartbeat,\
@@ -151,6 +152,7 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         A tree that handles a single task type, such as move-to or depth-move-to
         """
         task_tree = Sequence(f"S_{task_name}", memory=False, children=[
+            C_MissionNotInError(self._task_handler),  # Fail immediately if mission is in ERROR
             C_TaskIs(self._task_handler, task_name),
             Fallback("F_StatusCheck", memory=False, children=[
                 C_TaskStatus(self._task_handler, WaraPSTaskStates.STARTED.value),
@@ -184,6 +186,8 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
             return None
 
         ready_tree = Sequence(f"S_{task_name}", memory=False, children=[
+
+            C_MissionNotInError(self._task_handler),  # Fail immediately if mission is in ERROR
 
             Fallback("F_CanIGetReady?", memory=False, children = [
                 C_VehicleHealthStatus(self._task_handler, desired_status = SMaRCTopics.VEHICLE_HEALTH_WAITING),

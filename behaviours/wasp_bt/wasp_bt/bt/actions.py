@@ -104,19 +104,23 @@ class A_Chilling(VehicleBehaviour):
         
         if mission_status == WaraPSTaskStates.ERROR.value:
             # mission is in error state, just chill
-            self.feedback_message = "Mission in error state, failing the tree"
+            self.feedback_message = "Mission in error state, failing the tree and waiting for a new mission..."
             self.task_handler.publish_feedback_to_tst("!!Failed Mission!!")
 
             self.task_handler.clear_task_queue()
 
-            #reser mission_status flag
-            self.task_handler.set_mission_status(WaraPSTaskStates.NONE.value)
+            #reset mission_status flag
+            self.task_handler.set_mission_status(None)
             
-            return Status.FAILURE
+            return Status.RUNNING
         
         if mission_status == WaraPSTaskStates.FINISHED.value:
             # mission is finished, just chill
             self.feedback_message = "Mission finished, waiting for new task..."
+
+            # send to tst
+            self.task_handler.publish_feedback_to_tst("Mission finished!")
+
             return Status.RUNNING
                         
 class A_JustChillFor(VehicleBehaviour):
@@ -291,6 +295,8 @@ class A_ActionClient(Behaviour):
         ]
 
         self.last_feedback_time = None
+        self._goal_start_time = None
+        self.task_timeout = None
 
         self._logger = self._client._node.get_logger()
             
@@ -306,6 +312,8 @@ class A_ActionClient(Behaviour):
 
 
         self.feedback_message = None
+        self._goal_start_time = None
+        self.task_timeout = None
         self._task_handler.set_current_task_status("started")
         self._task_handler.publish_feedback_to_current_task("Action client initialised. Waiting for task to start...")
         
@@ -381,9 +389,20 @@ class A_ActionClient(Behaviour):
                 
                 return Status.RUNNING
 
-            task_status = self._task_handler.get_current_task_status()
-            if task_status == "started" or task_status == "resumed":
-                self.feedback_message = f"Task {task_status}-ed. Waiting for task to finish..."
+            # Check task status for abort/enough and started/resumed
+            current_task_status = self._task_handler.get_current_task_status()
+            
+            # Handle abort/enough states
+            if current_task_status == WaraPSTaskStates.ABORTED.value or current_task_status == WaraPSTaskStates.ENOUGH.value:
+                self.feedback_message = "Task cancelled. Removing from Task Queue..."
+                # Cancel the goal if client is running
+                if self._client.state in self._running_states:
+                    self._client.cancel_goal(self._client.cancel_callback)
+                self._task_handler.clear_task_queue()
+                return Status.SUCCESS
+            
+            if current_task_status == "started" or current_task_status == "resumed":
+                self.feedback_message = f"Task {current_task_status}-ed. Waiting for task to finish..."
                 self._task_handler.set_current_task_status("running")
 
                 if current_time - self.last_feedback_time > 1.0:    
@@ -399,10 +418,17 @@ class A_ActionClient(Behaviour):
                     self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
                     self.last_feedback_time = current_time
                 return Status.FAILURE
-
             
             #log the mission plan
             self._logger.info(f"Mission Plan: {mplan}")
+
+            # extract task timeout from the params if it's there, otherwise default to None
+            # only positive values are valid timeouts
+            if "timeout" in mplan:
+                timeout_value = mplan["timeout"]
+                self.task_timeout = timeout_value if (isinstance(timeout_value, (int, float)) and timeout_value > 0) else None
+            else:
+                self.task_timeout = None
 
             msg_str = json.dumps(mplan)
 
@@ -423,12 +449,31 @@ class A_ActionClient(Behaviour):
             mission_msg.goal.data = msg_str
             self._client.send_goal(mission_msg)
 
+            # Start timeout tracking
+            self._goal_start_time = self._bt.now_seconds
+
             # self._logger.info("yall I sent dat task")
             self.feedback_message = "Goal sent to action client."
             self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
             return Status.RUNNING
         
         if s in self._running_states:
+            # Check for timeout
+            if self.task_timeout is not None and self._goal_start_time is not None:
+                elapsed_time = current_time - self._goal_start_time
+                if elapsed_time > self.task_timeout:
+                    self.feedback_message = f"Action timed out after {elapsed_time:.1f}s (timeout: {self.task_timeout}s). Cancelling goal."
+                    self._logger.error(self.feedback_message)
+                    self._task_handler.publish_feedback_to_current_task(str(self.feedback_message))
+                    
+                    # CRITICAL: Cancel the goal first, otherwise client stays in RUNNING state
+                    self._client.cancel_goal(self._client.cancel_callback)
+                    
+                    # Set mission status to ERROR so the mission fails properly
+                    self._task_handler.set_mission_status(WaraPSTaskStates.ERROR.value)
+                    self._task_handler.clear_current_task()
+                    return Status.FAILURE
+            
             self.feedback_message = self._client.feedback_message
             if current_time - self.last_feedback_time > 1.0:
             # publish feedback every second

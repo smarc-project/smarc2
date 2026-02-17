@@ -263,6 +263,26 @@ class C_TaskStatus(Behaviour):
             self.feedback_message = f"Current task status is {current_executing_tasks[0]['status']}"
             return Status.FAILURE
         
+class C_MissionNotInError(Behaviour):
+    """
+    Checks if mission status is NOT in ERROR state.
+    Returns FAILURE if mission is in ERROR, SUCCESS otherwise.
+    This prevents tasks from executing after a mission error.
+    """
+    def __init__(self, task_handler: WaraPSTaskHandler):
+        self._task_handler = task_handler
+        name = f"{self.__class__.__name__}"
+        super().__init__(name)
+        self.feedback_message = ""
+
+    def update(self) -> Status:
+        mission_status = self._task_handler.mission_status
+        if mission_status == WaraPSTaskStates.ERROR.value:
+            self.feedback_message = "Mission in ERROR state, blocking task execution"
+            return Status.FAILURE
+        else:
+            return Status.SUCCESS
+
 class C_HasHeardFromVehicleHealth(Behaviour):
     """
     An action that keeps "running" until a parameter on the task handler is true.

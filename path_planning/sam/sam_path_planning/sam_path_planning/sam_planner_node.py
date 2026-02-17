@@ -1,3 +1,4 @@
+from sklearn import tree
 import rclpy
 import rclpy.logging
 import time
@@ -18,9 +19,10 @@ from sam_msgs.msg import Topics as SamTopics
 from sam_msgs.msg import ThrusterAngles
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from rclpy.action import ActionClient
+from visualization_msgs.msg import Marker, MarkerArray
 
 # Path planning modules from smarc_modelling go here
-from smarc_modelling.motion_planning.MotionPrimitives.MainScript import MotionPlanningROS
+from smarc_modelling.motion_planning.MotionPrimitives.MainScript import MotionPlanningROS, PathPlannerROS
 #from smarc_modelling.sam_sim import plot_results, Sol
 
 from sam_path_following.path_client import PathClient
@@ -38,7 +40,8 @@ from rclpy.action.server import ServerGoalHandle
 from go_to_hydrobaticpoint.hydrobaticpoint_action import ActionComponent as ActC
 from sam_path_following.path_client import PathClient
 # from sam_path_following.path_action import PathAction
-    
+from geometry_msgs.msg import Point
+
 class SamPathPlanner(HydropointServer, PathClient):
 
     def __init__(
@@ -87,9 +90,13 @@ class SamPathPlanner(HydropointServer, PathClient):
 
         # TODO: get state from TF instead of odom since we want mocap --> base_link
         self.odom_sub = self._node.create_subscription(Odometry, 
-                                                 ControlTopics.MOCAP_STATE, self.state_cb, 1)
+                                                 ControlTopics.MOCAP_STATE, 
+                                                # "/mocap/test/sam/odom"
+                                                 self.state_cb, 1)
         # self._node.get_logger().info(f"Created listener")
-        
+
+        self.connections_pub = self._node.create_publisher(Marker, '/sam/planner/connections', 10)
+
         # Synch subscribers here 
         self.lcg_fb = Subscriber(self._node, PercentStamped, SamTopics.LCG_FB_TOPIC)
         self.vbs_fb = Subscriber(self._node, PercentStamped, SamTopics.VBS_FB_TOPIC)
@@ -137,7 +144,7 @@ class SamPathPlanner(HydropointServer, PathClient):
         if not node.has_parameter("z_min"):
             self.z_min = self._node.declare_parameter("z_min", -0.5).value   # map
         if not node.has_parameter("map_resolution"):
-            self.map_resolution = self._node.declare_parameter("map_resolution", 0.5).value   # map resolution
+            self.map_resolution = self._node.declare_parameter("map_resolution", 0.1).value   # map resolution
 
         # Variables
         self.sam_pose_t = None
@@ -289,6 +296,8 @@ class SamPathPlanner(HydropointServer, PathClient):
         if self.call_planner:
             self.call_planner = False
 
+            # Nacho: set roll to zero in start and goal since we don't have actuation for it
+
             # Do planning stuff here
             # === Start state ===
             # Normalize orientation quaternion and transform from FLU to FRD
@@ -302,23 +311,30 @@ class SamPathPlanner(HydropointServer, PathClient):
             r_original = R.from_quat(quat_flu)
             quat_frd = (r_original * r_roll_180).as_quat()  # Local frame rotation
 
+            # Set roll to zero
+            r = R.from_quat([quat_frd[0], quat_frd[1], quat_frd[2], quat_frd[3]])
+            roll, pitch, yaw = r.as_euler('xyz', degrees=True)
+            quat_frd = R.from_euler('xyz', [0.0, pitch, yaw], degrees=True).as_quat()
+
             start_state = np.array([
                     self.sam_pose_t.pose.pose.position.x,
                     self.sam_pose_t.pose.pose.position.y,
-                    self.sam_pose_t.pose.pose.position.z + 0.5,  # Add offset to avoid collision with surface
+                    self.sam_pose_t.pose.pose.position.z + 0.2,  # Add offset to avoid collision with surface
                     quat_frd[3],quat_frd[0],quat_frd[1],quat_frd[2],
                     # 1,0,0,0,
-                    self.sam_pose_t.twist.twist.linear.x,
-                    self.sam_pose_t.twist.twist.linear.y,
-                    self.sam_pose_t.twist.twist.linear.z,
-                    self.sam_pose_t.twist.twist.angular.x,
-                    self.sam_pose_t.twist.twist.angular.y,
-                    self.sam_pose_t.twist.twist.angular.z,
-                    self.sam_control_t.vbs.value,
-                    self.sam_control_t.lcg.value ,
-                    0., 0., 0., 0
+                    # self.sam_pose_t.twist.twist.linear.x,
+                    # self.sam_pose_t.twist.twist.linear.y,
+                    # self.sam_pose_t.twist.twist.linear.z,
+                    # self.sam_pose_t.twist.twist.angular.x,
+                    # self.sam_pose_t.twist.twist.angular.y,
+                    # self.sam_pose_t.twist.twist.angular.z,
+                    # self.sam_control_t.vbs.value,
+                    # self.sam_control_t.lcg.value ,
+                    # 0., 0., 0., 0
+                    0, 0, 0,
+                    0, 0, 0,
+                    50, 50, 0, 0, 0, 0
                 ])
-
 
             # Goal recevied by the ac. Set received to false
             self.sam_goal_t = self._hydropoint
@@ -333,6 +349,11 @@ class SamPathPlanner(HydropointServer, PathClient):
 
             r_original = R.from_quat(quat_flu_goal)
             quat_frd_goal = (r_original * r_roll_180).as_quat()  # Local frame rotation
+
+            # Set roll to zero
+            r = R.from_quat([quat_frd_goal[0], quat_frd_goal[1], quat_frd_goal[2], quat_frd_goal[3]])
+            roll, pitch, yaw = r.as_euler('xyz', degrees=True)
+            quat_frd_goal = R.from_euler('xyz', [0.0, pitch, yaw], degrees=True).as_quat()
 
             # # === End state ===
             end_state = np.array([
@@ -365,8 +386,24 @@ class SamPathPlanner(HydropointServer, PathClient):
             t = time.time()
             self._node.get_logger().info(f'Calling planner')
             map_boundaries = (self.x_max, self.y_max, self.z_max, self.x_min, self.y_min, self.z_min)
-            trajectory, self.path_found, debugMsg = MotionPlanningROS(start_state, end_state, map_boundaries, self.map_resolution)
+            trajectory, self.path_found, debugMsg, tree, connections = PathPlannerROS(start_state, end_state, map_boundaries, self.map_resolution)
             self._node._logger.info(f"Planner output msg: {debugMsg}")
+
+            # Visualize trees in rviz            
+            self.pub_search = self._node.create_publisher(MarkerArray, 'search', 10)
+            array = MarkerArray()
+            tree_1_cnt = 0
+            for marker in tree:
+                array.markers.append(marker)    
+                if marker.color.r == 1.0:
+                    tree_1_cnt += 1
+            self.pub_search.publish(array)
+
+            # Visualize connections in rviz
+            self.publish_connections(connections)
+
+            print(f"Length of sub tree 1: {tree_1_cnt:.2f} vertices>>")
+            print(f"Length of sub tree 2: {len(tree) - tree_1_cnt:.2f} vertices>>")
 
             # If path found
             if self.path_found:
@@ -374,11 +411,12 @@ class SamPathPlanner(HydropointServer, PathClient):
                 print(f"Length of trajectory: {len(trajectory):.2f} vertices>>")
                 
                 self._node._logger.info(f"Sending path to controller")
-                path = self.convert_np_path_to_trajectory(np.array(trajectory))
-                self.send_path(path)
+                # path = self.convert_np_path_to_trajectory(np.array(trajectory))
+                # self.send_path(path)
 
                 ## Publish trajectory for Rviz
-                trajectory.append(end_state[0:7].tolist())  # Append goal state for visualization
+                # trajectory.append(end_state[0:7].tolist())  # Append goal state for visualization
+                print(f"Trajectory {trajectory}")
                 self.publishTrajectoryRviz(trajectory)
 
             self.path_computed = True
@@ -417,6 +455,34 @@ class SamPathPlanner(HydropointServer, PathClient):
 
         self.path_pub.publish(path_msg)
         self._node._logger.info(f"Trajectory published for Rviz2")
+
+    def publish_connections(self, list_connection):
+
+        marker = Marker()
+        marker.header.frame_id = 'mocap'   # or 'base_link', etc.
+        marker.header.stamp = self._node.get_clock().now().to_msg()
+        marker.ns = 'points'
+
+        marker.type = Marker.POINTS
+        marker.action = Marker.ADD
+        marker.scale.x = 0.1  # meters
+        marker.scale.y = 0.1
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+
+        cnt = 0
+        for connection in list_connection:
+            marker.id = cnt
+            cnt += 1
+            p = Point()
+            p.x = connection[0]
+            p.y = connection[1]
+            p.z = connection[2]
+            marker.points.append(p)
+            
+        self.connections_pub.publish(marker)
 
 
 def main(args=None):
