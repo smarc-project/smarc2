@@ -827,7 +827,7 @@ class DiveControllerMPC(DiveControllerInterface):
                 # Use consistent criteria: BOTH position AND heading for all waypoints.
 
                 # Conservative progression: ALWAYS require both position AND heading
-                d_tolerance = 0.35  # meters - not too tight to avoid oscillation trap
+                d_tolerance = 0.45 # 0.35  # meters - not too tight to avoid oscillation trap
                 yaw_tolerance = np.deg2rad(30)  # degrees - default lenient
 
                 # Check if this is a turning waypoint
