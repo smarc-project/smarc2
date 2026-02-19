@@ -81,14 +81,47 @@ class DiveControllerMPC(DiveControllerInterface):
         self._prev_commanding = False
 
         self.ref_is_traj = ref_is_trajectory  # Flag to indicate if the reference is a trajectory or not
-        # For turbo-turn debugging, default to a single repeated waypoint over
-        # the horizon. Set True to use moving subtrajectory references.
-        # NOTE: subtrajectory requires time-stamped waypoints or uniform spacing.
-        # With spatial waypoints, single-waypoint horizon works better.
-        self.use_horizon_subtrajectory = False
+        # False = MPC sees only current waypoint (repeated over horizon). True = MPC sees a short
+        # trajectory segment (current -> next waypoints). Can reduce back-and-forth if the horizon
+        # gets a "direction" to follow. Requires trajectory with enough points ahead.
+        self._node.declare_parameter("use_horizon_subtrajectory", True)
+        self.use_horizon_subtrajectory = self._node.get_parameter(
+            "use_horizon_subtrajectory"
+        ).get_parameter_value().bool_value
+        # When use_horizon_subtrajectory is True: 0 = use up to N_horizon waypoints (full segment).
+        # 2 or 3 = use only the next 2 or 3 waypoints, then pad the rest of the horizon with the last.
+        self._node.declare_parameter("horizon_subtrajectory_max_waypoints", 0)
+        self._horizon_subtrajectory_max_waypoints = self._node.get_parameter(
+            "horizon_subtrajectory_max_waypoints"
+        ).get_parameter_value().integer_value
+        # Horizon partition mode for turbo turn / confined maneuvers: split horizon into 2 or 3 parts,
+        # repeat the CURRENT waypoint for the first (n_parts-1) parts, use NEXT waypoint only in the
+        # last part. Reduces MPC "racing" through many waypoints in a short horizon. 0 = disabled.
+        self._node.declare_parameter("horizon_n_parts", 0)
+        self._horizon_n_parts = self._node.get_parameter(
+            "horizon_n_parts"
+        ).get_parameter_value().integer_value
         # Runtime sign calibration for model-vs-robot command conventions.
-        self.flip_stern_command = False
-        self.flip_rudder_command = False
+        # False = MPC rudder sign matches robot (positive rudder => starboard, per SAM_casadi NED/FRD).
+        # Set to True only if the vehicle turns port when it should turn starboard.
+        self._node.declare_parameter("flip_stern_command", False)
+        self._node.declare_parameter("flip_rudder_command", False)
+        self.flip_stern_command = self._node.get_parameter(
+            "flip_stern_command"
+        ).get_parameter_value().bool_value
+        self.flip_rudder_command = self._node.get_parameter(
+            "flip_rudder_command"
+        ).get_parameter_value().bool_value
+        # Waypoint progression: require both position and heading within tolerance before advancing.
+        # Tuning: looser yaw_tolerance reduces back-and-forth for nonholonomic turns but may advance early.
+        self._node.declare_parameter("traj_d_tolerance_m", 0.25)
+        self._node.declare_parameter("traj_yaw_tolerance_deg", 25.0)
+        self._traj_d_tolerance = self._node.get_parameter(
+            "traj_d_tolerance_m"
+        ).get_parameter_value().double_value
+        self._traj_yaw_tolerance_deg = self._node.get_parameter(
+            "traj_yaw_tolerance_deg"
+        ).get_parameter_value().double_value
         # Keep state and reference in the same frame convention.
         # NOTE: Set to False if trajectory is already generated in FRD/NED convention!
         # Your create_turbo_turn_path.py uses USE_NED_CONVENTION=True, so it's already FRD.
@@ -105,10 +138,13 @@ class DiveControllerMPC(DiveControllerInterface):
             5: "ACADOS_READY",
             6: "ACADOS_UNBOUNDED",
         }
-        self._debug_counter = 0
-        self._dbg_d_current = np.nan
-        self._dbg_d_next = np.nan
-        self._dbg_yaw_error = np.nan
+
+        # Set True (or use param debug_print_ref_state) to log reference vs state (e.g. port/starboard debug)
+        self._node.declare_parameter("debug_print_ref_state", False)
+        self._print_ref_state_debug = self._node.get_parameter(
+            "debug_print_ref_state"
+        ).get_parameter_value().bool_value
+        self._print_ref_state_throttle = 0
 
     def update(self):
         """
@@ -197,75 +233,6 @@ class DiveControllerMPC(DiveControllerInterface):
         self.ocp_solver.set(0, "lbx", x_current)
         self.ocp_solver.set(0, "ubx", x_current)
 
-        # Compute quaternion error using pure NumPy (x_error uses CasADi which doesn't work at runtime)
-        q_ref = self.ref[0, 3:7]  # [w, x, y, z]
-        q_cur = x_current[3:7]  # [w, x, y, z]
-        q_ref = q_ref / np.linalg.norm(q_ref)
-        q_cur = q_cur / np.linalg.norm(q_cur)
-
-        # Compute q_error = q_ref * q_cur^-1 (matching x_error() implementation)
-        # First conjugate q_cur, then multiply
-        q_cur_conj = np.array([q_cur[0], -q_cur[1], -q_cur[2], -q_cur[3]])
-        q_err_w = (
-            q_ref[0] * q_cur_conj[0]
-            - q_ref[1] * q_cur_conj[1]
-            - q_ref[2] * q_cur_conj[2]
-            - q_ref[3] * q_cur_conj[3]
-        )
-        q_err_x = (
-            q_ref[0] * q_cur_conj[1]
-            + q_ref[1] * q_cur_conj[0]
-            + q_ref[2] * q_cur_conj[3]
-            - q_ref[3] * q_cur_conj[2]
-        )
-        q_err_y = (
-            q_ref[0] * q_cur_conj[2]
-            - q_ref[1] * q_cur_conj[3]
-            + q_ref[2] * q_cur_conj[0]
-            + q_ref[3] * q_cur_conj[1]
-        )
-        q_err_z = (
-            q_ref[0] * q_cur_conj[3]
-            + q_ref[1] * q_cur_conj[2]
-            - q_ref[2] * q_cur_conj[1]
-            + q_ref[3] * q_cur_conj[0]
-        )
-
-        # CRITICAL: Apply hemisphere correction (pure NumPy, not CasADi!)
-        q_err_w_before = q_err_w
-        if q_err_w < 0:
-            q_err_w, q_err_x, q_err_y, q_err_z = -q_err_w, -q_err_x, -q_err_y, -q_err_z
-            self._logwarn(
-                f"DEBUG: Hemisphere corrected! q_err_w: {q_err_w_before:.3f} → {q_err_w:.3f}"
-            )
-
-        # Total rotation angle
-        angle_error = 2 * np.arccos(np.clip(q_err_w, -1.0, 1.0))
-
-        # Yaw component (assuming small roll/pitch)
-        yaw_error = 2 * np.arctan2(q_err_z, q_err_w)
-
-        # Also show actual orientations for verification
-        yaw_cur = R.from_quat([q_cur[1], q_cur[2], q_cur[3], q_cur[0]]).as_euler("xyz")[
-            2
-        ]
-        yaw_ref = R.from_quat([q_ref[1], q_ref[2], q_ref[3], q_ref[0]]).as_euler("xyz")[
-            2
-        ]
-
-        # DEBUG: Check if reference and current are in same hemisphere
-        q_dot = np.dot(q_cur, q_ref)
-
-        self._loginfo(
-            f"MPC Quat: cur={np.rad2deg(yaw_cur):.1f}° ref={np.rad2deg(yaw_ref):.1f}° "
-            f"→ err_total={np.rad2deg(angle_error):.1f}° err_yaw={np.rad2deg(yaw_error):.1f}° "
-            f"| q_dot={q_dot:.3f}"
-        )
-        self._loginfo(
-            f"  q_cur=[{q_cur[0]:.3f}, {q_cur[1]:.3f}, {q_cur[2]:.3f}, {q_cur[3]:.3f}] "
-            f"q_ref=[{q_ref[0]:.3f}, {q_ref[1]:.3f}, {q_ref[2]:.3f}, {q_ref[3]:.3f}]"
-        )
-
         # solve ocp and get next control input
         start_time = time.time()
         status = self.ocp_solver.solve()
@@ -302,31 +269,28 @@ class DiveControllerMPC(DiveControllerInterface):
 
         if mpc_solution is None:
             self._set_actuators_neutral()
-            # return
         elif status != 0:
-            # self._loginfo(f"Solver status: {status}")
             self._set_actuators_neutral()
-            # return
         else:
             self.set_publishers(mpc_solution)
+            # Optional: log reference vs state and actual rudder/stern command (after solve)
+            if self._print_ref_state_debug:
+                self._print_ref_state_throttle += 1
+                if self._print_ref_state_throttle >= 10:
+                    self._print_ref_state_throttle = 0
+                    self.print_reference_vs_state_debug(x_current, mpc_solution=mpc_solution)
 
-        self._debug_counter += 1
-        if self._debug_counter % 10 == 0:
-            self._log_turn_debug(x_current, mpc_solution)
-
-        # FIXME: Remove all the print statements here. They only should appear in the convenience node
-        np.set_printoptions(precision=3)
-        s = f"\nNMPC INFO\n"  # {self._dive_sub.current_idx}/{self.traj_len}:\n"
-        s += f"NMPC solver status: {status}\n"
-
+        # Compute internal thrust vectoring state estimator for removing the algebraic loop
         x_k = self.ocp_solver.get(0, "x")
         x_k1 = self.ocp_solver.get(1, "x")
         u_k = self.ocp_solver.get(0, "u")
 
         # Little actuator state estimator to resolve the algebraic loop since
-        # we don't get feedback from the thrust vectoring node
-        v_stern = u_k[2]  # rudder rate
-        v_rudder = u_k[3]  # rudder rate
+        # we don't get feedback from the thrust vectoring node. Use rates in
+        # model convention (do NOT flip here). Only the published command is
+        # flipped in _map_actuator_commands when flip_rudder_command / flip_stern_command.
+        v_stern = u_k[2]  # stern rate (model convention)
+        v_rudder = u_k[3]  # rudder rate (model convention)
         self.a_hat_stern = np.clip(
             self.a_hat_stern + self._dt * v_stern, -0.122173, 0.122173
         )
@@ -334,11 +298,16 @@ class DiveControllerMPC(DiveControllerInterface):
             self.a_hat_rudder + self._dt * v_rudder, -0.122173, 0.122173
         )
 
+        # FIXME: Remove all the print statements here. They only should appear in the convenience node
+        np.set_printoptions(precision=3)
+        s = f"\nNMPC INFO\n"  # {self._dive_sub.current_idx}/{self.traj_len}:\n"
+        s += f"NMPC solver status: {status}\n"
+
         # s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
         # s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
         # s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         # s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
-        # s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0, :6]}\n"
+        s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0, :6]}\n"
         # s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
         # s += f"Input: u_stern = {x_current[15]:.3f} u_rudder = {x_current[16]:.3f} \n"
 
@@ -355,86 +324,178 @@ class DiveControllerMPC(DiveControllerInterface):
         # s += f" rpm1: {self.simU[4]:.3f}"
         # s += f" rpm2: {self.simU[5]:.3f}\n"
 
-        # self._loginfo(s)
+        #self._loginfo(s)
 
         self._dive_sub.set_current_idx(self.traj_index)
 
         return
 
-    def _log_turn_debug(self, x_current, mpc_solution):
-        if self.ref is None or self.ref.shape[0] == 0:
-            return
-
-        def yaw_from_wxyz(q_wxyz):
-            q_xyzw = [q_wxyz[1], q_wxyz[2], q_wxyz[3], q_wxyz[0]]
-            return R.from_quat(q_xyzw).as_euler("xyz")[2]
-
-        yaw_cur = yaw_from_wxyz(x_current[3:7])
-        yaw_ref0 = yaw_from_wxyz(self.ref[0, 3:7])
-        yaw_ref1 = yaw_from_wxyz(self.ref[min(1, self.ref.shape[0] - 1), 3:7])
-        yaw_ref2 = yaw_from_wxyz(self.ref[min(2, self.ref.shape[0] - 1), 3:7])
-        cmd_stern, cmd_rudder = self._map_actuator_commands(mpc_solution)
-
-        self._loginfo(
-            "TURN DBG | "
-            f"idx={self.traj_index}/{self.traj_len} "
-            f"d_cur={self._dbg_d_current:.2f} d_next={self._dbg_d_next:.2f} "
-            f"yaw_err={np.rad2deg(self._dbg_yaw_error):.1f}deg "
-            f"yaw_cur={np.rad2deg(yaw_cur):.1f}deg yaw_rate={np.rad2deg(x_current[12]):.1f}deg/s "
-            f"yaw_ref=[{np.rad2deg(yaw_ref0):.1f},{np.rad2deg(yaw_ref1):.1f},{np.rad2deg(yaw_ref2):.1f}]deg "
-            f"cmd_rud={cmd_rudder:.3f} cmd_stern={cmd_stern:.3f} "
-            f"state_rud={x_current[16]:.3f} "
-            f"cmd_rpm=[{mpc_solution[17]:.1f},{mpc_solution[18]:.1f}]"
-        )
 
     def _map_actuator_commands(self, mpc_solution):
+        """Map MPC state (stern, rudder angles in model convention) to robot command.
+        Flip sign only here if robot convention is opposite (e.g. positive rudder => port).
+        Do not flip the rates (u_k[2], u_k[3]) used in a_hat_stern/a_hat_rudder."""
         u_stern = -mpc_solution[15] if self.flip_stern_command else mpc_solution[15]
         u_rudder = -mpc_solution[16] if self.flip_rudder_command else mpc_solution[16]
         return u_stern, u_rudder
 
-    def x_error(self, x, u, ref, terminal):
+    def _yaw_from_state_quat(self, q_wxyz):
+        """Extract yaw (rad) from state quaternion [w, x, y, z] via xyz euler."""
+        if np.any(np.isnan(q_wxyz)) or len(q_wxyz) < 4:
+            return np.nan
+        q_xyzw = [q_wxyz[1], q_wxyz[2], q_wxyz[3], q_wxyz[0]]
+        return R.from_quat(q_xyzw).as_euler("xyz")[2]
+
+    def compute_x_error_numpy(self, x, ref, terminal=True):
         """
-        Calculates the state deviation.
-
-        :param x: State vector
-        :param ref: Reference vector
-        :return: error vector
+        NumPy version of x_error() so we can evaluate the MPC error at runtime.
+        Matches the CasADi x_error logic: pos_error, q_att_error (1-w,qx,qy,qz),
+        vel_error, u_error. ref can be shorter than x; missing ref entries treated as 0.
+        (terminal is kept for API compatibility with x_error; return is the same.)
         """
-        q1 = ref[3:7]
-        q1 = q1 / ca.norm_2(q1)
-        q2 = x[3:7]
-        # Sice unit quaternion, quaternion inverse is equal to its conjugate
-        q_conj = ca.vertcat(q2[0], -q2[1], -q2[2], -q2[3])
-        q2 = q_conj / ca.norm_2(q2)
+        ref = np.asarray(ref).flatten()
+        # Pad ref so we can index ref[0:3], ref[3:7], ref[7:13], ref[13:19]
+        ref_pad = np.zeros(19)
+        ref_pad[: min(len(ref), 19)] = ref[:19]
 
-        # q_error = q1 @ q2^-1
-        q_w = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3]
-        q_x = q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2]
-        q_y = q1[0] * q2[2] - q1[1] * q2[3] + q1[2] * q2[0] + q1[3] * q2[1]
-        q_z = q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1] + q1[3] * q2[0]
+        q1 = ref_pad[3:7].copy()
+        q1 = q1 / (np.linalg.norm(q1) + 1e-12)
+        q2 = np.array(x[3:7], dtype=float)
+        q2 = q2 / (np.linalg.norm(q2) + 1e-12)
+        q_conj = np.array([q2[0], -q2[1], -q2[2], -q2[3]])
+        # q_error = q1 @ q2^-1 = q_ref * q_cur_conj
+        q_err_w = (
+            q1[0] * q_conj[0]
+            - q1[1] * q_conj[1]
+            - q1[2] * q_conj[2]
+            - q1[3] * q_conj[3]
+        )
+        q_err_x = (
+            q1[0] * q_conj[1]
+            + q1[1] * q_conj[0]
+            + q1[2] * q_conj[3]
+            - q1[3] * q_conj[2]
+        )
+        q_err_y = (
+            q1[0] * q_conj[2]
+            - q1[1] * q_conj[3]
+            + q1[2] * q_conj[0]
+            + q1[3] * q_conj[1]
+        )
+        q_err_z = (
+            q1[0] * q_conj[3]
+            + q1[1] * q_conj[2]
+            - q1[2] * q_conj[1]
+            + q1[3] * q_conj[0]
+        )
+        if q_err_w < 0:
+            q_err_w, q_err_x, q_err_y, q_err_z = (
+                -q_err_w,
+                -q_err_x,
+                -q_err_y,
+                -q_err_z,
+            )
+        q_att_error = np.array(
+            [1.0 - q_err_w, q_err_x, q_err_y, q_err_z], dtype=float
+        )
 
-        q_error = ca.vertcat(q_w, q_x, q_y, q_z)
-        q_error = ca.if_else(q_w < 0, -q_error, q_error)
-        # Make attitude error zero at perfect alignment:
-        # q_error = [1, 0, 0, 0] -> [0, 0, 0, 0]
-        q_att_error = ca.vertcat(1 - q_error[0], q_error[1], q_error[2], q_error[3])
+        pos_error = np.array(x[0:3], dtype=float) - ref_pad[0:3]
+        vel_error = np.array(x[7:13], dtype=float) - ref_pad[7:13]
+        u_error = np.array(x[13:19], dtype=float) - ref_pad[13:19]
 
-        # NOTE: usually I'd have ref - state, the standard closed loop, i.e.
-        # Astroem 2019. Since this error is squared, it should work, too,
-        # Liniger 2014 uses it in their vanilla MPC formulation
-        # Also, since the error is squared in the cost, it doesn't matter
-        pos_error = x[:3] - ref[:3]
-        vel_error = x[7:13] - ref[7:13]
-        u_error = x[13:19] - ref[13:19]
+        return {
+            "pos_error": pos_error,
+            "q_att_error": q_att_error,
+            "q_error_wxyz": np.array([q_err_w, q_err_x, q_err_y, q_err_z]),
+            "vel_error": vel_error,
+            "u_error": u_error,
+        }
 
-        # If the error for terminal cost is calculated, don't include delta_u
-        if terminal:
-            x_error = ca.vertcat(pos_error, q_att_error, vel_error, u_error)
-        else:
-            x_error = ca.vertcat(
-                pos_error, q_att_error, vel_error, u_error, u
-            )  # delta_u(u))
-        return x_error
+    def print_reference_vs_state_debug(self, x_current, mpc_solution=None):
+        """
+        Log current reference, current state (position, orientation, velocity),
+        and the MPC state vector. Helps debug port/starboard (e.g. zigzag turbo turn).
+        If mpc_solution is provided, logs the actual commanded stern/rudder (after flip).
+
+        State layout: x[0:3] pos, x[3:7] quat [w,x,y,z], x[7:10] u,v,w,
+                      x[10:13] p,q,r, x[15] stern, x[16] rudder.
+        Ref layout:   ref[0:3] pos, ref[3:7] quat, ref[7:10] u,v,w if trajectory.
+        """
+        if self.ref is None or self.ref.shape[0] == 0:
+            self._loginfo("REF_STATE_DBG: no reference set")
+            return
+        r = self.ref[0, :]
+        yaw_ref = self._yaw_from_state_quat(r[3:7])
+        yaw_cur = self._yaw_from_state_quat(x_current[3:7])
+        # Same convention as get_current_ref_array: yaw_error = current - ref (wrap to [-pi,pi])
+        yaw_err = np.arctan2(
+            np.sin(yaw_cur - yaw_ref), np.cos(yaw_cur - yaw_ref)
+        )
+        to_turn = "STARBOARD" if yaw_err < 0 else "PORT"
+        lines = [
+            "========== REFERENCE vs STATE (debug) ==========",
+            f"  REFERENCE (traj_idx={self.traj_index}/{self.traj_len}):",
+            f"    pos   = ({r[0]:.3f}, {r[1]:.3f}, {r[2]:.3f})",
+            f"    yaw   = {np.rad2deg(yaw_ref):.2f} deg  (quat w,x,y,z = {r[3]:.3f}, {r[4]:.3f}, {r[5]:.3f}, {r[6]:.3f})",
+        ]
+        if self.ref.shape[1] > 10:
+            lines.append(
+                f"    vel   = u,v,w = ({r[7]:.3f}, {r[8]:.3f}, {r[9]:.3f})  p,q,r = ({r[10]:.3f}, {r[11]:.3f}, {r[12]:.3f})"
+            )
+        if self.ref.shape[1] > 16:
+            lines.append(f"    stern = {r[15]:.3f}  rudder = {r[16]:.3f}")
+        lines.extend([
+            "  STATE (current):",
+            f"    pos   = ({x_current[0]:.3f}, {x_current[1]:.3f}, {x_current[2]:.3f})",
+            f"    yaw   = {np.rad2deg(yaw_cur):.2f} deg  (quat w,x,y,z = {x_current[3]:.3f}, {x_current[4]:.3f}, {x_current[5]:.3f}, {x_current[6]:.3f})",
+            f"    vel   = u,v,w = ({x_current[7]:.3f}, {x_current[8]:.3f}, {x_current[9]:.3f})  p,q,r = ({x_current[10]:.3f}, {x_current[11]:.3f}, {x_current[12]:.3f})",
+            f"    stern = {x_current[15]:.3f}  rudder = {x_current[16]:.3f}",
+            "  ERROR (simple yaw):",
+            f"    yaw_error = {np.rad2deg(yaw_err):.2f} deg  (cur - ref)",
+            f"    To reach ref heading: turn {to_turn}  (positive yaw_error => turn PORT, negative => turn STARBOARD in FRD)",
+        ])
+
+        # MPC error: same as x_error() in the cost (NumPy so we can print it)
+        err = self.compute_x_error_numpy(x_current, r, terminal=True)
+        qe = err["q_error_wxyz"]
+        angle_total_rad = 2.0 * np.arccos(np.clip(qe[0], -1.0, 1.0))
+        yaw_from_q_err_rad = 2.0 * np.arctan2(qe[3], qe[0])
+        lines.extend([
+            "  MPC ERROR (x_error, as in cost):",
+            f"    pos_error = ({err['pos_error'][0]:.3f}, {err['pos_error'][1]:.3f}, {err['pos_error'][2]:.3f})",
+            f"    q_att_error = (1-w,x,y,z) = ({err['q_att_error'][0]:.3f}, {err['q_att_error'][1]:.3f}, {err['q_att_error'][2]:.3f}, {err['q_att_error'][3]:.3f})",
+            f"    q_error (w,x,y,z) = ({qe[0]:.3f}, {qe[1]:.3f}, {qe[2]:.3f}, {qe[3]:.3f})  => angle = {np.rad2deg(angle_total_rad):.2f} deg  yaw_component = {np.rad2deg(yaw_from_q_err_rad):.2f} deg",
+            f"    vel_error = u,v,w = ({err['vel_error'][0]:.3f}, {err['vel_error'][1]:.3f}, {err['vel_error'][2]:.3f})  p,q,r = ({err['vel_error'][3]:.3f}, {err['vel_error'][4]:.3f}, {err['vel_error'][5]:.3f})",
+            f"    u_error = stern={err['u_error'][2]:.3f} rudder={err['u_error'][3]:.3f} (indices 15,16)",
+        ])
+        lines.append(
+            "  (Simple yaw_error and MPC yaw_component can have opposite signs (euler vs quat); "
+            "for steering direction the sign matters—the optimizer uses it to choose rudder sign.)"
+        )
+        # Steering check: SAM_casadi is NED/FRD, positive rudder => starboard turn.
+        # A "wrong" rudder sign can still appear in edge cases (large heading error, quat hemisphere
+        # flip near 180°, or solver picking long way); the WARNING below flags when that happens.
+        lines.extend([
+            "  STEERING CHECK (NED/FRD: +rudder => starboard):",
+            f"    Desired turn: {to_turn}  =>  expect {'positive' if to_turn == 'STARBOARD' else 'negative'} rudder from MPC.",
+            f"    flip_rudder_command = {self.flip_rudder_command}  (if vehicle turns wrong way, set to True in launch/code).",
+        ])
+        if mpc_solution is not None:
+            cmd_stern, cmd_rudder = self._map_actuator_commands(mpc_solution)
+            lines.append(
+                f"    Actual commanded: stern = {cmd_stern:.4f} rad ({np.rad2deg(cmd_stern):.2f} deg), rudder = {cmd_rudder:.4f} rad ({np.rad2deg(cmd_rudder):.2f} deg)."
+            )
+            # Rudder sign opposite to "desired turn" can be: long-way/quat edge case, or nonholonomic
+            # (MPC may command a turn that looks wrong in one snapshot to set up the maneuver), or
+            # due to using only the current waypoint so the horizon has no "next" direction.
+            expect_pos_rudder = to_turn == "STARBOARD"
+            actual_pos_rudder = cmd_rudder > 0
+            if expect_pos_rudder != actual_pos_rudder and np.abs(yaw_err) > np.deg2rad(15):
+                lines.append(
+                    "    >>> WARNING: rudder sign opposite to desired turn (can be nonholonomic setup, "
+                    "single-waypoint ref, or long-way/quat edge case)."
+                )
+        self._loginfo("\n".join(lines))
 
     def get_reference(self):
         # TODO: refactor this if-statement as function.
@@ -755,6 +816,20 @@ class DiveControllerMPC(DiveControllerInterface):
     def get_current_ref_array(self):
         """
         Populate reference array depending on whether we have a trajectory or waypoint.
+
+        For trajectories:
+        - Waypoint progression: we advance traj_index only when BOTH position is within
+          traj_d_tolerance_m of current waypoint AND heading is within traj_yaw_tolerance_deg.
+          Tight yaw_tolerance with nonholonomic dynamics can cause back-and-forth (vehicle
+          can't turn on the spot); loosening it may help but can advance before heading is aligned.
+        - Reference shape: if use_horizon_subtrajectory is False, the MPC sees only the current
+          waypoint (repeated). If True, it sees a segment; horizon_subtrajectory_max_waypoints
+          controls length: 0 = use up to N_horizon waypoints, 2 or 3 = use only next 2-3 waypoints
+          then pad with the last (can reduce oscillation vs full segment).
+        - For turbo turn / confined maneuvers: set horizon_n_parts to 2 or 3 to split the horizon
+          into that many parts; the current waypoint is repeated for the first (n_parts-1) parts and
+          the next waypoint is used only in the last part. This avoids the MPC over-optimizing
+          toward many waypoints in a short horizon and overshooting.
         """
         q_current_wxyz = np.array(
             [
@@ -817,68 +892,81 @@ class DiveControllerMPC(DiveControllerInterface):
                 yaw_error = np.arctan2(
                     np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref)
                 )
-                # self._loginfo(f"yaw error: {yaw_error:.3f}")
-                self._dbg_d_current = d_current
-                self._dbg_d_next = d_next
-                self._dbg_yaw_error = yaw_error
 
-                # Waypoint progression logic with intermediate waypoints.
-                # With N_INTERMEDIATE=5, waypoints are close together (~0.3-0.5m apart).
-                # Use consistent criteria: BOTH position AND heading for all waypoints.
-
-                # Conservative progression: ALWAYS require both position AND heading
-                d_tolerance = 0.45 # 0.35  # meters - not too tight to avoid oscillation trap
-                yaw_tolerance = np.deg2rad(30)  # degrees - default lenient
+                # Waypoint progression: require BOTH position AND heading within tolerance.
+                # Tuned by params traj_d_tolerance_m and traj_yaw_tolerance_deg.
+                d_tolerance = self._traj_d_tolerance
+                yaw_tolerance = np.deg2rad(self._traj_yaw_tolerance_deg)
 
                 # Check if this is a turning waypoint
                 is_turning_wp = False
-                if self.traj_index > 0:
-                    q_prev = [
-                        self.trajectory[self.traj_index - 1, 4],
-                        self.trajectory[self.traj_index - 1, 5],
-                        self.trajectory[self.traj_index - 1, 6],
-                        self.trajectory[self.traj_index - 1, 3],
-                    ]
-                    yaw_prev = R.from_quat(q_prev).as_euler("xyz")[2]
-                    yaw_step = np.arctan2(
-                        np.sin(yaw_ref - yaw_prev), np.cos(yaw_ref - yaw_prev)
-                    )
+                #if self.traj_index > 0:
+                #    q_prev = [
+                #        self.trajectory[self.traj_index - 1, 4],
+                #        self.trajectory[self.traj_index - 1, 5],
+                #        self.trajectory[self.traj_index - 1, 6],
+                #        self.trajectory[self.traj_index - 1, 3],
+                #    ]
+                #    yaw_prev = R.from_quat(q_prev).as_euler("xyz")[2]
+                #    yaw_step = np.arctan2(
+                #        np.sin(yaw_ref - yaw_prev), np.cos(yaw_ref - yaw_prev)
+                #    )
 
-                    if np.abs(yaw_step) > np.deg2rad(5):
-                        is_turning_wp = True
-                        yaw_tolerance = np.deg2rad(
-                            40
-                        )  # Very lenient - nonholonomic constraint makes precise heading hard
+                #    if np.abs(yaw_step) > np.deg2rad(5):
+                #        is_turning_wp = True
+                #        yaw_tolerance = np.deg2rad(
+                #            40
+                #        )  # Very lenient - nonholonomic constraint makes precise heading hard
 
-                # Require BOTH position AND heading before progressing
-                # This prevents premature switching and backward progression
+                # Require BOTH position AND heading before advancing to next waypoint.
                 if d_current < d_tolerance and np.abs(yaw_error) < yaw_tolerance:
                     self.traj_index += 1
 
-                ## Safety: if very close to next waypoint and past current, skip ahead
-                # elif (
-                #    self.traj_index < self.traj_len - 1
-                #    and d_next < d_current * 0.7
-                #    and d_current > 0.5
-                # ):
-                #    self._logwarn(
-                #        f"Skipping waypoint {self.traj_index} (overshot: d_cur={d_current:.2f} d_next={d_next:.2f})"
-                #    )
-                #    self.traj_index += 1
 
                 if self.use_horizon_subtrajectory:
-                    # Use an actual subtrajectory over the prediction horizon.
-                    if self.traj_index + self.N_horizon < self.traj_len:
-                        self.ref = self.trajectory[
-                            self.traj_index : self.traj_index + self.N_horizon, :
-                        ].copy()
+                    # Partition mode (turbo turn): repeat current waypoint for first n_parts-1
+                    # parts of the horizon, use next waypoint only in the last part. Avoids MPC
+                    # over-optimizing a long segment in a short horizon and overshooting.
+                    if self._horizon_n_parts >= 2:
+                        n_parts = min(self._horizon_n_parts, 3)
+                        part_len = self.N_horizon // n_parts
+                        self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
+                        current_wp = self.trajectory[self.traj_index, :].copy()
+                        next_idx = min(self.traj_index + 1, self.traj_len - 1)
+                        next_wp = self.trajectory[next_idx, :].copy()
+                        for i in range(n_parts):
+                            start = i * part_len
+                            end = (i + 1) * part_len if i < n_parts - 1 else self.N_horizon
+                            wp = next_wp if i == n_parts - 1 else current_wp
+                            self.ref[start:end, :] = wp
                     else:
-                        padding = self.N_horizon - (self.traj_len - self.traj_index)
-                        terminal_ref = np.tile(self.trajectory[-1, :], (padding, 1))
-                        self.ref = np.concatenate(
-                            (self.trajectory[self.traj_index :, :], terminal_ref),
-                            axis=0,
-                        )
+                        # Use a short segment of waypoints over the horizon (optionally capped at 2-3).
+                        max_wp = self._horizon_subtrajectory_max_waypoints
+                        if max_wp > 0:
+                            # Use only the next max_wp waypoints, then pad with the last.
+                            n_take = min(max_wp, self.traj_len - self.traj_index)
+                            segment = self.trajectory[
+                                self.traj_index : self.traj_index + n_take, :
+                            ].copy()
+                            if segment.shape[0] < self.N_horizon:
+                                padding = self.N_horizon - segment.shape[0]
+                                last_row = np.tile(segment[-1, :], (padding, 1))
+                                self.ref = np.concatenate((segment, last_row), axis=0)
+                            else:
+                                self.ref = segment[: self.N_horizon, :]
+                        else:
+                            # Original: use up to N_horizon waypoints (full segment).
+                            if self.traj_index + self.N_horizon < self.traj_len:
+                                self.ref = self.trajectory[
+                                    self.traj_index : self.traj_index + self.N_horizon, :
+                                ].copy()
+                            else:
+                                padding = self.N_horizon - (self.traj_len - self.traj_index)
+                                terminal_ref = np.tile(self.trajectory[-1, :], (padding, 1))
+                                self.ref = np.concatenate(
+                                    (self.trajectory[self.traj_index :, :], terminal_ref),
+                                    axis=0,
+                                )
                 else:
                     # Original behavior: hold one target waypoint across horizon.
                     self.ref = np.zeros((self.N_horizon, (self.nx + self.nu)))
@@ -928,11 +1016,11 @@ class DiveControllerMPC(DiveControllerInterface):
             prev_q = q_i
 
         # DEBUG: Log if first reference was flipped
-        dot_after = np.dot(self._normalize_quat_wxyz(q_current_wxyz), self.ref[0, 3:7])
-        if abs(dot_before) < 0.9 or abs(dot_after) < 0.9:
-            self._logwarn(
-                f"Quat continuity: dot_before={dot_before:.3f} dot_after={dot_after:.3f} (flipped={dot_before < 0})"
-            )
+        #dot_after = np.dot(self._normalize_quat_wxyz(q_current_wxyz), self.ref[0, 3:7])
+        #if abs(dot_before) < 0.9 or abs(dot_after) < 0.9:
+        #    self._logwarn(
+        #        f"Quat continuity: dot_before={dot_before:.3f} dot_after={dot_after:.3f} (flipped={dot_before < 0})"
+        #    )
 
     @staticmethod
     def _normalize_quat_wxyz(q):

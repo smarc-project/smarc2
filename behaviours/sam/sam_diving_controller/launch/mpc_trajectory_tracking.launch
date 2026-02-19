@@ -5,6 +5,9 @@
     <arg name="world_prefix" default=""/>
     <arg name="control_yaml" default="$(find-pkg-share sam_diving_controller)/config/sam_diving_controller_config.yaml"/>
     <arg name="use_sim_time" default="false"/>
+    <arg name="debug_print_ref_state" default="false"/>
+    <!-- Set to true if the AUV turns the wrong direction (e.g. port instead of starboard for a 180) -->
+    <arg name="flip_rudder_command" default="false"/>
    
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -12,8 +15,17 @@
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
         <param name="world_prefix" value="$(var world_prefix)"/>
-	<param from="$(var control_yaml)"/>
+        <param from="$(var control_yaml)"/>
         <param name="use_sim_time" value="$(var use_sim_time)"/>
+        <param name="debug_print_ref_state" value="$(var debug_print_ref_state)"/>
+        <param name="use_horizon_subtrajectory" value="true"/>
+        <!-- 0 = use max_waypoints logic; 2 or 3 = partition horizon: repeat current WP, next WP only in last part (turbo turn) -->
+        <param name="horizon_subtrajectory_max_waypoints" value="2"/>
+        <param name="horizon_n_parts" value="3"/>
+        <!-- Looser yaw tolerance for turbo turn / nonholonomic: advance waypoint when heading within this (deg) -->
+        <param name="traj_yaw_tolerance_deg" value="25.0"/>
+        <!-- If the AUV turns the wrong way (e.g. 180 in port instead of starboard), set to true to negate rudder command -->
+        <param name="flip_rudder_command" value="$(var flip_rudder_command)"/>
        </node>
     </group>
 

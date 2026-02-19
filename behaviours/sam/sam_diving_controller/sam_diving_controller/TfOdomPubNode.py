@@ -188,10 +188,9 @@ class TfToOdometryNode(Node):
         )
         q = quat_normalize(q)
 
-        # Compute twist by differencing, then express in base_link
-        v_base = (0.0, 0.0, 0.0)
-        w_base = (0.0, 0.0, 0.0)
-
+        # Compute twist by differencing, then express in base_link.
+        # When dt is invalid (first message or duplicate/non-increasing TF stamp), keep previous
+        # filtered velocity so we don't publish zero "every now and then" and confuse the MPC.
         if self.prev is not None:
             dt = (t_tf - self.prev.t).nanoseconds * 1e-9
             if dt > 1e-6:
@@ -224,8 +223,9 @@ class TfToOdometryNode(Node):
                     a * w_base[2] + (1.0 - a) * self.filt_w[2],
                 )
 
-                v_base = self.filt_v
-                w_base = self.filt_w
+        # Always publish current filtered velocity (avoids zeros when dt too small or duplicate TF stamps)
+        v_base = self.filt_v
+        w_base = self.filt_w
 
         # Update prev AFTER computations
         self.prev = PrevState(t=t_tf, p=p, q=q)
