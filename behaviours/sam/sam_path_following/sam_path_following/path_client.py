@@ -80,7 +80,8 @@ class PathClient(SMARCActionClient):
 
     def run(self):
         # DEBUGGING the trajectory tracking
-        HERE = FilePath(__file__).parent  # resolves the directory of the script.
+        #HERE = FilePath(__file__).parent  # resolves the directory of the script.
+        HERE = FilePath("/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/")
         # file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
         # file_path = HERE / "trajectories" / "turbo_turn_N11_alpha180_radius2.csv"
         file_path = (

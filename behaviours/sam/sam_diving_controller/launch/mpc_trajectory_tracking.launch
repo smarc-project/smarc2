@@ -7,7 +7,7 @@
     <arg name="use_sim_time" default="false"/>
     <arg name="debug_print_ref_state" default="false"/>
     <!-- Set to true if the AUV turns the wrong direction (e.g. port instead of starboard for a 180) -->
-    <arg name="flip_rudder_command" default="false"/>
+    <arg name="flip_rudder_command" default="False"/>
    
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>

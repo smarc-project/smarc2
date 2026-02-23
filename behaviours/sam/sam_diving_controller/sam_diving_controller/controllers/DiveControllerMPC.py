@@ -57,7 +57,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
+        build = True
 
         # create nmpc object for the OCP
         self.N_horizon = 30  # Prediction horizon
@@ -305,15 +305,15 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
         # s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
-        # s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
-        # s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
+        s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
         s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0, :6]}\n"
-        # s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \
-        # s += f"Input: u_stern = {x_current[15]:.3f} u_rudder = {x_current[16]:.3f} \n"
+        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \n "
+        #s += f"Input: u_stern = {x_current[15]:.3f} u_rudder = {x_current[16]:.3f} \n"
 
-        # s += f"MPC Output: u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \n"
-        # s += f"MPC state: u_stern = {simX[15]:.3f} u_rudder = {simX[16]:.3f} \n"
-        #     u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
+        s += f"MPC Output: u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \n"
+        #s += f"MPC state: u_stern = {simX[15]:.3f} u_rudder = {simX[16]:.3f} \n"
+        s += f" u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
 
         # Print all rates
         # s += f"rate: vbs: {self.simU[0]:.3f}"
@@ -324,7 +324,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # s += f" rpm1: {self.simU[4]:.3f}"
         # s += f" rpm2: {self.simU[5]:.3f}\n"
 
-        #self._loginfo(s)
+        self._loginfo(s)
 
         self._dive_sub.set_current_idx(self.traj_index)
 
@@ -1048,9 +1048,9 @@ class DiveControllerMPC(DiveControllerInterface):
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
         u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
-        # u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
+        u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
         # NOTE: The ESC is not inverted right now, that's why the -
-        u_rpm1 = mpc_solution[17]
+        # u_rpm1 = mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
         # Publish the control input
