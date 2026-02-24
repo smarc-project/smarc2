@@ -57,7 +57,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = True
+        build = False
 
         # create nmpc object for the OCP
         self.N_horizon = 30  # Prediction horizon
@@ -101,6 +101,12 @@ class DiveControllerMPC(DiveControllerInterface):
         self._horizon_n_parts = self._node.get_parameter(
             "horizon_n_parts"
         ).get_parameter_value().integer_value
+        # Alternative split: first 1/3 of horizon = current waypoint, last 2/3 = next waypoint.
+        # Takes precedence over horizon_n_parts when both could apply.
+        self._node.declare_parameter("horizon_split_one_third_two_thirds", False)
+        self._horizon_split_one_third_two_thirds = self._node.get_parameter(
+            "horizon_split_one_third_two_thirds"
+        ).get_parameter_value().bool_value
         # Runtime sign calibration for model-vs-robot command conventions.
         # False = MPC rudder sign matches robot (positive rudder => starboard, per SAM_casadi NED/FRD).
         # Set to True only if the vehicle turns port when it should turn starboard.
@@ -924,10 +930,19 @@ class DiveControllerMPC(DiveControllerInterface):
 
 
                 if self.use_horizon_subtrajectory:
+                    # 1/3–2/3 split: first third = current waypoint, last two thirds = next waypoint.
+                    if self._horizon_split_one_third_two_thirds:
+                        third = self.N_horizon // 3
+                        self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
+                        current_wp = self.trajectory[self.traj_index, :].copy()
+                        next_idx = min(self.traj_index + 1, self.traj_len - 1)
+                        next_wp = self.trajectory[next_idx, :].copy()
+                        self.ref[:third, :] = current_wp
+                        self.ref[third:, :] = next_wp
                     # Partition mode (turbo turn): repeat current waypoint for first n_parts-1
                     # parts of the horizon, use next waypoint only in the last part. Avoids MPC
                     # over-optimizing a long segment in a short horizon and overshooting.
-                    if self._horizon_n_parts >= 2:
+                    elif self._horizon_n_parts >= 2:
                         n_parts = min(self._horizon_n_parts, 3)
                         part_len = self.N_horizon // n_parts
                         self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
