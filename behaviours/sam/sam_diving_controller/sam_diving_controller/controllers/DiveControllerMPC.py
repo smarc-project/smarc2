@@ -57,7 +57,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = False
+        build = True
 
         # create nmpc object for the OCP
         self.N_horizon = 30  # Prediction horizon
@@ -756,17 +756,17 @@ class DiveControllerMPC(DiveControllerInterface):
         # x[16] = -control_msg["rudder"]
         # x[15] = control_msg["stern"]
         # x[16] = control_msg["rudder"]
-        # x[17] = -control_msg['rpm1'] # NOTE: The ESC is not inverted, that's why the -.
+        x[17] = -control_msg['rpm1'] # NOTE: The ESC is not inverted, that's why the -.
         # NOTE: For the sim no -, and ideally we change it in the bridge
-        x[17] = control_msg["rpm1"]
+        # x[17] = control_msg["rpm1"]
         x[18] = control_msg["rpm2"]
 
         # Due to numerical reasons, we add a small noise to the rpms in
         # waypoint following mode
         if is_init_state:
             if is_trajectory:
-                # x[17] = -control_msg['rpm1']
-                x[17] = control_msg["rpm1"]
+                x[17] = -control_msg['rpm1']
+                # x[17] = control_msg["rpm1"]
                 x[18] = control_msg["rpm2"]
             else:
                 x[17] = 1e-6
