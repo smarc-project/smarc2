@@ -10,10 +10,10 @@ evolo_move_path_action_server:
     err_large_deg: 45.0
     
     # Pure Pursuit & Dubins
-    ld_base: 15.0
+    ld_base: 20.0
     ld_gain: 0.5
-    ff_gain: 0.2
-    min_turning_radius: 30.0
+    ff_gain: 0.1
+    min_turning_radius: 45.0
     dubins_step: 0.5
 
     # Speed Map

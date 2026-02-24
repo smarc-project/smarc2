@@ -39,7 +39,7 @@ import tf_transformations
 
 from enum import Enum
 
-from .dubins_algorithm import dubins_path
+from dubins_planner.dubins import Waypoint, calc_dubins_path, dubins_traj
 
 
 
@@ -53,11 +53,11 @@ class PurePursuitController:
     """
 
     def __init__(self,
-                 Ld_base:   float = 15.0,
-                 Ld_gain:   float = 0.5,
-                 omega_max: float = 16.0,
-                 ff_gain:   float = 0.2,
-                 dubins_step: float = 0.5):
+                 Ld_base, 
+                 Ld_gain,
+                 omega_max,
+                 ff_gain,
+                 dubins_step):
         self.Ld_base   = Ld_base
         self.Ld_gain   = Ld_gain
         self.omega_max = omega_max
@@ -132,20 +132,20 @@ class EvoloMovePath():
         self._node.declare_parameters(
             namespace='',
             parameters=[
-                ('v_min', 8.0),
-                ('v_max', 14.0),
-                ('omega_max', 16.0),
-                ('err_large_deg', 45.0),
-                ('ld_base', 15.0),
-                ('ld_gain', 0.5),
-                ('ff_gain', 0.2),
-                ('min_turning_radius', 30.0),
-                ('dubins_step', 0.5),
-                ('timeout', 600.0),
-                ('speed_map_slow', 8.0),
-                ('speed_map_medium', 11.0),
-                ('speed_map_high', 14.0),
-                ('frame_id', 'evolo/odom')
+                ('v_min', rclpy.Parameter.Type.DOUBLE),
+                ('v_max', rclpy.Parameter.Type.DOUBLE),
+                ('omega_max', rclpy.Parameter.Type.DOUBLE),
+                ('err_large_deg', rclpy.Parameter.Type.DOUBLE),
+                ('ld_base', rclpy.Parameter.Type.DOUBLE),
+                ('ld_gain', rclpy.Parameter.Type.DOUBLE),
+                ('ff_gain', rclpy.Parameter.Type.DOUBLE),
+                ('min_turning_radius', rclpy.Parameter.Type.DOUBLE),
+                ('dubins_step', rclpy.Parameter.Type.DOUBLE),
+                ('timeout', rclpy.Parameter.Type.DOUBLE),
+                ('speed_map_slow', rclpy.Parameter.Type.DOUBLE),
+                ('speed_map_medium', rclpy.Parameter.Type.DOUBLE),
+                ('speed_map_high', rclpy.Parameter.Type.DOUBLE),
+                ('frame_id', rclpy.Parameter.Type.STRING)
             ]
         )
         self.V_MIN = self._node.get_parameter('v_min').value
@@ -205,14 +205,14 @@ class EvoloMovePath():
 
         self.evolo_pub       = self._node.create_publisher(Float32,      controlTopics.CONTROL_YAW_TOPIC, 10, callback_group=self.publisher_callback_group)
         self.speed_pub       = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=self.publisher_callback_group)
+        # self.speed_pub       = self._node.create_publisher(TwistStamped, 'evolo/ctrl/twist_setpoint',    10, callback_group=self.publisher_callback_group)
         self.path_pub        = self._node.create_publisher(Path,         'visual_path',                   10, callback_group=self.publisher_callback_group)
         self.viz_pub         = self._node.create_publisher(MarkerArray,  'visualisation',                 10, callback_group=self.publisher_callback_group)
         self.dubins_path_pub = self._node.create_publisher(Path,         'dubins_path',                   10, callback_group=self.publisher_callback_group)
         self.attractor_pub   = self._node.create_publisher(Marker,       'attractor_marker',              10, callback_group=self.publisher_callback_group)
 
-        self.robot_sub = self._node.create_subscription(
-            Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,
-            callback_group=self.subscriber_callback_group)
+        self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
+        # self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
 
 
         self._node.get_logger().info("EvoloMovePath started")
@@ -265,17 +265,17 @@ class EvoloMovePath():
 
     def _get_local_curvature(self, path: list, cursor: int) -> float:
 
-        if cursor + 4 >= len(path):
+        if cursor + 2 >= len(path):
             return 0.0
         
         x1, y1, yaw1 = path[cursor]
-        x2, y2, yaw2 = path[cursor + 2]
-        x3, y3, yaw3 = path[cursor + 4]
+        x2, y2, yaw2 = path[cursor + 1]
+        x3, y3, yaw3 = path[cursor + 2]
 
         dyaw1 = math.atan2(math.sin(yaw2 - yaw1), math.cos(yaw2 - yaw1))
         dyaw2 = math.atan2(math.sin(yaw3 - yaw2), math.cos(yaw3 - yaw2))
         
-        avg_dyaw = (dyaw1 + dyaw2) / 4.0
+        avg_dyaw = (dyaw1 + dyaw2) / 2.0
         kappa = avg_dyaw / self.DUBINS_STEP  
 
         return kappa
@@ -347,23 +347,17 @@ class EvoloMovePath():
         # Control
         v = current_wp.speed_kn
 
-        if abs_err_deg > self.ERR_LARGE_DEG:
-            omega = math.copysign(self.OMEGA_MAX, angle_error)
-            v     = self.V_MIN
-            mode  = "TURN"
-            
-        else:
-            omega, lookahead_idx = self.controller.compute(
-                robot_x   = float(robot_pos.x),
-                robot_y   = float(robot_pos.y),
-                robot_yaw = float(self.current_yaw),
-                robot_v   = float(self.current_linear_speed) or v,
-                path      = path,
-                cursor    = self.path_cursor,
-            )
-            slow_factor = max(0.0, 1.0 - abs_err_deg / self.ERR_LARGE_DEG)
-            v = self.V_MIN + slow_factor * (v - self.V_MIN)
-            mode = "PP"
+        omega, lookahead_idx = self.controller.compute(
+            robot_x   = float(robot_pos.x),
+            robot_y   = float(robot_pos.y),
+            robot_yaw = float(self.current_yaw),
+            robot_v   = float(self.current_linear_speed) or v,
+            path      = path,
+            cursor    = self.path_cursor,
+        )
+        slow_factor = max(0.0, 1.0 - abs_err_deg / self.ERR_LARGE_DEG)
+        v = self.V_MIN + slow_factor * (v - self.V_MIN)
+        mode = "PP"
 
         # Publication
         cmd = TwistStamped()
@@ -414,14 +408,18 @@ class EvoloMovePath():
                                                       wp_ori.z, wp_ori.w])[2])
             q_next = (wp_pos.x, wp_pos.y, target_yaw)
             try:
-                seg = dubins_path(q_prev, q_next,
-                                  radius=self.MIN_TURNING_RADIUS, step=self.DUBINS_STEP)
+                w1 = Waypoint(q_prev[0], q_prev[1], math.degrees(q_prev[2]))
+                w2 = Waypoint(q_next[0], q_next[1], math.degrees(q_next[2]))
+                param = calc_dubins_path(w1, w2, self.MIN_TURNING_RADIUS)
+                seg_array = dubins_traj(param, self.DUBINS_STEP)
+                
+                seg = [(p[0], p[1], math.radians(p[2])) for p in seg_array]
+                
                 full_path.extend(seg)
                 wp_ends.append(len(full_path) - 1)
-                self._node.get_logger().info(
-                    f"  Seg{i+1}: {len(seg)} pts → idx={wp_ends[-1]}")
+                
             except Exception as e:
-                self._node.get_logger().error(f"Dubins seg{i+1} failed: {e}")
+                self._node.get_logger().error(f"Dubins failed: {e}")
                 return False
             q_prev = q_next
 
@@ -595,7 +593,7 @@ class EvoloMovePath():
 # ─────────────────────────────────────────────────────────────────────────────
 def main():
     rclpy.init()
-    node = Node("move_path_server_dubins_pp")
+    node = Node("evolo_move_path_action_server")
     EvoloMovePath(node, "move_path")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
