@@ -63,7 +63,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # _braking_safety_margin), so the minimum only matters when the vehicle is
         # already slow.  Increase this if the vehicle still overshoots at low speed.
         self._braking_distance = 2.5  # m
-        self._final_pos_tolerance = 0.5  # m — must also be within this to signal COMPLETED
+        self._final_pos_tolerance = 0.75  # m — must also be within this to signal COMPLETED
 
         # Assumed deceleration for computing the kinematic reference trajectory and
         # the braking-mode entry distance.  Set this LOWER than the vehicle's real
@@ -90,9 +90,64 @@ class DiveControllerMPC(DiveControllerInterface):
         # rather than approaching the goal.  _in_braking_mode is only set True once
         # the vehicle is within kinematic stopping distance of the final waypoint.
         self._in_braking_mode = False
-        # Approach direction (unit vector) captured at braking-mode entry, fixed
-        # for the duration so the overshoot check stays consistent.
-        self._braking_approach_dir = np.array([1.0, 0.0, 0.0])
+
+        # Wall-clock timestamp (time.monotonic()) recorded when braking mode is first
+        # entered.  Used by the XTE / completion timeout below.
+        self._braking_entry_time: float = 0.0
+
+        # ---- Line-of-sight (LOS) guidance for the braking approach ----------------
+        #
+        # Instead of giving the MPC a goal-quaternion reference (which creates a
+        # limit cycle: AUV needs forward motion to turn but also needs to stop), we
+        # use LOS guidance:
+        #
+        #   • _braking_approach_dir  — unit vector of the DESIRED ARRIVAL DIRECTION
+        #     in the world frame, extracted from the final waypoint's quaternion
+        #     (body x-axis rotated into world).  This is the direction the vehicle
+        #     should be travelling when it crosses the goal.
+        #
+        #   • In braking mode the MPC position reference is a "virtual carrot" on
+        #     the approach line (the ray through the goal in the _braking_approach_dir
+        #     direction).  The carrot is placed at a LOS lookahead distance BEHIND
+        #     the goal, projected from the vehicle's current position.  As the vehicle
+        #     closes in the carrot converges to the goal, so the vehicle naturally
+        #     aligns its heading with the approach direction throughout the manoeuvre
+        #     — not as a last-second snap.
+        #
+        #   • The quaternion weight in the braking reference is dropped entirely;
+        #     heading alignment falls out of the position tracking for free.
+        #
+        #   • The stopping condition replaces the yaw check with a CROSS-TRACK ERROR
+        #     (XTE) check: the vehicle must be within _xte_tolerance_m of the approach
+        #     line at the goal.  This is geometrically equivalent to checking arrival
+        #     direction but is continuous, wrap-free, and works for a stopped vehicle.
+        #
+        # Approach direction: body +x (forward) rotated by goal quaternion into world.
+        self._braking_approach_dir = np.array([1.0, 0.0, 0.0])  # updated at entry
+
+        # LOS lookahead distance (m).  The virtual carrot is placed this far "behind"
+        # the goal on the approach line (measured from the vehicle's projection onto
+        # the line).  Larger → smoother, slower convergence; smaller → more direct.
+        # Rule of thumb: 1-2× the vehicle's typical turning radius.
+        self._los_lookahead_m = 2.0  # m
+
+        # Cross-track tolerance for COMPLETED detection.  The vehicle must be within
+        # this distance of the approach line (not just the goal point) to declare
+        # success.  This ensures arrival direction is approximately correct.
+        # Typical: 0.3–0.5× _final_pos_tolerance.
+        self._xte_tolerance_m = 0.4  # m
+
+        # Completion timeout: if the vehicle has been in braking mode longer than
+        # this and position+velocity are satisfied, waive the XTE check.
+        # Safety net for cases where the approach corridor cannot be reached from rest.
+        self._xte_completion_timeout_s = 30.0  # s
+
+        # Debounce counter for COMPLETED detection.  All stopping conditions must be
+        # satisfied for this many consecutive control steps before the action is
+        # declared COMPLETED.  Prevents transient oscillation passes from triggering
+        # a false early exit.
+        self._completion_debounce_required = 5   # steps (~0.5 s at 10 Hz)
+        self._completion_debounce_count = 0      # current consecutive count
 
         # Extract the CasADi model
         sam = SAM_casadi(dt=self._dt)
@@ -397,13 +452,51 @@ class DiveControllerMPC(DiveControllerInterface):
         # Using _in_braking_mode instead of traj_index >= traj_len - 1 so that a
         # single-waypoint mission (traj_len == 1, traj_index == 0 == traj_len-1 from
         # the start) doesn't trigger COMPLETED before the vehicle has even moved.
+        # NOTE: This is something that should also work for the regular waypoint tracking, unless we use the path client with a trajectory length of 1 for waypoint tracking as well.
         if self.ref_is_traj and self._in_braking_mode:
+            p_current_3d = x_current[:3]
             total_speed = np.linalg.norm(x_current[7:10])
-            d_to_final = np.linalg.norm(x_current[:3] - self.trajectory[-1, :3])
-            stopped = total_speed < self._vel_stop_threshold
+            d_to_final = np.linalg.norm(p_current_3d - self.trajectory[-1, :3])
+            stopped  = total_speed < self._vel_stop_threshold
             at_goal  = d_to_final < self._final_pos_tolerance
-            self._loginfo(f"Braking: speed={total_speed:.3f} m/s, d_to_final={d_to_final:.3f} m")
-            if stopped and at_goal:
+
+            # Cross-track error: perpendicular distance from the approach corridor.
+            # Replaces the yaw check — a vehicle that arrived along the correct
+            # approach line will have small XTE at the goal, regardless of whether
+            # it can spin to face the goal heading from rest (nonholonomic safety).
+            xte, along = self._compute_approach_xte(p_current_3d)
+            on_corridor = xte < self._xte_tolerance_m
+
+            # Timeout: if braking has taken too long and position+velocity are fine,
+            # waive the XTE check.  Protects against cases where the approach
+            # corridor could not be reached (e.g. strong current, wrong initial pose).
+            braking_elapsed = time.monotonic() - self._braking_entry_time
+            xte_timed_out   = braking_elapsed > self._xte_completion_timeout_s
+            if xte_timed_out and not on_corridor and stopped and at_goal:
+                self._loginfo(
+                    f"Braking: XTE timeout ({braking_elapsed:.1f}s > "
+                    f"{self._xte_completion_timeout_s:.1f}s) — waiving XTE check "
+                    f"(xte={xte:.3f}m)"
+                )
+            xte_ok = on_corridor or xte_timed_out
+
+            self._loginfo(
+                f"Braking: speed={total_speed:.3f} m/s, d={d_to_final:.3f} m, "
+                f"xte={xte:.3f}m (tol {self._xte_tolerance_m:.2f}m), "
+                f"along={along:.3f}m, elapsed={braking_elapsed:.1f}s, "
+                f"debounce={self._completion_debounce_count}/{self._completion_debounce_required}"
+            )
+
+            # Debounce: all conditions must hold for _completion_debounce_required
+            # consecutive steps before signalling COMPLETED.  This prevents a single
+            # transient pass through the tolerance ball (during oscillation) from
+            # triggering a false early exit.
+            if stopped and at_goal and xte_ok:
+                self._completion_debounce_count += 1
+            else:
+                self._completion_debounce_count = 0
+
+            if self._completion_debounce_count >= self._completion_debounce_required:
                 self._loginfo_once("Braking complete — signalling COMPLETED")
                 # Signal COMPLETED by setting current_idx to traj_len (one past the
                 # last index).  The feedback_loop exits when current_idx >= path_len.
@@ -622,6 +715,8 @@ class DiveControllerMPC(DiveControllerInterface):
             # Reset braking mode whenever a new trajectory is loaded so that a
             # fresh mission always starts with normal tracking, not end-stop braking.
             self._in_braking_mode = False
+            self._braking_entry_time = 0.0
+            self._completion_debounce_count = 0
 
         elif not self.ref_is_traj:
             if not self._dive_sub.has_waypoint():
@@ -965,18 +1060,20 @@ class DiveControllerMPC(DiveControllerInterface):
                 entry_dist = max(self._braking_distance, kinematic_stop_dist + self._braking_safety_margin)
                 if d_to_last < entry_dist:
                     self._in_braking_mode = True
-                    # Capture the approach direction at entry and keep it fixed.
-                    # For multi-waypoint trajectories use the last segment direction;
-                    # for single-waypoint use the current→goal vector.
-                    if self.traj_len >= 2:
-                        seg = self.trajectory[-1, :3] - self.trajectory[-2, :3]
-                    else:
-                        seg = self.trajectory[-1, :3] - np.array([x_current, y_current, z_current])
-                    seg_norm = np.linalg.norm(seg)
-                    self._braking_approach_dir = seg / seg_norm if seg_norm > 1e-3 else np.array([1.0, 0.0, 0.0])
+                    self._braking_entry_time = time.monotonic()
+                    self._completion_debounce_count = 0
+                    # Approach direction from the GOAL QUATERNION (body +x rotated
+                    # into world frame).  This is the heading the vehicle should have
+                    # when it crosses the goal — used by LOS guidance throughout the
+                    # braking phase.  It is fixed at entry so the carrot is stable.
+                    q_goal_wxyz = self.trajectory[-1, 3:7]  # [w, x, y, z]
+                    d_from_quat = self._approach_dir_from_quat(q_goal_wxyz)
+                    d_norm = np.linalg.norm(d_from_quat)
+                    self._braking_approach_dir = d_from_quat / d_norm if d_norm > 1e-3 else np.array([1.0, 0.0, 0.0])
                     self._loginfo(
                         f"Entering braking mode: d_to_last={d_to_last:.2f}m, "
-                        f"entry_dist={entry_dist:.2f}m (v={v_now:.2f} m/s)"
+                        f"entry_dist={entry_dist:.2f}m (v={v_now:.2f} m/s), "
+                        f"approach_dir={self._braking_approach_dir}"
                     )
 
             if not self._in_braking_mode:
@@ -995,30 +1092,31 @@ class DiveControllerMPC(DiveControllerInterface):
                         + (z_current - self.trajectory[self.traj_index, 2]) ** 2
                     )
 
-                    # Compute error in yaw (just for debug to test turbo turn)
-                    # scipy expects quaternions in [x, y, z, w] order.
-                    q_current = [
-                        self._current_state.pose.pose.orientation.x,
-                        self._current_state.pose.pose.orientation.y,
-                        self._current_state.pose.pose.orientation.z,
-                        self._current_state.pose.pose.orientation.w,
-                    ]
-                    roll_current, pitch_current, yaw_current = R.from_quat(
-                        q_current
-                    ).as_euler("xyz")
+                    ## Compute error in yaw (just for debug to test turbo turn)
+                    ## scipy expects quaternions in [x, y, z, w] order.
+                    #q_current = [
+                    #    self._current_state.pose.pose.orientation.x,
+                    #    self._current_state.pose.pose.orientation.y,
+                    #    self._current_state.pose.pose.orientation.z,
+                    #    self._current_state.pose.pose.orientation.w,
+                    #]
+                    #roll_current, pitch_current, yaw_current = R.from_quat(
+                    #    q_current
+                    #).as_euler("xyz")
 
-                    q_ref = [
-                        self.trajectory[self.traj_index, 4],
-                        self.trajectory[self.traj_index, 5],
-                        self.trajectory[self.traj_index, 6],
-                        self.trajectory[self.traj_index, 3],
-                    ]
-                    roll_ref, pitch_ref, yaw_ref = R.from_quat(q_ref).as_euler("xyz")
+                    #q_ref = [
+                    #    self.trajectory[self.traj_index, 4],
+                    #    self.trajectory[self.traj_index, 5],
+                    #    self.trajectory[self.traj_index, 6],
+                    #    self.trajectory[self.traj_index, 3],
+                    #]
+                    #roll_ref, pitch_ref, yaw_ref = R.from_quat(q_ref).as_euler("xyz")
 
-                    # Wrap to [-pi, pi] so thresholding is direction-agnostic.
-                    yaw_error = np.arctan2(
-                        np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref)
-                    )
+                    ## Wrap to [-pi, pi] so thresholding is direction-agnostic.
+                    #yaw_error = np.arctan2(
+                    #    np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref)
+                    #)
+                    yaw_error = self.compute_yaw_error()
 
                     # Waypoint progression: require BOTH position AND heading within tolerance.
                     d_tolerance = self._traj_d_tolerance
@@ -1097,30 +1195,43 @@ class DiveControllerMPC(DiveControllerInterface):
                 return
 
             else:
-                # ---- Braking mode --------------------------------------------------
-                # The OCP contains a soft speed-funnel constraint:
-                #   v_surge² ≤ 2 * a_brake * (dist_to_goal + d_eps)
-                # with Z_brake = 1e5 making it effectively hard.  That constraint
-                # shapes the approach speed automatically; the reference only needs to
-                # tell the MPC WHERE to go (goal) and WHAT to do when it arrives (stop).
+                # ---- Braking mode — LOS guidance -----------------------------------
                 #
-                # Previous versions tried to encode a kinematic braking curve in the
-                # reference.  This caused two problems:
-                #   1. With a short horizon (3 s) and long stopping distance, the
-                #      position reference at the end of the horizon was still far from
-                #      the goal → large terminal position error → MPC hammered max RPM.
-                #   2. A "v_safe floor" for the starting speed sent contradictory
-                #      position/velocity signals → erratic behaviour.
+                # Problem with a direct goal reference for nonholonomic vehicles:
+                #   Setting ref_pos=goal + ref_quat=goal_quat + ref_vel=0 creates a
+                #   trifecta of conflicting objectives.  The MPC tries to achieve the
+                #   target heading by commanding RPMs (needs forward speed to turn),
+                #   which moves the vehicle away from the position target, which then
+                #   pulls it back, ad infinitum → limit cycle.  And if it does achieve
+                #   the correct heading mid-approach, it's often too close to decelerate.
                 #
-                # Simplified strategy:
-                #   ref_pos = goal   (gives position incentive to approach AND recover)
-                #   ref_vel = 0      (penalises motion → MPC decelerates as it arrives)
-                #   Constraint enforces the speed ceiling at every stage.
-                last_wp  = self.trajectory[-1, :]
+                # Solution — Line-of-Sight (LOS) guidance:
+                #   Give the MPC a virtual "carrot" position on the approach corridor
+                #   (the ray through the goal in the desired arrival direction, derived
+                #   from the goal quaternion).  The carrot sits _los_lookahead_m behind
+                #   the vehicle's projection onto this line, so it is always reachable
+                #   with forward motion and the vehicle naturally aligns its heading to
+                #   track it.  As the vehicle closes in, the carrot converges to the
+                #   goal.  No explicit quaternion reference is needed — heading alignment
+                #   falls out of position tracking along the corridor.
+                #
+                # Cross-track error replaces the yaw check in the stopping condition.
+                #
+                p_current_3d = np.array([x_current, y_current, z_current])
+                virtual_pos, xte, along = self._los_virtual_waypoint(p_current_3d)
+
+                self._loginfo(
+                    f"LOS braking: carrot={np.round(virtual_pos, 2)}, "
+                    f"xte={xte:.3f}m, along={along:.3f}m"
+                )
+
                 self.ref = np.zeros((self.N_horizon, (self.nx + self.nu)))
-                self.ref[:, :3]   = last_wp[:3]   # goal position
-                self.ref[:, 3]    = last_wp[3]     # goal quaternion w
-                self.ref[:, 4:7]  = last_wp[4:7]  # goal quaternion xyz
+                self.ref[:, :3]   = virtual_pos   # LOS carrot (converges to goal)
+                # No quaternion reference — heading aligns naturally via position
+                # tracking along the corridor.  Use current heading as neutral ref
+                # so the quaternion cost is zero (error = 0, no fighting).
+                self.ref[:, 3]    = q_current_wxyz[0]
+                self.ref[:, 4:7]  = q_current_wxyz[1:4]
                 self.ref[:, 7:13] = 0.0            # zero velocity reference
                 self.ref[:, 13]   = 50.0           # neutral VBS
                 self.ref[:, 14]   = 50.0           # neutral LCG
@@ -1134,6 +1245,104 @@ class DiveControllerMPC(DiveControllerInterface):
             self._enforce_reference_quaternion_continuity(q_current_wxyz)
 
             return
+            
+    def _yaw_from_odometry(self):
+        """Extract current yaw (rad, FRD/NED convention) from the converted state."""
+        q_current = [
+            self._current_state.pose.pose.orientation.x,
+            self._current_state.pose.pose.orientation.y,
+            self._current_state.pose.pose.orientation.z,
+            self._current_state.pose.pose.orientation.w,
+        ]
+        _, _, yaw = R.from_quat(q_current).as_euler("xyz")
+        return yaw
+
+    def _compute_yaw_error_to_final(self):
+        """Yaw error (rad, wrapped to [-π, π]) between current heading and the
+        FINAL trajectory waypoint.  Use this in braking-mode checks so the
+        reference is always the mission goal, regardless of traj_index."""
+        if self.trajectory is None or self.traj_len == 0:
+            return 0.0
+        yaw_current = self._yaw_from_odometry()
+        q_ref_xyzw = [
+            self.trajectory[-1, 4],
+            self.trajectory[-1, 5],
+            self.trajectory[-1, 6],
+            self.trajectory[-1, 3],
+        ]
+        _, _, yaw_ref = R.from_quat(q_ref_xyzw).as_euler("xyz")
+        return np.arctan2(np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref))
+
+    def compute_yaw_error(self):
+        """Yaw error (rad, wrapped to [-π, π]) against the CURRENT traj_index waypoint.
+        Used during normal tracking to decide waypoint progression."""
+        yaw_current = self._yaw_from_odometry()
+        q_ref_xyzw = [
+            self.trajectory[self.traj_index, 4],
+            self.trajectory[self.traj_index, 5],
+            self.trajectory[self.traj_index, 6],
+            self.trajectory[self.traj_index, 3],
+        ]
+        _, _, yaw_ref = R.from_quat(q_ref_xyzw).as_euler("xyz")
+        return np.arctan2(np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref))
+
+    # ------------------------------------------------------------------
+    # LOS guidance helpers
+    # ------------------------------------------------------------------
+
+    def _approach_dir_from_quat(self, q_wxyz):
+        """World-frame forward direction (unit vector) for a given quaternion [w,x,y,z].
+        In FRD convention the body +x axis is forward, so this is R(q) @ [1, 0, 0]."""
+        q_xyzw = [q_wxyz[1], q_wxyz[2], q_wxyz[3], q_wxyz[0]]
+        return R.from_quat(q_xyzw).apply([1.0, 0.0, 0.0])
+
+    def _compute_approach_xte(self, p_current):
+        """Cross-track error (m) from p_current to the approach line.
+
+        The approach line is the ray through the final goal waypoint in the
+        direction of _braking_approach_dir.  The cross-track error is the
+        perpendicular distance from p_current to this infinite line — it is
+        zero when the vehicle is exactly on the approach corridor, regardless
+        of whether it has reached the goal yet.
+
+        Also returns the signed along-track offset (negative = still behind
+        goal on approach path, positive = overshot past goal).
+        """
+        p_goal = self.trajectory[-1, :3]
+        d = self._braking_approach_dir          # unit approach vector
+        v = p_current - p_goal                  # vector from goal to vehicle
+        along = float(np.dot(v, d))             # signed along-track (neg = behind)
+        xte = np.linalg.norm(v - along * d)    # perpendicular distance
+        return xte, along
+
+    def _los_virtual_waypoint(self, p_current):
+        """Compute the LOS virtual carrot position on the approach line.
+
+        Projects p_current onto the approach line (the ray extending backward
+        from the goal in the _braking_approach_dir direction) and then advances
+        the projection toward the goal by _los_lookahead_m.  Once the projection
+        is within lookahead of the goal, the carrot IS the goal.
+
+        Returns:
+            virtual_pos (np.ndarray shape (3,)): position of the virtual carrot.
+            xte (float): current cross-track error in metres.
+            along (float): signed along-track offset (negative = approaching).
+        """
+        p_goal = self.trajectory[-1, :3]
+        d = self._braking_approach_dir
+        v = p_current - p_goal
+        along = float(np.dot(v, d))     # negative when behind goal on approach
+
+        # t is how far behind the goal the projection sits (t > 0 = behind).
+        t = -along                       # positive when vehicle is approaching
+        t = max(t, 0.0)                 # clamp: if overshot, project back to goal
+
+        # Advance by lookahead (reduce t); clamp so we never push past the goal.
+        t_carrot = max(0.0, t - self._los_lookahead_m)
+        virtual_pos = p_goal - t_carrot * d  # goal − t_carrot * approach_dir
+
+        xte = np.linalg.norm(v - along * d)
+        return virtual_pos, xte, along
 
     def _enforce_reference_quaternion_continuity(self, q_current_wxyz):
         """
