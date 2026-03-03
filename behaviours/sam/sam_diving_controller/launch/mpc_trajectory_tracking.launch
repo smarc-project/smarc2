@@ -27,6 +27,8 @@
         <param name="traj_yaw_tolerance_deg" value="25.0"/>
         <!-- If the AUV turns the wrong way (e.g. 180 in port instead of starboard), set to true to negate rudder command -->
         <param name="flip_rudder_command" value="$(var flip_rudder_command)"/>
+        <!-- RPM1 sign: when flip_rpm1_use_sim_time is true (default), follows use_sim_time (sim => +1, robot => -1). Set flip_rpm1_use_sim_time to false to set flip_rpm1_command explicitly. -->
+        <param name="flip_rpm1_use_sim_time" value="true"/>
         <param name="horizon_split_one_third_two_thirds" value="$(var horizon_split_one_third_two_thirds)"/>
        </node>
     </group>

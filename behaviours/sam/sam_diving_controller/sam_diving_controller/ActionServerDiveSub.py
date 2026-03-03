@@ -724,7 +724,12 @@ class MPCPathServer(PathServer, DiveSub):
         feedback = self.action_type.Feedback
         start_time = self._node.get_clock().now()
 
-        while self.current_idx < self.path_len-1:
+        # Exit condition: controller signals COMPLETED by setting current_idx to
+        # path_len (one past the last index).  Using < path_len (not < path_len-1)
+        # so that a single-waypoint path (path_len == 1) doesn't exit immediately —
+        # the loop starts with current_idx == 0 == path_len-1, which would be False
+        # with the old condition before the vehicle had even moved.
+        while self.current_idx < self.path_len:
             current_time = self._node.get_clock().now()
             elapsed = (current_time - start_time).nanoseconds / 1e9  # seconds
             self.set_mission_state(MissionStates.RUNNING, "AS")

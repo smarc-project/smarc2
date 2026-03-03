@@ -53,11 +53,52 @@ class DiveControllerMPC(DiveControllerInterface):
         self.a_hat_stern = 0
         self.a_hat_rudder = 0
 
+        
+        # Total speed (norm of u,v,w) below which last-waypoint braking is
+        # declared done and the action server is allowed to signal COMPLETED.
+        self._vel_stop_threshold = 0.05  # m/s
+
+        # Braking lookahead: minimum distance at which braking mode is entered.
+        # The actual entry distance is max(_braking_distance, kinematic_stop_dist +
+        # _braking_safety_margin), so the minimum only matters when the vehicle is
+        # already slow.  Increase this if the vehicle still overshoots at low speed.
+        self._braking_distance = 2.5  # m
+        self._final_pos_tolerance = 0.5  # m — must also be within this to signal COMPLETED
+
+        # Assumed deceleration for computing the kinematic reference trajectory and
+        # the braking-mode entry distance.  Set this LOWER than the vehicle's real
+        # worst-case deceleration so the reference is always achievable and braking
+        # starts conservatively early.  Halving this value doubles the stopping
+        # distance that triggers braking entry and doubles the reference curve length.
+        # Rule of thumb: start at (observed_decel / 2).
+        self._a_brake_ref = 0.02  # m/s^2  (was 0.08; halved for 0.9 m observed overshoot)
+
+        # Extra distance added on top of the kinematic stopping distance when
+        # computing the braking entry distance.  Acts as a flat safety buffer that
+        # accounts for sensor lag, control delay, and model mismatch.
+        self._braking_safety_margin = 2.0  # m
+
+        # Hard cap on the reference approach speed used in the braking reference.
+        # v_safe = sqrt(2 * a * d) can grow large for long distances; this prevents
+        # the MPC from being told to cruise faster than the vehicle should go.
+        # Set to the typical cruise speed or slightly below.
+        self._max_approach_speed = 0.2  # m/s
+
+        # Explicit braking-mode flag, separate from traj_index.
+        # Rationale: traj_index == traj_len - 1 (used previously) is true from the
+        # very first step when traj_len == 1, causing the MPC to "stay in place"
+        # rather than approaching the goal.  _in_braking_mode is only set True once
+        # the vehicle is within kinematic stopping distance of the final waypoint.
+        self._in_braking_mode = False
+        # Approach direction (unit vector) captured at braking-mode entry, fixed
+        # for the duration so the overshoot check stays consistent.
+        self._braking_approach_dir = np.array([1.0, 0.0, 0.0])
+
         # Extract the CasADi model
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = True
+        build = False
 
         # create nmpc object for the OCP
         self.N_horizon = 30  # Prediction horizon
@@ -70,8 +111,14 @@ class DiveControllerMPC(DiveControllerInterface):
 
         self.ref = np.zeros((self.N_horizon, (self.nx + self.nu)))
 
+        # Goal position [x, y, z] of the final trajectory waypoint.
+        # Appended to every parameter vector sent to the OCP solver so the
+        # braking/speed-funnel constraint can compute dist-to-goal at each stage.
+        self._goal_pos = np.zeros(3)
+
         # Run the MPC setup
         self.ocp_solver, self.integrator = self.nmpc.setup()
+
 
         # NOTE: This needs to happen in the update function with some check
         # before proceeding. Otherwise, you don't get the right data from the
@@ -132,6 +179,11 @@ class DiveControllerMPC(DiveControllerInterface):
         # NOTE: Set to False if trajectory is already generated in FRD/NED convention!
         # Your create_turbo_turn_path.py uses USE_NED_CONVENTION=True, so it's already FRD.
         self.convert_trajectory_to_frd = False
+
+        # RPM1 sign from use_sim_time (already declared by node/launch): sim => +1, robot => -1
+        self.flip_rpm1_command = self._node.get_parameter(
+            "use_sim_time"
+        ).get_parameter_value().bool_value
 
         self._loginfo("Dive Controller created")
 
@@ -216,12 +268,14 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Update reference vector
         # NOTE: we use p bc. we have a custom cost function.
-        # NOTE: This might be on e issue, we don't have a trajectory, just one array.
+        # The parameter vector is [state_ref (nx), control_ref (nu), goal_pos (3)].
+        # goal_pos enables the braking/speed-funnel constraint in the OCP.
         for stage in range(self.N_horizon):
             if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0:
-                self.ocp_solver.set(stage, "p", self.ref[self.ref.shape[0] - 1, :])
+                p = np.r_[self.ref[self.ref.shape[0] - 1, :], self._goal_pos]
             else:
-                self.ocp_solver.set(stage, "p", self.ref[stage, :])
+                p = np.r_[self.ref[stage, :], self._goal_pos]
+            self.ocp_solver.set(stage, "p", p)
 
         # Terminal stage must use the same parameterized reference convention.
         terminal_ref = (
@@ -229,7 +283,7 @@ class DiveControllerMPC(DiveControllerInterface):
             if self.ref.shape[0] < self.N_horizon and self.ref.shape[0] != 0
             else self.ref[-1, :]
         )
-        self.ocp_solver.set(self.N_horizon, "p", terminal_ref)
+        self.ocp_solver.set(self.N_horizon, "p", np.r_[terminal_ref, self._goal_pos])
 
         # With custom x_error() outputs, yref should stay zero (error target),
         # not the raw state reference.
@@ -244,20 +298,23 @@ class DiveControllerMPC(DiveControllerInterface):
         status = self.ocp_solver.solve()
         end_time = time.time()
 
-        # Get slack variabls
-        sl = []
+        # Get slack variables.
+        # Slack vector layout (from control.py): [sbx_x, sbx_y, sbx_z, sh_brake]
         for stage in range(self.N_horizon):
             sl = self.ocp_solver.get(stage, "sl")
-            if (sl > 1e-6).any():  # tolerance
+            if (sl > 1e-6).any():
                 x_stage = self.ocp_solver.get(stage, "x")
-                # Position bounds are defined in NMPC setup (control.py).
                 x_min, x_max = 0.0, 8.0
                 y_min, y_max = -2.0, 2.0
                 z_min, z_max = -0.5, 3.0
+                pos_sl  = sl[:3] if len(sl) >= 3 else sl
+                brake_sl = sl[3] if len(sl) >= 4 else 0.0
                 s = (
-                    f"Stage {stage}: soft constraint violated, slack = {sl}, "
+                    f"Stage {stage}: soft constraint violated — "
+                    f"pos_slack={np.round(pos_sl, 4)}, brake_slack={brake_sl:.4f}, "
                     f"pred_pos=({x_stage[0]:.3f}, {x_stage[1]:.3f}, {x_stage[2]:.3f}), "
-                    f"bounds x[{x_min:.1f},{x_max:.1f}] y[{y_min:.1f},{y_max:.1f}] z[{z_min:.1f},{z_max:.1f}]"
+                    f"surge={x_stage[7]:.3f} m/s, "
+                    f"dist_to_goal={np.linalg.norm(x_stage[:3] - self._goal_pos):.3f} m"
                 )
                 self._logwarn(s)
 
@@ -312,12 +369,14 @@ class DiveControllerMPC(DiveControllerInterface):
         # s += f"NMPC solve time: {(end_time - start_time)*1000:.1f} ms\n"
         # s += f"Traj. index: {self._dive_sub.current_idx}/{self.traj_len}:\n" if self.ref_is_traj else f""
         s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
+        s += f"velocities: u: {x_current[7]:.3f}, v: {x_current[8]:.3f}, w: {x_current[9]:.3f}, p: {x_current[10]:.3f}, q: {x_current[11]:.3f}, r: {x_current[12]:.3f}\n"
         s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
         s += f"traj idx: {self.traj_index}/{self.traj_len}, ref: {self.ref[0, :6]}\n"
         s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} \n "
         #s += f"Input: u_stern = {x_current[15]:.3f} u_rudder = {x_current[16]:.3f} \n"
 
-        s += f"MPC Output: u_stern = {mpc_solution[15]:.3f} u_rudder = {mpc_solution[16]:.3f} \n"
+        u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
+        s += f"MPC Output: u_stern = {u_stern:.3f} u_rudder = {u_rudder:.3f} \n"
         #s += f"MPC state: u_stern = {simX[15]:.3f} u_rudder = {simX[16]:.3f} \n"
         s += f" u_rpm1 = {mpc_solution[17]:.3f} u_rpm2 = {mpc_solution[18]:.3f}\n"
 
@@ -332,10 +391,37 @@ class DiveControllerMPC(DiveControllerInterface):
 
         self._loginfo(s)
 
-        self._dive_sub.set_current_idx(self.traj_index)
+        # While in braking mode, hold the reported index at traj_len-2 so
+        # MPCPathServer.feedback_loop stays in RUNNING.  Only signal COMPLETED
+        # (advance to traj_len-1) once the vehicle has actually stopped near the goal.
+        # Using _in_braking_mode instead of traj_index >= traj_len - 1 so that a
+        # single-waypoint mission (traj_len == 1, traj_index == 0 == traj_len-1 from
+        # the start) doesn't trigger COMPLETED before the vehicle has even moved.
+        if self.ref_is_traj and self._in_braking_mode:
+            total_speed = np.linalg.norm(x_current[7:10])
+            d_to_final = np.linalg.norm(x_current[:3] - self.trajectory[-1, :3])
+            stopped = total_speed < self._vel_stop_threshold
+            at_goal  = d_to_final < self._final_pos_tolerance
+            self._loginfo(f"Braking: speed={total_speed:.3f} m/s, d_to_final={d_to_final:.3f} m")
+            if stopped and at_goal:
+                self._loginfo_once("Braking complete — signalling COMPLETED")
+                # Signal COMPLETED by setting current_idx to traj_len (one past the
+                # last index).  The feedback_loop exits when current_idx >= path_len.
+                # Using traj_len (not traj_len-1) so that single-waypoint missions
+                # can distinguish COMPLETED (==1) from RUNNING (==0).
+                self._dive_sub.set_current_idx(self.traj_len)
+            else:
+                # Keep RUNNING: any value < path_len keeps the feedback_loop alive.
+                self._dive_sub.set_current_idx(max(0, self.traj_len - 1))
+        else:
+            self._dive_sub.set_current_idx(self.traj_index)
 
         return
 
+
+    def _rpm1_sign(self):
+        """Sign for rpm1: +1 when flip_rpm1_command (sim), -1 for robot. Use for feedback and command."""
+        return 1 if self.flip_rpm1_command else -1
 
     def _map_actuator_commands(self, mpc_solution):
         """Map MPC state (stern, rudder angles in model convention) to robot command.
@@ -530,6 +616,13 @@ class DiveControllerMPC(DiveControllerInterface):
             )  # Derivative reference - set to 0 to penalize large rate of change
             self.trajectory = np.concatenate((self.trajectory, Uref), axis=1)
 
+            # Store the final waypoint position for the braking constraint
+            self._goal_pos = self.trajectory[-1, :3].copy()
+
+            # Reset braking mode whenever a new trajectory is loaded so that a
+            # fresh mission always starts with normal tracking, not end-stop braking.
+            self._in_braking_mode = False
+
         elif not self.ref_is_traj:
             if not self._dive_sub.has_waypoint():
                 self._loginfo(f"No waypoint available")
@@ -546,6 +639,13 @@ class DiveControllerMPC(DiveControllerInterface):
             self.waypoint = self.convert_wp_to_odometry(waypoint_in_mocap)
 
             self.wp_array = self.get_wp_array(self.waypoint)
+
+            # Store waypoint position for the braking constraint
+            self._goal_pos = np.array([
+                self.waypoint.pose.pose.position.x,
+                self.waypoint.pose.pose.position.y,
+                self.waypoint.pose.pose.position.z,
+            ])
 
         return True
 
@@ -752,21 +852,14 @@ class DiveControllerMPC(DiveControllerInterface):
         x[15] = self.a_hat_stern
         x[16] = self.a_hat_rudder
 
-        # x[15] = -control_msg["stern"]
-        # x[16] = -control_msg["rudder"]
-        # x[15] = control_msg["stern"]
-        # x[16] = control_msg["rudder"]
-        x[17] = -control_msg['rpm1'] # NOTE: The ESC is not inverted, that's why the -.
-        # NOTE: For the sim no -, and ideally we change it in the bridge
-        # x[17] = control_msg["rpm1"]
+        x[17] = self._rpm1_sign() * control_msg["rpm1"]
         x[18] = control_msg["rpm2"]
 
         # Due to numerical reasons, we add a small noise to the rpms in
         # waypoint following mode
         if is_init_state:
             if is_trajectory:
-                x[17] = -control_msg['rpm1']
-                # x[17] = control_msg["rpm1"]
+                x[17] = self._rpm1_sign() * control_msg["rpm1"]
                 x[18] = control_msg["rpm2"]
             else:
                 x[17] = 1e-6
@@ -851,83 +944,88 @@ class DiveControllerMPC(DiveControllerInterface):
             x_current = self._current_state.pose.pose.position.x
             y_current = self._current_state.pose.pose.position.y
             z_current = self._current_state.pose.pose.position.z
-
-            if self.traj_index < self.traj_len - 1:
-                # Get distance to current waypoint
-                d_current = np.sqrt(
-                    (x_current - self.trajectory[self.traj_index, 0]) ** 2
-                    + (y_current - self.trajectory[self.traj_index, 1]) ** 2
-                    + (z_current - self.trajectory[self.traj_index, 2]) ** 2
+            
+            # Velocity-adaptive braking-mode entry — checked every step.
+            #
+            # Using an explicit _in_braking_mode flag instead of traj_index so that
+            # single-waypoint trajectories (traj_len == 1) get normal approach tracking
+            # until they are within stopping distance, rather than jumping to braking
+            # mode from the very first step.
+            if not self._in_braking_mode:
+                d_to_last = np.sqrt(
+                    (x_current - self.trajectory[-1, 0]) ** 2
+                    + (y_current - self.trajectory[-1, 1]) ** 2
+                    + (z_current - self.trajectory[-1, 2]) ** 2
                 )
+                try:
+                    v_now = max(0.0, float(self.ocp_solver.get(0, "x")[7]))
+                except Exception:
+                    v_now = 0.0
+                kinematic_stop_dist = v_now ** 2 / (2.0 * self._a_brake_ref) if self._a_brake_ref > 0 else 0.0
+                entry_dist = max(self._braking_distance, kinematic_stop_dist + self._braking_safety_margin)
+                if d_to_last < entry_dist:
+                    self._in_braking_mode = True
+                    # Capture the approach direction at entry and keep it fixed.
+                    # For multi-waypoint trajectories use the last segment direction;
+                    # for single-waypoint use the current→goal vector.
+                    if self.traj_len >= 2:
+                        seg = self.trajectory[-1, :3] - self.trajectory[-2, :3]
+                    else:
+                        seg = self.trajectory[-1, :3] - np.array([x_current, y_current, z_current])
+                    seg_norm = np.linalg.norm(seg)
+                    self._braking_approach_dir = seg / seg_norm if seg_norm > 1e-3 else np.array([1.0, 0.0, 0.0])
+                    self._loginfo(
+                        f"Entering braking mode: d_to_last={d_to_last:.2f}m, "
+                        f"entry_dist={entry_dist:.2f}m (v={v_now:.2f} m/s)"
+                    )
 
-                # Get distance to next waypoint
-                d_next = np.sqrt(
-                    (x_current - self.trajectory[self.traj_index + 1, 0]) ** 2
-                    + (y_current - self.trajectory[self.traj_index + 1, 1]) ** 2
-                    + (z_current - self.trajectory[self.traj_index + 1, 2]) ** 2
-                )
+            if not self._in_braking_mode:
+                # ---- Normal tracking ------------------------------------------------
+                # Track the current trajectory waypoint.  Waypoint progression is only
+                # possible when there is a next waypoint to advance to.  For single-
+                # waypoint trajectories (traj_len == 1) traj_index stays at 0 but the
+                # reference is still set from trajectory[0] (the goal), so the MPC
+                # approaches it normally until the global braking-entry check above fires.
 
-                # For turbo turn DEBUG Trajectory:
-                # The current prediction horizon reference is only the turning
-                # point until we reached it.
-                # self._loginfo(f"distance: {d_current}")
+                if self.traj_index < self.traj_len - 1:
+                    # Get distance to current waypoint
+                    d_current = np.sqrt(
+                        (x_current - self.trajectory[self.traj_index, 0]) ** 2
+                        + (y_current - self.trajectory[self.traj_index, 1]) ** 2
+                        + (z_current - self.trajectory[self.traj_index, 2]) ** 2
+                    )
 
-                # Compute error in yaw (just for debug to test turbo turn)
-                # scipy expects quaternions in [x, y, z, w] order.
-                q_current = [
-                    self._current_state.pose.pose.orientation.x,
-                    self._current_state.pose.pose.orientation.y,
-                    self._current_state.pose.pose.orientation.z,
-                    self._current_state.pose.pose.orientation.w,
-                ]
-                # self._loginfo(f"rpy current: {R.from_quat(q_current).as_euler('xyz')}")
-                roll_current, pitch_current, yaw_current = R.from_quat(
-                    q_current
-                ).as_euler("xyz")
+                    # Compute error in yaw (just for debug to test turbo turn)
+                    # scipy expects quaternions in [x, y, z, w] order.
+                    q_current = [
+                        self._current_state.pose.pose.orientation.x,
+                        self._current_state.pose.pose.orientation.y,
+                        self._current_state.pose.pose.orientation.z,
+                        self._current_state.pose.pose.orientation.w,
+                    ]
+                    roll_current, pitch_current, yaw_current = R.from_quat(
+                        q_current
+                    ).as_euler("xyz")
 
-                q_ref = [
-                    self.trajectory[self.traj_index, 4],
-                    self.trajectory[self.traj_index, 5],
-                    self.trajectory[self.traj_index, 6],
-                    self.trajectory[self.traj_index, 3],
-                ]
-                roll_ref, pitch_ref, yaw_ref = R.from_quat(q_ref).as_euler("xyz")
-                # self._loginfo(f"rpy ref: {R.from_quat(q_ref).as_euler('xyz')}")
+                    q_ref = [
+                        self.trajectory[self.traj_index, 4],
+                        self.trajectory[self.traj_index, 5],
+                        self.trajectory[self.traj_index, 6],
+                        self.trajectory[self.traj_index, 3],
+                    ]
+                    roll_ref, pitch_ref, yaw_ref = R.from_quat(q_ref).as_euler("xyz")
 
-                # Wrap to [-pi, pi] so thresholding is direction-agnostic.
-                yaw_error = np.arctan2(
-                    np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref)
-                )
+                    # Wrap to [-pi, pi] so thresholding is direction-agnostic.
+                    yaw_error = np.arctan2(
+                        np.sin(yaw_current - yaw_ref), np.cos(yaw_current - yaw_ref)
+                    )
 
-                # Waypoint progression: require BOTH position AND heading within tolerance.
-                # Tuned by params traj_d_tolerance_m and traj_yaw_tolerance_deg.
-                d_tolerance = self._traj_d_tolerance
-                yaw_tolerance = np.deg2rad(self._traj_yaw_tolerance_deg)
+                    # Waypoint progression: require BOTH position AND heading within tolerance.
+                    d_tolerance = self._traj_d_tolerance
+                    yaw_tolerance = np.deg2rad(self._traj_yaw_tolerance_deg)
 
-                # Check if this is a turning waypoint
-                is_turning_wp = False
-                #if self.traj_index > 0:
-                #    q_prev = [
-                #        self.trajectory[self.traj_index - 1, 4],
-                #        self.trajectory[self.traj_index - 1, 5],
-                #        self.trajectory[self.traj_index - 1, 6],
-                #        self.trajectory[self.traj_index - 1, 3],
-                #    ]
-                #    yaw_prev = R.from_quat(q_prev).as_euler("xyz")[2]
-                #    yaw_step = np.arctan2(
-                #        np.sin(yaw_ref - yaw_prev), np.cos(yaw_ref - yaw_prev)
-                #    )
-
-                #    if np.abs(yaw_step) > np.deg2rad(5):
-                #        is_turning_wp = True
-                #        yaw_tolerance = np.deg2rad(
-                #            40
-                #        )  # Very lenient - nonholonomic constraint makes precise heading hard
-
-                # Require BOTH position AND heading before advancing to next waypoint.
-                if d_current < d_tolerance and np.abs(yaw_error) < yaw_tolerance:
-                    self.traj_index += 1
-
+                    if d_current < d_tolerance and np.abs(yaw_error) < yaw_tolerance:
+                        self.traj_index += 1
 
                 if self.use_horizon_subtrajectory:
                     # 1/3–2/3 split: first third = current waypoint, last two thirds = next waypoint.
@@ -999,8 +1097,35 @@ class DiveControllerMPC(DiveControllerInterface):
                 return
 
             else:
-                self._loginfo_once("Trajectory Tracking Complete")
-                self._set_actuators_neutral()
+                # ---- Braking mode --------------------------------------------------
+                # The OCP contains a soft speed-funnel constraint:
+                #   v_surge² ≤ 2 * a_brake * (dist_to_goal + d_eps)
+                # with Z_brake = 1e5 making it effectively hard.  That constraint
+                # shapes the approach speed automatically; the reference only needs to
+                # tell the MPC WHERE to go (goal) and WHAT to do when it arrives (stop).
+                #
+                # Previous versions tried to encode a kinematic braking curve in the
+                # reference.  This caused two problems:
+                #   1. With a short horizon (3 s) and long stopping distance, the
+                #      position reference at the end of the horizon was still far from
+                #      the goal → large terminal position error → MPC hammered max RPM.
+                #   2. A "v_safe floor" for the starting speed sent contradictory
+                #      position/velocity signals → erratic behaviour.
+                #
+                # Simplified strategy:
+                #   ref_pos = goal   (gives position incentive to approach AND recover)
+                #   ref_vel = 0      (penalises motion → MPC decelerates as it arrives)
+                #   Constraint enforces the speed ceiling at every stage.
+                last_wp  = self.trajectory[-1, :]
+                self.ref = np.zeros((self.N_horizon, (self.nx + self.nu)))
+                self.ref[:, :3]   = last_wp[:3]   # goal position
+                self.ref[:, 3]    = last_wp[3]     # goal quaternion w
+                self.ref[:, 4:7]  = last_wp[4:7]  # goal quaternion xyz
+                self.ref[:, 7:13] = 0.0            # zero velocity reference
+                self.ref[:, 13]   = 50.0           # neutral VBS
+                self.ref[:, 14]   = 50.0           # neutral LCG
+
+                self._enforce_reference_quaternion_continuity(q_current_wxyz)
                 return
 
         else:
@@ -1063,9 +1188,7 @@ class DiveControllerMPC(DiveControllerInterface):
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
         u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
-        u_rpm1 = -mpc_solution[17] # NOTE: The ESC is not inverted right now, that's why the -
-        # NOTE: The ESC is not inverted right now, that's why the -
-        # u_rpm1 = mpc_solution[17]
+        u_rpm1 = self._rpm1_sign() * mpc_solution[17]
         u_rpm2 = mpc_solution[18]
 
         # Publish the control input
