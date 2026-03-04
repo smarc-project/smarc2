@@ -49,10 +49,11 @@ class DiveControllerMPC(DiveControllerInterface):
         self.traj_len = 0
         self.traj_index = 0
 
-        # We don't know the thrust vectoring state, so we have our own little state estimator here
-        self.a_hat_stern = 0
-        self.a_hat_rudder = 0
-
+        # Variables for the actuator state estimators where we don't get feedback
+        self.a_hat_stern = 0.0
+        self.a_hat_rudder = 0.0
+        self.rpm_hat_1 = 0.0
+        self.rpm_hat_2 = 0.0
         
         # Total speed (norm of u,v,w) below which last-waypoint braking is
         # declared done and the action server is allowed to signal COMPLETED.
@@ -109,27 +110,10 @@ class DiveControllerMPC(DiveControllerInterface):
         self._depth_dive_horizontal_factor = 2.0   # extra braking lead per metre of depth error
         self._braking_entry_pos: np.ndarray | None = None  # position saved at braking entry
 
-        # Target heave (vertical) velocity injected into the reference when the
-        # vehicle needs to change depth.
-        #
-        # Root-cause of "AUV doesn't dive during approach":
-        #   The trajectory stores zero velocity at every waypoint, so ref[9] = 0
-        #   (heave).  With Q_vel[heave] = 1000 this is the HIGHEST-WEIGHT signal
-        #   the MPC receives, directly fighting the dive.  Setting ref[9] = +
-        #   _dive_heave_ref (positive = downward in FRD/NED) creates a stronger
-        #   positive incentive for downward motion than any of the pitch / actuator
-        #   references, and makes the MPC aggressively use stern + LCG + VBS.
-        #
-        # Applied both during normal tracking (so dive starts immediately on
-        # approach, not just at braking entry) and during Phase A (dive-first).
         # Increase if the vehicle dives too slowly; decrease if oscillation appears.
         self._dive_heave_ref = 0.05  # m/s  (positive = downward in FRD/NED)
 
         # Explicit braking-mode flag, separate from traj_index.
-        # Rationale: traj_index == traj_len - 1 (used previously) is true from the
-        # very first step when traj_len == 1, causing the MPC to "stay in place"
-        # rather than approaching the goal.  _in_braking_mode is only set True once
-        # the vehicle is within kinematic stopping distance of the final waypoint.
         self._in_braking_mode = False
 
         # Wall-clock timestamp (time.monotonic()) recorded when braking mode is first
@@ -194,7 +178,7 @@ class DiveControllerMPC(DiveControllerInterface):
         sam = SAM_casadi(dt=self._dt)
 
         # Flag if you want to rebuild the OCP or not (if changes has been made to the MPC)
-        build = True
+        build = False
 
         # create nmpc object for the OCP
         self.N_horizon = 30  # Prediction horizon
@@ -438,8 +422,6 @@ class DiveControllerMPC(DiveControllerInterface):
         if not has_ref:
             return
 
-        # self._loginfo("mission running")
-
         # Get the current states
         convert_state = True  # Flag to convert states
         self._current_state_in_odom = self._dive_sub.get_states()
@@ -542,23 +524,23 @@ class DiveControllerMPC(DiveControllerInterface):
                     self._print_ref_state_throttle = 0
                     self.print_reference_vs_state_debug(x_current, mpc_solution=mpc_solution)
 
-        # Compute internal thrust vectoring state estimator for removing the algebraic loop
+        # Actuator state estimators: integrate commanded rates to track actuator states
+        # without relying on echo-back topics (avoids the algebraic loop and callback
+        # timing issues). All rates are in model convention; only published commands
+        # are flipped via _map_actuator_commands / _rpm1_sign().
         x_k = self.ocp_solver.get(0, "x")
         x_k1 = self.ocp_solver.get(1, "x")
         u_k = self.ocp_solver.get(0, "u")
 
-        # Little actuator state estimator to resolve the algebraic loop since
-        # we don't get feedback from the thrust vectoring node. Use rates in
-        # model convention (do NOT flip here). Only the published command is
-        # flipped in _map_actuator_commands when flip_rudder_command / flip_stern_command.
-        v_stern = u_k[2]  # stern rate (model convention)
-        v_rudder = u_k[3]  # rudder rate (model convention)
-        self.a_hat_stern = np.clip(
-            self.a_hat_stern + self._dt * v_stern, -0.122173, 0.122173
-        )
-        self.a_hat_rudder = np.clip(
-            self.a_hat_rudder + self._dt * v_rudder, -0.122173, 0.122173
-        )
+        v_stern = u_k[2]  # stern rate  (model convention, rad/s)
+        v_rudder = u_k[3]  # rudder rate (model convention, rad/s)
+        self.a_hat_stern = np.clip(self.a_hat_stern + self._dt * v_stern, -0.122173, 0.122173)
+        self.a_hat_rudder = np.clip(self.a_hat_rudder + self._dt * v_rudder, -0.122173, 0.122173)
+
+        rpm_rate_1 = u_k[4]  # RPM1 rate (model convention, RPM/s)
+        rpm_rate_2 = u_k[5]  # RPM2 rate (model convention, RPM/s)
+        self.rpm_hat_1 = np.clip(self.rpm_hat_1 + self._dt * rpm_rate_1, -500.0, 450.0)
+        self.rpm_hat_2 = np.clip(self.rpm_hat_2 + self._dt * rpm_rate_2, -500.0, 450.0)
 
         # FIXME: Remove all the print statements here. They only should appear in the convenience node
         np.set_printoptions(precision=3)
@@ -1111,23 +1093,22 @@ class DiveControllerMPC(DiveControllerInterface):
         x[13] = control_msg["vbs"]
         x[14] = control_msg["lcg"]
 
-        # Update thrust vectoring with internal state. This is the MPC thrust
-        # vectoring, that's why we don't have a - sign here.
+        # Thrust vectoring and RPM states come from internal estimators, not topic
+        # echoes, so they are always consistent with the model's own integration.
+        # No sign flip here — rpm_hat tracks the model-convention value; the sign
+        # is applied to the published command in set_publishers via _rpm1_sign().
         x[15] = self.a_hat_stern
         x[16] = self.a_hat_rudder
+        x[17] = self.rpm_hat_1
+        x[18] = self.rpm_hat_2
 
-        x[17] = self._rpm1_sign() * control_msg["rpm1"]
-        x[18] = control_msg["rpm2"]
-
-        # Due to numerical reasons, we add a small noise to the rpms in
-        # waypoint following mode
-        if is_init_state:
-            if is_trajectory:
-                x[17] = self._rpm1_sign() * control_msg["rpm1"]
-                x[18] = control_msg["rpm2"]
-            else:
-                x[17] = 1e-6
-                x[18] = 1e-6
+        # In waypoint (non-trajectory) mode the estimator starts at 0 by definition,
+        # so no special init branch is needed. The tiny noise below is kept only for
+        # trajectory mode to avoid a numerical zero-RPM singularity on the very first
+        # step before the estimator has propagated.
+        if is_init_state and not is_trajectory:
+            x[17] = 1e-6
+            x[18] = 1e-6
 
         return x
 
