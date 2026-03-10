@@ -12,6 +12,7 @@
     <arg name="use_horizon_subtrajectory" default="True"/>
     <arg name="horizon_subtrajectory_max_waypoints" default="2"/>
     <arg name="horizon_n_parts" default="3"/>
+    <arg name="build_ocp" default="False"/>
 
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
@@ -33,6 +34,7 @@
         <!-- RPM1 sign: when flip_rpm1_use_sim_time is true (default), follows use_sim_time (sim => +1, robot => -1). Set flip_rpm1_use_sim_time to false to set flip_rpm1_command explicitly. -->
         <param name="flip_rpm1_use_sim_time" value="true"/>
         <param name="horizon_split_one_third_two_thirds" value="$(var horizon_split_one_third_two_thirds)"/>
+        <param name="build_ocp" value="$(var build_ocp)"/>
        </node>
     </group>
 
