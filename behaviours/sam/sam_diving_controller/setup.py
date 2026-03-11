@@ -40,6 +40,7 @@ setup(
             "diving_sim_sam = sam_diving_controller.entrypoints:sim_sam",
             "diving_joy_depth = sam_diving_controller.entrypoints:joy_depth",
             "pid_wp_following = sam_diving_controller.entrypoints:pid_wp_following",
+            "pid_trajectory_tracking = sam_diving_controller.entrypoints:pid_trajectory_tracking",
             "mpc_wp_following = sam_diving_controller.entrypoints:mpc_wp_following",
             "mpc_trajectory_tracking = sam_diving_controller.entrypoints:mpc_trajectory_tracking",
         ],

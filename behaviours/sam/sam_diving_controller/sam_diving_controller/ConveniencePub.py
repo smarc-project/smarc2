@@ -250,11 +250,11 @@ class ConveniencePub(IDivePub):
     def update(self) -> None:
         self._update_state()
         self._update_ref()
-        self._update_error()
-        self._update_input()
-        self._update_ref_input()
-        self._update_waypoint()
+        #self._update_error()
+        #self._update_input()
+        #self._update_ref_input()
+        #self._update_waypoint()
         #self._print_state()
-        self._publish_predicted_path()
-        self._publish_mpc_path_ref()
+        #self._publish_predicted_path()
+        #self._publish_mpc_path_ref()
 

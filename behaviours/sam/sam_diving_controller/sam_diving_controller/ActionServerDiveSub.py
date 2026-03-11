@@ -625,6 +625,171 @@ class HydropointServer(SMARCActionServer, DiveSub):
         return CancelResponse.ACCEPT
 
 
+class PIDPathServer(PathServer, DiveSub):
+    """Action point server that handle GotoGeopoint messages.
+
+    Attributes:
+        logger: shorthand for `node.get_logger()`
+        robot_name: provided robot name from launch file
+        target_frame: frame that goal's should be transformed to
+    """
+
+    def __init__(self, node: Node, action_name, action_type: ActionType, param):
+
+        self.param = param
+        self._node = node
+
+        PathServer.__init__(self,
+            node,
+            action_name,
+            action_type
+        )
+        DiveSub.__init__(self,self._node, self.param)
+
+        #node.destroy_subscription(self.path_sub)
+
+        self._loginfo("Path Action Server started")
+
+
+    def _save_path(self, goal_path):
+        """
+        Convert path from list to numpy array.
+        """
+
+        # Set global waypoint to trigger update_tf in DiveSub. Ugly, but works for now.
+        self._waypoint_global = Odometry()
+        #self._waypoint_global.header.frame_id = self.world_prefix + 'mocap'
+        self._waypoint_global.header.frame_id = self.robot_name + '/odom'
+        self.logger.info(f"Frame id: {self._waypoint_global.header.frame_id}")
+        
+        path = []
+        for i in range(0, len(goal_path.trajectory)):
+            i_path = []
+
+            i_path.append(goal_path.trajectory[i].wp.pose.position.x)
+            i_path.append(goal_path.trajectory[i].wp.pose.position.y)
+            i_path.append(goal_path.trajectory[i].wp.pose.position.z)
+            i_path.append(goal_path.trajectory[i].wp.pose.orientation.w)
+            i_path.append(goal_path.trajectory[i].wp.pose.orientation.x)
+            i_path.append(goal_path.trajectory[i].wp.pose.orientation.y)
+            i_path.append(goal_path.trajectory[i].wp.pose.orientation.z)
+            i_path.append(goal_path.trajectory[i].velocities.linear.x)
+            i_path.append(goal_path.trajectory[i].velocities.linear.y)
+            i_path.append(goal_path.trajectory[i].velocities.linear.z)
+            i_path.append(goal_path.trajectory[i].velocities.angular.x)
+            i_path.append(goal_path.trajectory[i].velocities.angular.y)
+            i_path.append(goal_path.trajectory[i].velocities.angular.z)
+            i_path.append(goal_path.trajectory[i].nominal_control.vbs.value)
+            i_path.append(goal_path.trajectory[i].nominal_control.lcg.value)
+            i_path.append(goal_path.trajectory[i].nominal_control.thruster_angles.thruster_vertical_radians)
+            i_path.append(goal_path.trajectory[i].nominal_control.thruster_angles.thruster_horizontal_radians)
+            i_path.append(goal_path.trajectory[i].nominal_control.rpms.thruster_1_rpm)
+            i_path.append(goal_path.trajectory[i].nominal_control.rpms.thruster_2_rpm)
+
+            path.append(i_path)
+
+
+        self.path = np.asarray(path)
+        self._received_waypoint = True
+        self.logger.info(f"AS: saved path, len: {len(self.path)}")
+
+
+    def execution_callback(self, goal_handle: ServerGoalHandle) -> ActionResult:
+        """Primary execution callback where goal's are handled after acceptance.
+
+        Args:
+            goal_handle: handle to control server and add callbacks
+
+        Returns:
+            A populated ActionResult message
+        """
+        result_msg = self.action_type.Result
+        status = self.feedback_loop(goal_handle)
+        if status == "cancelled":
+            self.logger.info("Goal was cancelled by client.")
+            self.set_mission_state(MissionStates.CANCELLED, "AS")
+            result_msg.success = False
+            return result_msg
+        
+        self.set_mission_state(MissionStates.COMPLETED, "AS")
+        result_msg.success = True
+        return result_msg
+
+    def feedback_loop(self, goal_handle: ServerGoalHandle):
+        """Abstracted feedback loop where tolerance checks are conducted.
+
+        Args:
+            pose_stamped: target location
+            goal_handle: passed in to enable feedback publishing
+        """
+        rate = self._node.create_rate(2)
+        feedback = self.action_type.Feedback
+        start_time = self._node.get_clock().now()
+
+        # Exit condition: controller signals COMPLETED by setting current_idx to
+        # path_len (one past the last index).  Using < path_len (not < path_len-1)
+        # so that a single-waypoint path (path_len == 1) doesn't exit immediately —
+        # the loop starts with current_idx == 0 == path_len-1, which would be False
+        # with the old condition before the vehicle had even moved.
+        while self.current_idx < self.path_len:
+
+            current_time = self._node.get_clock().now()
+            elapsed = (current_time - start_time).nanoseconds / 1e9  # seconds
+            self.set_mission_state(MissionStates.RUNNING, "AS")
+
+
+            self._waypoint_global = self._get_current_waypoint()
+
+            if elapsed > 250:
+                self.logger.info("Goal was cancelled by timeout.")
+                goal_handle.abort()
+                return "cancelled"
+
+            self.set_mission_state(MissionStates.RUNNING, "AS")
+            if goal_handle.is_cancel_requested:
+                self.logger.info("Goal was cancelled by client.")
+                goal_handle.canceled()
+                return "cancelled"
+            
+            feedback.feedback = self._json_ops.encode(float(self.current_idx)) #- NOTE: the encode returns nonetype value if not float
+            goal_handle.publish_feedback(feedback)
+            rate.sleep()
+
+        self.set_mission_state(MissionStates.COMPLETED, "AS")
+        goal_handle.succeed()
+        rate.destroy()
+        return "done"
+    
+    def _get_current_waypoint(self):
+        current_waypoint = Odometry()
+        current_waypoint.header.frame_id = self.world_prefix + 'mocap'
+        current_waypoint.pose.pose.position.x = self.path[self.current_idx, 0]
+        current_waypoint.pose.pose.position.y = self.path[self.current_idx, 1]
+        current_waypoint.pose.pose.position.z = self.path[self.current_idx, 2]
+        current_waypoint.pose.pose.orientation.w = self.path[self.current_idx, 3]
+        current_waypoint.pose.pose.orientation.x = self.path[self.current_idx, 4]
+        current_waypoint.pose.pose.orientation.y = self.path[self.current_idx, 5]
+        current_waypoint.pose.pose.orientation.z = self.path[self.current_idx, 6]
+        return current_waypoint
+
+
+    def cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        """Handles canceling of goal requests.
+
+        Args:
+            goal_handle: handle
+
+        Returns:
+            Cancel response as ACCEPT
+        """
+
+        self._loginfo("Cancelled")
+
+        self.set_mission_state(MissionStates.CANCELLED, "AS")
+
+        return CancelResponse.ACCEPT
+
+
 class MPCPathServer(PathServer, DiveSub):
     """Action point server that handle GotoGeopoint messages.
 

@@ -1892,5 +1892,3 @@ class DiveControllerMPC(DiveControllerInterface):
     def get_mpc_path_ref(self):
         return self.ref
 
-    def get_ref_input(self):
-        return self._control_ref
