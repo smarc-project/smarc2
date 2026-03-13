@@ -85,8 +85,8 @@ class PathClient(SMARCActionClient):
         # file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
         # file_path = HERE / "trajectories" / "turbo_turn_N11_alpha180_radius2.csv"
         file_path = (
-            HERE / "trajectories" / "turbo_turn_zigzag_N8_alpha45_radius1.0.csv"
-            #HERE / "trajectories" / "turbo_turn_three_point.csv"
+            #HERE / "trajectories" / "turbo_turn_zigzag_N8_alpha90_radius0.75.csv"
+            HERE / "trajectories" / "turbo_turn_three_point.csv"
         )
 
         np_path = self.read_csv_to_array(file_path)
@@ -137,6 +137,17 @@ class PathClient(SMARCActionClient):
         return np.array(data)
 
     def convert_np_path_to_trajectory(self, np_path):
+        """Convert numpy trajectory to TrajectoryMPC message.
+
+        The MPC stage cost tracks position (cols 0-2), quaternion (cols 3-6),
+        and surge velocity (col 7).  The terminal cost additionally tracks
+        the full velocity vector (cols 7-12) to drive the vehicle to a stop.
+        Actuator references (cols 13-18) are not part of the cost -- the MPC
+        freely chooses actuator values within its constraints.  We set them
+        to neutral defaults so the message works with both 13-column and
+        19-column CSVs.
+        """
+        n_cols = np_path.shape[1]
         path = TrajectoryMPC()
         path.header.frame_id = self.frame_id
         for i in range(0, np_path.shape[0]):
@@ -148,22 +159,22 @@ class PathClient(SMARCActionClient):
             i_wp.wp.pose.orientation.x = np_path[i, 4]
             i_wp.wp.pose.orientation.y = np_path[i, 5]
             i_wp.wp.pose.orientation.z = np_path[i, 6]
-            i_wp.velocities.linear.x = np_path[i, 7]
-            i_wp.velocities.linear.y = np_path[i, 8]
-            i_wp.velocities.linear.z = np_path[i, 9]
-            i_wp.velocities.angular.x = np_path[i, 10]
-            i_wp.velocities.angular.y = np_path[i, 11]
-            i_wp.velocities.angular.z = np_path[i, 12]
-            i_wp.nominal_control.vbs.value = np_path[i, 13]
-            i_wp.nominal_control.lcg.value = np_path[i, 14]
-            i_wp.nominal_control.rpms.thruster_1_rpm = int(np_path[i, 17])
-            i_wp.nominal_control.rpms.thruster_2_rpm = int(np_path[i, 18])
-            i_wp.nominal_control.thruster_angles.thruster_vertical_radians = np_path[
-                i, 15
-            ]
-            i_wp.nominal_control.thruster_angles.thruster_horizontal_radians = np_path[
-                i, 16
-            ]
+
+            if n_cols > 7:
+                i_wp.velocities.linear.x = np_path[i, 7]
+                i_wp.velocities.linear.y = np_path[i, 8]
+                i_wp.velocities.linear.z = np_path[i, 9]
+                i_wp.velocities.angular.x = np_path[i, 10]
+                i_wp.velocities.angular.y = np_path[i, 11]
+                i_wp.velocities.angular.z = np_path[i, 12]
+
+            # Neutral actuator defaults -- not tracked by the MPC cost.
+            i_wp.nominal_control.vbs.value = 50.0
+            i_wp.nominal_control.lcg.value = 50.0
+            i_wp.nominal_control.rpms.thruster_1_rpm = 0
+            i_wp.nominal_control.rpms.thruster_2_rpm = 0
+            i_wp.nominal_control.thruster_angles.thruster_vertical_radians = 0.0
+            i_wp.nominal_control.thruster_angles.thruster_horizontal_radians = 0.0
 
             path.trajectory.append(i_wp)
 

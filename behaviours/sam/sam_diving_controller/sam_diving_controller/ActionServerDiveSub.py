@@ -652,41 +652,45 @@ class MPCPathServer(PathServer, DiveSub):
 
 
     def _save_path(self, goal_path):
-        """
-        Convert path from list to numpy array.
+        """Convert path from TrajectoryMPC message to a (N, 19) numpy array.
+
+        Columns 0-2: position (tracked by MPC stage + terminal cost).
+        Columns 3-6: quaternion (tracked by MPC stage + terminal cost).
+        Column 7: surge velocity (tracked by MPC stage cost).
+        Columns 7-12: full velocity (tracked by MPC terminal cost).
+        Columns 13-18: actuator states — neutral defaults, not tracked by cost.
         """
 
         # Set global waypoint to trigger update_tf in DiveSub. Ugly, but works for now.
         self._waypoint_global = Odometry()
         self._waypoint_global.header.frame_id = self.world_prefix + 'mocap'
         self.logger.info(f"Frame id: {self._waypoint_global.header.frame_id}")
-        
+
         path = []
         for i in range(0, len(goal_path.trajectory)):
-            i_path = []
-
-            i_path.append(goal_path.trajectory[i].wp.pose.position.x)
-            i_path.append(goal_path.trajectory[i].wp.pose.position.y)
-            i_path.append(goal_path.trajectory[i].wp.pose.position.z)
-            i_path.append(goal_path.trajectory[i].wp.pose.orientation.w)
-            i_path.append(goal_path.trajectory[i].wp.pose.orientation.x)
-            i_path.append(goal_path.trajectory[i].wp.pose.orientation.y)
-            i_path.append(goal_path.trajectory[i].wp.pose.orientation.z)
-            i_path.append(goal_path.trajectory[i].velocities.linear.x)
-            i_path.append(goal_path.trajectory[i].velocities.linear.y)
-            i_path.append(goal_path.trajectory[i].velocities.linear.z)
-            i_path.append(goal_path.trajectory[i].velocities.angular.x)
-            i_path.append(goal_path.trajectory[i].velocities.angular.y)
-            i_path.append(goal_path.trajectory[i].velocities.angular.z)
-            i_path.append(goal_path.trajectory[i].nominal_control.vbs.value)
-            i_path.append(goal_path.trajectory[i].nominal_control.lcg.value)
-            i_path.append(goal_path.trajectory[i].nominal_control.thruster_angles.thruster_vertical_radians)
-            i_path.append(goal_path.trajectory[i].nominal_control.thruster_angles.thruster_horizontal_radians)
-            i_path.append(goal_path.trajectory[i].nominal_control.rpms.thruster_1_rpm)
-            i_path.append(goal_path.trajectory[i].nominal_control.rpms.thruster_2_rpm)
-
+            wp = goal_path.trajectory[i]
+            i_path = [
+                wp.wp.pose.position.x,
+                wp.wp.pose.position.y,
+                wp.wp.pose.position.z,
+                wp.wp.pose.orientation.w,
+                wp.wp.pose.orientation.x,
+                wp.wp.pose.orientation.y,
+                wp.wp.pose.orientation.z,
+                wp.velocities.linear.x,
+                wp.velocities.linear.y,
+                wp.velocities.linear.z,
+                wp.velocities.angular.x,
+                wp.velocities.angular.y,
+                wp.velocities.angular.z,
+                50.0,   # VBS  (neutral default — not tracked by MPC cost)
+                50.0,   # LCG  (neutral default)
+                0.0,    # stern angle
+                0.0,    # rudder angle
+                0.0,    # RPM1
+                0.0,    # RPM2
+            ]
             path.append(i_path)
-
 
         self.path = np.asarray(path)
         self.logger.info(f"AS: saved path")

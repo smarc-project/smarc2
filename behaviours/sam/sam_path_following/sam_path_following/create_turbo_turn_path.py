@@ -223,12 +223,6 @@ def parse_args():
         default=0.2,
         help="Nominal surge speed magnitude (m/s) for forward/backward segments",
     )
-    parser.add_argument(
-        "--rpm-nominal",
-        type=float,
-        default=300.0,
-        help="Nominal RPM magnitude for forward/backward segments (sign follows surge)",
-    )
     # On-spot
     parser.add_argument(
         "--n-waypoints",
@@ -343,10 +337,14 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, filename)
 
+    # CSV contains position, quaternion, and velocity references.
+    # The MPC stage cost tracks position + quaternion + surge velocity;
+    # the terminal cost additionally tracks the full velocity vector.
+    # Actuator states (VBS, LCG, stern, rudder, RPM) are omitted —
+    # neutral defaults are applied downstream in path_client / ActionServerDiveSub.
     columns = [
         "x", "y", "z", "q0", "q1", "q2", "q3",
-        "u", "v", "w", "q", "p", "r", "V_bs", "l_cg", "ds", "dr",
-        "rpm_1", "rpm_2",
+        "u", "v", "w", "q", "p", "r",
     ]
     df = pd.DataFrame(0.0, index=np.arange(N), columns=columns)
     df["x"] = x
@@ -357,15 +355,6 @@ def main():
     df["q2"] = quaternions[:, 2]
     df["q3"] = quaternions[:, 3]
     df["u"] = u_per_wp
-    df["dr"] = dr_per_wp
-
-    # RPM references: sign follows surge direction so the MPC gets a thrust
-    # direction hint (positive RPM = forward, negative = reverse).
-    rpm_nominal = args.rpm_nominal
-    rpm_per_wp = np.where(u_per_wp >= 0, rpm_nominal, -rpm_nominal)
-    rpm_per_wp[u_per_wp == 0.0] = 0.0
-    df["rpm_1"] = rpm_per_wp
-    df["rpm_2"] = rpm_per_wp
 
     # Print summary
     print(f"Mode: {args.mode}")

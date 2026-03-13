@@ -361,7 +361,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # With custom x_error() outputs, yref should stay zero (error target),
         # not the raw state reference.
-        self.ocp_solver.set(self.N_horizon, "yref", np.zeros(self.nx))
+        self.ocp_solver.set(self.N_horizon, "yref", np.zeros(self.nmpc.n_terminal_cost))
 
         # Set current state
         self.ocp_solver.set(0, "lbx", x_current)
@@ -519,13 +519,15 @@ class DiveControllerMPC(DiveControllerInterface):
 
     def compute_x_error_numpy(self, x, ref, terminal=True):
         """
-        NumPy version of x_error() so we can evaluate the MPC error at runtime.
-        Matches the CasADi x_error logic: pos_error, q_att_error (1-w,qx,qy,qz),
-        vel_error, u_error. ref can be shorter than x; missing ref entries treated as 0.
-        (terminal is kept for API compatibility with x_error; return is the same.)
+        NumPy version of x_error() for runtime debugging.  The CasADi cost
+        residual structure is:
+          - Stage:    [pos_error(3), q_att_error(4), surge_vel_error(1), u(6)] = 14
+          - Terminal: [pos_error(3), q_att_error(4), vel_error(6)]              = 13
+
+        All components are always returned for debug logging regardless of
+        whether they appear in the active cost residual.
         """
         ref = np.asarray(ref).flatten()
-        # Pad ref so we can index ref[0:3], ref[3:7], ref[7:13], ref[13:19]
         ref_pad = np.zeros(19)
         ref_pad[: min(len(ref), 19)] = ref[:19]
 
@@ -534,7 +536,7 @@ class DiveControllerMPC(DiveControllerInterface):
         q2 = np.array(x[3:7], dtype=float)
         q2 = q2 / (np.linalg.norm(q2) + 1e-12)
         q_conj = np.array([q2[0], -q2[1], -q2[2], -q2[3]])
-        # q_error = q1 @ q2^-1 = q_ref * q_cur_conj
+
         q_err_w = (
             q1[0] * q_conj[0]
             - q1[1] * q_conj[1]
@@ -572,14 +574,12 @@ class DiveControllerMPC(DiveControllerInterface):
 
         pos_error = np.array(x[0:3], dtype=float) - ref_pad[0:3]
         vel_error = np.array(x[7:13], dtype=float) - ref_pad[7:13]
-        u_error = np.array(x[13:19], dtype=float) - ref_pad[13:19]
 
         return {
             "pos_error": pos_error,
             "q_att_error": q_att_error,
             "q_error_wxyz": np.array([q_err_w, q_err_x, q_err_y, q_err_z]),
             "vel_error": vel_error,
-            "u_error": u_error,
         }
 
     def print_reference_vs_state_debug(self, x_current, mpc_solution=None):
@@ -637,7 +637,6 @@ class DiveControllerMPC(DiveControllerInterface):
             f"    q_att_error = (1-w,x,y,z) = ({err['q_att_error'][0]:.3f}, {err['q_att_error'][1]:.3f}, {err['q_att_error'][2]:.3f}, {err['q_att_error'][3]:.3f})",
             f"    q_error (w,x,y,z) = ({qe[0]:.3f}, {qe[1]:.3f}, {qe[2]:.3f}, {qe[3]:.3f})  => angle = {np.rad2deg(angle_total_rad):.2f} deg  yaw_component = {np.rad2deg(yaw_from_q_err_rad):.2f} deg",
             f"    vel_error = u,v,w = ({err['vel_error'][0]:.3f}, {err['vel_error'][1]:.3f}, {err['vel_error'][2]:.3f})  p,q,r = ({err['vel_error'][3]:.3f}, {err['vel_error'][4]:.3f}, {err['vel_error'][5]:.3f})",
-            f"    u_error = stern={err['u_error'][2]:.3f} rudder={err['u_error'][3]:.3f} (indices 15,16)",
         ])
         lines.append(
             "  (Simple yaw_error and MPC yaw_component can have opposite signs (euler vs quat); "
@@ -954,6 +953,8 @@ class DiveControllerMPC(DiveControllerInterface):
         ref[5] = waypoint.pose.pose.orientation.y
         ref[6] = waypoint.pose.pose.orientation.z
 
+        ref[7] = 0.2  # nominal cruise speed — encourages forward motion
+
         # Neutral actuator reference for VBS and LCG. Rest is 0
         ref[13] = 50
         ref[14] = 50
@@ -962,7 +963,13 @@ class DiveControllerMPC(DiveControllerInterface):
 
     def initialize_mpc(self):
         """
-        Set the initial state for the MPC
+        Seed the solver with an initial guess that moves toward the first
+        target instead of the default "stay still at current position".
+
+        For trajectory mode the target is the first trajectory waypoint;
+        for single-waypoint mode it is the waypoint position.  Position is
+        linearly interpolated across the horizon so the solver starts from
+        a rough "drive there" plan rather than a zero-motion guess.
         """
         x0 = self.get_state_array(
             self._current_state,
@@ -971,19 +978,21 @@ class DiveControllerMPC(DiveControllerInterface):
             is_trajectory=self.ref_is_traj,
         )
 
-        # Initialize the state and control vector
+        target_pos = None
+        if self.ref_is_traj and self.trajectory is not None:
+            target_pos = self.trajectory[0, :3]
+        elif not self.ref_is_traj and hasattr(self, "wp_array"):
+            target_pos = self.wp_array[:3]
+
         for stage in range(self.N_horizon + 1):
-            self.ocp_solver.set(stage, "x", x0)
+            x_init = x0.copy()
+            if target_pos is not None:
+                t = stage / self.N_horizon
+                x_init[:3] = x0[:3] + t * (target_pos - x0[:3])
+            self.ocp_solver.set(stage, "x", x_init)
+
         for stage in range(self.N_horizon):
-            # u here is the rate of change, that's why we initialize it
-            # with 0
-            self.ocp_solver.set(
-                stage,
-                "u",
-                np.zeros(
-                    self.nu,
-                ),
-            )
+            self.ocp_solver.set(stage, "u", np.zeros(self.nu))
 
         self._initialized = True
 
