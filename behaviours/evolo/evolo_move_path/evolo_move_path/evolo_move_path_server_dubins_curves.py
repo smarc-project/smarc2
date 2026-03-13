@@ -36,10 +36,14 @@ from geometry_msgs.msg import Quaternion
 from smarc_utilities import georef_utils
 
 import tf_transformations
-
+import os 
 from enum import Enum
 
 from dubins_planner.dubins import Waypoint, calc_dubins_path, dubins_traj
+
+
+from sensor_msgs.msg import Image, CompressedImage, CameraInfo
+
 
 
 
@@ -135,7 +139,6 @@ class EvoloMovePath():
                 ('v_min', rclpy.Parameter.Type.DOUBLE),
                 ('v_max', rclpy.Parameter.Type.DOUBLE),
                 ('omega_max', rclpy.Parameter.Type.DOUBLE),
-                ('err_large_deg', rclpy.Parameter.Type.DOUBLE),
                 ('ld_base', rclpy.Parameter.Type.DOUBLE),
                 ('ld_gain', rclpy.Parameter.Type.DOUBLE),
                 ('ff_gain', rclpy.Parameter.Type.DOUBLE),
@@ -151,7 +154,6 @@ class EvoloMovePath():
         self.V_MIN = self._node.get_parameter('v_min').value
         self.V_MAX = self._node.get_parameter('v_max').value
         self.OMEGA_MAX = self._node.get_parameter('omega_max').value
-        self.ERR_LARGE_DEG = self._node.get_parameter('err_large_deg').value
         self.MIN_TURNING_RADIUS = self._node.get_parameter('min_turning_radius').value
         self.DUBINS_STEP = self._node.get_parameter('dubins_step').value
         self.timeout = self._node.get_parameter('timeout').value
@@ -176,7 +178,7 @@ class EvoloMovePath():
             self._prepare_loop,
             self._loop_inner,
             self._give_feedback,
-            loop_frequency=50,
+            loop_frequency=30,
         )
 
         self._tf_buffer   = Buffer()
@@ -192,25 +194,37 @@ class EvoloMovePath():
 
         self.target_index  = None
         self.target_list   = None
-        self.poses_history = []
+        # Analyze
+        self._precision_ticks_close  = None 
+        self._precision_ticks_total  = None 
+        self._distance_travelled = None
+        self._last_robot_pos     = None
+        self._too_far_since = None
 
         self.dubins_path    = None
         self.wp_end_indices = None
         self.path_cursor    = 0
+    
+        self._last_calculated_path = None 
+        self.current_ax = 0.0
+        self.current_ay = 0.0
+        self._prev_omega = 0.0
 
         self.action_started_time = None
 
         self.publisher_callback_group  = ReentrantCallbackGroup()
         self.subscriber_callback_group = ReentrantCallbackGroup()
 
-        self.evolo_pub       = self._node.create_publisher(Float32,      controlTopics.CONTROL_YAW_TOPIC, 10, callback_group=self.publisher_callback_group)
+
+        self._results_file = os.path.expanduser("~/results_v2.txt")
+
+        with open(self._results_file, "w", encoding="utf-8") as f:
+            f.write("cmd.twist.linear.x\tcmd.twist.angular.z\n")
+
+
+        # Publishers and Subscribers
         self.speed_pub       = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=self.publisher_callback_group)
         # self.speed_pub       = self._node.create_publisher(TwistStamped, 'evolo/ctrl/twist_setpoint',    10, callback_group=self.publisher_callback_group)
-        self.path_pub        = self._node.create_publisher(Path,         'visual_path',                   10, callback_group=self.publisher_callback_group)
-        self.viz_pub         = self._node.create_publisher(MarkerArray,  'visualisation',                 10, callback_group=self.publisher_callback_group)
-        self.dubins_path_pub = self._node.create_publisher(Path,         'dubins_path',                   10, callback_group=self.publisher_callback_group)
-        self.attractor_pub   = self._node.create_publisher(Marker,       'attractor_marker',              10, callback_group=self.publisher_callback_group)
-
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
         # self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
 
@@ -247,8 +261,8 @@ class EvoloMovePath():
                 f"  WP{len(self.target_list)}: "
                 f"({pose.pose.position.x:.1f}, {pose.pose.position.y:.1f}) tol={tol}m"
             )
+        self._waypoints_for_client = [{'x': wp.p.pose.position.x, 'y': wp.p.pose.position.y, 'tol': wp.tol} for wp in self.target_list]
 
-        self.publish_waypoints_markers()
         return True
 
     def _on_cancel_received(self) -> bool:
@@ -261,6 +275,11 @@ class EvoloMovePath():
         self.wp_end_indices = None
         self.path_cursor    = 0
         self.target_index   = 0
+        self._precision_ticks_close  = 0  
+        self._precision_ticks_total  = 0 
+        self._distance_travelled = 0.0
+        self._last_robot_pos     = None
+        self._too_far_since = None
 
 
     def _get_local_curvature(self, path: list, cursor: int) -> float:
@@ -281,7 +300,6 @@ class EvoloMovePath():
         return kappa
 
 
-
     # ─────────────────────────────────────────────────────────────────────────
     def _loop_inner(self) -> bool | None:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
@@ -299,17 +317,60 @@ class EvoloMovePath():
 
         robot_pos = self.robot_position.pose.position
 
+        if self._last_robot_pos is not None:
+            step = math.hypot(
+                robot_pos.x - self._last_robot_pos[0],
+                robot_pos.y - self._last_robot_pos[1],
+            )
+            self._distance_travelled += step
+        self._last_robot_pos = (robot_pos.x, robot_pos.y)
+
         # Planification
         if self.dubins_path is None:
             if not self._plan_global_dubins():
                 return None
 
         path = self.dubins_path
-
+        #######################################################################################################################
         search_end       = min(len(path), self.path_cursor + 400)
         candidate        = self._find_closest(robot_pos, self.path_cursor, search_end)
         self.path_cursor = max(self.path_cursor, candidate)
         self.path_cursor = min(self.path_cursor, len(path) - 1)
+
+
+        # Accuracy
+        self._precision_ticks_total += 1
+        cx, cy, _ = path[self.path_cursor]
+        dist_to_curve = math.hypot(robot_pos.x - cx, robot_pos.y - cy)
+
+        if dist_to_curve < 1.0:
+            self._precision_ticks_close += 1
+            
+        """
+        # REPLAN : if more than 3 m during 5 sec or  
+        if dist_to_curve > 3.0:
+            if self._too_far_since is None:
+                self._too_far_since = time_now
+            elif time_now - self._too_far_since >= 5.0:
+                self._node.get_logger().warn(f"REPLAN BECAUSE OF TIME")
+                self._too_far_since = None
+                if self._plan_global_dubins():
+                    path = self.dubins_path
+                    self.path_cursor = 0
+                else:
+                    return None
+        else:
+            self._too_far_since = None
+
+        if dist_to_curve > 5.0:
+            self._node.get_logger().warn(f"REPLAN BECAUSE OF DISTANCE")
+            self._too_far_since = None 
+            if self._plan_global_dubins():
+                path = self.dubins_path
+                self.path_cursor = 0
+            else:
+                return None
+        """
 
         current_wp = self.target_list[self.target_index]
         dist_to_wp = math.hypot(
@@ -335,7 +396,8 @@ class EvoloMovePath():
 
         attr_idx  = min(self.path_cursor + 40, len(path) - 1)
         ax, ay, _ = path[attr_idx]
-        self._publish_attractor(ax, ay)
+        self.current_ax = ax
+        self.current_ay = ay
 
         desired_angle = math.atan2(ay - robot_pos.y, ax - robot_pos.x)
         angle_error   = math.atan2(
@@ -355,9 +417,33 @@ class EvoloMovePath():
             path      = path,
             cursor    = self.path_cursor,
         )
-        slow_factor = max(0.0, 1.0 - abs_err_deg / self.ERR_LARGE_DEG)
-        v = self.V_MIN + slow_factor * (v - self.V_MIN)
-        mode = "PP"
+
+        v = self.V_MIN + (v - self.V_MIN)
+
+
+        ###################################################################################################
+        
+        # Smooth
+        SPIKE_THRESHOLD = 5.0  
+        DEAD_BAND       = 0.5  
+        
+        delta = omega - self._prev_omega
+        if abs(delta) > SPIKE_THRESHOLD:
+            omega = self._prev_omega + math.copysign(SPIKE_THRESHOLD, delta)
+        if abs(omega - self._prev_omega) < DEAD_BAND:
+            omega = self._prev_omega
+
+
+        ALPHA = 0.3 
+        omega = ALPHA * omega + (1.0 - ALPHA) * self._prev_omega
+
+        self._prev_omega = omega
+        
+        ###################################################################################################
+        
+
+
+        
 
         # Publication
         cmd = TwistStamped()
@@ -367,19 +453,30 @@ class EvoloMovePath():
         cmd.twist.angular.z = omega
         self.speed_pub.publish(cmd)
 
-        yaw_msg      = Float32()
-        yaw_msg.data = float(desired_angle)
-        self.evolo_pub.publish(yaw_msg)
+        with open(self._results_file, "a", encoding="utf-8") as f:
+            f.write(f"{v}\t{omega}\n")
+            f.flush()
+            os.fsync(f.fileno())
 
         if not hasattr(self, '_log_counter'):
             self._log_counter = 0
         self._log_counter += 1
-        if self._log_counter % 50 == 0:
+        if self._log_counter % 30 == 0:
             self._node.get_logger().info(
-                f"[{mode}] err={abs_err_deg:.1f}° v={v:.2f} ω={omega:.2f}°/s | "
+                f"WP: {self.target_index} err={abs_err_deg:.1f}° v={v:.2f} ω={omega:.2f}°/s | "
                 f"cursor={self.path_cursor}/{len(path)} DTT={dist_to_wp:.1f}m"
             )
-
+        if self.target_index >= len(self.target_list):
+            self._send_stop()
+            # ── Rapport final de précision ──
+            if self._precision_ticks_total > 0:
+                precision_pct = 100.0 * self._precision_ticks_close / self._precision_ticks_total
+                self._node.get_logger().info(
+                    f"Accuracy : {precision_pct:.1f}% "
+                    f"({self._precision_ticks_close}/{self._precision_ticks_total} ticks < 1m "
+                    f" Distance : {self._distance_travelled:.1f} m"
+                )
+            return True
         return None
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -428,7 +525,7 @@ class EvoloMovePath():
         self.path_cursor    = 0
         self._node.get_logger().info(
             f"✓ Dubins: {len(full_path)} pts | boundaries={wp_ends}")
-        self.dubins_path_pub.publish(self._path_msg(full_path))
+        self._last_calculated_path = full_path
         return True
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -473,23 +570,45 @@ class EvoloMovePath():
             msg.poses.append(ps)
         return msg
 
-    def _publish_attractor(self, ax, ay):
-        m = Marker()
-        m.header.frame_id = self.frame_id
-        m.header.stamp    = self._node.get_clock().now().to_msg()
-        m.ns = "attractor"; m.id = 0
-        m.type = Marker.SPHERE; m.action = Marker.ADD
-        m.pose.position.x = ax; m.pose.position.y = ay; m.pose.position.z = 1.0
-        m.scale.x = 3.0; m.scale.y = 3.0; m.scale.z = 3.0
-        m.color.r = 1.0; m.color.g = 1.0; m.color.b = 0.0; m.color.a = 0.9
-        self.attractor_pub.publish(m)
+
 
     def _give_feedback(self) -> str:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         runtime  = time_now - self.action_started_time
         n   = len(self.target_list) if self.target_list else '?'
         dtt = f"{self.distance_to_target:.1f}" if self.distance_to_target is not None else "?"
-        return f"Runtime: {runtime}s | WP: {self.target_index}/{n} | DTT: {dtt}m"
+        
+        fb_dict = {
+            "runtime":          runtime,
+            "wp_idx":           self.target_index,
+            "wp_total":         n,
+            "dtt":              dtt,
+            "ax":               self.current_ax,
+            "ay":               self.current_ay,
+            "precision_close":  self._precision_ticks_close  if hasattr(self, '_precision_ticks_close')  else 0,
+            "precision_total":  self._precision_ticks_total  if hasattr(self, '_precision_ticks_total')  else 0,
+            "precision_pct":    round(100.0 * self._precision_ticks_close / self._precision_ticks_total, 2)
+                                if hasattr(self, '_precision_ticks_total') and self._precision_ticks_total > 0
+                                else 0.0,
+            "distance_travelled": round(self._distance_travelled, 2) if hasattr(self, '_distance_travelled') else 0.0,
+        }
+        precision_pct = (
+            round(100.0 * self._precision_ticks_close / self._precision_ticks_total, 2)
+            if self._precision_ticks_total > 0
+            else 0.0
+        )
+
+        self._node.get_logger().info(
+            f"precision={precision_pct}% | distance_travelled={self._distance_travelled:.2f}m"
+        )
+        if self._last_calculated_path is not None:
+            fb_dict["full_path"] = self._last_calculated_path
+            self._last_calculated_path = None 
+        if hasattr(self, '_waypoints_for_client') and self._waypoints_for_client:
+            fb_dict['wps'] = self._waypoints_for_client
+            self._waypoints_for_client = None
+        return json.dumps(fb_dict)
+
 
     def latlon_to_local_frame(self, point_list):
         geopoint           = GeoPoint()
@@ -548,49 +667,14 @@ class EvoloMovePath():
         if not hasattr(self, '_odom_log_counter'):
             self._odom_log_counter = 0
         self._odom_log_counter += 1
-        if self._odom_log_counter % 50 == 0:
+        if self._odom_log_counter % 30 == 0:
             self._node.get_logger().info(
                 f"Odom: ({self.robot_position.pose.position.x:.2f}, "
                 f"{self.robot_position.pose.position.y:.2f}), "
                 f"yaw={math.degrees(self.current_yaw):.1f}°"
             )
 
-        path_msg = Path()
-        path_msg.header.frame_id = self.frame_id
-        path_msg.header.stamp    = self._node.get_clock().now().to_msg()
-        self.poses_history.append(self.robot_position)
-        path_msg.poses = self.poses_history
-        self.path_pub.publish(path_msg)
 
-    def publish_waypoints_markers(self):
-        ma = MarkerArray()
-        for i, wp in enumerate(self.target_list):
-            m = Marker()
-            m.header.frame_id = self.frame_id
-            m.header.stamp    = self._node.get_clock().now().to_msg()
-            m.ns = "waypoints"; m.id = i
-            m.type = Marker.SPHERE; m.action = Marker.ADD
-            m.pose.position.x = wp.p.pose.position.x
-            m.pose.position.y = wp.p.pose.position.y
-            m.pose.position.z = 0.5
-            m.scale.x = wp.tol * 2; m.scale.y = wp.tol * 2; m.scale.z = 1.0
-            m.color.g = 1.0; m.color.a = 0.3
-            ma.markers.append(m)
-            t = Marker()
-            t.header = m.header
-            t.ns = "waypoint_labels"; t.id = i + 1000
-            t.type = Marker.TEXT_VIEW_FACING; t.action = Marker.ADD
-            t.pose.position.x = wp.p.pose.position.x
-            t.pose.position.y = wp.p.pose.position.y
-            t.pose.position.z = 2.0
-            t.scale.z = 2.0
-            t.color.r = 1.0; t.color.g = 1.0; t.color.b = 1.0; t.color.a = 1.0
-            t.text = f"WP{i+1}"
-            ma.markers.append(t)
-        self.viz_pub.publish(ma)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 def main():
     rclpy.init()
     node = Node("evolo_move_path_action_server")

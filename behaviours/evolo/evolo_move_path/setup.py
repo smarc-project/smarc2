@@ -33,11 +33,21 @@ setup(
             'move_path_server_potential_field = evolo_move_path.evolo_move_path_server_potential_field:main',
             'move_path_server_a_star = evolo_move_path.evolo_move_path_server_a_star:main',
             'move_path_server_dubins_curves = evolo_move_path.evolo_move_path_server_dubins_curves:main',
+            'move_path_server_dubins_curves_vectorized = evolo_move_path.evolo_move_path_server_dubins_curves_vectorized:main',
+            'move_path_server_dubins_curves_new_method = evolo_move_path.evolo_move_path_server_dubins_curves_new_version:main',
+            'move_path_server_dubins_curves_lateral_normal = evolo_move_path.evolo_move_path_server_dubins_curves_lateral_normal:main',
+            'move_path_server_dubins_curves_mpc = evolo_move_path.evolo_move_path_server_dubins_curves_mpc:main',
             # Discretized algorithms
             'move_path_server_discrete_point = evolo_move_path.evolo_move_path_server_discrete_point:main',
             'move_path_server_potential_field_discrete = evolo_move_path.evolo_move_path_server_potential_field_discrete:main',
             # Other controller 
             'move_path_server_potential_field_mpc = evolo_move_path.evolo_move_path_server_potential_field_mpc:main',
+            # Camera
+            'move_path_server_dubins_camera = evolo_move_path.evolo_move_path_server_dubins_camera:main',
+            'move_path_server_dubins_camera_yolo = evolo_move_path.evolo_move_path_server_dubins_camera_yolo:main',
+            # File on the camera's chip
+            # 'move_path_server_dubins_camera = evolo_move_path.evolo_move_path_server_dubins_camera:main',
+            'move_path_server_geofence =  evolo_move_path.geofence_checker_evolo:main'
         ],
     },
 )

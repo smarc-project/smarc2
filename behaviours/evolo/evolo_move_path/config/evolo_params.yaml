@@ -1,22 +1,55 @@
 evolo_move_path_action_server:
   ros__parameters:
     frame_id: "evolo/odom"
-    timeout: 600.0  
+    timeout: 1200.0  
     
     # Speed and limits
     v_min: 8.0
     v_max: 14.0
     omega_max: 16.0
-    err_large_deg: 45.0
     
-    # Pure Pursuit & Dubins
-    ld_base: 15.0
+    # Pure Pursuit
+    ld_base: 5.0               # Change here
     ld_gain: 0.5
-    ff_gain: 0.2
-    min_turning_radius: 30.0
+    ff_gain: 0.1
+
+    # Dubins
+    min_turning_radius: 30.0    # Change here
     dubins_step: 0.5
+
+
+
+    # Vectorized pursuit
+    vp_w_pos: 0.7
+    vp_w_hdg: 0.3
+    vp_curv_scale: 2.0
+
+
 
     # Speed Map
     speed_map_slow: 8.0
     speed_map_medium: 11.0
     speed_map_high: 14.0
+
+
+
+    # Lateral_normal 
+    kp_lateral: 0.3
+    kp_heading: 0.8
+
+
+
+    # A star
+    astar_resolution: 1.0      
+    astar_margin: 20.0           
+    astar_smooth_window: 7      
+
+
+
+    # RRT 
+    rrt_max_iter:         2000
+    rrt_step_size:        40.0    # longueur max d'un arc (m)
+    rrt_goal_xy_th:       15.0    # distance pour déclarer le goal atteint (m)
+    rrt_goal_yaw_th:      0.35    # tolérance angulaire (rad)
+    rrt_goal_sample_rate: 10      # % de tirage vers le goal (biais)
+    rrt_obstacle_margin:  20.0    # marge autour des îles (m)
