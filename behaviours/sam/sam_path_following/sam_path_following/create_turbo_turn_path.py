@@ -62,8 +62,7 @@ def build_on_spot_path(args):
 
     # Surge: alternate forward / backward
     u_per_wp = np.array([surge if i % 2 == 0 else -surge for i in range(N)])
-    # Last waypoint: forward to stop
-    u_per_wp[-1] = surge
+    u_per_wp[-1] = 0.0  # zero velocity at final WP so the MPC brakes to a stop
 
     # Rudder: alternate left/right (dr) to support turning while moving fwd/back
     # Positive dr = one side, negative = other (alternate each step)
@@ -113,7 +112,7 @@ def build_three_point_path(args):
                 align = dx * np.cos(yaw[i]) + dy * np.sin(yaw[i])
                 u_per_wp[i] = SURGE_SPEED if align >= 0 else -SURGE_SPEED
         else:
-            u_per_wp[i] = SURGE_SPEED
+            u_per_wp[i] = 0.0  # zero velocity at final WP so the MPC brakes
     dr_per_wp = np.zeros(N)  # three_point doesn't set rudder explicitly
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
@@ -133,9 +132,9 @@ def build_zigzag_path(args):
 
     i = np.arange(N)
     beta = i * alpha + (i % 2) * np.pi
-    x = radius * np.cos(beta) + 3
-    y = radius * np.sin(beta)
-    z = np.zeros(N)
+    x = radius * np.cos(beta) + 4.5
+    y = radius * np.sin(beta) + 0.0
+    z = np.ones(N) * 0.0
 
     # Yaw: increase by alpha (rad) per waypoint: yaw[i] = i * alpha
     yaw = np.arange(N, dtype=float) * alpha
@@ -145,7 +144,7 @@ def build_zigzag_path(args):
     u_per_wp = np.array(
         [SURGE_SPEED if i % 2 == 0 else -SURGE_SPEED for i in range(N)]
     )
-    u_per_wp[-1] = SURGE_SPEED  # end forward
+    u_per_wp[-1] = 0.0  # zero velocity at final WP so the MPC brakes to a stop
     dr_per_wp = np.zeros(N)
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
@@ -221,8 +220,14 @@ def parse_args():
     parser.add_argument(
         "--surge-speed",
         type=float,
-        default=0.5,
+        default=0.2,
         help="Nominal surge speed magnitude (m/s) for forward/backward segments",
+    )
+    parser.add_argument(
+        "--rpm-nominal",
+        type=float,
+        default=300.0,
+        help="Nominal RPM magnitude for forward/backward segments (sign follows surge)",
     )
     # On-spot
     parser.add_argument(
@@ -353,6 +358,14 @@ def main():
     df["q3"] = quaternions[:, 3]
     df["u"] = u_per_wp
     df["dr"] = dr_per_wp
+
+    # RPM references: sign follows surge direction so the MPC gets a thrust
+    # direction hint (positive RPM = forward, negative = reverse).
+    rpm_nominal = args.rpm_nominal
+    rpm_per_wp = np.where(u_per_wp >= 0, rpm_nominal, -rpm_nominal)
+    rpm_per_wp[u_per_wp == 0.0] = 0.0
+    df["rpm_1"] = rpm_per_wp
+    df["rpm_2"] = rpm_per_wp
 
     # Print summary
     print(f"Mode: {args.mode}")
