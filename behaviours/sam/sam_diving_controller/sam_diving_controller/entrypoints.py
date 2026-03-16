@@ -48,20 +48,20 @@ def _build_joy_depth(node, rates: Rates) -> Components:
     )
 
 
-def _build_sim_sam(node, rates: Rates) -> Components:
-
-    param = DivingModelParam(node).get_param()
-    action_type = ActionType(BaseAction)
-    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
-
-    dive_sub = HydropointServer(node, "go_to_hydropoint", action_type, param, heartbeat_topic)
-    dive_pub = SimPub(node, dive_sub, param)
-    dive_controller = AnalyticalSAMSim(node, dive_pub, dive_sub, param, rates.dive_controller)
-    convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
-
-    return Components(dive_pub=dive_pub, dive_controller=dive_controller,
-                      dive_sub=dive_sub, convenience_pub=convenience_pub)
-
+#def _build_sim_sam(node, rates: Rates) -> Components:
+#
+#    param = DivingModelParam(node).get_param()
+#    action_type = ActionType(BaseAction)
+#    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
+#
+#    dive_sub = HydropointServer(node, "go_to_hydropoint", action_type, param, heartbeat_topic)
+#    dive_pub = SimPub(node, dive_sub, param)
+#    dive_controller = AnalyticalSAMSim(node, dive_pub, dive_sub, param, rates.dive_controller)
+#    convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
+#
+#    return Components(dive_pub=dive_pub, dive_controller=dive_controller,
+#                      dive_sub=dive_sub, convenience_pub=convenience_pub)
+#
 
 def _build_pid_wp_following(node, rates: Rates) -> Components:
 
@@ -128,8 +128,8 @@ def main():
 def joy_depth():
     run_mode(node_name="JoyDivingNode", build=_build_joy_depth)
 
-def sim_sam():
-    run_mode(node_name="ActionServerDivingNode", build=_build_sim_sam)
+#def sim_sam():
+#    run_mode(node_name="ActionServerDivingNode", build=_build_sim_sam)
 
 def pid_wp_following():
     run_mode(node_name="PidWpFollowingNode", 
