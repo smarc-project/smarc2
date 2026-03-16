@@ -74,7 +74,7 @@ def build_on_spot_path(args):
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
 
-def build_three_point_path(args):
+def build_three_point_turn_path(args):
     """
     Build the classic 3-point turbo-turn: straight, turn off axis, straight back.
     """
@@ -116,6 +116,23 @@ def build_three_point_path(args):
     dr_per_wp = np.zeros(N)  # three_point doesn't set rudder explicitly
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
+def build_three_point_path(args):
+    """
+    Just three waypoints, start, middle, end.
+    """
+
+    x = np.array([1.5, 3.0, 4.5])
+    y = np.array([0.0, 0.5, 1.0])
+    z = np.zeros(len(x))
+    yaw = np.array([0.0, 0.0, 0.0])
+
+    N = len(x)
+    u_per_wp = np.zeros(N)
+    dr_per_wp = np.zeros(N)  
+    start_point = (0.5, 0.0, 0.0, 0.0)
+    x, y, z, yaw, u_per_wp, dr_per_wp = add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point)
+    return x, y, z, yaw, u_per_wp, dr_per_wp
+
 
 def build_zigzag_path(args):
     """
@@ -146,6 +163,18 @@ def build_zigzag_path(args):
     )
     u_per_wp[-1] = 0.0  # zero velocity at final WP so the MPC brakes to a stop
     dr_per_wp = np.zeros(N)
+    start_point = (0.5, 0.0, 0.0, 0.0)
+    x, y, z, yaw, u_per_wp, dr_per_wp = add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point)
+    return x, y, z, yaw, u_per_wp, dr_per_wp
+
+def add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point):
+    """Add a starting point to the waypoints."""
+    x = np.insert(x, 0, start_point[0])
+    y = np.insert(y, 0, start_point[1])
+    z = np.insert(z, 0, start_point[2])
+    yaw = np.insert(yaw, 0, start_point[3])
+    u_per_wp = np.insert(u_per_wp, 0, 0.0)
+    dr_per_wp = np.insert(dr_per_wp, 0, 0.0)
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
 
@@ -196,7 +225,7 @@ def parse_args():
     )
     parser.add_argument(
         "--mode",
-        choices=["on_spot", "three_point", "zigzag"],
+        choices=["on_spot", "three_point", "three_point_turn", "zigzag"],
         default="on_spot",
         help="Plan type: on_spot (turn in place), three_point (3-point turn), zigzag (alternating path)",
     )
@@ -300,6 +329,9 @@ def main():
     elif args.mode == "three_point":
         x, y, z, yaw, u_per_wp, dr_per_wp = build_three_point_path(args)
         mode_label = "three_point"
+    elif args.mode == "three_point_turn":
+        x, y, z, yaw, u_per_wp, dr_per_wp = build_three_point_turn_path(args)
+        mode_label = "three_point_turn"
     else:  # zigzag
         x, y, z, yaw, u_per_wp, dr_per_wp = build_zigzag_path(args)
         mode_label = "zigzag"
@@ -321,13 +353,13 @@ def main():
         out_dir = os.path.dirname(args.output) or "."
     else:
         out_dir = "./trajectories"
-        if args.mode == "on_spot":
+        if args.mode in ["on_spot", "three_point_turn"]:
             filename = (
                 f"turbo_turn_{mode_label}_N{N}_yaw{int(args.total_yaw_deg)}_"
                 f"rudder{int(args.rudder_angle_deg)}.csv"
             )
         elif args.mode == "three_point":
-            filename = f"turbo_turn_{mode_label}.csv"
+            filename = f"{mode_label}.csv"
         else:
             interp_suffix = f"_interp{args.n_intermediate}" if args.n_intermediate > 0 else ""
             filename = (

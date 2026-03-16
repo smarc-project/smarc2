@@ -85,8 +85,8 @@ class PathClient(SMARCActionClient):
         # file_path = HERE / "trajectories" / "2026-01-19__straight_trajectory_1m.csv"
         # file_path = HERE / "trajectories" / "turbo_turn_N11_alpha180_radius2.csv"
         file_path = (
-            #HERE / "trajectories" / "turbo_turn_zigzag_N8_alpha90_radius0.75.csv"
-            HERE / "trajectories" / "turbo_turn_three_point.csv"
+            #HERE / "trajectories" / "turbo_turn_zigzag_N9_alpha14_radius0.5.csv"
+            HERE / "trajectories" / "three_point.csv"
         )
 
         np_path = self.read_csv_to_array(file_path)
