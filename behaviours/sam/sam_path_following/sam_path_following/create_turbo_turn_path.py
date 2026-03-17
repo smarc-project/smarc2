@@ -121,10 +121,34 @@ def build_three_point_path(args):
     Just three waypoints, start, middle, end.
     """
 
-    x = np.array([1.5, 3.0, 4.5])
-    y = np.array([0.0, 0.5, 1.0])
+    x = np.array([1.5, 4.0, 0.5])
+    y = np.array([0.0, 1.0, 0.0])
     z = np.zeros(len(x))
     yaw = np.array([0.0, 0.0, 0.0])
+
+    N = len(x)
+    u_per_wp = np.zeros(N)
+    dr_per_wp = np.zeros(N)  
+    start_point = (0.5, 0.0, 0.0, 0.0)
+    x, y, z, yaw, u_per_wp, dr_per_wp = add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point)
+    return x, y, z, yaw, u_per_wp, dr_per_wp
+
+def build_N_point_path(args):
+    """
+    Just three waypoints, start, middle, end.
+    """
+
+    # Circle
+    #x = np.array([1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 0.5])
+    #y = np.array([0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5, 0.0, 0.0])
+    #z = np.zeros(len(x))
+    #yaw = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # 
+
+    x = np.array([1.5, 2.5, 3.0,  1.5])
+    y = np.array([-1.0, 1.0, -1.0, 1.0])
+    z = np.zeros(len(x))
+    yaw = np.array([0.0, 0.0, 0.0, 0.0])
 
     N = len(x)
     u_per_wp = np.zeros(N)
@@ -225,7 +249,7 @@ def parse_args():
     )
     parser.add_argument(
         "--mode",
-        choices=["on_spot", "three_point", "three_point_turn", "zigzag"],
+        choices=["on_spot", "three_point", "three_point_turn", "N_point", "zigzag"],
         default="on_spot",
         help="Plan type: on_spot (turn in place), three_point (3-point turn), zigzag (alternating path)",
     )
@@ -329,6 +353,9 @@ def main():
     elif args.mode == "three_point":
         x, y, z, yaw, u_per_wp, dr_per_wp = build_three_point_path(args)
         mode_label = "three_point"
+    elif args.mode == "N_point":
+        x, y, z, yaw, u_per_wp, dr_per_wp = build_N_point_path(args)
+        mode_label = "N_point"
     elif args.mode == "three_point_turn":
         x, y, z, yaw, u_per_wp, dr_per_wp = build_three_point_turn_path(args)
         mode_label = "three_point_turn"
@@ -360,6 +387,8 @@ def main():
             )
         elif args.mode == "three_point":
             filename = f"{mode_label}.csv"
+        elif args.mode == "N_point":
+            filename = f"{mode_label}_N{N}.csv"
         else:
             interp_suffix = f"_interp{args.n_intermediate}" if args.n_intermediate > 0 else ""
             filename = (
