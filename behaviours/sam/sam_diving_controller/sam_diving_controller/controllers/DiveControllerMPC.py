@@ -91,8 +91,8 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # ---- MPCC progress state --------------------------------------------------
         self.theta = 0.0             # current arc-length progress along the path
-        self.v_theta = 0.0           # current velocity along the path
-        self.delta_v_theta = 0.0     # change in velocity along the path
+        self.v_theta = 0.1           # current velocity along the path (seeded > 0 so the
+        self.delta_v_theta = 0.0     #   solver sees theta advancing from the first solve)
         self.theta_total = 0.0       # total arc-length of the loaded trajectory
         self.arc_lengths = None      # cumulative arc-length at each waypoint
         self.path_t_hat = np.zeros((self.N_horizon, 3))    # tangent per stage
@@ -304,14 +304,14 @@ class DiveControllerMPC(DiveControllerInterface):
         # spline path (within a local window).  This prevents theta from
         # racing ahead of the vehicle.
         #
-        # v_theta is read from the solver's stage-1 prediction.  This gives
-        # the solver's *planned* progress speed, which provides a good
-        # linearization for the next theta_hat propagation while keeping
-        # theta itself physically grounded.  A minimum floor prevents the
-        # reference from stalling when the vehicle is momentarily stationary.
-        if status == 0 and self.ref_is_traj and self.theta_total > 0:
+        # v_theta is read from the integrator (exact one-step propagation of
+        # v_theta_current + dt * delta_v_theta).  This is dynamically exact,
+        # unlike the solver's stage-1 which may not be fully converged under
+        # SQP_RTI.  A minimum floor prevents the reference from stalling
+        # when the vehicle is momentarily stationary.
+        if mpc_solution is not None and status == 0 and self.ref_is_traj and self.theta_total > 0:
             p_now = x_current[:3]
-            search_window = max(2.0, 0.5 * self._dt * 20)   # Note, check if you want 0.5 or v_theta in the search window.
+            search_window = max(2.0, self.v_theta * self._dt * 20)
             theta_proj = self._project_onto_path(
                 p_now, theta_hint=self.theta, window=search_window
             )
@@ -320,10 +320,9 @@ class DiveControllerMPC(DiveControllerInterface):
                 max(theta_proj, theta_old), 0.0, self.theta_total
             )
 
-            x_next_solver = self.ocp_solver.get(1, "x")
             self.v_theta = max(
-                float(x_next_solver[self.nmpc.N_PHYS_STATES + 1]),
-                0.05,  # floor: always look slightly ahead for path curvature
+                float(mpc_solution[self.nmpc.N_PHYS_STATES + 1]),
+                0.1,    # Minimum velocity to prevent the solver from stalling.
             )
 
         # Log solver's theta for comparison with projection-based theta
@@ -335,7 +334,7 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"velocities: u: {x_current[7]:.3f}, v: {x_current[8]:.3f}, w: {x_current[9]:.3f}\n"
         s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
-        s += f"theta: {self.theta:.3f}/{self.theta_total:.3f} (solver: {theta_solver:.3f}), v_theta: {self.v_theta:.3f}, delta_v_theta: {self.delta_v_theta:.3f}\n"
+        s += f"theta: {self.theta:.3f}/{self.theta_total:.3f} (solver: {theta_solver:.3f}), v_theta: {self.v_theta:.3f} (solver: {mpc_solution[self.nmpc.N_PHYS_STATES + 1]:.3f}), delta_v_theta: {self.delta_v_theta:.3f}\n"
         tr = self._terminal_ref[:3]
         s += f"traj idx: {self.traj_index}/{self.traj_len}, term_ref: ({tr[0]:.2f}, {tr[1]:.2f}, {tr[2]:.2f})\n"
         s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f}\n"
@@ -900,23 +899,29 @@ class DiveControllerMPC(DiveControllerInterface):
         elif not self.ref_is_traj and hasattr(self, "wp_array"):
             target_pos = self.wp_array[:3]
 
+        v_init = 0.1
+        rpm_warm = 300.0  # above the 200 RPM deadzone so SQP sees non-zero thrust
+        self.rpm_hat_1 = rpm_warm
+        self.rpm_hat_2 = rpm_warm
+
         for stage in range(self.N_horizon + 1):
             x_init = x0.copy()
             if target_pos is not None:
                 t = stage / self.N_horizon
                 x_init[:3] = x0[:3] + t * (target_pos - x0[:3])
-            # Seed theta with a gentle ramp (v_init ~ cruise speed), NOT
-            # spanning the full trajectory — SQP_RTI can't recover from a
-            # warm-start where theta races to theta_total.
-            v_init = 0.1  # m/s, conservative cruise speed
+            x_init[17] = rpm_warm
+            x_init[18] = rpm_warm
             x_init[19] = min(
                 self.theta + stage * self._dt * v_init,
                 self.theta_total,
             )
+            x_init[20] = v_init
             self.ocp_solver.set(stage, "x", x_init)
 
+        u_init = np.zeros(self.nu)
+        u_init[6] = 0.1  # positive delta_v_theta so SQP_RTI can see the progress reward
         for stage in range(self.N_horizon):
-            self.ocp_solver.set(stage, "u", np.zeros(self.nu))
+            self.ocp_solver.set(stage, "u", u_init)
 
         self._v_theta_prev = v_init
         self._initialized = True
@@ -945,25 +950,34 @@ class DiveControllerMPC(DiveControllerInterface):
             z_pos = self._current_state.pose.pose.position.z
 
             # ---- Propagate theta_hat forward through the horizon ----
-            # Uses the projection-derived v_theta_prev (actual vehicle speed
-            # along the path), with a small floor so the solver always sees
-            # some path curvature ahead even when the vehicle is at rest.
+            # Constant-speed propagation with a floor so the solver always
+            # sees some path geometry ahead, even when the vehicle is at rest
+            # or when delta_v_theta is negative during early solves.
+            # No delta_v_theta in the propagation — avoids both the runaway
+            # problem (delta_v_theta positive) and the collapse problem
+            # (delta_v_theta negative).  The solver's internal theta is free
+            # to advance at whatever rate the OCP finds optimal.
             theta_i = self.theta
-            v_theta_prop = self.v_theta#self.simU[self.nmpc.N_PHYS_CONTROLS]#max(self._v_theta_prev, 0.1)
+            N_half = self.N_horizon // 2
+            v_near = max(self.v_theta, 0.5)   # wider near-field coverage (was 0.2)
+            v_far = max(self.v_theta * 2, 1.5)
 
-            # This loop sets teh theta hat for the whole prediction horizon, it's used as parameter for the OCP, too.
             for stage in range(self.N_horizon):
-                #theta_i = min(theta_i + v_theta_prop * self._dt, self.theta_total)
-                v_theta_prop += self.delta_v_theta*self._dt
-                theta_i += v_theta_prop * self._dt
+                v_stage = v_near if stage < N_half else v_far
+                theta_i = min(theta_i + v_stage * self._dt, self.theta_total)
                 self.path_theta_hat[stage] = theta_i
 
-                #self._loginfo(f"theta_i: {theta_i:.3f}, v_theta_prop: {v_theta_prop:.3f}, delta_v_theta: {self.delta_v_theta:.3f}")
-
             # ---- Build reference array with path geometry per stage ----
+            # Tangent is evaluated 1m ahead of the linearization point so the
+            # heading cost has a non-zero gradient at near-field stages when a
+            # turn is approaching.  p_ref stays at theta_hat for correct
+            # contour/lag linearization.
+            heading_offset = 1.0  # [m] tangent lookahead ahead of theta_hat
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
-                p_ref, t_hat, _ = self._get_path_geometry(self.path_theta_hat[stage])
+                p_ref, _, _ = self._get_path_geometry(self.path_theta_hat[stage])
+                theta_ahead = min(self.path_theta_hat[stage] + heading_offset, self.theta_total)
+                _, t_hat, _ = self._get_path_geometry(theta_ahead)
                 self.ref[stage, :3] = p_ref
                 self.path_t_hat[stage] = t_hat
 
@@ -975,18 +989,20 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ref[stage, 4] = -cy * sp      # qx
                 self.ref[stage, 5] = sy * cp        # qy
                 self.ref[stage, 6] = sy * sp        # qz
-                
 
             # Terminal reference: use the path position at the predicted terminal
             # theta, NOT the fixed final waypoint. This prevents the solver from
             # "shortcutting" when the final waypoint is close to the start (e.g.
             # three-point turn). Once theta naturally reaches theta_total, the
             # terminal reference converges to the actual final waypoint.
+            # Apply the same heading_offset to the terminal tangent.
             theta_terminal = min(
                 self.path_theta_hat[-1] + self.v_theta * self._dt,
                 self.theta_total,
             )
-            p_term, t_term, _ = self._get_path_geometry(theta_terminal)
+            p_term, _, _ = self._get_path_geometry(theta_terminal)
+            theta_term_ahead = min(theta_terminal + heading_offset, self.theta_total)
+            _, t_term, _ = self._get_path_geometry(theta_term_ahead)
             self._terminal_ref = np.zeros(self.nx + self.nu)
             self._terminal_ref[:3] = p_term
 
