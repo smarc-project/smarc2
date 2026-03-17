@@ -121,9 +121,10 @@ def build_three_point_path(args):
     Just three waypoints, start, middle, end.
     """
 
-    x = np.array([1.5, 4.0, 0.5])
-    y = np.array([0.0, 1.0, 0.0])
-    z = np.zeros(len(x))
+    # 
+    x = np.array([1.5, 3.0, 4.0])
+    y = np.array([0.0, 0.0, 0.0])
+    z = np.array([0.5, 1.0, 1.0])
     yaw = np.array([0.0, 0.0, 0.0])
 
     N = len(x)

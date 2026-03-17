@@ -130,9 +130,7 @@ class ConveniencePub(IDivePub):
         self._mpc_spline = self._dive_controller.get_spline_traj()
         
         if self._mpc_spline is None:
-            self._loginfo(f"mpc_spline is None")
             return
-
         
         self._mpc_spline_msg = self._create_path_msg(self._mpc_spline, self._mocap_frame)
         self._mpc_spline_pub.publish(self._mpc_spline_msg)

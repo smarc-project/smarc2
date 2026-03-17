@@ -8,7 +8,7 @@
     <arg name="debug_print_ref_state" default="false"/>
     <!-- Set to true if the AUV turns the wrong direction (e.g. port instead of starboard for a 180) -->
     <arg name="flip_rudder_command" default="True"/>
-    <arg name="flip_stern_command" default="True"/>
+    <arg name="flip_stern_command" default="False"/>
     <arg name="traj_d_tolerance_m" default="0.5"/>
     <arg name="traj_yaw_tolerance_deg" default="25.0"/>
     

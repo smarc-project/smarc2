@@ -297,44 +297,34 @@ class DiveControllerMPC(DiveControllerInterface):
         self.rpm_hat_1 = np.clip(self.rpm_hat_1 + self._dt * u_k[4], -500.0, 450.0)
         self.rpm_hat_2 = np.clip(self.rpm_hat_2 + self._dt * u_k[5], -500.0, 450.0)
         
-        # MPCC progress variables — read from integrator (one-step-ahead state),
-        # NOT from solver stage 0 which is pinned to x_current.
-        if mpc_solution is not None and status == 0:
-            self.theta = float(mpc_solution[self.nmpc.N_PHYS_STATES])
-            self.v_theta = float(mpc_solution[self.nmpc.N_PHYS_STATES + 1])
         self.delta_v_theta = u_k[6]
 
         # Update MPCC progress variable.
-        # Theta is updated by PROJECTING the vehicle's actual position onto the
-        # spline path (within a local window), NOT from the solver's augmented
-        # theta state.  This prevents theta from racing ahead of the vehicle
-        # when the solver's v_theta exceeds the vehicle's actual arc-length
-        # speed (common on straight segments with low RPM penalty).
-        # The solver's theta is still an optimised state inside the OCP, but
-        # the controller-level theta is always physically grounded.
-        # FIXME: This makes the MPCC stuck bc. eventually v_theta_prev is 0 and the vehicle is not moving.
+        # Theta is set by PROJECTING the vehicle's actual position onto the
+        # spline path (within a local window).  This prevents theta from
+        # racing ahead of the vehicle.
+        #
+        # v_theta is read from the solver's stage-1 prediction.  This gives
+        # the solver's *planned* progress speed, which provides a good
+        # linearization for the next theta_hat propagation while keeping
+        # theta itself physically grounded.  A minimum floor prevents the
+        # reference from stalling when the vehicle is momentarily stationary.
         if status == 0 and self.ref_is_traj and self.theta_total > 0:
             p_now = x_current[:3]
-            search_window = max(2.0, self.v_theta* self._dt * 20)
+            search_window = max(2.0, 0.5 * self._dt * 20)   # Note, check if you want 0.5 or v_theta in the search window.
             theta_proj = self._project_onto_path(
                 p_now, theta_hint=self.theta, window=search_window
             )
             theta_old = self.theta
-            # Only advance forward (theta must be monotonically non-decreasing)
             self.theta = np.clip(
-                max(theta_proj, self.theta), 0.0, self.theta_total
+                max(theta_proj, theta_old), 0.0, self.theta_total
             )
-        #    # Derive v_theta_prev from the ACTUAL theta advancement, not the
-        #    # solver's v_theta.  This keeps the manual theta_hat propagation
-        #    # consistent with the projection-based theta update.
-        #    self._v_theta_prev = max((self.theta - theta_old) / self._dt, 0.0)
-        #elif status == 0:   # TODO: Check if this is actually needed. ref_is_traj is always true.
-        #    x_next = self.ocp_solver.get(1, "x")
-        #    self.theta = np.clip(
-        #        x_next[self.nmpc.N_PHYS_STATES], 0.0,
-        #        self.theta_total if self.theta_total > 0 else 1e6,
-        #    )
-        #    self._v_theta_prev = float(u_k[self.nmpc.N_PHYS_CONTROLS])
+
+            x_next_solver = self.ocp_solver.get(1, "x")
+            self.v_theta = max(
+                float(x_next_solver[self.nmpc.N_PHYS_STATES + 1]),
+                0.05,  # floor: always look slightly ahead for path curvature
+            )
 
         # Log solver's theta for comparison with projection-based theta
         theta_solver = float(self.ocp_solver.get(1, "x")[self.nmpc.N_PHYS_STATES])
@@ -971,9 +961,9 @@ class DiveControllerMPC(DiveControllerInterface):
                 #self._loginfo(f"theta_i: {theta_i:.3f}, v_theta_prop: {v_theta_prop:.3f}, delta_v_theta: {self.delta_v_theta:.3f}")
 
             # ---- Build reference array with path geometry per stage ----
-            self.ref = np.zeros((self.N_horizon, self.nx + self.nu)) # We don't use nu andymore, it's just the position, even the orientation is questionable, we want to remove the heading ideally.
+            self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
-                p_ref, t_hat, _ = self._get_path_geometry(theta_i)
+                p_ref, t_hat, _ = self._get_path_geometry(self.path_theta_hat[stage])
                 self.ref[stage, :3] = p_ref
                 self.path_t_hat[stage] = t_hat
 
@@ -993,7 +983,7 @@ class DiveControllerMPC(DiveControllerInterface):
             # three-point turn). Once theta naturally reaches theta_total, the
             # terminal reference converges to the actual final waypoint.
             theta_terminal = min(
-                self.path_theta_hat[-1] + self._v_theta_prev * self._dt,
+                self.path_theta_hat[-1] + self.v_theta * self._dt,
                 self.theta_total,
             )
             p_term, t_term, _ = self._get_path_geometry(theta_terminal)
