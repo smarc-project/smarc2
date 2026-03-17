@@ -972,7 +972,7 @@ class DiveControllerMPC(DiveControllerInterface):
             # heading cost has a non-zero gradient at near-field stages when a
             # turn is approaching.  p_ref stays at theta_hat for correct
             # contour/lag linearization.
-            heading_offset = 1.0  # [m] tangent lookahead ahead of theta_hat
+            heading_offset = 2.0  # [m] tangent lookahead ahead of theta_hat
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
                 p_ref, _, _ = self._get_path_geometry(self.path_theta_hat[stage])
