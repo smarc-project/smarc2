@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import time
+
 import numpy as np
 from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Odometry
@@ -74,7 +76,7 @@ class DiveControllerMPC(DiveControllerInterface):
         build = self.build_ocp
 
         # create nmpc object for the OCP
-        self.N_horizon = 40 #30  # Prediction horizon
+        self.N_horizon = 30# 40 #30  # Prediction horizon
         self.nmpc = NMPC(sam, self._dt, self.N_horizon, update_solver_settings=build)
         self.nx = self.nmpc.nx  # State vector length + control vector
         self.nu = self.nmpc.nu  # Control derivative vector length
@@ -141,9 +143,9 @@ class DiveControllerMPC(DiveControllerInterface):
         self.convert_trajectory_to_frd = False
 
         # RPM1 sign from use_sim_time (already declared by node/launch): sim => +1, robot => -1
-        self.flip_rpm1_command = self._node.get_parameter(
-            "use_sim_time"
-        ).get_parameter_value().bool_value
+        self.flip_rpm1_command = True #self._node.get_parameter(
+            #"use_sim_time"
+        #).get_parameter_value().bool_value
 
         self._loginfo("Dive Controller created")
 
@@ -169,6 +171,7 @@ class DiveControllerMPC(DiveControllerInterface):
         """
         This is where all the magic happens.
         """
+        t_loop_start = time.time()
         mission_state = self._dive_sub.get_mission_state()
 
         has_ref = self.get_reference()
@@ -222,6 +225,8 @@ class DiveControllerMPC(DiveControllerInterface):
             is_trajectory=self.ref_is_traj,
         )
         self.get_current_ref_array()
+        np.set_printoptions(precision=3)
+        self._loginfo(f"x_current: {x_current[:3]}")
 
         # ---- Build MPCC parameter vector per stage ----
         # Layout: [state_ref(20), control_ref(7), goal_pos(3), t_hat(3), theta_hat(1)] = 34
@@ -246,8 +251,10 @@ class DiveControllerMPC(DiveControllerInterface):
         self.ocp_solver.set(0, "lbx", x_current)
         self.ocp_solver.set(0, "ubx", x_current)
 
+        start_time = time.time()
         status = self.ocp_solver.solve()
-
+        end_time = time.time()
+        
         for stage in range(self.N_horizon):
             sl = self.ocp_solver.get(stage, "sl")
             if (sl > 1e-6).any():
@@ -327,10 +334,13 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Log solver's theta for comparison with projection-based theta
         theta_solver = float(self.ocp_solver.get(1, "x")[self.nmpc.N_PHYS_STATES])
-
+        t_loop_end = time.time()
+        t_loop = t_loop_end - t_loop_start
         np.set_printoptions(precision=3)
         s = f"\nNMPC INFO\n"
         s += f"NMPC solver status: {status}\n"
+        s += f"MPC solve time: {end_time - start_time:.3f} s, "
+        s += f"Loop time: {t_loop:.3f} s, dt: {self._dt:.3f} s\n"
         s += f"current state: x: {x_current[0]:.3f}, y: {x_current[1]:.3f}, z: {x_current[2]:.3f}\n"
         s += f"velocities: u: {x_current[7]:.3f}, v: {x_current[8]:.3f}, w: {x_current[9]:.3f}\n"
         s += f"MPC pred: x: {simX[0]:.3f}, y: {simX[1]:.3f}, z: {simX[2]:.3f}\n"
@@ -1099,8 +1109,9 @@ class DiveControllerMPC(DiveControllerInterface):
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
         u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
-        u_rpm1 = self._rpm1_sign() * mpc_solution[17]
-        u_rpm2 = mpc_solution[18]
+        # FIXME: Remove both once Carl flipped the signs
+        u_rpm1 = -1 * mpc_solution[17]
+        u_rpm2 = -1 * mpc_solution[18]
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
