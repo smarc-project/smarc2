@@ -41,8 +41,6 @@
         <param name="traj_yaw_tolerance_deg" value="$(var traj_yaw_tolerance_deg)"/>
         <param name="horizon_max_waypoints" value="$(var horizon_max_waypoints)"/>
         <param name="horizon_current_wp_ratio" value="$(var horizon_current_wp_ratio)"/>
-        <!-- RPM1 sign: when flip_rpm1_use_sim_time is true (default), follows use_sim_time (sim => +1, robot => -1). Set flip_rpm1_use_sim_time to false to set flip_rpm1_command explicitly. -->
-        <param name="flip_rpm1_use_sim_time" value="true"/>
         <param name="build_ocp" value="$(var build_ocp)"/>
        </node>
     </group>

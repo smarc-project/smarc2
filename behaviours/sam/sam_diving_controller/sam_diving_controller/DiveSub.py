@@ -151,9 +151,7 @@ class DiveSub():
 
 
     def _states_cb(self, msg):
-        self._loginfo(f"Before: states: {self._states.pose.pose.position}")
         self._states = msg
-        self._loginfo(f"After: states: {self._states.pose.pose.position}")
         self._received_states = True
 
     def _wp_cb(self, wp):
@@ -478,12 +476,9 @@ class DiveSub():
         """
         All the things when updating
         """
-        start_time = time.time()
         self._update_tf()
         #self._transform_wp()
         self._transform_state()
-        end_time = time.time()
-        self._loginfo(f"Dive Sub update state time: {end_time - start_time:.3f} s")
 
 
 
