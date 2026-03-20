@@ -204,6 +204,118 @@ def build_zigzag_path(args):
     x, y, z, yaw, u_per_wp, dr_per_wp = add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point)
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
+def build_waypoints_path(args):
+    """Build a trajectory from user-supplied x,y,z waypoints.
+
+    Waypoints are given as semicolon-separated x,y,z triplets, e.g.
+        --wp "0.5,0,0; 1,0,0; 3,0,0.5; 6,0,1"
+
+    Yaw at each waypoint is computed from the XY heading toward the next
+    waypoint (last waypoint inherits the previous heading).
+    """
+    raw = args.wp.replace(" ", "")
+    tokens = [t for t in raw.split(";") if t]
+    if len(tokens) < 2:
+        raise ValueError("Need at least 2 waypoints (semicolon-separated x,y,z)")
+
+    pts = []
+    for t in tokens:
+        coords = t.split(",")
+        if len(coords) < 3:
+            raise ValueError(f"Each waypoint needs x,y,z — got '{t}'")
+        pts.append([float(c) for c in coords[:3]])
+    pts = np.array(pts)
+
+    x = pts[:, 0]
+    y = pts[:, 1]
+    z = pts[:, 2]
+
+    N = len(x)
+    yaw = np.zeros(N)
+    for i in range(N - 1):
+        dx = x[i + 1] - x[i]
+        dy = y[i + 1] - y[i]
+        if abs(dx) > 1e-8 or abs(dy) > 1e-8:
+            yaw[i] = np.arctan2(dy, dx)
+        elif i > 0:
+            yaw[i] = yaw[i - 1]
+    yaw[-1] = yaw[-2] if N >= 2 else 0.0
+
+    u_per_wp = np.full(N, args.surge_speed)
+    u_per_wp[-1] = 0.0
+    dr_per_wp = np.zeros(N)
+    return x, y, z, yaw, u_per_wp, dr_per_wp
+
+
+def add_level_off_waypoints(x, y, z, yaw, u_per_wp, dr_per_wp,
+                            distance=1.5, n_points=2,
+                            do_start=False, do_end=True):
+    """Extend the trajectory at the start/end so the cubic-spline tangent
+    is horizontal (dz/ds ≈ 0) at the endpoints.
+
+    At the end: appends *n_points* waypoints at the final z, extending in
+    the XY heading direction of the last segment.
+
+    At the start (opt-in): prepends 1 waypoint at the starting z, extending
+    backward from the first segment's XY heading.
+    """
+    if do_end and len(x) >= 2:
+        end_x, end_y, end_z = x[-1], y[-1], z[-1]
+        end_yaw = yaw[-1]
+
+        dx = x[-1] - x[-2]
+        dy = y[-1] - y[-2]
+        norm_xy = np.hypot(dx, dy)
+        if norm_xy < 1e-8:
+            for k in range(len(x) - 3, -1, -1):
+                dx = x[-1] - x[k]
+                dy = y[-1] - y[k]
+                norm_xy = np.hypot(dx, dy)
+                if norm_xy > 1e-8:
+                    break
+        if norm_xy > 1e-8:
+            hx, hy = dx / norm_xy, dy / norm_xy
+        else:
+            hx, hy = 1.0, 0.0
+
+        spacing = distance / n_points
+        for i in range(1, n_points + 1):
+            x = np.append(x, end_x + hx * spacing * i)
+            y = np.append(y, end_y + hy * spacing * i)
+            z = np.append(z, end_z)
+            yaw = np.append(yaw, end_yaw)
+            u_per_wp = np.append(u_per_wp, 0.0)
+            dr_per_wp = np.append(dr_per_wp, 0.0)
+
+    if do_start and len(x) >= 2:
+        dx = x[1] - x[0]
+        dy = y[1] - y[0]
+        norm_xy = np.hypot(dx, dy)
+        if norm_xy < 1e-8:
+            for k in range(2, len(x)):
+                dx = x[k] - x[0]
+                dy = y[k] - y[0]
+                norm_xy = np.hypot(dx, dy)
+                if norm_xy > 1e-8:
+                    break
+        if norm_xy > 1e-8:
+            hx, hy = dx / norm_xy, dy / norm_xy
+        else:
+            hx, hy = 1.0, 0.0
+
+        lead_in_dist = distance / n_points
+        px = x[0] - hx * lead_in_dist
+        py = y[0] - hy * lead_in_dist
+        x = np.insert(x, 0, px)
+        y = np.insert(y, 0, py)
+        z = np.insert(z, 0, z[1])
+        yaw = np.insert(yaw, 0, yaw[1])
+        u_per_wp = np.insert(u_per_wp, 0, u_per_wp[1])
+        dr_per_wp = np.insert(dr_per_wp, 0, 0.0)
+
+    return x, y, z, yaw, u_per_wp, dr_per_wp
+
+
 def add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point):
     """Add a starting point to the waypoints."""
     x = np.insert(x, 0, start_point[0])
@@ -262,9 +374,9 @@ def parse_args():
     )
     parser.add_argument(
         "--mode",
-        choices=["on_spot", "three_point", "three_point_turn", "N_point", "zigzag"],
+        choices=["on_spot", "three_point", "three_point_turn", "N_point", "zigzag", "waypoints"],
         default="on_spot",
-        help="Plan type: on_spot (turn in place), three_point (3-point turn), zigzag (alternating path)",
+        help="Plan type: on_spot, three_point, three_point_turn, N_point, zigzag, or waypoints (custom x,y,z)",
     )
     parser.add_argument(
         "--output", "-o",
@@ -354,6 +466,34 @@ def parse_args():
         default=7.0,
         help="Angular spacing (deg) between zigzag waypoints; also the yaw increment per waypoint",
     )
+    # Waypoints mode
+    parser.add_argument(
+        "--wp",
+        type=str,
+        default=None,
+        help='Semicolon-separated x,y,z waypoints for "waypoints" mode, '
+             'e.g. "0.5,0,0; 1,0,0; 3,0,0.5; 6,0,1"',
+    )
+    # Level-off
+    parser.add_argument(
+        "--level-off",
+        action="store_true",
+        default=False,
+        help="Append/prepend flat waypoints so the spline tangent is horizontal "
+             "at the trajectory endpoints (auto-enabled for waypoints mode)",
+    )
+    parser.add_argument(
+        "--level-off-distance",
+        type=float,
+        default=0.5,
+        help="Total distance (m) of the level-off extension at the endpoint (default: 0.5)",
+    )
+    parser.add_argument(
+        "--level-off-points",
+        type=int,
+        default=2,
+        help="Number of level-off waypoints to add at the end (default: 2)",
+    )
     return parser.parse_args()
 
 
@@ -372,6 +512,11 @@ def main():
     elif args.mode == "three_point_turn":
         x, y, z, yaw, u_per_wp, dr_per_wp = build_three_point_turn_path(args)
         mode_label = "three_point_turn"
+    elif args.mode == "waypoints":
+        if not args.wp:
+            raise ValueError('--wp is required for waypoints mode, e.g. --wp "0.5,0,0; 3,0,0.5; 6,0,1"')
+        x, y, z, yaw, u_per_wp, dr_per_wp = build_waypoints_path(args)
+        mode_label = "waypoints"
     else:  # zigzag
         x, y, z, yaw, u_per_wp, dr_per_wp = build_zigzag_path(args)
         mode_label = "zigzag"
@@ -383,6 +528,14 @@ def main():
     x, y, z, yaw, u_per_wp, dr_per_wp = add_intermediate_waypoints(
         x, y, z, yaw, u_per_wp, dr_per_wp, args.n_intermediate
     )
+
+    do_level_off = args.level_off or args.mode == "waypoints"
+    if do_level_off:
+        x, y, z, yaw, u_per_wp, dr_per_wp = add_level_off_waypoints(
+            x, y, z, yaw, u_per_wp, dr_per_wp,
+            distance=args.level_off_distance,
+            n_points=args.level_off_points,
+        )
     N = len(x)
 
     quaternions = np.array([yaw_to_quaternion(yw) for yw in yaw])
@@ -402,6 +555,8 @@ def main():
             filename = f"{mode_label}.csv"
         elif args.mode == "N_point":
             filename = f"{mode_label}_N{N}.csv"
+        elif args.mode == "waypoints":
+            filename = f"waypoints_N{N}.csv"
         else:
             interp_suffix = f"_interp{args.n_intermediate}" if args.n_intermediate > 0 else ""
             filename = (
@@ -452,7 +607,12 @@ def main():
 
     # Visualization
     if not args.no_plot and HAS_MATPLOTLIB:
-        fig, ax = plt.subplots(figsize=(10, 8))
+        has_depth = np.ptp(z) > 1e-3
+        if has_depth:
+            fig, (ax, ax_z) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={"height_ratios": [3, 1]})
+        else:
+            fig, ax = plt.subplots(figsize=(10, 8))
+
         ax.plot(x, y, "o-", markersize=8, label="Waypoints", linewidth=1, alpha=0.5)
         arrow_length = 0.3
         skip = max(1, N // 20)
@@ -470,10 +630,24 @@ def main():
                 ax.text(x[i] + 0.15, y[i] + 0.15, f"WP{i}\n({direction})", fontsize=8, ha="left")
         ax.set_xlabel("X Position (m)")
         ax.set_ylabel("Y Position (m)")
-        ax.set_title(f"Turbo Turn Path — {args.mode}\nGreen=Forward, Red=Backward")
+        ax.set_title(f"Trajectory — {args.mode}\nGreen=Forward, Red=Backward")
         ax.grid(True, alpha=0.3)
         ax.axis("equal")
         ax.legend()
+
+        if has_depth:
+            arc = np.zeros(N)
+            for i in range(1, N):
+                arc[i] = arc[i - 1] + np.sqrt(
+                    (x[i] - x[i - 1]) ** 2 + (y[i] - y[i - 1]) ** 2 + (z[i] - z[i - 1]) ** 2
+                )
+            ax_z.plot(arc, z, "o-", markersize=6, color="tab:blue")
+            ax_z.set_xlabel("Arc length (m)")
+            ax_z.set_ylabel("Depth z (m, +down)")
+            ax_z.set_title("Depth profile")
+            ax_z.grid(True, alpha=0.3)
+            ax_z.invert_yaxis()
+
         plt.tight_layout()
         plot_path = out_path.replace(".csv", ".png")
         plt.savefig(plot_path, dpi=150)

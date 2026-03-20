@@ -985,14 +985,17 @@ class DiveControllerMPC(DiveControllerInterface):
             # to advance at whatever rate the OCP finds optimal.
             theta_i = self.theta
             N_half = self.N_horizon // 2
-            # v_near must not exceed v_theta_max (0.6) so the reference does not race
-            # ahead faster than the OCP hard bound allows theta to advance.
-            # v_far is kept moderate for curved paths (dive): if t_hat rotates
-            # significantly over the far stages, an over-aggressive lookahead places
-            # the MPCC linearization point at the wrong path geometry, corrupting
-            # the SQP gradient and causing QP failures.
-            v_near = max(self.v_theta, 0.4)
-            v_far  = max(self.v_theta * 1.5, 0.8)
+            # Original values:
+            # v_near = max(self.v_theta, 0.4)
+            # v_far  = max(self.v_theta * 1.5, 0.8)
+            # Cap lookahead speeds at the OCP's hard v_theta_max bound so the
+            # linearization points never race ahead of where the solver can
+            # actually advance theta.  On curved paths (dives) an over-
+            # aggressive lookahead evaluates t_hat at unreachable arc-lengths,
+            # corrupting the SQP gradient and causing QP failures.
+            v_theta_max = 0.6
+            v_near = min(max(self.v_theta, 0.3), v_theta_max)
+            v_far  = min(max(self.v_theta * 1.2, 0.5), v_theta_max)
 
             for stage in range(self.N_horizon):
                 v_stage = v_near if stage < N_half else v_far
@@ -1004,7 +1007,7 @@ class DiveControllerMPC(DiveControllerInterface):
             # heading cost has a non-zero gradient at near-field stages when a
             # turn is approaching.  p_ref stays at theta_hat for correct
             # contour/lag linearization.
-            heading_offset = 0.0 # Original 2.0  # [m] tangent lookahead ahead of theta_hat
+            heading_offset = 1.0  # [m] tangent lookahead — lets the vehicle anticipate pitch changes
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
                 p_ref, _, _ = self._get_path_geometry(self.path_theta_hat[stage])
