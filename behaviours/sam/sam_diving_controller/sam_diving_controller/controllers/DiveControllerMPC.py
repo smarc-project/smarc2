@@ -54,15 +54,15 @@ class DiveControllerMPC(DiveControllerInterface):
         
         # Total speed (norm of u,v,w) below which the last waypoint is
         # declared reached and the action server is allowed to signal COMPLETED.
-        self._vel_stop_threshold = 0.05  # m/s
+        self._vel_stop_threshold = 0.15  # m/s (relaxed: real vehicle has residual drift)
 
         # Position tolerance for completion detection at the final waypoint.
-        self._final_pos_tolerance = 0.75  # m
+        self._final_pos_tolerance = 1.5  # m (relaxed: real vehicle can't stop on a dime)
 
         # Debounce counter for COMPLETED detection.  All stopping conditions must be
         # satisfied for this many consecutive control steps before the action is
         # declared COMPLETED.
-        self._completion_debounce_required = 5   # steps (~0.5 s at 10 Hz)
+        self._completion_debounce_required = 3   # steps (~0.3 s at 10 Hz)
         self._completion_debounce_count = 0
 
         # Extract the CasADi model
@@ -226,24 +226,24 @@ class DiveControllerMPC(DiveControllerInterface):
         np.set_printoptions(precision=3)
         self._loginfo(f"x_current: {x_current[:3]}")
 
-        # ---- Build MPCC parameter vector per stage ----
-        # Layout: [state_ref(20), control_ref(7), goal_pos(3), t_hat(3), theta_hat(1)] = 34
-        # stage_yref = np.zeros(self.nmpc.n_stage_cost)
-        # stage_yref[5] = self._v_target  # progress speed target (after e_c(3)+e_l(1)+e_heading(1))
+        # ---- NaN guard ----
+        if np.any(np.isnan(x_current)):
+            nan_idx = np.where(np.isnan(x_current))[0]
+            self._logwarn(f"NaN in x_current at indices {nan_idx} — skipping solve")
+            self._set_actuators_neutral()
+            return
 
+        # ---- Build MPCC parameter vector per stage ----
         for stage in range(self.N_horizon):
             ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
             p = np.r_[ref_row, self._goal_pos,
                        self.path_t_hat[stage], self.path_theta_hat[stage]]
             self.ocp_solver.set(stage, "p", p)
-            #self.ocp_solver.set(stage, "yref", stage_yref)
 
-        # Terminal stage uses final-waypoint reference (separate from stage refs)
         terminal_ref = getattr(self, '_terminal_ref', self.ref[-1, :])
         p_terminal = np.r_[terminal_ref, self._goal_pos,
                            self.path_t_hat[-1], self.path_theta_hat[-1]]
         self.ocp_solver.set(self.N_horizon, "p", p_terminal)
-        #self.ocp_solver.set(self.N_horizon, "yref", np.zeros(self.nmpc.n_terminal_cost))
 
         # Set current state
         self.ocp_solver.set(0, "lbx", x_current)
@@ -252,40 +252,59 @@ class DiveControllerMPC(DiveControllerInterface):
         start_time = time.time()
         status = self.ocp_solver.solve()
         end_time = time.time()
-        
-        for stage in range(self.N_horizon):
-            # Slack vector layout (acados ordering): [sl_sbx(3) | sl_sh(4)] lower,
-            #                                        [su_sbx(3) | su_sh(4)] upper.
-            # Lower slack (sl): fires when state/h is BELOW its lower bound.
-            #   sl[0:3] — position x/y/z below x_min/y_min/z_min (position too low)
-            #   sl[3:7] — h constraints below lh (= -1e9, impossible in practice)
-            # Upper slack (su): fires when state/h is ABOVE its upper bound.
-            #   su[0:3] — position x/y/z above x_max/y_max/z_max (position too high)
-            #   su[3]   — brake_h > 0 (vehicle too fast for remaining distance)
-            #   su[4:6] — h_dz > 0 (RPM in deadzone)
-            #   su[6]   — h_track > r_sq (vehicle outside tube)
-            sl = self.ocp_solver.get(stage, "sl")
-            su = self.ocp_solver.get(stage, "su")
-            any_sl = (sl > 1e-6).any()
-            any_su = (su > 1e-6).any()
-            if any_sl or any_su:
-                x_stage = self.ocp_solver.get(stage, "x")
-                pos_lb_sl = sl[:3] if len(sl) >= 3 else sl
-                pos_ub_su = su[:3] if len(su) >= 3 else su
-                brake_su  = su[3] if len(su) >= 4 else 0.0
-                dz_su     = su[4:6] if len(su) >= 6 else np.zeros(2)
-                track_su  = su[6] if len(su) >= 7 else 0.0
-                self._logwarn(
-                    f"Stage {stage}: soft constraint violated — "
-                    f"pos_lb_sl={np.round(pos_lb_sl, 4)}, pos_ub_su={np.round(pos_ub_su, 4)}, "
-                    f"brake_su={brake_su:.4f}, dz_su={np.round(dz_su, 4)}, track_su={track_su:.4f}, "
-                    f"pred_pos=({x_stage[0]:.3f}, {x_stage[1]:.3f}, {x_stage[2]:.3f}), "
-                    f"surge={x_stage[7]:.3f} m/s, "
-                    f"dist_to_goal={np.linalg.norm(x_stage[:3] - self._goal_pos):.3f} m"
-                )
 
-        # simulate system:
-        # NOTE: May be possible to use get(0, "x") to acquire the actual control input.
+        # ---- Recovery on solver failure ----
+        if status != 0:
+            stat_name = self._acados_status.get(status, f"UNKNOWN({status})")
+            qnorm = np.linalg.norm(x_current[3:7])
+            self._logwarn(
+                f"Solver failed: {stat_name} | "
+                f"pos=({x_current[0]:.2f},{x_current[1]:.2f},{x_current[2]:.2f}) "
+                f"vel=({x_current[7]:.3f},{x_current[8]:.3f},{x_current[9]:.3f}) "
+                f"qnorm={qnorm:.4f} "
+                f"lcg={x_current[14]:.1f} vbs={x_current[13]:.1f} "
+                f"rpm=({x_current[17]:.0f},{x_current[18]:.0f}) "
+                f"stern={x_current[15]:.4f} rudder={x_current[16]:.4f} "
+                f"theta={self.theta:.2f}/{self.theta_total:.2f} "
+                f"v_theta={self.v_theta:.3f}"
+            )
+            # Tier 1 — light recovery: just run more SQP iterations on the
+            # existing iterate.  The previous solution is usually close; it
+            # just needs 1-2 more iterations to converge.  This preserves
+            # warm-start quality → much better control than a full reset.
+            for attempt in range(3):
+                status = self.ocp_solver.solve()
+                if status == 0:
+                    self._loginfo(f"Light recovery after {attempt+1} extra iterations")
+                    break
+
+            # Tier 2 — heavy recovery: reset everything and re-seed.
+            if status != 0:
+                self._logwarn("Light recovery failed, performing full reset")
+                try:
+                    self.ocp_solver.reset()
+                except Exception:
+                    pass
+                for stg in range(self.N_horizon + 1):
+                    self.ocp_solver.set(stg, "x", x_current)
+                for stg in range(self.N_horizon):
+                    self.ocp_solver.set(stg, "u", np.zeros(self.nu))
+                self.ocp_solver.set(0, "lbx", x_current)
+                self.ocp_solver.set(0, "ubx", x_current)
+                for stg in range(self.N_horizon):
+                    ref_row = self.ref[stg, :] if stg < self.ref.shape[0] else self.ref[-1, :]
+                    p = np.r_[ref_row, self._goal_pos,
+                               self.path_t_hat[stg], self.path_theta_hat[stg]]
+                    self.ocp_solver.set(stg, "p", p)
+                self.ocp_solver.set(self.N_horizon, "p", p_terminal)
+                for attempt in range(5):
+                    status = self.ocp_solver.solve()
+                    if status == 0:
+                        self._loginfo(f"Heavy recovery after {attempt+1} re-solves")
+                        break
+            end_time = time.time()
+
+        # simulate system
         self.simU = self.ocp_solver.get(0, "u")
         simX = self.ocp_solver.get(0, "x")
 
@@ -293,13 +312,12 @@ class DiveControllerMPC(DiveControllerInterface):
         for j in range(self.N_horizon + 1):
             self.pred_mpc.append(self.ocp_solver.get(j, "x"))
 
-        # FIXME: Check this if you can use smX directly.
-        # The integrator of the control signal is needed, since u is the control derivative.
         mpc_solution = self.integrator.simulate(x=x_current, u=self.simU)
 
         if mpc_solution is None:
             self._set_actuators_neutral()
         elif status != 0:
+            self._logwarn("Recovery failed — setting actuators neutral")
             self._set_actuators_neutral()
         else:
             self.set_publishers(mpc_solution)
@@ -396,7 +414,7 @@ class DiveControllerMPC(DiveControllerInterface):
         s += f"theta: {self.theta:.3f}/{self.theta_total:.3f} (solver: {theta_solver:.3f}), v_theta: {self.v_theta:.3f} (solver: {mpc_solution[self.nmpc.N_PHYS_STATES + 1]:.3f}), delta_v_theta: {self.delta_v_theta:.3f}\n"
         tr = self._terminal_ref[:3]
         s += f"traj idx: {self.traj_index}/{self.traj_len}, term_ref: ({tr[0]:.2f}, {tr[1]:.2f}, {tr[2]:.2f})\n"
-        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f}\n"
+        s += f"u_vbs = {mpc_solution[13]:.3f}, u_lcg = {mpc_solution[14]:.3f} (state: vbs={x_current[13]:.1f}, lcg={x_current[14]:.1f})\n"
 
         u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
         s += f"MPC Output: u_stern = {u_stern:.3f} u_rudder = {u_rudder:.3f}\n"
@@ -901,16 +919,13 @@ class DiveControllerMPC(DiveControllerInterface):
         Position is linearly interpolated toward the first target.  Theta is
         linearly interpolated from the current projection to the path end.
         """
-        # Initialize theta from path projection
-        #if self.ref_is_traj and self.arc_lengths is not None:
-        #    current_pos = np.array([
-        #        self._current_state.pose.pose.position.x,
-        #        self._current_state.pose.pose.position.y,
-        #        self._current_state.pose.pose.position.z,
-        #    ])
-        #    self.theta = self._project_onto_path(current_pos)
-        #else:
-        #    self.theta = 0.0
+        # Clear stale internal state (multipliers, QP iterate) from any
+        # previous run.  Without this, SQP_RTI can fail immediately on
+        # restart because the cached iterate is far from the new initial state.
+        try:
+            self.ocp_solver.reset()
+        except Exception:
+            pass
 
         x0 = self.get_state_array(
             self._current_state,
@@ -950,6 +965,30 @@ class DiveControllerMPC(DiveControllerInterface):
             self.ocp_solver.set(stage, "u", u_init)
 
         self._v_theta_prev = v_init
+
+        # Run a few warm-up solves so SQP_RTI can converge the internal
+        # iterate before the first real control step.  This prevents the
+        # "crash on first solve" problem with cold starts.
+        self.ocp_solver.set(0, "lbx", x0)
+        self.ocp_solver.set(0, "ubx", x0)
+        self.get_current_ref_array()
+        for stage in range(self.N_horizon):
+            ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
+            p = np.r_[ref_row, self._goal_pos,
+                       self.path_t_hat[stage], self.path_theta_hat[stage]]
+            self.ocp_solver.set(stage, "p", p)
+        terminal_ref = self.ref[-1, :]
+        p_terminal = np.r_[terminal_ref, self._goal_pos,
+                           self.path_t_hat[-1], self.path_theta_hat[-1]]
+        self.ocp_solver.set(self.N_horizon, "p", p_terminal)
+
+        n_warmup = 5
+        for i in range(n_warmup):
+            status = self.ocp_solver.solve()
+            if status == 0:
+                break
+        self._loginfo(f"MPC warm-up: {i+1} solves, final status={status}")
+
         self._initialized = True
 
     def get_current_ref_array(self):
@@ -993,9 +1032,20 @@ class DiveControllerMPC(DiveControllerInterface):
             # actually advance theta.  On curved paths (dives) an over-
             # aggressive lookahead evaluates t_hat at unreachable arc-lengths,
             # corrupting the SQP gradient and causing QP failures.
-            v_theta_max = 0.6
-            v_near = min(max(self.v_theta, 0.3), v_theta_max)
-            v_far  = min(max(self.v_theta * 1.2, 0.5), v_theta_max)
+            v_theta_max = 0.3
+            v_near = min(max(self.v_theta, 0.15), v_theta_max)
+            v_far  = min(max(self.v_theta * 1.2, 0.2), v_theta_max)
+
+            # Ramp down lookahead speed near the path end so the reference
+            # stalls at theta_total.  Adaptive: never ramp more than the
+            # last 30% of the path, otherwise the solver's lookahead is
+            # crippled for the entire trajectory (e.g. 4m ramp on a 3.7m path).
+            remaining = max(self.theta_total - self.theta, 0.01)
+            ramp_dist = min(2.0, self.theta_total * 0.3)
+            if remaining < ramp_dist:
+                ramp = remaining / ramp_dist
+                v_near = max(v_near * ramp, 0.05)
+                v_far  = max(v_far  * ramp, 0.05)
 
             for stage in range(self.N_horizon):
                 v_stage = v_near if stage < N_half else v_far
@@ -1007,7 +1057,7 @@ class DiveControllerMPC(DiveControllerInterface):
             # heading cost has a non-zero gradient at near-field stages when a
             # turn is approaching.  p_ref stays at theta_hat for correct
             # contour/lag linearization.
-            heading_offset = 1.0  # [m] tangent lookahead — lets the vehicle anticipate pitch changes
+            heading_offset = 2.0  # [m] tangent lookahead — lets the vehicle anticipate pitch changes
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
                 p_ref, _, _ = self._get_path_geometry(self.path_theta_hat[stage])
@@ -1025,16 +1075,18 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ref[stage, 5] = sy * cp        # qy
                 self.ref[stage, 6] = sy * sp        # qz
 
-            # Terminal reference: use the path position at the predicted terminal
-            # theta, NOT the fixed final waypoint. This prevents the solver from
-            # "shortcutting" when the final waypoint is close to the start (e.g.
-            # three-point turn). Once theta naturally reaches theta_total, the
-            # terminal reference converges to the actual final waypoint.
-            # Apply the same heading_offset to the terminal tangent.
-            theta_terminal = min(
-                self.path_theta_hat[-1] + self.v_theta * self._dt,
-                self.theta_total,
-            )
+            # Terminal reference: when close to the path end, force the
+            # terminal to reference the FINAL waypoint.  Without this, the
+            # solver's 3s horizon can't "see" the endpoint until it's < 1m
+            # away, leaving no time to decelerate.  Outside 3m, use the
+            # propagated theta to avoid shortcutting on closed paths.
+            if remaining < 3.0:
+                theta_terminal = self.theta_total
+            else:
+                theta_terminal = min(
+                    self.path_theta_hat[-1] + self.v_theta * self._dt,
+                    self.theta_total,
+                )
             p_term, _, _ = self._get_path_geometry(theta_terminal)
             theta_term_ahead = min(theta_terminal + heading_offset, self.theta_total)
             _, t_term, _ = self._get_path_geometry(theta_term_ahead)
