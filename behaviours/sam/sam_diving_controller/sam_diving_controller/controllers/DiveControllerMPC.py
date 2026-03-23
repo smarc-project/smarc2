@@ -54,10 +54,10 @@ class DiveControllerMPC(DiveControllerInterface):
         
         # Total speed (norm of u,v,w) below which the last waypoint is
         # declared reached and the action server is allowed to signal COMPLETED.
-        self._vel_stop_threshold = 0.15  # m/s (relaxed: real vehicle has residual drift)
+        self._vel_stop_threshold = 0.10  # m/s (relaxed: real vehicle has residual drift)
 
         # Position tolerance for completion detection at the final waypoint.
-        self._final_pos_tolerance = 1.5  # m (relaxed: real vehicle can't stop on a dime)
+        self._final_pos_tolerance = 1.0  # m (relaxed: real vehicle can't stop on a dime)
 
         # Debounce counter for COMPLETED detection.  All stopping conditions must be
         # satisfied for this many consecutive control steps before the action is
@@ -100,7 +100,7 @@ class DiveControllerMPC(DiveControllerInterface):
         self.arc_lengths = None      # cumulative arc-length at each waypoint
         self.path_t_hat = np.zeros((self.N_horizon, 3))    # tangent per stage
         self.path_theta_hat = np.zeros(self.N_horizon)     # linearization point per stage
-        self._v_target = 0.5         # progress speed target for yref (m/s)
+        self._v_target = 0.2         # progress speed target for yref (m/s)
         self._v_theta_prev = 0.0     # v_theta from previous solve (for manual propagation)
 
         # Cubic spline representation of the path (built in _compute_arc_lengths)
@@ -371,7 +371,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Completion detection: theta-based (MPCC) + position/velocity check.
         theta_near_end = (
-            self.theta_total > 0 and self.theta >= self.theta_total - 0.1
+            self.theta_total > 0 and self.theta >= self.theta_total - 0.4   # increased from 0.1 to 0.5 since 0.1 is quite close to the end.
         )
         if self.ref_is_traj and theta_near_end:
             p_current_3d = x_current[:3]
@@ -1032,9 +1032,9 @@ class DiveControllerMPC(DiveControllerInterface):
             # actually advance theta.  On curved paths (dives) an over-
             # aggressive lookahead evaluates t_hat at unreachable arc-lengths,
             # corrupting the SQP gradient and causing QP failures.
-            v_theta_max = 0.3
-            v_near = min(max(self.v_theta, 0.15), v_theta_max)
-            v_far  = min(max(self.v_theta * 1.2, 0.2), v_theta_max)
+            v_theta_max = 0.2
+            v_near = min(max(self.v_theta, 0.1), v_theta_max)
+            v_far  = min(max(self.v_theta * 1.2, 0.15), v_theta_max)
 
             # Ramp down lookahead speed near the path end so the reference
             # stalls at theta_total.  Adaptive: never ramp more than the
@@ -1116,6 +1116,9 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.traj_index = np.clip(self.traj_index, 0, self.traj_len - 1)
             return
 
+        # TODO: This can be removed since we don't have a waypoint mode anymore. 
+        # Same with the ref_is_traj flag and eveyrthing else related to the wp mode.
+        # Maybe add again later if needed.
         else:  # waypoint mode
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             self.ref[:, :] = self.wp_array

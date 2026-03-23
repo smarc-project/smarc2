@@ -212,6 +212,11 @@ def build_waypoints_path(args):
 
     Yaw at each waypoint is computed from the XY heading toward the next
     waypoint (last waypoint inherits the previous heading).
+    
+    Full command:
+    python3 create_turbo_turn_path.py --mode waypoints \
+    --wp "0.5,0,0; 1,0,0; 3,0,0.5; 6,0,1" \
+    -o trajectories/straight_line_s-curve_dive.csv
     """
     raw = args.wp.replace(" ", "")
     tokens = [t for t in raw.split(";") if t]
@@ -641,8 +646,9 @@ def main():
                 arc[i] = arc[i - 1] + np.sqrt(
                     (x[i] - x[i - 1]) ** 2 + (y[i] - y[i - 1]) ** 2 + (z[i] - z[i - 1]) ** 2
                 )
-            ax_z.plot(arc, z, "o-", markersize=6, color="tab:blue")
-            ax_z.set_xlabel("Arc length (m)")
+            #ax_z.plot(arc, z, "o-", markersize=6, color="tab:blue")
+            ax_z.plot(x, z, "o-", markersize=6, color="tab:blue")
+            ax_z.set_xlabel("X Position (m)")
             ax_z.set_ylabel("Depth z (m, +down)")
             ax_z.set_title("Depth profile")
             ax_z.grid(True, alpha=0.3)
