@@ -215,8 +215,8 @@ def build_waypoints_path(args):
     
     Full command:
     python3 create_turbo_turn_path.py --mode waypoints \
-    --wp "0.5,0,0; 1,0,0; 3,0,0.5; 6,0,1" \
-    -o trajectories/straight_line_s-curve_dive.csv
+    --wp "0.5,0,0; 1,0,0; 3,0,0.75; 6,0,1.5; 2.5, 0, 1.5" \
+    -o trajectories/straight_line_s-curve_depth-1.5_return_dive.csv
     """
     raw = args.wp.replace(" ", "")
     tokens = [t for t in raw.split(";") if t]
@@ -614,7 +614,9 @@ def main():
     if not args.no_plot and HAS_MATPLOTLIB:
         has_depth = np.ptp(z) > 1e-3
         if has_depth:
-            fig, (ax, ax_z) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={"height_ratios": [3, 1]})
+            fig, (ax, ax_z, ax_pitch) = plt.subplots(
+                3, 1, figsize=(10, 12), gridspec_kw={"height_ratios": [3, 1, 1]}
+            )
         else:
             fig, ax = plt.subplots(figsize=(10, 8))
 
@@ -646,13 +648,28 @@ def main():
                 arc[i] = arc[i - 1] + np.sqrt(
                     (x[i] - x[i - 1]) ** 2 + (y[i] - y[i - 1]) ** 2 + (z[i] - z[i - 1]) ** 2
                 )
-            #ax_z.plot(arc, z, "o-", markersize=6, color="tab:blue")
-            ax_z.plot(x, z, "o-", markersize=6, color="tab:blue")
-            ax_z.set_xlabel("X Position (m)")
+
+            pitch = np.zeros(N)
+            for i in range(1, N):
+                dxy = np.sqrt((x[i] - x[i - 1]) ** 2 + (y[i] - y[i - 1]) ** 2)
+                dz = z[i] - z[i - 1]
+                if dxy > 1e-8 or abs(dz) > 1e-8:
+                    pitch[i] = np.arctan2(dz, dxy)
+            pitch[0] = pitch[1] if N >= 2 else 0.0
+
+            ax_z.plot(arc, z, "o-", markersize=6, color="tab:blue")
+            ax_z.set_xlabel("Arc length (m)")
             ax_z.set_ylabel("Depth z (m, +down)")
             ax_z.set_title("Depth profile")
             ax_z.grid(True, alpha=0.3)
             ax_z.invert_yaxis()
+
+            ax_pitch.plot(arc, np.rad2deg(pitch), "o-", markersize=6, color="tab:orange")
+            ax_pitch.set_xlabel("Arc length (m)")
+            ax_pitch.set_ylabel("Pitch angle (deg)")
+            ax_pitch.set_title("Pitch angle along trajectory")
+            ax_pitch.axhline(0, color="grey", linewidth=0.5, linestyle="--")
+            ax_pitch.grid(True, alpha=0.3)
 
         plt.tight_layout()
         plot_path = out_path.replace(".csv", ".png")

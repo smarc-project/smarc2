@@ -54,7 +54,7 @@ class DiveControllerMPC(DiveControllerInterface):
         
         # Total speed (norm of u,v,w) below which the last waypoint is
         # declared reached and the action server is allowed to signal COMPLETED.
-        self._vel_stop_threshold = 0.10  # m/s (relaxed: real vehicle has residual drift)
+        self._vel_stop_threshold = 0.1  # m/s (relaxed: real vehicle has residual drift)
 
         # Position tolerance for completion detection at the final waypoint.
         self._final_pos_tolerance = 1.0  # m (relaxed: real vehicle can't stop on a dime)
@@ -102,6 +102,8 @@ class DiveControllerMPC(DiveControllerInterface):
         self.path_theta_hat = np.zeros(self.N_horizon)     # linearization point per stage
         self._v_target = 0.2         # progress speed target for yref (m/s)
         self._v_theta_prev = 0.0     # v_theta from previous solve (for manual propagation)
+        self._depth_locked = False   # armed once z crosses depth_lock_threshold
+        self._wall_locked = False    # armed once x crosses wall_lock_threshold
 
         # Cubic spline representation of the path (built in _compute_arc_lengths)
         self._spl_x = None           # CubicSpline: arc_length -> x
@@ -233,17 +235,56 @@ class DiveControllerMPC(DiveControllerInterface):
             self._set_actuators_neutral()
             return
 
-        # ---- Build MPCC parameter vector per stage ----
+        # ---- Depth lock: prevent resurfacing once submerged ----
+        z_now = x_current[2]
+        if not self._depth_locked and z_now >= self.nmpc.depth_lock_threshold:
+            self._depth_locked = True
+            self._loginfo(
+                f"Depth lock armed at z={z_now:.2f} m "
+                f"(threshold={self.nmpc.depth_lock_threshold}, "
+                f"min={self.nmpc.depth_lock_min})"
+            )
+        if self._depth_locked:
+            idx = self.nmpc.IDX_Z_BOX
+            for k in range(1, self.N_horizon + 1):
+                lbx = self.ocp_solver.constraints_get(k, "lbx")
+                if lbx[idx] < self.nmpc.depth_lock_min:
+                    lbx[idx] = self.nmpc.depth_lock_min
+                    self.ocp_solver.constraints_set(k, "lbx", lbx)
+
+        # ---- Wall lock: prevent drifting back into the wall ----
+        x_now = x_current[0]
+        if not self._wall_locked and x_now >= self.nmpc.wall_lock_threshold:
+            self._wall_locked = True
+            self._loginfo(
+                f"Wall lock armed at x={x_now:.2f} m "
+                f"(threshold={self.nmpc.wall_lock_threshold}, "
+                f"min={self.nmpc.wall_lock_min})"
+            )
+        if self._wall_locked:
+            idx = self.nmpc.IDX_X_BOX
+            for k in range(1, self.N_horizon + 1):
+                lbx = self.ocp_solver.constraints_get(k, "lbx")
+                if lbx[idx] < self.nmpc.wall_lock_min:
+                    lbx[idx] = self.nmpc.wall_lock_min
+                    self.ocp_solver.constraints_set(k, "lbx", lbx)
+
+        # ---- Build MPCC parameter vector and yref per stage ----
+        yref_stage = np.zeros(self.nmpc.n_stage_cost)
+        yref_stage[4] = self._v_target
         for stage in range(self.N_horizon):
             ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
             p = np.r_[ref_row, self._goal_pos,
                        self.path_t_hat[stage], self.path_theta_hat[stage]]
             self.ocp_solver.set(stage, "p", p)
+            self.ocp_solver.cost_set(stage, "yref", yref_stage)
 
         terminal_ref = getattr(self, '_terminal_ref', self.ref[-1, :])
         p_terminal = np.r_[terminal_ref, self._goal_pos,
                            self.path_t_hat[-1], self.path_theta_hat[-1]]
         self.ocp_solver.set(self.N_horizon, "p", p_terminal)
+        yref_e = np.zeros(self.nmpc.n_terminal_cost)
+        self.ocp_solver.cost_set(self.N_horizon, "yref", yref_e)
 
         # Set current state
         self.ocp_solver.set(0, "lbx", x_current)
@@ -363,10 +404,9 @@ class DiveControllerMPC(DiveControllerInterface):
 
             self.v_theta = max(
                 float(mpc_solution[self.nmpc.N_PHYS_STATES + 1]),
-                0.1,    # Minimum velocity to prevent the solver from stalling.
+                0.1,
             )
         end_theta_time = time.time()
-        # Log solver's theta for comparison with projection-based theta
         theta_solver = float(self.ocp_solver.get(1, "x")[self.nmpc.N_PHYS_STATES])
 
         # Completion detection: theta-based (MPCC) + position/velocity check.
@@ -927,6 +967,9 @@ class DiveControllerMPC(DiveControllerInterface):
         except Exception:
             pass
 
+        self._depth_locked = False
+        self._wall_locked = False
+
         x0 = self.get_state_array(
             self._current_state,
             self._current_control,
@@ -972,15 +1015,20 @@ class DiveControllerMPC(DiveControllerInterface):
         self.ocp_solver.set(0, "lbx", x0)
         self.ocp_solver.set(0, "ubx", x0)
         self.get_current_ref_array()
+        yref_stage = np.zeros(self.nmpc.n_stage_cost)
+        yref_stage[4] = self._v_target
         for stage in range(self.N_horizon):
             ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
             p = np.r_[ref_row, self._goal_pos,
                        self.path_t_hat[stage], self.path_theta_hat[stage]]
             self.ocp_solver.set(stage, "p", p)
+            self.ocp_solver.cost_set(stage, "yref", yref_stage)
         terminal_ref = self.ref[-1, :]
         p_terminal = np.r_[terminal_ref, self._goal_pos,
                            self.path_t_hat[-1], self.path_theta_hat[-1]]
         self.ocp_solver.set(self.N_horizon, "p", p_terminal)
+        yref_e = np.zeros(self.nmpc.n_terminal_cost)
+        self.ocp_solver.cost_set(self.N_horizon, "yref", yref_e)
 
         n_warmup = 5
         for i in range(n_warmup):
@@ -1053,16 +1101,23 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.path_theta_hat[stage] = theta_i
 
             # ---- Build reference array with path geometry per stage ----
-            # Tangent is evaluated 1m ahead of the linearization point so the
-            # heading cost has a non-zero gradient at near-field stages when a
-            # turn is approaching.  p_ref stays at theta_hat for correct
-            # contour/lag linearization.
-            heading_offset = 2.0  # [m] tangent lookahead — lets the vehicle anticipate pitch changes
+            # The heading_offset lets the vehicle anticipate pitch changes
+            # (important for sensor trim).  However, at sharp direction
+            # reversals the offset tangent can flip 180°, corrupting the
+            # contour/lag decomposition (the OCP uses one t_hat for both).
+            # Guard: only apply the offset when the ahead-tangent roughly
+            # agrees with the local tangent (cos > 0); fall back to the
+            # local tangent at sharp reversals.
+            heading_offset = 2.0  # [m] pitch-trim lookahead
             self.ref = np.zeros((self.N_horizon, self.nx + self.nu))
             for stage in range(self.N_horizon):
-                p_ref, _, _ = self._get_path_geometry(self.path_theta_hat[stage])
+                p_ref, t_local, _ = self._get_path_geometry(self.path_theta_hat[stage])
                 theta_ahead = min(self.path_theta_hat[stage] + heading_offset, self.theta_total)
-                _, t_hat, _ = self._get_path_geometry(theta_ahead)
+                _, t_ahead, _ = self._get_path_geometry(theta_ahead)
+                if np.dot(t_local, t_ahead) > 0.0:
+                    t_hat = t_ahead
+                else:
+                    t_hat = t_local
                 self.ref[stage, :3] = p_ref
                 self.path_t_hat[stage] = t_hat
 
@@ -1075,21 +1130,20 @@ class DiveControllerMPC(DiveControllerInterface):
                 self.ref[stage, 5] = sy * cp        # qy
                 self.ref[stage, 6] = sy * sp        # qz
 
-            # Terminal reference: when close to the path end, force the
-            # terminal to reference the FINAL waypoint.  Without this, the
-            # solver's 3s horizon can't "see" the endpoint until it's < 1m
-            # away, leaving no time to decelerate.  Outside 3m, use the
-            # propagated theta to avoid shortcutting on closed paths.
-            if remaining < 3.0:
-                theta_terminal = self.theta_total
-            else:
-                theta_terminal = min(
-                    self.path_theta_hat[-1] + self.v_theta * self._dt,
-                    self.theta_total,
-                )
-            p_term, _, _ = self._get_path_geometry(theta_terminal)
+            # Terminal reference: extend one step beyond the last propagated
+            # theta_hat.  As the vehicle nears the end, path_theta_hat[-1]
+            # naturally approaches theta_total (clamped in the propagation
+            # loop), so the terminal reaches the endpoint organically.
+            # Deceleration is handled by yref_e (v_theta target = 0 at
+            # terminal), not by a hard position jump.
+            theta_terminal = min(
+                self.path_theta_hat[-1] + v_far * self._dt,
+                self.theta_total,
+            )
+            p_term, t_term_local, _ = self._get_path_geometry(theta_terminal)
             theta_term_ahead = min(theta_terminal + heading_offset, self.theta_total)
-            _, t_term, _ = self._get_path_geometry(theta_term_ahead)
+            _, t_term_ahead, _ = self._get_path_geometry(theta_term_ahead)
+            t_term = t_term_ahead if np.dot(t_term_local, t_term_ahead) > 0.0 else t_term_local
             self._terminal_ref = np.zeros(self.nx + self.nu)
             self._terminal_ref[:3] = p_term
 
