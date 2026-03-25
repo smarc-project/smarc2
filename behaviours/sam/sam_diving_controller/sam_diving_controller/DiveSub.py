@@ -61,8 +61,8 @@ class DiveSub():
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         self.robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self._robot_base_link = self.robot_name + '/base_link'+ tf_suffix
-        #self._odom_link = self.robot_name + '/odom' # In the sim, this messes things up because we get the odom message not in the odom frame.
-        self._odom_link = 'unity_origin'
+        self._odom_link = self.robot_name + '/odom' # In the sim, this messes things up because we get the odom message not in the odom frame.
+        #self._odom_link = 'unity_origin'
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
         self.world_prefix = self._node.get_parameter('world_prefix').get_parameter_value().string_value
 
@@ -105,8 +105,8 @@ class DiveSub():
         self._control_input['stern'] = self.param['tv_u_neutral']
         self._control_input['rudder'] = self.param['tv_u_neutral']
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic='smarc/odom', callback=self._states_cb, qos_profile=10)
-        #self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+        #self.state_sub = node.create_subscription(msg_type=Odometry, topic='smarc/odom', callback=self._states_cb, qos_profile=10)
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
         self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
         self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
@@ -258,14 +258,17 @@ class DiveSub():
         #self._loginfo(f"states_in_mocap: {self._states_in_mocap}")
         # FIXME: This is never true, because we initialize self._states as Odometry...
         if self._states is None:
-            return
+            return 
 
         if self._tf_mocap_base_link is None:
-            return
+            return 
 
         self._states_in_mocap.header.frame_id = self._waypoint_global.header.frame_id
         self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_global_odom)
         self._states_in_mocap.twist = self._states.twist
+        
+        #self._loginfo(f"states_in_mocap: {self._states_in_mocap.pose.pose.position}")
+        #self._loginfo(f"states: {self._states.pose.pose.position}")
 
         self._transformed_state_to_mocap = True
 
@@ -476,7 +479,6 @@ class DiveSub():
         self._update_tf()
         #self._transform_wp()
         self._transform_state()
-        #self._loginfo(f"Dive Sub update loop")
 
 
 
