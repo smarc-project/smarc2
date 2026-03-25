@@ -12,12 +12,14 @@ Modes:
 import argparse
 import os
 
-import matplotlib.pyplot as plt
+from scipy.interpolate import CubicSpline
+
 import numpy as np
 import pandas as pd
 
-# Optional plotting
 try:
+    import matplotlib.pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -122,10 +124,10 @@ def build_three_point_path(args):
     """
 
     # Three point dive
-    #x = np.array([1.5, 3.0, 4.0])
-    #y = np.array([0.0, 0.0, 0.0])
-    #z = np.array([0.5, 1.0, 1.0])
-    #yaw = np.array([0.0, 0.0, 0.0])
+    x = np.array([1.0, 3.0, 6.0])
+    y = np.array([0.0, 0.0, 0.0])
+    z = np.array([0.0, 0.5, 1.0])
+    yaw = np.array([0.0, 0.0, 0.0])
 
     # Three point 180 turn
     # x = np.array([1.5, 4.0, 0.5])
@@ -134,10 +136,10 @@ def build_three_point_path(args):
     # yaw = np.array([0.0, 0.0, 0.0])
 
     # Three point turn
-    x = np.array([1.5, 2.5, 4.5])
-    y = np.array([0.0, 0.5, 1.0])
-    z = np.array([0.0, 0.0, 0.0])
-    yaw = np.array([0.0, 0.0, 0.0])
+    #x = np.array([1.5, 3.5, 2.0])
+    #y = np.array([0.0, 0.0, 0.0])
+    #z = np.array([0.0, 0.0, 0.0])
+    #yaw = np.array([0.0, 0.0, 0.0])
 
     N = len(x)
     u_per_wp = np.zeros(N)
@@ -214,6 +216,123 @@ def add_starting_point(x, y, z, yaw, u_per_wp, dr_per_wp, start_point):
     dr_per_wp = np.insert(dr_per_wp, 0, 0.0)
     return x, y, z, yaw, u_per_wp, dr_per_wp
 
+
+def _spline_dense_samples(spl_x, spl_y, spl_z, theta_total, n_waypoints, n_min=200):
+    """Sample splines along arc length for plotting."""
+    n_pts = min(4000, max(n_min, 40 * max(2, n_waypoints)))
+    s_fine = np.linspace(0.0, float(theta_total), n_pts)
+    return s_fine, spl_x(s_fine), spl_y(s_fine), spl_z(s_fine)
+
+
+def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
+    """Plot waypoints and arc-length cubic spline: top-down (XY) and side (XZ)."""
+    fig, (ax_xy, ax_xz) = plt.subplots(1, 2, figsize=(14, 7))
+    N = len(x)
+
+    # Spline through the same waypoints as the controller (skip if degenerate / invalid knots)
+    spline_ok = False
+    if N >= 2:
+        arc_lengths, theta_total, spl_x, spl_y, spl_z = compute_spline(x, y, z)
+        if theta_total > 1e-9 and np.all(np.diff(arc_lengths) > 1e-15):
+            try:
+                _, xs, ys, zs = _spline_dense_samples(
+                    spl_x, spl_y, spl_z, theta_total, N, n_min=200
+                )
+                spline_ok = True
+            except ValueError:
+                spline_ok = False
+
+    # XY (top-down)
+    if spline_ok:
+        ax_xy.plot(xs, ys, "-", color="C0", linewidth=2.0, label="Spline", zorder=1)
+    ax_xy.plot(
+        x, y, "o-", markersize=8, color="C1", label="Waypoints",
+        linewidth=1, alpha=0.75, zorder=2,
+    )
+    for i in range(N):
+        ax_xy.annotate(
+            str(i),
+            (x[i], y[i]),
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=9,
+            zorder=3,
+        )
+    arrow_length = 0.3
+    skip = max(1, N // 20)
+    for i in range(0, N, skip):
+        dx_arrow = arrow_length * np.cos(yaw[i])
+        dy_arrow = arrow_length * np.sin(yaw[i])
+        color = "green" if u_per_wp[i] >= 0 else "red"
+        ax_xy.arrow(
+            x[i], y[i], dx_arrow, dy_arrow,
+            head_width=0.1, head_length=0.1, fc=color, ec=color,
+            linewidth=2, alpha=0.7,
+        )
+    ax_xy.set_xlabel("X (m)")
+    ax_xy.set_ylabel("Y (m)")
+    ax_xy.set_title("Top view (XY)")
+    ax_xy.grid(True, alpha=0.3)
+    ax_xy.axis("equal")
+    ax_xy.legend(loc="best")
+
+    # XZ (side)
+    if spline_ok:
+        ax_xz.plot(xs, zs, "-", color="C0", linewidth=2.0, label="Spline", zorder=1)
+    ax_xz.plot(
+        x, z, "o-", markersize=8, color="C1", label="Waypoints",
+        linewidth=1, alpha=0.75, zorder=2,
+    )
+    for i in range(N):
+        ax_xz.annotate(
+            str(i),
+            (x[i], z[i]),
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=9,
+            zorder=3,
+        )
+    ax_xz.set_xlabel("X (m)")
+    ax_xz.set_ylabel("Z (m)")
+    ax_xz.set_title("Depth view (XZ)")
+    ax_xz.grid(True, alpha=0.3)
+    ax_xz.axis("equal")
+    ax_xz.invert_yaxis()
+    ax_xz.legend(loc="best")
+
+    fig.suptitle(
+        f"Turbo turn path — {args.mode}  (Green=FWD, Red=BWD)",
+        fontsize=12,
+    )
+    plt.tight_layout()
+    out_path = out_path.replace(".csv", ".png")
+    plt.savefig(out_path, dpi=150)
+    print(f"Saved plot: {out_path}")
+    plt.show()
+
+def compute_spline(x, y, z):
+    """Compute cumulative arc-lengths and fit cubic splines through the waypoints.
+
+    After this call:
+      self.arc_lengths  — cumulative arc-length at each waypoint
+      self.theta_total  — total path length
+      self._spl_x/y/z   — CubicSpline: arc_length -> position (C2 smooth)
+    """
+    arc_lengths = np.zeros(len(x))
+    for i in range(1, len(x)):
+        d = np.array([x[i] - x[i - 1], y[i] - y[i - 1], z[i] - z[i - 1]], dtype=float)
+        arc_lengths[i] = arc_lengths[i - 1] + np.linalg.norm(d)
+    theta_total = arc_lengths[-1]
+
+    s = arc_lengths
+    # "not-a-knot" gives smooth, non-zero tangents at the endpoints
+    # (unlike "clamped" which forces zero derivative).
+    # Falls back to "natural" for 2-point paths where "not-a-knot" needs >= 3.
+    bc = "not-a-knot" if len(x) >= 3 else "natural"
+    spl_x = CubicSpline(s, x, bc_type=bc)
+    spl_y = CubicSpline(s, y, bc_type=bc)
+    spl_z = CubicSpline(s, z, bc_type=bc)
+    return arc_lengths, theta_total, spl_x, spl_y, spl_z
 
 def add_intermediate_waypoints(x, y, z, yaw, u_per_wp, dr_per_wp, n_intermediate):
     """Insert n_intermediate waypoints between each consecutive pair."""
@@ -452,33 +571,7 @@ def main():
 
     # Visualization
     if not args.no_plot and HAS_MATPLOTLIB:
-        fig, ax = plt.subplots(figsize=(10, 8))
-        ax.plot(x, y, "o-", markersize=8, label="Waypoints", linewidth=1, alpha=0.5)
-        arrow_length = 0.3
-        skip = max(1, N // 20)
-        for i in range(0, N, skip):
-            dx_arrow = arrow_length * np.cos(yaw[i])
-            dy_arrow = arrow_length * np.sin(yaw[i])
-            color = "green" if u_per_wp[i] >= 0 else "red"
-            ax.arrow(
-                x[i], y[i], dx_arrow, dy_arrow,
-                head_width=0.1, head_length=0.1, fc=color, ec=color,
-                linewidth=2, alpha=0.7,
-            )
-            if i % max(1, skip) == 0 or N <= 20:
-                direction = "FWD" if u_per_wp[i] >= 0 else "BWD"
-                ax.text(x[i] + 0.15, y[i] + 0.15, f"WP{i}\n({direction})", fontsize=8, ha="left")
-        ax.set_xlabel("X Position (m)")
-        ax.set_ylabel("Y Position (m)")
-        ax.set_title(f"Turbo Turn Path — {args.mode}\nGreen=Forward, Red=Backward")
-        ax.grid(True, alpha=0.3)
-        ax.axis("equal")
-        ax.legend()
-        plt.tight_layout()
-        plot_path = out_path.replace(".csv", ".png")
-        plt.savefig(plot_path, dpi=150)
-        print(f"Saved plot: {plot_path}")
-        plt.show()
+        plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path)
     elif not args.no_plot and not HAS_MATPLOTLIB:
         print("Note: matplotlib not available, skipping visualization")
 
