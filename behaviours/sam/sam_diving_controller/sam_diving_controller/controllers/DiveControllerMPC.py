@@ -54,7 +54,7 @@ class DiveControllerMPC(DiveControllerInterface):
         
         # Total speed (norm of u,v,w) below which the last waypoint is
         # declared reached and the action server is allowed to signal COMPLETED.
-        self._vel_stop_threshold = 0.1  # m/s (relaxed: real vehicle has residual drift)
+        self._vel_stop_threshold = 0.15  # m/s (SAM decelerates through drag only; 0.1 takes too long)
 
         # Position tolerance for completion detection at the final waypoint.
         self._final_pos_tolerance = 1.0  # m (relaxed: real vehicle can't stop on a dime)
@@ -270,14 +270,27 @@ class DiveControllerMPC(DiveControllerInterface):
                     self.ocp_solver.constraints_set(k, "lbx", lbx)
 
         # ---- Build MPCC parameter vector and yref per stage ----
-        yref_stage = np.zeros(self.nmpc.n_stage_cost)
-        yref_stage[4] = self._v_target
+        # v_theta target ramps to zero over the last decel_dist metres of
+        # arc length so the solver plans a smooth deceleration over many
+        # stages instead of seeing "go fast" everywhere and "stop" only at
+        # the terminal.
+        decel_dist = 2.5  # [m] arc-length before end to start ramping v_theta down
         for stage in range(self.N_horizon):
             ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
             p = np.r_[ref_row, self._goal_pos,
                        self.path_t_hat[stage], self.path_theta_hat[stage]]
             self.ocp_solver.set(stage, "p", p)
-            self.ocp_solver.cost_set(stage, "yref", yref_stage)
+
+            yref_k = np.zeros(self.nmpc.n_stage_cost)
+            if self.ref_is_traj and self.theta_total > 0:
+                remaining_k = max(self.theta_total - self.path_theta_hat[stage], 0.0)
+                if remaining_k < decel_dist:
+                    yref_k[4] = self._v_target * (remaining_k / decel_dist)
+                else:
+                    yref_k[4] = self._v_target
+            else:
+                yref_k[4] = self._v_target
+            self.ocp_solver.cost_set(stage, "yref", yref_k)
 
         terminal_ref = getattr(self, '_terminal_ref', self.ref[-1, :])
         p_terminal = np.r_[terminal_ref, self._goal_pos,
@@ -988,6 +1001,14 @@ class DiveControllerMPC(DiveControllerInterface):
         self.rpm_hat_1 = rpm_warm
         self.rpm_hat_2 = rpm_warm
 
+        # Project theta to the vehicle's actual position on the path so the
+        # warm-start is consistent with where the vehicle already is, rather
+        # than starting at theta=0 which may be behind the vehicle.
+        if self.ref_is_traj and self.theta_total > 0:
+            self.theta = self._project_onto_path(x0[:3])
+            self.theta = np.clip(self.theta, 0.0, self.theta_total)
+            self._loginfo(f"Init theta projected to {self.theta:.3f}/{self.theta_total:.3f}")
+
         for stage in range(self.N_horizon + 1):
             x_init = x0.copy()
             if target_pos is not None:
@@ -1015,14 +1036,19 @@ class DiveControllerMPC(DiveControllerInterface):
         self.ocp_solver.set(0, "lbx", x0)
         self.ocp_solver.set(0, "ubx", x0)
         self.get_current_ref_array()
-        yref_stage = np.zeros(self.nmpc.n_stage_cost)
-        yref_stage[4] = self._v_target
+        decel_dist = 2.5
         for stage in range(self.N_horizon):
             ref_row = self.ref[stage, :] if stage < self.ref.shape[0] else self.ref[-1, :]
             p = np.r_[ref_row, self._goal_pos,
                        self.path_t_hat[stage], self.path_theta_hat[stage]]
             self.ocp_solver.set(stage, "p", p)
-            self.ocp_solver.cost_set(stage, "yref", yref_stage)
+            yref_k = np.zeros(self.nmpc.n_stage_cost)
+            if self.ref_is_traj and self.theta_total > 0:
+                remaining_k = max(self.theta_total - self.path_theta_hat[stage], 0.0)
+                yref_k[4] = self._v_target * min(remaining_k / decel_dist, 1.0)
+            else:
+                yref_k[4] = self._v_target
+            self.ocp_solver.cost_set(stage, "yref", yref_k)
         terminal_ref = self.ref[-1, :]
         p_terminal = np.r_[terminal_ref, self._goal_pos,
                            self.path_t_hat[-1], self.path_theta_hat[-1]]
@@ -1084,17 +1110,12 @@ class DiveControllerMPC(DiveControllerInterface):
             v_near = min(max(self.v_theta, 0.1), v_theta_max)
             v_far  = min(max(self.v_theta * 1.2, 0.15), v_theta_max)
 
-            # Ramp down lookahead speed near the path end so the reference
-            # stalls at theta_total.  Adaptive: never ramp more than the
-            # last 30% of the path, otherwise the solver's lookahead is
-            # crippled for the entire trajectory (e.g. 4m ramp on a 3.7m path).
-            remaining = max(self.theta_total - self.theta, 0.01)
-            ramp_dist = min(2.0, self.theta_total * 0.3)
-            if remaining < ramp_dist:
-                ramp = remaining / ramp_dist
-                v_near = max(v_near * ramp, 0.05)
-                v_far  = max(v_far  * ramp, 0.05)
-
+            # No lookahead ramp-down: the theta_total clamp below already
+            # prevents theta_hat from overshooting the path end.  Without the
+            # ramp, stages beyond the endpoint cluster at theta_total, and the
+            # per-stage v_theta target (set in update()) drops to 0 for all of
+            # them.  This gives the solver many stages showing "stop here,"
+            # producing a strong deceleration gradient.
             for stage in range(self.N_horizon):
                 v_stage = v_near if stage < N_half else v_far
                 theta_i = min(theta_i + v_stage * self._dt, self.theta_total)

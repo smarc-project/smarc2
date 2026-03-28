@@ -342,45 +342,69 @@ def _spline_dense_samples(spl_x, spl_y, spl_z, theta_total, n_waypoints, n_min=2
 
 
 def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
-    """Plot waypoints and arc-length cubic spline: top-down (XY), side (XZ),
-    and pitch angle along the trajectory when depth varies."""
+    """Plot waypoints and arc-length cubic spline in a vertical stack:
+    XY, XZ, X/Y/Z vs arc length, pitch (if depth varies), and curvature."""
     N = len(x)
     has_depth = np.ptp(z) > 1e-3
-
-    if has_depth:
-        fig, (ax_xy, ax_xz, ax_pitch) = plt.subplots(
-            1, 3, figsize=(20, 7),
-        )
-    else:
-        fig, (ax_xy, ax_xz) = plt.subplots(1, 2, figsize=(14, 7))
 
     spline_ok = False
     if N >= 2:
         arc_lengths, theta_total, spl_x, spl_y, spl_z = compute_spline(x, y, z)
         if theta_total > 1e-9 and np.all(np.diff(arc_lengths) > 1e-15):
             try:
-                _, xs, ys, zs = _spline_dense_samples(
+                s_fine, xs, ys, zs = _spline_dense_samples(
                     spl_x, spl_y, spl_z, theta_total, N, n_min=200
                 )
                 spline_ok = True
             except ValueError:
                 spline_ok = False
 
-    # XY (top-down)
+    # Pre-compute curvature so we can mark the peak on every subplot
+    peak_s = peak_x = peak_y = peak_z = peak_curv = None
+    curvature = None
+    if spline_ok:
+        dx_ds = spl_x(s_fine, 1)
+        dy_ds = spl_y(s_fine, 1)
+        dz_ds = spl_z(s_fine, 1)
+        d2x_ds2 = spl_x(s_fine, 2)
+        d2y_ds2 = spl_y(s_fine, 2)
+        d2z_ds2 = spl_z(s_fine, 2)
+        cross_x = dy_ds * d2z_ds2 - dz_ds * d2y_ds2
+        cross_y = dz_ds * d2x_ds2 - dx_ds * d2z_ds2
+        cross_z = dx_ds * d2y_ds2 - dy_ds * d2x_ds2
+        cross_mag = np.sqrt(cross_x**2 + cross_y**2 + cross_z**2)
+        speed = np.sqrt(dx_ds**2 + dy_ds**2 + dz_ds**2)
+        curvature = np.where(speed > 1e-12, cross_mag / speed**3, 0.0)
+
+        i_peak = int(np.argmax(curvature))
+        peak_s = s_fine[i_peak]
+        peak_x = float(spl_x(peak_s))
+        peak_y = float(spl_y(peak_s))
+        peak_z = float(spl_z(peak_s))
+        peak_curv = curvature[i_peak]
+
+    PEAK_KW = dict(marker="*", color="magenta", markersize=14, zorder=10,
+                   label="Max κ")
+
+    # Rows: XY, XZ, X(s), Y(s), Z(s), [pitch], [curvature]
+    n_rows = 5 + int(has_depth) + int(spline_ok)
+    fig, axes = plt.subplots(n_rows, 1, figsize=(12, 4 * n_rows))
+    row = 0
+
+    # --- XY (top-down) ---
+    ax_xy = axes[row]; row += 1
     if spline_ok:
         ax_xy.plot(xs, ys, "-", color="C0", linewidth=2.0, label="Spline", zorder=1)
     ax_xy.plot(
         x, y, "o-", markersize=8, color="C1", label="Waypoints",
         linewidth=1, alpha=0.75, zorder=2,
     )
+    if peak_s is not None:
+        ax_xy.plot(peak_x, peak_y, **PEAK_KW)
     for i in range(N):
         ax_xy.annotate(
-            str(i),
-            (x[i], y[i]),
-            xytext=(5, 5),
-            textcoords="offset points",
-            fontsize=9,
-            zorder=3,
+            str(i), (x[i], y[i]),
+            xytext=(5, 5), textcoords="offset points", fontsize=9, zorder=3,
         )
     arrow_length = 0.3
     skip = max(1, N // 20)
@@ -400,21 +424,20 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
     ax_xy.axis("equal")
     ax_xy.legend(loc="best")
 
-    # XZ (side)
+    # --- XZ (side) ---
+    ax_xz = axes[row]; row += 1
     if spline_ok:
         ax_xz.plot(xs, zs, "-", color="C0", linewidth=2.0, label="Spline", zorder=1)
     ax_xz.plot(
         x, z, "o-", markersize=8, color="C1", label="Waypoints",
         linewidth=1, alpha=0.75, zorder=2,
     )
+    if peak_s is not None:
+        ax_xz.plot(peak_x, peak_z, **PEAK_KW)
     for i in range(N):
         ax_xz.annotate(
-            str(i),
-            (x[i], z[i]),
-            xytext=(5, 5),
-            textcoords="offset points",
-            fontsize=9,
-            zorder=3,
+            str(i), (x[i], z[i]),
+            xytext=(5, 5), textcoords="offset points", fontsize=9, zorder=3,
         )
     ax_xz.set_xlabel("X (m)")
     ax_xz.set_ylabel("Z (m)")
@@ -424,8 +447,33 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
     ax_xz.invert_yaxis()
     ax_xz.legend(loc="best")
 
-    # Pitch angle along trajectory (only when depth varies)
+    # --- X, Y, Z vs arc length ---
+    peak_coord_vals = {"X": peak_x, "Y": peak_y, "Z": peak_z}
+    for coord_label, wp_vals, spl, color_spl in [
+        ("X", x, spl_x if spline_ok else None, "C0"),
+        ("Y", y, spl_y if spline_ok else None, "C3"),
+        ("Z", z, spl_z if spline_ok else None, "C4"),
+    ]:
+        ax = axes[row]; row += 1
+        if spl is not None:
+            ax.plot(s_fine, spl(s_fine), "-", color=color_spl, linewidth=2.0,
+                    label="Spline", zorder=1)
+        ax.plot(arc_lengths if spline_ok else np.arange(len(wp_vals)),
+                wp_vals, "o", markersize=6, color="C1", label="Waypoints",
+                zorder=2)
+        if peak_s is not None:
+            ax.plot(peak_s, peak_coord_vals[coord_label], **PEAK_KW)
+        for s_wp in (arc_lengths if spline_ok else []):
+            ax.axvline(s_wp, color="C1", linewidth=0.6, alpha=0.4, linestyle="--")
+        ax.set_xlabel("Arc length (m)")
+        ax.set_ylabel(f"{coord_label} (m)")
+        ax.set_title(f"{coord_label} vs arc length")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="best")
+
+    # --- Pitch angle (only when depth varies) ---
     if has_depth:
+        ax_pitch = axes[row]; row += 1
         arc = np.zeros(N)
         for i in range(1, N):
             arc[i] = arc[i - 1] + np.sqrt(
@@ -440,15 +488,31 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
         pitch[0] = pitch[1] if N >= 2 else 0.0
 
         ax_pitch.plot(arc, np.rad2deg(pitch), "o-", markersize=6, color="tab:orange")
+        if peak_s is not None:
+            pitch_at_peak = np.interp(peak_s, arc, np.rad2deg(pitch))
+            ax_pitch.plot(peak_s, pitch_at_peak, **PEAK_KW)
         ax_pitch.set_xlabel("Arc length (m)")
         ax_pitch.set_ylabel("Pitch angle (deg)")
         ax_pitch.set_title("Pitch angle along trajectory")
         ax_pitch.axhline(0, color="grey", linewidth=0.5, linestyle="--")
         ax_pitch.grid(True, alpha=0.3)
 
+    # --- Curvature vs arc length ---
+    if spline_ok:
+        ax_curv = axes[row]; row += 1
+        ax_curv.plot(s_fine, curvature, "-", color="C2", linewidth=1.5)
+        ax_curv.plot(peak_s, peak_curv, **PEAK_KW)
+        for s_wp in arc_lengths:
+            ax_curv.axvline(s_wp, color="C1", linewidth=0.6, alpha=0.5, linestyle="--")
+        ax_curv.set_xlabel("Arc length (m)")
+        ax_curv.set_ylabel("Curvature κ (1/m)")
+        ax_curv.set_title("Spline curvature")
+        ax_curv.grid(True, alpha=0.3)
+        ax_curv.legend(loc="best")
+
     fig.suptitle(
         f"Turbo turn path — {args.mode}  (Green=FWD, Red=BWD)",
-        fontsize=12,
+        fontsize=14,
     )
     plt.tight_layout()
     out_path = out_path.replace(".csv", ".png")
