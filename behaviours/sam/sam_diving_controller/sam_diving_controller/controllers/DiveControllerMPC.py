@@ -5,7 +5,7 @@ import time
 import numpy as np
 from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Odometry
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import CubicSpline, PchipInterpolator
 from scipy.spatial.transform import Rotation as R
 from smarc_control_msgs.msg import ControlInput
 from smarc_modelling.control.control import *
@@ -107,7 +107,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Cubic spline representation of the path (built in _compute_arc_lengths)
         self._spl_x = None           # CubicSpline: arc_length -> x
-        self._spl_y = None           # CubicSpline: arc_length -> y
+        self._spl_y = None           # PchipInterpolator: arc_length -> y (monotone-preserving)
         self._spl_z = None           # CubicSpline: arc_length -> z
         
         # Spline evaluation
@@ -424,7 +424,7 @@ class DiveControllerMPC(DiveControllerInterface):
 
         # Completion detection: theta-based (MPCC) + position/velocity check.
         theta_near_end = (
-            self.theta_total > 0 and self.theta >= self.theta_total - 0.4   # increased from 0.1 to 0.5 since 0.1 is quite close to the end.
+            self.theta_total > 0 and self.theta >= self.theta_total - 0.7   # increased from 0.1 to 0.5 since 0.1 is quite close to the end.
         )
         if self.ref_is_traj and theta_near_end:
             p_current_3d = x_current[:3]
@@ -501,7 +501,8 @@ class DiveControllerMPC(DiveControllerInterface):
         After this call:
           self.arc_lengths  — cumulative arc-length at each waypoint
           self.theta_total  — total path length
-          self._spl_x/y/z   — CubicSpline: arc_length -> position (C2 smooth)
+          self._spl_x/z     — CubicSpline: arc_length -> position (C2 smooth)
+          self._spl_y       — PchipInterpolator: arc_length -> y (C1, monotone-preserving) to prevent switching y derivative.
         """
         self.arc_lengths = np.zeros(self.traj_len)
         for i in range(1, self.traj_len):
@@ -516,7 +517,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # Falls back to "natural" for 2-point paths where "not-a-knot" needs >= 3.
         bc = "not-a-knot" if self.traj_len >= 3 else "natural"
         self._spl_x = CubicSpline(s, self.trajectory[:, 0], bc_type=bc)
-        self._spl_y = CubicSpline(s, self.trajectory[:, 1], bc_type=bc)
+        self._spl_y = PchipInterpolator(s, self.trajectory[:, 1])
         self._spl_z = CubicSpline(s, self.trajectory[:, 2], bc_type=bc)
         self._loginfo(
             f"MPCC spline built: {self.traj_len} waypoints, "
@@ -759,6 +760,18 @@ class DiveControllerMPC(DiveControllerInterface):
                 (self.trajectory, theta_col, Uref), axis=1
             )
             # self.trajectory now has shape (traj_len, 20 + 7) = (traj_len, 27)
+
+            # Snap first waypoint to the vehicle's current position so the
+            # spline starts where the AUV actually is.  Avoids initial lateral
+            # correction from DR drift that can overshoot at high RPM.
+            if self._current_state is not None:
+                self.trajectory[0, 0] = self._current_state.pose.pose.position.x
+                self.trajectory[0, 1] = self._current_state.pose.pose.position.y
+                self.trajectory[0, 2] = self._current_state.pose.pose.position.z
+                self._loginfo(
+                    f"Snapped WP0 to vehicle position: "
+                    f"({self.trajectory[0, 0]:.3f}, {self.trajectory[0, 1]:.3f}, {self.trajectory[0, 2]:.3f})"
+                )
 
             self._goal_pos = self.trajectory[-1, :3].copy()
             self._completion_debounce_count = 0
@@ -1139,17 +1152,21 @@ class DiveControllerMPC(DiveControllerInterface):
                     t_hat = t_ahead
                 else:
                     t_hat = t_local
+
                 self.ref[stage, :3] = p_ref
                 self.path_t_hat[stage] = t_hat
+                
 
+                # This is never used. The actual computational cost is based on t_hat and p_ref alone
                 yaw = np.arctan2(t_hat[1], t_hat[0])
                 pitch = -np.arcsin(np.clip(t_hat[2], -1.0, 1.0))
+                
                 cy, sy = np.cos(yaw / 2), np.sin(yaw / 2)
                 cp, sp = np.cos(pitch / 2), np.sin(pitch / 2)
                 self.ref[stage, 3] = cy * cp       # qw
-                self.ref[stage, 4] = -cy * sp      # qx
-                self.ref[stage, 5] = sy * cp        # qy
-                self.ref[stage, 6] = sy * sp        # qz
+                self.ref[stage, 4] = -sy * sp      # qx
+                self.ref[stage, 5] = cy * sp       # qy
+                self.ref[stage, 6] = sy * cp       # qz
 
             # Terminal reference: extend one step beyond the last propagated
             # theta_hat.  As the vehicle nears the end, path_theta_hat[-1]
@@ -1165,17 +1182,20 @@ class DiveControllerMPC(DiveControllerInterface):
             theta_term_ahead = min(theta_terminal + heading_offset, self.theta_total)
             _, t_term_ahead, _ = self._get_path_geometry(theta_term_ahead)
             t_term = t_term_ahead if np.dot(t_term_local, t_term_ahead) > 0.0 else t_term_local
+
+
             self._terminal_ref = np.zeros(self.nx + self.nu)
             self._terminal_ref[:3] = p_term
 
             yaw_t = np.arctan2(t_term[1], t_term[0])
             pitch_t = -np.arcsin(np.clip(t_term[2], -1.0, 1.0))
+           
             cy_t, sy_t = np.cos(yaw_t / 2), np.sin(yaw_t / 2)
             cp_t, sp_t = np.cos(pitch_t / 2), np.sin(pitch_t / 2)
             self._terminal_ref[3] = cy_t * cp_t
-            self._terminal_ref[4] = -cy_t * sp_t
-            self._terminal_ref[5] = sy_t * cp_t
-            self._terminal_ref[6] = sy_t * sp_t
+            self._terminal_ref[4] = -sy_t * sp_t
+            self._terminal_ref[5] = cy_t * sp_t
+            self._terminal_ref[6] = sy_t * cp_t
 
             self._enforce_reference_quaternion_continuity(q_current_wxyz)
 
@@ -1259,13 +1279,18 @@ class DiveControllerMPC(DiveControllerInterface):
         q_ref = self._normalize_quat_wxyz(q_ref_wxyz)
         return -q if np.dot(q, q_ref) < 0.0 else q
 
+    RPM_MIN = -500.0
+    RPM_MAX = 450.0
+
     def set_publishers(self, mpc_solution):
         """Publish actuator commands and update convenience topics."""
         u_vbs = mpc_solution[13]
         u_lcg = mpc_solution[14]
         u_stern, u_rudder = self._map_actuator_commands(mpc_solution)
-        u_rpm1 = mpc_solution[17]
-        u_rpm2 = mpc_solution[18]
+        
+        # Safety measure to really never exceed the RPM limits because we have an internal rpm state estimator
+        u_rpm1 = np.clip(mpc_solution[17], self.RPM_MIN, self.RPM_MAX)
+        u_rpm2 = np.clip(mpc_solution[18], self.RPM_MIN, self.RPM_MAX)
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)

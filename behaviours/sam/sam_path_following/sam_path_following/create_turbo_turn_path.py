@@ -12,7 +12,7 @@ Modes:
 import argparse
 import os
 
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import CubicSpline, PchipInterpolator
 
 import numpy as np
 import pandas as pd
@@ -219,6 +219,22 @@ def build_waypoints_path(args):
     python3 create_turbo_turn_path.py --mode waypoints \
     --wp "0.5,0,0; 1,0,0; 3,0,0.75; 6,0,1.5; 2.5, 0, 1.5" \
     -o trajectories/straight_line_s-curve_depth-1.5_return_dive.csv
+
+    gentle straight dive
+    python3 create_turbo_turn_path.py --mode waypoints \
+    --wp "1.0,0.0,0.0; 2.0,0.0,0.0; 3.0,0.0,0.3; 4.5,0.00,0.8; 5.5,0.00,1.3; 6.0,0.0,1.5" \
+    -o trajectories/gentle_straight_dive.csv
+
+    gentle turn dive
+    python3 create_turbo_turn_path.py --mode waypoints \
+    --wp "1.0,0.0,0.0; 2.0,0.0,0.0; 3.0,0.0,0.3; 4.5,0.5,0.8; 5.5,0.75,1.3; 6.0,1.0,1.5" \
+    -o trajectories/gentle_turn_dive.csv
+    
+    turning test
+    python3 create_turbo_turn_path.py --mode waypoints \
+    --wp "1.0,0.0,0.0; 2.0,0.0,0.0; 3.0,0.0,0.3; 4.5,0.02,0.8; 5.5,0.05,1.3; 6.0,0.25,1.5; 5.8,0.45,1.5; 5.5,0.5,1.5; 3.0,0.5,1.5" \
+    -o trajectories/return_dive.csv
+    
     """
     raw = args.wp.replace(" ", "")
     tokens = [t for t in raw.split(";") if t]
@@ -386,6 +402,18 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
     PEAK_KW = dict(marker="*", color="magenta", markersize=14, zorder=10,
                    label="Max κ")
 
+    # Near-end trigger: theta_total - 0.7
+    NEAR_END_OFFSET = 0.7
+    ne_s = ne_x = ne_y = ne_z = None
+    if spline_ok and theta_total > NEAR_END_OFFSET:
+        ne_s = theta_total - NEAR_END_OFFSET
+        ne_x = float(spl_x(ne_s))
+        ne_y = float(spl_y(ne_s))
+        ne_z = float(spl_z(ne_s))
+    NE_KW = dict(marker="D", color="red", markersize=10, zorder=10,
+                 label=f"Near end (θ_total − {NEAR_END_OFFSET})")
+    NE_VLINE_KW = dict(color="red", linewidth=1.0, alpha=0.6, linestyle="-.")
+
     # Rows: XY, XZ, X(s), Y(s), Z(s), [pitch], [curvature]
     n_rows = 5 + int(has_depth) + int(spline_ok)
     fig, axes = plt.subplots(n_rows, 1, figsize=(12, 4 * n_rows))
@@ -401,6 +429,8 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
     )
     if peak_s is not None:
         ax_xy.plot(peak_x, peak_y, **PEAK_KW)
+    if ne_s is not None:
+        ax_xy.plot(ne_x, ne_y, **NE_KW)
     for i in range(N):
         ax_xy.annotate(
             str(i), (x[i], y[i]),
@@ -434,6 +464,8 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
     )
     if peak_s is not None:
         ax_xz.plot(peak_x, peak_z, **PEAK_KW)
+    if ne_s is not None:
+        ax_xz.plot(ne_x, ne_z, **NE_KW)
     for i in range(N):
         ax_xz.annotate(
             str(i), (x[i], z[i]),
@@ -449,6 +481,7 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
 
     # --- X, Y, Z vs arc length ---
     peak_coord_vals = {"X": peak_x, "Y": peak_y, "Z": peak_z}
+    ne_coord_vals = {"X": ne_x, "Y": ne_y, "Z": ne_z}
     for coord_label, wp_vals, spl, color_spl in [
         ("X", x, spl_x if spline_ok else None, "C0"),
         ("Y", y, spl_y if spline_ok else None, "C3"),
@@ -463,6 +496,9 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
                 zorder=2)
         if peak_s is not None:
             ax.plot(peak_s, peak_coord_vals[coord_label], **PEAK_KW)
+        if ne_s is not None:
+            ax.plot(ne_s, ne_coord_vals[coord_label], **NE_KW)
+            ax.axvline(ne_s, **NE_VLINE_KW)
         for s_wp in (arc_lengths if spline_ok else []):
             ax.axvline(s_wp, color="C1", linewidth=0.6, alpha=0.4, linestyle="--")
         ax.set_xlabel("Arc length (m)")
@@ -491,6 +527,10 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
         if peak_s is not None:
             pitch_at_peak = np.interp(peak_s, arc, np.rad2deg(pitch))
             ax_pitch.plot(peak_s, pitch_at_peak, **PEAK_KW)
+        if ne_s is not None:
+            pitch_at_ne = np.interp(ne_s, arc, np.rad2deg(pitch))
+            ax_pitch.plot(ne_s, pitch_at_ne, **NE_KW)
+            ax_pitch.axvline(ne_s, **NE_VLINE_KW)
         ax_pitch.set_xlabel("Arc length (m)")
         ax_pitch.set_ylabel("Pitch angle (deg)")
         ax_pitch.set_title("Pitch angle along trajectory")
@@ -502,6 +542,10 @@ def plot_path(x, y, z, yaw, u_per_wp, dr_per_wp, args, out_path):
         ax_curv = axes[row]; row += 1
         ax_curv.plot(s_fine, curvature, "-", color="C2", linewidth=1.5)
         ax_curv.plot(peak_s, peak_curv, **PEAK_KW)
+        if ne_s is not None:
+            ne_curv = float(np.interp(ne_s, s_fine, curvature))
+            ax_curv.plot(ne_s, ne_curv, **NE_KW)
+            ax_curv.axvline(ne_s, **NE_VLINE_KW)
         for s_wp in arc_lengths:
             ax_curv.axvline(s_wp, color="C1", linewidth=0.6, alpha=0.5, linestyle="--")
         ax_curv.set_xlabel("Arc length (m)")
@@ -540,7 +584,7 @@ def compute_spline(x, y, z):
     # Falls back to "natural" for 2-point paths where "not-a-knot" needs >= 3.
     bc = "not-a-knot" if len(x) >= 3 else "natural"
     spl_x = CubicSpline(s, x, bc_type=bc)
-    spl_y = CubicSpline(s, y, bc_type=bc)
+    spl_y = PchipInterpolator(s, y)
     spl_z = CubicSpline(s, z, bc_type=bc)
     return arc_lengths, theta_total, spl_x, spl_y, spl_z
 

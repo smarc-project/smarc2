@@ -4,6 +4,7 @@ from pathlib import Path as FilePath
 import numpy as np
 import rclpy
 from action_msgs.msg import GoalStatus
+from std_msgs.msg import Bool
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Path
@@ -47,6 +48,8 @@ class PathClient(SMARCActionClient):
         self._json_ops = PathAction()
         self.logger.set_level(rclpy.logging.LoggingSeverity.INFO)
         self.goal_processed = False
+        self.start_mission = False  
+
 
         self.world_prefix = (
             self._node.get_parameter("world_prefix").get_parameter_value().string_value
@@ -77,8 +80,19 @@ class PathClient(SMARCActionClient):
         self._node.declare_parameter(
             "world_prefix", ""
         )  # choose if we're in the tank of not
+            
+
+    def uwcomm_start_mission(self, start_msg: Bool):
+        if not self.start_mission:
+            self.logger.info(f"Start received from uwcomm: {start_msg.data}")
+        self.start_mission = True
 
     def run(self):
+        
+        self.uw_comm_goal_sub = self._node.create_subscription(Bool,    
+                                                              '/sam/uwgps/nachos',
+                                                              self.uwcomm_start_mission, 1)
+                                                              
         # DEBUGGING the trajectory tracking
         #HERE = FilePath(__file__).parent  # resolves the directory of the script.
         HERE = FilePath("/home/orin/colcon_ws/src/smarc2/behaviours/sam/sam_path_following/sam_path_following/")
@@ -92,18 +106,18 @@ class PathClient(SMARCActionClient):
             #HERE / "trajectories" / "straight_line_s-curve_depth-1.5_return_dive.csv"
             #HERE / "trajectories" / "straight_line_s-curve_depth-1.5_90deg_turn_dive.csv"
             #HERE / "trajectories" / "surface_test.csv"
-            HERE / "trajectories" / "gentle_dive_test.csv"
+            #HERE / "trajectories" / "return_dive.csv"
+            HERE / "trajectories" / "gentle_turn_dive.csv"
+            #HERE / "trajectories" / "gentle_straight_dive.csv"
         )
 
         np_path = self.read_csv_to_array(file_path)
-        mpc_trajectory = self.convert_np_path_to_trajectory(np_path)
+        self.mpc_trajectory = self.convert_np_path_to_trajectory(np_path)
         self.create_path_msg(FilePath(file_path))
 
-        self.send_path(mpc_trajectory)
 
-        self.logger.info("Trajectory sent")
 
-        self.trajectory_msg = mpc_trajectory
+        self.trajectory_msg = self.mpc_trajectory
         self.timer = self._node.create_timer(1.0, self.timer_callback)
 
         pass
@@ -113,6 +127,23 @@ class PathClient(SMARCActionClient):
         #                                                     self.mocap_hydro_cb, 1)
 
     def timer_callback(self):
+
+        self.logger.debug("running timer callback")
+        if self.start_mission and self.mpc_trajectory is not None:
+                self.logger.info("Starting path following mission")
+                if not self.goal_processed:
+                    if self.state != ActionClientState.SENT:
+
+                        if self.state == ActionClientState.ACCEPTED or self.state == ActionClientState.RUNNING:
+                            self.goal_processed = True
+                            self.start_mission = False
+                            self.mpc_trajectory = None
+                            #self._node.destroy_subscription(self.mocap_goal_sub)
+                            return
+                        
+                        self.send_path(self.mpc_trajectory)
+                        self.logger.info("Trajectory sent")
+
         now = self._node.get_clock().now()
         stamp = now.to_msg()
 
