@@ -764,14 +764,14 @@ class DiveControllerMPC(DiveControllerInterface):
             # Snap first waypoint to the vehicle's current position so the
             # spline starts where the AUV actually is.  Avoids initial lateral
             # correction from DR drift that can overshoot at high RPM.
-            if self._current_state is not None:
-                self.trajectory[0, 0] = self._current_state.pose.pose.position.x
-                self.trajectory[0, 1] = self._current_state.pose.pose.position.y
-                self.trajectory[0, 2] = self._current_state.pose.pose.position.z
-                self._loginfo(
-                    f"Snapped WP0 to vehicle position: "
-                    f"({self.trajectory[0, 0]:.3f}, {self.trajectory[0, 1]:.3f}, {self.trajectory[0, 2]:.3f})"
-                )
+            #if self._current_state is not None:
+            #    self.trajectory[0, 0] = self._current_state.pose.pose.position.x
+            #    self.trajectory[0, 1] = self._current_state.pose.pose.position.y
+            #    self.trajectory[0, 2] = self._current_state.pose.pose.position.z
+            #    self._loginfo(
+            #        f"Snapped WP0 to vehicle position: "
+            #        f"({self.trajectory[0, 0]:.3f}, {self.trajectory[0, 1]:.3f}, {self.trajectory[0, 2]:.3f})"
+            #    )
 
             self._goal_pos = self.trajectory[-1, :3].copy()
             self._completion_debounce_count = 0
