@@ -517,7 +517,7 @@ class DiveControllerMPC(DiveControllerInterface):
         # Falls back to "natural" for 2-point paths where "not-a-knot" needs >= 3.
         bc = "not-a-knot" if self.traj_len >= 3 else "natural"
         self._spl_x = CubicSpline(s, self.trajectory[:, 0], bc_type=bc)
-        self._spl_y = PchipInterpolator(s, self.trajectory[:, 1])
+        self._spl_y = CubicSpline(s, self.trajectory[:, 1], bc_type=bc) #PchipInterpolator(s, self.trajectory[:, 1])
         self._spl_z = CubicSpline(s, self.trajectory[:, 2], bc_type=bc)
         self._loginfo(
             f"MPCC spline built: {self.traj_len} waypoints, "

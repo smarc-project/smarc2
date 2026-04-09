@@ -229,6 +229,11 @@ def build_waypoints_path(args):
     python3 create_turbo_turn_path.py --mode waypoints \
     --wp "1.0,0.0,0.0; 2.0,0.0,0.0; 3.0,0.0,0.3; 4.5,0.5,0.8; 5.5,0.75,1.3; 6.0,1.0,1.5" \
     -o trajectories/gentle_turn_dive.csv
+
+    sharper turn dive (full 90 degree turn)
+    python3 create_turbo_turn_path.py --mode waypoints \
+    --wp "1.0,0.0,0.0; 2.0,0.0,0.0; 3.0,0.0,0.3; 5.0,0.0,0.8; 5.5,0.0,1.3; 6.0,0.0,1.5; 6.0,1.0,1.5" \
+    -o trajectories/sharper_turn_dive.csv
     
     turning test
     python3 create_turbo_turn_path.py --mode waypoints \
@@ -584,7 +589,7 @@ def compute_spline(x, y, z):
     # Falls back to "natural" for 2-point paths where "not-a-knot" needs >= 3.
     bc = "not-a-knot" if len(x) >= 3 else "natural"
     spl_x = CubicSpline(s, x, bc_type=bc)
-    spl_y = PchipInterpolator(s, y)
+    spl_y = CubicSpline(s, y, bc_type=bc) #PchipInterpolator(s, y)
     spl_z = CubicSpline(s, z, bc_type=bc)
     return arc_lengths, theta_total, spl_x, spl_y, spl_z
 

@@ -107,9 +107,11 @@ class PathClient(SMARCActionClient):
             #HERE / "trajectories" / "straight_line_s-curve_depth-1.5_90deg_turn_dive.csv"
             #HERE / "trajectories" / "surface_test.csv"
             #HERE / "trajectories" / "return_dive.csv"
-            HERE / "trajectories" / "gentle_turn_dive.csv"
-            #HERE / "trajectories" / "gentle_straight_dive.csv"
+            #HERE / "trajectories" / "gentle_turn_dive.csv"  # turn towards the corner
+            #HERE / "trajectories" / "gentle_straight_dive.csv" # straight dive during the experiments
             #HERE / "trajectories" / "gentle_dive_test.csv"
+            HERE / "trajectories" / "sharper_turn_dive.csv"  # sharper turn dive (full 90 degree turn)
+
         )
 
         np_path = self.read_csv_to_array(file_path)
