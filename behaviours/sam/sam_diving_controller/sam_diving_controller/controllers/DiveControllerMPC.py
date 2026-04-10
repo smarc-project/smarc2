@@ -6,6 +6,7 @@ import numpy as np
 from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Odometry
 from scipy.interpolate import CubicSpline, PchipInterpolator
+from scipy.optimize import minimize_scalar
 from scipy.spatial.transform import Rotation as R
 from smarc_control_msgs.msg import ControlInput
 from smarc_modelling.control.control import *
@@ -394,15 +395,10 @@ class DiveControllerMPC(DiveControllerInterface):
         self.delta_v_theta = u_k[6]
 
         # Update MPCC progress variable.
-        # Theta is set by PROJECTING the vehicle's actual position onto the
-        # spline path (within a local window).  This prevents theta from
-        # racing ahead of the vehicle.
-        #
-        # v_theta is read from the integrator (exact one-step propagation of
-        # v_theta_current + dt * delta_v_theta).  This is dynamically exact,
-        # unlike the solver's stage-1 which may not be fully converged under
-        # SQP_RTI.  A minimum floor prevents the reference from stalling
-        # when the vehicle is momentarily stationary.
+        # Theta is set by projecting the vehicle position onto the cubic
+        # spline path.  The solver's v_theta >= 0 hard bound and e_sync
+        # coupling already prevent theta from racing ahead of the vehicle,
+        # so no forward-only ratchet is needed here.
         start_theta_time = time.time()
         if mpc_solution is not None and status == 0 and self.ref_is_traj and self.theta_total > 0:
             p_now = x_current[:3]
@@ -410,10 +406,7 @@ class DiveControllerMPC(DiveControllerInterface):
             theta_proj = self._project_onto_path(
                 p_now, theta_hint=self.theta, window=search_window
             )
-            theta_old = self.theta
-            self.theta = np.clip(
-                max(theta_proj, theta_old), 0.0, self.theta_total
-            )
+            self.theta = np.clip(theta_proj, 0.0, self.theta_total)
 
             self.v_theta = max(
                 float(mpc_solution[self.nmpc.N_PHYS_STATES + 1]),
@@ -552,66 +545,36 @@ class DiveControllerMPC(DiveControllerInterface):
         return p_ref, t_hat, theta_q
 
     def _project_onto_path(self, pos, theta_hint=None, window=None):
-        # TODO: Check if that actually makes sense. The spline should take care of this.
-        """Project a 3D position onto the piecewise-linear path, return arc-length.
+        """Project a 3D position onto the cubic spline path, return arc-length.
 
-        When *theta_hint* and *window* are given, the search is restricted to
-        segments whose arc-length is within [theta_hint, theta_hint + window]
-        (forward-only search).  Among candidates within this forward window,
-        the one closest to theta_hint is preferred (with a distance tolerance),
-        breaking ties toward progress.  This correctly handles self-crossing
-        paths like the three-point turn, where the same XY position appears
-        on both the outbound and return legs.
-
-        Falls back to the global best if no segment lies in the window.
+        Minimises the squared distance from *pos* to the spline curve within
+        [theta_hint - 0.5, theta_hint + window] (or the full path when no hint
+        is given).  A coarse sample sweep seeds a bounded scalar optimisation
+        so the result tracks the spline the vehicle is actually following,
+        not the piecewise-linear waypoint segments.
         """
-        best_theta = 0.0
-        best_dist = float("inf")
-        # Forward-window candidates: (distance, seg_theta) pairs
-        fwd_candidates = []
+        pos = np.asarray(pos, dtype=float)
 
-        for i in range(self.traj_len - 1):
-            A = self.trajectory[i, :3]
-            B = self.trajectory[i + 1, :3]
-            AB = B - A
-            AB_sq = np.dot(AB, AB)
-            if AB_sq < 1e-16:
-                t = 0.0
-            else:
-                t = np.clip(np.dot(pos - A, AB) / AB_sq, 0.0, 1.0)
-            closest = A + t * AB
-            d = np.linalg.norm(pos - closest)
-            seg_theta = self.arc_lengths[i] + t * (
-                self.arc_lengths[i + 1] - self.arc_lengths[i]
-            )
+        if theta_hint is not None and window is not None:
+            lo = max(theta_hint - 0.5, 0.0)
+            hi = min(theta_hint + window, self.theta_total)
+        else:
+            lo, hi = 0.0, self.theta_total
 
-            if d < best_dist:
-                best_dist = d
-                best_theta = seg_theta
+        if hi - lo < 1e-12:
+            return lo
 
-            if (
-                theta_hint is not None
-                and window is not None
-                and seg_theta >= theta_hint - 0.5
-                and seg_theta <= theta_hint + window
-            ):
-                fwd_candidates.append((d, seg_theta))
+        def _dist_sq(theta):
+            dx = float(self._spl_x(theta)) - pos[0]
+            dy = float(self._spl_y(theta)) - pos[1]
+            dz = float(self._spl_z(theta)) - pos[2]
+            return dx * dx + dy * dy + dz * dz
 
-        if fwd_candidates:
-            # Among all forward candidates within a distance tolerance of the
-            # best, pick the one closest to theta_hint (smallest forward step).
-            fwd_candidates.sort(key=lambda c: c[0])
-            d_best = fwd_candidates[0][0]
-            d_tol = max(d_best + 0.3, d_best * 2.0)
-            near = [c for c in fwd_candidates if c[0] <= d_tol]
-            near.sort(key=lambda c: c[1])
-            # Pick the first candidate that is at or ahead of theta_hint
-            for d_c, th_c in near:
-                if th_c >= theta_hint - 0.1:
-                    return th_c
-            return near[0][1]
-
-        return best_theta
+        result = minimize_scalar(
+            _dist_sq, bounds=(lo, hi), method="bounded",
+            options={"xatol": 1e-3, "maxiter": 50},
+        )
+        return float(result.x)
 
     # ---- debug helper --------------------------------------------------------
 
