@@ -408,10 +408,12 @@ class DiveControllerMPC(DiveControllerInterface):
             )
             self.theta = np.clip(theta_proj, 0.0, self.theta_total)
 
-            self.v_theta = max(
-                float(mpc_solution[self.nmpc.N_PHYS_STATES + 1]),
-                0.1,
-            )
+            #self.v_theta = max(
+            #    float(mpc_solution[self.nmpc.N_PHYS_STATES + 1]),
+            #    0.1,
+            #)
+            self.v_theta = float(mpc_solution[self.nmpc.N_PHYS_STATES + 1])
+
         end_theta_time = time.time()
         theta_solver = float(self.ocp_solver.get(1, "x")[self.nmpc.N_PHYS_STATES])
 
@@ -556,7 +558,7 @@ class DiveControllerMPC(DiveControllerInterface):
         pos = np.asarray(pos, dtype=float)
 
         if theta_hint is not None and window is not None:
-            lo = max(theta_hint - 0.5, 0.0)
+            lo = max(theta_hint, 0.0)
             hi = min(theta_hint + window, self.theta_total)
         else:
             lo, hi = 0.0, self.theta_total
