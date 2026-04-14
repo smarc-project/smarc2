@@ -110,8 +110,9 @@ class PathClient(SMARCActionClient):
             
             ## Dive tests run on SAM in increasing difficulty
             #HERE / "trajectories" / "gentle_straight_dive.csv" # straight dive during the experiments
-            HERE / "trajectories" / "gentle_turn_dive.csv"  # turn towards the corner
+            #HERE / "trajectories" / "gentle_turn_dive.csv"  # turn towards the corner
             #HERE / "trajectories" / "sharper_turn_dive.csv"  # sharper turn dive (full 90 degree turn)
+            HERE / "trajectories" / "sharper_left_turn_dive.csv"  # sharper turn dive (full 90 degree turn)
             #HERE / "trajectories" / "sharper_turn_dive_2.csv"  # sharper turn dive (full 90 degree turn)
             #HERE / "trajectories" / "gentle_dive_test.csv"  # full turn dive
             #HERE / "trajectories" / "steep_straight_dive.csv"  # steep straight dive
