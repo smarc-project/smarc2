@@ -1,0 +1,111 @@
+# Floatsam Real Hardware Topic Mappings
+# ⚠️ PLACEHOLDER TOPICS - MUST BE UPDATED WITH ACTUAL HARDWARE TOPICS ⚠️
+
+sensors:
+  # GPS sensors (dual GPS setup)
+  gps_left:
+    input_topic: '/fmu/out/vehicle_gps_position'  
+    output_topic: 'core/gps_left'
+    msg_type: 'px4_msgs/SensorGps'
+    
+  gps_right:
+    input_topic: '/fmu/out/vehicle_gps_position' 
+    output_topic: 'core/gps_right'
+    msg_type: 'px4_msgs/SensorGps'
+    
+  rtk_heading:
+    input_topic: '/atteuler'
+    output_topic: 'core/heading'
+    msg_type: 'septentrio_gnss_driver/msg/AttEuler' # <--- MUST MATCH HARDWARE
+    
+  rtk_position:
+    input_topic: '/navsatfix'  
+    output_topic: 'core/rtk_position'
+    # THIS MUST BE SENSOR_GPS FOR THE EKF TO WORK
+    output_for_px4: '/fmu/in/sensor_gps' 
+    msg_type: 'sensor_msgs/NavSatFix'
+    
+  # IMU 
+  imu:
+    input_topic: '/fmu/out/sensor_combined'
+    output_topic: 'core/imu'
+    msg_type: 'px4_msgs/SensorCombined'
+    
+  # Depth pressure
+  depth_pressure:
+    input_topic: '/floatsam/hardware/pressure/depth'  # PLACEHOLDER
+    output_topic: 'smarc/depth'
+    msg_type: 'sensor_msgs/FluidPressure'
+    
+  # DVL
+  dvl:
+    input_topic: '/floatsam/hardware/dvl/data'  # PLACEHOLDER
+    output_topic: 'core/dvl'
+    msg_type: 'sensor_msgs/Range'
+    
+  # Leak detector
+  leak:
+    input_topic: '/floatsam/hardware/leak_sensor'  # PLACEHOLDER
+    output_topic: 'core/leak'
+    msg_type: 'std_msgs/Bool'
+    
+  # Odometry
+  odom:
+    input_topic: '/fmu/out/vehicle_odometry'
+    output_topic: 'smarc/odom'
+    msg_type: 'px4_msgs/VehicleOdometry'
+    
+  # Battery 
+  battery:
+    input_topic: '/fmu/out/battery_status_v1'
+    output_topic: 'smarc/battery_percent'
+    msg_type: 'px4_msgs/BatteryStatus'
+    
+# Actuators
+# Bridge translates captain's standard topics to hardware-specific topics
+# NOTE: Hardware output topics use absolute paths (start with /) to avoid robot namespace
+# Actuators
+actuators:
+  thruster_port_cmd:
+    input_topic: '/{robot_name}/actuators/thruster_port_cmd'
+    msg_type: 'std_msgs/Float32'
+    
+  thruster_strb_cmd:
+    input_topic: '/{robot_name}/actuators/thruster_strb_cmd'
+    msg_type: 'std_msgs/Float32'
+    
+  # The unified output for PX4 
+  px4_motors:
+    output_topic: '/fmu/in/actuator_motors'
+    msg_type: 'px4_msgs/ActuatorMotors'
+    
+
+  # NO FEEDBACK TOPICS - ESC doesn't provide direct feedback on thruster commands
+  # thruster_port_fb:
+  #   input_topic: '/{robot_name}/hardware/thruster_port_fb'  # PLACEHOLDER - From hardware (absolute)
+  #   output_topic: 'smarc/actuators/thruster_port_fb'  # To SMARC standard (relative, gets robot namespace)
+  #   msg_type: 'std_msgs/Float32'
+    
+  # thruster_strb_fb:
+  #   input_topic: '/{robot_name}/hardware/thruster_strb_fb'  # PLACEHOLDER - From hardware (absolute)
+  #   output_topic: 'smarc/actuators/thruster_strb_fb'  # To SMARC standard (relative, gets robot namespace)
+  #   msg_type: 'std_msgs/Float32'
+
+# Payload
+payload:
+  sidescan:
+    input_topic: '/floatsam/hardware/sidescan/image'  # PLACEHOLDER
+    output_topic: 'payload/sidescan'
+    msg_type: 'sensor_msgs/Image'
+    
+  mbes_bathy:
+    input_topic: '/floatsam/hardware/mbes/points'  # PLACEHOLDER
+    output_topic: 'payload/mbes_bathy_points'
+    msg_type: 'sensor_msgs/PointCloud2'
+
+# Computed from odom
+compute_from_odom:
+  heading: 'smarc/heading'
+  course: 'smarc/course'
+  speed: 'smarc/speed'
+  latlon: 'smarc/latlon'

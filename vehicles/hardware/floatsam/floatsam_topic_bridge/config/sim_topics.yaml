@@ -1,0 +1,104 @@
+# Floatsam Simulator Topic Mappings
+# Maps simulator topics to standard SMaRC topics
+
+sensors:
+  # GPS sensors (dual GPS setup)
+  gps_left:
+    input_topic: '/{robot_name}/core/gps_left'
+    output_topic: 'core/gps_left'
+    msg_type: 'sensor_msgs/NavSatFix'
+    
+  gps_right:
+    input_topic: '/{robot_name}/core/gps_right'
+    output_topic: 'core/gps_right'
+    msg_type: 'sensor_msgs/NavSatFix'
+    
+  # RTK GPS (high precision)
+  rtk_left:
+    input_topic: '/{robot_name}/core/rtk_left'
+    output_topic: 'core/rtk_left'
+    msg_type: 'sensor_msgs/NavSatFix'
+    
+  rtk_right:
+    input_topic: '/{robot_name}/core/rtk_right'
+    output_topic: 'core/rtk_right'
+    msg_type: 'sensor_msgs/NavSatFix'
+    
+  # IMU (raw data only, heading comes from odom)
+  imu:
+    input_topic: '/{robot_name}/core/imu'
+    output_topic: 'core/imu'
+    msg_type: 'sensor_msgs/Imu'
+    
+  # Depth pressure sensor
+  depth_pressure:
+    input_topic: '/{robot_name}/core/depth_pressure'
+    output_topic: 'smarc/depth'
+    msg_type: 'sensor_msgs/FluidPressure'
+    
+  # DVL (Doppler Velocity Log)
+  dvl:
+    input_topic: '/{robot_name}/core/dvl'
+    output_topic: 'core/dvl'
+    msg_type: 'sensor_msgs/Range'
+    
+  # Leak detector
+  leak:
+    input_topic: '/{robot_name}/core/leak'
+    output_topic: 'core/leak'
+    msg_type: 'std_msgs/Bool'
+    
+  # Ground truth odometry (also computes heading, course, speed)
+  odom_gt:
+    input_topic: '/{robot_name}/odom_gt'
+    output_topic: 'smarc/odom'
+    msg_type: 'nav_msgs/Odometry'
+    
+  # Battery
+  battery:
+    input_topic: '/{robot_name}/smarc/battery_percent'
+    output_topic: 'smarc/battery_percent'
+    msg_type: 'std_msgs/Float32'
+
+# Actuator topics
+# Bridge translates captain's standard topics to simulator-specific topics
+# NOTE: Input topics use {robot_name} placeholder - bridge will substitute with actual robot name
+actuators:
+  thruster_port_cmd:
+    input_topic: '/{robot_name}/actuators/thruster_port_cmd'  # From captain (FloatsamTopics.THRUSTER_PORT_CMD)
+    output_topic: 'actuators/prop_left_cmd'  # To simulator
+    msg_type: 'std_msgs/Float32'
+    
+  thruster_strb_cmd:
+    input_topic: '/{robot_name}/actuators/thruster_strb_cmd'  # From captain (FloatsamTopics.THRUSTER_STRB_CMD)
+    output_topic: 'actuators/prop_right_cmd'  # To simulator
+    msg_type: 'std_msgs/Float32'
+    
+  prop_left_fb:
+    input_topic: '/{robot_name}/actuators/prop_left_fb'  # From simulator
+    output_topic: 'actuators/thruster_port_fb'  # To SMARC standard (relative, will be namespaced)
+    msg_type: 'std_msgs/Float32'
+    
+  prop_right_fb:
+    input_topic: '/{robot_name}/actuators/prop_right_fb'  # From simulator
+    output_topic: 'actuators/thruster_strb_fb'  # To SMARC standard (relative, will be namespaced)
+    msg_type: 'std_msgs/Float32'
+
+# Payload sensors
+payload:
+  sidescan:
+    input_topic: '/{robot_name}/payload/sidescan'
+    output_topic: 'payload/sidescan'
+    msg_type: 'sensor_msgs/Image'
+    
+  mbes_bathy:
+    input_topic: '/{robot_name}/mbes/map_gt/bathy_points'
+    output_topic: 'payload/mbes_bathy'
+    msg_type: 'sensor_msgs/PointCloud2'
+
+# Computed from odom: heading, course, speed, latlon
+compute_from_odom:
+  heading: 'smarc/heading'  # Orientation from odom quaternion
+  course: 'smarc/course'    # Direction of travel from velocity
+  speed: 'smarc/speed'      # Velocity magnitude
+  latlon: 'smarc/latlon'    # Will use best available GPS
