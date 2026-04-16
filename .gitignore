@@ -1,6 +1,6 @@
 __pycache__
 .vscode
-
+.DS_Store
 .idea/
 
 mpc_codegen
