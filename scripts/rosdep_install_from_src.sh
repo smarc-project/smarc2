@@ -1,2 +1,2 @@
 #!/bin/bash
-rosdep install -i --from-path src --rosdistro humble -y --ignore-src
+rosdep install --from-paths src --rosdistro humble -y --ignore-src
