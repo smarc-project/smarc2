@@ -57,7 +57,8 @@ mkdir -p colcon_ws/src
 cd colcon_ws/src
 git clone https://github.com/smarc-project/smarc2.git
 cd smarc2
-./scripts/get-submodules.sh external_packages
+./scripts/get-submodules.sh external_packages/mqtt_bridge
+./scripts/get-submodules.sh external_packages/ROS-TCP-Endpoint
 ```
 
 ### Colcon, rosdep, pip
