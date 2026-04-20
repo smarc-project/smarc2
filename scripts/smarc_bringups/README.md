@@ -48,6 +48,11 @@ Launches everything related to DJI drones and the ALARS project.
   - rosshow: (`cd ~/colcon_ws/src && git clone https://github.com/dheera/rosshow`)
   - Set discovery server stuff as described in `scripts/README.md ## ROS2 over a VPN`
 
+#### Camera calibration
+`apt install ros-humble-camera-calibration`
+With GUI, follow: https://docs.ros.org/en/kilted/p/camera_calibration/doc/tutorial_mono.html
+Copy the values into `perception/alars/auv_state_estimation/config/....yaml`
+
 #### Proper torch installation (Jetpack 6.2.2)
 
 After everything above:

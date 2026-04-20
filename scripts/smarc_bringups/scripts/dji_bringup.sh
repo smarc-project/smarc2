@@ -196,8 +196,10 @@ tmux_make_layout "$SESSION" BTs "row(3:var(WASP_BT_CMD), 3:var(ALARS_BT_CMD), 1:
 # 4 Camera and detection
 ############
 YOLO_DEVICE=0
+CAM_CALIBRATION_FILE="real_z1_params.yaml"
 if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_DEVICE=cpu
+    CAM_CALIBRATION_FILE="cam_params.yaml"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
 namespace:=$ROBOT_NAME \
@@ -205,7 +207,7 @@ device:=$YOLO_DEVICE \
 use_sim_time:=$USE_SIM_TIME \
 model_package:=alars_labeling_training"
 
-PROJECTION_CMD="ros2 launch auv_state_estimation projection_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+PROJECTION_CMD="ros2 launch auv_state_estimation ekf_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME camera_calibration_file:=$CAM_CALIBRATION_FILE"
 
 tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 

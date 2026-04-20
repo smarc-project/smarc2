@@ -14,8 +14,14 @@ def generate_launch_description():
     )
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='false')
 
+    camera_calibration_file_arg = DeclareLaunchArgument(
+        "camera_calibration_file",
+        default_value="cam_params.yaml"
+    )
+
     namespace = LaunchConfiguration("namespace")
     use_sim_time = LaunchConfiguration("use_sim_time")
+    camera_calibration_file = LaunchConfiguration("camera_calibration_file")
 
     params_file = PathJoinSubstitution([
         FindPackageShare("auv_state_estimation"),
@@ -23,11 +29,12 @@ def generate_launch_description():
         "params.yaml"
     ])
 
-    cam_params_file = PathJoinSubstitution([
+    cam_calib_file = PathJoinSubstitution([
         FindPackageShare("auv_state_estimation"),
         "config",
-        "cam_params.yaml"
+        camera_calibration_file
     ])
+
     
     ekf_node = Node(
         package="auv_state_estimation",
@@ -40,7 +47,7 @@ def generate_launch_description():
             {
                 "use_sim_time": use_sim_time,
                 "topics.input_polygon": Topics.ESTIMATED_AUV_OBB_TOPIC,
-                "camera_info": cam_params_file,
+                "camera_info": cam_calib_file,
             }
         ],
         )
