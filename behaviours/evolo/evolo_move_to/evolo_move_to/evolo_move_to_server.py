@@ -127,6 +127,10 @@ class EvoloMoveTo():
         self._node.declare_parameter('d_gain', 0)
         self.pid_d_gain = float(self._node.get_parameter('d_gain').value)
 
+        self._node.declare_parameter('max_turnrate_deg', 15.0)
+        max_turnrate_deg = float(self._node.get_parameter('max_turnrate_deg').value)
+        self.max_turnrate_output_rad = math.radians(max_turnrate_deg)
+
         self.max_speed = 8.0
         
         
@@ -229,14 +233,16 @@ class EvoloMoveTo():
         error = -vec2_directed_angle(setpoint, current)
         self._node.get_logger().info(f"course error: {error}")
         pid_output = error*self.pid_p_gain
-        self._node.get_logger().info(f"pid_output: {pid_output}")
+        #Clamp output
+        turnrate_cmd = max(-self.max_turnrate_output_rad , min(self.max_turnrate_output_rad, pid_output))
+        self._node.get_logger().info(f"turnrate_cmd (deg): {math.degrees(turnrate_cmd)}")
 
         # Publication
         twist_msg = TwistStamped()
         twist_msg.header.stamp    = self._node.get_clock().now().to_msg()
         twist_msg.header.frame_id = "evolo/base_link"
         twist_msg.twist.linear.x  = self.target_speed
-        twist_msg.twist.angular.z = pid_output
+        twist_msg.twist.angular.z = turnrate_cmd
         self.evolo_pub.publish(twist_msg)
         
         return None

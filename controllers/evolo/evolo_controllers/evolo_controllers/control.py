@@ -29,9 +29,8 @@ class twist_control(Node):
         self.robot_name = self.get_parameter("robot_name").value
 
         #limits
-        self.declare_parameter("max_turnrate", 10.0) #Deg/s
-        self.max_turnrate = float(self.get_parameter("max_turnrate").value)
-        self.max_turnrate_rad = math.radians(self.max_turnrate)
+        self.declare_parameter("max_steering_output", 179.0) 
+        self.max_steering_output = float(self.get_parameter("max_steering_output").value)
 
         self.declare_parameter("max_speed", 6) #m/s ~12 knots
         self.max_speed = self.get_parameter("max_speed").value
@@ -41,7 +40,7 @@ class twist_control(Node):
         self.closed_loop_ctrl = self.get_parameter("closed_loop_control").value
 
         #Open loop gain
-        self.declare_parameter("open_loop_gain", 1.0)
+        self.declare_parameter("open_loop_gain", 3.0)
         self.open_loop_gain = self.get_parameter("open_loop_gain").value
 
         self.twist_setpoint = None
@@ -90,10 +89,12 @@ class twist_control(Node):
                 #steering = math.atan2(self.twist_setpoint.twist.linear.y, self.twist_setpoint.twist.linear.x) # Not used?
                 
                 speed = max(0, min( self.max_speed, self.twist_setpoint.twist.linear.x)) #m/s
-                turnRate = max(-self.max_turnrate_rad, min(self.max_turnrate_rad, self.twist_setpoint.twist.angular.z * self.open_loop_gain)) #rad/s
+                turnRate_deg = math.degrees(self.twist_setpoint.twist.angular.z)
+
+                steering_output = max(-self.max_steering_output, min(self.max_steering_output, turnRate_deg * self.open_loop_gain)) #rad/s
 
                 steering_msg = Float32()
-                steering_msg.data = float(turnRate)
+                steering_msg.data = float(steering_output)
                 self.steering_pub.publish(steering_msg)
 
                 speed_msg = Float32()

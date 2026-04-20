@@ -18,7 +18,7 @@ class TwistToPath : public rclcpp::Node {
     //Parameters
     this->declare_parameter("subscribe_topic", "subscribe_topic");
     this->declare_parameter("publish_topic", "publish_topic");
-    this->declare_parameter("integration_time", 10); //s
+    this->declare_parameter("integration_time", 10.0); //s
     this->declare_parameter("integration_dt", 0.5); //s
 
     std::string subscribe_topic = this->get_parameter("subscribe_topic").as_string();

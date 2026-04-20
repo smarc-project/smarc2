@@ -56,13 +56,9 @@ string PROJECTED_AUV_HEAD_TOPIC = 'alars_projection/auv_head' # PolygonStamped
 string PROJECTED_AUV_OBB_TOPIC = 'alars_projection/auv_obb' # PolygonStamped
 string PROJECTED_BUOY_OBB_TOPIC = 'alars_projection/buoy_obb' # PolygonStamped
 
-# object detectors in 3D
-string ESTIMATED_HOOK_TOPIC = 'alars_detection/hook_est' #PoseStamped
-string ESTIMATED_EKF_HOOK_TOPIC = 'alars_detection/hook_ekf' #PoseStamped
 
 # services
 string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
 string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector' # Trigger
-string ENABLE_HOOK_ESTIMATOR_SERVICE_TOPIC = 'enable_hook_estimator' # Trigger
-string DISABLE_HOOK_ESTIMATOR_SERVICE_TOPIC = 'disable_hook_estimator' # Trigger
+
 

@@ -117,7 +117,7 @@ class EvoloExternalControl():
         #Settings etc
         self.timeout = 1800.0
 
-        self._node.declare_parameter('p_gain', 0.5)
+        self._node.declare_parameter('p_gain', 0.25)
         self.pid_p_gain = float(self._node.get_parameter('p_gain').value)
 
         self._node.declare_parameter('i_gain', 0)
@@ -125,6 +125,10 @@ class EvoloExternalControl():
 
         self._node.declare_parameter('d_gain', 0)
         self.pid_d_gain = float(self._node.get_parameter('d_gain').value)
+
+        self._node.declare_parameter('max_turnrate_deg', 15.0)
+        max_turnrate_deg = float(self._node.get_parameter('max_turnrate_deg').value)
+        self.max_turnrate_output_rad = math.radians(max_turnrate_deg)
 
         self.max_speed = 8.0
         
@@ -211,14 +215,16 @@ class EvoloExternalControl():
             error = -vec2_directed_angle(setpoint, current)
             self._node.get_logger().info(f"course error: {error}")
             pid_output = error*self.pid_p_gain
-            self._node.get_logger().info(f"pid_output: {pid_output}")
+            #Clamp output
+            turnrate_cmd = max(-self.max_turnrate_output_rad , min(self.max_turnrate_output_rad, pid_output))
+            self._node.get_logger().info(f"turnrate_cmd (deg): {math.degrees(turnrate_cmd)}")
 
             # Publication
             twist_msg = TwistStamped()
             twist_msg.header.stamp    = self._node.get_clock().now().to_msg()
-            twist_msg.header.frame_id = self.frame_id
+            twist_msg.header.frame_id = "evolo/base_link"
             twist_msg.twist.linear.x  = self.target_speed
-            twist_msg.twist.angular.z = pid_output
+            twist_msg.twist.angular.z = turnrate_cmd
             self.evolo_pub.publish(twist_msg)
         else:
             self._node.get_logger().error("ERROR external control timeout")
@@ -293,7 +299,7 @@ class EvoloExternalControl():
 
 def main():
     rclpy.init()
-    node = Node("evolo_move_to_action_server")
+    node = Node("evolo_external_control_action_server")
     
     action_server = EvoloExternalControl(node, "external_control")   
 

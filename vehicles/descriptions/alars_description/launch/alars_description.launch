@@ -7,7 +7,7 @@
   <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher" respawn="true" output="screen">
+    <node name="alars_robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher" respawn="true" output="screen">
       <param name="use_sim_time" value="$(var use_sim_time)"/>
       <param name="frame_prefix" value="$(var robot_name)/"/>
       <param name="robot_description" 

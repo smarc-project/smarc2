@@ -113,7 +113,8 @@ class DjiCaptain():
         
         # this is the idle RPM for the ESCs, below this we consider the vehicle not flying
         self.NUM_PROPS = 4 if self.ROBOT_NAME == "M350" else 8
-        self.ESC_IDLE_RPM = 1000 if self.ROBOT_NAME == "M350" else 500 #TODO FC30 idle, who knows...
+        self.ESC_IDLE_RPM = 2500 if self.ROBOT_NAME == "M350" else 500 #TODO FC30 idle, who knows...
+        self._prop_rpms = [0] * self.NUM_PROPS
 
 
         self._TF_NS : str = f"{self.ROBOT_NAME}/"
@@ -338,7 +339,7 @@ class DjiCaptain():
             s += f"  Load Cell Weight: N/A\n"
 
         s += f"  Got Control: {self._got_control}\n"
-        s += f"  Flying: {self._flying}\n"
+        s += f"  Flying: {self._flying} [{', '.join(f'{rpm:.2f}' for rpm in self._prop_rpms)}]\n"
         
         if self._base_pose_in_home is not None:
             s += f"  Altitude from water: {self.altitude_above_water:+.2f} m\n"
@@ -861,8 +862,8 @@ class DjiCaptain():
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_READY
 
         # if we are flying, we need to check more things to make sure we are flying safely
-        prop_rpms = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
-        self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in prop_rpms)        
+        self._prop_rpms = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
+        self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in self._prop_rpms)        
         if self._flying:
             water_altitude_error = self.altitude_above_water < self.MIN_ALTITUDE_ABOVE_WATER
             if water_altitude_error:

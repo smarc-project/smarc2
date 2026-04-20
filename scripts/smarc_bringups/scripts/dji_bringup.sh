@@ -196,15 +196,18 @@ tmux_make_layout "$SESSION" BTs "row(3:var(WASP_BT_CMD), 3:var(ALARS_BT_CMD), 1:
 # 4 Camera and detection
 ############
 YOLO_DEVICE=0
+CAM_CALIBRATION_FILE="real_z1_params.yaml"
 if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_DEVICE=cpu
+    CAM_CALIBRATION_FILE="cam_params.yaml"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
 namespace:=$ROBOT_NAME \
 device:=$YOLO_DEVICE \
-use_sim_time:=$USE_SIM_TIME"
+use_sim_time:=$USE_SIM_TIME \
+model_package:=alars_labeling_training"
 
-PROJECTION_CMD="ros2 launch auv_state_estimation projection_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+PROJECTION_CMD="ros2 launch auv_state_estimation ekf_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME camera_calibration_file:=$CAM_CALIBRATION_FILE"
 
 tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 
@@ -221,41 +224,53 @@ tmux_make_layout "$SESSION" Aux "row(var(GEOFENCE_CMD))"
 ############
 # 6 Drivers
 ############
-if [[ $USE_SIM_TIME = "False" ]]; then
 NAU_DRIVER_CMD="ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/$ROBOT_NAME"
-
 GIMBAL_IP=192.168.1.108
 GIMBAL_PORT=2332
 GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! queue max-size-buffers=1 leaky=downstream"
+GIMBAL_CAM_TOPIC_NS=gimbal_camera
 GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
     -p gscam_config:=\"$GSCAM_CONFIG_GIMBAL\" \
     -p frame_id:=z1_optical_frame \
     -p image_encoding:=rgb8 \
     -p sync_sink:=false \
     -p camera.image_raw.enable_pub_plugins:="['image_transport/compressed','image_transport/raw']" \
-    -r __ns:=/$ROBOT_NAME/gimbal_camera"
-GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_launch.py \
-    namespace:=\"$ROBOT_NAME/gimbal_camera\" \
-    tf_frame_prefix:=\"$ROBOT_NAME/\" \
+    -r __ns:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS"
+GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
+    robot_name:=$ROBOT_NAME \
+    tf_frame_prefix:=$ROBOT_NAME/ \
     use_vehicle_altitude:=True \
     camera_ip:=$GIMBAL_IP \
-    camera_port:=$GIMBAL_PORT"
+    camera_port:=$GIMBAL_PORT \
+    gimbal_camera_topic_ns:=$GIMBAL_CAM_TOPIC_NS"
+GIMBAL_CMD_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
+    robot_name:=\"$ROBOT_NAME\" \
+    use_sim_time:=$USE_SIM_TIME \
+    gimbal_camera_topic_ns:=$GIMBAL_CAM_TOPIC_NS"
 
-GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
-FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
-    -p gscam_config:=\"$GSCAM_CONFIG_FISH\" \
-    -p frame_id:=fisheye_optical_frame \
-    -p image_encoding:=rgb8 \
-    -p sync_sink:=false \
-    -r __ns:=/$ROBOT_NAME/fisheye_camera"
+# GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
+# FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
+#     -p gscam_config:=\"$GSCAM_CONFIG_FISH\" \
+#     -p frame_id:=fisheye_optical_frame \
+#     -p image_encoding:=rgb8 \
+#     -p sync_sink:=false \
+#     -r __ns:=/$ROBOT_NAME/fisheye_camera"
 
-tmux_make_layout "$SESSION" Drivers "
-row(
-    var(NAU_DRIVER_CMD),
-    var(GIMBAL_CAM_DRIVER_CMD),
-    var(GIMBAL_CAM_VIDEO_CMD),
-    var(FISH_VIDEO_CMD)
-)"
+if [[ $USE_SIM_TIME = "False" ]]; then
+    tmux_make_layout "$SESSION" Drivers "
+    row(
+        col(
+            var(NAU_DRIVER_CMD),
+            var(GIMBAL_CAM_VIDEO_CMD)
+        ),
+        var(GIMBAL_CAM_DRIVER_CMD),
+        var(GIMBAL_CMD_ACTION_CMD)
+    )"
+else
+    tmux_make_layout "$SESSION" Drivers "
+    row(
+        var(GIMBAL_CMD_ACTION_CMD)
+    )"
 fi
 
 ############

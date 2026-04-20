@@ -97,8 +97,7 @@ class EKFNode(Node):
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                R_adjustment = np.array([[ 1,  0,  0], [ 0,  0,  1], [ 0, -1,  0]])
-                self.current_R_map_cam = self.current_R_map_cam @ R_adjustment
+                self.current_R_map_cam = self.current_R_map_cam
                 self.q.popleft()
                 self.z(msg, transform)
                 continue

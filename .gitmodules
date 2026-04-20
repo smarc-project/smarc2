@@ -63,3 +63,6 @@
 [submodule "drivers/z1_pro_driver"]
 	path = drivers/z1_pro_driver
 	url = git@github.com:smarc-project/z1_pro_driver.git
+[submodule "perception/alars/alars_labeling_training"]
+	path = perception/alars/alars_labeling_training
+	url = https://github.com/moyucrazy12/alars_labeling_training

@@ -83,7 +83,7 @@ def call_service_blocking(node, client, request) -> Trigger.Response:
 
 def main():
     rclpy.init(args=sys.argv)
-    node = Node("ServiceCaller")
+    node = Node("dji_service_caller_node")
     ServiceCaller(node)
 
     executor = MultiThreadedExecutor()
