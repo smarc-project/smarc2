@@ -249,6 +249,7 @@ class DepthModel9D:
         return Q
     
 class DepthModel7DWave:
+    # modelling the wave as external disturbance, needs seperate estimator for wave state
     def __init__(self, sigma_a, sigma_z, sigma_yaw,
                  k_follow=1.0, d_follow=0.1):
         self.name = "wave"
@@ -280,13 +281,11 @@ class DepthModel7DWave:
 
         px, py, z, yaw, vx, vy, vz = X.reshape(-1)
 
-        # AUV follows external latent wave disturbance
         az = -self.k_follow * (z - eta) - self.d_follow * (vz - eta_dot)
 
         z_new = z + vz * dt
         vz_new = vz + az * dt
 
-        # Jacobian wrt AUV state only (eta, eta_dot are external inputs)
         F[6, 2] = -self.k_follow * dt
         F[6, 6] = 1.0 - self.d_follow * dt
 
@@ -319,8 +318,7 @@ class DepthModel7DWave:
 
 
 class OscillatorModel:
-    # motion model that includes simple state of water
-    # water is modeled as a oscillator that the auv tries to follow, with some lag and damping.
+    # auv as oscillator
     def __init__(self, sigma_a, sigma_z, sigma_yaw,
                  omega=1.0, zeta=0.1):
         self.name = "oscillator"
@@ -331,8 +329,8 @@ class OscillatorModel:
         self.eps = [1e-2] * 7 # for numerical jacobian
         self.eps[2] = 5e-2
 
-        self.omega = omega # natural frequency of the water oscillator, may want to make this adaptive in the future.
-        self.zeta = zeta # damping of oscillator
+        self.omega = omega 
+        self.zeta = zeta 
 
         self.i_x = 0
         self.i_y = 1
