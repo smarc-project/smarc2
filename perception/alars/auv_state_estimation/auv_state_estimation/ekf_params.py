@@ -6,11 +6,10 @@ PARAMS = [
     ("topics.output_topic", "rviz/estimated_pose"),
     ("topics.linear_velocity", "/M350/wrapper/psdk_ros2/velocity_ground_fused"),
     ("topics.angular_velocity", "/M350/wrapper/psdk_ros2/angular_rate_ground_fused"),
-    ("topics.projected_auv_obb", Topics.PROJECTED_AUV_OBB_TOPIC),
-    ("topics.projected_auv_head", Topics.PROJECTED_AUV_HEAD_TOPIC),
+    ("topics.ekf_status", "/alars_auv_ekf/status"),
 
     ("frames.map", Links.MAP),
-    ("frames.estimated_auv", Links.ESTIMATED_AUV),
+    ("frames.output_link", Links.ESTIMATED_AUV),
     ("frames.camera", Links.GIMBAL_OPTICAL_FRAME),
 
     ("camera_info", ""),
@@ -20,8 +19,8 @@ PARAMS = [
     ("n_water", 1.0),
 
     # note that these are dimensions of the AUV in the measurement model (OBB), not necessarily the true dimensions of the AUV.
-    ("auv.length_m", 1.3), # auv length in meters, may need to be adjusted
-    ("auv.width_m", 0.16), # auv width in meters, may need to be adjusted
+    ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
+    ("obb.width_m", 0.16), # auv width in meters, may need to be adjusted
 
     ("alpha_line_pixels", 40.0), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
 
@@ -34,8 +33,8 @@ PARAMS = [
     ("R_u", 10.0), 
     ("R_v", 10.0),
     ("R_alpha_deg", 5.0),
-    ("R_len", 50.0),
-    ("R_wid", 20.0),
+    ("R_len", 200.0),
+    ("R_wid", 40.0),
 
     # dynamic measurement noise stddev (pixels)
     # increases with distance from image center

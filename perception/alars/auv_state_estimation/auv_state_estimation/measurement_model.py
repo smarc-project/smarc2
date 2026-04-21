@@ -10,18 +10,16 @@ class MeasurementModel:
             height,
             meas_dim, 
             state_dim, 
+            eps,
+            eps_pose_pos,
+            eps_pose_ang,
             K, 
             D, 
             z_water, 
             n_air, 
             n_water, 
-            auv_length_m, 
-            auv_width_m, 
-            eps_state_pos=1e-3, 
-            eps_state_yaw=1e-3, 
-            eps_state_vel=1e-3, 
-            eps_pose_pos=1e-3, 
-            eps_pose_ang=1e-3, 
+            obb_length_m, 
+            obb_width_m, 
             motion_model="surface",
             logger=None
                  ):
@@ -30,6 +28,9 @@ class MeasurementModel:
         self.height = height
         self.meas_dim = meas_dim
         self.state_dim = state_dim
+        self.eps = eps
+        self.eps_pose_pos = eps_pose_pos
+        self.eps_pose_ang = eps_pose_ang
         self.width = width
         self.height = height
         self.K = K
@@ -37,13 +38,8 @@ class MeasurementModel:
         self.z_water = z_water
         self.n_air = n_air
         self.n_water = n_water
-        self.auv_length_m = auv_length_m
-        self.auv_width_m = auv_width_m
-        self.eps_state_pos = eps_state_pos
-        self.eps_state_yaw = eps_state_yaw
-        self.eps_state_vel = eps_state_vel
-        self.eps_pose_pos = eps_pose_pos
-        self.eps_pose_ang = eps_pose_ang
+        self.obb_length_m = obb_length_m
+        self.obb_width_m = obb_width_m
         self.motion_model = motion_model
         self.logger = logger
 
@@ -114,44 +110,6 @@ class MeasurementModel:
         ray = ray_map / np.linalg.norm(ray_map)
         return ray
     
-    def _get_state_eps(self, i):
-
-        # helper function to get the appropriate epsilon for numerical differentiation based on the state index and motion model
-        # currently only uses different epsilons for position, yaw, and velocity states, but can be extended for other state variables if needed
-        mm = self.motion_model
-
-        # yaw
-        if i == mm.i_yaw:
-            return self.eps_state_yaw
-
-        # pitch
-        if hasattr(mm, "i_pitch") and i == mm.i_pitch:
-            return self.eps_state_yaw
-
-        # pitch rate
-        if hasattr(mm, "i_pitch_rate") and i == mm.i_pitch_rate:
-            return self.eps_state_vel
-
-        # velocities
-        vel_indices = []
-        for attr in ("i_vx", "i_vy", "i_vz"):
-            if hasattr(mm, attr):
-                vel_indices.append(getattr(mm, attr))
-
-        if i in vel_indices:
-            return self.eps_state_vel
-
-        # water states
-        water_indices = []
-        for attr in ("i_eta", "i_eta_dot"):
-            if hasattr(mm, attr):
-                water_indices.append(getattr(mm, attr))
-
-        if i in water_indices:
-            return getattr(self, "eps_state_water", self.eps_state_vel)
-
-        return self.eps_state_pos # default
-    
     def numerical_H(self, x, cam_pos_map, R_map_cam):
         
         #Compute numerical measurement jacobian H = dz/dx by finite differences.
@@ -162,7 +120,7 @@ class MeasurementModel:
         yaw_idx = getattr(mm, "i_yaw", None)
 
         for i in range(self.state_dim):
-            eps = self._get_state_eps(i)
+            eps = self.eps[i]
 
             x_plus_eps = x.copy()
             x_minus_eps = x.copy()
@@ -228,14 +186,14 @@ class MeasurementModel:
             px, py, yaw = state[:3]
             pz = self.z_water
             pitch = 0.0
-        elif self.motion_model.name == "depth" or self.motion_model.name == "depth9d":
+        elif self.motion_model.name == "depth" or self.motion_model.name == "depth9d" or self.motion_model.name == "wave" or self.motion_model.name == "oscillator":
             px, py, pz, yaw = state[:4]
             pitch = 0.0
         else:
             px, py, pz, yaw, pitch = state[:5]
         center = np.array([px, py, pz])
-        pts_map = self.sample_capsule_points(center=center, yaw=yaw, pitch=pitch, length_m=self.auv_length_m, 
-                                             radius_m=0.5 * self.auv_width_m, n_len=5, n_ang=16)
+        pts_map = self.sample_capsule_points(center=center, yaw=yaw, pitch=pitch, length_m=self.obb_length_m, 
+                                             radius_m=0.5 * self.obb_width_m, n_len=5, n_ang=16)
         pts_img = []
         for p in pts_map:
             uv = self.projection(p, cam_pos_map, R_map_cam)

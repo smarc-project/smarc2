@@ -9,6 +9,8 @@ class SurfaceModel5D:
         self.sigma_yaw = sigma_yaw
         self.state_dim = 5
 
+        self.eps = [1e-3] * 5 # for numerical jacobian
+
         self.i_x = 0
         self.i_y = 1
         self.i_yaw = 2
@@ -51,6 +53,9 @@ class DepthModel7D:
         self.sigma_yaw = sigma_yaw
         self.state_dim = 7
 
+        self.eps = [1e-2] * 7 # for numerical jacobian
+        self.eps[2] = 5e-2
+
         self.i_x = 0
         self.i_y = 1
         self.i_z = 2
@@ -64,8 +69,8 @@ class DepthModel7D:
         F[0, 4], F[1, 5], F[2, 6] = dt, dt, dt
         px, py, z, yaw, vx, vy, vz = X.reshape(-1)
 
-        k_z = 1.4
-        d_z = 0.4
+        k_z = 0.4
+        d_z = 0.1
 
         F[6, 2] = -k_z * dt
         F[6, 6] = 1.0 - d_z * dt
@@ -107,6 +112,10 @@ class PitchModel9D:
         self.sigma_pitch = sigma_pitch
         self.state_dim = 9
 
+        self.eps = [1e-2] * 9 # for numerical jacobian
+        self.eps[2] = 5e-2
+        self.eps[3] = 5e-2
+
         self.i_x = 0
         self.i_y = 1
         self.i_z = 2
@@ -127,7 +136,7 @@ class PitchModel9D:
         px, py, pz, yaw, pitch, vx, vy, vz, pitch_rate = X.reshape(-1)
 
         k_pitch = 0.5
-        d_pitch = 1.2
+        d_pitch = 0.1
 
         F[8, 4] = -k_pitch * dt
         F[8, 8] = 1.0 - d_pitch * dt
@@ -162,6 +171,9 @@ class DepthModel9D:
         self.sigma_a = sigma_a
         self.sigma_z = sigma_z
         self.sigma_yaw = sigma_yaw
+
+        self.eps = [1e-2] * 9 # for numerical jacobian
+        self.eps[2] = 5e-2
 
         self.omega = omega # natural frequency of the water oscillator, may want to make this adaptive in the future.
         self.zeta = zeta # damping of oscillator
@@ -233,5 +245,142 @@ class DepthModel9D:
         Q[np.ix_([self.i_y, self.i_vy], [self.i_y, self.i_vy])] = q_cv * (self.sigma_a ** 2)
         Q[np.ix_([self.i_z, self.i_vz], [self.i_z, self.i_vz])] = q_cv * (self.sigma_z ** 2)
         Q[np.ix_([self.i_eta, self.i_eta_dot], [self.i_eta, self.i_eta_dot])] = q_cv * (1.0 ** 2) # TODO: put noise on eta in ekf_params
+        Q[self.i_yaw, self.i_yaw] = (dt * self.sigma_yaw) ** 2
+        return Q
+    
+class DepthModel7DWave:
+    def __init__(self, sigma_a, sigma_z, sigma_yaw,
+                 k_follow=1.0, d_follow=0.1):
+        self.name = "wave"
+
+        self.sigma_a = sigma_a
+        self.sigma_z = sigma_z
+        self.sigma_yaw = sigma_yaw
+
+        self.k_follow = k_follow
+        self.d_follow = d_follow
+
+        self.eps = [1e-2] * 7 # for numerical jacobian
+        self.eps[2] = 5e-2
+        self.state_dim = 7
+
+        self.i_x = 0
+        self.i_y = 1
+        self.i_z = 2
+        self.i_yaw = 3
+        self.i_vx = 4
+        self.i_vy = 5
+        self.i_vz = 6
+
+    def predict(self, X, dt, eta=0.0, eta_dot=0.0):
+        F = np.eye(7)
+        F[0, 4] = dt
+        F[1, 5] = dt
+        F[2, 6] = dt
+
+        px, py, z, yaw, vx, vy, vz = X.reshape(-1)
+
+        # AUV follows external latent wave disturbance
+        az = -self.k_follow * (z - eta) - self.d_follow * (vz - eta_dot)
+
+        z_new = z + vz * dt
+        vz_new = vz + az * dt
+
+        # Jacobian wrt AUV state only (eta, eta_dot are external inputs)
+        F[6, 2] = -self.k_follow * dt
+        F[6, 6] = 1.0 - self.d_follow * dt
+
+        X_pred = np.array([
+            [px + vx * dt],
+            [py + vy * dt],
+            [z_new],
+            [wrap(yaw)],
+            [vx],
+            [vy],
+            [vz_new]
+        ])
+
+        return X_pred, F
+
+    def build_Q(self, dt):
+        Q = np.zeros((7, 7))
+
+        q_cv = np.array([
+            [dt**4 / 4.0, dt**3 / 2.0],
+            [dt**3 / 2.0, dt**2]
+        ])
+
+        Q[np.ix_([0, 4], [0, 4])] = q_cv * (self.sigma_a ** 2)
+        Q[np.ix_([1, 5], [1, 5])] = q_cv * (self.sigma_a ** 2)
+        Q[np.ix_([2, 6], [2, 6])] = q_cv * (self.sigma_z ** 2)
+        Q[3, 3] = (dt * self.sigma_yaw) ** 2
+
+        return Q
+
+
+class OscillatorModel:
+    # motion model that includes simple state of water
+    # water is modeled as a oscillator that the auv tries to follow, with some lag and damping.
+    def __init__(self, sigma_a, sigma_z, sigma_yaw,
+                 omega=1.0, zeta=0.1):
+        self.name = "oscillator"
+        self.sigma_a = sigma_a
+        self.sigma_z = sigma_z
+        self.sigma_yaw = sigma_yaw
+
+        self.eps = [1e-2] * 7 # for numerical jacobian
+        self.eps[2] = 5e-2
+
+        self.omega = omega # natural frequency of the water oscillator, may want to make this adaptive in the future.
+        self.zeta = zeta # damping of oscillator
+
+        self.i_x = 0
+        self.i_y = 1
+        self.i_z = 2
+        self.i_yaw = 3
+        self.i_vx = 4
+        self.i_vy = 5
+        self.i_vz = 6
+        self.state_dim = 7
+
+    def predict(self, X, dt):
+
+        px, py, z, yaw, vx, vy, vz = X.reshape(-1)
+
+        px_new = px + vx * dt
+        py_new = py + vy * dt
+
+        z_new = z + vz * dt
+        az = -2.0 * self.zeta * self.omega * vz - (self.omega ** 2) * z
+        vz_new = vz + az * dt
+
+        X_pred = np.array([
+            [px_new],
+            [py_new],
+            [z_new],
+            [wrap(yaw)],
+            [vx],
+            [vy],
+            [vz_new],
+        ])
+
+        F = np.eye(7)
+        F[self.i_x, self.i_vx] = dt
+        F[self.i_y, self.i_vy] = dt
+        F[self.i_z, self.i_vz] = dt
+        F[self.i_vz, self.i_z] = -(self.omega ** 2) * dt
+        F[self.i_vz, self.i_vz] = 1.0 - 2.0 * self.zeta * self.omega * dt
+
+        return X_pred, F
+
+    def build_Q(self, dt):
+        Q = np.zeros((7, 7))
+        q_cv = np.array([
+            [dt**4 / 4.0, dt**3 / 2.0],
+            [dt**3 / 2.0, dt**2]        
+        ])
+        Q[np.ix_([self.i_x, self.i_vx], [self.i_x, self.i_vx])] = q_cv * (self.sigma_a ** 2)
+        Q[np.ix_([self.i_y, self.i_vy], [self.i_y, self.i_vy])] = q_cv * (self.sigma_a ** 2)
+        Q[np.ix_([self.i_z, self.i_vz], [self.i_z, self.i_vz])] = 0.2 * (self.sigma_z ** 2)
         Q[self.i_yaw, self.i_yaw] = (dt * self.sigma_yaw) ** 2
         return Q

@@ -100,8 +100,6 @@ class Initializer:
             return None
         ray, dir_f, dir_b = rays
 
-        self.log_info(f"Estimated rays for initialization - center ray: {ray}, front ray: {dir_f}, back ray: {dir_b}")
-
         center_map = self.point_on_line_at_z(cam_pos, ray, self.z_water)
         if center_map is None:
             return None
@@ -145,7 +143,7 @@ class Initializer:
             P0[2, 2] = 0.5
             P0[3, 3] = 1.0
             P0[4, 4] = 1.0
-        elif self.motion_model == "depth":
+        elif self.motion_model == "depth" or self.motion_model == "wave" or self.motion_model == "oscillator":
             X0 = np.array([[pos_mean[0]], [pos_mean[1]], [0], [yaw_mean], [0.0], [0.0], [0.0]])
             P0[2, 2] = 1.0
             P0[3, 3] = 0.5

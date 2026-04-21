@@ -1,4 +1,4 @@
-from dji_msgs.msg import Topics
+from dji_msgs.msg import Topics, Links
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -26,7 +26,7 @@ def generate_launch_description():
     params_file = PathJoinSubstitution([
         FindPackageShare("auv_state_estimation"),
         "config",
-        "params.yaml"
+        "ekf_params.yaml"
     ])
 
     cam_calib_file = PathJoinSubstitution([
@@ -35,26 +35,32 @@ def generate_launch_description():
         camera_calibration_file
     ])
 
-    
-    ekf_node = Node(
-        package="auv_state_estimation",
-        executable="ekf_node",
-        namespace=namespace,
-        name="ekf_node",
-        output="screen",
-        parameters=[
-            params_file,
-            {
-                "use_sim_time": use_sim_time,
-                "topics.input_polygon": Topics.ESTIMATED_AUV_OBB_TOPIC,
-                "camera_info": cam_calib_file,
-            }
-        ],
+    def ekf_node(name, topic_in, link_out, output_topic, obb_length, obb_width):
+        return Node(
+            package="auv_state_estimation",
+            executable="ekf_node",
+            namespace=namespace,
+            name=name,
+            output="screen",
+            parameters=[
+                params_file,
+                {
+                    "use_sim_time": use_sim_time,
+                    "topics.input_polygon": topic_in,
+                    "frames.output_link": link_out,
+                    "camera_info": cam_calib_file,
+                    "obb.length_m": obb_length,
+                    "obb.width_m": obb_width,
+                    "topics.output_topic": output_topic,
+                }
+            ],
         )
 
     return LaunchDescription([
         namespace_arg,
         use_sim_time_arg,
-        ekf_node,
+        camera_calibration_file_arg,
+        ekf_node("ekf_auv", topic_in=Topics.ESTIMATED_AUV_OBB_TOPIC, link_out=Links.ESTIMATED_AUV, output_topic="rviz/estimated_auv_pose", obb_length=1.3, obb_width=0.16),
+        ekf_node("ekf_buoy", topic_in=Topics.ESTIMATED_BUOY_OBB_TOPIC, link_out=Links.ESTIMATED_BUOY, output_topic="rviz/estimated_buoy_pose", obb_length=0.4, obb_width=0.16),
     ])
 

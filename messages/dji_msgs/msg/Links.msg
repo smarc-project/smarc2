@@ -38,3 +38,4 @@ string FISHEYE_OPTICAL_FRAME = 'fisheye_optical_frame'
 
 # Used by projection/filter
 string ESTIMATED_AUV = 'estimated_auv'
+string ESTIMATED_BUOY = 'estimated_buoy'

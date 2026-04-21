@@ -37,6 +37,7 @@ class EKFNode(Node):
         self.get_params()
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
+        self.eps = self.motion_model.eps
 
         self.state_dim = self.motion_model.state_dim
         self.meas_dim = 3 if self.state_dim == 5 else 5
@@ -49,9 +50,7 @@ class EKFNode(Node):
 
         # publishers and subscribers
         self.pub = self.create_publisher(PoseWithCovarianceStamped, self.topic_estimated_pose, 10)
-        self.pub_projected_auv_obb = self.create_publisher(PolygonStamped, self.topic_projected_auv_obb, 10)
-        self.pub_projected_head = self.create_publisher(PointStamped, self.topic_projected_auv_head, 10)
-        self.pub_status = self.create_publisher(Float32MultiArray, "/alars_auv_ekf/status", 10) 
+        self.pub_status = self.create_publisher(Float32MultiArray, self.topic_ekf_status, 10) 
 
         self.sub_pose = self.create_subscription(PolygonStamped, self.topic_in_poly, self.poly_cb, 10)
         self.sub_lin_vel = self.create_subscription(Vector3Stamped, self.topic_linear_velocity, self.lin_vel_cb, 10)
@@ -71,7 +70,7 @@ class EKFNode(Node):
 
         self.initialize_components()
 
-        self.get_logger().info(f"EKF node started. map_frame={self.map_frame}, cam_frame={self.cam_frame}, estimated_auv_frame={self.estimated_auv_frame}")
+        self.get_logger().info(f"EKF node started. map_frame={self.map_frame}, cam_frame={self.cam_frame}, estimated_auv_frame={self.output_frame}")
 
         self.q = deque()
         self.timer = self.create_timer(0.01, self.process_q)
@@ -97,7 +96,7 @@ class EKFNode(Node):
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                self.current_R_map_cam = self.current_R_map_cam
+                self.current_R_map_cam = self.current_R_map_cam 
                 self.q.popleft()
                 self.z(msg, transform)
                 continue
@@ -171,9 +170,9 @@ class EKFNode(Node):
         self.current_transform = transform
         
         z_center_img, z_alpha_img, z_len_px, z_wid_px, _ = self.measurement_model.extract_features(self.pol_to_array(msg))
+        self.log_info(f"Received measurement: center={z_center_img}")
         if not self.ekf.initialized:
             init_result = self.initializer.try_initialize(stamp, z_center_img, z_alpha_img, self.measurement_model, self.current_cam_pos_map, self.current_R_map_cam)
-            self.log_info(f"Initialization result: {init_result is not None}")
             if init_result is None:
                 return
             X0, P0, t0 = init_result
@@ -199,6 +198,7 @@ class EKFNode(Node):
         self.last_innovation_norm = np.linalg.norm(innov)  
 
         X, P = self.ekf.update(z, h, H, R_meas)
+        self.log_info(f"Post-update state: {X.flatten()[:3]}")
         self.publish_estimate(stamp)
     
     def publish_estimate(self, stamp):
@@ -214,7 +214,7 @@ class EKFNode(Node):
         else:
             q = R.from_euler("z", yaw_out).as_quat()
         self.pub.publish(create_pose_msg(stamp, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
-        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, q, self.map_frame, self.estimated_auv_frame, self.ekf.X, self.z_water))
+        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
 
     def publish_status(self):
         # publishes information regarding the status of the filter.
@@ -313,6 +313,9 @@ class EKFNode(Node):
         self.measurement_model = MeasurementModel(
             meas_dim=self.meas_dim,
             state_dim=self.state_dim,
+            eps=self.eps,
+            eps_pose_pos=self.eps_pose_pos,
+            eps_pose_ang=self.eps_pose_ang,
             width=self.width,
             height=self.height,
             K=self.K,
@@ -320,16 +323,12 @@ class EKFNode(Node):
             z_water=self.z_water,
             n_air=self.n_air,
             n_water=self.n_water,
-            auv_length_m=self.auv_length_m,
-            auv_width_m=self.auv_width_m,
-            eps_state_pos=self.eps_state_pos,
-            eps_state_yaw=self.eps_state_yaw,
-            eps_state_vel=self.eps_state_vel,
-            eps_pose_pos=self.eps_pose_pos,
-            eps_pose_ang=self.eps_pose_ang, 
+            obb_length_m=self.obb_length_m,
+            obb_width_m=self.obb_width_m,
             motion_model=self.motion_model,
-            logger=self.get_logger(),
+            #logger=self.get_logger(),
         )
+
         self.noise_models = NoiseModels(
             width=self.width,
             height=self.height,
@@ -361,7 +360,7 @@ class EKFNode(Node):
             self.z_water,
             state_dim=self.state_dim,
             outlier_threshold=self.outlier_threshold,
-            #logger=self.get_logger(),   
+            logger=self.get_logger(),   
         )
 
     def get_params(self):
@@ -369,8 +368,8 @@ class EKFNode(Node):
         self.n_air = self.get_parameter("n_air").value
         self.n_water = self.get_parameter("n_water").value
 
-        self.auv_length_m = self.get_parameter("auv.length_m").value
-        self.auv_width_m = self.get_parameter("auv.width_m").value
+        self.obb_length_m = self.get_parameter("obb.length_m").value
+        self.obb_width_m = self.get_parameter("obb.width_m").value
         self.alpha_line_pixels = self.get_parameter("alpha_line_pixels").value
 
         self.sigma_a = self.get_parameter("sigma_a").value
@@ -422,19 +421,18 @@ class EKFNode(Node):
 
         self.topic_in_poly = self.get_parameter("topics.input_polygon").value
         self.topic_input_auv_head = self.get_parameter("topics.input_auv_head").value
-        self.topic_projected_auv_head = self.get_parameter("topics.projected_auv_head").value
-        self.topic_projected_auv_obb = self.get_parameter("topics.projected_auv_obb").value
         self.topic_estimated_pose = self.get_parameter("topics.output_topic").value
         self.topic_linear_velocity = self.get_parameter("topics.linear_velocity").value
         self.topic_angular_velocity = self.get_parameter("topics.angular_velocity").value
+        self.topic_ekf_status = self.get_parameter("topics.ekf_status").value
 
         namespace = self.get_namespace().strip("/")
         map_frame = self.get_parameter("frames.map").value
-        estimated_auv_frame = self.get_parameter("frames.estimated_auv").value
+        output_frame = self.get_parameter("frames.output_link").value
         camera_frame = self.get_parameter("frames.camera").value
 
         self.map_frame = f"{namespace}/{map_frame}"
-        self.estimated_auv_frame = f"{namespace}/{estimated_auv_frame}"
+        self.output_frame = f"{namespace}/{output_frame}"
         self.cam_frame = f"{namespace}/{camera_frame}"
 
         self.width = None

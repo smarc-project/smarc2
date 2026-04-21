@@ -37,8 +37,6 @@ class EKFCore:
 
         if h is None or H is None:
             return self.X, self.P
-        if self.logger:
-            self.logger.info(f"Measurement z: {z.flatten()}, Predicted h: {h.flatten()}")
         innov = residual_z(z, h).reshape(z.shape[0], 1)
         S = H @ self.P @ H.T + R
         try:
@@ -49,8 +47,8 @@ class EKFCore:
             return self.X, self.P
         d2 = float(innov.T @ S_inv @ innov)
         if d2 > self.outlier_threshold:
+            self.nr_of_consecutive_outliers += 1
             if self.logger:
-                self.nr_of_consecutive_outliers += 1
                 self.logger.info(f"Outlier detected with mahalanobis distance squared: {d2:.3f}")
             return self.X, self.P
         K = self.P @ H.T @ S_inv
