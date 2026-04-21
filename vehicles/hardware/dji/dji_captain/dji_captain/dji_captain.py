@@ -3,7 +3,6 @@
 import rclpy, sys, math, time
 import numpy as np
 from enum import Enum
-from typing import Optional
 
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -90,8 +89,8 @@ class DjiCaptain():
 
         
 
-        self._move_to_setpoint : Optional[PoseStamped] = None
-        self._joy_timer : Optional[Timer] = None
+        self._move_to_setpoint : PoseStamped | None = None
+        self._joy_timer : Timer | None = None
         self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
         
         
@@ -104,7 +103,7 @@ class DjiCaptain():
         self.JOY_PUB_MAX = 1.5
         self.JOY_PUB_PERIOD = .1
 
-        self._prev_joy_output : Optional[np.ndarray] = None
+        self._prev_joy_output : np.ndarray | None = None
 
         self.READY_BATTERY_PERCENTAGE = 25
         self.READY_HEIGHT_ABOVE_GROUND = 2
@@ -124,27 +123,27 @@ class DjiCaptain():
         self.BASE_FLAT_FRAME = self._TF_NS + DjiLinks.BASE_FLAT
         self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
 
-        self._utm_zb_label : Optional[str] = None
+        self._utm_zb_label : str | None = None
 
-        self._base_pose_in_home : Optional[PoseStamped] = None
-        self._base_pose_flat_in_home : Optional[PoseStamped] = None
-        self._home_point_in_utm : Optional[PointStamped] = None
-        self._velocity_ground : Optional[Vector3Stamped] = None
-        self._angular_rate_ground : Optional[Vector3Stamped] = None
+        self._base_pose_in_home : PoseStamped | None = None
+        self._base_pose_flat_in_home : PoseStamped | None = None
+        self._home_point_in_utm : PointStamped | None = None
+        self._velocity_ground : Vector3Stamped | None = None
+        self._angular_rate_ground : Vector3Stamped | None = None
         self._vehicle_health = Int8()
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
 
-        self._esc_data : Optional[EscData] = None
+        self._esc_data : EscData | None = None
 
-        self._geo_altitude : Optional[float] = None
-        self._heading_deg : Optional[float] = None
-        self._course_deg : Optional[float] = None
+        self._geo_altitude : float | None = None
+        self._heading_deg : float | None = None
+        self._course_deg : float | None = None
 
         self._got_control : bool = False
         self._flying : bool = False
-        self._battery_percent : Optional[float] = None
+        self._battery_percent : float | None = None
         self._cam_processor_happy : bool = False
-        self._geofence_status : Optional[GeofenceStatusStamped] = None
+        self._geofence_status : GeofenceStatusStamped | None = None
         self.MAX_GEOFENCE_STATUS_AGE = 1.0 # seconds
         
         # this could be a param, but really we likely will never run this on anything except
@@ -152,7 +151,7 @@ class DjiCaptain():
         # I set it to 4kg to have some momentary overshoot margins due to motion etc.
         self._node.declare_parameter("max_load_kg", 4.0)
         self._MAX_LOAD_KG : float = self._node.get_parameter("max_load_kg").get_parameter_value().double_value
-        self._load_cell_weight : Optional[float] = None
+        self._load_cell_weight : float | None = None
        
 
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
@@ -1026,7 +1025,7 @@ def transform_velocity_vector(
     vel_src: Vector3Stamped,
     target_frame: str,
     *,
-    time: Optional[Time] = None,
+    time: Time | None = None,
     timeout: Duration = Duration(seconds=0, nanoseconds=5_000_000),  # 5ms = 5,000,000ns
 ) -> Vector3Stamped:
     """
