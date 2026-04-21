@@ -619,7 +619,6 @@ class SmarcTopicsPublisher(Node):
         water_pressure_per_meter = 10000.0  # Pa/m (seawater)
         
         depth_m = (msg.fluid_pressure - atmospheric_pressure) / water_pressure_per_meter
-        depth_m = max(0.0, depth_m)  # Depth cannot be negative
         
         depth_msg = Float32()
         depth_msg.data = depth_m

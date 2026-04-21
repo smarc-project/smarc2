@@ -30,12 +30,12 @@ ros2 launch floatsam_topic_bridge floatsam_bridge.launch.py use_sim:=true
 ros2 launch floatsam_topic_bridge floatsam_bridge.launch.py use_sim:=false
 ```
 
-⚠️ **Note:** Before using real hardware mode, update [config/real_topics.yaml](floatsam_topic_bridge/config/real_topics.yaml) with actual hardware topic names!
+⚠️ **Note:** the packages px4_msgs and septentrio_gnss_driver must be installed through apt before launching
 
 ### Configuration Files
 
 - **[sim_topics.yaml](floatsam_topic_bridge/config/sim_topics.yaml)** - Simulator topic mappings (ready to use)
-- **[real_topics.yaml](floatsam_topic_bridge/config/real_topics.yaml)** - Real hardware topic mappings (⚠️ PLACEHOLDERS - must be updated!)
+- **[real_topics.yaml](floatsam_topic_bridge/config/real_topics.yaml)** - Real hardware topic mappings 
 
 ### Topics Published
 
