@@ -239,14 +239,11 @@ GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
 GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
     robot_name:=$ROBOT_NAME \
     tf_frame_prefix:=$ROBOT_NAME/ \
-    use_vehicle_altitude:=True \
     camera_ip:=$GIMBAL_IP \
-    camera_port:=$GIMBAL_PORT \
-    gimbal_camera_topic_ns:=$GIMBAL_CAM_TOPIC_NS"
+    camera_port:=$GIMBAL_PORT"
 GIMBAL_CMD_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
     robot_name:=\"$ROBOT_NAME\" \
-    use_sim_time:=$USE_SIM_TIME \
-    gimbal_camera_topic_ns:=$GIMBAL_CAM_TOPIC_NS"
+    use_sim_time:=$USE_SIM_TIME"
 
 # GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
 # FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
