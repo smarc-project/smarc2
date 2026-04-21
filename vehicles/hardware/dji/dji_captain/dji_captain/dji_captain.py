@@ -129,9 +129,6 @@ class DjiCaptain():
         self._base_pose_in_home : Optional[PoseStamped] = None
         self._base_pose_flat_in_home : Optional[PoseStamped] = None
         self._home_point_in_utm : Optional[PointStamped] = None
-        self._home_geo_altitude : Optional[float] = None
-        self._gps_point_in_home : Optional[PointStamped] = None
-        self._rtk_point_in_home : Optional[PointStamped] = None
         self._velocity_ground : Optional[Vector3Stamped] = None
         self._angular_rate_ground : Optional[Vector3Stamped] = None
         self._vehicle_health = Int8()
@@ -175,8 +172,6 @@ class DjiCaptain():
 
         self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
-        self._tf_pub_status = "Not published yet"
-        self._smarc_pub_status = "Not published yet"
 
         self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
 
@@ -202,12 +197,6 @@ class DjiCaptain():
             NavSatFix,
             PSDKTopics.HOME_POINT,
             self._home_point_callback,
-            qos_profile=10)
-        
-        node.create_subscription(
-            Float32,
-            PSDKTopics.HOME_POINT_ALTITUDE,
-            self._home_point_altitude_callback,
             qos_profile=10)
 
         node.create_subscription(
@@ -373,11 +362,7 @@ class DjiCaptain():
 
         s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
         s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
-        
-        s += f"  Smarc Topics:{self._smarc_pub_status}\n"
-        
-        s += f"  TF: {self._tf_pub_status}\n"
-
+                
         if self.setpoint_received_at is None and self._move_to_setpoint is None:
             s += f"  No setpoint set.\n"
         elif self.setpoint_received_at is None and self._move_to_setpoint is not None:
@@ -736,7 +721,6 @@ class DjiCaptain():
         self._base_pose_ENU_in_home.pose.orientation = ENU_quat
 
 
-        
 
     def _home_point_callback(self, msg: NavSatFix):
         try:
@@ -763,54 +747,18 @@ class DjiCaptain():
         self._home_point_in_utm.point.z = self._HOME_ALT_ABOVE_WATER
         self._home_point_in_utm.header.stamp = self.now_stamp
 
-    def _home_point_altitude_callback(self, msg: Float32):
-        if self._home_point_in_utm is None:
-            self.log("home point in utm not set, can't set _home_geo_altitude")
-            return
-        self._home_geo_altitude = msg.data
 
 
     def _gps_callback(self, msg: NavSatFix):
-        if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process GPS message yet.")
-            return
-        
-        if self._gps_point_in_home is None:
-            self._gps_point_in_home = PointStamped()
-            self._gps_point_in_home.header.frame_id = self.ODOM_FRAME
-        gp = GeoPoint()
-        gp.latitude = msg.latitude
-        gp.longitude = msg.longitude
-        gp.altitude = msg.altitude
-        utm = convert_latlon_to_utm(gp)
-        self._gps_point_in_home.point.x = utm.point.x - self._home_point_in_utm.point.x
-        self._gps_point_in_home.point.y = utm.point.y - self._home_point_in_utm.point.y
-        self._gps_point_in_home.point.z = self._geo_altitude - self._home_geo_altitude
-        self._gps_point_in_home.header.stamp = self.now_stamp
-
         if self._utm_zb_label is None:
+            gp = GeoPoint()
+            gp.latitude = msg.latitude
+            gp.longitude = msg.longitude
+            gp.altitude = msg.altitude
+            utm = convert_latlon_to_utm(gp)
             self._utm_zb_label = utm.header.frame_id
             self.log(f"Setting UTM labeled frame to: {self._utm_zb_label}")
 
-
-    def _rtk_cb(self, msg: NavSatFix):
-        if self._geo_altitude is None or self._home_point_in_utm is None or self._home_geo_altitude is None:
-            self.log(f"Geo Altitude({self._geo_altitude is not None}) or Home({self._home_point_in_utm is not None}) or home geo altitude({self._home_geo_altitude is not None}) not set, cannot process RTK message yet.")
-            return
-        
-        if self._rtk_point_in_home is None:
-            self._rtk_point_in_home = PointStamped()
-            self._rtk_point_in_home.header.frame_id = self.ODOM_FRAME
-
-        gp = GeoPoint()
-        gp.latitude = msg.latitude
-        gp.longitude = msg.longitude
-        gp.altitude = msg.altitude
-        utm = convert_latlon_to_utm(gp)
-        self._rtk_point_in_home.point.x = utm.point.x - self._home_point_in_utm.point.x
-        self._rtk_point_in_home.point.y = utm.point.y - self._home_point_in_utm.point.y
-        self._rtk_point_in_home.point.z = self._geo_altitude - self._home_geo_altitude
-        self._rtk_point_in_home.header.stamp = self.now_stamp
 
     
 
@@ -820,13 +768,18 @@ class DjiCaptain():
     def _publish_vehicle_health(self):
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
 
-        if self._home_point_in_utm is None or self._base_pose_in_home is None:
-            self.logwarn(f"Home point or position fused not received yet, waiting.")
+        if self._home_point_in_utm is None:
+            self.logwarn(f"Home point not received yet, waiting.")
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
         
-        if self._gps_point_in_home is None or self._home_point_in_utm is None:
-            self.logwarn(f"GPS point in home or home point in UTM not set, waiting.")
+        if self._base_pose_in_home is None:
+            self.logwarn(f"Position fused not received yet, waiting.")
+            self._vehicle_health_pub.publish(self._vehicle_health)
+            return
+        
+        if self._home_point_in_utm is None:
+            self.logwarn(f"Home point in UTM not set, waiting.")
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
         
@@ -894,8 +847,6 @@ class DjiCaptain():
         tf_msg.transforms = []
         now = self.now_stamp
 
-        self._tf_pub_status = f"Publishing"
-
         # 0 transforms for home -> odom for compatibility with other systems
         # and so we can use "odom" for all things that relate to home point
         odom_in_home = TransformStamped()
@@ -923,7 +874,7 @@ class DjiCaptain():
             home_tf.transform.translation.z = self._home_point_in_utm.point.z
             tf_msg.transforms.append(home_tf)
 
-            # home point in UTM, but at water surface
+            # home point in UTM, but at water surface = map frame
             home_surface_tf = TransformStamped()
             home_surface_tf.header.stamp = now
             home_surface_tf.header.frame_id = DjiLinks.UTM
@@ -959,31 +910,6 @@ class DjiCaptain():
             tf_msg.transforms.append(base_flat_in_home)
 
         
-
-        if self._gps_point_in_home is not None:
-            # GPS point in Home
-            gps_tf = TransformStamped()
-            gps_tf.header.stamp = now
-            gps_tf.header.frame_id = self.ODOM_FRAME
-            gps_tf.child_frame_id = self._TF_NS + "gps_point"
-            gps_tf.transform.translation.x = self._gps_point_in_home.point.x
-            gps_tf.transform.translation.y = self._gps_point_in_home.point.y
-            gps_tf.transform.translation.z = self._gps_point_in_home.point.z
-            tf_msg.transforms.append(gps_tf)
-
-
-        # RTK point in odom
-        if self._rtk_point_in_home is not None:
-            rtk_tf = TransformStamped()
-            rtk_tf.header.stamp = now
-            rtk_tf.header.frame_id = self.ODOM_FRAME
-            rtk_tf.child_frame_id = self._TF_NS + "rtk_point"
-            rtk_tf.transform.translation.x = self._rtk_point_in_home.point.x
-            rtk_tf.transform.translation.y = self._rtk_point_in_home.point.y
-            rtk_tf.transform.translation.z = self._rtk_point_in_home.point.z
-            rtk_tf.transform.rotation.w = 1.0
-            tf_msg.transforms.append(rtk_tf)
-        
         if self._move_to_setpoint is not None:
             move_to_setpoint_tf = TransformStamped()
             move_to_setpoint_tf.header.stamp = now
@@ -998,10 +924,18 @@ class DjiCaptain():
 
 
     def _publish_smarc(self):
-        if self._base_pose_in_home is None or self._home_point_in_utm is None or self._gps_point_in_home is None:
+        if self._home_point_in_utm is None:
+            self.log("[smarc] Home point not set, cannot publish latlon position.")
             return
         
-        self._smarc_pub_status = f"Published: "
+        if self._base_pose_in_home is None:
+            self.log("[smarc] Base pose not set, cannot publish latlon position.")
+            return
+        
+        if self._utm_zb_label is None:
+            self.log("[smarc] UTM frame label not set, cannot publish latlon position.")
+            return
+        
 
         odom = Odometry()
         odom.header.stamp = self.now_stamp
@@ -1024,13 +958,7 @@ class DjiCaptain():
             odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
 
         self._odom_pub.publish(odom)
-        self._smarc_pub_status += "odom "
-
-        # we need current position in latlon
-        # so we first need to convert our odom-frame position to UTM
-        if self._home_point_in_utm is None or self._base_pose_in_home is None or self._home_geo_altitude is None:
-            self.log("Home point or base pose not set, cannot publish latlon position.")
-            return
+        
         base_in_utm = PointStamped()
         base_in_utm.header.frame_id = self._utm_zb_label
         base_in_utm.point.x = self._base_pose_in_home.pose.position.x + self._home_point_in_utm.point.x
@@ -1044,16 +972,13 @@ class DjiCaptain():
         self._pos_latlon_pub.publish(base_in_geopoint)
 
         self._altitude_pub.publish(Float32(data = alt_above_water))
-        self._smarc_pub_status += "latlon altitude "
 
 
         if self._heading_deg is not None:
             self._heading_pub.publish(Float32(data=self._heading_deg))
-            self._smarc_pub_status += "heading "
 
         if self._course_deg is not None:
             self._course_pub.publish(Float32(data=self._course_deg))
-            self._smarc_pub_status += "course "
 
         if self._velocity_ground is not None:
             speed = math.sqrt(
@@ -1061,15 +986,12 @@ class DjiCaptain():
                 self._velocity_ground.vector.y ** 2
             )
             self._speed_pub.publish(Float32(data=speed))
-            self._smarc_pub_status += "speed "
 
         if self._battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self._battery_percent))
-            self._smarc_pub_status += "battery_percent "
 
         if self._utm_zb_label is not None:
             self._labeled_utm_frame_pub.publish(String(data=self._utm_zb_label))
-            self._smarc_pub_status += "labeled_utm_frame "
                         
         
 
