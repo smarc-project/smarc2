@@ -3,14 +3,15 @@
 <package format="3">
   <name>floatsam_loiter_heading</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="mannolorenzo421@gmail.com">lorenzo</maintainer>
-  <license>Apache-2.0</license>
+  <description>Loiter With Heading</description>
+  <maintainer email="lmanno@kth.se">lorenzo</maintainer>
+  <license>MIT</license>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>smarc_msgs</depend>
+  <depend>smarc_control_msgs</depend>
+  <depend>floatsam_msgs</depend>
 
   <export>
     <build_type>ament_python</build_type>
