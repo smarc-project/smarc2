@@ -200,12 +200,15 @@ class MeasurementModel:
             if uv is None:
                 continue
             u, v = uv[0], uv[1]
-            if 0.0 <= u <= self.width and 0.0 <= v <= self.height:
-                pts_img.append([u, v])
+            # if 0.0 <= u <= self.width and 0.0 <= v <= self.height:
+            pts_img.append([u, v]) #TODO fix this :)
+        #     else:
+        #         self.get_logger(f"Projected point {p} is out of image bounds with pixel coordinates ({u}, {v})")
 
-        if len(pts_img) < 5:
-            self.get_logger(f"Not enough projected points in image for measurement function: {len(pts_img)} points")
-            return None
+
+        # if len(pts_img) < 5:
+        #     self.get_logger(f"Not enough projected points in image for measurement function: {len(pts_img)} points")
+        #     return None
         
         pts_img = np.asarray(pts_img, dtype=np.float32)
         rect = cv2.minAreaRect(pts_img)

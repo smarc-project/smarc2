@@ -324,7 +324,7 @@ class EKFNode(Node):
             obb_length_m=self.obb_length_m,
             obb_width_m=self.obb_width_m,
             motion_model=self.motion_model,
-            #logger=self.get_logger(),
+            logger=self.get_logger(),
         )
 
         self.noise_models = NoiseModels(
