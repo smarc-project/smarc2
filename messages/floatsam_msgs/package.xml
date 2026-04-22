@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>Message definitions for FloatSam USV</description>
   <maintainer email="fidf@kth.se">filippo</maintainer>
-  <license>BSD-3-Clause</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
