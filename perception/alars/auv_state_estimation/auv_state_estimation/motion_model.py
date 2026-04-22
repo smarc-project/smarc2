@@ -379,6 +379,6 @@ class OscillatorModel:
         ])
         Q[np.ix_([self.i_x, self.i_vx], [self.i_x, self.i_vx])] = q_cv * (self.sigma_a ** 2)
         Q[np.ix_([self.i_y, self.i_vy], [self.i_y, self.i_vy])] = q_cv * (self.sigma_a ** 2)
-        Q[np.ix_([self.i_z, self.i_vz], [self.i_z, self.i_vz])] = 0.2 * (self.sigma_z ** 2)
+        Q[np.ix_([self.i_z, self.i_vz], [self.i_z, self.i_vz])] = q_cv * (self.sigma_z ** 2)
         Q[self.i_yaw, self.i_yaw] = (dt * self.sigma_yaw) ** 2
         return Q

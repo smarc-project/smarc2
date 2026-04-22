@@ -1,12 +1,11 @@
 /**:
   ros__parameters:
     topics:
-      input_polygon: "/estimated_auv_obb"
-      input_auv_head: "/estimated_auv_head"
+      input_polygon: "estimated_auv_obb"
+      input_auv_head: "estimated_auv_head"
       output_topic: "rviz/estimated_pose"
-      linear_velocity: "/M350/wrapper/psdk_ros2/velocity_ground_fused"
-      angular_velocity: "/M350/wrapper/psdk_ros2/angular_rate_ground_fused"
-      ekf_status: "/alars_auv_ekf/status"
+      odom: "smarc/odom"
+      ekf_status: "alars_auv_ekf/status"
 
     frames:
       map: "map"
@@ -24,16 +23,16 @@
 
     alpha_line_pixels: 40.0
 
-    sigma_a: 0.01
-    sigma_z_process: 1.0
+    sigma_a: 0.01 # acc
+    sigma_z_process: 0.2 # acc
     sigma_yaw_process: 3.0
     sigma_pitch_acc_deg: 15.0
 
     R_u: 10.0
     R_v: 10.0
     R_alpha_deg: 5.0
-    R_len: 200.0
-    R_wid: 100.0
+    R_len: 100.0
+    R_wid: 40.0
 
     R_dyn.center_gain_u: 50.0
     R_dyn.center_gain_v: 50.0
@@ -74,4 +73,4 @@
     jacobian.eps_pose_pos: 0.001
     jacobian.eps_pose_ang: 0.001
 
-    motion_model: "depth"
+    motion_model: "oscillator" # options: "surface", "depth", "pitch", "oscillator"

@@ -1,5 +1,5 @@
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
+from dji_msgs.msg import Links, Topics
+from smarc_msgs.msg import Topics as SmarcTopics
 
 import cv2
 import yaml
@@ -10,11 +10,10 @@ from rclpy.time import Time
 from rclpy.node import Node
 from geometry_msgs.msg import PointStamped, PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
 from std_msgs.msg import Float32MultiArray
+from nav_msgs.msg import Odometry
 from scipy.stats import chi2
 import tf2_ros
 from scipy.spatial.transform import Rotation as R
-
-from .ekf_params import PARAMS
 
 from .ekf_core import EKFCore
 from .measurement_model import MeasurementModel
@@ -22,19 +21,16 @@ from .noise_models import NoiseModels
 from .initializer import Initializer
 from .visualization import create_pose_msg, create_transform_msg
 from .geometry_utils import residual_z, wrap
-from .motion_model import DepthModel9D, SurfaceModel5D, DepthModel7D, PitchModel9D
+from .motion_model import DepthModel9D, OscillatorModel, SurfaceModel5D, DepthModel7D, PitchModel9D
 
 from std_srvs.srv import Trigger
 
 class EKFNode(Node):
     def __init__(self):
         super().__init__("ekf_node")
-
-        self.declare_parameters(namespace="", parameters=PARAMS)
+        self.get_params()
 
         self.logger_info_enable = self.get_parameter("logger_info.enable").value
-        
-        self.get_params()
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
         self.eps = self.motion_model.eps
@@ -53,8 +49,7 @@ class EKFNode(Node):
         self.pub_status = self.create_publisher(Float32MultiArray, self.topic_ekf_status, 10) 
 
         self.sub_pose = self.create_subscription(PolygonStamped, self.topic_in_poly, self.poly_cb, 10)
-        self.sub_lin_vel = self.create_subscription(Vector3Stamped, self.topic_linear_velocity, self.lin_vel_cb, 10)
-        self.sub_ang_rate = self.create_subscription(Vector3Stamped, self.topic_angular_velocity, self.ang_rate_cb, 10)
+        self.sub_odom = self.create_subscription(Odometry, self.topic_odom, self.odom_cb, 10)
         self.sub_head = self.create_subscription(PolygonStamped, self.topic_input_auv_head, self.head_cb, 10)
 
         self.reset_srv = self.create_service(Trigger, "alars_auv_ekf/reset", self.handle_reset_service)
@@ -136,18 +131,11 @@ class EKFNode(Node):
         if len(self.flip_buffer) > 10:
             self.flip_buffer.pop(0)
 
-    def lin_vel_cb(self, msg: Vector3Stamped):
-        # transforms and stores the linear velocity of the drone for use in dynamic measurement noise.
-        # may be adjusted / removed in the future depending on how useful it proves to be and how noisy the measurements are.
+    def odom_cb(self, msg: Odometry):
         if self.current_R_map_cam is None:
             return
-        self.lin_vel_map = self.current_R_map_cam @ np.array([-msg.vector.x, msg.vector.y, msg.vector.z])
-
-    def ang_rate_cb(self, msg: Vector3Stamped):
-        # same as for lin_vel_cb but for angular velocity.
-        if self.current_R_map_cam is None:
-            return
-        self.ang_vel_map = self.current_R_map_cam @ np.array([-msg.vector.x, msg.vector.y, msg.vector.z])
+        self.lin_vel_map = self.current_R_map_cam @ np.array([-msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z])
+        self.ang_vel_map = self.current_R_map_cam @ np.array([-msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z])
 
     def predict_to_measurement_time(self, dt_total):
         # perfoems multiple prediction steps between measurements.
@@ -284,8 +272,8 @@ class EKFNode(Node):
                 sigma_yaw=self.sigma_yaw,
                 sigma_pitch=self.sigma_pitch,
             )
-        elif model_type == "depth9d":
-            return DepthModel9D(
+        elif model_type == "oscillator":
+            return OscillatorModel(
                 sigma_a=self.sigma_a,
                 sigma_z=self.sigma_z,
                 sigma_yaw=self.sigma_yaw,
@@ -364,6 +352,92 @@ class EKFNode(Node):
         )
 
     def get_params(self):
+        PARAMS = [
+            ("topics.input_polygon", Topics.ESTIMATED_AUV_OBB_TOPIC),
+            ("topics.input_auv_head", Topics.ESTIMATED_AUV_HEAD_TOPIC),
+            ("topics.output_topic", "rviz/estimated_pose"),
+            ("topics.odom", SmarcTopics.ODOM_TOPIC),
+            ("topics.ekf_status", "/alars_auv_ekf/status"),
+
+            ("frames.map", Links.MAP),
+            ("frames.output_link", Links.ESTIMATED_AUV),
+            ("frames.camera", Links.GIMBAL_OPTICAL_FRAME),
+
+            ("camera_info", ""),
+
+            ("z_water", 0.0),
+            ("n_air", 1.0),
+            ("n_water", 1.0),
+
+            # note that these are dimensions of the AUV in the measurement model (OBB), not necessarily the true dimensions of the AUV.
+            ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
+            ("obb.width_m", 0.16), # auv width in meters, may need to be adjusted
+
+            ("alpha_line_pixels", 40.0), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
+
+            ("sigma_a", 0.01), # m/s^2, could split up into x, y
+            ("sigma_z_process", 0.2), # m/s^2, only z as waves mostly affect depth
+            ("sigma_yaw_process", 3.0), # deg/s
+            ("sigma_pitch_acc_deg", 15.0), # deg/s^2, only for pitch as waves mostly affect pitch
+
+            # measurement noise stddev (pixels)
+            ("R_u", 10.0), 
+            ("R_v", 10.0),
+            ("R_alpha_deg", 5.0),
+            ("R_len", 200.0),
+            ("R_wid", 40.0),
+
+            # dynamic measurement noise stddev (pixels)
+            # increases with distance from image center
+            ("R_dyn.center_gain_u", 50.0), 
+            ("R_dyn.center_gain_v", 50.0),
+            ("R_dyn.center_gain_alpha_deg", 10.0),
+            ("R_dyn.center_gain_len", 10.0),
+            ("R_dyn.center_gain_wid", 10.0),
+
+            # increases with drone speed
+            ("R_dyn.speed_gain_u", 50.0),
+            ("R_dyn.speed_gain_v", 50.0),
+            ("R_dyn.speed_gain_alpha_deg", 10.0),
+            ("R_dyn.speed_gain_len", 60.0),
+            ("R_dyn.speed_gain_wid", 30.0),
+
+            # drone pose noise
+            ("R_pose_x", 0.03),
+            ("R_pose_y", 0.03),
+            ("R_pose_z", 0.03),
+            ("R_pose_r", 1.0),
+            ("R_pose_p", 1.0),
+            ("R_pose_yaw", 3.0),
+
+            # dynamic measurement noise update rate (s)
+            ("R_dyn_dt", 0.5),
+
+            ("init_z_needed", 5),
+            ("init_pos_max_spread", 2.0),
+            ("init_yaw_max_spread", 0.7),
+            ("init_z_max_spread", 2.0),
+            ("init_min_depth", 0.2),
+            ("init_max_depth", 8.0),
+            ("init_depth_steps", 40),
+
+            ("gating.prob", 0.99),
+
+            ("logger_info.enable", True),
+
+            # jacobian epsilons for numerical differentiation
+            ("jacobian.eps_state_pos", 1e-3),
+            ("jacobian.eps_state_yaw", 1e-3),
+            ("jacobian.eps_state_vel", 1e-3),
+            ("jacobian.eps_pose_pos", 1e-3),
+            ("jacobian.eps_pose_ang", 1e-3),
+
+            # "surface", "depth", "pitch", "depth9d"
+            ("motion_model", "oscillator"),
+            ]
+        
+        self.declare_parameters(namespace="", parameters=PARAMS)
+
         self.z_water = self.get_parameter("z_water").value
         self.n_air = self.get_parameter("n_air").value
         self.n_water = self.get_parameter("n_water").value
@@ -422,18 +496,17 @@ class EKFNode(Node):
         self.topic_in_poly = self.get_parameter("topics.input_polygon").value
         self.topic_input_auv_head = self.get_parameter("topics.input_auv_head").value
         self.topic_estimated_pose = self.get_parameter("topics.output_topic").value
-        self.topic_linear_velocity = self.get_parameter("topics.linear_velocity").value
-        self.topic_angular_velocity = self.get_parameter("topics.angular_velocity").value
+        self.topic_odom = self.get_parameter("topics.odom").value
         self.topic_ekf_status = self.get_parameter("topics.ekf_status").value
 
-        namespace = self.get_namespace().strip("/")
+        robot_name = self.get_namespace().strip("/")
         map_frame = self.get_parameter("frames.map").value
         output_frame = self.get_parameter("frames.output_link").value
         camera_frame = self.get_parameter("frames.camera").value
 
-        self.map_frame = f"{namespace}/{map_frame}"
-        self.output_frame = f"{namespace}/{output_frame}"
-        self.cam_frame = f"{namespace}/{camera_frame}"
+        self.map_frame = f"{robot_name}/{map_frame}"
+        self.output_frame = f"{robot_name}/{output_frame}"
+        self.cam_frame = f"{robot_name}/{camera_frame}"
 
         self.width = None
         self.height = None
