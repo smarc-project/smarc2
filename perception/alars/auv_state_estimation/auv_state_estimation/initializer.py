@@ -117,11 +117,20 @@ class Initializer:
             return None
         Z = np.stack(self.init_buffer, axis=0)
 
-        pos = Z[:, :2]
-        yaws = Z[:, 2]
-        pos_spread_xy = np.linalg.norm(pos - pos.mean(axis=0), axis=1).max() # max distance from mean position in xy plane, may be too strict
+        pos = np.asarray(Z[:, :2], dtype=np.float64)
+        yaws = np.asarray(Z[:, 2], dtype=np.float64)
 
-        yaws = Z[:, 3]
+        try:
+            diff = pos - pos.mean(axis=0)
+            norm = np.linalg.norm(diff, axis=1)
+            maxx = norm.max()
+            pos_spread_xy = maxx # max distance from mean position in xy plane, may be too strict
+            # pos_spread_xy = np.linalg.norm(pos - pos.mean(axis=0), axis=1).max() # max distance from mean position in xy plane, may be too strict
+        except Exception as e:
+            self.log_info(f"Error occurred while calculating position spread: {e}")
+            self.log_info(f"pos: {pos}, diff: {diff}")
+            raise
+
         c2 = np.mean(np.cos(2.0 * yaws))
         s2 = np.mean(np.sin(2.0 * yaws))
         yaw_mean = wrap(0.5 * np.arctan2(s2, c2))

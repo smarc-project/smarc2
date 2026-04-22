@@ -91,7 +91,7 @@ class EKFNode(Node):
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                self.current_R_map_cam = self.current_R_map_cam 
+                self.current_R_map_cam = self.current_R_map_cam
                 self.q.popleft()
                 self.z(msg, transform)
                 continue
@@ -485,7 +485,7 @@ class EKFNode(Node):
 
         self.R_dyn_dt :float = self.get_parameter("R_dyn_dt").get_parameter_value().double_value
 
-        self.init_z_needed :bool = self.get_parameter("init_z_needed").get_parameter_value().bool_value
+        self.init_z_needed : int = self.get_parameter("init_z_needed").get_parameter_value().integer_value
         self.init_pos_max_spread :float = self.get_parameter("init_pos_max_spread").get_parameter_value().double_value
         self.init_yaw_max_spread :float = self.get_parameter("init_yaw_max_spread").get_parameter_value().double_value
         self.init_z_max_spread :float = self.get_parameter("init_z_max_spread").get_parameter_value().double_value
