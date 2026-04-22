@@ -184,6 +184,9 @@ class EKFNode(Node):
         X = self.predict_to_measurement_time(dt)
 
         h = self.measurement_model.hx(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
+        if h is None:
+            self.log_info("Measurement function returned None, skipping update")
+            return
 
         H = self.measurement_model.numerical_H(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
         J_pose = self.measurement_model.numerical_J_pose(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)

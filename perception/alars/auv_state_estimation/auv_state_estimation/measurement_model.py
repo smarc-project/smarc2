@@ -202,8 +202,11 @@ class MeasurementModel:
             u, v = uv[0], uv[1]
             if 0.0 <= u <= self.width and 0.0 <= v <= self.height:
                 pts_img.append([u, v])
+
         if len(pts_img) < 5:
+            self.get_logger(f"Not enough projected points in image for measurement function: {len(pts_img)} points")
             return None
+        
         pts_img = np.asarray(pts_img, dtype=np.float32)
         rect = cv2.minAreaRect(pts_img)
         box = cv2.boxPoints(rect)
