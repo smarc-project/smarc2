@@ -4,15 +4,13 @@
   <name>floatsam_move_to</name>
   <version>0.0.0</version>
   <description>Move to action server for FloatSam USV</description>
-  <maintainer email="mannolorenzo421@gmail.com">lorenzo</maintainer>
-  <license>TODO: License declaration</license>
+  <maintainer email="lmanno@kth.se">lorenzo</maintainer>
+  <license>MIT</license>
 
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>smarc_msgs</depend>
   <depend>floatsam_msgs</depend>
-
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
