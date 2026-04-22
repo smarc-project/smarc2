@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from setuptools import setup
 import os
 from glob import glob
@@ -25,7 +26,6 @@ setup(
     entry_points={
         'console_scripts': [
             'smarc_topics_publisher = floatsam_topic_bridge.smarc_topics_publisher:main',
-            'floatsam_health_checker = floatsam_topic_bridge.floatsam_health_checker:main',
         ],
     },
 )
