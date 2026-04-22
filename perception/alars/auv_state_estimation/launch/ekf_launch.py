@@ -73,6 +73,7 @@ def generate_launch_description():
         name="ekf_node",
         output="screen",
         parameters=[
+            robot_name,
             params_file,
             {
                 "use_sim_time": use_sim_time,
