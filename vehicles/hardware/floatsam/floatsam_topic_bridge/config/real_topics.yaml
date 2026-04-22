@@ -3,30 +3,30 @@
     sensors:
       # GPS sensors (dual GPS setup)
       gps_left:
-        input_topic: '/fmu/out/vehicle_gps_position'  
+        input_topic: 'fmu/out/vehicle_gps_position'  
         output_topic: 'core/gps_left'
         msg_type: 'px4_msgs/SensorGps'
 
       gps_right:
-        input_topic: '/fmu/out/vehicle_gps_position' 
+        input_topic: 'fmu/out/vehicle_gps_position' 
         output_topic: 'core/gps_right'
         msg_type: 'px4_msgs/SensorGps'
 
       rtk_heading:
-        input_topic: '/atteuler'
+        input_topic: 'atteuler'
         output_topic: 'core/heading'
         msg_type: 'septentrio_gnss_driver/msg/AttEuler' # <--- MUST MATCH HARDWARE
 
       rtk_position:
-        input_topic: '/navsatfix'  
+        input_topic: 'navsatfix'  
         output_topic: 'core/rtk_position'
         # THIS MUST BE SENSOR_GPS FOR THE EKF TO WORK
-        output_for_px4: '/fmu/in/sensor_gps' 
+        output_for_px4: 'fmu/in/sensor_gps' 
         msg_type: 'sensor_msgs/NavSatFix'
 
       # IMU 
       imu:
-        input_topic: '/fmu/out/sensor_combined'
+        input_topic: 'fmu/out/sensor_combined'
         output_topic: 'core/imu'
         msg_type: 'px4_msgs/SensorCombined'
 
@@ -50,13 +50,13 @@
 
       # Odometry
       odom:
-        input_topic: '/fmu/out/vehicle_odometry'
+        input_topic: 'fmu/out/vehicle_odometry'
         output_topic: 'smarc/odom'
         msg_type: 'px4_msgs/VehicleOdometry'
 
       # Battery 
       battery:
-        input_topic: '/fmu/out/battery_status_v1'
+        input_topic: 'fmu/out/battery_status_v1'
         output_topic: 'smarc/battery_percent'
         msg_type: 'px4_msgs/BatteryStatus'
 
@@ -75,7 +75,7 @@
 
       # The unified output for PX4 
       px4_motors:
-        output_topic: '/fmu/in/actuator_motors'
+        output_topic: 'fmu/in/actuator_motors'
         msg_type: 'px4_msgs/ActuatorMotors'
 
 
