@@ -13,7 +13,7 @@ class EKFCore:
         self.z_water = z_water
         self.state_dim = state_dim
         self.outlier_threshold = outlier_threshold
-        self.last_t = None
+        self.last_t : float | None = None
         self.initialized = False
         self.logger = logger
         self.X = np.zeros((self.state_dim, 1))

@@ -30,7 +30,7 @@ class EKFNode(Node):
         super().__init__("ekf_node")
         self.get_params()
 
-        self.logger_info_enable = self.get_parameter("logger_info.enable").value
+        self.logger_info_enable : bool = self.get_parameter("logger_info.enable").get_parameter_value().bool_value
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
         self.eps = self.motion_model.eps
@@ -148,13 +148,14 @@ class EKFNode(Node):
             X, F = self.motion_model.predict(self.ekf.X, dt_step)
             Q = self.motion_model.build_Q(dt_step)
             self.ekf.predict(X, F, Q, self.ekf.last_t + dt_step)
-        return X
+        return X # type: ignore
     
 
     def z(self, msg: PolygonStamped, transform: TransformStamped):
+            
         # main callback for processing incoming measurements, performing EKF prediction and update, and publishing the estimated pose.
         stamp = msg.header.stamp
-        t = stamp.sec + stamp.nanosec * 1e-9
+        t : float = stamp.sec + stamp.nanosec * 1e-9
         self.current_transform = transform
         
         z_center_img, z_alpha_img, z_len_px, z_wid_px, _ = self.measurement_model.extract_features(self.pol_to_array(msg))
@@ -172,7 +173,13 @@ class EKFNode(Node):
             z = np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img]])
         else:
             z = np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img], [z_len_px], [z_wid_px]])
-        dt = t - self.ekf.last_t
+
+
+        if self.ekf.last_t is None:
+            self.log_info("EKF not initialized with time, skipping measurement")
+            return
+
+        dt : float = t - self.ekf.last_t
 
         X = self.predict_to_measurement_time(dt)
 
@@ -240,7 +247,7 @@ class EKFNode(Node):
         self.ekf = EKFCore(
             self.z_water,
             state_dim=self.state_dim,
-            outlier_threshold=self.outlier_threshold,
+            outlier_threshold=self.outlier_threshold, # type: ignore
             #logger=self.get_logger(),
         )
 
@@ -347,7 +354,7 @@ class EKFNode(Node):
         self.ekf = EKFCore(
             self.z_water,
             state_dim=self.state_dim,
-            outlier_threshold=self.outlier_threshold,
+            outlier_threshold=self.outlier_threshold, # type: ignore
             logger=self.get_logger(),   
         )
 
@@ -357,8 +364,9 @@ class EKFNode(Node):
             ("topics.input_auv_head", Topics.ESTIMATED_AUV_HEAD_TOPIC),
             ("topics.output_topic", "rviz/estimated_pose"),
             ("topics.odom", SmarcTopics.ODOM_TOPIC),
-            ("topics.ekf_status", "/alars_auv_ekf/status"),
+            ("topics.ekf_status", "alars_auv_ekf/status"),
 
+            ("robot_name", "M350"),
             ("frames.map", Links.MAP),
             ("frames.output_link", Links.ESTIMATED_AUV),
             ("frames.camera", Links.GIMBAL_OPTICAL_FRAME),
@@ -438,71 +446,71 @@ class EKFNode(Node):
         
         self.declare_parameters(namespace="", parameters=PARAMS)
 
-        self.z_water = self.get_parameter("z_water").value
-        self.n_air = self.get_parameter("n_air").value
-        self.n_water = self.get_parameter("n_water").value
+        self.z_water :float = self.get_parameter("z_water").get_parameter_value().double_value
+        self.n_air :float = self.get_parameter("n_air").get_parameter_value().double_value
+        self.n_water :float = self.get_parameter("n_water").get_parameter_value().double_value
 
-        self.obb_length_m = self.get_parameter("obb.length_m").value
-        self.obb_width_m = self.get_parameter("obb.width_m").value
-        self.alpha_line_pixels = self.get_parameter("alpha_line_pixels").value
+        self.obb_length_m :float = self.get_parameter("obb.length_m").get_parameter_value().double_value
+        self.obb_width_m :float = self.get_parameter("obb.width_m").get_parameter_value().double_value
+        self.alpha_line_pixels :int = self.get_parameter("alpha_line_pixels").get_parameter_value().integer_value
 
-        self.sigma_a = self.get_parameter("sigma_a").value
-        self.sigma_z = self.get_parameter("sigma_z_process").value
-        self.sigma_yaw = np.deg2rad(self.get_parameter("sigma_yaw_process").value)
-        self.sigma_pitch = np.deg2rad(self.get_parameter("sigma_pitch_acc_deg").value)
-        self.R_u = self.get_parameter("R_u").value
-        self.R_v = self.get_parameter("R_v").value
-        self.R_alpha = np.deg2rad(float(self.get_parameter("R_alpha_deg").value))
-        self.R_len = self.get_parameter("R_len").value
-        self.R_wid = self.get_parameter("R_wid").value
+        self.sigma_a :float = self.get_parameter("sigma_a").get_parameter_value().double_value
+        self.sigma_z :float = self.get_parameter("sigma_z_process").get_parameter_value().double_value
+        self.sigma_yaw :float = np.deg2rad(self.get_parameter("sigma_yaw_process").get_parameter_value().double_value)
+        self.sigma_pitch :float = np.deg2rad(self.get_parameter("sigma_pitch_acc_deg").get_parameter_value().double_value)
+        self.R_u :float = self.get_parameter("R_u").get_parameter_value().double_value
+        self.R_v :float = self.get_parameter("R_v").get_parameter_value().double_value
+        self.R_alpha :float = np.deg2rad(float(self.get_parameter("R_alpha_deg").get_parameter_value().double_value))
+        self.R_len :float = self.get_parameter("R_len").get_parameter_value().double_value
+        self.R_wid :float = self.get_parameter("R_wid").get_parameter_value().double_value
 
-        self.R_pose_x = self.get_parameter("R_pose_x").value
-        self.R_pose_y = self.get_parameter("R_pose_y").value
-        self.R_pose_z = self.get_parameter("R_pose_z").value
-        self.R_pose_r = np.deg2rad(self.get_parameter("R_pose_r").value)
-        self.R_pose_p = np.deg2rad(self.get_parameter("R_pose_p").value)
-        self.R_pose_yaw = np.deg2rad(self.get_parameter("R_pose_yaw").value)
+        self.R_pose_x :float = self.get_parameter("R_pose_x").get_parameter_value().double_value
+        self.R_pose_y :float = self.get_parameter("R_pose_y").get_parameter_value().double_value
+        self.R_pose_z :float = self.get_parameter("R_pose_z").get_parameter_value().double_value
+        self.R_pose_r :float = np.deg2rad(self.get_parameter("R_pose_r").get_parameter_value().double_value)
+        self.R_pose_p :float = np.deg2rad(self.get_parameter("R_pose_p").get_parameter_value().double_value)
+        self.R_pose_yaw :float = np.deg2rad(self.get_parameter("R_pose_yaw").get_parameter_value().double_value)
 
-        self.R_dyn_center_gain_u = self.get_parameter("R_dyn.center_gain_u").value
-        self.R_dyn_center_gain_v = self.get_parameter("R_dyn.center_gain_v").value
-        self.R_dyn_center_gain_alpha = np.deg2rad(self.get_parameter("R_dyn.center_gain_alpha_deg").value)
-        self.R_dyn_center_gain_len = self.get_parameter("R_dyn.center_gain_len").value
-        self.R_dyn_center_gain_wid = self.get_parameter("R_dyn.center_gain_wid").value
+        self.R_dyn_center_gain_u :float = self.get_parameter("R_dyn.center_gain_u").get_parameter_value().double_value
+        self.R_dyn_center_gain_v :float = self.get_parameter("R_dyn.center_gain_v").get_parameter_value().double_value
+        self.R_dyn_center_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.center_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_center_gain_len :float = self.get_parameter("R_dyn.center_gain_len").get_parameter_value().double_value
+        self.R_dyn_center_gain_wid :float = self.get_parameter("R_dyn.center_gain_wid").get_parameter_value().double_value
 
-        self.R_dyn_speed_gain_u = self.get_parameter("R_dyn.speed_gain_u").value
-        self.R_dyn_speed_gain_v = self.get_parameter("R_dyn.speed_gain_v").value
-        self.R_dyn_speed_gain_alpha = np.deg2rad(self.get_parameter("R_dyn.speed_gain_alpha_deg").value)
-        self.R_dyn_speed_gain_len = self.get_parameter("R_dyn.speed_gain_len").value
-        self.R_dyn_speed_gain_wid = self.get_parameter("R_dyn.speed_gain_wid").value
+        self.R_dyn_speed_gain_u :float = self.get_parameter("R_dyn.speed_gain_u").get_parameter_value().double_value
+        self.R_dyn_speed_gain_v :float = self.get_parameter("R_dyn.speed_gain_v").get_parameter_value().double_value
+        self.R_dyn_speed_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.speed_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_speed_gain_len :float = self.get_parameter("R_dyn.speed_gain_len").get_parameter_value().double_value
+        self.R_dyn_speed_gain_wid :float = self.get_parameter("R_dyn.speed_gain_wid").get_parameter_value().double_value
 
-        self.R_dyn_dt = self.get_parameter("R_dyn_dt").value
+        self.R_dyn_dt :float = self.get_parameter("R_dyn_dt").get_parameter_value().double_value
 
-        self.init_z_needed = self.get_parameter("init_z_needed").value
-        self.init_pos_max_spread = self.get_parameter("init_pos_max_spread").value
-        self.init_yaw_max_spread = self.get_parameter("init_yaw_max_spread").value
-        self.init_z_max_spread = self.get_parameter("init_z_max_spread").value
-        self.init_min_depth = self.get_parameter("init_min_depth").value
-        self.init_max_depth = self.get_parameter("init_max_depth").value
-        self.init_depth_steps = self.get_parameter("init_depth_steps").value
+        self.init_z_needed :bool = self.get_parameter("init_z_needed").get_parameter_value().bool_value
+        self.init_pos_max_spread :float = self.get_parameter("init_pos_max_spread").get_parameter_value().double_value
+        self.init_yaw_max_spread :float = self.get_parameter("init_yaw_max_spread").get_parameter_value().double_value
+        self.init_z_max_spread :float = self.get_parameter("init_z_max_spread").get_parameter_value().double_value
+        self.init_min_depth :float = self.get_parameter("init_min_depth").get_parameter_value().double_value
+        self.init_max_depth :float = self.get_parameter("init_max_depth").get_parameter_value().double_value
+        self.init_depth_steps :int = self.get_parameter("init_depth_steps").get_parameter_value().integer_value
 
-        self.gating_prob = self.get_parameter("gating.prob").value
+        self.gating_prob :float = self.get_parameter("gating.prob").get_parameter_value().double_value
 
-        self.eps_state_pos = self.get_parameter("jacobian.eps_state_pos").value
-        self.eps_state_yaw = self.get_parameter("jacobian.eps_state_yaw").value
-        self.eps_state_vel = self.get_parameter("jacobian.eps_state_vel").value
-        self.eps_pose_pos = self.get_parameter("jacobian.eps_pose_pos").value
-        self.eps_pose_ang = self.get_parameter("jacobian.eps_pose_ang").value
+        self.eps_state_pos :float = self.get_parameter("jacobian.eps_state_pos").get_parameter_value().double_value
+        self.eps_state_yaw :float = self.get_parameter("jacobian.eps_state_yaw").get_parameter_value().double_value
+        self.eps_state_vel :float = self.get_parameter("jacobian.eps_state_vel").get_parameter_value().double_value
+        self.eps_pose_pos :float = self.get_parameter("jacobian.eps_pose_pos").get_parameter_value().double_value
+        self.eps_pose_ang :float = self.get_parameter("jacobian.eps_pose_ang").get_parameter_value().double_value
 
-        self.topic_in_poly = self.get_parameter("topics.input_polygon").value
-        self.topic_input_auv_head = self.get_parameter("topics.input_auv_head").value
-        self.topic_estimated_pose = self.get_parameter("topics.output_topic").value
-        self.topic_odom = self.get_parameter("topics.odom").value
-        self.topic_ekf_status = self.get_parameter("topics.ekf_status").value
+        self.topic_in_poly : str = self.get_parameter("topics.input_polygon").get_parameter_value().string_value
+        self.topic_input_auv_head : str = self.get_parameter("topics.input_auv_head").get_parameter_value().string_value
+        self.topic_estimated_pose : str = self.get_parameter("topics.output_topic").get_parameter_value().string_value
+        self.topic_odom : str = self.get_parameter("topics.odom").get_parameter_value().string_value
+        self.topic_ekf_status : str = self.get_parameter("topics.ekf_status").get_parameter_value().string_value
 
-        robot_name = self.get_namespace().strip("/")
-        map_frame = self.get_parameter("frames.map").value
-        output_frame = self.get_parameter("frames.output_link").value
-        camera_frame = self.get_parameter("frames.camera").value
+        robot_name : str = self.get_parameter("robot_name").get_parameter_value().string_value
+        map_frame : str = self.get_parameter("frames.map").get_parameter_value().string_value
+        output_frame : str = self.get_parameter("frames.output_link").get_parameter_value().string_value
+        camera_frame : str = self.get_parameter("frames.camera").get_parameter_value().string_value
 
         self.map_frame = f"{robot_name}/{map_frame}"
         self.output_frame = f"{robot_name}/{output_frame}"
@@ -513,7 +521,7 @@ class EKFNode(Node):
         self.K = None
         self.D = None
 
-        cam_info_path = self.get_parameter("camera_info").value
+        cam_info_path : str = self.get_parameter("camera_info").get_parameter_value().string_value
         if cam_info_path:
             with open(cam_info_path, "r") as f:
                 calib = yaml.safe_load(f.read())
@@ -525,7 +533,7 @@ class EKFNode(Node):
         else:
             raise RuntimeError("camera_info parameter must be set")
         
-        self.motion_model_type = self.get_parameter("motion_model").value
+        self.motion_model_type : str = self.get_parameter("motion_model").get_parameter_value().string_value
 
 
 def main():

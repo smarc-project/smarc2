@@ -20,7 +20,7 @@ class MeasurementModel:
             n_water, 
             obb_length_m, 
             obb_width_m, 
-            motion_model="surface",
+            motion_model, #TODO weird usage of this :)
             logger=None
                  ):
         
