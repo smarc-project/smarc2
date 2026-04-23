@@ -87,7 +87,11 @@ class FollowAUVAction():
             self._loginfo(f"Message age is abnormal, treating as stale.")
             self._loginfo(f"Message timestamp: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}, now: {self._drone_state.now_float}, age: {age}")
 
-        return age > age_s
+        if age > age_s:
+            self._loginfo(f"Message is stale (age {age:.2f} > {age_s:.2f}).")
+            return True
+        
+        return False
 
 
     def _loginfo(self, msg: str):

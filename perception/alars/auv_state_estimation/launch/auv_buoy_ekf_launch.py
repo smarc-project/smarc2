@@ -20,6 +20,11 @@ def generate_launch_description():
     camera_calibration_file_arg = DeclareLaunchArgument("camera_calibration_file", default_value="cam_params.yaml")
     camera_calibration_file = LaunchConfiguration("camera_calibration_file")
 
+    auv_staleness_arg = DeclareLaunchArgument("auv_ekf_staleness_seconds", default_value="3.0")
+    auv_ekf_staleness_seconds = LaunchConfiguration("auv_ekf_staleness_seconds")
+
+    buoy_staleness_arg = DeclareLaunchArgument("buoy_ekf_staleness_seconds", default_value="10.0")
+    buoy_ekf_staleness_seconds = LaunchConfiguration("buoy_ekf_staleness_seconds")
     
     auv_poly_in = Topics.ESTIMATED_AUV_OBB_TOPIC
     buoy_poly_in = Topics.ESTIMATED_BUOY_OBB_TOPIC
@@ -49,7 +54,8 @@ def generate_launch_description():
             'output_link': auv_link_out,
             'obb_length': auv_length,
             'obb_width': auv_width,
-            'output_cov_pose_topic': auv_cov_pose_out
+            'output_cov_pose_topic': auv_cov_pose_out,
+            'stale_state_age': auv_ekf_staleness_seconds
         }.items()
     )
 
@@ -63,7 +69,8 @@ def generate_launch_description():
             'output_link': buoy_link_out,
             'obb_length': buoy_length,
             'obb_width': buoy_width,
-            'output_cov_pose_topic': buoy_cov_pose_out
+            'output_cov_pose_topic': buoy_cov_pose_out,
+            'stale_state_age': buoy_ekf_staleness_seconds
         }.items()
     )
 
@@ -71,6 +78,8 @@ def generate_launch_description():
         robot_name_arg,
         use_sim_time_arg,
         camera_calibration_file_arg,
+        auv_staleness_arg,
+        buoy_staleness_arg,
         auv_launch,
         buoy_launch
     ])

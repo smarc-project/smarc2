@@ -137,10 +137,11 @@ ALARS_SEARCH_CMD="ros2 run alars alars_search_action_server --ros-args -r __ns:=
 -p min_setpoint_distance_to_drone:=1.0 \
 -p detection_freshness_threshold:=1.0"
 
+EKF_STALENESS_SECONDS=3.0
 ALARS_FOLLOW_AUV_CMD="ros2 run alars alars_follow_auv_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
--p detection_freshness_threshold:=1.0"
+-p detection_freshness_threshold:=$EKF_STALENESS_SECONDS"
 
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2
 if [[ $USE_SIM_TIME = "True" ]]; then
@@ -205,7 +206,13 @@ device:=$YOLO_DEVICE \
 use_sim_time:=$USE_SIM_TIME \
 model_package:=alars_labeling_training"
 
-PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME camera_calibration_file:=$CAM_CALIBRATION_FILE"
+PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py \
+namespace:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME \
+camera_calibration_file:=$CAM_CALIBRATION_FILE \
+auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
+buoy_ekf_staleness_seconds:=10.0
+"
 
 tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 

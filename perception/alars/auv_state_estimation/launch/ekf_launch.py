@@ -45,6 +45,11 @@ def generate_launch_description():
         default_value='rviz/estimated_auv_pose'
     )
 
+    stale_state_age_arg = DeclareLaunchArgument(
+        "stale_state_age",
+        default_value="3.0"
+    )
+
     robot_name = LaunchConfiguration("robot_name")
     use_sim_time = LaunchConfiguration("use_sim_time")
     camera_calibration_file = LaunchConfiguration("camera_calibration_file")
@@ -53,6 +58,7 @@ def generate_launch_description():
     obb_length = LaunchConfiguration("obb_length")
     obb_width = LaunchConfiguration("obb_width")
     cov_pose_out = LaunchConfiguration("output_cov_pose_topic")
+    stale_state_age = LaunchConfiguration("stale_state_age")
 
     params_file = PathJoinSubstitution([
         FindPackageShare("auv_state_estimation"),
@@ -83,7 +89,7 @@ def generate_launch_description():
                 "obb.length_m": obb_length,
                 "obb.width_m": obb_width,
                 "topics.output_topic": cov_pose_out,
-
+                "stale_state_age": stale_state_age
             }
         ],
     )
@@ -97,6 +103,7 @@ def generate_launch_description():
         obb_length_arg,
         obb_width_arg,
         cov_pose_out_arg,
+        stale_state_age_arg,
         ekf_node
     ])
 

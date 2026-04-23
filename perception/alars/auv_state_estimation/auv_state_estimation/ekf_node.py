@@ -67,7 +67,7 @@ class EKFNode(Node):
 
         self.get_logger().info(f"EKF node started. map_frame={self.map_frame}, cam_frame={self.cam_frame}, estimated_auv_frame={self.output_frame}")
 
-        self.q = deque()
+        self.q : deque[tuple[PolygonStamped | None, Time | None]] = deque()
         self.timer = self.create_timer(0.01, self.process_q)
         self.status_timer = self.create_timer(0.5, self.publish_status)
 
@@ -75,15 +75,30 @@ class EKFNode(Node):
         if self.logger_info_enable:
             self.get_logger().info(msg)
 
-    def poly_cb(self, msg):
+    def poly_cb(self, msg : PolygonStamped):
         arrival = self.get_clock().now()
         self.q.append((msg, arrival))
 
     def process_q(self):
         while self.q:
             msg, arrival = self.q[0]
-            now = self.get_clock().now()
-            stamp = Time.from_msg(msg.header.stamp)
+            
+            if msg is None or arrival is None: 
+                self.log_info("Received None message or timestamp in queue, skipping.")
+                self.q.popleft()
+                continue
+
+            now : Time = self.get_clock().now()
+            if self.last_processed_measurement_time is not None:
+                state_age = (now - self.last_processed_measurement_time).nanoseconds * 1e-9
+                if state_age > self.stale_state_age:
+                    self.log_info(f"STALE STATE (age {state_age:.2f}s), RESETTING FILTER.")
+                    self.reset_filter()
+                    return
+            else:
+                self.log_info("First measurement received.")
+
+            stamp : Time = Time.from_msg(msg.header.stamp)
             if self.tf_buffer.can_transform(self.map_frame, self.cam_frame, stamp):
                 transform = self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, stamp)
                 self.current_transform = transform
@@ -94,6 +109,7 @@ class EKFNode(Node):
                 self.current_R_map_cam = self.current_R_map_cam
                 self.q.popleft()
                 self.z(msg, transform)
+                self.last_processed_measurement_time = arrival
                 continue
 
             wait_time = (now - arrival).nanoseconds * 1e-9
@@ -261,6 +277,7 @@ class EKFNode(Node):
         self.lin_vel_map = np.zeros(3)
         self.ang_vel_map = np.zeros(3)
         self.q.clear()
+        self.last_processed_measurement_time = None
         self.get_logger().info("EKF internal state reset.")
 
     def get_motion_model(self, model_type):
@@ -445,6 +462,9 @@ class EKFNode(Node):
 
             # "surface", "depth", "pitch", "depth9d"
             ("motion_model", "oscillator"),
+
+            # if the state is older than this many seconds when a new measurement arrives, reset the filter.
+            ("stale_state_age", 3.0)
             ]
         
         self.declare_parameters(namespace="", parameters=PARAMS)
@@ -509,6 +529,11 @@ class EKFNode(Node):
         self.topic_estimated_pose : str = self.get_parameter("topics.output_topic").get_parameter_value().string_value
         self.topic_odom : str = self.get_parameter("topics.odom").get_parameter_value().string_value
         self.topic_ekf_status : str = self.get_parameter("topics.ekf_status").get_parameter_value().string_value
+
+        # how long do we hold on to the state after last measurement before considering it stale and reinitializing?
+        self.stale_state_age : float = self.get_parameter("stale_state_age").get_parameter_value().double_value
+        self.last_processed_measurement_time : Time | None = None
+
 
         robot_name : str = self.get_parameter("robot_name").get_parameter_value().string_value
         map_frame : str = self.get_parameter("frames.map").get_parameter_value().string_value
