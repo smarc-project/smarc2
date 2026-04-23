@@ -39,7 +39,6 @@ class RecoverAction():
 
         self._node.declare_parameter('robot_name', 'M350')
         self._robot_name : str = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self.MAP_FRAME : str = self._robot_name + '/' + DJILinks.MAP
 
         self._drone_state = DroneState(node, self._robot_name)
 
@@ -74,10 +73,6 @@ class RecoverAction():
         self._points : dict[RecoveryPhases, PoseStamped] = {}
 
 
-    @property
-    def _now_float(self) -> float:
-        now_stamp = self._node.get_clock().now().to_msg()
-        return now_stamp.sec + now_stamp.nanosec * 1e-9
     
     def _msg_is_older_than(self, msg, age_s: float) -> bool:
         if msg is None: return True
@@ -85,7 +80,7 @@ class RecoverAction():
         if msg.header.stamp is None: return True
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
             return True
-        return self._now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
+        return self._drone_state.now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
     
     
     def compute_distance(self, pose1 : PoseStamped, pose2 : PoseStamped) -> float:
@@ -177,7 +172,7 @@ class RecoverAction():
 
         # A
         self._dipping_high = PoseStamped()
-        self._dipping_high.header.frame_id = self.MAP_FRAME
+        self._dipping_high.header.frame_id = self._drone_state.MAP_FRAME
         self._dipping_high.pose.position.x = dipping_pos[0]
         self._dipping_high.pose.position.y = dipping_pos[1]
         self._dipping_high.pose.position.z = self.dipping_altitude
@@ -186,7 +181,7 @@ class RecoverAction():
 
         # B
         self._dipping_low = PoseStamped()
-        self._dipping_low.header.frame_id = self.MAP_FRAME
+        self._dipping_low.header.frame_id = self._drone_state.MAP_FRAME
         self._dipping_low.pose.position.x = dipping_pos[0]
         self._dipping_low.pose.position.y = dipping_pos[1]
         self._dipping_low.pose.position.z = self.forward_altitude
@@ -195,7 +190,7 @@ class RecoverAction():
 
         # C
         self._raising_low = PoseStamped()
-        self._raising_low.header.frame_id = self.MAP_FRAME
+        self._raising_low.header.frame_id = self._drone_state.MAP_FRAME
         self._raising_low.pose.position.x = raising_pos[0]
         self._raising_low.pose.position.y = raising_pos[1]
         self._raising_low.pose.position.z = self.forward_altitude
@@ -204,7 +199,7 @@ class RecoverAction():
 
         # D
         self._raising_high = PoseStamped()
-        self._raising_high.header.frame_id = self.MAP_FRAME
+        self._raising_high.header.frame_id = self._drone_state.MAP_FRAME
         self._raising_high.pose.position.x = raising_pos[0]
         self._raising_high.pose.position.y = raising_pos[1]
         self._raising_high.pose.position.z = self.raising_altitude
