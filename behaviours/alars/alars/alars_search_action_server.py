@@ -4,23 +4,16 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.time import Time, Duration
 
 import traceback
 
 from geometry_msgs.msg import  PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
-from std_msgs.msg import Float32
-from nav_msgs.msg import Odometry
-from tf2_geometry_msgs import do_transform_pose_stamped
-from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from smarc_utilities.georef_utils import convert_latlon_to_utm
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
-from smarc_msgs.msg import Topics as SmarcTopics
 
 from alars.alars_common import DroneState
 
@@ -104,9 +97,11 @@ class SearchAction():
 
     def _auv_detection_cb(self, msg: PointStamped):
         self._auv_detection = msg
+        self._loginfo(f"Detecting AUV")
 
     def _buoy_detection_cb(self, msg: PointStamped):
         self._buoy_detection = msg
+        self._loginfo(f"Detecting Buoy")
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -172,11 +167,9 @@ class SearchAction():
             self._loginfo("No drone position received yet, cannot perform search...")
             return False
         
-        # if both the auv and buoy are detected, we are done too
-        auv_fresh = not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD)
-        buoy_fresh = not self._msg_is_older_than(self._buoy_detection, self.DETECTION_FRESHNESS_THRESHOLD)
-        if auv_fresh and buoy_fresh:
-            self._loginfo("Both AUV and Buoy detected, finishing search action successfully.")
+        # if the auv is detected, we are done
+        if not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD):
+            self._loginfo("AUV detected, finishing search action successfully.")
             return True
         
 

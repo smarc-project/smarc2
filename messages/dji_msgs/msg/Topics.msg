@@ -40,9 +40,6 @@ string ESTIMATED_AUV_TOPIC = 'alars_detection/auv' # PointStamped
 string ESTIMATED_AUV_OBB_TOPIC = "alars_detection/auv_obb" # PolygonStamped
 string ESTIMATED_AUV_HEAD_TOPIC = "alars_detection/auv_head" # PolygonStamped
 string ESTIMATED_BUOY_OBB_TOPIC = "alars_detection/buoy_obb" # PolygonStamped
-string ESTIMATED_MIDDLE_TOPIC = 'alars_detection/middle' # PointStamped
-string ESTIMATED_CNN_HOOK_ANCHOR_TOPIC = 'alars_detection/cnn' # PointStamped
-string ESTIMATED_CNN_AFTER_CATCH_FLY_DIRECTION_TOPIC = 'alars_detection/cnn_vec' # PointStamped
 # instead of captain subbing to image and so on
 # let the consumer of camera data tell it if the camera is good, detection can happen etc.
 string CAM_PROCESSOR_HAPPY_TOPIC = 'alars_detection/cam_processor_happy' # Bool
@@ -55,6 +52,8 @@ string LABELED_OBBS_TOPIC="alars_detection/labeled_obbs"
 string PROJECTED_AUV_HEAD_TOPIC = 'alars_projection/auv_head' # PolygonStamped
 string PROJECTED_AUV_OBB_TOPIC = 'alars_projection/auv_obb' # PolygonStamped
 string PROJECTED_BUOY_OBB_TOPIC = 'alars_projection/buoy_obb' # PolygonStamped
+string PROJECTED_AUV_POSE_WITH_COV_TOPIC = 'alars_projection/auv_pose_with_cov' # PoseWithCovarianceStamped 
+string PROJECTED_BUOY_POSE_WITH_COV_TOPIC = 'alars_projection/buoy_pose_with_cov' # PoseWithCovarianceStamped
 
 
 # services
