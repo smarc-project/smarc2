@@ -343,40 +343,7 @@ class AlarsBT():
             self.log("Failed to set recover goal.")
             return False
 
-    
-    def _set_goal_localize_auv(self) -> bool:
-        g = {"localize_auv": True, "localize_buoy": False}
-        self.localize_auv_action.set_goal(json.dumps(g))
-        return True
-    
-    
-    def _set_goal_localize_buoy(self) -> bool:
-        g = {"localize_auv": False, "localize_buoy": True}
-        self.localize_buoy_action.set_goal(json.dumps(g))
-        return True
-    
 
-    def _set_auv_position_from_drone(self) -> bool:
-        if self._drone_geopoint is None:
-            self.log("Drone geopoint not known, cannot set AUV position.")
-            return False
-        self._auv_geopoint_stamped = GeoPointStamped()
-        self._auv_geopoint_stamped.position.latitude = self._drone_geopoint.latitude
-        self._auv_geopoint_stamped.position.longitude = self._drone_geopoint.longitude
-        self._auv_geopoint_stamped.position.altitude = 0.0
-        self._auv_geopoint_stamped.header.stamp = self._node.get_clock().now().to_msg()
-        return True
-    
-    def _set_buoy_position_from_drone(self) -> bool:
-        if self._drone_geopoint is None:
-            self.log("Drone geopoint not known, cannot set buoy position.")
-            return False
-        self._buoy_geopoint_stamped = GeoPointStamped()
-        self._buoy_geopoint_stamped.position.latitude = self._drone_geopoint.latitude
-        self._buoy_geopoint_stamped.position.longitude = self._drone_geopoint.longitude
-        self._buoy_geopoint_stamped.position.altitude = 0.0
-        self._buoy_geopoint_stamped.header.stamp = self._node.get_clock().now().to_msg()
-        return True
     
     def _set_goal_search_height(self) -> bool:
         if self._drone_geopoint is None:

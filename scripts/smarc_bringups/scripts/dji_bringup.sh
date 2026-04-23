@@ -196,15 +196,19 @@ tmux_make_layout "$SESSION" BTs "row(3:var(WASP_BT_CMD), 3:var(ALARS_BT_CMD), 1:
 ############
 YOLO_DEVICE=0
 CAM_CALIBRATION_FILE="real_z1_params.yaml"
+YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: yolo_model_2cls_mixed.pt, yolo_model_2cls_fisheye.pt, yolo_model_5cls.pt, yolo_model_6cls.pt
 if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_DEVICE=cpu
     CAM_CALIBRATION_FILE="cam_params.yaml"
+    # 2cls_mixed seems to be doing better in sim
+    YOLO_MODEL="yolo_model_2cls_mixed.pt"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
 namespace:=$ROBOT_NAME \
 device:=$YOLO_DEVICE \
 use_sim_time:=$USE_SIM_TIME \
-model_package:=alars_labeling_training"
+model_package:=alars_labeling_training \
+model_file:=$YOLO_MODEL"
 
 PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py \
 namespace:=$ROBOT_NAME \
