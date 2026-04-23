@@ -7,7 +7,7 @@ from rclpy.executors import MultiThreadedExecutor
 
 import traceback
 
-from geometry_msgs.msg import  PointStamped, PoseStamped
+from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStamped
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 
@@ -53,10 +53,11 @@ class SearchAction():
                                        self._auv_detection_cb,
                                        10)
         
-        self._node.create_subscription(PointStamped,
-                                       DJITopics.ESTIMATED_BUOY_TOPIC,
-                                       self._buoy_detection_cb,
+        self._node.create_subscription(PoseWithCovarianceStamped,
+                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
+                                       self._auv_projection_cb,
                                        10)
+        
 
       
         self._as = GentlerActionServer(
@@ -72,7 +73,7 @@ class SearchAction():
             
     def _reset(self):
         self._auv_detection : PointStamped = PointStamped()
-        self._buoy_detection : PointStamped = PointStamped()
+        self._auv_projection : PoseWithCovarianceStamped = PoseWithCovarianceStamped()
         self._spiral_progress : float = 0.0
         self._search_center_map : PoseStamped = PoseStamped()
         self._search_radius : float = 0.0
@@ -95,13 +96,14 @@ class SearchAction():
     def _loginfo(self, msg: str):
         self._node.get_logger().info(f"[SearchAction] {msg}")
 
+
     def _auv_detection_cb(self, msg: PointStamped):
         self._auv_detection = msg
-        self._loginfo(f"Detecting AUV")
 
-    def _buoy_detection_cb(self, msg: PointStamped):
-        self._buoy_detection = msg
-        self._loginfo(f"Detecting Buoy")
+
+    def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):
+        self._auv_projection = msg
+
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -169,8 +171,12 @@ class SearchAction():
         
         # if the auv is detected, we are done
         if not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD):
-            self._loginfo("AUV detected, finishing search action successfully.")
-            return True
+            self._loginfo("AUV detected, waiting for projection")
+            if not self._msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+                self._loginfo("AUV projection is fresh, finishing action successfully.")
+                return True
+            # just wait
+            return None
         
 
         # if there is a current setpoint, check if we are close enough to it
@@ -226,7 +232,16 @@ class SearchAction():
 
 
     def _give_feedback(self) -> str:
-        return f"Radius progress: {self._radius_progress:.2f}/{self._search_radius:.2f}m"
+        if self._auv_detection is None:
+            detection = "none"
+        else:
+            detection = "fresh" if not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
+        if self._auv_projection is None:
+            projection = "none"
+        else:
+            projection = "fresh" if not self._msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
+
+        return f"Radius: {self._radius_progress:.2f}/{self._search_radius:.2f}m, detection:{detection}, projection:{projection}"
 
 
 def main(args=None):
