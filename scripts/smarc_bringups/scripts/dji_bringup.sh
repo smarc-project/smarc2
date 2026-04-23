@@ -207,7 +207,7 @@ device:=$YOLO_DEVICE \
 use_sim_time:=$USE_SIM_TIME \
 model_package:=alars_labeling_training"
 
-PROJECTION_CMD="ros2 launch auv_state_estimation ekf_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME camera_calibration_file:=$CAM_CALIBRATION_FILE"
+PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py namespace:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME camera_calibration_file:=$CAM_CALIBRATION_FILE"
 
 tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 
