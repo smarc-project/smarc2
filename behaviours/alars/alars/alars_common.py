@@ -82,26 +82,25 @@ class DroneState():
         self._node.get_logger().info(msg)
     
     
-    def msg_is_older_than(self, msg, age_s: float) -> bool:
+    def msg_is_older_than(self, msg, age_s: float, debug_str:str="") -> bool:
         if msg is None: return True
         if msg.header is None: return True
         if msg.header.stamp is None: return True
 
         # did someone forget to set the timestamp at all??
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            self._loginfo("Message has zero timestamp, treating as stale.")
-            self._loginfo(f"Message timestamp: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}, now: {self.now_float}")
+            self._loginfo(f"Message has zero timestamp, treating as stale. {debug_str}")
             return True
         
         age = self.now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9)
 
         # did someone forget sim time flag?
         if age > 100000.0 or age < 0.0:
-            self._loginfo(f"Message age is abnormal, treating as stale.")
+            self._loginfo(f"Message age is abnormal, treating as stale. {debug_str}")
             self._loginfo(f"Message timestamp: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}, now: {self.now_float}, age: {age}")
 
         if age > age_s:
-            self._loginfo(f"Message is stale (age {age:.2f} > {age_s:.2f}).")
+            self._loginfo(f"Message is stale (age {age:.2f} > {age_s:.2f}). {debug_str}")
             return True
         
         return False

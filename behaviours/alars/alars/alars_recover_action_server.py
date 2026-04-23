@@ -152,7 +152,7 @@ class RecoverAction():
             self._loginfo("Rejecting. No AUV position received yet.")
             return False
         
-        if self._drone_state.msg_is_older_than(self._auv_in_map, self.MAX_AUV_AGE):
+        if self._drone_state.msg_is_older_than(self._auv_in_map, self.MAX_AUV_AGE, "auv in map goal check"):
             self._loginfo(f"Rejecting. AUV position is too old.")
             return False
         
@@ -160,7 +160,7 @@ class RecoverAction():
             self._loginfo("Rejecting. No buoy position received yet.")
             return False
 
-        if self._drone_state.msg_is_older_than(self._buoy_in_map, self.MAX_BUOY_AGE):
+        if self._drone_state.msg_is_older_than(self._buoy_in_map, self.MAX_BUOY_AGE, "buoy in map goal check"):
             self._loginfo(f"Rejecting. Buoy position is too old.")
             return False
 

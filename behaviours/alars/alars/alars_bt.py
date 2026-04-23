@@ -37,17 +37,11 @@ class AlarsBT():
                  node: Node):
             
             self._node : Node = node
-            # could probably be given in the goal instead.
-            self.NUM_FAILURES_TO_FAIL = 5
 
-            self.search_height_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='search_height')
-            self.search_action = A_ActionClient(node, 'alars_search')
-
-            self.center_on_auv_action = A_ActionClient(node, action_client_name='alars_follow_auv', bt_action_name='center_on_auv')
-
-            self.recover_action = A_ActionClient(node, 'alars_recover')
-
-            self.move_to_delivery_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='move_to_delivery')
+            self.act_search =  A_ActionClient(node, 'alars_search',     'search')
+            self.act_vulture = A_ActionClient(node, 'alars_follow_auv', 'vulture')
+            self.act_recover = A_ActionClient(node, 'alars_recover',    'recover')
+            self.act_deliver = A_ActionClient(node, 'move_to',          'deliver')
 
             self._node.declare_parameter('robot_name', 'M350')
             self._robot_name : str = self._node.get_parameter('robot_name').get_parameter_value().string_value
@@ -55,23 +49,12 @@ class AlarsBT():
 
             
             self._action_clients = [
-                self.search_height_action,
-                self.move_to_delivery_action,
-                self.search_action,
-                self.center_on_auv_action,
-                self.recover_action
+                self.act_search,
+                self.act_vulture,
+                self.act_recover,
+                self.act_deliver
             ]
 
-            self._node.create_subscription(GeoPoint,
-                                           SmarcTopics.POS_LATLON_TOPIC,
-                                           self._pos_latlon_cb,
-                                           10)
-            
-            
-            self._node.create_subscription(String,
-                                           DJITopics.LABELED_UTM_TOPIC,
-                                           self._labeled_utm_cb,
-                                           10)
             
             self._node.create_subscription(Float32,
                                            DJITopics.LOAD_CELL_WEIGHT_TOPIC,
@@ -82,24 +65,6 @@ class AlarsBT():
                                            DJITopics.LOAD_CELL_RAW_TOPIC,
                                            self._load_cell_raw_cb,
                                            10)
-            
-            self._node.create_subscription(PointStamped,
-                                           DJITopics.ESTIMATED_AUV_TOPIC,
-                                           self._auv_detection_cb,
-                                           10)
-            
-            self._node.create_subscription(PoseWithCovarianceStamped,
-                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                       self._auv_projection_cb,
-                                       10)
-
-                                                           
-            self._drone_geopoint : GeoPoint | None = None
-
-
-            self._node.declare_parameter('max_detection_age', 5.0)
-            self.MAX_DETECTION_AGE : float = self._node.get_parameter('max_detection_age').get_parameter_value().double_value
-            self._auv_detection_camera : PointStamped | None = None
 
 
             self._node.declare_parameter('loaded_weight_kg', 1.2)
@@ -109,10 +74,13 @@ class AlarsBT():
             self.LOADED_LOADCELL_RAW : int = self._node.get_parameter('loaded_loadcell_raw').get_parameter_value().integer_value
             self._load_cell_raw : int|None = None
 
-
+            self._drone_geopoint : GeoPoint|None = None
+            self._node.create_subscription(GeoPoint,
+                                           SmarcTopics.POS_LATLON_TOPIC,
+                                           self._pos_latlon_cb,
+                                           10)
 
             self._reset_states()
-
 
 
             self._bt : BehaviourTree|None = None
@@ -154,18 +122,15 @@ class AlarsBT():
                 "forward_altitude": None,
                 "dipping_altitude": None,
                 "raising_altitude": None,
+                "num_retries": None
             }
 
 
     def _reset_states(self) -> None:
         self.delivered : bool = False
         self.captured_auv : bool = False
-        self.auv_in_view : bool = False
-        self.both_geopoints_known : bool = False
-        self.first_search_done : bool = False
-        self._auv_geopoint_stamped : GeoPointStamped | None = None
-        self._buoy_geopoint_stamped : GeoPointStamped | None = None
-        self.failure_count : int = 0
+        self.found_once : bool = False
+        self.retry_count : int = 0
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
         self.log("States reset")
@@ -176,16 +141,9 @@ class AlarsBT():
         self._node.get_logger().info(msg)
 
 
-    def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        now_stamp = self._node.get_clock().now().to_msg()
-        return (now_stamp.sec - msg.header.stamp.sec) + (now_stamp.nanosec - msg.header.stamp.nanosec) * 1e-9 > age_s
-
-
-    def _pos_latlon_cb(self, msg: GeoPoint): self._drone_geopoint = msg
-    def _labeled_utm_cb(self, msg: String): self.UTM_FRAME = msg.data
-    def _auv_detection_cb(self, msg: PointStamped): self._auv_detection_camera = msg
     def _load_cell_weight_cb(self, msg: Float32): self._load_cell_weight = msg.data
     def _load_cell_raw_cb(self, msg: Int32): self._load_cell_raw = msg.data
+    def _pos_latlon_cb(self, msg: GeoPoint): self._drone_geopoint = msg
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -217,21 +175,6 @@ class AlarsBT():
         self._reset_states()
 
     
-
-    @property
-    def _auv_geopoint_known(self) -> bool:
-        if self._auv_geopoint_stamped is None:
-            return False
-        else:
-            return not self._msg_is_older_than(self._auv_geopoint_stamped, self.MAX_DETECTION_AGE)
-        
-    @property
-    def _buoy_geopoint_known(self) -> bool:
-        if self._buoy_geopoint_stamped is None:
-            return False
-        else:
-            return not self._msg_is_older_than(self._buoy_geopoint_stamped, self.MAX_DETECTION_AGE)
-    
     @property
     def _status_str(self) -> str:
         tip = self._bt.tip() if self._bt is not None else None
@@ -242,10 +185,9 @@ class AlarsBT():
         str = ""
         str += f"Tip: {tip_str}"
         str += "\nStates:"
-        str += f"\n Fails: {self.failure_count}/{self.NUM_FAILURES_TO_FAIL}"
-        str += f"\n 1st search done: {self.first_search_done}"
-        str += f"\n AUV visible: {self.auv_in_view}"
-        str += f"\n AUV, Buoy GP: {self._auv_geopoint_known}, {self._buoy_geopoint_known}"
+        str += f"\n Fails: {self.retry_count}/{self._goal['num_retries']}"
+        str += f"\n Found Once: {self.found_once}"
+
         if self._load_cell_weight is not None:
             str += f"\n Captured(kg): {self.captured_auv}({self._load_cell_weight:.2f})"
         elif self._load_cell_raw is not None:
@@ -260,10 +202,6 @@ class AlarsBT():
             self.log("Behaviour tree not set up, failing?!")
             return False
         
-        if self._drone_geopoint is None:
-            self.log("Haven't received drone geopoint, failing...")
-            return False
-        
 
         # Update states
         # captured is latched, once we have it, we keep it
@@ -275,9 +213,7 @@ class AlarsBT():
         else:
             self.captured_auv = self.captured_auv or False
 
-            
-        self.auv_in_view = self._auv_detection_camera is not None and not self._msg_is_older_than(self._auv_detection_camera, self.MAX_DETECTION_AGE)
-        
+                    
         self._bt.tick()
 
         str = pt.display.ascii_tree(self._bt.root, show_status=True)
@@ -298,16 +234,16 @@ class AlarsBT():
 
         return None
     
-    def _set_move_to_goal_delivery(self) -> bool:
+    def _set_goal_deliver(self) -> bool:
         try:
             g = { "waypoint": {
                     "latitude": self._goal["delivery_position"]["latitude"],
                     "longitude": self._goal["delivery_position"]["longitude"],
-                    "altitude": float(self._goal["delivery_position"]["altitude"]),
-                    "tolerance": float(self._goal["delivery_position"]["tolerance"])
+                    "altitude": self._goal["delivery_position"]["altitude"],
+                    "tolerance": self._goal["delivery_position"]["tolerance"]
                     }   
                 }
-            self.move_to_delivery_action.set_goal(json.dumps(g))
+            self.act_deliver.set_goal(json.dumps(g))
             self.log("Set move_to delivery goal.")
             return True
         except:
@@ -316,56 +252,26 @@ class AlarsBT():
 
 
     
-    def _set_recover_goal(self) -> bool:
-        if self._auv_geopoint_stamped is None or self._buoy_geopoint_stamped is None:
-            self.log("AUV or buoy geopoint not known, cannot set recover goal.")
-            return False
+    def _set_goal_recover(self) -> bool:
         try:
             g = {
-                "object_position": {
-                    "latitude": self._auv_geopoint_stamped.position.latitude,
-                    "longitude": self._auv_geopoint_stamped.position.longitude,
-                    "altitude": 0.0
-                },
-                "buoy_position": {
-                    "latitude": self._buoy_geopoint_stamped.position.latitude,
-                    "longitude": self._buoy_geopoint_stamped.position.longitude,
-                    "altitude": 0.0
-                },
                 "forward_distance": self._goal["forward_distance"],
                 "forward_altitude": self._goal["forward_altitude"],
                 "dipping_altitude": self._goal["dipping_altitude"],
                 "raising_altitude": self._goal["raising_altitude"],
             }
-            self.recover_action.set_goal(json.dumps(g))
+            self.act_recover.set_goal(json.dumps(g))
             return True
         except:
             self.log("Failed to set recover goal.")
             return False
 
 
+
     
-    def _set_goal_search_height(self) -> bool:
-        if self._drone_geopoint is None:
-            self.log("Drone geopoint not known, cannot set search height.")
-            return False
-        try:
-            g = {"waypoint": {
-                    "latitude": self._drone_geopoint.latitude,
-                    "longitude": self._drone_geopoint.longitude,
-                    "altitude": float(self._goal["search_position"]["altitude"]),
-                    "tolerance": 1.0
-                    }   
-                }
-            self.search_height_action.set_goal(json.dumps(g))
-            self.log("Set search height goal.")
-            return True
-        except Exception as e:
-            self.log(f"Failed to set search height goal: {e}")
-            return False
-    
+
     def _set_goal_search(self) -> bool:
-        if self.first_search_done:
+        if self.found_once:
             if self._drone_geopoint is None:
                 self.log("Drone geopoint not known, cannot set search locally.")
                 return False
@@ -373,7 +279,7 @@ class AlarsBT():
         else:
             lat = self._goal["search_position"]["latitude"]
             lon = self._goal["search_position"]["longitude"]
-            self.first_search_done = True
+            self.found_once = True
 
         try:
             g = {"search_position": {
@@ -382,7 +288,7 @@ class AlarsBT():
                 "altitude": self._goal["search_position"]["altitude"],
                 "tolerance": self._goal["search_position"]["tolerance"]
             }}
-            self.search_action.set_goal(json.dumps(g))
+            self.act_search.set_goal(json.dumps(g))
             self.log("Set search goal.")
             return True
         except:
@@ -395,26 +301,45 @@ class AlarsBT():
         return True
     
 
-    def _count_failure(self) -> bool:
-        self.failure_count += 1
-        self.log(f"Action failed, failure count: {self.failure_count}")
-        return True
 
 
     def _add_failable_action(self,
                              parent: pt.composites.Composite,
                              action_client: A_ActionClient,
-                             post_condition: Callable[[], bool] | None = None) -> None:
-        failable = Fallback(f"FB {action_client.name}?", memory=False)
+                             count_action_failure: bool = False,
+                             post_condition: Callable[[], bool] | None = None,
+                             count_condition_failure: bool = False) -> None:
+        
+        def _count_failure() -> bool:
+            self.retry_count += 1
+            self.log(f"Action failed, failure count: {self.retry_count}")
+            return True
+        
+        if count_action_failure:
+            attempt_action = Fallback(f"FB {action_client.name} attempt", memory=False)
+            attempt_action.add_child(action_client)
+            failure_counter = FuncToStatus(f"Count {action_client.name} failure", _count_failure)
+            attempt_action.add_child(failure_counter)
+        else:
+            attempt_action = action_client
+
         if post_condition is not None:
             post_check = Sequence(f"SQ {action_client.name} post-condition", memory=False)
-            post_check.add_child(action_client)
-            post_check.add_child(FuncToStatus(f"Post-condition check", post_condition))
-            failable.add_child(post_check)
-        else:
-            failable.add_child(action_client)
-        failable.add_child(FuncToStatus(f"Count failure", self._count_failure))
-        parent.add_child(failable)
+            post_check.add_child(attempt_action)
+
+            if count_condition_failure:
+                attempt_check = Fallback(f"FB {action_client.name} post-condition?", memory=False)
+                attempt_check.add_child(FuncToStatus(f"Check {action_client.name} post-condition", post_condition))
+                failure_counter2 = FuncToStatus(f"Count {action_client.name} post-condition failure", _count_failure)
+                attempt_check.add_child(failure_counter2)
+            else:
+                attempt_check = FuncToStatus(f"Check {action_client.name} post-condition", post_condition)
+
+            post_check.add_child(attempt_check)
+            parent.add_child(post_check)
+        else:            
+            parent.add_child(attempt_action)
+
 
     
 
@@ -433,7 +358,7 @@ class AlarsBT():
         self._bt = BehaviourTree(root)
 
         # check all the requirements to even _run_ a mission
-        root.add_child(FuncToStatus("Failures remaining?", lambda: self.failure_count < self.NUM_FAILURES_TO_FAIL))
+        root.add_child(FuncToStatus("Retries remaining?", lambda: self.retry_count < int(self._goal["num_retries"])))
         
         mission = Fallback("FB ALARS Mission", memory=False)
 
@@ -444,50 +369,42 @@ class AlarsBT():
         mission.add_child(done)
 
         # Go home if we have the AUV
-        #TODO if the delivey position is lower than raising alt, this will fail!
         go_deliver = Sequence("SQ Deliver the AUV", memory=False)
-        go_deliver.add_child(FuncToStatus("At raising alt?", lambda: self._drone_state.altitude >= self._goal["raising_altitude"] * 0.9 if self._drone_state.altitude is not None else False))
         go_deliver.add_child(FuncToStatus("Got AUV?", lambda: self.captured_auv))
         deliver = Sequence("SQ Deliver", memory=True)
-        deliver.add_child(FuncToStatus("Set goal: Move to delivery point", self._set_move_to_goal_delivery))
-        deliver.add_child(self.move_to_delivery_action)
+        deliver.add_child(FuncToStatus("Set goal: Move to delivery point", self._set_goal_deliver))
+        deliver.add_child(self.act_deliver)
         deliver.add_child(FuncToStatus("Set delivery complete", self._set_delivered))
 
         go_deliver.add_child(deliver)
         mission.add_child(go_deliver)
 
-        # Okay, we dont have the AUV yet, if we know where it is, we can try to recover it
-        recover = Sequence("SQ Recover AUV", memory=True)
-        both_geopoints_known = Parallel("PR Both geopoints known?", policy=ParallelPolicy.SuccessOnAll(synchronise=False))
-        both_geopoints_known.add_child(FuncToStatus("AUV geopoint known?", lambda: self._auv_geopoint_stamped is not None))
-        both_geopoints_known.add_child(FuncToStatus("Buoy geopoint known?", lambda: self._buoy_geopoint_stamped is not None))
-        recover.add_child(both_geopoints_known)
-        recover.add_child(FuncToStatus("Set goal: Recover", self._set_recover_goal))
-        self._add_failable_action(recover, self.recover_action, post_condition=lambda: self.captured_auv)
+        # Okay, we dont have the AUV yet, can we recover it?
+        # We let the recover action handle the logic of whether we can actually recover or not
+        # if it fails, we try to vulture until it can work
+        # it works if both auv and buoy are known from camera processing
+        recover = Sequence("SQ Recover AUV", memory=False)
+        recover.add_child(FuncToStatus("Set goal: Recover", self._set_goal_recover))
+        self._add_failable_action(recover,
+                                  self.act_recover, 
+                                  count_action_failure=False,
+                                  post_condition=lambda: self.captured_auv,
+                                  count_condition_failure=True)
         mission.add_child(recover)
 
-        # So we dont exactly know where the auv and buoy are, but do we at least see the AUV so we can localize it?
-        localize = Sequence("SQ Localize AUV", memory=True)
-        localize.add_child(FuncToStatus("AUV in view?", lambda: self.auv_in_view))
-        localize.add_child(FuncToStatus("Searched first?", lambda: self.first_search_done))
-        localize.add_child(FuncToStatus("Set goal: Localize auv", self._set_goal_localize_auv))
-        self._add_failable_action(localize, self.localize_auv_action)
-        localize.add_child(FuncToStatus("Set AUV Position", self._set_auv_position_from_drone))
-        localize.add_child(FuncToStatus("Set goal: Localize buoy", self._set_goal_localize_buoy))
-        self._add_failable_action(localize, self.localize_buoy_action)
-        localize.add_child(FuncToStatus("Set Buoy Position", self._set_buoy_position_from_drone))
-        mission.add_child(localize)
+        # Cant recover, can we vulture it?
+        # This requires just the AUV to be known
+        mission.add_child(self.act_vulture)
 
-        # We dont even see the thing... so we gotta search it
-        # if this is the first time searching, we use the given search position
-        # in the goal, otherwise we search from where we are
+        # Cant vulture either, so we have to search for it.
         search = Sequence("SQ Search AUV", memory=True)
-        search.add_child(FuncToStatus("Set search height goal", self._set_goal_search_height))
-        search.add_child(self.search_height_action)
         search.add_child(FuncToStatus("Set search goal", self._set_goal_search))
-        self._add_failable_action(search, self.search_action, post_condition=lambda: self.auv_in_view)
+        self._add_failable_action(search,
+                                  self.act_search,
+                                  count_action_failure=True,
+                                  post_condition=None,
+                                  count_condition_failure=False)
         mission.add_child(search)
-
         root.add_child(mission)
 
         return True        

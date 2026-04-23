@@ -82,7 +82,7 @@ class SearchAction():
     
 
     def _loginfo(self, msg: str):
-        self._node.get_logger().info(f"[SearchAction] {msg}")
+        self._node.get_logger().info(msg)
 
 
     def _auv_detection_cb(self, msg: PointStamped):
@@ -158,13 +158,17 @@ class SearchAction():
             return False
         
         # if the auv is detected, we are done
-        if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD):
+        if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD, "auv detection"):
             self._loginfo("AUV detected, waiting for projection")
-            if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+            if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD, "auv projection"):
                 self._loginfo("AUV projection is fresh, finishing action successfully.")
                 return True
-            # just wait
-            return None
+            else:
+                self._loginfo("AUV projection is stale, waiting for fresh projection...")
+                # just wait
+                return None
+        else:
+            self._loginfo("No fresh AUV detection, continuing search...")
         
 
         # if there is a current setpoint, check if we are close enough to it
@@ -220,16 +224,7 @@ class SearchAction():
 
 
     def _give_feedback(self) -> str:
-        if self._auv_detection is None:
-            detection = "none"
-        else:
-            detection = "fresh" if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
-        if self._auv_projection is None:
-            projection = "none"
-        else:
-            projection = "fresh" if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
-
-        return f"Radius: {self._radius_progress:.2f}/{self._search_radius:.2f}m, detection:{detection}, projection:{projection}"
+        return f"Radius: {self._radius_progress:.2f}/{self._search_radius:.2f}m"
 
 
 def main(args=None):

@@ -147,7 +147,7 @@ class FollowAUVAction():
             self._loginfo("No drone position received yet, cannot perform follow...")
             return False
         
-        if self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+        if self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD, "auv projection loop check"):
             self._loginfo("AUV projection is stale, finishing action successfully.")
             return True
         
