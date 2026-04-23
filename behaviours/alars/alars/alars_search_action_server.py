@@ -79,19 +79,7 @@ class SearchAction():
         self._search_radius : float = 0.0
         self._radius_progress : float = -1.0
         self._current_setpoint : PoseStamped | None = None
-
-    @property
-    def _now_float(self) -> float:
-        now_stamp = self._node.get_clock().now().to_msg()
-        return now_stamp.sec + now_stamp.nanosec * 1e-9
     
-    def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        if msg is None: return True
-        if msg.header is None: return True
-        if msg.header.stamp is None: return True
-        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            return True
-        return self._now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
 
     def _loginfo(self, msg: str):
         self._node.get_logger().info(f"[SearchAction] {msg}")
@@ -170,9 +158,9 @@ class SearchAction():
             return False
         
         # if the auv is detected, we are done
-        if not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD):
+        if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD):
             self._loginfo("AUV detected, waiting for projection")
-            if not self._msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+            if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
                 self._loginfo("AUV projection is fresh, finishing action successfully.")
                 return True
             # just wait
@@ -235,11 +223,11 @@ class SearchAction():
         if self._auv_detection is None:
             detection = "none"
         else:
-            detection = "fresh" if not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
+            detection = "fresh" if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
         if self._auv_projection is None:
             projection = "none"
         else:
-            projection = "fresh" if not self._msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
+            projection = "fresh" if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD) else "stale"
 
         return f"Radius: {self._radius_progress:.2f}/{self._search_radius:.2f}m, detection:{detection}, projection:{projection}"
 

@@ -71,16 +71,6 @@ class RecoverAction():
         self._buoy_in_map : PoseStamped = PoseStamped()
         self._phase : RecoveryPhases = RecoveryPhases.IDLE
         self._points : dict[RecoveryPhases, PoseStamped] = {}
-
-
-    
-    def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        if msg is None: return True
-        if msg.header is None: return True
-        if msg.header.stamp is None: return True
-        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            return True
-        return self._drone_state.now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
     
     
     def compute_distance(self, pose1 : PoseStamped, pose2 : PoseStamped) -> float:

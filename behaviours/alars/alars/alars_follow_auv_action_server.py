@@ -68,31 +68,6 @@ class FollowAUVAction():
         self._follow_start_time : float | None = None
 
 
-    
-    def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        if msg is None: return True
-        if msg.header is None: return True
-        if msg.header.stamp is None: return True
-
-        # did someone forget to set the timestamp at all??
-        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            self._loginfo("Message has zero timestamp, treating as stale.")
-            self._loginfo(f"Message timestamp: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}, now: {self._drone_state.now_float}")
-            return True
-        
-        age = self._drone_state.now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9)
-
-        # did someone forget sim time flag?
-        if age > 100000.0 or age < 0.0:
-            self._loginfo(f"Message age is abnormal, treating as stale.")
-            self._loginfo(f"Message timestamp: {msg.header.stamp.sec}.{msg.header.stamp.nanosec}, now: {self._drone_state.now_float}, age: {age}")
-
-        if age > age_s:
-            self._loginfo(f"Message is stale (age {age:.2f} > {age_s:.2f}).")
-            return True
-        
-        return False
-
 
     def _loginfo(self, msg: str):
         self._node.get_logger().info(msg)
@@ -167,7 +142,7 @@ class FollowAUVAction():
             self._loginfo("No drone position received yet, cannot perform follow...")
             return False
         
-        if self._msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+        if self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
             self._loginfo("AUV projection is stale, finishing action successfully.")
             return True
         
