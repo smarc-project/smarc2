@@ -18,7 +18,7 @@ from py_trees.trees import BehaviourTree
 
 from std_msgs.msg import String, Float32, Int32
 from geographic_msgs.msg import GeoPointStamped, GeoPoint
-from geometry_msgs.msg import  PointStamped
+from geometry_msgs.msg import  PointStamped, PoseWithCovarianceStamped
 
 
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
@@ -43,8 +43,7 @@ class AlarsBT():
             self.search_height_action = A_ActionClient(node, action_client_name='move_to', bt_action_name='search_height')
             self.search_action = A_ActionClient(node, 'alars_search')
 
-            self.localize_auv_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_auv')
-            self.localize_buoy_action = A_ActionClient(node, action_client_name='alars_localize', bt_action_name='localize_buoy')
+            self.center_on_auv_action = A_ActionClient(node, action_client_name='alars_follow_auv', bt_action_name='center_on_auv')
 
             self.recover_action = A_ActionClient(node, 'alars_recover')
 
@@ -59,8 +58,7 @@ class AlarsBT():
                 self.search_height_action,
                 self.move_to_delivery_action,
                 self.search_action,
-                self.localize_auv_action,
-                self.localize_buoy_action,
+                self.center_on_auv_action,
                 self.recover_action
             ]
 
@@ -89,6 +87,11 @@ class AlarsBT():
                                            DJITopics.ESTIMATED_AUV_TOPIC,
                                            self._auv_detection_cb,
                                            10)
+            
+            self._node.create_subscription(PoseWithCovarianceStamped,
+                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
+                                       self._auv_projection_cb,
+                                       10)
 
                                                            
             self._drone_geopoint : GeoPoint | None = None

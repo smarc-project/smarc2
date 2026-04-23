@@ -158,7 +158,7 @@ ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns
 -p use_sim_time:=$USE_SIM_TIME"
 
 tmux_make_layout "$SESSION" ALARSActions "
-row(
+col(
     var(ALARS_SEARCH_CMD),
     var(ALARS_FOLLOW_AUV_CMD),
     var(ALARS_RECOVER_CMD),
