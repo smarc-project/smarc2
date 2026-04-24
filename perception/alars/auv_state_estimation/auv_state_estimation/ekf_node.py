@@ -99,6 +99,12 @@ class EKFNode(Node):
                 self.log_info("First measurement received.")
 
             stamp : Time = Time.from_msg(msg.header.stamp)
+            if stamp.seconds_nanoseconds() == (0, 0):
+                self.log_info("Received message with zero timestamp, skipping.")
+                self.q.popleft()
+                continue
+
+
             if self.tf_buffer.can_transform(self.map_frame, self.cam_frame, stamp):
                 transform = self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, stamp)
                 self.current_transform = transform
@@ -227,6 +233,12 @@ class EKFNode(Node):
             q = R.from_euler("xyz", [0, self.ekf.X[4, 0], yaw_out]).as_quat()
         else:
             q = R.from_euler("z", yaw_out).as_quat()
+
+
+        if Time.from_msg(stamp).seconds_nanoseconds() == (0, 0):
+            self.log_info(">> Almost pubbed without a stamp!")
+            return
+
         self.pub.publish(create_pose_msg(stamp, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
         self.tf_broadcaster.sendTransform(create_transform_msg(stamp, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
 

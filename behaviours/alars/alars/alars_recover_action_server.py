@@ -16,14 +16,6 @@ from dji_msgs.msg import Topics as DJITopics
 from alars.alars_common import DroneState
 
 
-class RecoveryPhases(enum.Enum):
-    IDLE = 0
-    MOVING_TO_DIPPING_POSITION = 1
-    DIPPING = 2
-    FORWARD = 3
-    RAISING_LOW = 4
-    RAISING_MED = 5
-    RAISING_HIGH = 6
 
 class RecoverAction():
     def __init__(self,
@@ -79,10 +71,11 @@ class RecoverAction():
         )
 
 
+
             
     def _reset(self):
-        self._phase : RecoveryPhases = RecoveryPhases.IDLE
-        self._points : dict[RecoveryPhases, PoseStamped] = {}
+        self._wp_index = 0
+        self._points : list[PoseStamped] = []
 
 
     def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):
@@ -124,6 +117,8 @@ class RecoverAction():
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         # goal: {
+        #   "no_buoy": bool 
+        #   "no_buoy_radius": float,
         #   "forward_distance": float,
         #   "forward_altitude": float,
         #   "dipping_altitude" : float,
@@ -140,10 +135,12 @@ class RecoverAction():
         # O = where the object and buoy are, perpendicular to screen
         
         try:
-            self.forward_distance = float(goal_request['forward_distance'])
-            self.forward_altitude = float(goal_request['forward_altitude'])
-            self.dipping_altitude = float(goal_request['dipping_altitude'])
-            self.raising_altitude = float(goal_request['raising_altitude'])
+            self._no_buoy_radius = float(goal_request['no_buoy_radius'])
+            self._recover_without_buoy = self._no_buoy_radius > 0
+            self._forward_distance = float(goal_request['forward_distance'])
+            self._forward_altitude = float(goal_request['forward_altitude'])
+            self._dipping_altitude = float(goal_request['dipping_altitude'])
+            self._raising_altitude = float(goal_request['raising_altitude'])
         except KeyError:
             self._loginfo(f"Goal request is missing a required field, received:\n {goal_request}")
             return False
@@ -156,104 +153,127 @@ class RecoverAction():
             self._loginfo(f"Rejecting. AUV position is too old.")
             return False
         
-        if self._buoy_in_map is None:
-            self._loginfo("Rejecting. No buoy position received yet.")
-            return False
+        if self._recover_without_buoy:
+            self._loginfo(f"Accepted recover action goal without buoy.")
+            return True
+        else:
+            self._loginfo(f"Received recover action goal with buoy. Checking criteria...")
+            if self._buoy_in_map is None:
+                self._loginfo("Rejecting. No buoy position received yet.")
+                return False
 
-        if self._drone_state.msg_is_older_than(self._buoy_in_map, self.MAX_BUOY_AGE, "buoy in map goal check"):
-            self._loginfo(f"Rejecting. Buoy position is too old.")
-            return False
+            if self._drone_state.msg_is_older_than(self._buoy_in_map, self.MAX_BUOY_AGE, "buoy in map goal check"):
+                self._loginfo(f"Rejecting. Buoy position is too old.")
+                return False
 
-        try:
-            obj_buoy_dist = self.compute_distance(self._auv_in_map, self._buoy_in_map)
-        except Exception as e:
-            self._loginfo(f"Rejecting. Error occurred while computing distance between auv and buoy: {e}")
-            return False
+            try:
+                obj_buoy_dist = self.compute_distance(self._auv_in_map, self._buoy_in_map)
+            except Exception as e:
+                self._loginfo(f"Rejecting. Error occurred while computing distance between auv and buoy: {e}")
+                return False
     
-
-        if obj_buoy_dist > self.MAX_ROPE_LENGTH:
-            self._loginfo(f"Rejecting. Criteria: obj-buoy dist=={obj_buoy_dist:.1f} <= {self.MAX_ROPE_LENGTH:.1f}")
-            return False
+            if obj_buoy_dist > self.MAX_ROPE_LENGTH:
+                self._loginfo(f"Rejecting. Criteria: obj-buoy dist=={obj_buoy_dist:.1f} <= {self.MAX_ROPE_LENGTH:.1f}")
+                return False
         
-        self._loginfo(f"Accepted recover action goal. Obj-Buoy dist={obj_buoy_dist:.2f}m")
-        return True
+            self._loginfo(f"Accepted recover action goal. Obj-Buoy dist={obj_buoy_dist:.2f}m")
+            return True
     
 
     def _on_cancel_received(self) -> bool:
         self._loginfo("Cancelled.")
         self._reset()
         return True
-
-
-    def _prepare_loop(self) -> None:
+    
+    
+    def _points_with_buoy(self):
         # pre-compute all the points
         # see diagram in _on_goal_received
         # everything in odom frame
-        obj_pos = np.array([self._auv_in_map.pose.position.x, self._auv_in_map.pose.position.y])
+        sam_pos = np.array([self._auv_in_map.pose.position.x, self._auv_in_map.pose.position.y])
         buoy_pos = np.array([self._buoy_in_map.pose.position.x, self._buoy_in_map.pose.position.y])
-        middle_pos = (obj_pos + buoy_pos) / 2.0
+        middle_pos = (sam_pos + buoy_pos) / 2.0
         # line perpendicular to obj-buoy line
-        rope_direction = buoy_pos - obj_pos
+        rope_direction = buoy_pos - sam_pos
         motion_direction = np.array([-rope_direction[1], rope_direction[0]])
         motion_direction = motion_direction / np.linalg.norm(motion_direction)
-        dipping_pos = middle_pos - motion_direction * self.forward_distance/2
-        raising_pos = dipping_pos + motion_direction * self.forward_distance 
+        dipping_pos = middle_pos - motion_direction * self._forward_distance/2
+        dragged_pos = dipping_pos + motion_direction * self._forward_distance 
 
-        # A
-        self._dipping_high = PoseStamped()
-        self._dipping_high.header.frame_id = self._drone_state.MAP_FRAME
-        self._dipping_high.pose.position.x = dipping_pos[0]
-        self._dipping_high.pose.position.y = dipping_pos[1]
-        self._dipping_high.pose.position.z = self.dipping_altitude
-        self._dipping_high.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.MOVING_TO_DIPPING_POSITION] = self._dipping_high
+        p = [
+            (dipping_pos, self._dipping_altitude), #A
+            (dipping_pos, self._forward_altitude), #B
+            (dragged_pos, self._forward_altitude), #C
+            (dragged_pos, self._raising_altitude/5.0), #D1
+            (dragged_pos, self._raising_altitude/2.0), #D2
+            (dragged_pos, self._raising_altitude) #D3
+        ]
 
-        # B
-        self._dipping_low = PoseStamped()
-        self._dipping_low.header.frame_id = self._drone_state.MAP_FRAME
-        self._dipping_low.pose.position.x = dipping_pos[0]
-        self._dipping_low.pose.position.y = dipping_pos[1]
-        self._dipping_low.pose.position.z = self.forward_altitude
-        self._dipping_low.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.DIPPING] = self._dipping_low
+        for (pos, alt) in p:
+            ps = PoseStamped()
+            ps.header.frame_id = self._drone_state.MAP_FRAME
+            ps.pose.position.x = pos[0]
+            ps.pose.position.y = pos[1]
+            ps.pose.position.z = alt
+            ps.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+            self._points.append(ps)
 
-        # C
-        self._raising_low = PoseStamped()
-        self._raising_low.header.frame_id = self._drone_state.MAP_FRAME
-        self._raising_low.pose.position.x = raising_pos[0]
-        self._raising_low.pose.position.y = raising_pos[1]
-        self._raising_low.pose.position.z = self.forward_altitude
-        self._raising_low.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.FORWARD] = self._raising_low
 
-        # D1
-        self._raising_high_low = PoseStamped()
-        self._raising_high_low.header.frame_id = self._drone_state.MAP_FRAME
-        self._raising_high_low.pose.position.x = raising_pos[0]
-        self._raising_high_low.pose.position.y = raising_pos[1]
-        self._raising_high_low.pose.position.z = self.raising_altitude/4.0
-        self._raising_high_low.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.RAISING_LOW] = self._raising_high_low
 
-        # D2
-        self._raising_high_med = PoseStamped()
-        self._raising_high_med.header.frame_id = self._drone_state.MAP_FRAME
-        self._raising_high_med.pose.position.x = raising_pos[0]
-        self._raising_high_med.pose.position.y = raising_pos[1]
-        self._raising_high_med.pose.position.z = self.raising_altitude/2.0
-        self._raising_high_med.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.RAISING_MED] = self._raising_high_med
-
-        # D3
-        self._raising_high_high = PoseStamped()
-        self._raising_high_high.header.frame_id = self._drone_state.MAP_FRAME
-        self._raising_high_high.pose.position.x = raising_pos[0]
-        self._raising_high_high.pose.position.y = raising_pos[1]
-        self._raising_high_high.pose.position.z = self.raising_altitude
-        self._raising_high_high.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
-        self._points[RecoveryPhases.RAISING_HIGH] = self._raising_high_high
-
+    def _points_without_buoy(self):
+        sam_pos = np.array([self._auv_in_map.pose.position.x, self._auv_in_map.pose.position.y])
+        # since there is no guiding buoy, we make a circle around sam of given radius
+        # after doing the same dipping
+        # and after the circle, we will do the same raising
+        num_points = 8
+        circle = []
+        for i in range(num_points):
+            angle = i * 2 * np.pi / num_points
+            offset = np.array([np.cos(angle), np.sin(angle)]) * self._no_buoy_radius
+            pos = sam_pos + offset
+            ps = PoseStamped()
+            ps.header.frame_id = self._drone_state.MAP_FRAME
+            ps.pose.position.x = pos[0]
+            ps.pose.position.y = pos[1]
+            ps.pose.position.z = self._forward_altitude
+            ps.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+            circle.append(ps)
         
+        dipping = PoseStamped()
+        dipping.header.frame_id = self._drone_state.MAP_FRAME
+        dipping.pose.position.x = circle[0].pose.position.x
+        dipping.pose.position.y = circle[0].pose.position.y
+        dipping.pose.position.z = self._dipping_altitude
+
+        d1 = PoseStamped()
+        d1.header.frame_id = self._drone_state.MAP_FRAME
+        d1.pose.position.x = circle[-1].pose.position.x
+        d1.pose.position.y = circle[-1].pose.position.y
+        d1.pose.position.z = self._raising_altitude/5.0
+
+        d2 = PoseStamped()
+        d2.header.frame_id = self._drone_state.MAP_FRAME
+        d2.pose.position.x = circle[-1].pose.position.x
+        d2.pose.position.y = circle[-1].pose.position.y
+        d2.pose.position.z = self._raising_altitude/2.0
+
+        d3 = PoseStamped()
+        d3.header.frame_id = self._drone_state.MAP_FRAME
+        d3.pose.position.x = circle[-1].pose.position.x
+        d3.pose.position.y = circle[-1].pose.position.y
+        d3.pose.position.z = self._raising_altitude
+
+        self._points = [dipping]+circle+[d1, d2 ,d3]
+        
+
+    def _prepare_loop(self) -> None:
+        self._reset()
+        if self._recover_without_buoy:
+            self._points_without_buoy()
+        else:
+            self._points_with_buoy()
+
+
     def _loop_inner(self) -> bool|None:
         """
         Return True to indicate success, False for failure, or None to continue
@@ -262,48 +282,28 @@ class RecoverAction():
             self._loginfo("No odom received yet, cannot perform recovery...")
             return False
         
-        if self._phase == RecoveryPhases.IDLE:
-            self._phase = RecoveryPhases.MOVING_TO_DIPPING_POSITION
-            self._loginfo(f"Starting recovery, moving to dipping position at {str_posestamp(self._points[self._phase])}")
+        if self._wp_index == 0:
+            self._loginfo(f"Starting recovery, moving to first waypoint of {len(self._points)}. Will use buoy: {not self._recover_without_buoy}")
         
-        target_point = self._points[self._phase]
+        if self._wp_index >= len(self._points):
+            self._loginfo("Recovery complete!")
+            return True
+        
+        target_point = self._points[self._wp_index]
         distance_to_target = self.compute_distance(self._drone_state.drone_in_map, target_point)
-        
         if distance_to_target <= self.SETPOINT_TOLERANCE:
-            # reached current phase target, move to next phase
-            if self._phase == RecoveryPhases.MOVING_TO_DIPPING_POSITION:
-                self._phase = RecoveryPhases.DIPPING
-                self._loginfo(f"MOVING_TO_DIPPING_POSITION -> DIPPING")
-                return None
-            elif self._phase == RecoveryPhases.DIPPING:
-                self._phase = RecoveryPhases.FORWARD
-                self._loginfo(f"DIPPING -> FORWARD")
-                return None
-            elif self._phase == RecoveryPhases.FORWARD:
-                self._phase = RecoveryPhases.RAISING_LOW
-                self._loginfo(f"FORWARD -> RAISING_LOW")
-                return None
-            elif self._phase == RecoveryPhases.RAISING_LOW:
-                self._phase = RecoveryPhases.RAISING_MED
-                self._loginfo(f"RAISING_LOW -> RAISING_MED")
-                return None
-            elif self._phase == RecoveryPhases.RAISING_MED:
-                self._phase = RecoveryPhases.RAISING_HIGH
-                self._loginfo(f"RAISING_MED -> RAISING_HIGH")
-                return None
-            elif self._phase == RecoveryPhases.RAISING_HIGH:
-                self._loginfo("Recovery completed successfully.")
-                self._reset()
-                return True
-            
-        # still en route to current phase target, publish setpoint
+            self._loginfo(f"Reached waypoint {self._wp_index} at {str_posestamp(target_point)}, distance to target was {distance_to_target:.2f}m")
+            self._wp_index += 1
+            return None
+        
         target_point.header.stamp = self._node.get_clock().now().to_msg()
         self._setpoint_pub.publish(target_point)
+        self._loginfo(f"Moving to waypoint {self._wp_index} at {str_posestamp(target_point)}, distance to target is {distance_to_target:.2f}m")
         return None
 
         
     def _give_feedback(self) -> str:
-        return f"Phase: {self._phase.name}"
+        return f"Phase: {self._wp_index+1}/{len(self._points)}."
 
 
 def point_to_pose(ps_in: PointStamped) -> PoseStamped:

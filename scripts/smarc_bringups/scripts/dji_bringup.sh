@@ -145,7 +145,7 @@ ALARS_FOLLOW_AUV_CMD="ros2 run alars alars_follow_auv_action_server --ros-args -
 
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2
 if [[ $USE_SIM_TIME = "True" ]]; then
-    ALARS_RECOVER_SETPOINT_TOLERANCE=1.0
+    ALARS_RECOVER_SETPOINT_TOLERANCE=0.25
 fi
 ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
@@ -196,12 +196,12 @@ tmux_make_layout "$SESSION" BTs "row(3:var(WASP_BT_CMD), 3:var(ALARS_BT_CMD), 1:
 ############
 YOLO_DEVICE=0
 CAM_CALIBRATION_FILE="real_z1_params.yaml"
-YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: yolo_model_2cls_mixed.pt, yolo_model_2cls_fisheye.pt, yolo_model_5cls.pt, yolo_model_6cls.pt
+YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: alars_labeling_training/trained_models
 if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_DEVICE=cpu
     CAM_CALIBRATION_FILE="cam_params.yaml"
-    # 2cls_mixed seems to be doing better in sim
-    YOLO_MODEL="yolo_model_2cls_mixed.pt"
+    # seems to be doing better in sim
+    YOLO_MODEL="fran_best_real_4.pt"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
 namespace:=$ROBOT_NAME \
