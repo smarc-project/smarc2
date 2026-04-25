@@ -121,7 +121,7 @@ class SearchAction():
             return False
         
         try:
-            self._search_center_map = self._drone_state.convert_geopoint_to_map_pose_stamped(search_center_gp)
+            self._search_center_map = self._drone_state.geopoint_to_pose_stamped_map(search_center_gp)
             
         except:
             self._loginfo('Could not transform search center into MAP frame!')
@@ -202,8 +202,8 @@ class SearchAction():
             self._radius_progress = np.linalg.norm(dP)
             self._loginfo(f"Spiral progress: {self._radius_progress:.2f}m / {self._search_radius:.2f}m, distance to drone: {distance_to_drone:.2f}m")
             if self._radius_progress > self._search_radius:
-                self._loginfo("Completed search spiral, finishing action successfully.")
-                return True
+                self._loginfo("Completed search spiral, but didn't find AUV :(")
+                return False
             spiral_point = search_center + dP
             distance_to_drone = np.linalg.norm(spiral_point - drone_pos)
             self._spiral_progress += 0.5

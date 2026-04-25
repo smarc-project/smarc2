@@ -68,8 +68,7 @@ class FollowAUVAction():
         self._follow_start_time : float | None = None
         self._vulture_radius : float = 0.0
         self._vulture_speed_deg : float = 10.0 
-        self._vulture_pos_rad : float = 0.0
-
+        self._vulture_pos_rad : float = np.random.uniform(0, 2*np.pi)
 
 
     def _loginfo(self, msg: str):
@@ -165,10 +164,10 @@ class FollowAUVAction():
             dt = 1.0 / self._loop_frequency
             rad_diff = np.radians(self._vulture_speed_deg) * dt
             self._vulture_pos_rad += rad_diff
-            self._vulture_pos_rad = self._vulture_pos_rad % (2 * np.pi)
+            self._vulture_pos_rad %= (2 * np.pi)
             position_on_circle = np.array([np.cos(self._vulture_pos_rad), np.sin(self._vulture_pos_rad)]) * self._vulture_radius
             target_pos += position_on_circle
-            self._loginfo(f"pos on circle: {position_on_circle}, for rad diff: {rad_diff:.2f} rad, {self._vulture_speed_deg} deg at radius {self._vulture_radius}")
+            self._loginfo(f"Vulturing: {np.rad2deg(self._vulture_pos_rad)} deg at radius {self._vulture_radius}m")
     
         # publish setpoint
         # we create the auv_projection in map frame in the callback, so we can directly use it here without needing to transform it

@@ -201,7 +201,7 @@ if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_DEVICE=cpu
     CAM_CALIBRATION_FILE="cam_params.yaml"
     # seems to be doing better in sim
-    YOLO_MODEL="fran_best_real_4.pt"
+    YOLO_MODEL="yolo_model_2cls_mixed.pt"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
 namespace:=$ROBOT_NAME \
