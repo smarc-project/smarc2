@@ -107,6 +107,18 @@ class twist_control(Node):
         self.declare_parameter("open_loop_gain", 3.0)
         self.open_loop_gain = self.get_parameter("open_loop_gain").value
 
+        self.logger.info(f"Starting evolo controllers with settings \n \
+                    update_rate: {self.update_rate}\n \
+                    robot_name: {self.robot_name}\n \
+                    max_steering_output: {self.max_steering_output}\n \
+                    max_speed: {self.max_speed}\n \
+                    closed_loop_control: {self.closed_loop_ctrl}\n \
+                    closed_loop_p_gain: {self.closed_loop_p_gain}\n \
+                    closed_loop_i_gain: {self.closed_loop_i_gain}\n \
+                    closed_loop_d_gain: {self.closed_loop_d_gain}\n \
+                    open_loop_gain: {self.open_loop_gain}\n")
+
+
         #Setpoint
         self.twist_setpoint = None
         self.twist_setpoint_time = None
@@ -143,16 +155,12 @@ class twist_control(Node):
 
         if(self.closed_loop_ctrl):
             if(setpoint_OK and feedback_OK): #Closed loop control
-                pass
-            else:
-                self.logger.info(f"No setpoint or no feedback")
-
                 target_speed = max(0, min( self.max_speed, self.twist_setpoint.twist.linear.x)) #m/s
                 target_turnRate_deg = math.degrees(self.twist_setpoint.twist.angular.z) #deg/s
                 feedback_turnRate_deg = math.degrees(self.odom_feedback.twist.twist.angular.z) #deg/s
 
                 error = target_turnRate_deg - feedback_turnRate_deg
-                pid_output = self.pid.update_error(error, self.time_now())
+                pid_output = self.PID.update_error(error, self.time_now())
 
                 steering_output = max(-self.max_steering_output, min(self.max_steering_output, pid_output))
 
@@ -163,6 +171,10 @@ class twist_control(Node):
                 speed_msg = Float32()
                 speed_msg.data = float(target_speed)
                 self.speed_pub.publish(speed_msg)
+
+                self.logger.info(f"Closed loop control")
+            else:
+                self.logger.info(f"No setpoint or no feedback)")
 
         else: #Open loop control
             if(setpoint_OK):
