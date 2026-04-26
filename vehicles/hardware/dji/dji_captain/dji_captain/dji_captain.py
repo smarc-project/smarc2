@@ -144,6 +144,7 @@ class DjiCaptain():
         self._battery_percent : float | None = None
         self._cam_processor_happy : bool = False
         self._geofence_status : GeofenceStatusStamped | None = None
+        self._cleared_water_level_once : bool = False
         self.MAX_GEOFENCE_STATUS_AGE = 1.0 # seconds
         
         # this could be a param, but really we likely will never run this on anything except
@@ -764,7 +765,19 @@ class DjiCaptain():
     ############
     # Health and TF publishing
     ############
+    def _health_to_str(self, health_state: int) -> str:
+        if health_state == SmarcTopics.VEHICLE_HEALTH_WAITING:
+            return "WAITING"
+        elif health_state == SmarcTopics.VEHICLE_HEALTH_READY:
+            return "READY"
+        elif health_state == SmarcTopics.VEHICLE_HEALTH_ERROR:
+            return "ERROR"
+        else:
+            return f"UNKNOWN({health_state})"
+
     def _publish_vehicle_health(self):
+        prev_health_state = self._vehicle_health.data
+
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
 
         if self._home_point_in_utm is None:
@@ -815,12 +828,18 @@ class DjiCaptain():
 
         # if we are flying, we need to check more things to make sure we are flying safely
         self._prop_rpms = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
-        self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in self._prop_rpms)        
+        self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in self._prop_rpms)
+
+        if not self._cleared_water_level_once and self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER:
+            self.log(f"Cleared water level for the first time! Altitude above water: {self.altitude_above_water:.2f} m > {self.MIN_ALTITUDE_ABOVE_WATER:.2f} m")
+        self._cleared_water_level_once = self._cleared_water_level_once or self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER
+
         if self._flying:
-            water_altitude_error = self.altitude_above_water < self.MIN_ALTITUDE_ABOVE_WATER
+            water_altitude_error = self.altitude_above_water < self.MIN_ALTITUDE_ABOVE_WATER and self._cleared_water_level_once
             if water_altitude_error:
                 self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
                 self.logerr(f"TOO CLOSE TO WATER: {self.altitude_above_water:.2f} < {self.MIN_ALTITUDE_ABOVE_WATER:.2f}")
+
 
             if self._geofence_status is not None:
                 msg_time = self._geofence_status.time.sec + self._geofence_status.time.nanosec * 1e-9
@@ -838,6 +857,8 @@ class DjiCaptain():
                             s += " ABOVE CEILING!"
                         self.logerr(s)
 
+        if prev_health_state != self._vehicle_health.data:
+            self.log(f"Vehicle health changed: {self._health_to_str(prev_health_state)} -> {self._health_to_str(self._vehicle_health.data)}")
         self._vehicle_health_pub.publish(self._vehicle_health)
             
     

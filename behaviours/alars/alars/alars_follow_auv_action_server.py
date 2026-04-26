@@ -48,7 +48,7 @@ class FollowAUVAction():
                                        10)
         
 
-      
+        self._loop_frequency = 10.0
         self._as = GentlerActionServer(
             node,
             "alars_follow_auv",
@@ -57,7 +57,7 @@ class FollowAUVAction():
             self._prepare_loop,
             self._loop_inner,
             self._give_feedback,
-            loop_frequency = 10
+            loop_frequency = self._loop_frequency
         )
 
 
@@ -66,7 +66,9 @@ class FollowAUVAction():
         self._follow_altitude : float | None = None
         self._timeout : float | None = None
         self._follow_start_time : float | None = None
-
+        self._vulture_radius : float = 0.0
+        self._vulture_speed_deg : float = 10.0 
+        self._vulture_pos_rad : float = np.random.uniform(0, 2*np.pi)
 
 
     def _loginfo(self, msg: str):
@@ -111,8 +113,10 @@ class FollowAUVAction():
         self._loginfo(f"Received goal request: {goal_request}")
 
         try:
-            self._follow_altitude = goal_request['follow_altitude']
-            self._timeout = goal_request['timeout']
+            self._follow_altitude = float(goal_request['follow_altitude'])
+            self._vulture_radius = float(goal_request['vulture_radius'])
+            self._vulture_speed_deg = float(goal_request['vulture_speed_deg'])
+            self._timeout = float(goal_request['timeout'])
         except:
             self._loginfo('Action goal could not be parsed?') 
             return False
@@ -142,7 +146,7 @@ class FollowAUVAction():
             self._loginfo("No drone position received yet, cannot perform follow...")
             return False
         
-        if self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD):
+        if self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD, "auv projection loop check"):
             self._loginfo("AUV projection is stale, finishing action successfully.")
             return True
         
@@ -154,14 +158,24 @@ class FollowAUVAction():
             if self._drone_state.now_float - self._follow_start_time > self._timeout:
                 self._loginfo("Follow AUV action timed out, finishing with success.")
                 return True
+
+        target_pos = np.array([self._auv_projection.pose.position.x, self._auv_projection.pose.position.y])
+        if self._vulture_radius > 0.0 and self._vulture_speed_deg != 0.0:
+            dt = 1.0 / self._loop_frequency
+            rad_diff = np.radians(self._vulture_speed_deg) * dt
+            self._vulture_pos_rad += rad_diff
+            self._vulture_pos_rad %= (2 * np.pi)
+            position_on_circle = np.array([np.cos(self._vulture_pos_rad), np.sin(self._vulture_pos_rad)]) * self._vulture_radius
+            target_pos += position_on_circle
+            self._loginfo(f"Vulturing: {np.rad2deg(self._vulture_pos_rad)} deg at radius {self._vulture_radius}m")
     
         # publish setpoint
         # we create the auv_projection in map frame in the callback, so we can directly use it here without needing to transform it
         setpoint_msg = PoseStamped()
         setpoint_msg.header.frame_id = self._auv_projection.header.frame_id
         setpoint_msg.header.stamp = self._node.get_clock().now().to_msg()
-        setpoint_msg.pose.position.x = self._auv_projection.pose.position.x
-        setpoint_msg.pose.position.y = self._auv_projection.pose.position.y
+        setpoint_msg.pose.position.x = target_pos[0]
+        setpoint_msg.pose.position.y = target_pos[1]
         setpoint_msg.pose.position.z = self._follow_altitude
         setpoint_msg.pose.orientation.w = 1.0
         self._setpoint_pub.publish(setpoint_msg)

@@ -66,3 +66,9 @@
 [submodule "perception/alars/alars_labeling_training"]
 	path = perception/alars/alars_labeling_training
 	url = https://github.com/moyucrazy12/alars_labeling_training
+[submodule "external_equipment/qgis/smarc_qgis_mission_control"]
+	path = external_equipment/qgis/smarc_qgis_mission_control
+	url = git@github.com:smarc-project/smarc_qgis_mission_control.git
+[submodule "perception/smarc_yolo/yolo_ros"]
+	path = perception/smarc_yolo/yolo_ros
+	url = git@github.com:smarc-project/yolo_ros.git
