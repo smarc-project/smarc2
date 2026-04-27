@@ -21,7 +21,7 @@ from .noise_models import NoiseModels
 from .initializer import Initializer
 from .visualization import create_pose_msg, create_transform_msg
 from .geometry_utils import residual_z, wrap
-from .motion_model import DepthModel9D, OscillatorModel, SurfaceModel5D, DepthModel7D, PitchModel9D
+from .motion_model import DepthModel9D, DoubleOscillatorModel, OscillatorModel, SurfaceModel5D, DepthModel7D, PitchModel9D
 
 from std_srvs.srv import Trigger
 
@@ -62,6 +62,7 @@ class EKFNode(Node):
         self.ang_vel_map = np.zeros(3)
 
         self.last_innovation_norm = -1.0
+        self.nr_of_consecutive_invalid_measurements = 0
 
         self.initialize_components()
 
@@ -70,6 +71,7 @@ class EKFNode(Node):
         self.q : deque[tuple[PolygonStamped | None, Time | None]] = deque()
         self.timer = self.create_timer(0.01, self.process_q)
         self.status_timer = self.create_timer(0.5, self.publish_status)
+        self.check_time_since_last_meas_timer = self.create_timer(0.01, self.check_time_since_last_measurement)
 
     def log_info(self, msg):
         if self.logger_info_enable:
@@ -106,7 +108,8 @@ class EKFNode(Node):
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                self.current_R_map_cam = self.current_R_map_cam
+                R_adjustment = R.from_euler("x", -90, degrees=True).as_matrix() 
+                self.current_R_map_cam = self.current_R_map_cam @ R_adjustment
                 self.q.popleft()
                 self.z(msg, transform)
                 self.last_processed_measurement_time = arrival
@@ -157,7 +160,7 @@ class EKFNode(Node):
         # perfoems multiple prediction steps between measurements.
         # this should imporve predictions duering longer time gaps.
 
-        dt_max = 0.1
+        dt_max = 0.01
         n_steps = max(1, int(np.ceil(dt_total / dt_max)))
         dt_step = dt_total / n_steps
         for _ in range(n_steps):
@@ -197,10 +200,16 @@ class EKFNode(Node):
 
         dt : float = t - self.ekf.last_t
 
+        if dt < 0: # due to mismatch between stamp and arrival time, we may receive measurements from the past.
+            self.log_info(f"Measurement from the past received (dt={dt:.3f}s), skipping")
+            return
+
+
         X = self.predict_to_measurement_time(dt)
 
         h = self.measurement_model.hx(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
         if h is None:
+            self.nr_of_consecutive_invalid_measurements += 1
             self.log_info("Measurement function returned None, skipping update")
             return
 
@@ -211,7 +220,11 @@ class EKFNode(Node):
         innov = residual_z(z, h).reshape(z.shape[0], 1)
         self.last_innovation_norm = np.linalg.norm(innov)  
 
-        X, P = self.ekf.update(z, h, H, R_meas)
+        X, P, status = self.ekf.update(z, h, H, R_meas)
+        if status == "outlier" or status == "invalid":
+            self.nr_of_consecutive_invalid_measurements += 1
+        elif status == "updated":
+            self.nr_of_consecutive_invalid_measurements = 0
         self.log_info(f"Post-update state: {X.flatten()[:3]}")
         self.publish_estimate(stamp)
     
@@ -223,12 +236,24 @@ class EKFNode(Node):
         yaw_out = wrap(yaw_out)
         if self.state_dim == 5:
             q = R.from_euler("z", yaw_out).as_quat()
-        elif self.state_dim == 9:
+        elif self.motion_model_type == "pitch":
             q = R.from_euler("xyz", [0, self.ekf.X[4, 0], yaw_out]).as_quat()
         else:
             q = R.from_euler("z", yaw_out).as_quat()
-        self.pub.publish(create_pose_msg(stamp, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
-        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
+        self.pub.publish(create_pose_msg(stamp, self.motion_model_type, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
+        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, self.motion_model_type, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
+
+    def check_time_since_last_measurement(self, max_time_without_meas=0.5):
+        # checks the time since the last measurement and resets the filter if it exceeds a threshold.
+        if self.ekf.last_t is None:
+            return
+        now = self.get_clock().now().nanoseconds * 1e-9
+        time_since_last_meas = now - self.ekf.last_t
+        if time_since_last_meas > max_time_without_meas:
+            self.log_info(f"Time since last measurement is {time_since_last_meas:.3f}s, exceeding max time without measurement {max_time_without_meas}s. Predicting to current time.")
+            self.predict_to_measurement_time(time_since_last_meas)
+            self.publish_estimate(self.get_clock().now().to_msg())
+
 
     def publish_status(self):
         # publishes information regarding the status of the filter.
@@ -236,10 +261,15 @@ class EKFNode(Node):
         # may want to exanp thi.
         msg = Float32MultiArray()
         now = self.get_clock().now().nanoseconds * 1e-9
-        if self.ekf.last_t is None:
-            time_since_last_meas = 0.0
+        if self.last_processed_measurement_time is None:
+            time_since_last_processed_meas = 0.0
         else:
-            time_since_last_meas = now - self.ekf.last_t
+            time_since_last_processed_meas = now - self.last_processed_measurement_time.nanoseconds * 1e-9
+
+        time_since_last_update = now - self.ekf.time_last_update
+        if self.ekf.initialized and time_since_last_update > self.stale_state_age:
+            self.log_info(f"Time since last update is {time_since_last_update:.3f}s, exceeding stale state age {self.stale_state_age}s. Resetting filter.")
+            self.reset_filter()
 
         cov_trace = np.trace(self.ekf.P) if self.ekf.P is not None else -1.0
         if not self.ekf.initialized:
@@ -249,10 +279,13 @@ class EKFNode(Node):
         innovation_norm = getattr(self, "last_innovation_norm", -1.0)
         msg.data = [
             initialized,    # 0 = not initialized, 1 = initialized
-            time_since_last_meas,
+            time_since_last_processed_meas,
+            time_since_last_update,
+            float(self.ekf.nr_of_consecutive_outliers),
+            float(self.nr_of_consecutive_invalid_measurements),
             cov_trace,
             innovation_norm,
-            float(self.ekf.nr_of_consecutive_outliers)]
+            ]
 
         self.pub_status.publish(msg)
 
@@ -305,6 +338,9 @@ class EKFNode(Node):
                 sigma_z=self.sigma_z,
                 sigma_yaw=self.sigma_yaw,
             )
+        elif model_type == "double_oscillator":
+            return DoubleOscillatorModel(
+            )
         else:
             raise ValueError(f"Unknown motion model type: {model_type}")
         
@@ -322,7 +358,7 @@ class EKFNode(Node):
             R_len=self.R_len,
             R_wid=self.R_wid,
             R_alpha=self.R_alpha,
-            motion_model=self.motion_model_type,
+            motion_model_type=self.motion_model_type,
             logger=self.get_logger(),
         )
         self.measurement_model = MeasurementModel(
@@ -340,7 +376,7 @@ class EKFNode(Node):
             n_water=self.n_water,
             obb_length_m=self.obb_length_m,
             obb_width_m=self.obb_width_m,
-            motion_model=self.motion_model,
+            motion_model_type=self.motion_model_type,
             logger=self.get_logger(),
         )
 
@@ -401,7 +437,7 @@ class EKFNode(Node):
             ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
             ("obb.width_m", 0.16), # auv width in meters, may need to be adjusted
 
-            ("alpha_line_pixels", 40.0), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
+            ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
 
             ("sigma_a", 0.01), # m/s^2, could split up into x, y
             ("sigma_z_process", 0.2), # m/s^2, only z as waves mostly affect depth

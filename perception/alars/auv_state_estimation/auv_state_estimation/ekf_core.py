@@ -20,6 +20,7 @@ class EKFCore:
         self.P = np.eye(self.state_dim) * 10.0
         self.Q = np.eye(self.state_dim) * 1e-3
         self.nr_of_consecutive_outliers = 0
+        self.time_last_update = 0
     
     def set_state(self, X0, P0, t0):
 
@@ -36,7 +37,7 @@ class EKFCore:
         # performs gating based on mahalanobis distance.
 
         if h is None or H is None:
-            return self.X, self.P
+            return self.X, self.P, "invalid"
         innov = residual_z(z, h).reshape(z.shape[0], 1)
         S = H @ self.P @ H.T + R
         try:
@@ -44,13 +45,13 @@ class EKFCore:
         except np.linalg.LinAlgError:
             if self.logger:
                 self.logger.info("Gating failed: S singular")
-            return self.X, self.P
+            return self.X, self.P, "invalid"
         d2 = float(innov.T @ S_inv @ innov)
         if d2 > self.outlier_threshold:
             self.nr_of_consecutive_outliers += 1
             if self.logger:
                 self.logger.info(f"Outlier detected with mahalanobis distance squared: {d2:.3f}")
-            return self.X, self.P
+            return self.X, self.P, "outlier"
         K = self.P @ H.T @ S_inv
         self.X = self.X + K @ innov
         yaw_idx = 2 if self.state_dim == 5 else 3
@@ -61,11 +62,12 @@ class EKFCore:
         self.P = IKH @ self.P @ IKH.T + K @ R @ K.T # joseph form for numerical stability
         #self.P = 0.5 * (self.P + self.P.T) + 1e-9 * np.eye(self.state_dim) # ensure symmetry and numerical stability
         self.nr_of_consecutive_outliers = 0
-        return self.X, self.P
+        self.time_last_update = self.last_t
+        return self.X, self.P, "updated"
     
     def predict(self, x_pred, F, Q, t):
         self.X = x_pred
         self.P = F @ self.P @ F.T + Q
         self.last_t = t
         return self.X, self.P
-    
+
