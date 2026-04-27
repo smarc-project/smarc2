@@ -101,7 +101,7 @@ class MoveToAction():
             gp.longitude = goal_request['waypoint']['longitude']
             gp.altitude = goal_request['waypoint']['altitude']
             
-            self._goal_in_map = self._drone_state.convert_geopoint_to_map_pose_stamped(gp)
+            self._goal_in_map = self._drone_state.geopoint_to_pose_stamped_map(gp)
 
             self._goal_tolerance = float(goal_request['waypoint']['tolerance']) if 'tolerance' in goal_request['waypoint'] else self._default_goal_tolerance
             speed_str = goal_request['speed'] if 'speed' in goal_request else 'standard'
