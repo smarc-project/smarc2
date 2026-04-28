@@ -236,8 +236,9 @@ tmux_make_layout "$SESSION" Aux "row(var(GEOFENCE_CMD))"
 NAU_DRIVER_CMD="ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/$ROBOT_NAME"
 GIMBAL_IP=192.168.1.108
 GIMBAL_PORT=2332
-GIMBAL_IMG_WIDTH=1280
-GIMBAL_IMG_HEIGHT=720
+# changing resolution requires re-calibrating the cam.
+GIMBAL_IMG_WIDTH=1920
+GIMBAL_IMG_HEIGHT=1080
 GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! \
 rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! \
 video/x-raw,width=$GIMBAL_IMG_WIDTH,height=$GIMBAL_IMG_HEIGHT,format=BGRx ! \
@@ -260,11 +261,6 @@ GIMBAL_CMD_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
     robot_name:=\"$ROBOT_NAME\" \
     use_sim_time:=$USE_SIM_TIME"
 
-IMG_COMPRESSION_CMD="ros2 run image_transport republish raw compressed \
-  --ros-args \
-  -r in:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS/camera/image_raw \
-  -r out:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS/camera/image_raw/compressed"
-
 # GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
 # FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
 #     -p gscam_config:=\"$GSCAM_CONFIG_FISH\" \
@@ -278,8 +274,7 @@ if [[ $USE_SIM_TIME = "False" ]]; then
     row(
         col(
             var(NAU_DRIVER_CMD),
-            var(GIMBAL_CAM_VIDEO_CMD),
-            var(IMG_COMPRESSION_CMD)
+            var(GIMBAL_CAM_VIDEO_CMD)
         ),
         var(GIMBAL_CAM_DRIVER_CMD),
         var(GIMBAL_CMD_ACTION_CMD)
