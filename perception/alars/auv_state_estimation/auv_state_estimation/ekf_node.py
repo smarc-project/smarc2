@@ -257,7 +257,7 @@ class EKFNode(Node):
 
     def check_time_since_last_measurement(self, max_time_without_meas=0.5):
         # checks the time since the last measurement and resets the filter if it exceeds a threshold.
-        if self.ekf.last_t is None:
+        if self.ekf.last_t is None and not self.ekf.initialized:
             return
         now = self.get_clock().now().nanoseconds * 1e-9
         time_since_last_meas = now - self.ekf.last_t

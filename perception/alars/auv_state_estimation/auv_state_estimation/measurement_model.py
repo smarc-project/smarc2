@@ -227,7 +227,7 @@ class MeasurementModel:
             self.get_logger(f"Not enough projected points in image, looking outside of image bounds.")
             if len(pts_img_tot) > 0:
                 pts_img = pts_img_tot
-                self.get_logger(f"Using points outside of image bounds for measurement function: {len(pts_img)} points") # TODO: may want to increase meas noise in this case or do something smarter than just using all points, but at least we get a measurement update instead of skipping
+                self.get_logger(f"Using points outside of image bounds for measurement function: {len(pts_img)} points") # TODO: may want to increase meas noise in this case 
             else:
                 self.get_logger(f"No valid projected points at all, returning None for measurement function.")
                 return None

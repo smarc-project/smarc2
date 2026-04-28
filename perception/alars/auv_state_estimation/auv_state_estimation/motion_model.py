@@ -319,8 +319,8 @@ class DoubleOscillatorModel:
     def __init__(
         self,
         sigma_a=0.01,
-        sigma_z_slow=2.0,
-        sigma_z_fast=5.0,
+        sigma_z_slow=1.0,
+        sigma_z_fast=3.0,
         sigma_yaw=0.1,
         omega_slow=1.0,
         zeta_slow=0.01,

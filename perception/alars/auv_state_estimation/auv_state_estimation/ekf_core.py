@@ -29,6 +29,7 @@ class EKFCore:
         self.X = X0
         self.P = P0
         self.last_t = t0
+        self.time_last_update = t0
 
 
     def update(self, z, h, H, R):
