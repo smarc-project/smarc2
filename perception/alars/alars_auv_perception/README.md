@@ -1,9 +1,9 @@
 # ALARS AUV Perception
 
 ## Overview
-This package uses YOLO to detect **SAM**, **buoys**, and other classes such as **Lolo**, **Catamaran**, and **boats**. The YOLO models with real and sim data can be found in detail in the following repository [alars_labeling_training](https://github.com/moyucrazy12/alars_labeling_training.git), where can be found as well the annotation and training pipeline followed to obtain the models.
+This package uses YOLO to detect **sam**, **buoy**, and other classes such as **Lolo**, **Catamaran**, and **boats**. The YOLO models with real and sim data can be found in detail in the following repository [alars_labeling_training](https://github.com/moyucrazy12/alars_labeling_training.git), where can be found as well the annotation and training pipeline followed to obtain the models.
 
-Additionally, the package detects the SAM's head using a Canny edge detector, which assumes the presence of a rope attached to the SAM.
+Additionally, the package detects the SAM's head using a Canny edge detector, which assumes the presence of a rope attached to Sam.
 
 ---
 
@@ -21,18 +21,51 @@ When installing **Ultralytics**, some dependencies such as **PyTorch** and **Ope
 > Running `pip3 install ultralytics` may also install `numpy 2.2.6` (observed as of November 2025). This can cause compatibility issues with the `tf_transformations` library. If that happens, remove the incompatible NumPy version and install the required one manually.
 
 ---
+Before using this package, ensure that the trained models are available through the [training repository](https://github.com/moyucrazy12/alars_labeling_training).
+
+---
+
+### Training Package (Submodule)
+
+The training repository contains all the currently available trained models and is intended to be added as a **git submodule**:
+
+alars_labeling_training
+
+Once included and built, the models are exposed through the ROS 2 package system, so this allows the perception package to resolve model paths automatically (via FindPackageShare).
+
+---
+
+### Detection Configuration
+
+The detection behavior (e.g., classes and confidence thresholds) can be configured in:
+
+config/detection_parameters.yaml
+
+Make sure that:
+- the configured classes match the selected model  
+- per-class thresholds are consistent with your use case  
+
+---
+
+### Important ⚠️
+
+Ensure the submodule is properly initialized. If the submodule is missing or not built, the perception package will not be able to locate the trained models.
+
+### Build Workspace
+
+After adding the submodule, build both packages:
+
+cd [ws_path]
+colcon build --symlink-install --packages-select alars_auv_perception alars_labeling_training
+source install/setup.bash
+
+---
 
 ## Package Setup
 
-Before using the package, make sure to check the trained models that can be obtained from the submodule: [alars_labeling_training](https://github.com/moyucrazy12/alars_labeling_training.git)
+Before using the package, make sure to check the trained models from the submodule: [alars_labeling_training](https://github.com/moyucrazy12/alars_labeling_training.git)
 
-#### Option 1 — Local models
-In case, you want to try your own models or manual configuration, place models in:
-```bash
-trained_models/
-```
-
-#### Option 2 — Training package (recommended)
+#### Training package
 You can use the training package which has already all the current trained models:
 ```bash
 alars_labeling_training
@@ -47,21 +80,15 @@ As well, the classes to detect, with their corresponding confidence thresholds, 
 config/detection_parameters.yaml
 ```
 
-Then, remember to build the workspace with this new package:
-
-```bash
-cd [ws_path]
-colcon build --symlink-install --packages-select alars_auv_perception
-source install/setup.sh
-```
-
-With training package:
+Then, remember to build the workspace with this new package and the submodule:
 
 ```bash
 cd [ws_path]
 colcon build --symlink-install --packages-select alars_auv_perception alars_labeling_training
 source install/setup.sh
 ```
+
+So, make sure you have the submodule as well
 
 ---
 
