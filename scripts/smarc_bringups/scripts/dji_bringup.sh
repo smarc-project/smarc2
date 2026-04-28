@@ -204,7 +204,7 @@ if [[ $USE_SIM_TIME = "True" ]]; then
     YOLO_MODEL="yolo_model_2cls_mixed.pt"
 fi
 YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
-namespace:=$ROBOT_NAME \
+robot_name:=$ROBOT_NAME \
 device:=$YOLO_DEVICE \
 use_sim_time:=$USE_SIM_TIME \
 model_package:=alars_labeling_training \
