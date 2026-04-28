@@ -660,7 +660,17 @@ class DjiCaptain():
     def _control_mode_callback(self, msg: ControlMode):
         # hardcoded numbers from the psdk_ros2 interface
         # 1 = Has control authority, 4 = PSDK
-        just_got_control = msg.control_auth == 1 and msg.device_mode == 4
+        # control_auth = [1,0] 1-> have auth, 0-> dont have auth
+        # device_mode = [0,1,4] 0->RC, 1->MSDK, 4->PSDK
+        # control_mode = ??? undocumented
+        # for the FC30, things are different....
+        # when we HAVE control, in N mode, 
+        # contorl mode is 4, device mode is 3, control_auth is 0...
+        if self.ROBOT_NAME == "M350":
+            just_got_control = msg.control_auth == 1 and msg.device_mode == 4
+        if self.ROBOT_NAME == "FC30":
+            just_got_control = msg.control_auth == 0 and msg.device_mode == 3 and msg.control_mode == 4
+            
         if self._got_control == just_got_control:
             return
         

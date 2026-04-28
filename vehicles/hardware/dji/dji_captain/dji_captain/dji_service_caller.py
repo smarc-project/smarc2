@@ -21,8 +21,8 @@ class ServiceCaller():
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
         self._takeoff_srv = node.create_client(Trigger, PSDKTopics.TAKEOFF_SRV)
         self._land_srv = node.create_client(Trigger, PSDKTopics.LAND_SRV)
-        self._turn_on_props_srv = node.create_client(Trigger, PSDKTopics.TURN_ON_PROPS_SRV)
-        self._turn_off_props_srv = node.create_client(Trigger, PSDKTopics.TURN_OFF_PROPS_SRV)
+        self._turn_on_props_srv = node.create_client(Trigger, PSDKTopics.PROPS_ON_SRV)
+        self._turn_off_props_srv = node.create_client(Trigger, PSDKTopics.PROPS_OFF_SRV)
 
         self.FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
 
