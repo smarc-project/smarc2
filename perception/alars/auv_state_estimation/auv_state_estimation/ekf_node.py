@@ -117,6 +117,9 @@ class EKFNode(Node):
                 self.z(msg, transform)
                 self.last_processed_measurement_time = arrival
                 continue
+            else:
+                self.log_info(f"Cant transform from {self.cam_frame} to {self.map_frame} at msg time, dropping msg.")
+                self.q.popleft()
 
             wait_time = (now - arrival).nanoseconds * 1e-9
             if wait_time > 0.3:
