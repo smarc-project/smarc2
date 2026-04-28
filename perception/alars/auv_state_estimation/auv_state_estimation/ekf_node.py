@@ -21,7 +21,7 @@ from .noise_models import NoiseModels
 from .initializer import Initializer
 from .visualization import create_pose_msg, create_transform_msg
 from .geometry_utils import residual_z, wrap
-from .motion_model import DepthModel9D, DoubleOscillatorModel, OscillatorModel, SurfaceModel5D, DepthModel7D, PitchModel9D
+from .motion_model import DepthModel, DoubleOscillatorModel, OscillatorModel, PitchModel, SurfaceModel, PitchModel
 
 from std_srvs.srv import Trigger
 
@@ -142,7 +142,7 @@ class EKFNode(Node):
         ray = self.measurement_model.back_projection(uv_img[0], self.current_R_map_cam)
         if ray is None:
             return
-        head = self.initializer.point_on_line_at_z(self.current_cam_pos_map, ray, self.z_water)
+        head = self.initializer.point_on_line_at_z(self.current_cam_pos_map, ray, self.water_surface_height)
         yaw_axis_est = self.ekf.X[2, 0] if self.state_dim == 5 else self.ekf.X[3, 0]
         if head is None:
             return
@@ -252,8 +252,8 @@ class EKFNode(Node):
             self.log_info(">> Almost pubbed without a stamp!")
             return
 
-        self.pub.publish(create_pose_msg(stamp, self.motion_model_type, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
-        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, self.motion_model_type, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
+        self.pub.publish(create_pose_msg(stamp, self.motion_model_type, q, self.map_frame, self.ekf.X, self.ekf.P, self.water_surface_height))
+        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, self.motion_model_type, q, self.map_frame, self.output_frame, self.ekf.X, self.water_surface_height))
 
     def check_time_since_last_measurement(self, max_time_without_meas=0.5):
         # checks the time since the last measurement and resets the filter if it exceeds a threshold.
@@ -308,7 +308,7 @@ class EKFNode(Node):
     
     def reset_filter(self):
         self.ekf = EKFCore(
-            self.z_water,
+            self.water_surface_height,
             state_dim=self.state_dim,
             outlier_threshold=self.outlier_threshold, # type: ignore
             #logger=self.get_logger(),
@@ -326,27 +326,27 @@ class EKFNode(Node):
 
     def get_motion_model(self, model_type):
         if model_type == "surface":
-            return SurfaceModel5D(
-                sigma_a=self.sigma_a,
+            return SurfaceModel(
+                sigma_a=self.sigma_a_xy,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "depth":
-            return DepthModel7D(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+            return DepthModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.sigma_a_z,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "pitch":
-            return PitchModel9D(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+            return PitchModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.sigma_a_z,
                 sigma_yaw=self.sigma_yaw,
-                sigma_pitch=self.sigma_pitch,
+                sigma_pitch=self.sigma_a_pitch,
             )
         elif model_type == "oscillator":
             return OscillatorModel(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.sigma_a_z,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "double_oscillator":
@@ -357,14 +357,11 @@ class EKFNode(Node):
         
     def initialize_components(self):
         self.initializer = Initializer(
-            z_water=self.z_water,
+            z_water=self.water_surface_height,
             state_dim=self.state_dim,
             init_z_needed=self.init_z_needed,
             init_pos_max_spread=self.init_pos_max_spread,
             init_yaw_max_spread=self.init_yaw_max_spread,
-            init_z_max_spread=self.init_z_max_spread,
-            init_max_depth=self.init_max_depth,
-            init_depth_steps=self.init_depth_steps,
             alpha_line_pixels=self.alpha_line_pixels,
             R_len=self.R_len,
             R_wid=self.R_wid,
@@ -382,9 +379,7 @@ class EKFNode(Node):
             height=self.height,
             K=self.K,
             D=self.D,
-            z_water=self.z_water,
-            n_air=self.n_air,
-            n_water=self.n_water,
+            z_water=self.water_surface_height,
             obb_length_m=self.obb_length_m,
             obb_width_m=self.obb_width_m,
             motion_model_type=self.motion_model_type,
@@ -419,7 +414,7 @@ class EKFNode(Node):
             meas_dim=self.meas_dim,
         )
         self.ekf = EKFCore(
-            self.z_water,
+            self.water_surface_height,
             state_dim=self.state_dim,
             outlier_threshold=self.outlier_threshold, # type: ignore
             logger=self.get_logger(),   
@@ -440,9 +435,7 @@ class EKFNode(Node):
 
             ("camera_info", ""),
 
-            ("z_water", 0.0),
-            ("n_air", 1.0),
-            ("n_water", 1.0),
+            ("environment.water_surface_height", 0.0),
 
             # note that these are dimensions of the AUV in the measurement model (OBB), not necessarily the true dimensions of the AUV.
             ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
@@ -450,55 +443,51 @@ class EKFNode(Node):
 
             ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
 
-            ("sigma_a", 0.01), # m/s^2, could split up into x, y
-            ("sigma_z_process", 0.2), # m/s^2, only z as waves mostly affect depth
-            ("sigma_yaw_process", 3.0), # deg/s
-            ("sigma_pitch_acc_deg", 15.0), # deg/s^2, only for pitch as waves mostly affect pitch
+            ("motion.sigma_a_xy", 0.01), # m/s^2, could split up into x, y
+            ("motion.sigma_a_z", 1.0), # m/s^2, only z as waves mostly affect depth
+            ("motion.sigma_yaw", 3.0), # deg/s
+            ("motion.sigma_a_pitch", 15.0), # deg/s^2, only for pitch as waves mostly affect pitch
+            ("motion.model_type", "double_oscillator"), # options: "surface", "depth", "pitch", "oscillator", "double_oscillator"
 
             # measurement noise stddev (pixels)
-            ("R_u", 10.0), 
-            ("R_v", 10.0),
-            ("R_alpha_deg", 5.0),
-            ("R_len", 200.0),
-            ("R_wid", 40.0),
+            ("measurement_noise.R_u", 10.0), 
+            ("measurement_noise.R_v", 10.0),
+            ("measurement_noise.R_alpha_deg", 5.0),
+            ("measurement_noise.R_len", 200.0),
+            ("measurement_noise.R_wid", 40.0),
 
             # dynamic measurement noise stddev (pixels)
             # increases with distance from image center
-            ("R_dyn.center_gain_u", 50.0), 
-            ("R_dyn.center_gain_v", 50.0),
-            ("R_dyn.center_gain_alpha_deg", 10.0),
-            ("R_dyn.center_gain_len", 10.0),
-            ("R_dyn.center_gain_wid", 10.0),
+            ("measurement_noise.center_gain_u", 50.0), 
+            ("measurement_noise.center_gain_v", 50.0),
+            ("measurement_noise.center_gain_alpha_deg", 10.0),
+            ("measurement_noise.center_gain_len", 10.0),
+            ("measurement_noise.center_gain_wid", 10.0),
 
             # increases with drone speed
-            ("R_dyn.speed_gain_u", 50.0),
-            ("R_dyn.speed_gain_v", 50.0),
-            ("R_dyn.speed_gain_alpha_deg", 10.0),
-            ("R_dyn.speed_gain_len", 60.0),
-            ("R_dyn.speed_gain_wid", 30.0),
+            ("measurement_noise.speed_gain_u", 50.0),
+            ("measurement_noise.speed_gain_v", 50.0),
+            ("measurement_noise.speed_gain_alpha_deg", 10.0),
+            ("measurement_noise.speed_gain_len", 60.0),
+            ("measurement_noise.speed_gain_wid", 30.0),
+
+            ("measurement_noise.R_dyn_dt", 0.5),
 
             # drone pose noise
-            ("R_pose_x", 0.03),
-            ("R_pose_y", 0.03),
-            ("R_pose_z", 0.03),
-            ("R_pose_r", 1.0),
-            ("R_pose_p", 1.0),
-            ("R_pose_yaw", 3.0),
+            ("camera_pose_noise.R_pose_x", 0.03),
+            ("camera_pose_noise.R_pose_y", 0.03),
+            ("camera_pose_noise.R_pose_z", 0.03),
+            ("camera_pose_noise.R_pose_r", 1.0),
+            ("camera_pose_noise.R_pose_p", 1.0),
+            ("camera_pose_noise.R_pose_yaw", 3.0),
 
             # dynamic measurement noise update rate (s)
-            ("R_dyn_dt", 0.5),
 
-            ("init_z_needed", 5),
-            ("init_pos_max_spread", 2.0),
-            ("init_yaw_max_spread", 0.7),
-            ("init_z_max_spread", 2.0),
-            ("init_min_depth", 0.2),
-            ("init_max_depth", 8.0),
-            ("init_depth_steps", 40),
+            ("initialization.min_valid_meas_needed", 5),
+            ("initialization.max_pos_spread", 2.0),
+            ("initialization.max_yaw_spread", 0.7),
 
             ("gating.prob", 0.99),
-
-            ("logger_info.enable", True),
 
             # jacobian epsilons for numerical differentiation
             ("jacobian.eps_state_pos", 1e-3),
@@ -507,8 +496,7 @@ class EKFNode(Node):
             ("jacobian.eps_pose_pos", 1e-3),
             ("jacobian.eps_pose_ang", 1e-3),
 
-            # "surface", "depth", "pitch", "depth9d"
-            ("motion_model", "oscillator"),
+            ("logger_info.enable", True),
 
             # if the state is older than this many seconds when a new measurement arrives, reset the filter.
             ("stale_state_age", 3.0)
@@ -516,52 +504,46 @@ class EKFNode(Node):
         
         self.declare_parameters(namespace="", parameters=PARAMS)
 
-        self.z_water :float = self.get_parameter("z_water").get_parameter_value().double_value
-        self.n_air :float = self.get_parameter("n_air").get_parameter_value().double_value
-        self.n_water :float = self.get_parameter("n_water").get_parameter_value().double_value
+        self.water_surface_height :float = self.get_parameter("environment.water_surface_height").get_parameter_value().double_value
 
         self.obb_length_m :float = self.get_parameter("obb.length_m").get_parameter_value().double_value
         self.obb_width_m :float = self.get_parameter("obb.width_m").get_parameter_value().double_value
         self.alpha_line_pixels :int = self.get_parameter("alpha_line_pixels").get_parameter_value().integer_value
 
-        self.sigma_a :float = self.get_parameter("sigma_a").get_parameter_value().double_value
-        self.sigma_z :float = self.get_parameter("sigma_z_process").get_parameter_value().double_value
-        self.sigma_yaw :float = np.deg2rad(self.get_parameter("sigma_yaw_process").get_parameter_value().double_value)
-        self.sigma_pitch :float = np.deg2rad(self.get_parameter("sigma_pitch_acc_deg").get_parameter_value().double_value)
-        self.R_u :float = self.get_parameter("R_u").get_parameter_value().double_value
-        self.R_v :float = self.get_parameter("R_v").get_parameter_value().double_value
-        self.R_alpha :float = np.deg2rad(float(self.get_parameter("R_alpha_deg").get_parameter_value().double_value))
-        self.R_len :float = self.get_parameter("R_len").get_parameter_value().double_value
-        self.R_wid :float = self.get_parameter("R_wid").get_parameter_value().double_value
+        self.sigma_a_xy :float = self.get_parameter("motion.sigma_a_xy").get_parameter_value().double_value
+        self.sigma_a_z :float = self.get_parameter("motion.sigma_a_z").get_parameter_value().double_value
+        self.sigma_yaw :float = np.deg2rad(self.get_parameter("motion.sigma_yaw").get_parameter_value().double_value)
+        self.sigma_a_pitch :float = np.deg2rad(self.get_parameter("motion.sigma_a_pitch").get_parameter_value().double_value)
+        self.R_u :float = self.get_parameter("measurement_noise.R_u").get_parameter_value().double_value
+        self.R_v :float = self.get_parameter("measurement_noise.R_v").get_parameter_value().double_value
+        self.R_alpha :float = np.deg2rad(float(self.get_parameter("measurement_noise.R_alpha_deg").get_parameter_value().double_value))
+        self.R_len :float = self.get_parameter("measurement_noise.R_len").get_parameter_value().double_value
+        self.R_wid :float = self.get_parameter("measurement_noise.R_wid").get_parameter_value().double_value
 
-        self.R_pose_x :float = self.get_parameter("R_pose_x").get_parameter_value().double_value
-        self.R_pose_y :float = self.get_parameter("R_pose_y").get_parameter_value().double_value
-        self.R_pose_z :float = self.get_parameter("R_pose_z").get_parameter_value().double_value
-        self.R_pose_r :float = np.deg2rad(self.get_parameter("R_pose_r").get_parameter_value().double_value)
-        self.R_pose_p :float = np.deg2rad(self.get_parameter("R_pose_p").get_parameter_value().double_value)
-        self.R_pose_yaw :float = np.deg2rad(self.get_parameter("R_pose_yaw").get_parameter_value().double_value)
+        self.R_pose_x :float = self.get_parameter("camera_pose_noise.R_pose_x").get_parameter_value().double_value
+        self.R_pose_y :float = self.get_parameter("camera_pose_noise.R_pose_y").get_parameter_value().double_value
+        self.R_pose_z :float = self.get_parameter("camera_pose_noise.R_pose_z").get_parameter_value().double_value
+        self.R_pose_r :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_r").get_parameter_value().double_value)
+        self.R_pose_p :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_p").get_parameter_value().double_value)
+        self.R_pose_yaw :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_yaw").get_parameter_value().double_value)
 
-        self.R_dyn_center_gain_u :float = self.get_parameter("R_dyn.center_gain_u").get_parameter_value().double_value
-        self.R_dyn_center_gain_v :float = self.get_parameter("R_dyn.center_gain_v").get_parameter_value().double_value
-        self.R_dyn_center_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.center_gain_alpha_deg").get_parameter_value().double_value)
-        self.R_dyn_center_gain_len :float = self.get_parameter("R_dyn.center_gain_len").get_parameter_value().double_value
-        self.R_dyn_center_gain_wid :float = self.get_parameter("R_dyn.center_gain_wid").get_parameter_value().double_value
+        self.R_dyn_center_gain_u :float = self.get_parameter("measurement_noise.center_gain_u").get_parameter_value().double_value
+        self.R_dyn_center_gain_v :float = self.get_parameter("measurement_noise.center_gain_v").get_parameter_value().double_value
+        self.R_dyn_center_gain_alpha :float = np.deg2rad(self.get_parameter("measurement_noise.center_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_center_gain_len :float = self.get_parameter("measurement_noise.center_gain_len").get_parameter_value().double_value
+        self.R_dyn_center_gain_wid :float = self.get_parameter("measurement_noise.center_gain_wid").get_parameter_value().double_value
 
-        self.R_dyn_speed_gain_u :float = self.get_parameter("R_dyn.speed_gain_u").get_parameter_value().double_value
-        self.R_dyn_speed_gain_v :float = self.get_parameter("R_dyn.speed_gain_v").get_parameter_value().double_value
-        self.R_dyn_speed_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.speed_gain_alpha_deg").get_parameter_value().double_value)
-        self.R_dyn_speed_gain_len :float = self.get_parameter("R_dyn.speed_gain_len").get_parameter_value().double_value
-        self.R_dyn_speed_gain_wid :float = self.get_parameter("R_dyn.speed_gain_wid").get_parameter_value().double_value
+        self.R_dyn_speed_gain_u :float = self.get_parameter("measurement_noise.speed_gain_u").get_parameter_value().double_value
+        self.R_dyn_speed_gain_v :float = self.get_parameter("measurement_noise.speed_gain_v").get_parameter_value().double_value
+        self.R_dyn_speed_gain_alpha :float = np.deg2rad(self.get_parameter("measurement_noise.speed_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_speed_gain_len :float = self.get_parameter("measurement_noise.speed_gain_len").get_parameter_value().double_value
+        self.R_dyn_speed_gain_wid :float = self.get_parameter("measurement_noise.speed_gain_wid").get_parameter_value().double_value
 
-        self.R_dyn_dt :float = self.get_parameter("R_dyn_dt").get_parameter_value().double_value
+        self.R_dyn_dt :float = self.get_parameter("measurement_noise.R_dyn_dt").get_parameter_value().double_value
 
-        self.init_z_needed : int = self.get_parameter("init_z_needed").get_parameter_value().integer_value
-        self.init_pos_max_spread :float = self.get_parameter("init_pos_max_spread").get_parameter_value().double_value
-        self.init_yaw_max_spread :float = self.get_parameter("init_yaw_max_spread").get_parameter_value().double_value
-        self.init_z_max_spread :float = self.get_parameter("init_z_max_spread").get_parameter_value().double_value
-        self.init_min_depth :float = self.get_parameter("init_min_depth").get_parameter_value().double_value
-        self.init_max_depth :float = self.get_parameter("init_max_depth").get_parameter_value().double_value
-        self.init_depth_steps :int = self.get_parameter("init_depth_steps").get_parameter_value().integer_value
+        self.init_z_needed : int = self.get_parameter("initialization.min_valid_meas_needed").get_parameter_value().integer_value
+        self.init_pos_max_spread :float = self.get_parameter("initialization.max_pos_spread").get_parameter_value().double_value
+        self.init_yaw_max_spread :float = np.deg2rad(self.get_parameter("initialization.max_yaw_spread").get_parameter_value().double_value)
 
         self.gating_prob :float = self.get_parameter("gating.prob").get_parameter_value().double_value
 
@@ -608,7 +590,7 @@ class EKFNode(Node):
         else:
             raise RuntimeError("camera_info parameter must be set")
         
-        self.motion_model_type : str = self.get_parameter("motion_model").get_parameter_value().string_value
+        self.motion_model_type : str = self.get_parameter("motion.model_type").get_parameter_value().string_value
 
 
 def main():

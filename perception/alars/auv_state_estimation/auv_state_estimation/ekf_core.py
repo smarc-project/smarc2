@@ -58,10 +58,7 @@ class EKFCore:
         yaw_idx = 2 if self.state_dim == 5 else 3
         self.X[yaw_idx, 0] = wrap(self.X[yaw_idx, 0])
         I = np.eye(self.state_dim)
-        #self.P = (I - K @ H) @ self.P # standard form, but can be numerically unstable
-        IKH = I - K @ H
-        self.P = IKH @ self.P @ IKH.T + K @ R @ K.T # joseph form for numerical stability
-        #self.P = 0.5 * (self.P + self.P.T) + 1e-9 * np.eye(self.state_dim) # ensure symmetry and numerical stability
+        self.P = (I - K @ H) @ self.P 
         self.nr_of_consecutive_outliers = 0
         self.time_last_update = self.last_t
         return self.X, self.P, "updated"

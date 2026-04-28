@@ -16,8 +16,6 @@ class MeasurementModel:
             K, 
             D, 
             z_water, 
-            n_air, 
-            n_water, 
             obb_length_m, 
             obb_width_m, 
             motion_model_type, 
@@ -36,8 +34,6 @@ class MeasurementModel:
         self.K = K
         self.D = D
         self.z_water = z_water
-        self.n_air = n_air
-        self.n_water = n_water
         self.obb_length_m = obb_length_m
         self.obb_width_m = obb_width_m
         self.motion_model_type = motion_model_type
@@ -227,7 +223,7 @@ class MeasurementModel:
             self.get_logger(f"Not enough projected points in image, looking outside of image bounds.")
             if len(pts_img_tot) > 0:
                 pts_img = pts_img_tot
-                self.get_logger(f"Using points outside of image bounds for measurement function: {len(pts_img)} points") # TODO: may want to increase meas noise in this case 
+                self.get_logger(f"Using points outside of image bounds for measurement function: {len(pts_img)} points") # if estimated state is outside of image, and not considered outlier, we can still get a measurement update by using the projected points outside of image bounds, which will to correct the state back towards the image. Though, this may give noisy measurements, increasing the measurement noise may help with stability in this case.
             else:
                 self.get_logger(f"No valid projected points at all, returning None for measurement function.")
                 return None

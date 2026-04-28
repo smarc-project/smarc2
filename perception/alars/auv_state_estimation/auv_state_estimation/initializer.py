@@ -7,10 +7,7 @@ class Initializer:
                  state_dim, 
                  init_z_needed, 
                  init_pos_max_spread, 
-                 init_yaw_max_spread,
-                 init_z_max_spread, 
-                 init_max_depth, 
-                 init_depth_steps, 
+                 init_yaw_max_spread, 
                  alpha_line_pixels, 
                  R_len, 
                  R_wid, 
@@ -22,9 +19,6 @@ class Initializer:
         self.init_z_needed = init_z_needed
         self.init_pos_max_spread = init_pos_max_spread
         self.init_yaw_max_spread = init_yaw_max_spread
-        self.init_z_max_spread = init_z_max_spread
-        self.init_max_depth = init_max_depth
-        self.init_depth_steps = init_depth_steps
         self.alpha_line_pixels = alpha_line_pixels
         self.R_len = R_len
         self.R_wid = R_wid

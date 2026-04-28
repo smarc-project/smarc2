@@ -1,7 +1,7 @@
 import numpy as np
 from .geometry_utils import wrap
 
-class SurfaceModel5D:
+class SurfaceModel:
     def __init__(self, sigma_a, sigma_yaw):
         self.name = "surface"
 
@@ -43,7 +43,7 @@ class SurfaceModel5D:
         Q[2, 2] = (dt * self.sigma_yaw) ** 2
         return Q
     
-class DepthModel7D:
+class DepthModel:
     # may work better than oscillator in very stochastic environments, but less stable in calm water.
     def __init__(self, sigma_a, sigma_z, sigma_yaw):
         self.name = "depth"
@@ -101,9 +101,11 @@ class DepthModel7D:
         Q[3, 3] = (dt * self.sigma_yaw) ** 2
         return Q
     
-class PitchModel9D:
+class PitchModel:
     # motion model that includes pitch dynamics
     # but since pitch is weakly observable, it doesn't work that well.
+    # looking at target from an angle can help with observability, but only marginally.
+    # obb ratio is a cue, but is noisy and only gives +- angle.
     def __init__(self, sigma_a, sigma_z, sigma_yaw, sigma_pitch):
         self.name = "pitch"
         self.sigma_a = sigma_a
@@ -160,92 +162,6 @@ class PitchModel9D:
         Q[np.ix_([4, 8], [4, 8])] = q_cv * (self.sigma_pitch ** 2)
 
         Q[3, 3] = (dt * self.sigma_yaw) ** 2
-        return Q
-
-class DepthModel9D:
-    # motion model that includes simple state of water
-    # water is modeled as a oscillator that the auv tries to follow, with some lag and damping.
-    def __init__(self, sigma_a, sigma_z, sigma_yaw,
-                 omega=2.0, zeta=0.1, k_follow=0.6, d_follow=0.2, c_eta=0.8):
-        self.name = "depth9d"
-        self.sigma_a = sigma_a
-        self.sigma_z = sigma_z
-        self.sigma_yaw = sigma_yaw
-
-        self.eps = [1e-2] * 9 # for numerical jacobian
-        self.eps[2] = 5e-2
-
-        self.omega = omega # natural frequency of the water oscillator, may want to make this adaptive in the future.
-        self.zeta = zeta # damping of oscillator
-
-        # how the auv follows water surface, allows for more freedom in the motion
-        self.k_follow = k_follow # how strongly the auv tries to follow the water surface
-        self.d_follow = d_follow # how much the auv damps its z velocity
-        self.c_eta = c_eta # how much the water state affects the target depth
-
-        self.i_x = 0
-        self.i_y = 1
-        self.i_z = 2
-        self.i_yaw = 3
-        self.i_vx = 4
-        self.i_vy = 5
-        self.i_vz = 6
-        self.i_eta = 7
-        self.i_eta_dot = 8
-        self.state_dim = 9
-
-    def predict(self, X, dt):
-
-        px, py, z, yaw, vx, vy, vz, eta, eta_dot = X.reshape(-1)
-
-        px_new = px + vx * dt
-        py_new = py + vy * dt
-
-        z_target = self.c_eta * eta
-        az = -self.k_follow * (z - z_target) - self.d_follow * vz
-        z_new = z + vz * dt
-        vz_new = vz + az * dt
-
-        eta_new = eta + eta_dot * dt
-        eta_ddot = -2.0 * self.zeta * self.omega * eta_dot - (self.omega ** 2) * eta
-        eta_dot_new = eta_dot + eta_ddot * dt
-
-        X_pred = np.array([
-            [px_new],
-            [py_new],
-            [z_new],
-            [wrap(yaw)],
-            [vx],
-            [vy],
-            [vz_new],
-            [eta_new],
-            [eta_dot_new]
-        ])
-
-        F = np.eye(9)
-        F[self.i_x, self.i_vx] = dt
-        F[self.i_y, self.i_vy] = dt
-        F[self.i_z, self.i_vz] = dt
-        F[self.i_eta, self.i_eta_dot] = dt
-        F[self.i_vz, self.i_z] = -self.k_follow * dt
-        F[self.i_vz, self.i_vz] = 1.0 - self.d_follow * dt
-        F[self.i_vz, self.i_eta] = self.k_follow * self.c_eta * dt
-        F[self.i_eta_dot, self.i_eta] = -(self.omega ** 2) * dt
-        F[self.i_eta_dot, self.i_eta_dot] = 1.0 - 2.0 * self.zeta * self.omega * dt
-
-        return X_pred, F
-
-    def build_Q(self, dt):
-        Q = np.zeros((9, 9))
-        q_cv = np.array([
-            [dt**4 / 4.0, dt**3 / 2.0],
-            [dt**3 / 2.0, dt**2]        
-        ])
-        Q[np.ix_([self.i_x, self.i_vx], [self.i_x, self.i_vx])] = q_cv * (self.sigma_a ** 2)
-        Q[np.ix_([self.i_y, self.i_vy], [self.i_y, self.i_vy])] = q_cv * (self.sigma_a ** 2)
-        Q[np.ix_([self.i_z, self.i_vz], [self.i_z, self.i_vz])] = q_cv * (self.sigma_z ** 2)
-        Q[np.ix_([self.i_eta, self.i_eta_dot], [self.i_eta, self.i_eta_dot])] = q_cv * (1.0 ** 2) # TODO: put noise on eta in ekf_params
-        Q[self.i_yaw, self.i_yaw] = (dt * self.sigma_yaw) ** 2
         return Q
 
 class OscillatorModel:
