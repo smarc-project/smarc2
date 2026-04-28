@@ -96,13 +96,6 @@ So, make sure you have the submodule as well
 
 ### 1. Launch only the YOLO detector
 
-#### Basic
-```bash
-ros2 launch alars_auv_perception alars_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=true model_file:=<model_name>
-```
-
-### Using external model package
-
 ```bash
 ros2 launch alars_auv_perception alars_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=true model_package:=alars_labeling_training model_file:=<model_name>
 ```
@@ -121,16 +114,15 @@ To open the RViz configuration file:
 rviz2 -d <absolute_path>/perception/alars/alars_auv_perception/config/rviz/M350_perception.rviz
 ```
 
+By default, the detector subscribes to the raw image topic defined internally in the Python node, which corresponds to the gimbal camera (`dji_msgs`). To override this topic from the launch file, use:
+
+```bash
+raw_image_topic:=<image_raw_topic>
+```
+
 ---
 
 ### 2. Launch the YOLO detector with a video
-
-#### Basic
-```bash
-ros2 launch alars_auv_perception alars_video_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=false
-```
-
-### Using external model package
 
 ```bash
 ros2 launch alars_auv_perception alars_video_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=false model_package:=alars_labeling_training model_file:=<model_name>
@@ -151,13 +143,6 @@ config/video_publisher_parameters.yaml
 ---
 
 ### 3. Launch the YOLO detector with a rosbag
-
-#### Basic
-```bash
-ros2 launch alars_auv_perception alars_rosbag_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=false
-```
-
-### Using external model package
 
 ```bash
 ros2 launch alars_auv_perception alars_rosbag_yolo_detector.launch.py namespace:=M350 device:=cpu use_sim_time:=false model_package:=alars_labeling_training model_file:=<model_name>

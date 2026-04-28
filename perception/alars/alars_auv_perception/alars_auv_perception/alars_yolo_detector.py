@@ -546,6 +546,18 @@ class YOLODetector(Node):
         if per_class_conf is None:
             per_class_conf = {}
 
+        if self.has_parameter("topics.raw_image"):
+            raw_image_param = self.get_parameter("topics.raw_image").value
+        else:
+            raw_image_param = ""
+
+        if raw_image_param is None or raw_image_param == "":
+            raw_image_topic = namespace + "/" + Topics.GIMBAL_CAMERA_RAW_TOPIC
+        else:
+            raw_image_topic = str(raw_image_param)
+            if not raw_image_topic.startswith("/"):
+                raw_image_topic = namespace + "/" + raw_image_topic
+
         frames_topics = {
             "topics.rviz.annotated_image": namespace + "/" + self.get_parameter("topics.rviz.annotated_image").value,
             "topics.rviz.bw_blurred_sam": namespace + "/" + self.get_parameter("topics.rviz.bw_blurred_sam").value,
@@ -557,7 +569,7 @@ class YOLODetector(Node):
             "topics.predicted_position.buoy": namespace + "/" + Topics.ESTIMATED_BUOY_TOPIC,
             "topics.predicted_position.buoy_obb": namespace + "/" + Topics.ESTIMATED_BUOY_OBB_TOPIC,
             "topics.predicted_position.other_obbs": namespace + "/" + Topics.LABELED_OBBS_TOPIC,
-            "topics.raw_image": namespace + "/" + Topics.GIMBAL_CAMERA_RAW_TOPIC,
+            "topics.raw_image":  raw_image_topic,
 
             "frames.map": namespace.removeprefix("/") + "/" + Links.MAP,
             "frames.quadrotor_odom": namespace.removeprefix("/") + "/" + Links.ODOM,

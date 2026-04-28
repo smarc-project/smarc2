@@ -28,12 +28,17 @@ def generate_launch_description():
         'model_file',
         default_value='yolo_model_5cls.pt'
     )
+    raw_image_topic_arg = DeclareLaunchArgument(
+        'raw_image_topic',
+        default_value=''
+    )
 
     namespace = LaunchConfiguration('namespace')
     device = LaunchConfiguration('device')
     use_sim_time = LaunchConfiguration('use_sim_time')
     model_package = LaunchConfiguration('model_package')
     model_file = LaunchConfiguration('model_file')
+    raw_image_topic = LaunchConfiguration('raw_image_topic')
 
     detection_config = PathJoinSubstitution([
         FindPackageShare(package_name),
@@ -67,6 +72,7 @@ def generate_launch_description():
                 'device': device,
                 'use_sim_time': use_sim_time,
                 'model_path': model_path,
+                'topics.raw_image': raw_image_topic,
             }
         ],
     )
@@ -90,7 +96,7 @@ def generate_launch_description():
         use_sim_time_arg,
         model_package_arg,
         model_file_arg,
-
+        raw_image_topic_arg,
         LogInfo(msg=['[Launch] namespace = ', namespace]),
         LogInfo(msg=['[Launch] device = ', device]),
         LogInfo(msg=['[Launch] use_sim_time = ', use_sim_time]),
