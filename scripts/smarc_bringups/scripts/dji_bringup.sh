@@ -241,7 +241,15 @@ GEOFENCE_CMD="ros2 run actionable_geofence geofence_node --ros-args -r __ns:=/$R
 -p use_sim_time:=$USE_SIM_TIME \
 -p map_frame:=$ROBOT_NAME/map"
 
-tmux_make_layout "$SESSION" Aux "row(var(GEOFENCE_CMD))"
+CTRL_MODE_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/control_mode psdk_interfaces/msg/ControlMode"
+RC_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/rc sensor_msgs/msg/Joy"
+
+tmux_make_layout "$SESSION" Aux "
+row(
+    var(GEOFENCE_CMD),
+    col(var(CTRL_MODE_PUB_CMD), var(RC_PUB_CMD))
+)"
+
 
 ############
 # 6 Drivers
