@@ -34,9 +34,7 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 
 class DjiCaptain():
     def __init__(self, node: Node):
-        self._prev_log_msg = ""
         self._node = node
-
 
         try:
             self._RUNNING_IN_SIM : bool = self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
@@ -356,24 +354,19 @@ class DjiCaptain():
         elif self.setpoint_received_at is not None and self._move_to_setpoint is not None:
             s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)} ({self.now_time - self.setpoint_received_at:.2f}s ago)\n"
         
-
-
         return s
     
     ############
     # Feedback
     ############
     def log(self, msg: str):
-        if msg == self._prev_log_msg:
-            return
-        self._node.get_logger().info(msg)
-        self._prev_log_msg = msg
+        self._node.get_logger().info(f'\n{msg}')
 
     def logerr(self, msg: str):
-        self._node.get_logger().error(msg)
+        self._node.get_logger().error(f'\n{msg}')
 
     def logwarn(self, msg: str):
-        self._node.get_logger().warn(msg)
+        self._node.get_logger().warn(f'\n{msg}')
 
 
     ############
