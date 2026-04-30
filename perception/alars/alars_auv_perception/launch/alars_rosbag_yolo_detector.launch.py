@@ -13,6 +13,7 @@ def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time')
     model_package = LaunchConfiguration('model_package')
     model_file = LaunchConfiguration('model_file')
+    raw_image_topic = LaunchConfiguration('raw_image_topic')
 
     bag_path = LaunchConfiguration('bag_path').perform(context)
     bag_rate = LaunchConfiguration('bag_rate')
@@ -45,6 +46,7 @@ def launch_setup(context, *args, **kwargs):
                 'device': device,
                 'use_sim_time': use_sim_time,
                 'model_path': model_path,
+                'topics.raw_image': raw_image_topic,
             }
         ],
     )
@@ -112,6 +114,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'model_file',
             default_value='yolo_model_5cls.pt'
+        ),
+        DeclareLaunchArgument(
+            'raw_image_topic',
+            default_value=''
         ),
         DeclareLaunchArgument(
             'bag_path',
