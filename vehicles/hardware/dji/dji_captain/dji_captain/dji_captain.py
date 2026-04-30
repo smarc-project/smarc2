@@ -617,13 +617,11 @@ class DjiCaptain():
         self._velocity_ground.header.stamp = self.now_stamp
 
         # also set the course
-        if self._velocity_ground.vector.x == 0.0 and self._velocity_ground.vector.y == 0.0:
+        vx, vy = self._velocity_ground.vector.x, self._velocity_ground.vector.y
+        if np.abs(vx) < 0.01 and np.abs(vy) < 0.01:
             self._course_deg = None
         else:
-            self._course_deg = math.degrees(math.atan2(
-                self._velocity_ground.vector.y,
-                self._velocity_ground.vector.x
-            ))
+            self._course_deg = math.degrees(math.atan2(vy,vx))
             if self._course_deg < 0:
                 self._course_deg += 360.0
 
