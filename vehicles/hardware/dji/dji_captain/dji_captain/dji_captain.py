@@ -80,18 +80,13 @@ class DjiCaptain():
             self.log("Setting it to 1.5m to prevent damage to the vehicle, but you should set it to something appropriate for your mission!")
             self.MIN_ALTITUDE_ABOVE_WATER = 1.5
 
-
-        self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
-        while rclpy.ok() and not self._release_control_srv.wait_for_service(timeout_sec=2.0):
-             self._node.get_logger().error("Release control service not available... Captain will do nothing but wait for this...")
-             self._node.get_logger().error("To fix, run PSDK ROS Wrapper OR sim+ros bridge.")
-             time.sleep(2)
-
         
-
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : Timer | None = None
-        self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
+        self.JOY_PUB_MAX = 1.5
+        self.JOY_PUB_PERIOD = .1
+        self._prev_joy_output : np.ndarray | None = None
+        self._last_pubbed_fluvel_joy : Joy | None = None
         
         
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #How long we keep the move to setpoint before we consider it stale
@@ -100,15 +95,10 @@ class DjiCaptain():
         # we check if new setpoint is similar enough to current setpoint
         self.CHECK_SETPOINT_SIMILARITY_TIME_THRESHOLD : float = 0.3 
         self.CHECK_SETPOINT_SIMILARITY_COSINE_THRESHOLD : float = math.cos(math.radians(90))
-        self.JOY_PUB_MAX = 1.5
-        self.JOY_PUB_PERIOD = .1
 
-        self._prev_joy_output : np.ndarray | None = None
 
         self.READY_BATTERY_PERCENTAGE = 25
-        self.READY_HEIGHT_ABOVE_GROUND = 2
         self.ERROR_BATTERY_PERCENTAGE = 15
-        self.ERROR_HEIGHT_ABOVE_GROUND = 1
         
         # this is the idle RPM for the ESCs, below this we consider the vehicle not flying
         self.NUM_PROPS = 4 if self.ROBOT_NAME == "M350" else 8
@@ -130,56 +120,33 @@ class DjiCaptain():
         self._home_point_in_utm : PointStamped | None = None
         self._velocity_ground : Vector3Stamped | None = None
         self._angular_rate_ground : Vector3Stamped | None = None
+        self._esc_data : EscData | None = None
+        self._heading_deg : float | None = None
+        self._course_deg : float | None = None
+        self._battery_percent : float | None = None
+
         self._vehicle_health = Int8()
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
 
-        self._esc_data : EscData | None = None
-
-        self._geo_altitude : float | None = None
-        self._heading_deg : float | None = None
-        self._course_deg : float | None = None
-
         self._got_control : bool = False
         self._flying : bool = False
-        self._battery_percent : float | None = None
         self._cam_processor_happy : bool = False
         self._geofence_status : GeofenceStatusStamped | None = None
         self._cleared_water_level_once : bool = False
-        self.MAX_GEOFENCE_STATUS_AGE = 1.0 # seconds
         
+        self.MAX_GEOFENCE_STATUS_AGE = 1.0 # seconds
+
+
         # this could be a param, but really we likely will never run this on anything except
         # the M350 which has a nominal 3kg max payload, so hardcoding it here is fine.
         # I set it to 4kg to have some momentary overshoot margins due to motion etc.
         self._node.declare_parameter("max_load_kg", 4.0)
         self._MAX_LOAD_KG : float = self._node.get_parameter("max_load_kg").get_parameter_value().double_value
         self._load_cell_weight : float | None = None
-       
-
-        self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
-        self._tf_timer = node.create_timer(0.01, self._publish_tf)
-
-        self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
-        self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-
-        self._odom_pub = node.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, qos_profile=10)
-        self._heading_pub = node.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, qos_profile=10)
-        self._course_pub = node.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, qos_profile=10)
-        self._speed_pub = node.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, qos_profile=10)
-        self._pos_latlon_pub = node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, qos_profile=10)
-        self._battery_percent_pub = node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, qos_profile=10)
-        self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
-        self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
-
-        self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
-        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
-
-        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
-
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
 
-        self._last_pubbed_fluvel_joy : Joy | None = None
 
         node.create_subscription(
             NavSatFix,
@@ -206,34 +173,30 @@ class DjiCaptain():
             qos_profile=10)
 
         node.create_subscription(
-            Float32,
-            PSDKTopics.ALTITUDE,
-            self._geo_alt_cb,
-            qos_profile=10)
-
-        node.create_subscription(
             ControlMode,
             PSDKTopics.CONTROL_MODE,
             self._control_mode_callback,
             qos_profile=10)
         
-        node.create_subscription(
-            BatteryState,
-            PSDKTopics.BATTERY,
-            self._battery_callback,
-            qos_profile=10)
+        if self.ROBOT_NAME == "M350":
+            node.create_subscription(
+                BatteryState,
+                PSDKTopics.BATTERY,
+                self._battery_callback,
+                qos_profile=10)
+            
+        if self.ROBOT_NAME == "FC30":
+            node.create_subscription(
+                SingleBatteryInfo,
+                PSDKTopics.SINGLE_BATT1,
+                self._single_batt_callback,
+                qos_profile=10)
 
-        node.create_subscription(
-            SingleBatteryInfo,
-            PSDKTopics.SINGLE_BATT1,
-            self._single_batt_callback,
-            qos_profile=10)
-
-        node.create_subscription(
-            SingleBatteryInfo,
-            PSDKTopics.SINGLE_BATT2,
-            self._single_batt_callback,
-            qos_profile=10)
+            node.create_subscription(
+                SingleBatteryInfo,
+                PSDKTopics.SINGLE_BATT2,
+                self._single_batt_callback,
+                qos_profile=10)
 
         
         node.create_subscription(
@@ -285,7 +248,30 @@ class DjiCaptain():
             self._geofence_status_callback,
             qos_profile=10
         )
+
+        self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
+        while rclpy.ok() and not self._release_control_srv.wait_for_service(timeout_sec=2.0):
+             self.logerr("\nRelease control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
+             time.sleep(2)
         
+        self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
+        self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
+        self._odom_pub = node.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, qos_profile=10)
+        self._heading_pub = node.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, qos_profile=10)
+        self._course_pub = node.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, qos_profile=10)
+        self._speed_pub = node.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, qos_profile=10)
+        self._pos_latlon_pub = node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, qos_profile=10)
+        self._battery_percent_pub = node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, qos_profile=10)
+        self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
+        self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
+        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
+        self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
+
+
+        self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
+        self._tf_timer = node.create_timer(0.01, self._publish_tf)
+        self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
+        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         
         
 
@@ -408,9 +394,6 @@ class DjiCaptain():
     ############
     # Tiny callbacks
     ############
-    def _geo_alt_cb(self, msg: Float32):
-        self._geo_altitude = msg.data
-
     def _load_cell_callback(self, msg: Float32):
         self._load_cell_weight = msg.data
 
@@ -686,6 +669,7 @@ class DjiCaptain():
             self.log("Gained control authority.")
             self._got_control = True
         
+
     def _position_fused_callback(self, msg: PositionFused):
         if self._home_point_in_utm is None:
             self.log("Home point not set, ignoring position fused until it is...")
@@ -801,6 +785,11 @@ class DjiCaptain():
         
         if self._esc_data is None:
             self.logwarn(f"ESC data not received yet, waiting.")
+            self._vehicle_health_pub.publish(self._vehicle_health)
+            return
+        
+        if self._heading_deg is None:
+            self.logwarn(f"Heading not received yet, waiting for attitude topic...")
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
         
