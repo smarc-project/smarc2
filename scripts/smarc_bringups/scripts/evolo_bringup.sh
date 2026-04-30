@@ -29,6 +29,7 @@ CAPTAIN_DRIVER=Serial #[Serial MQTT None]
 SBG_DRIVER=False
 LIDAR_DRIVER=False
 CAMERA_DRIVER=False
+YOLO_DRIVER=False
 CAMERA_GIMBALL_DRIVER=False
 CAMERA_MQTT_CONTORL=False
 CAMERA_STREAM=FAlse
@@ -50,7 +51,7 @@ TWIST_VIZ=False
 
 
 #Simulation
-MODE="SIM" #[REAL, SIM, HITL]
+MODE="REAL" #[REAL, SIM, HITL]
 if [ "$MODE" == "SIM" ]; then
     REALSIM=simulation
     ROBOT_NAME=evolo
@@ -79,8 +80,8 @@ if [ "$MODE" == "SIM" ]; then
     ROSBOARD=False
     NODE_RED_TRANSLATOR=True
     TWIST_VIZ=True
-
 fi
+
 if [ "$MODE" == "REAL" ]; then
     REALSIM=real
     #USE_SIM_TIME=False
@@ -93,6 +94,7 @@ if [ "$MODE" == "REAL" ]; then
     SBG_DRIVER=True
     LIDAR_DRIVER=True
     CAMERA_DRIVER=True
+    YOLO_DRIVER=True
     CAMERA_GIMBALL_DRIVER=True
     CAMERA_MQTT_CONTORL=False
     CAMERA_STREAM=True
@@ -134,7 +136,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "Remember to start the logging!" 
 
 # Controllers
-CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_control:=True open_loop_gain:=3.0 closed_loop_p_gain:=0.75 closed_loop_i_gain:=0.1 closed_loop_d_gain:=0.05"
+CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_control:=True open_loop_gain:=3.0 closed_loop_p_gain:=0.1 closed_loop_i_gain:=0.5 closed_loop_d_gain:=0.0"
 tmux_make_layout "$SESSION" Controllers "
 col(
     var(CONTROLLER_CMD)
@@ -174,8 +176,8 @@ col(
 )"
 
 # WARA-PS bridge
-#WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
-WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=127.0.0.1 broker_port:=1883 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+#WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=127.0.0.1 broker_port:=1883 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
 tmux_make_layout "$SESSION" waraps-mqtt "
 col(
     var(WARA_PS_MQTT_CMD)
@@ -252,20 +254,12 @@ fi
 #Camera driver
 if [ $CAMERA_DRIVER == "True" ]; then
     GSCAM_CONFIG="rtspsrc location=rtsp://192.168.2.210 latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! queue max-size-buffers=1 leaky=downstream"
-    tmux send-keys "ros2 run gscam gscam_node --ros-args \
-        -p gscam_config:=\"$GSCAM_CONFIG\" \
-        -p frame_id:=evolo_camera_frame \
-        -p image_encoding:=rgb8 \
-        -p sync_sink:=false \
-        -p camera.image_raw.enable_pub_plugins:="['image_transport/compressed']" \
-        -r __ns:=/$ROBOT_NAME/sensors/gimbal_camera" C-m
-
     CAMERA_DRIVER_CMD="ros2 run gscam gscam_node --ros-args \
         -p gscam_config:=\"$GSCAM_CONFIG\" \
         -p frame_id:=evolo_camera_frame \
         -p image_encoding:=rgb8 \
         -p sync_sink:=false \
-        -p camera.image_raw.enable_pub_plugins:="['image_transport/compressed']" \
+        -p camera.image_raw.enable_pub_plugins:=\"['image_transport/compressed', 'image_transport/raw']\" \
         -r __ns:=/$ROBOT_NAME/sensors/gimbal_camera"
     tmux_make_layout "$SESSION" camera-driver "
     col(
@@ -273,6 +267,23 @@ if [ $CAMERA_DRIVER == "True" ]; then
     )"
 fi
 
+#Yolo
+if [ $YOLO_DRIVER == "True" ]; then
+    YOLO_PYTHONPATH="/home/evolo/yolov-env/lib/python3.10/site-packages:/home/evolo/yolov-env/local/lib/python3.10/dist-packages:/home/evolo/yolov-env/lib/python3/dist-packages:/home/evolo/yolov-env/lib/python3.10/dist-packages"
+    YOLO_CMD="export PYTHONPATH=$YOLO_PYTHONPATH:\$PYTHONPATH && \
+        ros2 launch yolo_bringup yolo.launch.py \
+        model_type:=YOLOE \
+        model:=/home/evolo/yolo/yoloe-26s-seg.pt \
+        input_image_topic:=/$ROBOT_NAME/sensors/gimbal_camera/camera/image_raw \
+        image_reliability:=2 \
+        device:=cuda:0 \
+        use_tracking:=True \
+        use_debug:=True"
+    tmux_make_layout "$SESSION" YOLO "
+    col(
+        var(YOLO_CMD)
+    )"
+fi
 
 #Gimbal driver
 if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
@@ -360,7 +371,7 @@ fi
 ########################################################################
 
 if [ $ROSBOARD == "True" ]; then
-    ROSBOARD_CMD="ros2 run rosboard rosboard"
+    ROSBOARD_CMD="ros2 run rosboard rosboard_node"
     tmux_make_layout "$SESSION" rosboard "
     col(
         var(ROSBOARD_CMD),
@@ -401,7 +412,7 @@ fi
 
 #Node-red-translator
 if [ $NODE_RED_TRANSLATOR == "True" ]; then
-    NODE_RED_TRANSLATOR_CMD="ros2 launch evolo_config network_bridge_evolo_tcp.launch.py"
+    NODE_RED_TRANSLATOR_CMD="ros2 launch evolo_node_red_interface node_red_interface_launch.py"
     tmux_make_layout "$SESSION" node-red-translator "
     col(
         var(NODE_RED_TRANSLATOR_CMD),
@@ -427,7 +438,7 @@ fi
 
 ZENOH_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
 
-tmux_make_layout "$SESSION" DUNE "
+tmux_make_layout "$SESSION" zenoh "
 col(
     var(ZENOH_CMD)
 )"
