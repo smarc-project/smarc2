@@ -33,6 +33,14 @@ if ! [[ "$HOME_ABOVE_WATER" =~ ^[0-9]+\.[0-9]+$ ]]; then
     echo "HOME_ABOVE_WATER is set to $HOME_ABOVE_WATER"
 fi
 
+NO_CAM=$3
+if [[ "$NO_CAM" == "no_cam" ]]; then
+    echo "Camera will be disabled in the dji_captain node. Useful for testing without a camera connected."
+    NO_CAM=True
+else
+    NO_CAM=False
+fi
+
 
 SESSION=${ROBOT_NAME}_bringup
 
@@ -194,29 +202,34 @@ tmux_make_layout "$SESSION" BTs "row(3:var(WASP_BT_CMD), 3:var(ALARS_BT_CMD), 1:
 ############
 # 4 Camera and detection
 ############
-YOLO_DEVICE=0
-CAM_CALIBRATION_FILE="real_z1_params.yaml"
-YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: alars_labeling_training/trained_models
-if [[ $USE_SIM_TIME = "True" ]]; then
-    YOLO_DEVICE=cpu
-    CAM_CALIBRATION_FILE="cam_params.yaml"
-    # seems to be doing better in sim
-    YOLO_MODEL="yolo_model_2cls_mixed.pt"
-fi
-YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
-robot_name:=$ROBOT_NAME \
-device:=$YOLO_DEVICE \
-use_sim_time:=$USE_SIM_TIME \
-model_package:=alars_labeling_training \
-model_file:=$YOLO_MODEL"
+if [[ "$NO_CAM" == "True" ]]; then
+    YOLO_CMD="echo 'Camera disabled, not launching YOLO detector'"
+    PROJECTION_CMD="echo 'Camera disabled, not launching projection node'"
+else
+    YOLO_DEVICE=0
+    CAM_CALIBRATION_FILE="real_z1_params.yaml"
+    YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: alars_labeling_training/trained_models
+    if [[ $USE_SIM_TIME = "True" ]]; then
+        YOLO_DEVICE=cpu
+        CAM_CALIBRATION_FILE="cam_params.yaml"
+        # seems to be doing better in sim
+        YOLO_MODEL="yolo_model_2cls_mixed.pt"
+    fi
+    YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
+    robot_name:=$ROBOT_NAME \
+    device:=$YOLO_DEVICE \
+    use_sim_time:=$USE_SIM_TIME \
+    model_package:=alars_labeling_training \
+    model_file:=$YOLO_MODEL"
 
-PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py \
-robot_name:=$ROBOT_NAME \
-use_sim_time:=$USE_SIM_TIME \
-camera_calibration_file:=$CAM_CALIBRATION_FILE \
-auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
-buoy_ekf_staleness_seconds:=10.0
-"
+    PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py \
+    robot_name:=$ROBOT_NAME \
+    use_sim_time:=$USE_SIM_TIME \
+    camera_calibration_file:=$CAM_CALIBRATION_FILE \
+    auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
+    buoy_ekf_staleness_seconds:=10.0
+    "
+fi
 
 tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 
@@ -234,33 +247,39 @@ tmux_make_layout "$SESSION" Aux "row(var(GEOFENCE_CMD))"
 # 6 Drivers
 ############
 NAU_DRIVER_CMD="ros2 run nau7802_ros2_driver nau7802_ros2_driver --ros-args -r __ns:=/$ROBOT_NAME"
-GIMBAL_IP=192.168.1.108
-GIMBAL_PORT=2332
-# changing resolution requires re-calibrating the cam.
-GIMBAL_IMG_WIDTH=1920
-GIMBAL_IMG_HEIGHT=1080
-GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! \
-rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! \
-video/x-raw,width=$GIMBAL_IMG_WIDTH,height=$GIMBAL_IMG_HEIGHT,format=BGRx ! \
-videoconvert ! queue max-size-buffers=1 leaky=downstream"
-GIMBAL_CAM_TOPIC_NS=gimbal_camera
-GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
-    -p gscam_config:=\"$GSCAM_CONFIG_GIMBAL\" \
-    -p frame_id:=z1_optical_frame \
-    -p image_encoding:=rgb8 \
-    -p sync_sink:=false \
-    -p camera.image_raw.enable_pub_plugins:="['image_transport/raw']" \
-    -r __ns:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS"
-GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
-    robot_name:=$ROBOT_NAME \
-    tf_frame_prefix:=$ROBOT_NAME/ \
-    camera_ip:=$GIMBAL_IP \
-    camera_port:=$GIMBAL_PORT \
-    camera_below_base:=True"
-GIMBAL_CMD_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
-    robot_name:=\"$ROBOT_NAME\" \
-    use_sim_time:=$USE_SIM_TIME"
 
+if [[ $NO_CAM == "True" ]]; then
+    GIMBAL_CAM_VIDEO_CMD="echo 'Camera disabled, not launching gscam node'"
+    GIMBAL_CAM_DRIVER_CMD="echo 'Camera disabled, not launching gimbal driver node'"
+    GIMBAL_CMD_ACTION_CMD="echo 'Camera disabled, not launching gimbal action server node'"
+else
+    GIMBAL_IP=192.168.1.108
+    GIMBAL_PORT=2332
+    # changing resolution requires re-calibrating the cam.
+    GIMBAL_IMG_WIDTH=1920
+    GIMBAL_IMG_HEIGHT=1080
+    GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! \
+    rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! \
+    video/x-raw,width=$GIMBAL_IMG_WIDTH,height=$GIMBAL_IMG_HEIGHT,format=BGRx ! \
+    videoconvert ! queue max-size-buffers=1 leaky=downstream"
+    GIMBAL_CAM_TOPIC_NS=gimbal_camera
+    GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
+        -p gscam_config:=\"$GSCAM_CONFIG_GIMBAL\" \
+        -p frame_id:=z1_optical_frame \
+        -p image_encoding:=rgb8 \
+        -p sync_sink:=false \
+        -p camera.image_raw.enable_pub_plugins:="['image_transport/raw']" \
+        -r __ns:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS"
+    GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
+        robot_name:=$ROBOT_NAME \
+        tf_frame_prefix:=$ROBOT_NAME/ \
+        camera_ip:=$GIMBAL_IP \
+        camera_port:=$GIMBAL_PORT \
+        camera_below_base:=True"
+    GIMBAL_CMD_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
+        robot_name:=\"$ROBOT_NAME\" \
+        use_sim_time:=$USE_SIM_TIME"
+fi
 # GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
 # FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
 #     -p gscam_config:=\"$GSCAM_CONFIG_FISH\" \
