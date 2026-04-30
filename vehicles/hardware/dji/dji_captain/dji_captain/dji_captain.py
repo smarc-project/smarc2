@@ -9,8 +9,9 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.time import Time, Duration
 from rclpy.timer import Timer
 from rclpy.qos import QoSProfile, ReliabilityPolicy, QoSDurabilityPolicy
-from tf2_ros import Buffer, TransformListener
+from rclpy.callback_groups import ReentrantCallbackGroup
 
+from tf2_ros import Buffer, TransformListener
 
 from std_msgs.msg import Float32, Int8, String, Bool
 from std_srvs.srv import Trigger
@@ -144,7 +145,7 @@ class DjiCaptain():
         self._load_cell_weight : float | None = None
 
         self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
 
         qos_best_effort10 = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT, durability=QoSDurabilityPolicy.VOLATILE)
 
@@ -252,7 +253,6 @@ class DjiCaptain():
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
         while rclpy.ok() and not self._release_control_srv.wait_for_service(timeout_sec=2.0):
              self.logerr("\nRelease control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
-             time.sleep(2)
         
         self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
@@ -269,9 +269,8 @@ class DjiCaptain():
         self._battery_percent_pub = node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, qos_profile=10)
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
 
-
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-        self._tf_timer = node.create_timer(0.01, self._publish_tf)
+        self._tf_timer = node.create_timer(0.01, self._publish_tf, callback_group=ReentrantCallbackGroup()) # its own callback group because fast
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         
@@ -363,14 +362,18 @@ class DjiCaptain():
     ############
     # Feedback
     ############
+    # Because logger can block if there are too many?!
     def log(self, msg: str):
-        self._node.get_logger().info(f'\n{msg}')
+        # self._node.get_logger().info(f'\n{msg}')
+        print(f'[INFO] {msg}', flush=True)
 
     def logerr(self, msg: str):
-        self._node.get_logger().error(f'\n{msg}')
+        # self._node.get_logger().error(f'\n{msg}')
+        print(f'[ERROR] {msg}', flush=True)
 
     def logwarn(self, msg: str):
-        self._node.get_logger().warn(f'\n{msg}')
+        # self._node.get_logger().warn(f'\n{msg}')
+        print(f'[WARN] {msg}', flush=True)
 
 
     ############
@@ -646,7 +649,7 @@ class DjiCaptain():
         # contorl mode is 4, device mode is 3, control_auth is 0...
         if self.ROBOT_NAME == "M350":
             just_got_control = msg.control_auth == 1 and msg.device_mode == 4
-        if self.ROBOT_NAME == "FC30":
+        elif self.ROBOT_NAME == "FC30":
             just_got_control = msg.control_auth == 0 and msg.device_mode == 3 and msg.control_mode == 4
         else:
             self.logwarn(f"Unknown robot name {self.ROBOT_NAME}, cannot determine control authority from control mode message! Assuming no control.")
@@ -1105,9 +1108,9 @@ def transform_velocity_vector(
 def main():
     rclpy.init(args=sys.argv)
     node = Node("DjiCaptainNode")
+    
     capt = DjiCaptain(node)
 
-    
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     executor.spin()
