@@ -8,6 +8,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.time import Time, Duration
 from rclpy.timer import Timer
+from rclpy.qos import QoSProfile, ReliabilityPolicy, QoSDurabilityPolicy
 from tf2_ros import Buffer, TransformListener
 
 
@@ -145,106 +146,107 @@ class DjiCaptain():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
 
+        qos_best_effort10 = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT, durability=QoSDurabilityPolicy.VOLATILE)
 
         node.create_subscription(
             NavSatFix,
             PSDKTopics.GPS_POSITION,
             self._gps_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             PositionFused,
             PSDKTopics.POSITION_FUSED,
             self._position_fused_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             NavSatFix,
             PSDKTopics.HOME_POINT,
             self._home_point_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             QuaternionStamped,
             PSDKTopics.ATTITUDE,
             self._attitude_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             ControlMode,
             PSDKTopics.CONTROL_MODE,
             self._control_mode_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
         
         if self.ROBOT_NAME == "M350":
             node.create_subscription(
                 BatteryState,
                 PSDKTopics.BATTERY,
                 self._battery_callback,
-                qos_profile=10)
+                qos_profile=qos_best_effort10)
             
         if self.ROBOT_NAME == "FC30":
             node.create_subscription(
                 SingleBatteryInfo,
                 PSDKTopics.SINGLE_BATT1,
                 self._single_batt_callback,
-                qos_profile=10)
+                qos_profile=qos_best_effort10)
 
             node.create_subscription(
                 SingleBatteryInfo,
                 PSDKTopics.SINGLE_BATT2,
                 self._single_batt_callback,
-                qos_profile=10)
+                qos_profile=qos_best_effort10)
 
         
         node.create_subscription(
             Vector3Stamped,
             PSDKTopics.VELOCITY_GROUND_FSD,
             self._velocity_ground_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
         
         node.create_subscription(
             Vector3Stamped,
             PSDKTopics.ANGULAR_RATE_GND_FSD,
             self._angular_rate_ground_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
         
         node.create_subscription(
             EscData,
             PSDKTopics.ESC_DATA,
             lambda msg: setattr(self, "_esc_data", msg),
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
         
         node.create_subscription(
             Joy,
             PSDKTopics.RC,
             self._dji_rc_cb,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             PoseStamped,
             DjiTopics.MOVE_TO_SETPOINT_TOPIC,
             self._move_to_setpoint_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
         
         node.create_subscription(
             Float32,
             DjiTopics.LOAD_CELL_WEIGHT_TOPIC,
             self._load_cell_callback,
-            qos_profile=10)
+            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             Bool,
             DjiTopics.CAM_PROCESSOR_HAPPY_TOPIC,
             self._cam_processor_happy_callback,
-            qos_profile=10
+            qos_profile=qos_best_effort10
         )
 
         node.create_subscription(
             GeofenceStatusStamped,
             SmarcTopics.GEOFENCE_STATUS_TOPIC,
             self._geofence_status_callback,
-            qos_profile=10
+            qos_profile=qos_best_effort10
         )
 
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
@@ -252,7 +254,12 @@ class DjiCaptain():
              self.logerr("\nRelease control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
              time.sleep(2)
         
+        self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
+
+        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
+        self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
+
         self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
         self._odom_pub = node.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, qos_profile=10)
         self._heading_pub = node.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, qos_profile=10)
@@ -261,9 +268,6 @@ class DjiCaptain():
         self._pos_latlon_pub = node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, qos_profile=10)
         self._battery_percent_pub = node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, qos_profile=10)
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
-        self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
-        self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
-        self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
 
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
