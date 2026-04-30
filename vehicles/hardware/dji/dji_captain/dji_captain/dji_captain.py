@@ -670,6 +670,9 @@ class DjiCaptain():
             just_got_control = msg.control_auth == 1 and msg.device_mode == 4
         if self.ROBOT_NAME == "FC30":
             just_got_control = msg.control_auth == 0 and msg.device_mode == 3 and msg.control_mode == 4
+        else:
+            self.logwarn(f"Unknown robot name {self.ROBOT_NAME}, cannot determine control authority from control mode message! Assuming no control.")
+            just_got_control = False
             
         if self._got_control == just_got_control:
             return
@@ -688,13 +691,11 @@ class DjiCaptain():
             self.log("Home point not set, ignoring position fused until it is...")
             return
         
-        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_pose_ENU_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
-            self._base_pose_ENU_in_home = PoseStamped()
-            self._base_pose_ENU_in_home.header.frame_id = self.ODOM_FRAME
             self.log("Base pose initialized in home frame.")
             
         self._base_pose_in_home.pose.position.x = msg.position.x
@@ -704,20 +705,17 @@ class DjiCaptain():
 
         self._base_pose_flat_in_home.pose.position = self._base_pose_in_home.pose.position
         self._base_pose_flat_in_home.header.stamp = self._base_pose_in_home.header.stamp
-        self._base_pose_ENU_in_home.pose.position = self._base_pose_in_home.pose.position
-        self._base_pose_ENU_in_home.header.stamp = self._base_pose_in_home.header.stamp
+
         
 
     def _attitude_callback(self, msg: QuaternionStamped):
         # the attitude is in ENU by psdk definition, so we need to convert it to NED (compasses use this...)
         # and the use the z component as heading
-        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None or self._base_pose_ENU_in_home is None:
+        if self._base_pose_in_home is None or self._base_pose_flat_in_home is None:
             self._base_pose_in_home = PoseStamped()
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
-            self._base_pose_ENU_in_home = PoseStamped()
-            self._base_pose_ENU_in_home.header.frame_id = self.ODOM_FRAME
 
         rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
@@ -726,10 +724,6 @@ class DjiCaptain():
         flat_quat = Quaternion()
         flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
         self._base_pose_flat_in_home.pose.orientation = flat_quat
-        ENU_quat = Quaternion()
-        ENU_quat.x, ENU_quat.y, ENU_quat.z, ENU_quat.w = quaternion_from_euler(0, 0, 0)
-        self._base_pose_ENU_in_home.pose.orientation = ENU_quat
-
 
 
     def _home_point_callback(self, msg: NavSatFix):
