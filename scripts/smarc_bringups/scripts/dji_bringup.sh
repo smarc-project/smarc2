@@ -237,7 +237,7 @@ tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
 ############
 # 5 AUX Nodes like geofence etc.
 ############
-GEOFENCE_CMD="ros2 run actionable_geofence geofence_node --ros-args -r __ns:=/$ROBOT_NAME \
+GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p map_frame:=$ROBOT_NAME/map"
 
