@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'actionable_geofence'
+package_name = 'smarc_basic'
 
 setup(
     name=package_name,
@@ -15,13 +15,13 @@ setup(
     zip_safe=True,
     maintainer='Ozer Ozkahraman',
     maintainer_email='ozero@kth.se',
-    description='A common geofence checking node that exposes a wasp-bt compatible action',
+    description='Pile of basic actions',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'geofence_node = actionable_geofence.geofence_node:main',
-            'test_action = actionable_geofence.geofence_node:test_action',
+            'geofence_node = smarc_basic.geofence_node:main',
+            'test_action = smarc_basic.geofence_node:test_action',
         ],
     },
 )
