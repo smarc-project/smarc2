@@ -1,14 +1,13 @@
 from dji_msgs.msg import Links, Topics
 from smarc_msgs.msg import Topics as SmarcTopics
 
-import cv2
 import yaml
 import numpy as np
 from collections import deque
 import rclpy
 from rclpy.time import Time
 from rclpy.node import Node
-from geometry_msgs.msg import PointStamped, PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
+from geometry_msgs.msg import PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from scipy.stats import chi2
@@ -31,6 +30,8 @@ class EKFNode(Node):
         self.get_params()
 
         self.logger_info_enable : bool = self.get_parameter("logger_info.enable").get_parameter_value().bool_value
+
+        self.log_info(f"Motion model type: {self.motion_model_type}")
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
         self.eps = self.motion_model.eps
@@ -187,7 +188,6 @@ class EKFNode(Node):
         self.current_transform = transform
         
         z_center_img, z_alpha_img, z_len_px, z_wid_px, _ = self.measurement_model.extract_features(self.pol_to_array(msg))
-        self.log_info(f"Received measurement: center={z_center_img}")
         if not self.ekf.initialized:
             init_result = self.initializer.try_initialize(stamp, z_center_img, z_alpha_img, self.measurement_model, self.current_cam_pos_map, self.current_R_map_cam)
             if init_result is None:
@@ -234,7 +234,7 @@ class EKFNode(Node):
             self.nr_of_consecutive_invalid_measurements += 1
         elif status == "updated":
             self.nr_of_consecutive_invalid_measurements = 0
-        self.log_info(f"Post-update state: {X.flatten()[:3]}")
+        self.log_info(f"Update successful. Post-update state: {X.flatten()[:3]}")
         self.publish_estimate(stamp)
     
     def publish_estimate(self, stamp):
@@ -336,24 +336,34 @@ class EKFNode(Node):
         elif model_type == "depth":
             return DepthModel(
                 sigma_a=self.sigma_a_xy,
-                sigma_z=self.sigma_a_z,
+                sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "pitch":
             return PitchModel(
                 sigma_a=self.sigma_a_xy,
-                sigma_z=self.sigma_a_z,
+                sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
-                sigma_pitch=self.sigma_a_pitch,
+                sigma_pitch=self.sigma_pitch_process,
             )
         elif model_type == "oscillator":
             return OscillatorModel(
                 sigma_a=self.sigma_a_xy,
-                sigma_z=self.sigma_a_z,
+                sigma_z=self.oscillator_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
+                omega=self.oscillator_omega,
+                zeta=self.oscillator_zeta,
             )
         elif model_type == "double_oscillator":
             return DoubleOscillatorModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z_slow=self.double_oscillator_sigma_z_slow,
+                sigma_z_fast=self.double_oscillator_sigma_z_fast,
+                sigma_yaw=self.sigma_yaw,
+                omega_slow=self.double_oscillator_omega_slow,
+                zeta_slow=self.double_oscillator_zeta_slow,
+                omega_fast=self.double_oscillator_omega_fast,
+                zeta_fast=self.double_oscillator_zeta_fast,
             )
         else:
             raise ValueError(f"Unknown motion model type: {model_type}")
@@ -447,10 +457,25 @@ class EKFNode(Node):
             ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
 
             ("motion.sigma_a_xy", 0.01), # m/s^2, could split up into x, y
-            ("motion.sigma_a_z", 1.0), # m/s^2, only z as waves mostly affect depth
             ("motion.sigma_yaw", 3.0), # deg/s
-            ("motion.sigma_a_pitch", 15.0), # deg/s^2, only for pitch as waves mostly affect pitch
-            ("motion.model_type", "double_oscillator"), # options: "surface", "depth", "pitch", "oscillator", "double_oscillator"
+            ("motion.model_type", "double_oscillator"),
+
+            ("depth.sigma_z_process", 1.0), 
+            ("depth.k_z", 0.4),
+            ("depth.d_z", 0.1),
+
+            ("pitch.sigma_pitch_process", 15.0), 
+
+            ("oscillator.sigma_z_process", 5.0),
+            ("oscillator.omega", 2.0),
+            ("oscillator.zeta", 0.01),
+
+            ("double_oscillator.sigma_z_slow", 1.0),
+            ("double_oscillator.sigma_z_fast", 3.0),
+            ("double_oscillator.omega_slow", 1.0),
+            ("double_oscillator.zeta_slow", 0.01),
+            ("double_oscillator.omega_fast", 2.0),
+            ("double_oscillator.zeta_fast", 0.01),
 
             # measurement noise stddev (pixels)
             ("measurement_noise.R_u", 10.0), 
@@ -514,9 +539,27 @@ class EKFNode(Node):
         self.alpha_line_pixels :int = self.get_parameter("alpha_line_pixels").get_parameter_value().integer_value
 
         self.sigma_a_xy :float = self.get_parameter("motion.sigma_a_xy").get_parameter_value().double_value
-        self.sigma_a_z :float = self.get_parameter("motion.sigma_a_z").get_parameter_value().double_value
         self.sigma_yaw :float = np.deg2rad(self.get_parameter("motion.sigma_yaw").get_parameter_value().double_value)
-        self.sigma_a_pitch :float = np.deg2rad(self.get_parameter("motion.sigma_a_pitch").get_parameter_value().double_value)
+
+        self.motion_model_type : str = self.get_parameter("motion.model_type").get_parameter_value().string_value
+
+        self.depth_sigma_z_process : float = self.get_parameter("depth.sigma_z_process").get_parameter_value().double_value
+        self.depth_k_z : float = self.get_parameter("depth.k_z").get_parameter_value().double_value
+        self.depth_d_z : float = self.get_parameter("depth.d_z").get_parameter_value().double_value
+
+        self.sigma_pitch_process : float = self.get_parameter("pitch.sigma_pitch_process").get_parameter_value().double_value
+
+        self.oscillator_sigma_z_process : float = self.get_parameter("oscillator.sigma_z_process").get_parameter_value().double_value
+        self.oscillator_omega : float = self.get_parameter("oscillator.omega").get_parameter_value().double_value
+        self.oscillator_zeta : float = self.get_parameter("oscillator.zeta").get_parameter_value().double_value
+
+        self.double_oscillator_sigma_z_slow : float = self.get_parameter("double_oscillator.sigma_z_slow").get_parameter_value().double_value
+        self.double_oscillator_sigma_z_fast : float = self.get_parameter("double_oscillator.sigma_z_fast").get_parameter_value().double_value
+        self.double_oscillator_omega_slow : float = self.get_parameter("double_oscillator.omega_slow").get_parameter_value().double_value
+        self.double_oscillator_zeta_slow : float = self.get_parameter("double_oscillator.zeta_slow").get_parameter_value().double_value
+        self.double_oscillator_omega_fast : float = self.get_parameter("double_oscillator.omega_fast").get_parameter_value().double_value
+        self.double_oscillator_zeta_fast : float = self.get_parameter("double_oscillator.zeta_fast").get_parameter_value().double_value
+
         self.R_u :float = self.get_parameter("measurement_noise.R_u").get_parameter_value().double_value
         self.R_v :float = self.get_parameter("measurement_noise.R_v").get_parameter_value().double_value
         self.R_alpha :float = np.deg2rad(float(self.get_parameter("measurement_noise.R_alpha_deg").get_parameter_value().double_value))
@@ -593,8 +636,6 @@ class EKFNode(Node):
         else:
             raise RuntimeError("camera_info parameter must be set")
         
-        self.motion_model_type : str = self.get_parameter("motion.model_type").get_parameter_value().string_value
-
 
 def main():
     rclpy.init()

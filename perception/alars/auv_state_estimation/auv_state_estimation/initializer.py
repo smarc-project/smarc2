@@ -106,7 +106,7 @@ class Initializer:
 
     def try_initialize(self, stamp, center_uv, alpha_img, measurement_model, cam_pos, cam_rot):
         # Try to initialize the state estimator using the current measurement. We require multiple consistent measurements to ensure a good initial estimate.
-
+        # initializes as stationary at water surface with high uncertainty in z.
         x_init = self.infer_initial_state_from_measurement(center_uv, alpha_img, measurement_model, cam_pos, cam_rot)
         if x_init is None:
             return None
@@ -164,15 +164,6 @@ class Initializer:
             P0[2, 2] = 1.0
             P0[3, 3] = 0.5
             P0[4, 4] = 0.5
-            P0[5, 5] = 1.0
-            P0[6, 6] = 1.0
-            P0[7, 7] = 1.0
-            P0[8, 8] = np.deg2rad(20.0)**2
-        elif self.motion_model_type == "depth9d":
-            X0 = np.array([[pos_mean[0]], [pos_mean[1]], [0], [yaw_mean], [0.0], [0.0], [0.0], [0.0], [0.0]])
-            P0[2, 2] = 1.0
-            P0[3, 3] = 0.5
-            P0[4, 4] = 1.0
             P0[5, 5] = 1.0
             P0[6, 6] = 1.0
             P0[7, 7] = 1.0

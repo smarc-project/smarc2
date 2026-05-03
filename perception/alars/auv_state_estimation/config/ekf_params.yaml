@@ -18,17 +18,33 @@
       water_surface_height: 0.0 # height of water surface in map frame.
     
     obb:
-      length_m: 1.3 # length of the target obb in meters, may need to be adjusted
-      width_m: 0.16 # width of the target obb in meters, may need to be adjusted
+      length_m: 1.5 # length of the target obb in meters, may need to be adjusted
+      width_m: 0.2 # width of the target obb in meters, may need to be adjusted
 
     alpha_line_pixels: 40 # number of pixels along length of obb to use for alpha (yaw) measurement in initialization.
 
     motion:
-      sigma_a_xy: 0.01 # acc
-      sigma_a_z: 1.0 # acc
-      sigma_yaw: 3.0 # random walk in yaw
-      sigma_a_pitch: 15.0 # acc in pitch (deg/s^2)
+      sigma_a_xy: 0.01 # acc in x and y (m/s^2) (for all models)
+      sigma_yaw: 3.0 # random walk in yaw (deg/s) (for all models)
       model_type: "double_oscillator" # options: "surface", "depth", "pitch", "oscillator", "double_oscillator"
+
+    # parameters for different motion models, may need to be adjusted based on the environment and target behavior.
+    depth.sigma_z_process: 1.0
+    depth.k_z: 0.4 # stiffness for depth model, higher means more resistance to depth changes.
+    depth.d_z: 0.1 # damping for depth model, higher means more resistance to depth velocity.
+
+    pitch.sigma_pitch_process: 5.0 # process noise for pitch (deg/s^2) 
+
+    oscillator.sigma_z_process: 5.0 # process noise for oscillator in z direction.
+    oscillator.omega: 2.0 # angular velocity of oscillator (rad/s), may need to be adjusted based on water conditions.
+    oscillator.zeta: 0.01 # dampening of oscillator.
+
+    double_oscillator.sigma_z_slow: 1.0 # process noise for slow oscillator in z direction.
+    double_oscillator.sigma_z_fast: 3.0 # process noise for fast oscillator in z direction.
+    double_oscillator.omega_slow: 1.0 # angular velocity of slow oscillator (rad/s), may need to be adjusted based on water conditions.
+    double_oscillator.zeta_slow: 0.01 # dampening of slow oscillator.
+    double_oscillator.omega_fast: 2.0 # angular velocity of fast oscillator (rad/s), may need to be adjusted based on water conditions.
+    double_oscillator.zeta_fast: 0.01 # dampening of fast oscillator.
 
     # measurement noise parameters, note that u is right in the image (x), v is down in the image (y).
     measurement_noise:
@@ -38,17 +54,19 @@
       R_len: 100.0 # measurement noise for target center length coordinate (pixels). As pitch is not included in the state model (except for pitchmodel), pitch is modeled as noise on the length observation.
       R_wid: 40.0 # measurement noise for target center width coordinate (pixels)
 
-      center_gain_u: 50.0 # measurement noise gain for distance from center in u direction, for example if the image has high distortion / bad calibration.
+      # parameters for dynamically adjusting measurement noise based on distance from center, for example if the image has high distortion / bad calibration.
+      center_gain_u: 50.0 # measurement noise gain for distance from center in u direction
       center_gain_v: 50.0 # measurement noise gain for distance from center in v direction.
       center_gain_alpha_deg: 10.0 # measurement noise gain for distance from center in alpha (yaw) direction (degrees).
       center_gain_len: 50.0 # measurement noise gain for distance from center in length direction.
       center_gain_wid: 50.0 # measurement noise gain for distance from center in width direction.
 
-      speed_gain_u: 50.0 # measurement noise gain in target center u coordinate () from uav speed 
-      speed_gain_v: 50.0 # measurement noise gain in target center v coordinate () from uav speed
-      speed_gain_alpha_deg: 10.0 # measurement noise gain in target center alpha (yaw) coordinate () from uav speed (degrees)
-      speed_gain_len: 60.0 # measurement noise gain in target center length coordinate () from uav speed 
-      speed_gain_wid: 30.0 # measurement noise gain in target center width coordinate () from uav speed 
+      # parameters for dynamically adjusting measurement noise based on camera/uav speed.
+      speed_gain_u: 50.0 # measurement noise gain in target center u coordinate.
+      speed_gain_v: 50.0 # measurement noise gain in target center v coordinate.
+      speed_gain_alpha_deg: 10.0 # measurement noise gain in target center alpha (yaw) coordinate  (degrees).
+      speed_gain_len: 60.0 # measurement noise gain in target center length coordinate.
+      speed_gain_wid: 30.0 # measurement noise gain in target center width coordinate.
 
       R_dyn_dt: 0.5 # noise in time of measurement, say if there is a delay / incorrect timestamp, while target or camera is moving.
 

@@ -167,7 +167,7 @@ class PitchModel:
 class OscillatorModel:
     # auv as oscillator
     def __init__(self, sigma_a, sigma_z, sigma_yaw,
-                 omega=2.0, zeta=0.1):
+                 omega=2.0, zeta=0.01):
         self.name = "oscillator"
         self.sigma_a = sigma_a
         self.sigma_z = sigma_z
