@@ -16,6 +16,9 @@ string DEPTH_TOPIC = 'smarc/depth' #float32
 string ALTITUDE_TOPIC = 'smarc/altitude' #float32
 string BT_STATUS_TOPIC = 'smarc/bt_status' #string
 
+string HUMAN_LOG_TOPIC = 'smarc/human_log' #string
+string HUMAN_LOG_SIGNAL_TOPIC = 'smarc/human_log/signal' #bool
+
 
 string CHECK_GEOFENCE_SERVICE_TOPIC = 'smarc/srv/check_geofence' # geographic_msgs/srv/GetGeoPath
 string GEOFENCE_STATUS_TOPIC = 'smarc/geofence_status' # smarc_msgs/msg/GeofenceStatusStamped

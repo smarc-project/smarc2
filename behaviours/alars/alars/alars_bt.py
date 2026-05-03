@@ -46,7 +46,6 @@ class AlarsBT():
             self.act_vulture = A_ActionClient(node, 'alars_follow_auv', 'vulture')
             self.act_recover_bouy = A_ActionClient(node, 'alars_recover', 'recover_buoy')
             self.act_recover_no_bouy = A_ActionClient(node, 'alars_recover', 'recover_no_buoy')
-            self.act_deliver = A_ActionClient(node, 'move_to', 'deliver')
 
             self._node.declare_parameter('robot_name', 'M350')
             self._robot_name : str = self._node.get_parameter('robot_name').get_parameter_value().string_value
@@ -58,8 +57,7 @@ class AlarsBT():
                 self.act_search_global,
                 self.act_vulture,
                 self.act_recover_bouy,
-                self.act_recover_no_bouy,
-                self.act_deliver
+                self.act_recover_no_bouy
             ]
 
             
@@ -144,13 +142,6 @@ class AlarsBT():
                     "altitude": None,
                     "tolerance": None
                 },
-                "delivery_position":
-                {
-                    "latitude": None,
-                    "longitude": None,
-                    "altitude": None,
-                    "tolerance": None
-                },
                 "forward_distance": None,
                 "forward_altitude": None,
                 "dipping_altitude": None,
@@ -180,7 +171,6 @@ class AlarsBT():
 
 
     def _reset_states(self) -> None:
-        self._delivered : bool = False
         self._search_fail_count : int = 0
         self._recover_fail_count : int = 0
         self._vulture_timeout_count : int = 0
@@ -259,7 +249,7 @@ class AlarsBT():
 
 
         status = self._bt.root.status
-        if self._delivered:
+        if self._is_auv_hanging:
             self.log("We have ALARS'd")
             self._reset_states()
             return True
@@ -279,17 +269,6 @@ class AlarsBT():
         except Exception as e:
             self.log(f"Failed to set goal for {action_client.name}: {e}")
             return False
-    
-    def _set_goal_deliver(self) -> bool:
-        return self._set_goal(self.act_deliver, {
-            "waypoint": {
-                "latitude": self._goal["delivery_position"]["latitude"],
-                "longitude": self._goal["delivery_position"]["longitude"],
-                "altitude": self._goal["delivery_position"]["altitude"],
-                "tolerance": self._goal["delivery_position"]["tolerance"]
-            }   
-        })
-        
     
     def _set_goal_recover_with_buoy(self) -> bool:
         return self._set_goal(self.act_recover_bouy, {
@@ -353,10 +332,6 @@ class AlarsBT():
     def _count_recover_fail(self) -> bool:
         self._recover_fail_count += 1
         return True
-
-    def _set_delivered(self) -> bool:
-        self._delivered = True
-        return True
     
 
 
@@ -393,18 +368,6 @@ class AlarsBT():
         
         self.log("All actions setup successfully!")
 
-        deliver = self._post_pre_act(
-            title = "Deliver",
-            post_condition = lambda: self._delivered,
-            post_title = "Delivered",
-            pre_condition = lambda: self._is_auv_hanging,
-            pre_title = "AUV hanging",
-            act = Sequence("SQ Deliver", memory=True, children=[
-                FuncToStatus("Set deliver goal", self._set_goal_deliver),
-                self.act_deliver,
-                FuncToStatus("Mark delivered", self._set_delivered)
-            ])
-        )
 
         do_recover_with_buoy = Sequence("SQ Do recover with buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_with_buoy),
@@ -488,7 +451,6 @@ class AlarsBT():
         )
 
         root = Fallback("FB Root", memory=False, children=[
-             deliver,
              recover_with_buoy,
              recover_without_buoy,
              vulture,

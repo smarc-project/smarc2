@@ -8,8 +8,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     package_name = 'alars_auv_perception'
 
-    namespace_arg = DeclareLaunchArgument(
-        'namespace',
+    robot_name_arg = DeclareLaunchArgument(
+        'robot_name',
         default_value='Quadrotor'
     )
     device_arg = DeclareLaunchArgument(
@@ -28,25 +28,23 @@ def generate_launch_description():
         'model_file',
         default_value='yolo_model_5cls.pt'
     )
+    raw_image_topic_arg = DeclareLaunchArgument(
+        'raw_image_topic',
+        default_value=''
+    )
 
-    namespace = LaunchConfiguration('namespace')
+    robot_name = LaunchConfiguration('robot_name')
     device = LaunchConfiguration('device')
     use_sim_time = LaunchConfiguration('use_sim_time')
     model_package = LaunchConfiguration('model_package')
     model_file = LaunchConfiguration('model_file')
+    raw_image_topic = LaunchConfiguration('raw_image_topic')
 
     detection_config = PathJoinSubstitution([
         FindPackageShare(package_name),
         'config',
         'parameters',
         'detection_parameters.yaml'
-    ])
-
-    video_publisher_config = PathJoinSubstitution([
-        FindPackageShare(package_name),
-        'config',
-        'parameters',
-        'video_publisher_parameters.yaml'
     ])
 
     model_path = PathJoinSubstitution([
@@ -58,47 +56,32 @@ def generate_launch_description():
     detector_node = Node(
         package=package_name,
         executable='alars_yolo_detector',
-        namespace=namespace,
+        namespace=robot_name,
         output='screen',
         parameters=[
             detection_config,
             {
-                'namespace': namespace,
+                'namespace': robot_name,
                 'device': device,
                 'use_sim_time': use_sim_time,
                 'model_path': model_path,
-            }
-        ],
-    )
-
-    video_publisher_node = Node(
-        package=package_name,
-        executable='alars_video_publisher',
-        namespace=namespace,
-        output='screen',
-        parameters=[
-            video_publisher_config,
-            {
-                'use_sim_time': False,
+                'topics.raw_image': raw_image_topic,
             }
         ],
     )
 
     return LaunchDescription([
-        namespace_arg,
+        robot_name_arg,
         device_arg,
         use_sim_time_arg,
         model_package_arg,
         model_file_arg,
-
-        LogInfo(msg=['[Launch] namespace = ', namespace]),
+        raw_image_topic_arg,
+        LogInfo(msg=['[Launch] robot_name = ', robot_name]),
         LogInfo(msg=['[Launch] device = ', device]),
         LogInfo(msg=['[Launch] use_sim_time = ', use_sim_time]),
         LogInfo(msg=['[Launch] model package = ', model_package]),
         LogInfo(msg=['[Launch] model path = ', model_path]),
-        LogInfo(msg=['[Launch] detection params = ', detection_config]),
-        LogInfo(msg=['[Launch] video publisher params = ', video_publisher_config]),
-
-        video_publisher_node,
+        LogInfo(msg=['[Launch] raw image topic = ', raw_image_topic]),
         detector_node,
     ])

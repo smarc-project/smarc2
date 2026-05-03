@@ -36,5 +36,3 @@
         sam: "estimated_sam"
         buoy: "estimated_buoy"
         other_obbs: "estimated_other_obbs"
-
-      raw_image: "camera/image_raw"

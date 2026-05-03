@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>actionable_geofence</name>
+  <name>smarc_basic</name>
   <version>0.0.0</version>
-  <description>A common geofence checking node that exposes a wasp-bt compatible action</description>
+  <description>Pile of basic actions</description>
   <maintainer email="ozero@kth.se">Ozer Ozkahraman</maintainer>
   <license>MIT</license>
 
