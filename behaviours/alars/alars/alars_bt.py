@@ -171,7 +171,6 @@ class AlarsBT():
 
 
     def _reset_states(self) -> None:
-        self._delivered : bool = False
         self._search_fail_count : int = 0
         self._recover_fail_count : int = 0
         self._vulture_timeout_count : int = 0
@@ -250,7 +249,7 @@ class AlarsBT():
 
 
         status = self._bt.root.status
-        if self._delivered:
+        if self._is_auv_hanging:
             self.log("We have ALARS'd")
             self._reset_states()
             return True
@@ -332,10 +331,6 @@ class AlarsBT():
     
     def _count_recover_fail(self) -> bool:
         self._recover_fail_count += 1
-        return True
-
-    def _set_delivered(self) -> bool:
-        self._delivered = True
         return True
     
 
