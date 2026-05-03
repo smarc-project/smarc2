@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'geofence_node = smarc_basic.geofence_node:main',
-            'test_action = smarc_basic.geofence_node:test_action',
+            'wait_action = smarc_basic.wait_action:main',
+            'log_action = smarc_basic.log_action:main'
         ],
     },
 )
