@@ -598,7 +598,8 @@ class DjiCaptain():
         # if RC is touched by user, we give up control
         if not self._got_control: return
 
-        if msg.axes[0] != 0.0 or msg.axes[1] != 0.0 or msg.axes[2] != 0.0 or msg.axes[3] != 0.0:
+        deadband = 100
+        if np.abs(msg.axes[0]) > deadband or np.abs(msg.axes[1]) > deadband or np.abs(msg.axes[2]) > deadband or np.abs(msg.axes[3]) > deadband:
             self.logwarn("RC touched, giving up control.")
             self._got_control = False # even if the service call fails, we assume we lost control!
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
