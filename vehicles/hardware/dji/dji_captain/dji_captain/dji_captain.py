@@ -270,7 +270,7 @@ class DjiCaptain():
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-        self._tf_timer = node.create_timer(0.01, self._publish_tf, callback_group=ReentrantCallbackGroup()) # its own callback group because fast
+        self._tf_timer = node.create_timer(0.05, self._publish_tf, callback_group=ReentrantCallbackGroup()) # its own callback group because fast
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         

@@ -3,7 +3,8 @@
 import numpy as np
 
 from rclpy.node import Node
-from rclpy.time import Time, Duration
+from rclpy.time import Time
+from rclpy.duration import Duration
 
 from std_msgs.msg import String
 from geometry_msgs.msg import  PointStamped, PoseStamped
@@ -32,23 +33,17 @@ class DroneState():
         self.ODOM_FRAME : str = robot_name + '/' + DJILinks.ODOM
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
+        self._odom_to_map_tf : None | TransformStamped = None
 
         self._tf_buffer : Buffer = Buffer()
-        self._tf_listener : TransformListener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+        self._tf_listener : TransformListener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
+        
 
-        found = False
-        while not found:
-            try:
-                self._odom_to_map_tf = self._tf_buffer.lookup_transform(self.MAP_FRAME, self.ODOM_FRAME, Time(), Duration(seconds=1))
-                found = True
-            except Exception as e:
-                self._node.get_logger().info(f"Waiting for transform from {self.ODOM_FRAME} to {self.MAP_FRAME}...")
-        
         self._node.create_subscription(Odometry,
-                                       SmarcTopics.ODOM_TOPIC,
-                                       self._odom_cb,
-                                       10)
-        
+                                        SmarcTopics.ODOM_TOPIC,
+                                        self._odom_cb,
+                                        10)
+
         def _utm_frame_cb(msg: String):
             self._utm_frame = msg.data
 
@@ -60,9 +55,11 @@ class DroneState():
 
     def _odom_cb(self, drone_in_odom: Odometry):
         drone_in_odom_ps : PoseStamped = PoseStamped()
-        drone_in_odom_ps.header = drone_in_odom.header
         drone_in_odom_ps.pose = drone_in_odom.pose.pose
+        drone_in_odom_ps.header = drone_in_odom.header
         try:
+            if self._odom_to_map_tf is None:
+                self._odom_to_map_tf = self._tf_buffer.lookup_transform(self.MAP_FRAME, self.ODOM_FRAME, Time(), Duration(seconds=1))
             self._drone_in_map = do_transform_pose_stamped(drone_in_odom_ps, self._odom_to_map_tf)
         except Exception as e:
             self._node.get_logger().error(f"Error transforming drone pose from odom to map: {e}")

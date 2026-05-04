@@ -59,13 +59,13 @@ else
     USE_SIM_TIME=True
 fi
 
-if [[ $USE_SIM_TIME == "True" ]]; then
-    # useful to make sure we don't accidentally connect to real hardware with the sim bringup
-    # or when your pc has these set for the real thing and you dont want to swap around :,)
-    export ROS_SUPER_CLIENT=""
-    export ROS_DISCOVERY_SERVER=""
-    export ROS_DOMAIN_ID=""
-fi
+# if [[ $USE_SIM_TIME == "True" ]]; then
+#     # useful to make sure we don't accidentally connect to real hardware with the sim bringup
+#     # or when your pc has these set for the real thing and you dont want to swap around :,)
+#     export ROS_SUPER_CLIENT=""
+#     export ROS_DISCOVERY_SERVER=""
+#     export ROS_DOMAIN_ID=""
+# fi
 
 
 # create a tmux session with a name
@@ -101,7 +101,8 @@ CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
     min_altitude_above_water:=$MIN_ALTITUDE_ABOVE_WATER"
 CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data"
 WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper"
-DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
+# DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
+DISCOVERY_SERVER_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
 SERVICE_CALLER_CMD="ros2 run dji_captain service_caller --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p robot_name:=$ROBOT_NAME"
 ALARS_SERVICES_CMD="ros2 launch dji_captain alars_services.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 
