@@ -122,7 +122,10 @@ class SearchAction():
         
         try:
             self._search_center_map = self._drone_state.geopoint_to_pose_stamped_map(search_center_gp)
-            
+            if self._search_center_map is None:
+                self._loginfo('Failed to transform search center into MAP frame!')
+                return False
+                
         except:
             self._loginfo('Could not transform search center into MAP frame!')
             traceback.print_exc()

@@ -34,9 +34,9 @@ class DroneState():
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
 
-        self._tf_buffer : Buffer = Buffer()
-        self._tf_listener : TransformListener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
-        
+        self._tf_buffer : Buffer|None = None
+        self._tf_listener : TransformListener|None = None
+
         def _pose_in_map_cb(msg: PoseStamped):
             if msg.header.frame_id != self.MAP_FRAME:
                 self._loginfo(f"Received pose in map topic, but frame_id is {msg.header.frame_id} instead of expected {self.MAP_FRAME}. Ignoring.")
@@ -56,7 +56,12 @@ class DroneState():
                                        _utm_frame_cb,
                                        10)
 
-
+    def _init_tf(self):
+        self._loginfo("Initializing TF buffer and listener...")
+        if self._tf_buffer is None:
+            self._tf_buffer = Buffer()
+        if self._tf_listener is None:
+            self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
 
     @property
     def drone_in_map(self) -> PoseStamped|None:
@@ -109,12 +114,19 @@ class DroneState():
         
         return False
 
-    def geopoint_to_pose_stamped_map(self, gp: GeoPoint) -> PoseStamped:
+    def geopoint_to_pose_stamped_map(self, gp: GeoPoint) -> PoseStamped|None:
         in_utm : PointStamped = convert_latlon_to_utm(gp)
         in_utm_pose : PoseStamped = PoseStamped()
         in_utm_pose.header = in_utm.header
         in_utm_pose.pose.position = in_utm.point
         in_utm_pose.pose.position.z = gp.altitude  # keep the altitude from the GeoPoint as is
+
+        if self._tf_buffer is None or self._tf_listener is None:
+            self._init_tf()
+
+        if not self._tf_buffer.can_transform(self.MAP_FRAME, pose.header.frame_id, Time(seconds=0)):
+            self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+            return None
 
         tf = self._tf_buffer.lookup_transform(
             target_frame = self.MAP_FRAME,
@@ -131,6 +143,9 @@ class DroneState():
         if self._utm_frame is None:
             self._loginfo("UTM frame not set yet, cannot convert pose to geopoint.")
             return None
+
+        if self._tf_buffer is None or self._tf_listener is None:
+            self._init_tf()
 
         if not self._tf_buffer.can_transform(self._utm_frame, pose.header.frame_id, Time(seconds=0)):
             self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self._utm_frame}> frame.")
