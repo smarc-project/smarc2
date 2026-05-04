@@ -4,6 +4,7 @@
 # moving around
 string MOVE_TO_SETPOINT_TOPIC = 'move_to_setpoint' # PoseStamped
 string LABELED_UTM_TOPIC = 'labeled_utm_topic' # String, formatted: "utm_{zone}_{band}"
+string BASE_LINK_IN_MAP_TOPIC = 'base_link_in_map' # PoseStamped with header.frame_id == /robot_name/map
 
 
 # cameras

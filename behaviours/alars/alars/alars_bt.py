@@ -81,10 +81,8 @@ class AlarsBT():
             self._node.declare_parameter('auv_esitmate_max_age', 5.0)
             self.AUV_ESTIMATE_MAX_AGE : float = self._node.get_parameter('auv_esitmate_max_age').get_parameter_value().double_value
             self._auv_position_estimate : PoseWithCovarianceStamped | None = None
-            self._last_known_auv_geopoint : GeoPoint | None = None
             def auv_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._auv_position_estimate = msg
-                self._last_known_auv_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
                                            auv_position_estimate_cb,
@@ -93,10 +91,8 @@ class AlarsBT():
             self._node.declare_parameter('buoy_esitmate_max_age', 5.0)
             self.BUOY_ESTIMATE_MAX_AGE : float = self._node.get_parameter('buoy_esitmate_max_age').get_parameter_value().double_value
             self._buoy_position_estimate : PoseWithCovarianceStamped | None = None
-            self._last_known_buoy_geopoint : GeoPoint | None = None
             def buoy_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._buoy_position_estimate = msg
-                self._last_known_buoy_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_BUOY_POSE_WITH_COV_TOPIC,
                                            buoy_position_estimate_cb,
@@ -302,12 +298,13 @@ class AlarsBT():
         })
     
     def _set_goal_search_local(self) -> bool:
-        if self._last_known_auv_geopoint is None: return False
+        last_known_auv_geopoint = self._drone_state.pose_to_geopoint(self._auv_position_estimate) if self._auv_position_estimate is not None else None
+        if last_known_auv_geopoint is None: return False
 
         return self._set_goal(self.act_search_local, {
             "search_position": {
-                "latitude": self._last_known_auv_geopoint.latitude,
-                "longitude": self._last_known_auv_geopoint.longitude,
+                "latitude": last_known_auv_geopoint.latitude,
+                "longitude": last_known_auv_geopoint.longitude,
                 "altitude": self._goal["search_position"]["altitude"],
                 "tolerance": self.LOCAL_SEARCH_RADIUS
             }

@@ -116,6 +116,7 @@ class DjiCaptain():
         self._utm_zb_label : str | None = None
 
         self._base_pose_in_home : PoseStamped | None = None
+        self._base_pose_in_map : PoseStamped | None = None
         self._base_pose_flat_in_home : PoseStamped | None = None
         self._home_point_in_utm : PointStamped | None = None
         self._velocity_ground : Vector3Stamped | None = None
@@ -251,13 +252,13 @@ class DjiCaptain():
         )
 
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
-        while rclpy.ok() and not self._release_control_srv.wait_for_service(timeout_sec=2.0):
-             self.logerr("\nRelease control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
+        self._got_release_control_srv = False
         
         self._status_pub = node.create_publisher(String, "captain_status", qos_profile=10)
         self._tf_pub = node.create_publisher(TFMessage,"/tf",qos_profile=10)
 
         self._labeled_utm_frame_pub = node.create_publisher(String, DjiTopics.LABELED_UTM_TOPIC, qos_profile=10)
+        self._base_in_map_pub = node.create_publisher(PoseStamped, DjiTopics.BASE_LINK_IN_MAP_TOPIC, qos_profile=10)
         self._FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
 
         self._vehicle_health_pub = node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
@@ -270,7 +271,7 @@ class DjiCaptain():
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-        self._tf_timer = node.create_timer(0.05, self._publish_tf, callback_group=ReentrantCallbackGroup()) # its own callback group because fast
+        self._tf_timer = node.create_timer(0.1, self._publish_tf)
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
         
@@ -679,6 +680,8 @@ class DjiCaptain():
             self._base_pose_in_home.header.frame_id = self.ODOM_FRAME
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
+            self._base_pose_in_map = PoseStamped()
+            self._base_pose_in_map.header.frame_id = self.MAP_FRAME
             self.log("Base pose initialized in home frame.")
             
         self._base_pose_in_home.pose.position.x = msg.position.x
@@ -689,6 +692,11 @@ class DjiCaptain():
         self._base_pose_flat_in_home.pose.position = self._base_pose_in_home.pose.position
         self._base_pose_flat_in_home.header.stamp = self._base_pose_in_home.header.stamp
 
+        self._base_pose_in_map.pose.position.x = self._base_pose_in_home.pose.position.x
+        self._base_pose_in_map.pose.position.y = self._base_pose_in_home.pose.position.y
+        self._base_pose_in_map.pose.position.z = self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER
+        self._base_pose_in_map.header.stamp = self._base_pose_in_home.header.stamp
+        self._base_in_map_pub.publish(self._base_pose_in_map)
         
 
     def _attitude_callback(self, msg: QuaternionStamped):
@@ -812,6 +820,13 @@ class DjiCaptain():
             self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_ERROR
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
+
+        if not self._got_release_control_srv:
+            self.log("Acquiring release control service...")
+            self._got_release_control_srv = self._release_control_srv.wait_for_service(timeout_sec=1.0)
+            if not self._got_release_control_srv:
+                self.logerr("Release control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
+                return
             
 
         # if we made it here, then we got all the sensor happy
