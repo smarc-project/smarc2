@@ -96,7 +96,7 @@ if [ "$MODE" == "REAL" ]; then
     CAMERA_DRIVER=True
     YOLO_DRIVER=True
     CAMERA_GIMBALL_DRIVER=True
-    CAMERA_MQTT_CONTORL=False
+    CAMERA_MQTT_CONTORL=True
     CAMERA_STREAM=True
     SIDESCAN_DRIVER=True
     SIMULATOR_DRIVER=False
@@ -259,11 +259,14 @@ if [ $CAMERA_DRIVER == "True" ]; then
         -p frame_id:=evolo_camera_frame \
         -p image_encoding:=rgb8 \
         -p sync_sink:=false \
-        -p camera.image_raw.enable_pub_plugins:=\"['image_transport/compressed', 'image_transport/raw']\" \
-        -r __ns:=/$ROBOT_NAME/sensors/gimbal_camera"
+        -p use_sensor_data_qos:=true \
+        -p camera.image_raw.enable_pub_plugins:=\"['image_transport/raw']\" \
+        -r __ns:=/$ROBOT_NAME/sensors/gimbal_camera_DONT_SUBSCRIBE"
+    TOPIC_1_RELAY_CMD="ros2 run topic_tools relay /evolo/sensors/gimbal_camera_DONT_SUBSCRIBE/camera/image_raw /evolo/sensors/gimbal_camera/camera/image_raw"
     tmux_make_layout "$SESSION" camera-driver "
     col(
-        var(CAMERA_DRIVER_CMD)
+        var(CAMERA_DRIVER_CMD),
+        var(TOPIC_1_RELAY_CMD)
     )"
 fi
 
@@ -296,18 +299,28 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
     GIMBAL_CAM_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
         robot_name:=\"$ROBOT_NAME\" \
         use_sim_time:=$USE_SIM_TIME"
+    GIMBAL_CAM_ACTION_CLIENT_CMD="ros2 launch evolo_gimbal_remote_control gimbal_remote_control.launch.py robot_name:=evolo"
+    GIMBAL_CAM_MQTT_CMD="ros2 launch evolo_gimbal_remote_control mqtt_camcmd_listener.launch.py"
 
-    tmux_make_layout "$SESSION" Gimbal-driver "
-    col(
-        var(GIMBAL_CAM_DRIVER_CMD),
-        var(GIMBAL_CAM_ACTION_CMD)
-    )"
-fi
-
-
-if [ $CAMERA_MQTT_CONTORL == "True" ]; then
-    # TODO MQTT -> action client node and put here
-    echo "Camera MQTT control is not working yet"
+    if [ $CAMERA_MQTT_CONTORL == "True" ]; then
+        tmux_make_layout "$SESSION" Gimbal-driver "
+        col(
+            row(
+                var(GIMBAL_CAM_DRIVER_CMD),
+                var(GIMBAL_CAM_ACTION_CMD)
+            ),
+            row(
+                var(GIMBAL_CAM_ACTION_CLIENT_CMD),
+                var(GIMBAL_CAM_MQTT_CMD),
+            )
+        )" 
+    else
+        tmux_make_layout "$SESSION" Gimbal-driver "
+        col(
+            var(GIMBAL_CAM_DRIVER_CMD),
+            var(GIMBAL_CAM_ACTION_CMD)
+        )"
+    fi
 fi
 
 #Simulator "diver"
