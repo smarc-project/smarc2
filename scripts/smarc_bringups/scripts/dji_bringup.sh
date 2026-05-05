@@ -41,6 +41,13 @@ else
     NO_CAM=False
 fi
 
+FAKE_IT_TILL_YOU_MAKE_IT=$4
+if [[ "$FAKE_IT_TILL_YOU_MAKE_IT" == "fake_it" ]]; then
+    FAKE_IT_TILL_YOU_MAKE_IT=True
+else
+    FAKE_IT_TILL_YOU_MAKE_IT=False
+fi
+
 
 SESSION=${ROBOT_NAME}_bringup
 
@@ -105,6 +112,10 @@ WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/
 DISCOVERY_SERVER_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
 SERVICE_CALLER_CMD="ros2 run dji_captain service_caller --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p robot_name:=$ROBOT_NAME"
 ALARS_SERVICES_CMD="ros2 launch dji_captain alars_services.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+
+if [[ $FAKE_IT_TILL_YOU_MAKE_IT == "True" ]]; then
+    WRAPPER_CMD="ros2 run dji_captain psdk_faker --ros-args -r __ns:=/$ROBOT_NAME -p robot_name:=$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+fi
 
 if [[ $USE_SIM_TIME = "False" ]]; then
     tmux_make_layout "$SESSION" Captains "

@@ -26,6 +26,7 @@ setup(
             'esc_splitter = dji_captain.dji_esc_data_splitter:main',
             'service_caller = dji_captain.dji_service_caller:main',
             'joy_tester = dji_captain.joy_tester:main',
+            'psdk_faker = dji_captain.psdk_faker:main',
         ],
     },
 )
