@@ -398,8 +398,6 @@ def wasp_bt():
     from wasp_bt.bt.client import BTActionClient
     from smarc_msgs.msg import Topics
 
-    from go_to_geopoint.geopoint_client import GeopointClient
-
     from smarc_action_base.smarc_action_base import (
         ActionFeedback,
         ActionResult,

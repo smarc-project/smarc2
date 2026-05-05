@@ -16,5 +16,8 @@ string TAKE_CONTROL_SRV    = 'wrapper/psdk_ros2/obtain_ctrl_authority'
 string RELEASE_CONTROL_SRV = 'wrapper/psdk_ros2/release_ctrl_authority'
 string TAKEOFF_SRV         = 'wrapper/psdk_ros2/takeoff'
 string LAND_SRV            = 'wrapper/psdk_ros2/land'
+string PROPS_ON_SRV        = 'wrapper/psdk_ros2/turn_on_motors'
+string PROPS_OFF_SRV       = 'wrapper/psdk_ros2/turn_off_motors'
+
 
 string FLU_VEL_YAWRATE_JOY_CMD          = 'wrapper/psdk_ros2/flight_control_setpoint_FLUvelocity_yawrate'

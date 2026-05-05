@@ -16,11 +16,9 @@ class MeasurementModel:
             K, 
             D, 
             z_water, 
-            n_air, 
-            n_water, 
             obb_length_m, 
             obb_width_m, 
-            motion_model, #TODO weird usage of this :)
+            motion_model_type, 
             logger=None
                  ):
         
@@ -36,11 +34,9 @@ class MeasurementModel:
         self.K = K
         self.D = D
         self.z_water = z_water
-        self.n_air = n_air
-        self.n_water = n_water
         self.obb_length_m = obb_length_m
         self.obb_width_m = obb_width_m
-        self.motion_model = motion_model
+        self.motion_model_type = motion_model_type
         self.logger = logger
 
     def get_logger(self, msg):
@@ -83,13 +79,22 @@ class MeasurementModel:
         center_uv, alpha_img, len_px, wid_px = self.get_obb_features(pts_uv)
         return center_uv, alpha_img, len_px, wid_px, pts_uv
     
-    def projection(self, x, cam_pos, cam_rot):
+    def projection(self, x, cam_pos, cam_rot, z_min=0.1):
 
         # project a 3D point in the map frame to pixel coordinates 
         # given the camera pose (position and rotation) in the map frame
 
-        R_wc = cam_rot.T
-        t_wc = -R_wc @ cam_pos
+        R_wc = cam_rot.T # rotation from world (map) to camera frame
+        t_wc = -R_wc @ cam_pos # translation from world (map) to camera frame
+
+        p_w = np.asarray(x).reshape(3) # estimated point in world (map) frame
+        p_c = R_wc @ p_w + t_wc # point in camera frame
+
+        _, _, Zc = p_c
+        if Zc <= z_min: # point is too close or behind the camera
+            self.get_logger(f"Target {p_w} is behind the camera or too close with Zc={Zc}. Skipping projection.")
+            return None  
+
         rvec, _ = cv2.Rodrigues(R_wc)
         tvec = t_wc.reshape(3, 1)
         obj_pt = np.asarray(x).reshape(1, 1, 3)
@@ -113,12 +118,13 @@ class MeasurementModel:
     def numerical_H(self, x, cam_pos_map, R_map_cam):
         
         #Compute numerical measurement jacobian H = dz/dx by finite differences.
-        
         H = np.zeros((self.meas_dim, self.state_dim))
-        mm = self.motion_model
 
-        yaw_idx = getattr(mm, "i_yaw", None)
-
+        if self.motion_model_type == "surface":
+            yaw_idx = 2
+        elif self.motion_model_type in ["depth", "depth9d", "wave", "oscillator", "double_oscillator", "pitch"]:
+            yaw_idx = 3
+            
         for i in range(self.state_dim):
             eps = self.eps[i]
 
@@ -176,60 +182,75 @@ class MeasurementModel:
             J[:, i] = dz.reshape(-1)
         return J
     
-    def hx(self, x, cam_pos_map, R_map_cam):
+    def hx(self, x, cam_pos_map, R_map_cam, min_valid_points=10):
 
         # given a state x, compute the expected measurement by projecting the corresponding 3D point to pixel coordinates
         # this is the nonlinear measurement function h(x) used in the EKF update
 
         state = np.asarray(x).reshape(-1)
-        if self.motion_model.name == "surface":
+        if self.motion_model_type == "surface":
             px, py, yaw = state[:3]
             pz = self.z_water
             pitch = 0.0
-        elif self.motion_model.name == "depth" or self.motion_model.name == "depth9d" or self.motion_model.name == "wave" or self.motion_model.name == "oscillator":
+        elif self.motion_model_type == "depth" or self.motion_model_type == "depth9d" or self.motion_model_type == "wave" or self.motion_model_type == "oscillator":
             px, py, pz, yaw = state[:4]
             pitch = 0.0
-        else:
+        elif self.motion_model_type == "double_oscillator":
+            px = state[0]
+            py = state[1]
+            pz = state[2] + state[7]
+            yaw = state[3]
+            pitch = 0.0
+        elif self.motion_model_type == "pitch":
             px, py, pz, yaw, pitch = state[:5]
+        else:
+            raise ValueError(f"Unknown motion model type: {self.motion_model_type}")
         center = np.array([px, py, pz])
         pts_map = self.sample_capsule_points(center=center, yaw=yaw, pitch=pitch, length_m=self.obb_length_m, 
                                              radius_m=0.5 * self.obb_width_m, n_len=5, n_ang=16)
         pts_img = []
+        pts_img_tot = []
         for p in pts_map:
             uv = self.projection(p, cam_pos_map, R_map_cam)
             if uv is None:
                 continue
             u, v = uv[0], uv[1]
-            # if 0.0 <= u <= self.width and 0.0 <= v <= self.height:
-            pts_img.append([u, v]) #TODO fix this :)
-        #     else:
-        #         self.get_logger(f"Projected point {p} is out of image bounds with pixel coordinates ({u}, {v})")
+            if 0.0 <= u <= self.width and 0.0 <= v <= self.height: # first check if the projected point is within the image bounds
+                pts_img.append([u, v])
+            pts_img_tot.append([u, v])
 
-
-        # if len(pts_img) < 5:
-        #     self.get_logger(f"Not enough projected points in image for measurement function: {len(pts_img)} points")
-        #     return None
+        if len(pts_img) < min_valid_points:
+            self.get_logger(f"Not enough projected points in image, looking outside of image bounds.")
+            if len(pts_img_tot) > 0:
+                pts_img = pts_img_tot
+                self.get_logger(f"Using points outside of image bounds for measurement function: {len(pts_img)} points") # if estimated state is outside of image, and not considered outlier, we can still get a measurement update by using the projected points outside of image bounds, which will to correct the state back towards the image. Though, this may give noisy measurements, increasing the measurement noise may help with stability in this case.
+            else:
+                self.get_logger(f"No valid projected points at all, returning None for measurement function.")
+                return None
         
         pts_img = np.asarray(pts_img, dtype=np.float32)
         rect = cv2.minAreaRect(pts_img)
         box = cv2.boxPoints(rect)
         expected_meas = self.get_obb_features(box)
         z_center_img, z_alpha_img, z_len_px, z_wid_px = expected_meas
-        return np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img], [z_len_px], [z_wid_px]])
+        if self.motion_model_type == "surface":
+            return np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img]])
+        else:
+            return np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img], [z_len_px], [z_wid_px]])
 
     def orthonormal_basis(self, axis):
 
         # given a 3D axis, compute an orthonormal basis (axis, n1, n2) where n1 and n2 are perpendicular to the axis and to each other
         # this is used for sampling points on the capsule surface in the measurement function
 
-        axis = np.asarray(axis)
+        axis = np.asarray(axis) 
         axis /= np.linalg.norm(axis)
-        helper = np.array([0.0, 0.0, 1.0])
-        if abs(np.dot(axis, helper)) > 0.95:
+        helper = np.array([0.0, 0.0, 1.0]) # helper vector for computing perpendicular vectors, arbitrary as long as not parallel to axis
+        if abs(np.dot(axis, helper)) > 0.95: # if axis is too close to the helper vector, use a different helper
             helper = np.array([1.0, 0.0, 0.0])
-        n1 = np.cross(axis, helper)
+        n1 = np.cross(axis, helper) # first perpendicular vector
         n1 /= np.linalg.norm(n1)
-        n2 = np.cross(axis, n1)
+        n2 = np.cross(axis, n1) # second perpendicular vector (ensures right-handed coordinate system)
         n2 /= np.linalg.norm(n2)
         return axis, n1, n2
     
@@ -239,7 +260,7 @@ class MeasurementModel:
         # this is used to generate the 3D points corresponding to the AUV shape for projection in the measurement function
 
         c = np.asarray(center)
-        axis = np.array([np.cos(yaw) * np.cos(pitch), np.sin(yaw) * np.cos(pitch), np.sin(pitch)])
+        axis = np.array([np.cos(yaw) * np.cos(pitch), np.sin(yaw) * np.cos(pitch), np.sin(pitch)]) # target axis in the direction of target major axis
         axis, n1, n2 = self.orthonormal_basis(axis)
         half_l = 0.5 * length_m
         pts = []
@@ -248,7 +269,7 @@ class MeasurementModel:
         for s in s_vals:
             axis_pt = c + s * axis
             for phi in phi_vals:
-                radial = np.cos(phi) * n1 + np.sin(phi) * n2
+                radial = np.cos(phi) * n1 + np.sin(phi) * n2 # radial vector in the plane perpendicular to the axis
                 p = axis_pt + radius_m * radial
                 pts.append(p)
         return np.asarray(pts)

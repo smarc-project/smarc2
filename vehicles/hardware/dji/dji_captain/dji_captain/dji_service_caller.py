@@ -21,6 +21,8 @@ class ServiceCaller():
         self._release_control_srv = node.create_client(Trigger, PSDKTopics.RELEASE_CONTROL_SRV)
         self._takeoff_srv = node.create_client(Trigger, PSDKTopics.TAKEOFF_SRV)
         self._land_srv = node.create_client(Trigger, PSDKTopics.LAND_SRV)
+        self._turn_on_props_srv = node.create_client(Trigger, PSDKTopics.PROPS_ON_SRV)
+        self._turn_off_props_srv = node.create_client(Trigger, PSDKTopics.PROPS_OFF_SRV)
 
         self.FLU_vel_joy_pub = node.create_publisher(Joy, PSDKTopics.FLU_VEL_YAWRATE_JOY_CMD, qos_profile=10)
 
@@ -30,14 +32,18 @@ class ServiceCaller():
             got_release_control = self._release_control_srv.wait_for_service(timeout_sec=5.0)
             got_takeoff = self._takeoff_srv.wait_for_service(timeout_sec=5.0)
             got_land = self._land_srv.wait_for_service(timeout_sec=5.0)
-            got_srvs = got_take_control and got_release_control and got_takeoff and got_land
+            got_turn_on_props = self._turn_on_props_srv.wait_for_service(timeout_sec=5.0)
+            got_turn_off_props = self._turn_off_props_srv.wait_for_service(timeout_sec=5.0)
+            got_srvs = got_take_control and got_release_control and got_takeoff and got_land and got_turn_on_props and got_turn_off_props
             if not got_srvs:
                 self._node.get_logger().error("Not all services are available... Captain will do nothing but wait for these...")
                 self._node.get_logger().error("Unavailable services: " +
                     ("" if got_take_control else "Take control ") +
                     ("" if got_release_control else "Release control ") +
                     ("" if got_takeoff else "Take off ") +
-                    ("" if got_land else "Land "))
+                    ("" if got_land else "Land ") +
+                    ("" if got_turn_on_props else "Turn on props ") +
+                    ("" if got_turn_off_props else "Turn off props "))
                 time.sleep(2)
             
 
@@ -47,6 +53,8 @@ class ServiceCaller():
             commands += "  2: Release control\n"
             commands += "  4: Take off\n"
             commands += "  6: Land\n"
+            commands += "  z: Turn ON Props\n"
+            commands += "  c: Turn OFF Props\n"
             commands += "  9: Joytest\n"
             commands += "  0: EXIT\n"
             commands += "Enter command: "
@@ -65,6 +73,12 @@ class ServiceCaller():
                 elif user_input == "6":
                     res = call_service_blocking(self._node, self._land_srv, Trigger.Request())
                     print(f"Land response: {res.success}")
+                elif user_input == "z":
+                    res = call_service_blocking(self._node, self._turn_on_props_srv, Trigger.Request())
+                    print(f"Turn ON props response: {res.success}")
+                elif user_input == "c":
+                    res = call_service_blocking(self._node, self._turn_off_props_srv, Trigger.Request())
+                    print(f"Turn OFF props response: {res.success}")
                 elif user_input == "0":
                     print("Exiting...")
                     sys.exit(0)

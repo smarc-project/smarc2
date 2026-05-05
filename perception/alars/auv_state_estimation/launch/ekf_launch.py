@@ -82,6 +82,7 @@ def generate_launch_description():
             robot_name,
             params_file,
             {
+                "robot_name": robot_name,
                 "use_sim_time": use_sim_time,
                 "topics.input_polygon": poly_in,
                 "frames.output_link": link_out,

@@ -14,63 +14,87 @@
 
     camera_info: ""
 
-    z_water: 0.0
-    n_air: 1.0
-    n_water: 1.0
+    environment:
+      water_surface_height: 0.0 # height of water surface in map frame.
+    
+    obb:
+      length_m: 1.5 # length of the target obb in meters, may need to be adjusted
+      width_m: 0.2 # width of the target obb in meters, may need to be adjusted
 
-    obb.length_m: 1.3
-    obb.width_m: 0.16
+    alpha_line_pixels: 40 # number of pixels along length of obb to use for alpha (yaw) measurement in initialization.
 
-    alpha_line_pixels: 40.0
+    motion:
+      sigma_a_xy: 0.01 # acc in x and y (m/s^2) (for all models)
+      sigma_yaw: 3.0 # random walk in yaw (deg/s) (for all models)
+      model_type: "double_oscillator" # options: "surface", "depth", "pitch", "oscillator", "double_oscillator"
 
-    sigma_a: 0.01 # acc
-    sigma_z_process: 0.2 # acc
-    sigma_yaw_process: 3.0
-    sigma_pitch_acc_deg: 15.0
+    # parameters for different motion models, may need to be adjusted based on the environment and target behavior.
+    depth.sigma_z_process: 1.0
+    depth.k_z: 0.4 # stiffness for depth model, higher means more resistance to depth changes.
+    depth.d_z: 0.1 # damping for depth model, higher means more resistance to depth velocity.
 
-    R_u: 10.0
-    R_v: 10.0
-    R_alpha_deg: 5.0
-    R_len: 100.0
-    R_wid: 40.0
+    pitch.sigma_pitch_process: 5.0 # process noise for pitch (deg/s^2) 
 
-    R_dyn.center_gain_u: 50.0
-    R_dyn.center_gain_v: 50.0
-    R_dyn.center_gain_alpha_deg: 10.0
-    R_dyn.center_gain_len: 10.0
-    R_dyn.center_gain_wid: 10.0
+    oscillator.sigma_z_process: 5.0 # process noise for oscillator in z direction.
+    oscillator.omega: 2.0 # angular velocity of oscillator (rad/s), may need to be adjusted based on water conditions.
+    oscillator.zeta: 0.01 # dampening of oscillator.
 
-    R_dyn.speed_gain_u: 50.0
-    R_dyn.speed_gain_v: 50.0
-    R_dyn.speed_gain_alpha_deg: 10.0
-    R_dyn.speed_gain_len: 60.0
-    R_dyn.speed_gain_wid: 30.0
+    double_oscillator.sigma_z_slow: 1.0 # process noise for slow oscillator in z direction.
+    double_oscillator.sigma_z_fast: 3.0 # process noise for fast oscillator in z direction.
+    double_oscillator.omega_slow: 1.0 # angular velocity of slow oscillator (rad/s), may need to be adjusted based on water conditions.
+    double_oscillator.zeta_slow: 0.01 # dampening of slow oscillator.
+    double_oscillator.omega_fast: 2.0 # angular velocity of fast oscillator (rad/s), may need to be adjusted based on water conditions.
+    double_oscillator.zeta_fast: 0.01 # dampening of fast oscillator.
 
-    R_pose_x: 0.03
-    R_pose_y: 0.03
-    R_pose_z: 0.03
-    R_pose_r: 1.0
-    R_pose_p: 1.0
-    R_pose_yaw: 3.0
+    # measurement noise parameters, note that u is right in the image (x), v is down in the image (y).
+    measurement_noise:
+      R_u: 10.0 # measurement noise for target center u image coordinate (pixels)
+      R_v: 10.0 # measurement noise for target center v image coordinate (pixels)
+      R_alpha_deg: 5.0 # measurement noise for target center alpha (yaw) coordinate (degrees)
+      R_len: 100.0 # measurement noise for target center length coordinate (pixels). As pitch is not included in the state model (except for pitchmodel), pitch is modeled as noise on the length observation.
+      R_wid: 40.0 # measurement noise for target center width coordinate (pixels)
 
-    R_dyn_dt: 0.5
+      # parameters for dynamically adjusting measurement noise based on distance from center, for example if the image has high distortion / bad calibration.
+      center_gain_u: 50.0 # measurement noise gain for distance from center in u direction
+      center_gain_v: 50.0 # measurement noise gain for distance from center in v direction.
+      center_gain_alpha_deg: 10.0 # measurement noise gain for distance from center in alpha (yaw) direction (degrees).
+      center_gain_len: 50.0 # measurement noise gain for distance from center in length direction.
+      center_gain_wid: 50.0 # measurement noise gain for distance from center in width direction.
 
-    init_z_needed: 5
-    init_pos_max_spread: 2.0
-    init_yaw_max_spread: 0.7
-    init_z_max_spread: 2.0
-    init_min_depth: 0.2
-    init_max_depth: 8.0
-    init_depth_steps: 40
+      # parameters for dynamically adjusting measurement noise based on camera/uav speed.
+      speed_gain_u: 50.0 # measurement noise gain in target center u coordinate.
+      speed_gain_v: 50.0 # measurement noise gain in target center v coordinate.
+      speed_gain_alpha_deg: 10.0 # measurement noise gain in target center alpha (yaw) coordinate  (degrees).
+      speed_gain_len: 60.0 # measurement noise gain in target center length coordinate.
+      speed_gain_wid: 30.0 # measurement noise gain in target center width coordinate.
 
-    gating.prob: 0.99
+      R_dyn_dt: 0.5 # noise in time of measurement, say if there is a delay / incorrect timestamp, while target or camera is moving.
 
-    logger_info.enable: true
+    # noise of camera pose. This is used in the measurement model to account for the fact that the measurement is taken in the camera frame, but the camera pose is not perfectly known, may need adjustment.
+    camera_pose_noise:
+      R_pose_x: 0.03 # noise in x position of camera/auv pose (meters)
+      R_pose_y: 0.03 # noise in y position of camera/auv pose (meters)
+      R_pose_z: 0.03 # noise in z position of camera/auv pose (meters)
+      R_pose_r: 1.0 # noise in roll angle of camera/auv pose (degrees)
+      R_pose_p: 1.0 # noise in pitch angle of camera/auv pose (degrees)
+      R_pose_yaw: 3.0 # noise in yaw angle of camera/auv pose (degrees)
 
-    jacobian.eps_state_pos: 0.001
-    jacobian.eps_state_yaw: 0.001
-    jacobian.eps_state_vel: 0.001
-    jacobian.eps_pose_pos: 0.001
-    jacobian.eps_pose_ang: 0.001
+    initialization:
+      min_valid_meas_needed: 5 # minimum number of consequtive measurements with low enough spreald to initialize the filter.
+      max_pos_spread: 2.0 # maximum spread in position measurements for initialization (meters).
+      max_yaw_spread: 30.0 # maximum spread in yaw measurements for initialization (degrees).
 
-    motion_model: "oscillator" # options: "surface", "depth", "pitch", "oscillator"
+    gating:
+      prob: 0.99 # gating probability for Mahalanobis distance gating, may need to be adjusted based on measurement noise and outliers.
+
+    jacobian:
+      eps_state_pos: 0.001
+      eps_state_yaw: 0.001
+      eps_state_vel: 0.001
+      eps_pose_pos: 0.001
+      eps_pose_ang: 0.001
+
+    logger_info:
+      enable: true
+
+    stale_state_age: 3.0

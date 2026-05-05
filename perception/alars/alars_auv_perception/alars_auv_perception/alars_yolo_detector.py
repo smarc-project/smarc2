@@ -111,6 +111,17 @@ class YOLODetector(Node):
             10
         )
 
+        # Check if we are falling behind in detections
+        # so we can alert ppl about it.
+        self._detections_attemped: int = 0
+        self._detections_completed : int = 0
+        self.create_timer(
+            1.0,
+            lambda: self.get_logger().warn(
+                f"Detection lag: {self.detection_lag} (attempted: {self._detections_attemped}, completed: {self._detections_completed})"
+            ) if self.detection_lag > 2 else None
+        )
+        
         self.cam_processor_happy_pub = self.create_publisher(
             Bool,
             Topics.CAM_PROCESSOR_HAPPY_TOPIC,
@@ -160,11 +171,18 @@ class YOLODetector(Node):
         now = self.get_clock().now()
         now_time = now.to_msg().sec + now.to_msg().nanosec * 1e-9
         return now_time - image_time < 5
+    
+    @property
+    def detection_lag(self) -> int:
+        return self._detections_attemped - self._detections_completed
 
     def classify_callback(self):
         if self.image is None or not self.detector_enabled:
             return
 
+        image_time = self.image.header.stamp.sec + self.image.header.stamp.nanosec * 1e-9
+
+        self._detections_attemped += 1
         cv_image = self.bridge.imgmsg_to_cv2(self.image, desired_encoding='bgr8')
 
         results = self.yolo_model.predict(
@@ -240,12 +258,19 @@ class YOLODetector(Node):
                 thickness=2
             )
 
+        # Downsample the image to 480p for publishing to reduce bandwidth, if it's larger than that.
+        if im.shape[1] > 854:
+            im = cv2.resize(im, (854, 480))
         ros_img = self.bridge.cv2_to_imgmsg(im, encoding='bgr8')
         ros_img.header = self.image.header
         self.annotated_img_pub.publish(ros_img)
+        self._detections_completed += 1
+
+        now = self.get_clock().now()
+        now_time = now.to_msg().sec + now.to_msg().nanosec * 1e-9
 
         self.get_logger().info(
-            f"Detections -> sam: {len(sam_detections)}, buoy: {len(buoy_detections)}, head: {head}"
+            f"Detections:\n\tSAM: {len(sam_detections)}, head: {head}\n\tBUOY: {len(buoy_detections)}\n\tTook {now_time - image_time:.2f}s from image timestamp to publish annotated image"
         )
 
     def get_best_detection_index_for_class(self, obb: OBB, class_id: int):
