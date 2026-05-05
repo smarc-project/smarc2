@@ -1,14 +1,13 @@
 from dji_msgs.msg import Links, Topics
 from smarc_msgs.msg import Topics as SmarcTopics
 
-import cv2
 import yaml
 import numpy as np
 from collections import deque
 import rclpy
 from rclpy.time import Time
 from rclpy.node import Node
-from geometry_msgs.msg import PointStamped, PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
+from geometry_msgs.msg import PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from scipy.stats import chi2
@@ -21,7 +20,7 @@ from .noise_models import NoiseModels
 from .initializer import Initializer
 from .visualization import create_pose_msg, create_transform_msg
 from .geometry_utils import residual_z, wrap
-from .motion_model import DepthModel9D, OscillatorModel, SurfaceModel5D, DepthModel7D, PitchModel9D
+from .motion_model import DepthModel, DoubleOscillatorModel, OscillatorModel, PitchModel, SurfaceModel, PitchModel
 
 from std_srvs.srv import Trigger
 
@@ -31,6 +30,8 @@ class EKFNode(Node):
         self.get_params()
 
         self.logger_info_enable : bool = self.get_parameter("logger_info.enable").get_parameter_value().bool_value
+
+        self.log_info(f"Motion model type: {self.motion_model_type}")
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
         self.eps = self.motion_model.eps
@@ -62,6 +63,7 @@ class EKFNode(Node):
         self.ang_vel_map = np.zeros(3)
 
         self.last_innovation_norm = -1.0
+        self.nr_of_consecutive_invalid_measurements = 0
 
         self.initialize_components()
 
@@ -70,6 +72,7 @@ class EKFNode(Node):
         self.q : deque[tuple[PolygonStamped | None, Time | None]] = deque()
         self.timer = self.create_timer(0.01, self.process_q)
         self.status_timer = self.create_timer(0.5, self.publish_status)
+        self.check_time_since_last_meas_timer = self.create_timer(0.01, self.check_time_since_last_measurement)
 
     def log_info(self, msg):
         if self.logger_info_enable:
@@ -112,7 +115,7 @@ class EKFNode(Node):
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                self.current_R_map_cam = self.current_R_map_cam
+                self.current_R_map_cam = self.current_R_map_cam 
                 self.q.popleft()
                 self.z(msg, transform)
                 self.last_processed_measurement_time = arrival
@@ -142,7 +145,7 @@ class EKFNode(Node):
         ray = self.measurement_model.back_projection(uv_img[0], self.current_R_map_cam)
         if ray is None:
             return
-        head = self.initializer.point_on_line_at_z(self.current_cam_pos_map, ray, self.z_water)
+        head = self.initializer.point_on_line_at_z(self.current_cam_pos_map, ray, self.water_surface_height)
         yaw_axis_est = self.ekf.X[2, 0] if self.state_dim == 5 else self.ekf.X[3, 0]
         if head is None:
             return
@@ -166,7 +169,7 @@ class EKFNode(Node):
         # perfoems multiple prediction steps between measurements.
         # this should imporve predictions duering longer time gaps.
 
-        dt_max = 0.1
+        dt_max = 0.01
         n_steps = max(1, int(np.ceil(dt_total / dt_max)))
         dt_step = dt_total / n_steps
         for _ in range(n_steps):
@@ -184,7 +187,6 @@ class EKFNode(Node):
         self.current_transform = transform
         
         z_center_img, z_alpha_img, z_len_px, z_wid_px, _ = self.measurement_model.extract_features(self.pol_to_array(msg))
-        self.log_info(f"Received measurement: center={z_center_img}")
         if not self.ekf.initialized:
             init_result = self.initializer.try_initialize(stamp, z_center_img, z_alpha_img, self.measurement_model, self.current_cam_pos_map, self.current_R_map_cam)
             if init_result is None:
@@ -206,10 +208,16 @@ class EKFNode(Node):
 
         dt : float = t - self.ekf.last_t
 
+        if dt < 0: # due to mismatch between stamp and arrival time, we may receive measurements from the past.
+            self.log_info(f"Measurement from the past received (dt={dt:.3f}s), skipping")
+            return
+
+
         X = self.predict_to_measurement_time(dt)
 
         h = self.measurement_model.hx(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
         if h is None:
+            self.nr_of_consecutive_invalid_measurements += 1
             self.log_info("Measurement function returned None, skipping update")
             return
 
@@ -220,8 +228,12 @@ class EKFNode(Node):
         innov = residual_z(z, h).reshape(z.shape[0], 1)
         self.last_innovation_norm = np.linalg.norm(innov)  
 
-        X, P = self.ekf.update(z, h, H, R_meas)
-        self.log_info(f"Post-update state: {X.flatten()[:3]}")
+        X, P, status = self.ekf.update(z, h, H, R_meas)
+        if status == "outlier" or status == "invalid":
+            self.nr_of_consecutive_invalid_measurements += 1
+        elif status == "updated":
+            self.nr_of_consecutive_invalid_measurements = 0
+        self.log_info(f"Update successful. Post-update state: {X.flatten()[:3]}")
         self.publish_estimate(stamp)
     
     def publish_estimate(self, stamp):
@@ -232,7 +244,7 @@ class EKFNode(Node):
         yaw_out = wrap(yaw_out)
         if self.state_dim == 5:
             q = R.from_euler("z", yaw_out).as_quat()
-        elif self.state_dim == 9:
+        elif self.motion_model_type == "pitch":
             q = R.from_euler("xyz", [0, self.ekf.X[4, 0], yaw_out]).as_quat()
         else:
             q = R.from_euler("z", yaw_out).as_quat()
@@ -242,8 +254,19 @@ class EKFNode(Node):
             self.log_info(">> Almost pubbed without a stamp!")
             return
 
-        self.pub.publish(create_pose_msg(stamp, q, self.map_frame, self.ekf.X, self.ekf.P, self.z_water))
-        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, q, self.map_frame, self.output_frame, self.ekf.X, self.z_water))
+        self.pub.publish(create_pose_msg(stamp, self.motion_model_type, q, self.map_frame, self.ekf.X, self.ekf.P, self.water_surface_height))
+        self.tf_broadcaster.sendTransform(create_transform_msg(stamp, self.motion_model_type, q, self.map_frame, self.output_frame, self.ekf.X, self.water_surface_height))
+
+    def check_time_since_last_measurement(self, max_time_without_meas=0.5):
+        # checks the time since the last measurement and resets the filter if it exceeds a threshold.
+        if self.ekf.last_t is None and not self.ekf.initialized:
+            return
+        now = self.get_clock().now().nanoseconds * 1e-9
+        time_since_last_meas = now - self.ekf.last_t
+        if time_since_last_meas > max_time_without_meas:
+            self.log_info(f"Time since last measurement is {time_since_last_meas:.3f}s, exceeding max time without measurement {max_time_without_meas}s. Predicting to current time.")
+            self.predict_to_measurement_time(time_since_last_meas)
+            self.publish_estimate(self.get_clock().now().to_msg())
 
     def publish_status(self):
         # publishes information regarding the status of the filter.
@@ -251,10 +274,15 @@ class EKFNode(Node):
         # may want to exanp thi.
         msg = Float32MultiArray()
         now = self.get_clock().now().nanoseconds * 1e-9
-        if self.ekf.last_t is None:
-            time_since_last_meas = 0.0
+        if self.last_processed_measurement_time is None:
+            time_since_last_processed_meas = 0.0
         else:
-            time_since_last_meas = now - self.ekf.last_t
+            time_since_last_processed_meas = now - self.last_processed_measurement_time.nanoseconds * 1e-9
+
+        time_since_last_update = now - self.ekf.time_last_update
+        if self.ekf.initialized and time_since_last_update > self.stale_state_age:
+            self.log_info(f"Time since last update is {time_since_last_update:.3f}s, exceeding stale state age {self.stale_state_age}s. Resetting filter.")
+            self.reset_filter()
 
         cov_trace = np.trace(self.ekf.P) if self.ekf.P is not None else -1.0
         if not self.ekf.initialized:
@@ -264,10 +292,13 @@ class EKFNode(Node):
         innovation_norm = getattr(self, "last_innovation_norm", -1.0)
         msg.data = [
             initialized,    # 0 = not initialized, 1 = initialized
-            time_since_last_meas,
+            time_since_last_processed_meas,
+            time_since_last_update,
+            float(self.ekf.nr_of_consecutive_outliers),
+            float(self.nr_of_consecutive_invalid_measurements),
             cov_trace,
             innovation_norm,
-            float(self.ekf.nr_of_consecutive_outliers)]
+            ]
 
         self.pub_status.publish(msg)
 
@@ -279,7 +310,7 @@ class EKFNode(Node):
     
     def reset_filter(self):
         self.ekf = EKFCore(
-            self.z_water,
+            self.water_surface_height,
             state_dim=self.state_dim,
             outlier_threshold=self.outlier_threshold, # type: ignore
             #logger=self.get_logger(),
@@ -297,47 +328,57 @@ class EKFNode(Node):
 
     def get_motion_model(self, model_type):
         if model_type == "surface":
-            return SurfaceModel5D(
-                sigma_a=self.sigma_a,
+            return SurfaceModel(
+                sigma_a=self.sigma_a_xy,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "depth":
-            return DepthModel7D(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+            return DepthModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
             )
         elif model_type == "pitch":
-            return PitchModel9D(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+            return PitchModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
-                sigma_pitch=self.sigma_pitch,
+                sigma_pitch=self.sigma_pitch_process,
             )
         elif model_type == "oscillator":
             return OscillatorModel(
-                sigma_a=self.sigma_a,
-                sigma_z=self.sigma_z,
+                sigma_a=self.sigma_a_xy,
+                sigma_z=self.oscillator_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
+                omega=self.oscillator_omega,
+                zeta=self.oscillator_zeta,
+            )
+        elif model_type == "double_oscillator":
+            return DoubleOscillatorModel(
+                sigma_a=self.sigma_a_xy,
+                sigma_z_slow=self.double_oscillator_sigma_z_slow,
+                sigma_z_fast=self.double_oscillator_sigma_z_fast,
+                sigma_yaw=self.sigma_yaw,
+                omega_slow=self.double_oscillator_omega_slow,
+                zeta_slow=self.double_oscillator_zeta_slow,
+                omega_fast=self.double_oscillator_omega_fast,
+                zeta_fast=self.double_oscillator_zeta_fast,
             )
         else:
             raise ValueError(f"Unknown motion model type: {model_type}")
         
     def initialize_components(self):
         self.initializer = Initializer(
-            z_water=self.z_water,
+            z_water=self.water_surface_height,
             state_dim=self.state_dim,
             init_z_needed=self.init_z_needed,
             init_pos_max_spread=self.init_pos_max_spread,
             init_yaw_max_spread=self.init_yaw_max_spread,
-            init_z_max_spread=self.init_z_max_spread,
-            init_max_depth=self.init_max_depth,
-            init_depth_steps=self.init_depth_steps,
             alpha_line_pixels=self.alpha_line_pixels,
             R_len=self.R_len,
             R_wid=self.R_wid,
             R_alpha=self.R_alpha,
-            motion_model=self.motion_model_type,
+            motion_model_type=self.motion_model_type,
             logger=self.get_logger(),
         )
         self.measurement_model = MeasurementModel(
@@ -350,12 +391,10 @@ class EKFNode(Node):
             height=self.height,
             K=self.K,
             D=self.D,
-            z_water=self.z_water,
-            n_air=self.n_air,
-            n_water=self.n_water,
+            z_water=self.water_surface_height,
             obb_length_m=self.obb_length_m,
             obb_width_m=self.obb_width_m,
-            motion_model=self.motion_model,
+            motion_model_type=self.motion_model_type,
             logger=self.get_logger(),
         )
 
@@ -387,7 +426,7 @@ class EKFNode(Node):
             meas_dim=self.meas_dim,
         )
         self.ekf = EKFCore(
-            self.z_water,
+            self.water_surface_height,
             state_dim=self.state_dim,
             outlier_threshold=self.outlier_threshold, # type: ignore
             logger=self.get_logger(),   
@@ -408,65 +447,74 @@ class EKFNode(Node):
 
             ("camera_info", ""),
 
-            ("z_water", 0.0),
-            ("n_air", 1.0),
-            ("n_water", 1.0),
+            ("environment.water_surface_height", 0.0),
 
             # note that these are dimensions of the AUV in the measurement model (OBB), not necessarily the true dimensions of the AUV.
             ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
             ("obb.width_m", 0.16), # auv width in meters, may need to be adjusted
 
-            ("alpha_line_pixels", 40.0), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
+            ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
 
-            ("sigma_a", 0.01), # m/s^2, could split up into x, y
-            ("sigma_z_process", 0.2), # m/s^2, only z as waves mostly affect depth
-            ("sigma_yaw_process", 3.0), # deg/s
-            ("sigma_pitch_acc_deg", 15.0), # deg/s^2, only for pitch as waves mostly affect pitch
+            ("motion.sigma_a_xy", 0.01), # m/s^2, could split up into x, y
+            ("motion.sigma_yaw", 3.0), # deg/s
+            ("motion.model_type", "double_oscillator"),
+
+            ("depth.sigma_z_process", 1.0), 
+            ("depth.k_z", 0.4),
+            ("depth.d_z", 0.1),
+
+            ("pitch.sigma_pitch_process", 15.0), 
+
+            ("oscillator.sigma_z_process", 5.0),
+            ("oscillator.omega", 2.0),
+            ("oscillator.zeta", 0.01),
+
+            ("double_oscillator.sigma_z_slow", 1.0),
+            ("double_oscillator.sigma_z_fast", 3.0),
+            ("double_oscillator.omega_slow", 1.0),
+            ("double_oscillator.zeta_slow", 0.01),
+            ("double_oscillator.omega_fast", 2.0),
+            ("double_oscillator.zeta_fast", 0.01),
 
             # measurement noise stddev (pixels)
-            ("R_u", 10.0), 
-            ("R_v", 10.0),
-            ("R_alpha_deg", 5.0),
-            ("R_len", 200.0),
-            ("R_wid", 40.0),
+            ("measurement_noise.R_u", 10.0), 
+            ("measurement_noise.R_v", 10.0),
+            ("measurement_noise.R_alpha_deg", 5.0),
+            ("measurement_noise.R_len", 200.0),
+            ("measurement_noise.R_wid", 40.0),
 
             # dynamic measurement noise stddev (pixels)
             # increases with distance from image center
-            ("R_dyn.center_gain_u", 50.0), 
-            ("R_dyn.center_gain_v", 50.0),
-            ("R_dyn.center_gain_alpha_deg", 10.0),
-            ("R_dyn.center_gain_len", 10.0),
-            ("R_dyn.center_gain_wid", 10.0),
+            ("measurement_noise.center_gain_u", 50.0), 
+            ("measurement_noise.center_gain_v", 50.0),
+            ("measurement_noise.center_gain_alpha_deg", 10.0),
+            ("measurement_noise.center_gain_len", 10.0),
+            ("measurement_noise.center_gain_wid", 10.0),
 
             # increases with drone speed
-            ("R_dyn.speed_gain_u", 50.0),
-            ("R_dyn.speed_gain_v", 50.0),
-            ("R_dyn.speed_gain_alpha_deg", 10.0),
-            ("R_dyn.speed_gain_len", 60.0),
-            ("R_dyn.speed_gain_wid", 30.0),
+            ("measurement_noise.speed_gain_u", 50.0),
+            ("measurement_noise.speed_gain_v", 50.0),
+            ("measurement_noise.speed_gain_alpha_deg", 10.0),
+            ("measurement_noise.speed_gain_len", 60.0),
+            ("measurement_noise.speed_gain_wid", 30.0),
+
+            ("measurement_noise.R_dyn_dt", 0.5),
 
             # drone pose noise
-            ("R_pose_x", 0.03),
-            ("R_pose_y", 0.03),
-            ("R_pose_z", 0.03),
-            ("R_pose_r", 1.0),
-            ("R_pose_p", 1.0),
-            ("R_pose_yaw", 3.0),
+            ("camera_pose_noise.R_pose_x", 0.03),
+            ("camera_pose_noise.R_pose_y", 0.03),
+            ("camera_pose_noise.R_pose_z", 0.03),
+            ("camera_pose_noise.R_pose_r", 1.0),
+            ("camera_pose_noise.R_pose_p", 1.0),
+            ("camera_pose_noise.R_pose_yaw", 3.0),
 
             # dynamic measurement noise update rate (s)
-            ("R_dyn_dt", 0.5),
 
-            ("init_z_needed", 5),
-            ("init_pos_max_spread", 2.0),
-            ("init_yaw_max_spread", 0.7),
-            ("init_z_max_spread", 2.0),
-            ("init_min_depth", 0.2),
-            ("init_max_depth", 8.0),
-            ("init_depth_steps", 40),
+            ("initialization.min_valid_meas_needed", 5),
+            ("initialization.max_pos_spread", 2.0),
+            ("initialization.max_yaw_spread", 0.7),
 
             ("gating.prob", 0.99),
-
-            ("logger_info.enable", True),
 
             # jacobian epsilons for numerical differentiation
             ("jacobian.eps_state_pos", 1e-3),
@@ -475,8 +523,7 @@ class EKFNode(Node):
             ("jacobian.eps_pose_pos", 1e-3),
             ("jacobian.eps_pose_ang", 1e-3),
 
-            # "surface", "depth", "pitch", "depth9d"
-            ("motion_model", "oscillator"),
+            ("logger_info.enable", True),
 
             # if the state is older than this many seconds when a new measurement arrives, reset the filter.
             ("stale_state_age", 3.0)
@@ -484,52 +531,64 @@ class EKFNode(Node):
         
         self.declare_parameters(namespace="", parameters=PARAMS)
 
-        self.z_water :float = self.get_parameter("z_water").get_parameter_value().double_value
-        self.n_air :float = self.get_parameter("n_air").get_parameter_value().double_value
-        self.n_water :float = self.get_parameter("n_water").get_parameter_value().double_value
+        self.water_surface_height :float = self.get_parameter("environment.water_surface_height").get_parameter_value().double_value
 
         self.obb_length_m :float = self.get_parameter("obb.length_m").get_parameter_value().double_value
         self.obb_width_m :float = self.get_parameter("obb.width_m").get_parameter_value().double_value
         self.alpha_line_pixels :int = self.get_parameter("alpha_line_pixels").get_parameter_value().integer_value
 
-        self.sigma_a :float = self.get_parameter("sigma_a").get_parameter_value().double_value
-        self.sigma_z :float = self.get_parameter("sigma_z_process").get_parameter_value().double_value
-        self.sigma_yaw :float = np.deg2rad(self.get_parameter("sigma_yaw_process").get_parameter_value().double_value)
-        self.sigma_pitch :float = np.deg2rad(self.get_parameter("sigma_pitch_acc_deg").get_parameter_value().double_value)
-        self.R_u :float = self.get_parameter("R_u").get_parameter_value().double_value
-        self.R_v :float = self.get_parameter("R_v").get_parameter_value().double_value
-        self.R_alpha :float = np.deg2rad(float(self.get_parameter("R_alpha_deg").get_parameter_value().double_value))
-        self.R_len :float = self.get_parameter("R_len").get_parameter_value().double_value
-        self.R_wid :float = self.get_parameter("R_wid").get_parameter_value().double_value
+        self.sigma_a_xy :float = self.get_parameter("motion.sigma_a_xy").get_parameter_value().double_value
+        self.sigma_yaw :float = np.deg2rad(self.get_parameter("motion.sigma_yaw").get_parameter_value().double_value)
 
-        self.R_pose_x :float = self.get_parameter("R_pose_x").get_parameter_value().double_value
-        self.R_pose_y :float = self.get_parameter("R_pose_y").get_parameter_value().double_value
-        self.R_pose_z :float = self.get_parameter("R_pose_z").get_parameter_value().double_value
-        self.R_pose_r :float = np.deg2rad(self.get_parameter("R_pose_r").get_parameter_value().double_value)
-        self.R_pose_p :float = np.deg2rad(self.get_parameter("R_pose_p").get_parameter_value().double_value)
-        self.R_pose_yaw :float = np.deg2rad(self.get_parameter("R_pose_yaw").get_parameter_value().double_value)
+        self.motion_model_type : str = self.get_parameter("motion.model_type").get_parameter_value().string_value
 
-        self.R_dyn_center_gain_u :float = self.get_parameter("R_dyn.center_gain_u").get_parameter_value().double_value
-        self.R_dyn_center_gain_v :float = self.get_parameter("R_dyn.center_gain_v").get_parameter_value().double_value
-        self.R_dyn_center_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.center_gain_alpha_deg").get_parameter_value().double_value)
-        self.R_dyn_center_gain_len :float = self.get_parameter("R_dyn.center_gain_len").get_parameter_value().double_value
-        self.R_dyn_center_gain_wid :float = self.get_parameter("R_dyn.center_gain_wid").get_parameter_value().double_value
+        self.depth_sigma_z_process : float = self.get_parameter("depth.sigma_z_process").get_parameter_value().double_value
+        self.depth_k_z : float = self.get_parameter("depth.k_z").get_parameter_value().double_value
+        self.depth_d_z : float = self.get_parameter("depth.d_z").get_parameter_value().double_value
 
-        self.R_dyn_speed_gain_u :float = self.get_parameter("R_dyn.speed_gain_u").get_parameter_value().double_value
-        self.R_dyn_speed_gain_v :float = self.get_parameter("R_dyn.speed_gain_v").get_parameter_value().double_value
-        self.R_dyn_speed_gain_alpha :float = np.deg2rad(self.get_parameter("R_dyn.speed_gain_alpha_deg").get_parameter_value().double_value)
-        self.R_dyn_speed_gain_len :float = self.get_parameter("R_dyn.speed_gain_len").get_parameter_value().double_value
-        self.R_dyn_speed_gain_wid :float = self.get_parameter("R_dyn.speed_gain_wid").get_parameter_value().double_value
+        self.sigma_pitch_process : float = self.get_parameter("pitch.sigma_pitch_process").get_parameter_value().double_value
 
-        self.R_dyn_dt :float = self.get_parameter("R_dyn_dt").get_parameter_value().double_value
+        self.oscillator_sigma_z_process : float = self.get_parameter("oscillator.sigma_z_process").get_parameter_value().double_value
+        self.oscillator_omega : float = self.get_parameter("oscillator.omega").get_parameter_value().double_value
+        self.oscillator_zeta : float = self.get_parameter("oscillator.zeta").get_parameter_value().double_value
 
-        self.init_z_needed : int = self.get_parameter("init_z_needed").get_parameter_value().integer_value
-        self.init_pos_max_spread :float = self.get_parameter("init_pos_max_spread").get_parameter_value().double_value
-        self.init_yaw_max_spread :float = self.get_parameter("init_yaw_max_spread").get_parameter_value().double_value
-        self.init_z_max_spread :float = self.get_parameter("init_z_max_spread").get_parameter_value().double_value
-        self.init_min_depth :float = self.get_parameter("init_min_depth").get_parameter_value().double_value
-        self.init_max_depth :float = self.get_parameter("init_max_depth").get_parameter_value().double_value
-        self.init_depth_steps :int = self.get_parameter("init_depth_steps").get_parameter_value().integer_value
+        self.double_oscillator_sigma_z_slow : float = self.get_parameter("double_oscillator.sigma_z_slow").get_parameter_value().double_value
+        self.double_oscillator_sigma_z_fast : float = self.get_parameter("double_oscillator.sigma_z_fast").get_parameter_value().double_value
+        self.double_oscillator_omega_slow : float = self.get_parameter("double_oscillator.omega_slow").get_parameter_value().double_value
+        self.double_oscillator_zeta_slow : float = self.get_parameter("double_oscillator.zeta_slow").get_parameter_value().double_value
+        self.double_oscillator_omega_fast : float = self.get_parameter("double_oscillator.omega_fast").get_parameter_value().double_value
+        self.double_oscillator_zeta_fast : float = self.get_parameter("double_oscillator.zeta_fast").get_parameter_value().double_value
+
+        self.R_u :float = self.get_parameter("measurement_noise.R_u").get_parameter_value().double_value
+        self.R_v :float = self.get_parameter("measurement_noise.R_v").get_parameter_value().double_value
+        self.R_alpha :float = np.deg2rad(float(self.get_parameter("measurement_noise.R_alpha_deg").get_parameter_value().double_value))
+        self.R_len :float = self.get_parameter("measurement_noise.R_len").get_parameter_value().double_value
+        self.R_wid :float = self.get_parameter("measurement_noise.R_wid").get_parameter_value().double_value
+
+        self.R_pose_x :float = self.get_parameter("camera_pose_noise.R_pose_x").get_parameter_value().double_value
+        self.R_pose_y :float = self.get_parameter("camera_pose_noise.R_pose_y").get_parameter_value().double_value
+        self.R_pose_z :float = self.get_parameter("camera_pose_noise.R_pose_z").get_parameter_value().double_value
+        self.R_pose_r :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_r").get_parameter_value().double_value)
+        self.R_pose_p :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_p").get_parameter_value().double_value)
+        self.R_pose_yaw :float = np.deg2rad(self.get_parameter("camera_pose_noise.R_pose_yaw").get_parameter_value().double_value)
+
+        self.R_dyn_center_gain_u :float = self.get_parameter("measurement_noise.center_gain_u").get_parameter_value().double_value
+        self.R_dyn_center_gain_v :float = self.get_parameter("measurement_noise.center_gain_v").get_parameter_value().double_value
+        self.R_dyn_center_gain_alpha :float = np.deg2rad(self.get_parameter("measurement_noise.center_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_center_gain_len :float = self.get_parameter("measurement_noise.center_gain_len").get_parameter_value().double_value
+        self.R_dyn_center_gain_wid :float = self.get_parameter("measurement_noise.center_gain_wid").get_parameter_value().double_value
+
+        self.R_dyn_speed_gain_u :float = self.get_parameter("measurement_noise.speed_gain_u").get_parameter_value().double_value
+        self.R_dyn_speed_gain_v :float = self.get_parameter("measurement_noise.speed_gain_v").get_parameter_value().double_value
+        self.R_dyn_speed_gain_alpha :float = np.deg2rad(self.get_parameter("measurement_noise.speed_gain_alpha_deg").get_parameter_value().double_value)
+        self.R_dyn_speed_gain_len :float = self.get_parameter("measurement_noise.speed_gain_len").get_parameter_value().double_value
+        self.R_dyn_speed_gain_wid :float = self.get_parameter("measurement_noise.speed_gain_wid").get_parameter_value().double_value
+
+        self.R_dyn_dt :float = self.get_parameter("measurement_noise.R_dyn_dt").get_parameter_value().double_value
+
+        self.init_z_needed : int = self.get_parameter("initialization.min_valid_meas_needed").get_parameter_value().integer_value
+        self.init_pos_max_spread :float = self.get_parameter("initialization.max_pos_spread").get_parameter_value().double_value
+        self.init_yaw_max_spread :float = np.deg2rad(self.get_parameter("initialization.max_yaw_spread").get_parameter_value().double_value)
 
         self.gating_prob :float = self.get_parameter("gating.prob").get_parameter_value().double_value
 
@@ -576,8 +635,6 @@ class EKFNode(Node):
         else:
             raise RuntimeError("camera_info parameter must be set")
         
-        self.motion_model_type : str = self.get_parameter("motion_model").get_parameter_value().string_value
-
 
 def main():
     rclpy.init()
