@@ -8,8 +8,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     package_name = 'alars_auv_perception'
 
-    robot_name_arg = DeclareLaunchArgument(
-        'robot_name',
+    namespace_arg = DeclareLaunchArgument(
+        'namespace',
         default_value='Quadrotor'
     )
     device_arg = DeclareLaunchArgument(
@@ -33,7 +33,7 @@ def generate_launch_description():
         default_value=''
     )
 
-    robot_name = LaunchConfiguration('robot_name')
+    namespace = LaunchConfiguration('namespace')
     device = LaunchConfiguration('device')
     use_sim_time = LaunchConfiguration('use_sim_time')
     model_package = LaunchConfiguration('model_package')
@@ -56,12 +56,12 @@ def generate_launch_description():
     detector_node = Node(
         package=package_name,
         executable='alars_yolo_detector',
-        namespace=robot_name,
+        namespace=namespace,
         output='screen',
         parameters=[
             detection_config,
             {
-                'namespace': robot_name,
+                'namespace': namespace,
                 'device': device,
                 'use_sim_time': use_sim_time,
                 'model_path': model_path,
@@ -71,13 +71,13 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        robot_name_arg,
+        namespace_arg,
         device_arg,
         use_sim_time_arg,
         model_package_arg,
         model_file_arg,
         raw_image_topic_arg,
-        LogInfo(msg=['[Launch] robot_name = ', robot_name]),
+        LogInfo(msg=['[Launch] namespace = ', namespace]),
         LogInfo(msg=['[Launch] device = ', device]),
         LogInfo(msg=['[Launch] use_sim_time = ', use_sim_time]),
         LogInfo(msg=['[Launch] model package = ', model_package]),
