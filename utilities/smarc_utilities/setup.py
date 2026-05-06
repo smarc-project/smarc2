@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             'simple_tts = smarc_utilities.tts:main',
             'beckholmen_vis = smarc_utilities.beckholmen_vis:main',
+            'internet_checker = smarc_utilities.internet_checker:main',
         ],
     },
 )
