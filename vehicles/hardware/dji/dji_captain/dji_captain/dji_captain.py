@@ -829,12 +829,18 @@ class DjiCaptain():
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
 
+        if not self._tf_buffer.can_transform(self.MAP_FRAME, self.BASE_FLAT_FRAME, Time()):
+            self.logwarn(f"Cannot transform from {self.BASE_FLAT_FRAME} to {self.MAP_FRAME} yet, waiting for TF to be available...")
+            self._vehicle_health_pub.publish(self._vehicle_health)
+            return
+        
         if not self._got_release_control_srv:
             self.log("Acquiring release control service...")
             self._got_release_control_srv = self._release_control_srv.wait_for_service(timeout_sec=1.0)
             if not self._got_release_control_srv:
                 self.logerr("Release control service not available...\nCaptain will do nothing but wait for this...\nTo fix, run PSDK ROS Wrapper OR sim+ros bridge.")
                 return
+            
             
 
         # if we made it here, then we got all the sensor happy
