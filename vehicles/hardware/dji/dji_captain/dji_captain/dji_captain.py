@@ -275,7 +275,6 @@ class DjiCaptain():
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
         self._tf_timer = node.create_timer(0.1, self._publish_tf)
-        # the publish method will cancel this timer if it successfully publishes the static transforms, so it will only run until the transforms are successfully published once.
         self._static_tf_timer = node.create_timer(1.0, self._publish_static_tf) 
         self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
         self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
@@ -792,11 +791,6 @@ class DjiCaptain():
             self._vehicle_health_pub.publish(self._vehicle_health)
             return
         
-        if self._home_point_in_utm is None:
-            self.logwarn(f"Home point in UTM not set, waiting.")
-            self._vehicle_health_pub.publish(self._vehicle_health)
-            return
-        
         if self._esc_data is None:
             self.logwarn(f"ESC data not received yet, waiting.")
             self._vehicle_health_pub.publish(self._vehicle_health)
@@ -907,16 +901,15 @@ class DjiCaptain():
         self._static_tf_pub.sendTransform(home_tf)
 
         # home point in UTM, but at water surface = map frame
-        home_surface_tf = TransformStamped()
-        home_surface_tf.header.stamp = now
-        home_surface_tf.header.frame_id = DjiLinks.UTM
-        home_surface_tf.child_frame_id = self.MAP_FRAME
-        home_surface_tf.transform.translation.x = self._home_point_in_utm.point.x
-        home_surface_tf.transform.translation.y = self._home_point_in_utm.point.y
-        home_surface_tf.transform.translation.z = 0.0
-        self._static_tf_pub.sendTransform(home_surface_tf)
-
-        self._static_tf_timer.cancel() # only publish static tf once
+        map_tf = TransformStamped()
+        map_tf.header.stamp = now
+        map_tf.header.frame_id = self.ODOM_FRAME # == home_frame
+        map_tf.child_frame_id = self.MAP_FRAME
+        map_tf.transform.translation.x = 0.0
+        map_tf.transform.translation.y = 0.0
+        # home is above water somewhere, map is at water level, so the transform is just moving down
+        map_tf.transform.translation.z = -self._home_point_in_utm.point.z 
+        self._static_tf_pub.sendTransform(map_tf)
 
             
     

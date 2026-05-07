@@ -11,6 +11,8 @@ import traceback
 from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStamped, Quaternion
 from geometry_msgs.msg import PointStamped
 
+from tf2_ros import Buffer, TransformListener
+
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from dji_msgs.msg import Topics as DJITopics
 from alars.alars_common import DroneState
@@ -85,7 +87,9 @@ class RecoverAction():
         self._auv_in_map.header = msg.header
         if self._auv_in_map.header.frame_id != self._drone_state.MAP_FRAME:
             try:
-                self._auv_in_map = self._drone_state.pose_stamped_in_map(self._auv_in_map)
+                in_map = self._drone_state.pose_stamped_in_map(self._auv_in_map)
+                if in_map is not None:
+                    self._auv_in_map = in_map
             except Exception as e:
                 self._loginfo(f"Could not transform object position into MAP frame: {e}")
                 traceback.print_exc()
@@ -97,7 +101,9 @@ class RecoverAction():
         self._buoy_in_map.header = msg.header
         if self._buoy_in_map.header.frame_id != self._drone_state.MAP_FRAME:
             try:
-                self._buoy_in_map = self._drone_state.pose_stamped_in_map(self._buoy_in_map)
+                in_map = self._drone_state.pose_stamped_in_map(self._buoy_in_map)
+                if in_map is not None:
+                    self._buoy_in_map = in_map
             except Exception as e:
                 self._loginfo(f"Could not transform buoy position into MAP frame: {e}")
                 traceback.print_exc()

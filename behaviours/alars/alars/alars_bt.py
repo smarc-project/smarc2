@@ -23,6 +23,7 @@ from std_msgs.msg import String, Float32, Int32
 from geographic_msgs.msg import GeoPointStamped, GeoPoint
 from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStamped
 
+from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
 from smarc_action_base.gentler_action_server import GentlerActionServer
@@ -81,8 +82,10 @@ class AlarsBT():
             self._node.declare_parameter('auv_esitmate_max_age', 5.0)
             self.AUV_ESTIMATE_MAX_AGE : float = self._node.get_parameter('auv_esitmate_max_age').get_parameter_value().double_value
             self._auv_position_estimate : PoseWithCovarianceStamped | None = None
+            self._last_known_auv_geopoint : GeoPoint|None = None
             def auv_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._auv_position_estimate = msg
+                self._last_known_auv_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
                                            auv_position_estimate_cb,
