@@ -82,10 +82,8 @@ class AlarsBT():
             self._node.declare_parameter('auv_esitmate_max_age', 5.0)
             self.AUV_ESTIMATE_MAX_AGE : float = self._node.get_parameter('auv_esitmate_max_age').get_parameter_value().double_value
             self._auv_position_estimate : PoseWithCovarianceStamped | None = None
-            self._last_known_auv_geopoint : GeoPoint|None = None
             def auv_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._auv_position_estimate = msg
-                self._last_known_auv_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
                                            auv_position_estimate_cb,
@@ -425,7 +423,7 @@ class AlarsBT():
             title = "Search local",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._last_known_auv_geopoint is not None and self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._auv_position_estimate is not None and self._search_fail_count < float(self._goal['num_retries']),
             pre_title = "Have seen AUV at least once and retries not exceeded",
             act = Fallback("FB Search local", memory=True, children=[
                 do_search_local,
@@ -442,7 +440,7 @@ class AlarsBT():
             title = "Search global",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._last_known_auv_geopoint is None and self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._search_fail_count < float(self._goal['num_retries']),
             pre_title = "Havent seen AUV before and retries not exceeded",
             act = Fallback("FB Search global", memory=True, children=[
                 do_search_global,
