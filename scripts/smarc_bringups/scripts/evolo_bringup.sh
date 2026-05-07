@@ -166,7 +166,21 @@ col(
         var(EXTERNAL_CTRL_ACTION_CMD),
         var(EMERGENCY_ACTION_CMD),
     )
-)" 
+)"
+
+# SMaRC Basic actions
+GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME \
+-p map_frame:=$ROBOT_NAME/odom"
+
+HUMAN_LOG_CMD="ros2 run smarc_basic log_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+WAIT_CMD="ros2 run smarc_basic wait_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+
+tmux_make_layout "$SESSION" BasicActions "
+row(
+    col(var(GEOFENCE_CMD), var(HUMAN_LOG_CMD)),
+    col(var(WAIT_CMD))
+)"
 
 # Health monitoring
 HEALTH_MONITORING_CMD="ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' "
