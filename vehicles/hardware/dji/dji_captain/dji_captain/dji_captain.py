@@ -603,15 +603,22 @@ class DjiCaptain():
         # if RC is touched by user, we give up control
         if not self._got_control: return
 
-        deadband = 100
-        if np.abs(msg.axes[0]) > deadband or np.abs(msg.axes[1]) > deadband or np.abs(msg.axes[2]) > deadband or np.abs(msg.axes[3]) > deadband:
-            self.logwarn("RC touched, giving up control.")
+        def give_up():
             self._got_control = False # even if the service call fails, we assume we lost control!
             self._release_control_srv.call_async(Trigger.Request()).add_done_callback(
                 lambda future: self.log(f"Release control service called, success: {future.result().success}, message: {future.result().message}")
             )
         
-        # self.log(f"RC buttons: {msg.buttons}")
+        deadband = 100
+        if np.abs(msg.axes[0]) > deadband or np.abs(msg.axes[1]) > deadband or np.abs(msg.axes[2]) > deadband or np.abs(msg.axes[3]) > deadband:
+            self.logwarn("RC Joysticks touched, giving up control.")
+            give_up()
+
+        # buttons[0] is the mode switch on the RC.
+        if msg.buttons[0] != 8000:
+            self.logwarn("RC mode is not N, giving up control.")
+            give_up()
+        
 
 
     ############
