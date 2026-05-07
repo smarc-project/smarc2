@@ -88,7 +88,7 @@ tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 # 1 Captains
 ############
 if [[ "$ROBOT_NAME" == "M350" ]]; then
-    MAX_LOAD_KG="4.0"
+    MAX_LOAD_KG="7.0"
     MIN_ALTITUDE_ABOVE_WATER="1.5"
 elif [[ "$ROBOT_NAME" == "FC30" ]]; then
     MAX_LOAD_KG="30.0"

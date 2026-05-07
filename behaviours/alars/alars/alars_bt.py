@@ -171,6 +171,7 @@ class AlarsBT():
         self._search_fail_count : int = 0
         self._recover_fail_count : int = 0
         self._vulture_timeout_count : int = 0
+        self._recovery_success : bool = False
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
         self.log("States reset")
@@ -246,7 +247,7 @@ class AlarsBT():
 
 
         status = self._bt.root.status
-        if self._is_auv_hanging:
+        if self._recovery_success:
             self.log("We have ALARS'd")
             self._reset_states()
             return True
@@ -331,7 +332,11 @@ class AlarsBT():
         self._recover_fail_count += 1
         return True
     
+    def _check_recovery_success(self) -> bool:
+        self._recovery_success = self._is_auv_hanging
+        return self._recovery_success
 
+    
 
     def _post_pre_act(self,
                       title: str,
@@ -369,12 +374,13 @@ class AlarsBT():
 
         do_recover_with_buoy = Sequence("SQ Do recover with buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_with_buoy),
-            self.act_recover_bouy
+            self.act_recover_bouy,
+            FuncToStatus("Check success", self._check_recovery_success)
         ])
 
         recover_with_buoy = self._post_pre_act(
             title = "Recover with buoy",
-            post_condition = lambda: self._is_auv_hanging,
+            post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
             pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_buoy_position_live and self._is_auv_position_live,
             pre_title = "Can retry, AUV position is live",
@@ -386,12 +392,13 @@ class AlarsBT():
 
         do_recover_without_buoy = Sequence("SQ Do recover without buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_without_buoy),
-            self.act_recover_no_bouy
+            self.act_recover_no_bouy,
+            FuncToStatus("Check success", self._check_recovery_success)
         ])
 
         recover_without_buoy = self._post_pre_act(
             title = "Recover without buoy",
-            post_condition = lambda: self._is_auv_hanging,
+            post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
             pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_auv_position_live and self._vulture_timeout_count >= len(self.VULTURE_RANGES),
             pre_title = "Can retry, AUV position is live and vulture t/o cnt exceeded",
