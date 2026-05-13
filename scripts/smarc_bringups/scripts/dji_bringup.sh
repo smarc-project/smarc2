@@ -92,7 +92,7 @@ if [[ "$ROBOT_NAME" == "M350" ]]; then
     MIN_ALTITUDE_ABOVE_WATER="1.5"
 elif [[ "$ROBOT_NAME" == "FC30" ]]; then
     MAX_LOAD_KG="30.0"
-    MIN_ALTITUDE_ABOVE_WATER="5.0"
+    MIN_ALTITUDE_ABOVE_WATER="3.0"
 else # this should never happen due to the earlier check, but just in case
     echo "Invalid robot name: $ROBOT_NAME"
     echo "Please pass either M350 or FC30 as the first argument."
