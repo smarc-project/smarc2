@@ -86,7 +86,7 @@ class DjiCaptain():
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : Timer | None = None
         self.JOY_PUB_MAX = 1.5
-        self.JOY_PUB_PERIOD = .1
+        self.JOY_PUB_PERIOD = 1.0 / 50.0
         self._prev_joy_output : np.ndarray | None = None
         self._last_pubbed_fluvel_joy : Joy | None = None
         

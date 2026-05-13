@@ -152,11 +152,12 @@ class ServiceCaller():
             joy_msg.header.stamp = self._node.get_clock().now().to_msg()
             self.FLU_vel_joy_pub.publish(joy_msg)
 
-        timer = self._node.create_timer(0.1, pub) 
+        period = 1.0/55.0
+        timer = self._node.create_timer(period, pub) 
 
         end_time = time.time() + duration
         while time.time() < end_time:
-            rclpy.spin_once(self._node, timeout_sec=0.1)
+            rclpy.spin_once(self._node, timeout_sec=period)
             dt = end_time - time.time()
             if dt <= 0:
                 break

@@ -220,7 +220,7 @@ if [[ "$NO_CAM" == "True" ]]; then
 else
     YOLO_DEVICE=0
     CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
-    YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: alars_labeling_training/trained_models
+    YOLO_MODEL="yolo_model_2cls_may.pt" # Options: alars_labeling_training/trained_models
     if [[ $USE_SIM_TIME = "True" ]]; then
         YOLO_DEVICE=cpu
         CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
