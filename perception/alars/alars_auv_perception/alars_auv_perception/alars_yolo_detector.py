@@ -135,6 +135,9 @@ class YOLODetector(Node):
         try:
             self.yolo_model = YOLO(self.model_params['model_path'])
             self.yolo_model.info()
+            self.yolo_model.to(self.model_params['device'])
+            self.yolo_model.fuse()
+
         except Exception as e:
             self.get_logger().warn(
                 "\n\nYOLO model import failed; check model_path.\n"
