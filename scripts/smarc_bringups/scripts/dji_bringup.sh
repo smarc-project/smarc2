@@ -74,6 +74,23 @@ fi
 #     export ROS_DOMAIN_ID=""
 # fi
 
+########
+# PARAMS
+########
+if [[ $ROBOT_NAME == "M350" ]]; then
+    AUV_WEIGHT_KG=2.0
+    MAX_LOAD_KG="7.0"
+    MIN_ALTITUDE_ABOVE_WATER="1.5"
+elif [[ $ROBOT_NAME == "FC30" ]]; then
+    AUV_WEIGHT_KG=10.0
+    MAX_LOAD_KG="30.0"
+    MIN_ALTITUDE_ABOVE_WATER="3.0"
+fi
+AUV_BUOY_LINE_LENGTH=5.0
+
+EKF_STALENESS_SECONDS=3.0 # how old do we consider the ekf estimate usable
+ALARS_RECOVER_SETPOINT_TOLERANCE=0.2 
+WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0 # Grace period before WASP BT drops stale action servers from available task list.
 
 # create a tmux session with a name
 tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
@@ -87,19 +104,6 @@ tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 ############
 # 1 Captains
 ############
-if [[ "$ROBOT_NAME" == "M350" ]]; then
-    MAX_LOAD_KG="7.0"
-    MIN_ALTITUDE_ABOVE_WATER="1.5"
-elif [[ "$ROBOT_NAME" == "FC30" ]]; then
-    MAX_LOAD_KG="30.0"
-    MIN_ALTITUDE_ABOVE_WATER="3.0"
-else # this should never happen due to the earlier check, but just in case
-    echo "Invalid robot name: $ROBOT_NAME"
-    echo "Please pass either M350 or FC30 as the first argument."
-    echo "Exiting."
-    exit 1
-fi
-
 CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
     robot_name:=$ROBOT_NAME \
     use_sim_time:=$USE_SIM_TIME \
@@ -157,13 +161,13 @@ ALARS_SEARCH_CMD="ros2 run alars alars_search_action_server --ros-args -r __ns:=
 -p min_setpoint_distance_to_drone:=1.0 \
 -p detection_freshness_threshold:=1.0"
 
-EKF_STALENESS_SECONDS=3.0
+
 ALARS_FOLLOW_AUV_CMD="ros2 run alars alars_follow_auv_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p detection_freshness_threshold:=$EKF_STALENESS_SECONDS"
 
-ALARS_RECOVER_SETPOINT_TOLERANCE=0.2
+
 if [[ $USE_SIM_TIME = "True" ]]; then
     ALARS_RECOVER_SETPOINT_TOLERANCE=0.25
 fi
@@ -171,7 +175,7 @@ ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p setpoint_tolerance:=$ALARS_RECOVER_SETPOINT_TOLERANCE \
--p max_rope_length:=5.0"
+-p max_rope_length:=$AUV_BUOY_LINE_LENGTH"
 
 ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
@@ -188,9 +192,6 @@ col(
 ############
 # 3 BTs
 ############
-# Grace period before WASP BT drops stale action servers from available task list.
-WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0
-
 WASP_BT_CMD="ros2 launch wasp_bt wasp_bt.launch \
 robot_name:=$ROBOT_NAME \
 agent_type:=air \
@@ -199,11 +200,12 @@ use_sim_time:=$USE_SIM_TIME \
 bt_health_timeout:=5.0 \
 task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
 
-LOADED_WEIGHT_KG=1.8 # real empty sam + hook + rope weight is 1.78kg, just the hook and rope is 0.79kg
+
+
 ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
--p loaded_weight_kg:=$LOADED_WEIGHT_KG \
+-p AUV_WEIGHT_KG:=$AUV_WEIGHT_KG \
 -p max_detection_age:=15.0"
 
 ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/alars_bt/status std_msgs/msg/String --field data"
