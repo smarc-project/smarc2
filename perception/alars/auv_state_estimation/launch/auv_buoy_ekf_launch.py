@@ -32,8 +32,12 @@ def generate_launch_description():
     auv_link_out = Links.ESTIMATED_AUV
     buoy_link_out = Links.ESTIMATED_BUOY
 
-    auv_length = "1.3"
-    auv_width = "0.16"
+    # fake-sam measurements
+    # auv_length = "1.3"
+    # auv_width = "0.16"
+    # micro-sam measurements
+    auv_length = "0.0124"
+    auv_width = "0.0013"
 
     buoy_length = "0.27"
     buoy_width = "0.09"

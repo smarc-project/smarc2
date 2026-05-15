@@ -1,7 +1,7 @@
 from auv_state_estimation import ekf_node
 from dji_msgs.msg import Topics, Links
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -79,7 +79,6 @@ def generate_launch_description():
         name="ekf_node",
         output="screen",
         parameters=[
-            robot_name,
             params_file,
             {
                 "robot_name": robot_name,
@@ -105,6 +104,8 @@ def generate_launch_description():
         obb_width_arg,
         cov_pose_out_arg,
         stale_state_age_arg,
-        ekf_node
+        ekf_node,
+        LogInfo(msg=['[Launch] ekf_params file = ', params_file]),
+        LogInfo(msg=['[Launch] camera_calibration_file = ', cam_calib_file]),
     ])
 
