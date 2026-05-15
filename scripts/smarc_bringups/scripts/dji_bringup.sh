@@ -283,12 +283,9 @@ if [[ $NO_CAM == "True" ]]; then
 else
     GIMBAL_IP=192.168.1.108
     GIMBAL_PORT=2332
-    # changing resolution requires re-calibrating the cam.
-    GIMBAL_IMG_WIDTH=1920
-    GIMBAL_IMG_HEIGHT=1080
     GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! \
     rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! \
-    video/x-raw,width=$GIMBAL_IMG_WIDTH,height=$GIMBAL_IMG_HEIGHT,format=BGRx ! \
+    video/x-raw,format=BGRx ! \
     videoconvert ! queue max-size-buffers=1 leaky=downstream"
     GIMBAL_CAM_TOPIC_NS=gimbal_camera
     GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
