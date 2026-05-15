@@ -258,16 +258,12 @@ GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAM
 HUMAN_LOG_CMD="ros2 run smarc_basic log_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 WAIT_CMD="ros2 run smarc_basic wait_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
-
-CTRL_MODE_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/control_mode psdk_interfaces/msg/ControlMode"
-RC_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/rc sensor_msgs/msg/Joy"
-
 INTERNET_CHECKER_CMD="ros2 run smarc_utilities internet_checker --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
 tmux_make_layout "$SESSION" BasicActions "
 row(
     col(var(GEOFENCE_CMD), var(HUMAN_LOG_CMD), var(WAIT_CMD)),
-    col(var(CTRL_MODE_PUB_CMD), var(RC_PUB_CMD), var(INTERNET_CHECKER_CMD))
+    col(var(INTERNET_CHECKER_CMD))
 )"
 
 

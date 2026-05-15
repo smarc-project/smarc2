@@ -71,7 +71,8 @@ class ServiceCaller():
             commands += "  6: Land\n"
             commands += "  z: Turn ON Props\n"
             commands += "  c: Turn OFF Props\n"
-            commands += "  g: Cam down\n"
+            commands += "  g: Gimbal down\n"
+            commands += "  gc: Gimbal command\n"
             commands += "  9: Joytest\n"
             commands += "  0: EXIT\n"
             commands += "Enter command: "
@@ -98,6 +99,9 @@ class ServiceCaller():
                     print(f"Turn OFF props response: {res.success}")
                 elif user_input == "g":
                     self.gimbal(0.0,90.0,0.0)
+                elif user_input == "gc":
+                    roll, pitch, yaw = input("Enter gimbal roll,pitch,yaw angles in degrees (comma-separated): ").split(",")
+                    self.gimbal(float(roll), float(pitch), float(yaw))
                 elif user_input == "0":
                     print("Exiting...")
                     sys.exit(0)
