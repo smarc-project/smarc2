@@ -40,13 +40,37 @@ Launches everything related to DJI drones and the ALARS project.
 
 - Required manual setup: (TODO declare dependencies etc.)
 
+  - `apt install ros-humble-rmw-zenoh-cpp`
   - `messages/psdk_interfaces`
   - `drivers/nau7802_ros2_driver` (requires `pip3 install cedargrove-nau7802 circup`)
   - `drivers/z1_pro_driver` (requires `apt install geographiclib-tools libgeographic-dev ros-humble-compressed-image-transport gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-base  gstreamer1.0-libav`)
   - auv_yolo_detector has requirements that need special care, check its readme!
   - rosboard: (`cd ~/colcon_ws/src && git clone https://github.com/dheera/rosboard`, `pip3 install tornado simplejpeg`, `ros2 run rosboard rosboard_node`)
   - rosshow: (`cd ~/colcon_ws/src && git clone https://github.com/dheera/rosshow`)
-  - Set discovery server stuff as described in `scripts/README.md ## ROS2 over a VPN`
+
+#### RMW Zenoh setup
+Replace `ROS_DOMAIN_ID` and `$JETSON_IP` etc. with what makes sense for your specific case if you're not ALARS.
+
+##### Jetson side .bashrc
+
+```
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+```
+
+To make the Jetson connectable from outside, you need to run the zenoh daemon like: `DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"`.
+
+**Do NOT** put the export command into anything that runs for every terminal (like bashrc). You want the export to only happen for the zenoh router!
+
+
+##### User side .bashrc
+
+```
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/'"$JETSON_IP"':7447", "tcp/'"$JETSON_IP_WG"':7447"];scouting/multicast/enabled=false'
+```
+
 
 #### Camera calibration
 `apt install ros-humble-camera-calibration`

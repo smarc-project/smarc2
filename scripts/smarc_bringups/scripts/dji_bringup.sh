@@ -113,7 +113,7 @@ CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
 CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data"
 WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper"
 # DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
-DISCOVERY_SERVER_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
+DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"
 SERVICE_CALLER_CMD="ros2 run dji_captain service_caller --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p robot_name:=$ROBOT_NAME"
 ALARS_SERVICES_CMD="ros2 launch dji_captain alars_services.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 
