@@ -293,7 +293,6 @@ else
         -r __ns:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS"
     GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
         robot_name:=$ROBOT_NAME \
-        tf_frame_prefix:=$ROBOT_NAME/ \
         camera_ip:=$GIMBAL_IP \
         camera_port:=$GIMBAL_PORT \
         camera_below_base:=True"
