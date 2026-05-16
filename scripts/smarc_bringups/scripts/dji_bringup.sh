@@ -87,6 +87,12 @@ elif [[ $ROBOT_NAME == "FC30" ]]; then
     MIN_ALTITUDE_ABOVE_WATER="3.0"
 fi
 AUV_BUOY_LINE_LENGTH=5.0
+# fake-sam measurements
+AUV_LENGTH_M=1.3
+AUV_WIDTH_M=0.16
+# micro-sam measurements
+# AUV_LENGTH_M=0.0124
+# AUV_WIDTH_M=0.0013
 
 EKF_STALENESS_SECONDS=3.0 # how old do we consider the ekf estimate usable
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2 
@@ -241,7 +247,9 @@ else
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
     auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
-    buoy_ekf_staleness_seconds:=10.0
+    buoy_ekf_staleness_seconds:=10.0 \
+    auv_length_m:=$AUV_LENGTH_M \
+    auv_width_m:=$AUV_WIDTH_M
     "
 fi
 
