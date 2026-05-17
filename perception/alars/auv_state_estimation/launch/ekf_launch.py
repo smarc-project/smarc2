@@ -85,7 +85,7 @@ def generate_launch_description():
                 "use_sim_time": use_sim_time,
                 "topics.input_polygon": poly_in,
                 "frames.output_link": link_out,
-                "frames.camera": Links.GIMBAL_CAMERA_LINK,
+                "frames.camera": Links.GIMBAL_OPTICAL_FRAME,
                 "camera_info": cam_calib_file,
                 "obb.length_m": obb_length,
                 "obb.width_m": obb_width,
