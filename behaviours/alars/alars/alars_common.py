@@ -3,7 +3,8 @@
 import numpy as np
 
 from rclpy.node import Node
-from rclpy.time import Time, Duration
+from rclpy.time import Time
+from rclpy.duration import Duration
 
 from std_msgs.msg import String
 from geometry_msgs.msg import  PointStamped, PoseStamped
@@ -33,22 +34,17 @@ class DroneState():
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
 
-        self._tf_buffer : Buffer = Buffer()
-        self._tf_listener : TransformListener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+        def _pose_in_map_cb(msg: PoseStamped):
+            if msg.header.frame_id != self.MAP_FRAME:
+                self._loginfo(f"Received pose in map topic, but frame_id is {msg.header.frame_id} instead of expected {self.MAP_FRAME}. Ignoring.")
+                return
+            self._drone_in_map = msg
 
-        found = False
-        while not found:
-            try:
-                self._odom_to_map_tf = self._tf_buffer.lookup_transform(self.MAP_FRAME, self.ODOM_FRAME, Time(), Duration(seconds=1))
-                found = True
-            except Exception as e:
-                self._node.get_logger().info(f"Waiting for transform from {self.ODOM_FRAME} to {self.MAP_FRAME}...")
-        
-        self._node.create_subscription(Odometry,
-                                       SmarcTopics.ODOM_TOPIC,
-                                       self._odom_cb,
+        self._node.create_subscription(PoseStamped,
+                                       DJITopics.BASE_LINK_IN_MAP_TOPIC,
+                                       _pose_in_map_cb,
                                        10)
-        
+
         def _utm_frame_cb(msg: String):
             self._utm_frame = msg.data
 
@@ -56,16 +52,10 @@ class DroneState():
                                        DJITopics.LABELED_UTM_TOPIC,
                                        _utm_frame_cb,
                                        10)
-
-
-    def _odom_cb(self, drone_in_odom: Odometry):
-        drone_in_odom_ps : PoseStamped = PoseStamped()
-        drone_in_odom_ps.header = drone_in_odom.header
-        drone_in_odom_ps.pose = drone_in_odom.pose.pose
-        try:
-            self._drone_in_map = do_transform_pose_stamped(drone_in_odom_ps, self._odom_to_map_tf)
-        except Exception as e:
-            self._node.get_logger().error(f"Error transforming drone pose from odom to map: {e}")
+        
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
+            
 
     @property
     def drone_in_map(self) -> PoseStamped|None:
@@ -118,12 +108,16 @@ class DroneState():
         
         return False
 
-    def geopoint_to_pose_stamped_map(self, gp: GeoPoint) -> PoseStamped:
+    def geopoint_to_pose_stamped_map(self, gp: GeoPoint) -> PoseStamped|None:
         in_utm : PointStamped = convert_latlon_to_utm(gp)
         in_utm_pose : PoseStamped = PoseStamped()
         in_utm_pose.header = in_utm.header
         in_utm_pose.pose.position = in_utm.point
         in_utm_pose.pose.position.z = gp.altitude  # keep the altitude from the GeoPoint as is
+
+        if not self._tf_buffer.can_transform(self.MAP_FRAME, in_utm_pose.header.frame_id, Time(seconds=0)):
+            self._loginfo(f"Cannot transform pose in frame <{in_utm_pose.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+            return None
 
         tf = self._tf_buffer.lookup_transform(
             target_frame = self.MAP_FRAME,
@@ -140,7 +134,11 @@ class DroneState():
         if self._utm_frame is None:
             self._loginfo("UTM frame not set yet, cannot convert pose to geopoint.")
             return None
-        
+
+        if not self._tf_buffer.can_transform(self._utm_frame, pose.header.frame_id, Time(seconds=0)):
+            self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self._utm_frame}> frame.")
+            return None
+
         tf = self._tf_buffer.lookup_transform(
             target_frame = self._utm_frame,
             source_frame = pose.header.frame_id,
@@ -158,10 +156,14 @@ class DroneState():
         return convert_utm_to_latlon(in_utm)
         
 
-    def pose_stamped_in_map(self, pose: PoseStamped) -> PoseStamped:
+    def pose_stamped_in_map(self, pose: PoseStamped) -> PoseStamped|None:
         if pose.header.frame_id == self.MAP_FRAME:
             return pose
         else:
+            if not self._tf_buffer.can_transform(self.MAP_FRAME, pose.header.frame_id, Time(seconds=0)):
+                self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+                return None
+            
             tf = self._tf_buffer.lookup_transform(
                 target_frame = self.MAP_FRAME,
                 source_frame = pose.header.frame_id,

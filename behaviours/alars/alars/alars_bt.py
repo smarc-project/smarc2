@@ -23,6 +23,7 @@ from std_msgs.msg import String, Float32, Int32
 from geographic_msgs.msg import GeoPointStamped, GeoPoint
 from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStamped
 
+from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
 from smarc_action_base.gentler_action_server import GentlerActionServer
@@ -81,10 +82,8 @@ class AlarsBT():
             self._node.declare_parameter('auv_esitmate_max_age', 5.0)
             self.AUV_ESTIMATE_MAX_AGE : float = self._node.get_parameter('auv_esitmate_max_age').get_parameter_value().double_value
             self._auv_position_estimate : PoseWithCovarianceStamped | None = None
-            self._last_known_auv_geopoint : GeoPoint | None = None
             def auv_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._auv_position_estimate = msg
-                self._last_known_auv_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
                                            auv_position_estimate_cb,
@@ -93,10 +92,8 @@ class AlarsBT():
             self._node.declare_parameter('buoy_esitmate_max_age', 5.0)
             self.BUOY_ESTIMATE_MAX_AGE : float = self._node.get_parameter('buoy_esitmate_max_age').get_parameter_value().double_value
             self._buoy_position_estimate : PoseWithCovarianceStamped | None = None
-            self._last_known_buoy_geopoint : GeoPoint | None = None
             def buoy_position_estimate_cb(msg: PoseWithCovarianceStamped):
                 self._buoy_position_estimate = msg
-                self._last_known_buoy_geopoint = self._drone_state.pose_to_geopoint(msg)
             self._node.create_subscription(PoseWithCovarianceStamped,
                                            DJITopics.PROJECTED_BUOY_POSE_WITH_COV_TOPIC,
                                            buoy_position_estimate_cb,
@@ -174,6 +171,7 @@ class AlarsBT():
         self._search_fail_count : int = 0
         self._recover_fail_count : int = 0
         self._vulture_timeout_count : int = 0
+        self._recovery_success : bool = False
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
         self.log("States reset")
@@ -249,7 +247,7 @@ class AlarsBT():
 
 
         status = self._bt.root.status
-        if self._is_auv_hanging:
+        if self._recovery_success:
             self.log("We have ALARS'd")
             self._reset_states()
             return True
@@ -302,12 +300,13 @@ class AlarsBT():
         })
     
     def _set_goal_search_local(self) -> bool:
-        if self._last_known_auv_geopoint is None: return False
+        last_known_auv_geopoint = self._drone_state.pose_to_geopoint(self._auv_position_estimate) if self._auv_position_estimate is not None else None
+        if last_known_auv_geopoint is None: return False
 
         return self._set_goal(self.act_search_local, {
             "search_position": {
-                "latitude": self._last_known_auv_geopoint.latitude,
-                "longitude": self._last_known_auv_geopoint.longitude,
+                "latitude": last_known_auv_geopoint.latitude,
+                "longitude": last_known_auv_geopoint.longitude,
                 "altitude": self._goal["search_position"]["altitude"],
                 "tolerance": self.LOCAL_SEARCH_RADIUS
             }
@@ -333,7 +332,11 @@ class AlarsBT():
         self._recover_fail_count += 1
         return True
     
+    def _check_recovery_success(self) -> bool:
+        self._recovery_success = self._is_auv_hanging
+        return self._recovery_success
 
+    
 
     def _post_pre_act(self,
                       title: str,
@@ -371,12 +374,13 @@ class AlarsBT():
 
         do_recover_with_buoy = Sequence("SQ Do recover with buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_with_buoy),
-            self.act_recover_bouy
+            self.act_recover_bouy,
+            FuncToStatus("Check success", self._check_recovery_success)
         ])
 
         recover_with_buoy = self._post_pre_act(
             title = "Recover with buoy",
-            post_condition = lambda: self._is_auv_hanging,
+            post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
             pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_buoy_position_live and self._is_auv_position_live,
             pre_title = "Can retry, AUV position is live",
@@ -388,12 +392,13 @@ class AlarsBT():
 
         do_recover_without_buoy = Sequence("SQ Do recover without buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_without_buoy),
-            self.act_recover_no_bouy
+            self.act_recover_no_bouy,
+            FuncToStatus("Check success", self._check_recovery_success)
         ])
 
         recover_without_buoy = self._post_pre_act(
             title = "Recover without buoy",
-            post_condition = lambda: self._is_auv_hanging,
+            post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
             pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_auv_position_live and self._vulture_timeout_count >= len(self.VULTURE_RANGES),
             pre_title = "Can retry, AUV position is live and vulture t/o cnt exceeded",
@@ -425,7 +430,7 @@ class AlarsBT():
             title = "Search local",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._last_known_auv_geopoint is not None and self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._auv_position_estimate is not None and self._search_fail_count < float(self._goal['num_retries']),
             pre_title = "Have seen AUV at least once and retries not exceeded",
             act = Fallback("FB Search local", memory=True, children=[
                 do_search_local,
@@ -442,7 +447,7 @@ class AlarsBT():
             title = "Search global",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._last_known_auv_geopoint is None and self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._search_fail_count < float(self._goal['num_retries']),
             pre_title = "Havent seen AUV before and retries not exceeded",
             act = Fallback("FB Search global", memory=True, children=[
                 do_search_global,

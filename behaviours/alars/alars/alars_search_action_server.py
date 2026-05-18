@@ -11,6 +11,8 @@ from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStam
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 
+from tf2_ros import Buffer, TransformListener
+
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
@@ -121,8 +123,13 @@ class SearchAction():
             return False
         
         try:
-            self._search_center_map = self._drone_state.geopoint_to_pose_stamped_map(search_center_gp)
-            
+            in_map = self._drone_state.geopoint_to_pose_stamped_map(search_center_gp)
+            if in_map is not None:
+                self._search_center_map = in_map
+            if self._search_center_map is None:
+                self._loginfo('Failed to transform search center into MAP frame!')
+                return False
+                
         except:
             self._loginfo('Could not transform search center into MAP frame!')
             traceback.print_exc()

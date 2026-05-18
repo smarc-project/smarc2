@@ -38,7 +38,7 @@ class Initializer:
             return None
         t = (z - p0[2]) / d[2]
         if t < 0.0:
-            self.log_info("Intersection point is behind the camera, invalid for initialization")
+            self.log_info(f"Intersection point is behind the camera, invalid for initialization: t={t}, p0={p0}, d={d}, z={z}")
             return None
         return p0 + t * d
 
@@ -80,6 +80,7 @@ class Initializer:
         pf = self.point_on_line_at_z(cam_pos, ray_front, z_plane)
         pb = self.point_on_line_at_z(cam_pos, ray_back, z_plane)
         if pf is None or pb is None:
+            self.log_info("Front or back ray does not intersect water plane, cannot estimate yaw (initializer)")
             return None
 
         vec = pf[:2] - pb[:2]
@@ -98,6 +99,7 @@ class Initializer:
 
         center_map = self.point_on_line_at_z(cam_pos, ray, self.z_water)
         if center_map is None:
+            self.log_info("Center ray does not intersect water plane, cannot initialize")
             return None
         yaw_c = self.estimate_yaw_on_plane(cam_pos, dir_f, dir_b, self.z_water)
         if yaw_c is None:

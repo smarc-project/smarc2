@@ -39,6 +39,9 @@ class MoveToAction():
         
         self._drone_state = DroneState(node, self._robot_name)
 
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
+
         self._goal_in_map : PoseStamped|None = None
         self._goal_tolerance : None | float = None
         self._node.declare_parameter('default_tolerance', 0.3)
@@ -102,6 +105,9 @@ class MoveToAction():
             gp.altitude = goal_request['waypoint']['altitude']
             
             self._goal_in_map = self._drone_state.geopoint_to_pose_stamped_map(gp)
+            if self._goal_in_map is None:
+                self._node.get_logger().error("Failed to transform goal from latlon to map frame")
+                return False
 
             self._goal_tolerance = float(goal_request['waypoint']['tolerance']) if 'tolerance' in goal_request['waypoint'] else self._default_goal_tolerance
             speed_str = goal_request['speed'] if 'speed' in goal_request else 'standard'
