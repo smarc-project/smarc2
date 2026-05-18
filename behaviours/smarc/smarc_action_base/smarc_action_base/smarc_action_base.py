@@ -372,6 +372,12 @@ class SMARCActionClient(abc.ABC):
     def _setup(self, num_iters: int = 3, timeout: float = 1.0) -> bool:
         server_status = False
         iters = 0
+        preserve_state = self._state in (
+            ActionClientState.SENT,
+            ActionClientState.ACCEPTED,
+            ActionClientState.RUNNING,
+            ActionClientState.CANCELLING,
+        )
         while not server_status and iters < num_iters:
             iters += 1
             self._loginfo("Waiting for server to start.")
@@ -379,10 +385,12 @@ class SMARCActionClient(abc.ABC):
         
         if server_status:
             self._loginfo("Server found.")
-            self.state = ActionClientState.READY
+            if not preserve_state:
+                self.state = ActionClientState.READY
         else:
             self._logerr(f"Server not found. Cannot send goals to {self._action_name}.")
-            self.state = ActionClientState.DISCONNECTED
+            if not preserve_state:
+                self.state = ActionClientState.DISCONNECTED
         
         return server_status
 

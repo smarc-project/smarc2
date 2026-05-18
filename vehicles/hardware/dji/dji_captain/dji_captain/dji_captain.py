@@ -86,7 +86,7 @@ class DjiCaptain():
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : Timer | None = None
         self.JOY_PUB_MAX = 1.5
-        self.JOY_PUB_PERIOD = .1
+        self.JOY_PUB_PERIOD = 1.0 / 50.0
         self._prev_joy_output : np.ndarray | None = None
         self._last_pubbed_fluvel_joy : Joy | None = None
         
@@ -127,6 +127,8 @@ class DjiCaptain():
         self._heading_deg : float | None = None
         self._course_deg : float | None = None
         self._battery_percent : float | None = None
+        self._control_mode_nums : tuple[int,int,int] | None = None
+        self._rc_nums : tuple[float,float,float,float,int] | None = None
 
         self._vehicle_health = Int8()
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
@@ -307,6 +309,19 @@ class DjiCaptain():
     @property
     def status_str(self) -> str:
         s = "\nDjiCaptain Status:\n"
+        s += f">> GOT CONTROL: {self._got_control} ({', '.join(f'{num}' for num in self._control_mode_nums) if self._control_mode_nums else 'N/A'})\n"
+
+        vh = ">> Vehicle Health: "
+        if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
+            vh += f"READY\n"
+        elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
+            vh += f"ERROR\n"
+        else:
+            vh += f"WAITING\n"
+        s += vh
+
+        s += f"  DJI RC: {', '.join(f'{num:.2f}' for num in self._rc_nums) if self._rc_nums else 'N/A'}\n"
+
         if self._battery_percent is not None:
             s += f"  Battery Percent: {self._battery_percent:.2f} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
         else:
@@ -319,7 +334,6 @@ class DjiCaptain():
         else:
             s += f"  Load Cell Weight: N/A\n"
 
-        s += f"  Got Control: {self._got_control}\n"
         s += f"  Flying: {self._flying} [{', '.join(f'{rpm:.2f}' for rpm in self._prop_rpms)}]\n"
         
         if self._base_pose_in_home is not None:
@@ -333,13 +347,6 @@ class DjiCaptain():
             s += f"  Last FLUVel Joy (XYZ): [{a[0]:+.2f}, {a[1]:+.2f}, {a[2]:+.2f}, {a[3]:+.2f}] ({self.now_time - t:.2f}s ago)\n"
         else:
             s += f"  Last FLUVel Joy: None\n"
-
-        if self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_READY:
-            s += f"  Vehicle Health: READY\n"
-        elif self._vehicle_health.data == SmarcTopics.VEHICLE_HEALTH_ERROR:
-            s += f"  Vehicle Health: ERROR\n"
-        else:
-            s += f"  Vehicle Health: WAITING\n"
 
         s += "========================\n"
 
@@ -600,6 +607,7 @@ class DjiCaptain():
     # External human hands
     ###########
     def _dji_rc_cb(self, msg: Joy):
+        self._rc_nums = (msg.axes[0], msg.axes[1], msg.axes[2], msg.axes[3], msg.buttons[0])
         # if RC is touched by user, we give up control
         if not self._got_control: return
 
@@ -660,6 +668,7 @@ class DjiCaptain():
         # for the FC30, things are different....
         # when we HAVE control, in N mode, 
         # contorl mode is 4, device mode is 3, control_auth is 0...
+        self._control_mode_nums = (msg.control_mode, msg.device_mode, msg.control_auth)
         if self.ROBOT_NAME == "M350":
             just_got_control = msg.control_auth == 1 and msg.device_mode == 4
         elif self.ROBOT_NAME == "FC30":

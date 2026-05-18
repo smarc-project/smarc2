@@ -25,15 +25,18 @@ def generate_launch_description():
 
     buoy_staleness_arg = DeclareLaunchArgument("buoy_ekf_staleness_seconds", default_value="10.0")
     buoy_ekf_staleness_seconds = LaunchConfiguration("buoy_ekf_staleness_seconds")
+
+    auv_length_arg = DeclareLaunchArgument("auv_length_m", default_value="1.3")
+    auv_length_m = LaunchConfiguration("auv_length_m")
+
+    auv_width_arg = DeclareLaunchArgument("auv_width_m", default_value="0.16")
+    auv_width_m = LaunchConfiguration("auv_width_m")
     
     auv_poly_in = Topics.ESTIMATED_AUV_OBB_TOPIC
     buoy_poly_in = Topics.ESTIMATED_BUOY_OBB_TOPIC
 
     auv_link_out = Links.ESTIMATED_AUV
     buoy_link_out = Links.ESTIMATED_BUOY
-
-    auv_length = "1.3"
-    auv_width = "0.16"
 
     buoy_length = "0.27"
     buoy_width = "0.09"
@@ -52,8 +55,8 @@ def generate_launch_description():
             'camera_calibration_file': camera_calibration_file,
             'input_polygon': auv_poly_in,
             'output_link': auv_link_out,
-            'obb_length': auv_length,
-            'obb_width': auv_width,
+            'obb_length': auv_length_m,
+            'obb_width': auv_width_m,
             'output_cov_pose_topic': auv_cov_pose_out,
             'stale_state_age': auv_ekf_staleness_seconds
         }.items()
@@ -80,6 +83,8 @@ def generate_launch_description():
         camera_calibration_file_arg,
         auv_staleness_arg,
         buoy_staleness_arg,
+        auv_length_arg,
+        auv_width_arg,
         auv_launch,
         buoy_launch
     ])

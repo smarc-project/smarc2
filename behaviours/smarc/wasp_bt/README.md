@@ -45,6 +45,8 @@ Next, the launchfile for the behaviour tree will launch two separate nodes:
 
 Once you have the agent showing up on the MQTT broker, you can start sending tasks to it. Remember to launch the servers for each action you want to use in the behaviour tree. The action servers need to publish their "heartbeat" to the `WARA_PS_ACTION_SERVER_HB_TOPIC` for the tasks to show up as available on the MQTT agent, and for the behaviour tree to have subtrees for handling those tasks.
 
+When the BT rebuilds because new actions appear, it now reuses any already-running action clients so an active goal can still be tracked or cancelled.
+
 Remember to start all the servers you want clients for!
 
 ## Emergency Action and Reset

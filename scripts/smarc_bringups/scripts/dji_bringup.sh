@@ -74,6 +74,29 @@ fi
 #     export ROS_DOMAIN_ID=""
 # fi
 
+########
+# PARAMS
+########
+if [[ $ROBOT_NAME == "M350" ]]; then
+    AUV_WEIGHT_KG=2.0
+    MAX_LOAD_KG="7.0"
+    MIN_ALTITUDE_ABOVE_WATER="1.5"
+elif [[ $ROBOT_NAME == "FC30" ]]; then
+    AUV_WEIGHT_KG=10.0
+    MAX_LOAD_KG="30.0"
+    MIN_ALTITUDE_ABOVE_WATER="3.0"
+fi
+AUV_BUOY_LINE_LENGTH=5.0
+# fake-sam measurements
+AUV_LENGTH_M=1.3
+AUV_WIDTH_M=0.16
+# micro-sam measurements
+# AUV_LENGTH_M=0.0124
+# AUV_WIDTH_M=0.0013
+
+EKF_STALENESS_SECONDS=3.0 # how old do we consider the ekf estimate usable
+ALARS_RECOVER_SETPOINT_TOLERANCE=0.2 
+WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0 # Grace period before WASP BT drops stale action servers from available task list.
 
 # create a tmux session with a name
 tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
@@ -87,19 +110,6 @@ tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 ############
 # 1 Captains
 ############
-if [[ "$ROBOT_NAME" == "M350" ]]; then
-    MAX_LOAD_KG="7.0"
-    MIN_ALTITUDE_ABOVE_WATER="1.5"
-elif [[ "$ROBOT_NAME" == "FC30" ]]; then
-    MAX_LOAD_KG="30.0"
-    MIN_ALTITUDE_ABOVE_WATER="5.0"
-else # this should never happen due to the earlier check, but just in case
-    echo "Invalid robot name: $ROBOT_NAME"
-    echo "Please pass either M350 or FC30 as the first argument."
-    echo "Exiting."
-    exit 1
-fi
-
 CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
     robot_name:=$ROBOT_NAME \
     use_sim_time:=$USE_SIM_TIME \
@@ -109,7 +119,7 @@ CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
 CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data"
 WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper"
 # DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
-DISCOVERY_SERVER_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
+DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"
 SERVICE_CALLER_CMD="ros2 run dji_captain service_caller --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p robot_name:=$ROBOT_NAME"
 ALARS_SERVICES_CMD="ros2 launch dji_captain alars_services.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 
@@ -157,13 +167,13 @@ ALARS_SEARCH_CMD="ros2 run alars alars_search_action_server --ros-args -r __ns:=
 -p min_setpoint_distance_to_drone:=1.0 \
 -p detection_freshness_threshold:=1.0"
 
-EKF_STALENESS_SECONDS=3.0
+
 ALARS_FOLLOW_AUV_CMD="ros2 run alars alars_follow_auv_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p detection_freshness_threshold:=$EKF_STALENESS_SECONDS"
 
-ALARS_RECOVER_SETPOINT_TOLERANCE=0.2
+
 if [[ $USE_SIM_TIME = "True" ]]; then
     ALARS_RECOVER_SETPOINT_TOLERANCE=0.25
 fi
@@ -171,7 +181,7 @@ ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p setpoint_tolerance:=$ALARS_RECOVER_SETPOINT_TOLERANCE \
--p max_rope_length:=5.0"
+-p max_rope_length:=$AUV_BUOY_LINE_LENGTH"
 
 ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
@@ -188,9 +198,6 @@ col(
 ############
 # 3 BTs
 ############
-# Grace period before WASP BT drops stale action servers from available task list.
-WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0
-
 WASP_BT_CMD="ros2 launch wasp_bt wasp_bt.launch \
 robot_name:=$ROBOT_NAME \
 agent_type:=air \
@@ -199,11 +206,12 @@ use_sim_time:=$USE_SIM_TIME \
 bt_health_timeout:=5.0 \
 task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
 
-LOADED_WEIGHT_KG=1.8 # real empty sam + hook + rope weight is 1.78kg, just the hook and rope is 0.79kg
+
+
 ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
--p loaded_weight_kg:=$LOADED_WEIGHT_KG \
+-p AUV_WEIGHT_KG:=$AUV_WEIGHT_KG \
 -p max_detection_age:=15.0"
 
 ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/alars_bt/status std_msgs/msg/String --field data"
@@ -220,7 +228,7 @@ if [[ "$NO_CAM" == "True" ]]; then
 else
     YOLO_DEVICE=0
     CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
-    YOLO_MODEL="yolo_model_2cls_mixed.pt" # Options: alars_labeling_training/trained_models
+    YOLO_MODEL="yolo_model_2cls_may.pt" # Options: alars_labeling_training/trained_models
     if [[ $USE_SIM_TIME = "True" ]]; then
         YOLO_DEVICE=cpu
         CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
@@ -239,7 +247,9 @@ else
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
     auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
-    buoy_ekf_staleness_seconds:=10.0
+    buoy_ekf_staleness_seconds:=10.0 \
+    auv_length_m:=$AUV_LENGTH_M \
+    auv_width_m:=$AUV_WIDTH_M
     "
 fi
 
@@ -256,16 +266,12 @@ GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAM
 HUMAN_LOG_CMD="ros2 run smarc_basic log_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 WAIT_CMD="ros2 run smarc_basic wait_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
-
-CTRL_MODE_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/control_mode psdk_interfaces/msg/ControlMode"
-RC_PUB_CMD="ros2 topic echo /$ROBOT_NAME/wrapper/psdk_ros2/rc sensor_msgs/msg/Joy"
-
 INTERNET_CHECKER_CMD="ros2 run smarc_utilities internet_checker --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
 tmux_make_layout "$SESSION" BasicActions "
 row(
     col(var(GEOFENCE_CMD), var(HUMAN_LOG_CMD), var(WAIT_CMD)),
-    col(var(CTRL_MODE_PUB_CMD), var(RC_PUB_CMD), var(INTERNET_CHECKER_CMD))
+    col(var(INTERNET_CHECKER_CMD))
 )"
 
 
@@ -281,12 +287,9 @@ if [[ $NO_CAM == "True" ]]; then
 else
     GIMBAL_IP=192.168.1.108
     GIMBAL_PORT=2332
-    # changing resolution requires re-calibrating the cam.
-    GIMBAL_IMG_WIDTH=1920
-    GIMBAL_IMG_HEIGHT=1080
     GSCAM_CONFIG_GIMBAL="rtspsrc location=rtsp://$GIMBAL_IP latency=0 ! \
     rtph264depay ! h264parse ! nvv4l2decoder ! nvvidconv ! \
-    video/x-raw,width=$GIMBAL_IMG_WIDTH,height=$GIMBAL_IMG_HEIGHT,format=BGRx ! \
+    video/x-raw,format=BGRx ! \
     videoconvert ! queue max-size-buffers=1 leaky=downstream"
     GIMBAL_CAM_TOPIC_NS=gimbal_camera
     GIMBAL_CAM_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
@@ -298,7 +301,6 @@ else
         -r __ns:=/$ROBOT_NAME/$GIMBAL_CAM_TOPIC_NS"
     GIMBAL_CAM_DRIVER_CMD="ros2 launch z1_pro_driver z1_pro_driver_launch.py \
         robot_name:=$ROBOT_NAME \
-        tf_frame_prefix:=$ROBOT_NAME/ \
         camera_ip:=$GIMBAL_IP \
         camera_port:=$GIMBAL_PORT \
         camera_below_base:=True"

@@ -29,15 +29,16 @@ setup(
             # Client
             'move_path_client = evolo_move_path.client:main',
             # Classical algorithms
-            'move_path_server_coordinate = evolo_move_path.evolo_move_path_server_coordinate:main',
-            'move_path_server_potential_field = evolo_move_path.evolo_move_path_server_potential_field:main',
             'move_path_server_a_star = evolo_move_path.evolo_move_path_server_a_star:main',
             'move_path_server_dubins_curves = evolo_move_path.evolo_move_path_server_dubins_curves:main',
-            # Discretized algorithms
-            'move_path_server_discrete_point = evolo_move_path.evolo_move_path_server_discrete_point:main',
-            'move_path_server_potential_field_discrete = evolo_move_path.evolo_move_path_server_potential_field_discrete:main',
-            # Other controller 
-            'move_path_server_potential_field_mpc = evolo_move_path.evolo_move_path_server_potential_field_mpc:main',
+            'move_path_server_dubins_curves_lateral_normal = evolo_move_path.evolo_move_path_server_dubins_curves_lateral_normal:main',
+            'move_path_server_dubins_curves_rrt = evolo_move_path.evolo_move_path_server_dubins_curves_rrt:main',
+            'move_path_server_dubins_curves_rrt_star = evolo_move_path.evolo_move_path_server_dubins_curves_rrt_star:main',
+            'move_path_server_shapely = evolo_move_path.evolo_move_path_server_shapely:main',
+            'move_path_server_visibility = evolo_move_path.evolo_move_path_server_visibility:main',
+
+            # Geofence
+            'move_path_server_geofence =  evolo_move_path.geofence_checker_evolo:main'
         ],
     },
 )

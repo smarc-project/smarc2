@@ -73,6 +73,10 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         self._last_state_str = ""
 
         self._bt_health_timeout = bt_health_timeout
+
+        # Keep action client instances alive across tree rebuilds so in-flight
+        # goals and cancel handles remain reachable.
+        self._action_client_cache: typing.Dict[str, BTActionClient] = {}
         
         # Add tracking for dynamic tree updates
         self._last_available_tasks = []
@@ -227,6 +231,19 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         Fallback root node, connecting together sequences of {is the current action a certain kind of action? If so, run the corresponding action server}
         """
 
+        def _remember_action_client(action_client: BTActionClient):
+            self._action_client_cache[action_client.get_action_name()] = action_client
+            return action_client
+
+        def _get_or_create_action_client(ros_task_name: str, action_type: ActionType):
+            cached_action_client = self._action_client_cache.get(ros_task_name)
+            if cached_action_client is not None:
+                return cached_action_client
+
+            return _remember_action_client(
+                BTActionClient(self._task_handler._node, ros_task_name, action_type)
+            )
+
         task_children = [
             # check if the previous task was aborted, if so, reset the flag
             Sequence("S_BreatheAfterAbort", memory=False, children=[
@@ -260,7 +277,13 @@ class BT(HasVehicleContainer, HasClock, HasWaraPSTaskHandler):
         if action_client_list == None:
             action_type = ActionType(BaseAction)
             
-            action_client_list = [BTActionClient(self._task_handler._node, ros_task_name, action_type) for ros_task_name in ros_task_names]
+            action_client_list = [
+                _get_or_create_action_client(ros_task_name, action_type)
+                for ros_task_name in ros_task_names
+            ]
+        else:
+            for action_client in action_client_list:
+                _remember_action_client(action_client)
 
         mission_children = [
             C_VehicleHealthStatus(self._task_handler, desired_status=SMaRCTopics.VEHICLE_HEALTH_READY)
