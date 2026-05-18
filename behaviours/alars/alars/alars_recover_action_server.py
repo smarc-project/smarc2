@@ -269,7 +269,7 @@ class RecoverAction():
         d3.pose.position.y = circle[-1].pose.position.y
         d3.pose.position.z = np.max([self._forward_altitude, self._raising_altitude])
 
-        self._points = [dipping]+circle+circle+[d1, d2 ,d3]
+        self._points = [dipping]+circle+[d1, d2 ,d3]
         
 
     def _prepare_loop(self) -> None:

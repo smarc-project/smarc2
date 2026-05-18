@@ -181,7 +181,9 @@ ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p setpoint_tolerance:=$ALARS_RECOVER_SETPOINT_TOLERANCE \
--p max_rope_length:=$AUV_BUOY_LINE_LENGTH"
+-p max_rope_length:=$AUV_BUOY_LINE_LENGTH \
+-p max_auv_age:=5.0 \
+-p max_buoy_age:=5.0"
 
 ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
