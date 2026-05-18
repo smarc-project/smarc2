@@ -71,7 +71,7 @@ def _build_pid_wp_following(node, rates: Rates) -> Components:
 
     dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
     dive_pub = DivePub(node, dive_sub, param)
-    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, rates.dive_controller_rate)
+    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, rates.dive_controller)
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
     return Components(
