@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    namespace: "M350"   
+
+    z_water: 0.0
+
+    topics:
+      camera_info: "gimbal_camera/camera/camera_info"
+      input_polygon: "alars_detection/auv_obb"          
+      output_projected_polygon: "alars_projection/auv_obb"   
+      rviz:
+        camera_rays: "rviz/projection_rays"

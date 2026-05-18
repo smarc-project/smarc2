@@ -1,0 +1,71 @@
+import numpy as np
+from .geometry_utils import wrap, residual_z
+
+class EKFCore:
+    def __init__(
+            self, 
+            z_water=0.0,
+            state_dim=5, 
+            outlier_threshold=0.0, 
+            logger=None
+            ):
+        
+        self.z_water = z_water
+        self.state_dim = state_dim
+        self.outlier_threshold = outlier_threshold
+        self.last_t : float | None = None
+        self.initialized = False
+        self.logger = logger
+        self.X = np.zeros((self.state_dim, 1))
+        self.P = np.eye(self.state_dim) * 10.0
+        self.Q = np.eye(self.state_dim) * 1e-3
+        self.nr_of_consecutive_outliers = 0
+        self.time_last_update = 0
+    
+    def set_state(self, X0, P0, t0):
+
+        # directly set the state and covariance, used for initialization or reset
+
+        self.X = X0
+        self.P = P0
+        self.last_t = t0
+        self.time_last_update = t0
+
+
+    def update(self, z, h, H, R):
+
+        # EKF update step.
+        # performs gating based on mahalanobis distance.
+
+        if h is None or H is None:
+            return self.X, self.P, "invalid"
+        innov = residual_z(z, h).reshape(z.shape[0], 1)
+        S = H @ self.P @ H.T + R
+        try:
+            S_inv = np.linalg.inv(S)
+        except np.linalg.LinAlgError:
+            if self.logger:
+                self.logger.info("Gating failed: S singular")
+            return self.X, self.P, "invalid"
+        d2 = float(innov.T @ S_inv @ innov)
+        if d2 > self.outlier_threshold:
+            self.nr_of_consecutive_outliers += 1
+            if self.logger:
+                self.logger.info(f"Outlier detected with mahalanobis distance squared: {d2:.3f}")
+            return self.X, self.P, "outlier"
+        K = self.P @ H.T @ S_inv
+        self.X = self.X + K @ innov
+        yaw_idx = 2 if self.state_dim == 5 else 3
+        self.X[yaw_idx, 0] = wrap(self.X[yaw_idx, 0])
+        I = np.eye(self.state_dim)
+        self.P = (I - K @ H) @ self.P 
+        self.nr_of_consecutive_outliers = 0
+        self.time_last_update = self.last_t
+        return self.X, self.P, "updated"
+    
+    def predict(self, x_pred, F, Q, t):
+        self.X = x_pred
+        self.P = F @ self.P @ F.T + Q
+        self.last_t = t
+        return self.X, self.P
+

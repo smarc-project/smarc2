@@ -1,0 +1,112 @@
+from auv_state_estimation import ekf_node
+from dji_msgs.msg import Topics, Links
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, LogInfo
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
+
+def generate_launch_description():
+
+    robot_name_arg = DeclareLaunchArgument(
+        "robot_name",
+        default_value="M350"
+    )
+    use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='false')
+
+    camera_calibration_file_arg = DeclareLaunchArgument(
+        "camera_calibration_file",
+        default_value="cam_params.yaml"
+    )
+
+    poly_in_arg = DeclareLaunchArgument(
+        "input_polygon",
+        default_value=Topics.ESTIMATED_AUV_OBB_TOPIC
+    )
+
+    link_out_arg = DeclareLaunchArgument(
+        "output_link",
+        default_value=Links.ESTIMATED_AUV
+    )
+
+    obb_length_arg = DeclareLaunchArgument(
+        "obb_length",
+        default_value="1.3" 
+    )
+
+    obb_width_arg = DeclareLaunchArgument(
+        "obb_width",
+        default_value="0.16" 
+    )
+
+    cov_pose_out_arg = DeclareLaunchArgument(
+        "output_cov_pose_topic",
+        default_value='rviz/estimated_auv_pose'
+    )
+
+    stale_state_age_arg = DeclareLaunchArgument(
+        "stale_state_age",
+        default_value="3.0"
+    )
+
+    robot_name = LaunchConfiguration("robot_name")
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    camera_calibration_file = LaunchConfiguration("camera_calibration_file")
+    poly_in = LaunchConfiguration("input_polygon")
+    link_out = LaunchConfiguration("output_link")
+    obb_length = LaunchConfiguration("obb_length")
+    obb_width = LaunchConfiguration("obb_width")
+    cov_pose_out = LaunchConfiguration("output_cov_pose_topic")
+    stale_state_age = LaunchConfiguration("stale_state_age")
+
+    params_file = PathJoinSubstitution([
+        FindPackageShare("auv_state_estimation"),
+        "config",
+        "ekf_params.yaml"
+    ])
+
+    cam_calib_file = PathJoinSubstitution([
+        FindPackageShare("auv_state_estimation"),
+        "config",
+        camera_calibration_file
+    ])
+
+    ekf_node = Node(
+        package="auv_state_estimation",
+        executable="ekf_node",
+        namespace=robot_name,
+        name="ekf_node",
+        output="screen",
+        parameters=[
+            params_file,
+            {
+                "robot_name": robot_name,
+                "use_sim_time": use_sim_time,
+                "topics.input_polygon": poly_in,
+                "frames.output_link": link_out,
+                "frames.camera": Links.GIMBAL_OPTICAL_FRAME,
+                "camera_info": cam_calib_file,
+                "obb.length_m": obb_length,
+                "obb.width_m": obb_width,
+                "topics.output_topic": cov_pose_out,
+                "stale_state_age": stale_state_age
+            }
+        ],
+    )
+
+    return LaunchDescription([
+        robot_name_arg,
+        use_sim_time_arg,
+        camera_calibration_file_arg,
+        poly_in_arg,
+        link_out_arg,
+        obb_length_arg,
+        obb_width_arg,
+        cov_pose_out_arg,
+        stale_state_age_arg,
+        ekf_node,
+        LogInfo(msg=['[Launch] ekf_params file = ', params_file]),
+        LogInfo(msg=['[Launch] camera_calibration_file = ', cam_calib_file]),
+    ])
+

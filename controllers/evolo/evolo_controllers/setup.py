@@ -23,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'yaw_controller = evolo_controllers.yaw_control:main',
+            'controller = evolo_controllers.control:main',
         ],
     },
 )

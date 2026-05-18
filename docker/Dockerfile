@@ -60,7 +60,8 @@ RUN mkdir .colcon/ \
 WORKDIR /home/${USERNAME}/colcon_ws/src/smarc2
 
 # get the submodules needed for core
-RUN scripts/get-submodules.sh external_packages
+RUN scripts/get-submodules.sh external_packages/mqtt_bridge \
+&& scripts/get-submodules.sh external_packages/ROS-TCP-Endpoint
 # get the latest compiled binary of the unity sim
 # RUN mkdir -p simulation/binaries \
 # &&  cd simulation/binaries \
@@ -70,9 +71,11 @@ RUN scripts/get-submodules.sh external_packages
 # install deps
 WORKDIR /home/${USERNAME}/colcon_ws
 RUN rosdep update \
-&&  ./src/smarc2/scripts/rosdep_install_from_src.sh \
+&&  ./src/smarc2/scripts/rosdep_install_from_src.sh
+# separate RUN so we can fail here with a smaller error log...
+
 # no bashrc in dockerfiles, so we source and build in the same run
-&&  source /opt/ros/humble/setup.bash \
+RUN  source /opt/ros/humble/setup.bash \
 &&  colcon build \
 # add the source directives into the users bashrc
 &&  echo "source /opt/ros/humble/setup.bash" >> /home/${USERNAME}/.bashrc \

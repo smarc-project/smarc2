@@ -1,0 +1,38 @@
+/**/alars_yolo_detector:
+  ros__parameters:
+    namespace: "M350"
+    device: "cpu"
+
+    detection:
+      blur_variance: 1.5
+      inference_period: 0.2
+      confidence_threshold: 0.4
+      multiple_other_detections: true
+
+      per_class_confidence:
+        sam: 0.45
+        buoy: 0.35
+        boat: 0.40
+        person: 0.50
+
+      keep_best_per_class: true
+
+    sam:
+      width: 0.2
+      length: 1.5
+      enable_head_detection: true
+      lw_ratio_margin: 4.0
+
+    classes:
+      names: ["sam", "buoy", "lolo", "catamaran", "boat"]
+
+    topics:
+      rviz:
+        annotated_image: "rviz/yolo_annotation"
+        bw_blurred_sam: "rviz/blurred_sam"
+        edges: "rviz/sam_edges"
+
+      predicted_position:
+        sam: "estimated_sam"
+        buoy: "estimated_buoy"
+        other_obbs: "estimated_other_obbs"

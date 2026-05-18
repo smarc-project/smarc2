@@ -37,40 +37,110 @@ In the beginning of the script, you can set whether you're on SAM or not.
 ### dji_bringup.sh
 
 Launches everything related to DJI drones and the ALARS project.
-**You will need the submodule in `messages/psdk_interfaces` to run the captain this bringup launches.**
+
+- Required manual setup: (TODO declare dependencies etc.)
+
+  - `apt install ros-humble-rmw-zenoh-cpp`
+    - You can skip this if your usecase is confined almost entirely to sim/rosbag use.
+    - If you skip it, ignore the follow parts about Zenoh as well!
+  - `git submodule update --init messages/psdk_interfaces`
+  - If you want to run the full vision->motion stack: alars_auv_perception has requirements that need special care, check its readme!
+    - If you do not need the vision capabilities, you can skip this on your personal machine.
+    - `git submodule update --init perception/alars/alars_labeling_training/` 
+
+- Only for Orin:
+
+  - `git submodule update --init drivers/nau7802_ros2_driver` (requires `pip3 install cedargrove-nau7802 circup`)
+  - `git submodule update --init drivers/z1_pro_driver` (requires `apt install geographiclib-tools libgeographic-dev ros-humble-compressed-image-transport gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-base  gstreamer1.0-libav`)
+  
+- Nice to have:
+  - rosboard: (`cd ~/colcon_ws/src && git clone https://github.com/dheera/rosboard`, `pip3 install tornado simplejpeg`, `ros2 run rosboard rosboard_node`)
+  - rosshow: (`cd ~/colcon_ws/src && git clone https://github.com/dheera/rosshow`)
+
+#### RMW Zenoh setup
+Replace `ROS_DOMAIN_ID` and `$JETSON_IP` etc. with what makes sense for your specific case if you're not ALARS.
+
+##### Jetson side .bashrc
+
+```
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+```
+
+To make the Jetson connectable from outside, you need to run the zenoh daemon like: `DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"`.
+
+**Do NOT** put the export command into anything that runs for every terminal (like bashrc). You want the export to only happen for the zenoh router!
+
+
+##### User side .bashrc
+
+```
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/'"$JETSON_IP"':7447", "tcp/'"$JETSON_IP_WG"':7447"];scouting/multicast/enabled=false'
+```
+
+
+#### Camera calibration
+`apt install ros-humble-camera-calibration`
+With GUI, follow: https://docs.ros.org/en/kilted/p/camera_calibration/doc/tutorial_mono.html
+Copy the values into `perception/alars/auv_state_estimation/config/....yaml`
+
+#### Proper torch installation (Jetpack 6.2.2)
+
+After everything above:
+
+```
+python3 -m pip uninstall -y torch torchvision torchaudio
+python3 -m pip cache purge
+python3 -m pip install torch==2.8.0 torchvision==0.23.0 --index-url=https://pypi.jetson-ai-lab.io/jp6/cu126
+```
+
+This will complain about numpy version ultralytics wants, if you removed the pip-installed version like auv_yolo_detector's README mentions. But things seem to run regardless.
+
+
+
+#### eport serial2usb udev rules
+`udevadm info -a -n /dev/ttyUSB0`
+
+find the serial of the serial2usb adapter, put it in `/etc/udev/rules.d/XXXX.rules`
+
+`SUBSYSTEM=="tty", ATTRS{serial}=="A50285BI", SYMLINK+="eport", OWNER="alars", GROUP="alars", MODE="0660"`
+
+then there'll be `dev/eport` as a device that links to that usb2serial
 
 #### Camera udev rules
 Since we have multiple cams, of different kinds, we have udev rules setup in the jetson to give them fixed device symlinks under `ls /dev`:
 Example:
 ```
 > lsusb
-Bus 002 Device 002: ID 0bda:0420 Realtek Semiconductor Corp. 4-Port USB 3.0 Hub
-Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
-Bus 001 Device 003: ID 0bda:5420 Realtek Semiconductor Corp. 4-Port USB 2.0 Hub
-Bus 001 Device 002: ID 8087:0032 Intel Corp. AX210 Bluetooth
-Bus 001 Device 005: ID 2ca3:0023 DJI Technology Co., Ltd. DJIPocket3
-Bus 001 Device 001: ID 1d6b:0002 Linux Foundat
-
-> v4l2-ctl --list-devices
-HD Pro Webcam C920 (usb-0000:00:14.0-3): 
-    /dev/video0
-
-Logitech Webcam C270 (usb-0000:00:14.0-4): 
-    /dev/video1
-
-
-
-> sudo vim /etc/udev/rules.d/80-djipocket3.rules
-
-# DJIPocket3 (vendor 2ca3, product 0023)
-# Video streaming node (usually index 0)
-SUBSYSTEM=="video4linux", ATTRS{idVendor}=="2ca3", ATTRS{idProduct}=="0023", ATTR{index}=="0", SYMLINK+="djipocket3"
-# Secondary node (often metadata/still capture; usually index 1)
-SUBSYSTEM=="video4linux", ATTRS{idVendor}=="2ca3", ATTRS{idProduct}=="0023", ATTR{index}=="1", SYMLINK+="djipocket3_meta"
-# Media controller node
-SUBSYSTEM=="media",       ATTRS{idVendor}=="2ca3", ATTRS{idProduct}=="0023", SYMLINK+="djipocket3_media"
+...
+Bus 001 Device 019: ID 2e1a:0003 Insta Insta360 X4
+...
 ```
-The above makes `/dev/djipocket3` point to the video stream of the cam, independently of connection timing/port/other cams etc.
+
+`> apt install v4l-utils`
+
+```
+> v4l2-ctl --list-devices
+NVIDIA Tegra Video Input Device (platform:tegra-camrtc-ca):
+	/dev/media0
+
+Insta360 X4: Insta360 X4 (usb-3610000.usb-4.4):
+	/dev/video0
+	/dev/video1
+	/dev/media1
+```
+
+```
+> sudo vim /etc/udev/rules.d/99-insta360.rules
+
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="2e1a", ATTRS{idProduct}=="0003", ATTR{index}=="0", SYMLINK+="insta360x4"
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="2e1a", ATTRS{idProduct}=="0003", ATTR{index}=="1", SYMLINK+="insta360x4_meta"
+SUBSYSTEM=="media", ATTRS{idVendor}=="2e1a", ATTRS{idProduct}=="0003", SYMLINK+="insta360x4_media"
+```
+
+The above makes `/dev/insta360x4` point to the video stream of the cam, independently of connection timing/port/other cams etc.
 
 
 ## TMUX Cheatsheet

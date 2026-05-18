@@ -50,4 +50,4 @@ export ROS_SUPER_CLIENT=TRUE # Necessary for rviz2
 Place the custom_fastdds_profiles.xml file in the path you've specified above and refresh your .bashrc. 
 Now you can talk with SAM over ROS. Comment out these lines if you're using ROS in a different setup.
 
-If you want to set the server in your vehicle, install the fastdds-discovery daemon and write the IP of your vehicle in ROS_DISCOVERY_SERVER
+If you want to set the server in your vehicle, install the fastdds-discovery daemon (`apt install fastdds-tools`) and write the IP of your vehicle in ROS_DISCOVERY_SERVER

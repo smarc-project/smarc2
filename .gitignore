@@ -12,3 +12,4 @@ results.csv
 psdk_interfaces
 
 COLCON_IGNORE
+perception/alars/auv_alars_perception/datasets/input_video.mp4
