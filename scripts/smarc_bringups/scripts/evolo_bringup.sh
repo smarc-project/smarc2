@@ -46,12 +46,16 @@ OBSTACLE_AVOIDANCE=False
 VIDERO_STREAM=False
 TOPIC_TRANSPORT=False
 ROSBOARD=False
-NODE_RED_TRANSLATOR=False
+JSON_TRANSLATOR=False
 TWIST_VIZ=False
 
+if [[ "$(whoami)" == *"evolo"* ]]; then
+    MODE="REAL" #[REAL, SIM, HITL]
+else
+    MODE="SIM"
+fi
 
-#Simulation
-MODE="REAL" #[REAL, SIM, HITL]
+#MODE="REAL" #[REAL, SIM, HITL]
 if [ "$MODE" == "SIM" ]; then
     REALSIM=simulation
     ROBOT_NAME=evolo
@@ -78,7 +82,7 @@ if [ "$MODE" == "SIM" ]; then
     VIDERO_STREAM=False
     TOPIC_TRANSPORT=False
     ROSBOARD=False
-    NODE_RED_TRANSLATOR=True
+    JSON_TRANSLATOR=False
     TWIST_VIZ=True
 fi
 
@@ -111,7 +115,7 @@ if [ "$MODE" == "REAL" ]; then
     VIDERO_STREAM=True
     TOPIC_TRANSPORT=True
     ROSBOARD=True
-    NODE_RED_TRANSLATOR=True
+    JSON_TRANSLATOR=True
     TWIST_VIZ=True
 
 fi
@@ -136,7 +140,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "Remember to start the logging!" 
 
 # Controllers
-CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_control:=True open_loop_gain:=3.0 closed_loop_p_gain:=0.1 closed_loop_i_gain:=0.5 closed_loop_d_gain:=0.0"
+CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_control:=True open_loop_gain:=3.0 closed_loop_p_gain:=0.1 closed_loop_i_gain:=2.0 closed_loop_d_gain:=0.0 max_steering_output:=40.0"
 tmux_make_layout "$SESSION" Controllers "
 col(
     var(CONTROLLER_CMD)
@@ -145,7 +149,7 @@ col(
 
 # BT
 SMARC_BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE"
-tmux_make_layout "$SESSION" Controllers "
+tmux_make_layout "$SESSION" wasp-bt "
 col(
     var(SMARC_BT_CMD)
 )"
@@ -250,7 +254,7 @@ fi
 #Lidar driver
 if [ $LIDAR_DRIVER == "True" ]; then
     LIDAR_DRIVER_CMD="ros2 launch evolo_config lidar_launch.py ouster_ns:=$ROBOT_NAME/sensors/lidar"
-    tmux_make_layout "$SESSION" SBG-driver "
+    tmux_make_layout "$SESSION" lidar-driver "
     col(
         var(LIDAR_DRIVER_CMD)
     )"
@@ -296,9 +300,11 @@ if [ $YOLO_DRIVER == "True" ]; then
         device:=cuda:0 \
         use_tracking:=True \
         use_debug:=True"
+    YOLO_ACTION_CMD="ros2 launch yolo_smarc_actions smarc_yolo_action_launch.py robot_name:=evolo"
     tmux_make_layout "$SESSION" YOLO "
     col(
-        var(YOLO_CMD)
+        var(YOLO_CMD),
+        var(YOLO_ACTION_CMD)
     )"
 fi
 
@@ -314,7 +320,6 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
         robot_name:=\"$ROBOT_NAME\" \
         use_sim_time:=$USE_SIM_TIME"
     GIMBAL_CAM_ACTION_CLIENT_CMD="ros2 launch evolo_gimbal_remote_control gimbal_remote_control.launch.py robot_name:=evolo"
-    GIMBAL_CAM_MQTT_CMD="ros2 launch evolo_gimbal_remote_control mqtt_camcmd_listener.launch.py"
 
     if [ $CAMERA_MQTT_CONTORL == "True" ]; then
         tmux_make_layout "$SESSION" Gimbal-driver "
@@ -324,8 +329,7 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
                 var(GIMBAL_CAM_ACTION_CMD)
             ),
             row(
-                var(GIMBAL_CAM_ACTION_CLIENT_CMD),
-                var(GIMBAL_CAM_MQTT_CMD),
+                var(GIMBAL_CAM_ACTION_CLIENT_CMD)
             )
         )" 
     else
@@ -438,11 +442,11 @@ if [ $TOPIC_TRANSPORT == "True" ]; then
 fi
 
 #Node-red-translator
-if [ $NODE_RED_TRANSLATOR == "True" ]; then
-    NODE_RED_TRANSLATOR_CMD="ros2 launch evolo_node_red_interface node_red_interface_launch.py"
-    tmux_make_layout "$SESSION" node-red-translator "
+if [ $JSON_TRANSLATOR == "True" ]; then
+    JSON_TRANSLATOR_CMD="ros2 launch evolo_json_bridge json_bridge_launch.py"
+    tmux_make_layout "$SESSION" json_translator"
     col(
-        var(NODE_RED_TRANSLATOR_CMD),
+        var(JSON_TRANSLATOR_CMD),
     )"
 fi
 
