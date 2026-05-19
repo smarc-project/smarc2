@@ -82,7 +82,7 @@ if [[ $ROBOT_NAME == "M350" ]]; then
     MAX_LOAD_KG="7.0"
     MIN_ALTITUDE_ABOVE_WATER="1.5"
 elif [[ $ROBOT_NAME == "FC30" ]]; then
-    AUV_WEIGHT_KG=10.0
+    AUV_WEIGHT_KG=13.0
     MAX_LOAD_KG="30.0"
     MIN_ALTITUDE_ABOVE_WATER="3.0"
 fi

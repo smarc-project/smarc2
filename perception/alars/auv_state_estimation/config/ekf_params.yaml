@@ -24,7 +24,7 @@
     alpha_line_pixels: 40 # number of pixels along length of obb to use for alpha (yaw) measurement in initialization.
 
     motion:
-      sigma_a_xy: 0.01 # acc in x and y (m/s^2) (for all models)
+      sigma_a_xy: 0.03 # acc in x and y (m/s^2) (for all models)
       sigma_yaw: 3.0 # random walk in yaw (deg/s) (for all models)
       model_type: "double_oscillator" # options: "surface", "depth", "pitch", "oscillator", "double_oscillator"
 

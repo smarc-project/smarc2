@@ -104,10 +104,10 @@ class AlarsBT():
             # once we have seen the auv, we want to
             # 1) go on top
             # 2) progressively search around it for the buoy
-            self.VULTURE_RANGES = [0.0, 1.0, 3.0, 5.0]
+            self.VULTURE_RANGES = [0.0]
             self.VULTURE_SPEED_DEG = 30.0
-            self.VULTURE_TIMEOUT = 30.0
-            self.RECOVER_WO_BUOY_RADII = [2.0, 5.0]
+            self.VULTURE_TIMEOUT = 15.0
+            self.RECOVER_WO_BUOY_RADII = [4.0, 8.0]
             self.RECOVER_WO_BUOY_RADIUS_INDEX = 0
             self.LOCAL_SEARCH_RADIUS = 10.0
 
@@ -173,6 +173,7 @@ class AlarsBT():
         self._recover_fail_count : int = 0
         self._vulture_timeout_count : int = 0
         self._recovery_success : bool = False
+
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
         self.log("States reset")
@@ -320,7 +321,7 @@ class AlarsBT():
     def _set_goal_vulture(self) -> bool:
         return self._set_goal(self.act_vulture, {
             "follow_altitude": self._goal["search_position"]["altitude"],
-            "vulture_radius": self.VULTURE_RANGES[self._vulture_timeout_count],
+            "vulture_radius": 0.0,
             "vulture_speed_deg": self.VULTURE_SPEED_DEG,
             "timeout": self.VULTURE_TIMEOUT
         })
@@ -376,6 +377,18 @@ class AlarsBT():
         
         self.log("All actions setup successfully!")
 
+        vulture = self._post_pre_act(
+            title = "Vulture",
+            post_condition = lambda: self._is_auv_position_live,
+            post_title = "Buoy and AUV position live",
+            pre_condition = lambda: True,
+            pre_title = "AUV position live and vulture timeout count not exceeded",
+            act = Sequence("SQ Vulture", memory=True, children=[
+                FuncToStatus("Set goal", self._set_goal_vulture),
+                self.act_vulture,
+                FuncToStatus("Count timeout", lambda: self._count_vulture_timeout())
+            ])
+        )
 
         do_recover_with_buoy = Sequence("SQ Do recover with buoy", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_recover_with_buoy),
@@ -387,7 +400,7 @@ class AlarsBT():
             title = "Recover with buoy",
             post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
-            pre_condition = lambda: self._recover_fail_count < 2 and self._is_buoy_position_live and self._is_auv_position_live,
+            pre_condition = lambda: self._recover_fail_count < 1 and self._is_buoy_position_live and self._is_auv_position_live,
             pre_title = "Can retry, AUV position is live",
             act = Fallback("FB Recover, buoy", memory=True, children=[
                 do_recover_with_buoy,
@@ -396,6 +409,8 @@ class AlarsBT():
         )
 
         do_recover_without_buoy = Sequence("SQ Do recover without buoy", memory=True, children=[
+            FuncToStatus("Set vulture goal", self._set_goal_vulture),
+            vulture,
             FuncToStatus("Set goal", self._set_goal_recover_without_buoy),
             self.act_recover_no_bouy,
             FuncToStatus("Check success", self._check_recovery_success)
@@ -413,18 +428,6 @@ class AlarsBT():
             ])
         )
 
-        vulture = self._post_pre_act(
-            title = "Vulture",
-            post_condition = lambda: self._is_auv_position_live and self._is_buoy_position_live,
-            post_title = "Buoy and AUV position live",
-            pre_condition = lambda: self._is_auv_position_live and self._vulture_timeout_count < len(self.VULTURE_RANGES),
-            pre_title = "AUV position live and vulture timeout count not exceeded",
-            act = Sequence("SQ Vulture", memory=True, children=[
-                FuncToStatus("Set goal", self._set_goal_vulture),
-                self.act_vulture,
-                FuncToStatus("Count timeout", lambda: self._count_vulture_timeout())
-            ])
-        )
 
         do_search_local = Sequence("SQ Do local search", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_search_local),
