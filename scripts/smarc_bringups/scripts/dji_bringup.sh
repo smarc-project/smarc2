@@ -213,7 +213,7 @@ task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
 ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
--p AUV_WEIGHT_KG:=$AUV_WEIGHT_KG \
+-p loaded_weight_kg:=$AUV_WEIGHT_KG \
 -p max_detection_age:=15.0"
 
 ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/alars_bt/status std_msgs/msg/String --field data"
