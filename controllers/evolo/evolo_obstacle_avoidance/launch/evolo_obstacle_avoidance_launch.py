@@ -20,8 +20,8 @@ def generate_launch_description():
         'robot_name',
         default_value='evolo'
     )
-    requested_ctrl_topic_arg = DeclareLaunchArgument('requested_ctrl_topic', default_value=evoloTopics.EVOLO_REQUESTED_CTRL)
-    safe_ctrl_topic_arg = DeclareLaunchArgument('safe_ctrl_topic', default_value=evoloTopics.EVOLO_SAFE_CTRL)
+    requested_ctrl_topic_arg = DeclareLaunchArgument('requested_ctrl_topic', default_value=evoloTopics.EVOLO_TWIST_PLANNED)
+    safe_ctrl_topic_arg = DeclareLaunchArgument('safe_ctrl_topic', default_value=evoloTopics.EVOLO_TWIST_SETPOINT)
     obstacle_topic_arg = DeclareLaunchArgument('obstacle_topic', default_value=evoloTopics.EVOLO_CBF_OBSTACLES)
 
     cbf = Node(
