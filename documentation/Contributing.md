@@ -85,6 +85,7 @@ Date:   Thu May 21 09:11:46 2026 +0200
 - On github, make a pull request (PR) from `YOUR_NAME/my_amazing_feature` into `smarc2/humble`
 - People that can merge your PR will get an email about this usually. You can also bother them on slack (usually Niklas or Ozer)
 - `smarc2` maintainers will _squash_ and merge your PR.
+- You optionally delete `my_amazing_feature` branch (`git branch -D my_amazing_feature`)
 - Go to B.
 
 ## "I see previously merged commits in my new PR?"
@@ -92,6 +93,7 @@ Date:   Thu May 21 09:11:46 2026 +0200
 - This is a side-effect of _squashed merges_.
 - This is what happened:
 ```
+Fresh clone + new work
 SMARC2/humble   : Commit X, Y, Z
 YOUR_FORK/humble: Commit X, Y, Z, A, B, C
 
