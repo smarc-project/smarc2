@@ -15,8 +15,7 @@ from tf2_geometry_msgs import do_transform_pose_stamped, do_transform_point
 from geometry_msgs.msg import PointStamped
 from smarc_utilities import georef_utils
 import tf_transformations
-from evolo_msgs.msg import Topics as evoloTopics
-from smarc_msgs.msg import Topics as SmarcTopics
+
 from smarc_msgs.msg import GeofencePolygonsStamped
 from sensor_msgs.msg import NavSatFix
 from smarc_msgs.msg import Topics as SmarcTopics
@@ -47,18 +46,23 @@ class EvoloMovePathClient(Node):
 
         # ── Island buffer publishers ──────────────────────────────────────────
         # Soft buffer (white) — traversable, used as Dijkstra node source
-        self.island_soft_pub = self.create_publisher(MarkerArray, 'rviz/island_buffer_soft', 10)
+        self.island_soft_pub = self.create_publisher(
+            MarkerArray, 'rviz/island_buffer_soft', 10)
         # Hard buffer (orange) — absolute exclusion zone
-        self.island_hard_pub = self.create_publisher(MarkerArray, 'rviz/island_buffer_hard', 10)
+        self.island_hard_pub = self.create_publisher(
+            MarkerArray, 'rviz/island_buffer_hard', 10)
 
         # ── Subscribers ───────────────────────────────────────────────────────
-        self.gps_sub      = self.create_subscription(NavSatFix, '/evolo/Lidar/gps', self._gps_callback, 10)
-        # self.polygons_sub = self.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons',self._geofence_polygons_callback, 10)
-        self.polygons_sub = self.create_subscription(GeofencePolygonsStamped, SmarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10,)
-        # self.odom_sub     = self.create_subscription(Odometry, 'evolo/smarc/odom', self._odom_callback, 10)
-        self.odom_sub = self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC, self._odom_callback, 10)     
-        
-        self._geofence_start_client = RosActionClient(self, BaseAction, 'smarc_start_geofence')
+        self.gps_sub      = self.create_subscription(
+            NavSatFix, '/evolo/Lidar/gps', self._gps_callback, 10)
+        self.polygons_sub = self.create_subscription(
+            GeofencePolygonsStamped, '/smarc/geofence_polygons',
+            self._geofence_polygons_callback, 10)
+        self.odom_sub     = self.create_subscription(
+            Odometry, 'evolo/smarc/odom', self._odom_callback, 10)
+
+        self._geofence_start_client = RosActionClient(
+            self, BaseAction, 'smarc_start_geofence')
 
         self.robot_path_msg = Path()
         self.robot_path_msg.header.frame_id = self.frame_id
