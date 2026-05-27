@@ -376,6 +376,7 @@ class WaraPSTaskHandler:
             self._wara_ps_exec_response_pub.publish(msg)
             self._node.get_logger().warn("Rejected start command due to emergency flag.")
             return
+        
         # refuse start or signal if health status is not ok
         if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task"]:
             response_msg = {
@@ -776,7 +777,23 @@ class WaraPSTaskHandler:
                 self.mission_timeout = command["tst"]["params"]["timeout"]
             else:
                 self.mission_timeout = 1800 # default mission timeout
-            self._node.get_logger().info(f"Mission timeout set to {self.mission_timeout} seconds")
+            self._node.get_logger().info(f"No timeout provided. Mission timeout set to {self.mission_timeout} seconds")
+
+            # try to cast the timeout to a float, if it fails log an error and reject the command
+            try:
+                self.mission_timeout = float(self.mission_timeout)
+            except ValueError as e:
+                self._node.get_logger().error(f"Invalid mission timeout value: {e}")
+                response_msg = {
+                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                    "com-uuid": command["com-uuid"],
+                    "response": "Rejected: Mission timeout value should be a float representing seconds",
+                    "response-to": command["com-uuid"]
+                }
+                msg = String()
+                msg.data = json.dumps(response_msg)
+                self._wara_ps_tst_response_pub.publish(msg)
+                return
 
             # extract the list of tasks from the command. They're the children of the tst key
             if "children" not in command["tst"]:
