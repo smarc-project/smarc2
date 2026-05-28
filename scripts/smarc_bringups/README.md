@@ -46,6 +46,7 @@ Launches everything related to DJI drones and the ALARS project.
   - `git submodule update --init messages/psdk_interfaces`
   - If you want to run the full vision->motion stack: alars_auv_perception has requirements that need special care, check its readme!
     - If you do not need the vision capabilities, you can skip this on your personal machine.
+    - `git submodule update --init perception/alars/alars_labeling_training/` 
 
 - Only for Orin:
 
