@@ -372,7 +372,12 @@ class SMARCActionClient(abc.ABC):
     def _setup(self, num_iters: int = 3, timeout: float = 1.0) -> bool:
         server_status = False
         iters = 0
-        preserve_state = False
+        preserve_state = self._state in (
+            ActionClientState.SENT,
+            ActionClientState.ACCEPTED,
+            ActionClientState.RUNNING,
+            ActionClientState.CANCELLING,
+        )
         while not server_status and iters < num_iters:
             iters += 1
             self._loginfo("Waiting for server to start.")
