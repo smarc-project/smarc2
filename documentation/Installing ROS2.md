@@ -93,7 +93,7 @@ It is good to be aware of git submodules and how they work. We make heavy use of
 ### Colcon, rosdep, pip
 ```bash
 apt update && apt upgrade # Optional but good
-apt install python3-colcon-ros python3-rosdep python3-pip apt-utils ros-dev-tools
+apt install python3-colcon-ros python3-rosdep python3-pip apt-utils ros-dev-tools mosquitto
 pip install --user setuptools==58.2.0 # Optional. Stops useless warnings when building
 rosdep init
 rosdep update
@@ -124,6 +124,13 @@ cd colcon_ws
 source install/setup.sh
 ```
 In any terminal you want to use ros in.
+
+## Post-install checks
+- Check your vehicles bringup script and its readme.
+- `pip list installed | grep numpy`
+  - If you see numpy >= 2.0 here, uninstall it
+  - Install numpy through apt instead
+  - TODO: This seems to be required by only the tf_transformations package that we used during our move from ros1 to ros2. We should really migrate to transforms3d instead.
 
 
 ## [Continue with porting](./Porting%20a%20package.md)
