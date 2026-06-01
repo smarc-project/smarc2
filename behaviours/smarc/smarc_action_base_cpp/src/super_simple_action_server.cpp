@@ -8,6 +8,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "smarc_action_base_cpp/gentler_action_server.hpp"
+// This one is very important for handling server shutdowns gracefully!!
+#include "smarc_action_base_cpp/graceful_shutdown.hpp"
 
 namespace smarc_action_base_cpp {
 
@@ -22,7 +24,10 @@ class SuperSimpleAction {
                        std::bind(&SuperSimpleAction::prepare_loop, this),
                        std::bind(&SuperSimpleAction::loop_inner, this),
                        std::bind(&SuperSimpleAction::give_feedback, this),
-                       GentlerActionServer::Config(/*loop_frequency_hz*/5.0)) {}
+                       GentlerActionServer::Config(/*loop_frequency_hz*/ 5.0)) {
+  }
+
+  void request_shutdown() { action_server_.request_shutdown(); }
 
  private:
   using LoopStatus = GentlerActionServer::LoopStatus;
@@ -68,16 +73,31 @@ class SuperSimpleAction {
 }  // namespace smarc_action_base_cpp
 
 int main(int argc, char** argv) {
-  rclcpp::init(argc, argv);
+  // Option to disable ROS' shutdown.
+  auto init_options =
+      smarc_action_base_cpp::manual_signal_handling_init_options();
 
+  // Init node with disabled shutdown. 
+  rclcpp::init(argc, argv, init_options);
+  // Take control of SIGINT and SIGTERM.
+  smarc_action_base_cpp::install_signal_handlers();
+
+  //--These are probably the only few lines you'll need to change in the main.--
   auto node = rclcpp::Node::make_shared("super_simple_action_server_cpp");
   auto action =
       std::make_shared<smarc_action_base_cpp::SuperSimpleAction>(node);
-  (void)action;
-
+  //----------------------------------------------------------------------------
+  
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
-  executor.spin();
+
+  // Make sure to always use our spin + shutdown routine. 
+  smarc_action_base_cpp::spin_with_graceful_shutdown(
+      executor, [&action]() { action->request_shutdown(); });
+
+  executor.remove_node(node);
+  action.reset();
+  node.reset();
 
   rclcpp::shutdown();
   return 0;
