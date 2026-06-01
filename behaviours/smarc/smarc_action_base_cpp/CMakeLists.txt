@@ -13,6 +13,7 @@ find_package(smarc_msgs REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
 add_library(gentler_action_server
+  src/graceful_shutdown.cpp
   src/gentler_action_server.cpp
 )
 target_include_directories(gentler_action_server PUBLIC

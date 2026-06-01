@@ -8,6 +8,7 @@
 #ifndef SMARC_ACTION_BASE_CPP__GENTLER_ACTION_SERVER_HPP_
 #define SMARC_ACTION_BASE_CPP__GENTLER_ACTION_SERVER_HPP_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -73,6 +74,7 @@ class GentlerActionServer {
 
   std::string action_name() const;
   std::string parsed_action_name() const;
+  void request_shutdown();
 
  private:
   rclcpp_action::GoalResponse handle_goal(
@@ -106,6 +108,7 @@ class GentlerActionServer {
   rclcpp::TimerBase::SharedPtr heartbeat_timer_;
 
   // For the plumbing and bookkeeping done in the SMARCActionServer.
+  std::atomic_bool stop_requested_{false};
   mutable std::mutex goal_mutex_;
   std::shared_ptr<GoalHandle> active_goal_handle_;
   std::thread execution_thread_;
