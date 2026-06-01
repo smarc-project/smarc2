@@ -5,6 +5,8 @@ Each of the following directories also include more detailed readmes within.
 ## [Fresh install? Start here.](/documentation/Installing%20ROS2.md)
 [This document](/documentation/Installing%20ROS2.md) has step-by-step instructions to get things running.
 
+## [New to git? Git gud here.](/documentation/Contributing.md)
+
 
 ## [Making a new Action for a robot? Check this example out](/examples/SuperSimpleActionServer.py)
 [This example](/examples/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 

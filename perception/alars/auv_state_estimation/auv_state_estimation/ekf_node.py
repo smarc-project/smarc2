@@ -6,6 +6,7 @@ import numpy as np
 from collections import deque
 import rclpy
 from rclpy.time import Time
+from rclpy.duration import Duration
 from rclpy.node import Node
 from geometry_msgs.msg import PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
 from std_msgs.msg import Float32MultiArray
@@ -107,21 +108,24 @@ class EKFNode(Node):
                 self.q.popleft()
                 continue
 
-
-            if self.tf_buffer.can_transform(self.map_frame, self.cam_frame, stamp):
-                transform = self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, stamp)
+            check_time = Time(seconds=0)
+            check_duration = Duration(seconds=1)
+            try:
+                transform = self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, check_time, check_duration)
+                # if self.tf_buffer.can_transform(self.map_frame, self.cam_frame, t, d):
                 self.current_transform = transform
                 t = transform.transform.translation
                 q = transform.transform.rotation
                 self.current_cam_pos_map = np.array([t.x, t.y, t.z]) # Actually the optical frame
                 self.current_R_map_cam = R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()
-                self.current_R_map_cam = self.current_R_map_cam 
+                self.current_R_map_cam = self.current_R_map_cam
                 self.q.popleft()
                 self.z(msg, transform)
                 self.last_processed_measurement_time = arrival
                 continue
-            else:
+            except Exception as e:
                 self.log_info(f"Cant transform from {self.cam_frame} to {self.map_frame} at msg time, dropping msg.")
+                self.log_info(f"Transform error: {e}")
                 self.q.popleft()
 
             wait_time = (now - arrival).nanoseconds * 1e-9

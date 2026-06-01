@@ -91,8 +91,8 @@ class DjiCaptain():
         self._last_pubbed_fluvel_joy : Joy | None = None
         
         
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.0 #How long we keep the move to setpoint before we consider it stale
-        self.MAX_SETPOINT_DISTANCE : float = 50.0 # meters, max distance from current position to accept a move to setpoint
+        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.5 #How long we keep the move to setpoint before we consider it stale
+        self.MAX_SETPOINT_DISTANCE : float = 100.0 # meters, max distance from current position to accept a move to setpoint
         # if new setpoint time is close to current setpoint time
         # we check if new setpoint is similar enough to current setpoint
         self.CHECK_SETPOINT_SIMILARITY_TIME_THRESHOLD : float = 0.3 

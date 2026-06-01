@@ -15,7 +15,9 @@ string EVOLO_CAPTAIN_STATE= captain/state
 string EVOLO_MQTT_RECEIVE = mqtt/fromevolo
 string EVOLO_MQTT_SEND = mqtt/toevolo
 
-#TODO LIDAR
+# LIDAR
+string EVOLO_OCCUPANCY_GRID = occupancyMap
+string EVOLO_CBF_OBSTACLES = obstacles
 
 # Gimbal control.
 string EVOLO_MQTT_GIMBAL_CAMCMD = mqtt/cam_cmd

@@ -106,7 +106,7 @@ class AlarsBT():
             # 2) progressively search around it for the buoy
             self.VULTURE_RANGES = [0.0, 1.0, 3.0, 5.0]
             self.VULTURE_SPEED_DEG = 30.0
-            self.VULTURE_TIMEOUT = 30.0
+            self.VULTURE_TIMEOUTS = [2.0, 5.0, 10.0, 15.0]
             self.RECOVER_WO_BUOY_RADIUS = .75
             self.LOCAL_SEARCH_RADIUS = 10.0
 
@@ -317,7 +317,7 @@ class AlarsBT():
             "follow_altitude": self._goal["search_position"]["altitude"],
             "vulture_radius": self.VULTURE_RANGES[self._vulture_timeout_count],
             "vulture_speed_deg": self.VULTURE_SPEED_DEG,
-            "timeout": self.VULTURE_TIMEOUT
+            "timeout": self.VULTURE_TIMEOUTS[self._vulture_timeout_count]
         })
     
     def _count_vulture_timeout(self) -> bool:
