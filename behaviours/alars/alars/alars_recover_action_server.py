@@ -210,9 +210,9 @@ class RecoverAction():
             (dipping_pos, self._dipping_altitude), #A
             (dipping_pos, self._forward_altitude), #B
             (dragged_pos, self._forward_altitude), #C
-            (dragged_pos, self._raising_altitude/5.0), #D1
-            (dragged_pos, self._raising_altitude/2.0), #D2
-            (dragged_pos, self._raising_altitude) #D3
+            (dragged_pos, np.max([self._forward_altitude, self._raising_altitude/5.0])), #D1
+            (dragged_pos, np.max([self._forward_altitude, self._raising_altitude/2.0])), #D2
+            (dragged_pos, np.max([self._forward_altitude, self._raising_altitude])) #D3
         ]
 
         for (pos, alt) in p:
@@ -255,21 +255,21 @@ class RecoverAction():
         d1.header.frame_id = self._drone_state.MAP_FRAME
         d1.pose.position.x = circle[-1].pose.position.x
         d1.pose.position.y = circle[-1].pose.position.y
-        d1.pose.position.z = self._raising_altitude/5.0
+        d1.pose.position.z = np.max([self._forward_altitude, self._raising_altitude/5.0])
 
         d2 = PoseStamped()
         d2.header.frame_id = self._drone_state.MAP_FRAME
         d2.pose.position.x = circle[-1].pose.position.x
         d2.pose.position.y = circle[-1].pose.position.y
-        d2.pose.position.z = self._raising_altitude/2.0
+        d2.pose.position.z = np.max([self._forward_altitude, self._raising_altitude/2.0])
 
         d3 = PoseStamped()
         d3.header.frame_id = self._drone_state.MAP_FRAME
         d3.pose.position.x = circle[-1].pose.position.x
         d3.pose.position.y = circle[-1].pose.position.y
-        d3.pose.position.z = self._raising_altitude
+        d3.pose.position.z = np.max([self._forward_altitude, self._raising_altitude])
 
-        self._points = [dipping]+circle+circle+[d1, d2 ,d3]
+        self._points = [dipping]+circle+[d1, d2 ,d3]
         
 
     def _prepare_loop(self) -> None:

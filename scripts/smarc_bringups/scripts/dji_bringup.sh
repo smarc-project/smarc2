@@ -82,7 +82,7 @@ if [[ $ROBOT_NAME == "M350" ]]; then
     MAX_LOAD_KG="7.0"
     MIN_ALTITUDE_ABOVE_WATER="1.5"
 elif [[ $ROBOT_NAME == "FC30" ]]; then
-    AUV_WEIGHT_KG=10.0
+    AUV_WEIGHT_KG=13.0
     MAX_LOAD_KG="30.0"
     MIN_ALTITUDE_ABOVE_WATER="3.0"
 fi
@@ -181,7 +181,9 @@ ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p setpoint_tolerance:=$ALARS_RECOVER_SETPOINT_TOLERANCE \
--p max_rope_length:=$AUV_BUOY_LINE_LENGTH"
+-p max_rope_length:=$AUV_BUOY_LINE_LENGTH \
+-p max_auv_age:=5.0 \
+-p max_buoy_age:=5.0"
 
 ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
@@ -211,7 +213,7 @@ task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
 ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
--p AUV_WEIGHT_KG:=$AUV_WEIGHT_KG \
+-p loaded_weight_kg:=$AUV_WEIGHT_KG \
 -p max_detection_age:=15.0"
 
 ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/alars_bt/status std_msgs/msg/String --field data"

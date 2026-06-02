@@ -12,6 +12,32 @@ This requires Ubuntu 22.04 at least.
 Like with ROS1, setup a workspace. Usually `colcon_ws`.
 Notice that ROS2 moved from catkin to colcon for its build process, and there are some minor differences from a user standpoint.
 
+#### One-stop-shop
+Coped from the official instructions above, for ubuntu 22.04, installing ROS2 from scratch:
+
+```bash
+sudo apt update && sudo apt upgrade
+
+sudo apt install software-properties-common
+
+sudo add-apt-repository universe
+
+sudo apt install curl -y
+
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+
+sudo dpkg -i /tmp/ros2-apt-source.deb
+
+sudo apt update && sudo apt upgrade
+
+sudo apt install ros-humble-desktop
+
+sudo apt install ros-dev-tools
+```
+
+
 
 
 ### Optional Step 0.5: Tame colcon
@@ -57,14 +83,17 @@ mkdir -p colcon_ws/src
 cd colcon_ws/src
 git clone https://github.com/smarc-project/smarc2.git
 cd smarc2
-./scripts/get-submodules.sh external_packages/mqtt_bridge
-./scripts/get-submodules.sh external_packages/ROS-TCP-Endpoint
+git submodule update --init external_packages/mqtt_bridge/
+git submodule update --init external_packages/ROS-TCP-Endpoint/
 ```
+
+It is good to be aware of git submodules and how they work. We make heavy use of them in this repository.
+
 
 ### Colcon, rosdep, pip
 ```bash
 apt update && apt upgrade # Optional but good
-apt install python3-colcon-ros python3-rosdep python3-pip apt-utils ros-dev-tools
+apt install python3-colcon-ros python3-rosdep python3-pip apt-utils ros-dev-tools mosquitto
 pip install --user setuptools==58.2.0 # Optional. Stops useless warnings when building
 rosdep init
 rosdep update
@@ -95,6 +124,13 @@ cd colcon_ws
 source install/setup.sh
 ```
 In any terminal you want to use ros in.
+
+## Post-install checks
+- Check your vehicles bringup script and its readme.
+- `pip list installed | grep numpy`
+  - If you see numpy >= 2.0 here, uninstall it
+  - Install numpy through apt instead
+  - TODO: This seems to be required by only the tf_transformations package that we used during our move from ros1 to ros2. We should really migrate to transforms3d instead.
 
 
 ## [Continue with porting](./Porting%20a%20package.md)
