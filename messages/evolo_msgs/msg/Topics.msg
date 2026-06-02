@@ -9,6 +9,13 @@ string EVOLO_CONTROL_SETPOINT = ctrl/control_setpoint #Type: Odometry
 string EVOLO_TWIST_PLANNED = ctrl/twist_planned #Type: TwistStamped
 string EVOLO_CONTROL_PLANNED = ctrl/control_planned #Type: Odometry
 
+# Prox-ops backend/action-server contract.
+string PROX_OPS_BACKEND_STATUS = backend/status #Type: evolo_msgs/ProxOpsBackendStatus
+string PROX_OPS_BACKEND_TARGET_STATE = backend/target_state #Type: nav_msgs/Odometry
+string PROX_OPS_BACKEND_CANDIDATE_PATH = backend/candidate_path #Type: nav_msgs/Path
+string PROX_OPS_BACKEND_TWIST_PLANNED = backend/twist_planned #Type: geometry_msgs/TwistStamped
+string PROX_OPS_BACKEND_COMMAND = backend/command #Type: std_msgs/String
+
 #communication to and from captain
 string EVOLO_CAPTAIN_TO = captain/to
 string EVOLO_CAPTAIN_FROM= captain/from
