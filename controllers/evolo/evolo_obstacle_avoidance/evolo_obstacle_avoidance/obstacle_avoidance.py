@@ -42,7 +42,7 @@ class cbf_avoidance(Node):
         self.logger.info(f"Reciving requested control messages from /{self.robot_name}/{self.requested_ctrl_topic}")
         
         # Obstacle sub
-        self.max_n_obst = 10
+        self.max_n_obst = 30
         self.last_time = 0
         self.n_obst = 0
         self.obst_list = np.zeros((self.max_n_obst, 3))
@@ -70,7 +70,7 @@ class cbf_avoidance(Node):
 
         # CBF parameters
         self.is_sim = False
-        self.agent_radius = 2.0
+        self.agent_radius = 20.0
         self.w_max = 30.0
         self.u_max = self.w_max * np.pi / 180
         self.w_max_virtual = 7.0
@@ -119,6 +119,7 @@ class cbf_avoidance(Node):
 
         # Publish the safe control
         u_safe = TwistStamped()
+        u_safe.header = msg.header
         u_safe.twist.linear.x = msg.twist.linear.x
         if self.is_sim:
             u_safe.twist.angular.z = w_safe * 180 / (self.w_max_scale * np.pi)

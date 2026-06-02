@@ -224,12 +224,12 @@ class EvoloMovePath:
         sub_cbg = ReentrantCallbackGroup()
 
         self.dubins_path_pub = self._node.create_publisher(Path, "rviz/planned_path", 10, callback_group=pub_cbg)
-        self.speed_pub = self._node.create_publisher(TwistStamped, 'evolo/evolo_cmd', 10, callback_group=pub_cbg)
-        self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10, callback_group=sub_cbg)
-        # self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
-        # self.speed_pub       = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=self.publisher_callback_group)
+        #self.speed_pub = self._node.create_publisher(TwistStamped, 'evolo/evolo_cmd', 10, callback_group=pub_cbg)
+        #self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10, callback_group=sub_cbg)
+        self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,callback_group=sub_cbg)
+        self.speed_pub       = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=pub_cbg)
         # Subscriber geofence polygons
-        self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons', self._geofence_polygons_callback, 10,)
+        #self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons', self._geofence_polygons_callback, 10,)
         
         self._node.get_logger().info("EvoloMovePath started")
 
@@ -354,12 +354,16 @@ class EvoloMovePath:
         omega_smoothed = self._prev_omega + max(-MAX_DELTA, min(MAX_DELTA, omega - self._prev_omega))
         self._prev_omega = omega_smoothed
 
+        # Convert to radians and m/s
+        omega_smoothed_rad = math.radians(omega_smoothed)
+        speed_ms =  v * 0.514444444
+
         # ── Publish ───────────────────────────────────────────────────────────
         cmd                 = TwistStamped()
         cmd.header.stamp    = self._node.get_clock().now().to_msg()
-        cmd.header.frame_id = self.frame_id
-        cmd.twist.linear.x  = v
-        cmd.twist.angular.z = omega_smoothed
+        cmd.header.frame_id = "evolo/base_link"
+        cmd.twist.linear.x  = speed_ms
+        cmd.twist.angular.z = omega_smoothed_rad
         self.speed_pub.publish(cmd)
 
         return None
