@@ -25,8 +25,21 @@ ament_target_dependencies(evolo_target_intercept
   smarc_action_base_cpp
 )
 
+add_executable(fake_prox_ops_backend
+  src/fake_prox_ops_backend.cpp
+)
+ament_target_dependencies(fake_prox_ops_backend
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  std_msgs
+  evolo_msgs
+)
+
 install(
-  TARGETS evolo_target_intercept
+  TARGETS
+    evolo_target_intercept
+    fake_prox_ops_backend
   DESTINATION lib/${PROJECT_NAME}
 )
 
