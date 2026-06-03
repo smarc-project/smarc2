@@ -136,7 +136,7 @@ START
   Start or arm the backend for the current intercept goal.
 
 STOP
-  Stop planning/control output for the current goal.
+  Stop planning/control output for the current goal. The backend must clear or invalidate terminal state for the stopped goal, including intercept_success, target_lost, plan_available, candidate path, and planned twist. A future START must not reuse stale state from a previous goal.
 
 RESET
   Clear backend state for a new run.
@@ -175,6 +175,20 @@ ctrl/twist_planned
 
 If the candidate path is unsafe, the action server does not forward `backend/twist_planned`.
 
+Current safety gate before forwarding:
+
+```text
+- backend/status must be fresh and newer than the action start.
+- backend/candidate_path must be fresh and newer than the action start.
+- backend/twist_planned must be fresh and newer than the action start.
+- backend/candidate_path must have a non-empty frame_id.
+- backend/candidate_path must contain at least one pose.
+- backend/candidate_path poses must not contradict the path frame_id.
+- backend/twist_planned must have a non-empty frame_id.
+```
+
+Geofence/path-boundary validation will be added on top of this gate.
+
 ## Contract Semantics
 
 ```text
@@ -188,4 +202,7 @@ If the candidate path is unsafe, the action server does not forward `backend/twi
 8. If target_lost=true for longer than the configured timeout, the BT will move to fallback behavior.
 9. Frame IDs must be agreed ahead of time; candidate_path and target_state should be in a fixed world/map frame unless explicitly stated otherwise.
 10. backend/command STOP means stop planning/control output for the current goal; RESET means clear backend state for a new run.
+11. Backend messages older than the current action start are ignored, even if their fields indicate success or a valid plan.
+12. Backend messages with zero timestamps are treated as stale.
 ```
+
