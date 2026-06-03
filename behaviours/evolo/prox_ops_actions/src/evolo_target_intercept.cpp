@@ -31,6 +31,18 @@ class EvoloTargetIntercept {
             smarc_action_base_cpp::GentlerActionServer::Config(
                 /*loop_frequency_hz=*/10.0)) {
 
+    // TODO: Reasonable values for these?
+    node_->declare_parameter("backend_status_max_age_s", 2.0);
+    node_->declare_parameter("candidate_path_max_age_s", 2.0);
+    node_->declare_parameter("backend_twist_max_age_s", 1.0);
+
+    backend_status_max_age_s_ =
+        node_->get_parameter("backend_status_max_age_s").as_double();
+    candidate_path_max_age_s_ =
+        node_->get_parameter("candidate_path_max_age_s").as_double();
+    backend_twist_max_age_s_ =
+        node_->get_parameter("backend_twist_max_age_s").as_double();
+
     // TODO: We should find out a way to add the evolo_msgs/Topics names in here
     // to avoid hard-coding them.
     backend_command_pub_ =
@@ -70,6 +82,7 @@ class EvoloTargetIntercept {
   using LoopStatus = GentlerActionServer::LoopStatus;
 
   bool on_goal_received(const Json& goal) {
+    reset_backend_cache();
     goal_json_ = goal.dump();
     RCLCPP_INFO(node_->get_logger(), "Received intercept goal: %s",
                 goal_json_.c_str());
@@ -78,14 +91,20 @@ class EvoloTargetIntercept {
 
   bool on_cancel_received() {
     publish_backend_command("STOP", "action_cancelled");
+    reset_backend_cache();
     return true;
   }
 
-  void prepare_loop() { publish_backend_command("START", "action_started"); }
+  void prepare_loop() {
+    reset_backend_cache();
+    action_start_time_ = node_->get_clock()->now();
+    has_action_start_time_ = true;
+    publish_backend_command("START", "action_started");
+  }
 
   LoopStatus loop_inner() {
-    if (!last_status_) {
-      feedback_ = "WAITING_FOR_BACKEND_STATUS";
+    if (!msg_is_fresh(last_status_, backend_status_max_age_s_)) {
+      feedback_ = "WAITING_FOR_FRESH_BACKEND_STATUS";
       return LoopStatus::RUNNING;
     }
 
@@ -103,7 +122,11 @@ class EvoloTargetIntercept {
       return LoopStatus::SUCCESS;
     }
 
-    if (status.plan_available && last_candidate_path_ && last_backend_twist_) {
+    if (status.plan_available) {
+      if (!candidate_control_is_safe_to_forward()) {
+        return LoopStatus::RUNNING;
+      }
+
       ctrl_twist_pub_->publish(*last_backend_twist_);
       feedback_ = "FORWARDING_BACKEND_TWIST";
     }
@@ -138,6 +161,88 @@ class EvoloTargetIntercept {
     backend_command_pub_->publish(msg);
   }
 
+  bool candidate_control_is_safe_to_forward() {
+    if (!msg_is_fresh(last_candidate_path_, candidate_path_max_age_s_)) {
+      feedback_ = "WAITING_FOR_FRESH_CANDIDATE_PATH";
+      return false;
+    }
+
+    if (!msg_is_fresh(last_backend_twist_, backend_twist_max_age_s_)) {
+      feedback_ = "WAITING_FOR_FRESH_BACKEND_TWIST";
+      return false;
+    }
+
+    if (!candidate_path_is_valid(*last_candidate_path_)) {
+      return false;
+    }
+
+    if (!backend_twist_is_valid(*last_backend_twist_)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool candidate_path_is_valid(const nav_msgs::msg::Path& path) {
+    if (path.header.frame_id.empty()) {
+      feedback_ = "CANDIDATE_PATH_MISSING_FRAME";
+      return false;
+    }
+
+    if (path.poses.empty()) {
+      feedback_ = "CANDIDATE_PATH_EMPTY";
+      return false;
+    }
+
+    for (const auto& pose : path.poses) {
+      if (!pose.header.frame_id.empty() &&
+          pose.header.frame_id != path.header.frame_id) {
+        feedback_ = "CANDIDATE_PATH_INCONSISTENT_FRAMES";
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool backend_twist_is_valid(const geometry_msgs::msg::TwistStamped& twist) {
+    if (twist.header.frame_id.empty()) {
+      feedback_ = "BACKEND_TWIST_MISSING_FRAME";
+      return false;
+    }
+
+    return true;
+  }
+
+  template <typename MsgT>
+  bool msg_is_fresh(const std::shared_ptr<MsgT>& msg, double max_age_s) const {
+    if (!msg) {
+      return false;
+    }
+
+    const rclcpp::Time stamp(msg->header.stamp,
+                             node_->get_clock()->get_clock_type());
+    if (stamp.nanoseconds() == 0) {
+      return false;
+    }
+
+    if (has_action_start_time_ && stamp < action_start_time_) {
+      return false;
+    }
+
+    const auto age_s = (node_->get_clock()->now() - stamp).seconds();
+    return age_s >= 0.0 && age_s <= max_age_s;
+  }
+
+  void reset_backend_cache() {
+    last_status_.reset();
+    last_target_state_.reset();
+    last_candidate_path_.reset();
+    last_backend_twist_.reset();
+    has_action_start_time_ = false;
+    feedback_ = "IDLE";
+  }
+
   rclcpp::Node::SharedPtr node_;
   GentlerActionServer action_server_;
 
@@ -155,6 +260,12 @@ class EvoloTargetIntercept {
   nav_msgs::msg::Odometry::SharedPtr last_target_state_;
   nav_msgs::msg::Path::SharedPtr last_candidate_path_;
   geometry_msgs::msg::TwistStamped::SharedPtr last_backend_twist_;
+
+  rclcpp::Time action_start_time_;
+  bool has_action_start_time_ = false;
+  double backend_status_max_age_s_ = 2.0;
+  double candidate_path_max_age_s_ = 2.0;
+  double backend_twist_max_age_s_ = 1.0;
 
   std::string goal_json_;
   std::string feedback_ = "IDLE";
