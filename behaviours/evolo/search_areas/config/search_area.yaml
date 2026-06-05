@@ -1,0 +1,8 @@
+/**/search_area:
+  ros__parameters:
+    move_path_action: "move_path"
+    lane_spacing: 10.0
+    waypoint_tol: 3.0
+    speed: 3.0
+    geofence_action: "smarc_start_geofence" 
+    obstacle_buffer: 100.0

@@ -124,10 +124,10 @@ class EvoloMovePath:
             ('dubins_step',        rclpy.Parameter.Type.DOUBLE),
             ('timeout',            rclpy.Parameter.Type.DOUBLE),
             ('frame_id',           rclpy.Parameter.Type.STRING),
-            ('cte_kp',             rclpy.Parameter.Type.DOUBLE),   # proportional CTE gain
+            ('cte_kp',             rclpy.Parameter.Type.DOUBLE),
             ('cte_ki',             rclpy.Parameter.Type.DOUBLE),
             ('cte_integral_max',   rclpy.Parameter.Type.DOUBLE),
-            ('heading_kp',         rclpy.Parameter.Type.DOUBLE),   # heading alignment gain
+            ('heading_kp',         rclpy.Parameter.Type.DOUBLE), 
             ('dubins_mode',        rclpy.Parameter.Type.STRING),
         ])
 
@@ -190,21 +190,13 @@ class EvoloMovePath:
         sub_cbg = ReentrantCallbackGroup()
 
         self.dubins_path_pub = self._node.create_publisher(Path, "rviz/planned_path", 10, callback_group=pub_cbg)
-        self.speed_pub = self._node.create_publisher(TwistStamped, 'evolo/evolo_cmd', 10, callback_group=pub_cbg)
-        self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10, callback_group=sub_cbg)
-
-        # self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10, callback_group=sub_cbg)     
-        # self.speed_pub = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=pub_cbg)
-        # Subscriber geofence polygons
-        self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons', self._geofence_polygons_callback, 10,)
-        # self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, smarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10, callback_group=sub_cbg)
+        self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10, callback_group=sub_cbg)     
+        self.speed_pub = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=pub_cbg)
+        self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, smarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10, callback_group=sub_cbg)
         
         self._node.get_logger().info("EvoloMovePath started")
 
 
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Geofence callback
     # ─────────────────────────────────────────────────────────────────────────
     def _geofence_polygons_callback(self, msg: GeofencePolygonsStamped):
         if not msg.islands:
@@ -249,15 +241,14 @@ class EvoloMovePath:
         geofence_just_arrived = False
 
         if geofence_just_arrived and self.dubins_path is not None:
-            self._node.get_logger().warn(
-                '[Geofence] Path planned without avoidance — invalidating')
+            self._node.get_logger().warn('[Geofence] Path planned without avoidance — invalidating')
             self.dubins_path    = None
             self.wp_end_indices = None
             self.path_cursor    = 0
             self.controller.reset()
 
 
-    # ── Goal / Cancel ─────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _on_goal_received(self, goal_request: dict) -> bool:
         try:
             self.speed_kn = float(goal_request['speed'])
@@ -291,10 +282,12 @@ class EvoloMovePath:
         ]
         return True
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _on_cancel_received(self) -> bool:
         self._send_stop()
         return True
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _prepare_loop(self) -> None:
         self.action_started_time    = int(self._node.get_clock().now().nanoseconds * 1e-9)
         self.dubins_path            = None
@@ -307,7 +300,7 @@ class EvoloMovePath:
         self._prev_omega            = 0.0
         self.controller.reset()
 
-    # ── Main loop ─────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _loop_inner(self) -> bool | None:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         if time_now - self.action_started_time > self.timeout:
@@ -335,9 +328,6 @@ class EvoloMovePath:
         path = self.dubins_path
 
         # ── Cursor: small fixed window to prevent cross-loop jumps ────────────
-        # At v=14 m/s and 10 Hz → ~1.4 m/tick ≈ 3 pts/tick (step=0.5 m).
-        # A 40-point window (20 m) is wide enough to advance but too narrow
-        # to accidentally skip an entire Dubins arc.
         WINDOW     = 40
         search_end = min(len(path), self.path_cursor + WINDOW)
         candidate  = self._find_closest(robot_pos, self.path_cursor, search_end)
@@ -388,7 +378,7 @@ class EvoloMovePath:
 
         return None
 
-    # ── Dubins global planner ─────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _plan_global_dubins(self) -> bool:
         if self.current_yaw is None:
             return False
@@ -469,7 +459,7 @@ class EvoloMovePath:
         self._node.get_logger().info(f"Dubins path planned: {len(full_path)} points")
         return True
 
-    # ── Cursor helper ─────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _find_closest(self, robot_pos, start: int, end: int) -> int:
         """
         Score = distance + heading penalty.
@@ -491,7 +481,7 @@ class EvoloMovePath:
                 best_idx   = i
         return best_idx
 
-    # ── Utilities ─────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _send_stop(self):
         cmd = TwistStamped()
         cmd.header.stamp    = self._node.get_clock().now().to_msg()
@@ -499,6 +489,7 @@ class EvoloMovePath:
         cmd.twist.angular.z = 0.0
         self.speed_pub.publish(cmd)
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _path_msg(self, configurations) -> Path:
         msg = Path()
         msg.header.frame_id = self.frame_id
@@ -516,6 +507,7 @@ class EvoloMovePath:
             msg.poses.append(ps)
         return msg
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _give_feedback(self) -> str:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         runtime  = time_now - self.action_started_time
@@ -532,14 +524,14 @@ class EvoloMovePath:
             "precision_total":    self._precision_ticks_total,
             "distance_travelled": round(self._distance_travelled, 2),
         }
-        if self._last_calculated_path is not None:
-            fb["full_path"] = self._last_calculated_path
-            self._last_calculated_path = None
+
         if hasattr(self, '_waypoints_for_client') and self._waypoints_for_client:
             fb['wps'] = self._waypoints_for_client
             self._waypoints_for_client = None
         return json.dumps(fb)
 
+
+    # ─────────────────────────────────────────────────────────────────────────
     def latlon_to_local_frame(self, point_list):
         geopoint           = GeoPoint()
         geopoint.latitude  = point_list[0]
@@ -564,6 +556,8 @@ class EvoloMovePath:
             self._node.get_logger().error(f"TF failed: {e}")
             return None
 
+
+    # ─────────────────────────────────────────────────────────────────────────
     def robot_odom_callback(self, msg: Odometry):
         if msg.header.frame_id == self.frame_id:
             self.robot_position        = PoseStamped()
@@ -592,6 +586,7 @@ class EvoloMovePath:
         self.current_angular_speed = msg.twist.twist.angular.z
 
 
+# ─────────────────────────────────────────────────────────────────────────
 def main():
     rclpy.init()
     node = Node("evolo_move_path_action_server")
