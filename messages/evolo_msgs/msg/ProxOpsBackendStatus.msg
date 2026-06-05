@@ -7,7 +7,7 @@ uint8 MODE_LONG_RANGE_INTERCEPT=3
 uint8 MODE_FUSED_INTERCEPT=4
 uint8 MODE_TERMINAL_INTERCEPT=5
 uint8 MODE_TARGET_LOST=6
-uint8 MODE_SUCCESS=7
+uint8 MODE_INSPECT=7
 uint8 mode
 
 uint8 HEALTH_UNKNOWN=0
@@ -21,7 +21,7 @@ bool long_range_track_converged
 bool terminal_track_live
 bool target_lost
 bool plan_available
-bool intercept_success
+bool target_intercepted
 
 float32 long_range_confidence
 float32 terminal_confidence
