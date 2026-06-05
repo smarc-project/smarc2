@@ -28,7 +28,7 @@ uint8 MODE_LONG_RANGE_INTERCEPT=3
 uint8 MODE_FUSED_INTERCEPT=4
 uint8 MODE_TERMINAL_INTERCEPT=5
 uint8 MODE_TARGET_LOST=6
-uint8 MODE_SUCCESS=7
+uint8 MODE_INSPECT=7
 uint8 mode
 
 uint8 HEALTH_UNKNOWN=0
@@ -42,7 +42,7 @@ bool long_range_track_converged
 bool terminal_track_live
 bool target_lost
 bool plan_available
-bool intercept_success
+bool target_intercepted
 
 float32 long_range_confidence
 float32 terminal_confidence
@@ -117,7 +117,16 @@ Type:
 std_msgs/msg/String
 ```
 
-Purpose: JSON command topic from the action server to the backend.
+Purpose: JSON command topic from the prox-ops layer to the backend.
+
+Current default model: `prox_ops_bt` sends `RESET` then `START` whenever it
+accepts a new prox-ops goal. The BT/action layer then observes
+`backend/status`, starts intercept only once the backend is healthy and
+controlling, and gates `backend/twist_planned` before forwarding to
+`ctrl/twist_planned`.
+
+`evolo_target_intercept` does not publish START/STOP by default. Backend
+lifecycle is owned by `prox_ops_bt`.
 
 Initial commands:
 
@@ -133,13 +142,16 @@ Command semantics:
 
 ```text
 START
-  Start or arm the backend for the current intercept goal.
+  Sent by prox_ops_bt after RESET when a new prox-ops goal starts. Start or arm
+  the backend for prox-ops.
 
 STOP
-  Stop planning/control output for the current goal. The backend must clear or invalidate terminal state for the stopped goal, including intercept_success, target_lost, plan_available, candidate path, and planned twist. A future START must not reuse stale state from a previous goal.
+  Sent by prox_ops_bt after RESET when inspection timeout or patrol timeout is
+  exceeded. Stop planning/control output for the current prox-ops run.
 
 RESET
-  Clear backend state for a new run.
+  Sent before START on new goal, and before STOP when inspection timeout or
+  patrol timeout is exceeded. Clear backend state for a new run.
 
 PAUSE
   Temporarily pause backend planning/control output.
@@ -189,6 +201,26 @@ Current safety gate before forwarding:
 
 Geofence/path-boundary validation will be added on top of this gate.
 
+## Prox-Ops Action Servers
+
+```text
+evolo_target_intercept
+  Implemented C++ action. It owns the runtime control gate from backend output
+  to ctrl/twist_planned.
+
+evolo_loiter_patrol
+  Placeholder C++ action. It accepts goals and remains RUNNING until the BT
+  preempts it. It does not command Evolo yet.
+
+evolo_target_inspect
+  Placeholder C++ action. It accepts goals and remains RUNNING until the BT
+  post-condition/timeout preempts it. It does not command Evolo yet.
+```
+
+The next implementation decision is how `evolo_loiter_patrol` should command
+safe foiling patrol behavior: delegate to existing Evolo motion actions such as
+`evolo_move_to` / `evolo_move_path`, or publish a dedicated patrol control stream.
+
 ## Contract Semantics
 
 ```text
@@ -198,11 +230,26 @@ Geofence/path-boundary validation will be added on top of this gate.
 4. backend/twist_planned and backend/candidate_path should be consistent; the twist should correspond to the currently published candidate path.
 5. If the backend has no valid plan, set plan_available=false.
 6. If backend health is HEALTH_ERROR, the action server may abort the intercept action.
-7. If intercept_success=true, the action server may return action success and stop forwarding intercept commands.
+7. If target_intercepted=true or mode=MODE_INSPECT, the BT will preempt intercept and move into inspection.
 8. If target_lost=true for longer than the configured timeout, the BT will move to fallback behavior.
 9. Frame IDs must be agreed ahead of time; candidate_path and target_state should be in a fixed world/map frame unless explicitly stated otherwise.
-10. backend/command STOP means stop planning/control output for the current goal; RESET means clear backend state for a new run.
+10. prox_ops_bt owns backend lifecycle: RESET/START on goal start, RESET/STOP on inspection or patrol timeout.
 11. Backend messages older than the current action start are ignored, even if their fields indicate success or a valid plan.
 12. Backend messages with zero timestamps are treated as stale.
 ```
 
+## Fake Backend
+
+`fake_prox_ops_backend` defaults to `autostart:=false`, so it waits for
+`prox_ops_bt` to publish `backend/command START`.
+
+Useful params:
+
+```text
+autostart
+publish_frequency_hz
+long_range_convergence_delay_s
+success_delay_s
+target_range_start_m
+target_range_rate_mps
+```
