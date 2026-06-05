@@ -20,6 +20,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     declare_parameter("success_delay_s", 8.0);
     declare_parameter("target_range_start_m", 100.0);
     declare_parameter("target_range_rate_mps", 5.0);
+    declare_parameter("autostart", false);
 
     publish_frequency_hz_ = get_parameter("publish_frequency_hz").as_double();
     long_range_convergence_delay_s_ =
@@ -27,6 +28,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     success_delay_s_ = get_parameter("success_delay_s").as_double();
     target_range_start_m_ = get_parameter("target_range_start_m").as_double();
     target_range_rate_mps_ = get_parameter("target_range_rate_mps").as_double();
+    autostart_ = get_parameter("autostart").as_bool();
 
     status_pub_ =
         create_publisher<evolo_msgs::msg::ProxOpsBackendStatus>("backend/status", 10);
@@ -42,6 +44,10 @@ class FakeProxOpsBackend : public rclcpp::Node {
         std::chrono::duration<double>(1.0 / publish_frequency_hz_),
         std::bind(&FakeProxOpsBackend::publish_backend_state, this));
 
+    if (autostart_) {
+      start_run();
+    }
+
     RCLCPP_INFO(get_logger(), "Fake prox-ops backend started.");
   }
 
@@ -56,9 +62,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     RCLCPP_INFO(get_logger(), "Received backend command: %s", msg->data.c_str());
 
     if (msg->data.find("\"START\"") != std::string::npos) {
-      state_ = State::RUNNING;
-      run_start_time_ = now();
-      has_run_start_time_ = true;
+      start_run();
       return;
     }
 
@@ -69,10 +73,20 @@ class FakeProxOpsBackend : public rclcpp::Node {
     }
 
     if (msg->data.find("\"RESET\"") != std::string::npos) {
-      state_ = State::IDLE;
-      has_run_start_time_ = false;
+      if (autostart_) {
+        start_run();
+      } else {
+        state_ = State::IDLE;
+        has_run_start_time_ = false;
+      }
       return;
     }
+  }
+
+  void start_run() {
+    state_ = State::RUNNING;
+    run_start_time_ = now();
+    has_run_start_time_ = true;
   }
 
   void publish_backend_state() {
@@ -91,7 +105,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     status.header.stamp = now();
     status.header.frame_id = "map";
     status.mode = success
-        ? evolo_msgs::msg::ProxOpsBackendStatus::MODE_SUCCESS
+        ? evolo_msgs::msg::ProxOpsBackendStatus::MODE_INSPECT
         : (converged
             ? evolo_msgs::msg::ProxOpsBackendStatus::MODE_LONG_RANGE_INTERCEPT
             : evolo_msgs::msg::ProxOpsBackendStatus::MODE_WAITING_FOR_LONG_RANGE);
@@ -101,7 +115,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     status.terminal_track_live = false;
     status.target_lost = false;
     status.plan_available = converged && !success;
-    status.intercept_success = success;
+    status.target_intercepted = success;
     status.long_range_confidence = converged ? 0.95F : 0.4F;
     status.terminal_confidence = 0.0F;
     status.target_range_m = static_cast<float>(range_m);
@@ -160,6 +174,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
   double success_delay_s_ = 8.0;
   double target_range_start_m_ = 100.0;
   double target_range_rate_mps_ = 5.0;
+  bool autostart_ = false;
 
   rclcpp::Publisher<evolo_msgs::msg::ProxOpsBackendStatus>::SharedPtr status_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;

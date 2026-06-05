@@ -12,7 +12,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "smarc_action_base_cpp/gentler_action_server.hpp"
 #include "smarc_action_base_cpp/graceful_shutdown.hpp"
-#include "std_msgs/msg/string.hpp"
 
 namespace prox_ops_actions {
 
@@ -31,7 +30,6 @@ class EvoloTargetIntercept {
             smarc_action_base_cpp::GentlerActionServer::Config(
                 /*loop_frequency_hz=*/10.0)) {
 
-    // TODO: Reasonable values for these?
     node_->declare_parameter("backend_status_max_age_s", 2.0);
     node_->declare_parameter("candidate_path_max_age_s", 2.0);
     node_->declare_parameter("backend_twist_max_age_s", 1.0);
@@ -45,9 +43,6 @@ class EvoloTargetIntercept {
 
     // TODO: We should find out a way to add the evolo_msgs/Topics names in here
     // to avoid hard-coding them.
-    backend_command_pub_ =
-        node_->create_publisher<std_msgs::msg::String>("backend/command", 10);
-
     ctrl_twist_pub_ = node_->create_publisher<geometry_msgs::msg::TwistStamped>(
         "ctrl/twist_planned", 10);
 
@@ -72,7 +67,6 @@ class EvoloTargetIntercept {
   }
 
   void request_shutdown() {
-    publish_backend_command("STOP", "action_server_shutdown");
     action_server_.request_shutdown();
   }
 
@@ -90,7 +84,6 @@ class EvoloTargetIntercept {
   }
 
   bool on_cancel_received() {
-    publish_backend_command("STOP", "action_cancelled");
     reset_backend_cache();
     return true;
   }
@@ -99,32 +92,31 @@ class EvoloTargetIntercept {
     reset_backend_cache();
     action_start_time_ = node_->get_clock()->now();
     has_action_start_time_ = true;
-    publish_backend_command("START", "action_started");
   }
 
   LoopStatus loop_inner() {
     if (!msg_is_fresh(last_status_, backend_status_max_age_s_)) {
-      feedback_ = "WAITING_FOR_FRESH_BACKEND_STATUS";
-      return LoopStatus::RUNNING;
+      // TODO: Decide whether stale backend/status should eventually fail this
+      // action and force the BT back to patrol, or remain RUNNING while the BT
+      // owns backend reset/restart policy.
+      feedback_ = "BACKEND_STATUS_STALE!";
+      return LoopStatus::FAILURE;
     }
 
     const auto& status = *last_status_;
     feedback_ = status.status_text.empty() ? "BACKEND_STATUS_RECEIVED"
                                            : status.status_text;
 
-    if (status.health == evolo_msgs::msg::ProxOpsBackendStatus::HEALTH_ERROR) {
-      publish_backend_command("STOP", "backend_health_error");
+    // Return FAILURE if we've lost the target so the BT goes back to patrol.
+    if (status.target_lost) {
+      feedback_ = "BACKEND_LOST_THE_TARGET!";
       return LoopStatus::FAILURE;
-    }
-
-    if (status.intercept_success) {
-      publish_backend_command("STOP", "intercept_success");
-      return LoopStatus::SUCCESS;
     }
 
     if (status.plan_available) {
       if (!candidate_control_is_safe_to_forward()) {
-        return LoopStatus::RUNNING;
+        feedback_ = "BACKEND_TWIST_UNSAFE";
+        return LoopStatus::FAILURE;
       }
 
       ctrl_twist_pub_->publish(*last_backend_twist_);
@@ -153,25 +145,19 @@ class EvoloTargetIntercept {
     last_backend_twist_ = msg;
   }
 
-  void publish_backend_command(const std::string& command,
-                               const std::string& reason) {
-    std_msgs::msg::String msg;
-    msg.data =
-        "{\"command\":\"" + command + "\",\"reason\":\"" + reason + "\"}";
-    backend_command_pub_->publish(msg);
-  }
-
   bool candidate_control_is_safe_to_forward() {
+    // Freshness requirements.
     if (!msg_is_fresh(last_candidate_path_, candidate_path_max_age_s_)) {
-      feedback_ = "WAITING_FOR_FRESH_CANDIDATE_PATH";
+      feedback_ = "CANDIDATE_PATH_STALE";
       return false;
     }
 
     if (!msg_is_fresh(last_backend_twist_, backend_twist_max_age_s_)) {
-      feedback_ = "WAITING_FOR_FRESH_BACKEND_TWIST";
+      feedback_ = "BACKEND_TWIST_STALE";
       return false;
     }
 
+    // Syntax requirements.
     if (!candidate_path_is_valid(*last_candidate_path_)) {
       return false;
     }
@@ -180,6 +166,12 @@ class EvoloTargetIntercept {
       return false;
     }
 
+    // Geofence requirements.
+    // TODO: Trigger whole-path geofence validation here
+    // before forwarding backend/twist_planned. The intended direction is to
+    // reuse/extend smarc_basic's geofence_node semantics so it can validate an
+    // entire candidate_path, not only start/end goals. Should we make this
+    // a cpp action server instead? is it gonna perform poorly in python?
     return true;
   }
 
@@ -246,7 +238,6 @@ class EvoloTargetIntercept {
   rclcpp::Node::SharedPtr node_;
   GentlerActionServer action_server_;
 
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr backend_command_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
       ctrl_twist_pub_;
   rclcpp::Subscription<evolo_msgs::msg::ProxOpsBackendStatus>::SharedPtr

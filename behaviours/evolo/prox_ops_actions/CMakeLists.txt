@@ -25,6 +25,22 @@ ament_target_dependencies(evolo_target_intercept
   smarc_action_base_cpp
 )
 
+add_executable(evolo_target_inspect
+  src/evolo_target_inspect.cpp
+)
+ament_target_dependencies(evolo_target_inspect
+  rclcpp
+  smarc_action_base_cpp
+)
+
+add_executable(evolo_loiter_patrol
+  src/evolo_loiter_patrol.cpp
+)
+ament_target_dependencies(evolo_loiter_patrol
+  rclcpp
+  smarc_action_base_cpp
+)
+
 add_executable(fake_prox_ops_backend
   src/fake_prox_ops_backend.cpp
 )
@@ -39,6 +55,8 @@ ament_target_dependencies(fake_prox_ops_backend
 install(
   TARGETS
     evolo_target_intercept
+    evolo_target_inspect
+    evolo_loiter_patrol
     fake_prox_ops_backend
   DESTINATION lib/${PROJECT_NAME}
 )
