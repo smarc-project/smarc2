@@ -81,3 +81,6 @@
 [submodule "drivers/dv_sss_driver"]
 	path = drivers/dv_sss_driver
 	url = git@github.com:smarc-project/dv_sss_driver.git
+[submodule "drivers/ros_babel_fish"]
+	path = drivers/ros_babel_fish
+	url = https://github.com/LOEWE-emergenCITY/ros_babel_fish.git
