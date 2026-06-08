@@ -78,3 +78,6 @@
 [submodule "navigation/dead_reckoning/hydrobatic_localization"]
 	path = navigation/dead_reckoning/hydrobatic_localization
 	url = git@github.com:ignaciotb/hydrobatic_localization.git
+[submodule "drivers/dv_sss_driver"]
+	path = drivers/dv_sss_driver
+	url = git@github.com:smarc-project/dv_sss_driver.git
