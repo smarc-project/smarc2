@@ -14,7 +14,7 @@ from .controllers.DiveControllerPID import DiveControllerPID
 from .controllers.DiveControllerMPC import DiveControllerMPC
 from .controllers.DiveControllerJoyPID import DiveControllerJoyPID
 
-from .ActionServerDiveSub import DiveActionServerSub, HydropointServer, MPCPathServer
+from .ActionServerDiveSub import DiveActionServerSub, HydropointServer, MPCPathServer, PIDPathServer
 from smarc_action_base.smarc_action_base import ActionType
 from smarc_msgs.action import BaseAction
 from smarc_msgs.msg import Topics as SMaRCTopics
@@ -71,7 +71,7 @@ def _build_pid_wp_following(node, rates: Rates) -> Components:
 
     dive_sub = DiveActionServerSub(node, "auv_depth_move_to", action_type, param, heartbeat_topic)
     dive_pub = DivePub(node, dive_sub, param)
-    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, rates.dive_controller_rate)
+    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, rates.dive_controller)
     convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
 
     return Components(
@@ -81,6 +81,18 @@ def _build_pid_wp_following(node, rates: Rates) -> Components:
         convenience_pub=convenience_pub,
     )
 
+def _build_pid_trajectory_tracking(node, rates: Rates) -> Components:
+    param = DivingModelParam(node).get_param()
+    action_type = ActionType(BaseAction)
+    heartbeat_topic = SMaRCTopics.WARA_PS_ACTION_SERVER_HB_TOPIC
+
+    dive_sub = PIDPathServer(node, "auv_trajectory_tracking", action_type, param)
+    dive_pub = DivePub(node, dive_sub, param)
+    dive_controller = DiveControllerPID(node, dive_pub, dive_sub, param, rates.dive_controller)
+    convenience_pub = ConveniencePub(node, dive_sub, dive_controller)
+
+    return Components(dive_pub=dive_pub, dive_controller=dive_controller,
+                      dive_sub=dive_sub, convenience_pub=convenience_pub)
 
 def _build_mpc_wp_following(node, rates: Rates) -> Components:
 
@@ -135,6 +147,11 @@ def pid_wp_following():
     run_mode(node_name="PidWpFollowingNode", 
              build=_build_pid_wp_following,
              log_banner="PID Waypoint Following")
+
+def pid_trajectory_tracking():
+    run_mode(node_name="PidTrajectoryTrackingNode",
+             build=_build_pid_trajectory_tracking,
+             log_banner="PID Trajectory Tracking")
 
 def mpc_wp_following():
     run_mode(node_name="MpcWpFollowingNode",

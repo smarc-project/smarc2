@@ -1,0 +1,10 @@
+/**/alars_video_publisher:
+  ros__parameters:
+    video_path: "/home/smarc/cris_perception_ws/smarc_ws/src/smarc2/perception/alars/alars_auv_perception/datasets/input_video.mp4"
+    image_topic: "gimbal_camera/camera/image_raw"
+    frame_id: "gimbal_optical_frame"
+    loop_video: true
+    start_paused: false
+    publish_fps: 120.0
+    resize_width: 640
+    resize_height: 480

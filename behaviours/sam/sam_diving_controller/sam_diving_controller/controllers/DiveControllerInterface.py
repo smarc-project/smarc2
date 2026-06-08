@@ -57,6 +57,8 @@ class DiveControllerInterface:
             self._input.thrusterhorizontal = u_tv_hor_neutral
             self._input.thrusterrpm1 = float(u_rpm_neutral)
             self._input.thrusterrpm2 = float(u_rpm_neutral)
+            
+            self._control_ref = None
 
             self._dive_pub.set_actuator_states(ActuatorStates.NEUTRAL, "DC")
 
@@ -130,6 +132,9 @@ class DiveControllerInterface:
 
     def get_input(self):
         return self._input
+    
+    def get_ref_input(self):
+        return self._control_ref
 
     def get_dive_mode(self):
         return self._dive_mode

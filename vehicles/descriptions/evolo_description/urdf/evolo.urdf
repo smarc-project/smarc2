@@ -10,7 +10,7 @@
   </link>
 
   <link name="evolo/lidar_link"/>
-  <link name="evolo/camera_link"/>
+  <link name="evolo/z1_base_link"/>
 
   <link name="os_sensor"/>
   <link name="os_lidar"/>
@@ -19,14 +19,14 @@
   
 
   <joint name="evolo/lidar_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0.1 0.1 0"/>
+    <origin rpy="0 0 0" xyz="0.83 0.0 0.1"/>
     <parent link="evolo/base_link"/>
     <child link="evolo/lidar_link"/>
   </joint>
   <joint name="evolo/camera_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="-0.1 0.1 0.05"/>
+    <origin rpy="0 0 0" xyz="0.7 0.0 0.15"/>
     <parent link="evolo/base_link"/>
-    <child link="evolo/camera_link"/>
+    <child link="evolo/z1_base_link"/>
   </joint>
 
   <joint name="evolo/os_lidar_joint" type="fixed">

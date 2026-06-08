@@ -1,0 +1,35 @@
+<launch>
+  <arg name="robot_name" default="M350"/>
+  <arg name="use_sim_time" default="false"/>
+  <arg name="home_altitude_above_water" default="0.0"/>
+  <arg name="max_load_kg" default="4.0"/>
+  <arg name="min_altitude_above_water" default="1.0"/>
+
+
+
+  <group>
+    <push-ros-namespace namespace="$(var robot_name)"/>
+
+    <node name="dji_captain" pkg="dji_captain" exec="dji_captain" respawn="false" output="screen">
+      <param name="home_altitude_above_water" value="$(var home_altitude_above_water)"/>
+      <param name="use_sim_time" value="$(var use_sim_time)"/>
+      <param name="robot_name" value="$(var robot_name)"/>
+      <param name="max_load_kg" value="$(var max_load_kg)"/>
+      <param name="min_altitude_above_water" value="$(var min_altitude_above_water)"/>
+    </node>
+
+    <node name="esc_splitter" pkg="dji_captain" exec="esc_splitter" respawn="false" output="screen">
+      <param name="use_sim_time" value="$(var use_sim_time)"/>
+      <param name="robot_name" value="$(var robot_name)"/>
+    </node>
+
+  </group>
+
+  <include file="$(find-pkg-share alars_description)/launch/alars_description.launch">
+    <arg name="robot_name" value="$(var robot_name)"/>
+    <arg name="use_sim_time" value="$(var use_sim_time)"/>
+  </include>
+
+
+
+</launch>

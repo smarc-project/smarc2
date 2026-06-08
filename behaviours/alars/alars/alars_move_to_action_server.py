@@ -39,6 +39,9 @@ class MoveToAction():
         
         self._drone_state = DroneState(node, self._robot_name)
 
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
+
         self._goal_in_map : PoseStamped|None = None
         self._goal_tolerance : None | float = None
         self._node.declare_parameter('default_tolerance', 0.3)
@@ -101,7 +104,10 @@ class MoveToAction():
             gp.longitude = goal_request['waypoint']['longitude']
             gp.altitude = goal_request['waypoint']['altitude']
             
-            self._goal_in_map = self._drone_state.convert_geopoint_to_map_pose_stamped(gp)
+            self._goal_in_map = self._drone_state.geopoint_to_pose_stamped_map(gp)
+            if self._goal_in_map is None:
+                self._node.get_logger().error("Failed to transform goal from latlon to map frame")
+                return False
 
             self._goal_tolerance = float(goal_request['waypoint']['tolerance']) if 'tolerance' in goal_request['waypoint'] else self._default_goal_tolerance
             speed_str = goal_request['speed'] if 'speed' in goal_request else 'standard'
@@ -173,7 +179,18 @@ class MoveToAction():
                 goal_position[1] = self_position[1]
 
         goal_error = goal_position - self_position
-        goal_error_mag = np.linalg.norm(goal_error)
+        if self._VERTICAL_FIRST_MODE:
+            # consider only the vertical error first
+            vertical_error = abs(goal_error[2])
+            if vertical_error < self._goal_tolerance:
+                # vertically close enough, consider the full 3D error now
+                goal_error_mag = np.linalg.norm(goal_error)
+            else:
+                goal_error_mag = vertical_error
+        else:
+            # otherwise, sphere
+            goal_error_mag = np.linalg.norm(goal_error)
+
         self._distance_remaining = float(goal_error_mag)
 
         # maybe we reached already

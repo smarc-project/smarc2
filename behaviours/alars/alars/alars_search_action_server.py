@@ -4,23 +4,18 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.time import Time, Duration
 
 import traceback
 
-from geometry_msgs.msg import  PointStamped, PoseStamped
+from geometry_msgs.msg import  PointStamped, PoseStamped, PoseWithCovarianceStamped
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
-from std_msgs.msg import Float32
-from nav_msgs.msg import Odometry
-from tf2_geometry_msgs import do_transform_pose_stamped
+
 from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from smarc_utilities.georef_utils import convert_latlon_to_utm
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
-from smarc_msgs.msg import Topics as SmarcTopics
 
 from alars.alars_common import DroneState
 
@@ -60,10 +55,11 @@ class SearchAction():
                                        self._auv_detection_cb,
                                        10)
         
-        self._node.create_subscription(PointStamped,
-                                       DJITopics.ESTIMATED_BUOY_TOPIC,
-                                       self._buoy_detection_cb,
+        self._node.create_subscription(PoseWithCovarianceStamped,
+                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
+                                       self._auv_projection_cb,
                                        10)
+        
 
       
         self._as = GentlerActionServer(
@@ -79,34 +75,25 @@ class SearchAction():
             
     def _reset(self):
         self._auv_detection : PointStamped = PointStamped()
-        self._buoy_detection : PointStamped = PointStamped()
+        self._auv_projection : PoseWithCovarianceStamped = PoseWithCovarianceStamped()
         self._spiral_progress : float = 0.0
         self._search_center_map : PoseStamped = PoseStamped()
         self._search_radius : float = 0.0
         self._radius_progress : float = -1.0
         self._current_setpoint : PoseStamped | None = None
-
-    @property
-    def _now_float(self) -> float:
-        now_stamp = self._node.get_clock().now().to_msg()
-        return now_stamp.sec + now_stamp.nanosec * 1e-9
     
-    def _msg_is_older_than(self, msg, age_s: float) -> bool:
-        if msg is None: return True
-        if msg.header is None: return True
-        if msg.header.stamp is None: return True
-        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            return True
-        return self._now_float - (msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9) > age_s
 
     def _loginfo(self, msg: str):
-        self._node.get_logger().info(f"[SearchAction] {msg}")
+        self._node.get_logger().info(msg)
+
 
     def _auv_detection_cb(self, msg: PointStamped):
         self._auv_detection = msg
 
-    def _buoy_detection_cb(self, msg: PointStamped):
-        self._buoy_detection = msg
+
+    def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):
+        self._auv_projection = msg
+
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -136,8 +123,13 @@ class SearchAction():
             return False
         
         try:
-            self._search_center_map = self._drone_state.convert_geopoint_to_map_pose_stamped(search_center_gp)
-            
+            in_map = self._drone_state.geopoint_to_pose_stamped_map(search_center_gp)
+            if in_map is not None:
+                self._search_center_map = in_map
+            if self._search_center_map is None:
+                self._loginfo('Failed to transform search center into MAP frame!')
+                return False
+                
         except:
             self._loginfo('Could not transform search center into MAP frame!')
             traceback.print_exc()
@@ -172,12 +164,18 @@ class SearchAction():
             self._loginfo("No drone position received yet, cannot perform search...")
             return False
         
-        # if both the auv and buoy are detected, we are done too
-        auv_fresh = not self._msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD)
-        buoy_fresh = not self._msg_is_older_than(self._buoy_detection, self.DETECTION_FRESHNESS_THRESHOLD)
-        if auv_fresh and buoy_fresh:
-            self._loginfo("Both AUV and Buoy detected, finishing search action successfully.")
-            return True
+        # if the auv is detected, we are done
+        if not self._drone_state.msg_is_older_than(self._auv_detection, self.DETECTION_FRESHNESS_THRESHOLD, "auv detection"):
+            self._loginfo("AUV detected, waiting for projection")
+            if not self._drone_state.msg_is_older_than(self._auv_projection, self.DETECTION_FRESHNESS_THRESHOLD, "auv projection"):
+                self._loginfo("AUV projection is fresh, finishing action successfully.")
+                return True
+            else:
+                self._loginfo("AUV projection is stale, waiting for fresh projection...")
+                # just wait
+                return None
+        else:
+            self._loginfo("No fresh AUV detection, continuing search...")
         
 
         # if there is a current setpoint, check if we are close enough to it
@@ -211,8 +209,8 @@ class SearchAction():
             self._radius_progress = np.linalg.norm(dP)
             self._loginfo(f"Spiral progress: {self._radius_progress:.2f}m / {self._search_radius:.2f}m, distance to drone: {distance_to_drone:.2f}m")
             if self._radius_progress > self._search_radius:
-                self._loginfo("Completed search spiral, finishing action successfully.")
-                return True
+                self._loginfo("Completed search spiral, but didn't find AUV :(")
+                return False
             spiral_point = search_center + dP
             distance_to_drone = np.linalg.norm(spiral_point - drone_pos)
             self._spiral_progress += 0.5
@@ -221,8 +219,8 @@ class SearchAction():
         setpoint_msg = PoseStamped()
         setpoint_msg.header.frame_id = self.MAP_FRAME
         setpoint_msg.header.stamp = self._node.get_clock().now().to_msg()
-        setpoint_msg.pose.position.x = float(spiral_point[0])
-        setpoint_msg.pose.position.y = float(spiral_point[1])
+        setpoint_msg.pose.position.x = float(spiral_point[0]) # type: ignore
+        setpoint_msg.pose.position.y = float(spiral_point[1]) # type: ignore
         setpoint_msg.pose.position.z = self._search_center_map.pose.position.z
         setpoint_msg.pose.orientation.w = 1.0  # neutral orientation
         self._setpoint_pub.publish(setpoint_msg)
@@ -233,7 +231,7 @@ class SearchAction():
 
 
     def _give_feedback(self) -> str:
-        return f"Radius progress: {self._radius_progress:.2f}/{self._search_radius:.2f}m"
+        return f"Radius: {self._radius_progress:.2f}/{self._search_radius:.2f}m"
 
 
 def main(args=None):

@@ -1,0 +1,23 @@
+string GPS_POSITION        = 'wrapper/psdk_ros2/gps_position'
+string POSITION_FUSED      = 'wrapper/psdk_ros2/position_fused'
+string ATTITUDE            = 'wrapper/psdk_ros2/attitude'
+string HOME_POINT          = 'wrapper/psdk_ros2/home_point'
+string ALTITUDE            = 'wrapper/psdk_ros2/altitude_sea_level'
+string CONTROL_MODE        = 'wrapper/psdk_ros2/control_mode'
+string BATTERY             = 'wrapper/psdk_ros2/battery' 
+string SINGLE_BATT1        = 'wrapper/psdk_ros2/single_battery_index1'
+string SINGLE_BATT2        = 'wrapper/psdk_ros2/single_battery_index2'
+string VELOCITY_GROUND_FSD = 'wrapper/psdk_ros2/velocity_ground_fused'
+string ANGULAR_RATE_GND_FSD= 'wrapper/psdk_ros2/angular_rate_ground_fused'
+string ESC_DATA            = 'wrapper/psdk_ros2/esc_data'
+string RC                  = 'wrapper/psdk_ros2/rc'
+
+string TAKE_CONTROL_SRV    = 'wrapper/psdk_ros2/obtain_ctrl_authority'
+string RELEASE_CONTROL_SRV = 'wrapper/psdk_ros2/release_ctrl_authority'
+string TAKEOFF_SRV         = 'wrapper/psdk_ros2/takeoff'
+string LAND_SRV            = 'wrapper/psdk_ros2/land'
+string PROPS_ON_SRV        = 'wrapper/psdk_ros2/turn_on_motors'
+string PROPS_OFF_SRV       = 'wrapper/psdk_ros2/turn_off_motors'
+
+
+string FLU_VEL_YAWRATE_JOY_CMD          = 'wrapper/psdk_ros2/flight_control_setpoint_FLUvelocity_yawrate'

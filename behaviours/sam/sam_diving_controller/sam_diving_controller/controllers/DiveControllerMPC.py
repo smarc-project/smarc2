@@ -1313,5 +1313,3 @@ class DiveControllerMPC(DiveControllerInterface):
         spline = np.column_stack((pos_spline, quat_spline))
         return spline
 
-    def get_ref_input(self):
-        return self._control_ref
