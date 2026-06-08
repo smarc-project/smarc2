@@ -60,3 +60,6 @@
 [submodule "drivers/pingdspinger"]
 	path = drivers/pingdspinger
 	url = git@github.com:NinjaTuna007/pingdspinger.git
+[submodule "drivers/smarc_acomms"]
+	path = drivers/smarc_acomms
+	url = git@gitr.sys.kth.se:smarc-project/smarc_acomms.git
