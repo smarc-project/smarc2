@@ -11,7 +11,7 @@ from std_msgs.msg import String, Float32
 from nav_msgs.msg import Odometry
 from rclpy.executors import MultiThreadedExecutor
 
-from transforms3d._gohlketransforms import euler_from_quaternion
+from transforms3d.euler import quat2euler
 
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
@@ -180,19 +180,19 @@ class twist_control(Node):
 
     def odom_cb(self,msg : Odometry):
         self.odom_feedback = msg
-        _,_,self.yaw_feedback = euler_from_quaternion([msg.pose.pose.orientation.w,
-                                                       msg.pose.pose.orientation.x,
-                                                       msg.pose.pose.orientation.y,
-                                                       msg.pose.pose.orientation.z],
-                                                       axes='sxyz')
+        _,_,self.yaw_feedback = quat2euler([msg.pose.pose.orientation.w,
+                                            msg.pose.pose.orientation.x,
+                                            msg.pose.pose.orientation.y,
+                                            msg.pose.pose.orientation.z],
+                                            axes='sxyz')
         self.odom_feedback_time = self.time_now()
 
     def odom_ctrl_cb(self, msg : Odometry):
-        _,_,self.yaw_setpoint = euler_from_quaternion([msg.pose.pose.orientation.w,
-                                                       msg.pose.pose.orientation.x,
-                                                       msg.pose.pose.orientation.y,
-                                                       msg.pose.pose.orientation.z],
-                                                       axes='sxyz')
+        _,_,self.yaw_setpoint = quat2euler([msg.pose.pose.orientation.w,
+                                            msg.pose.pose.orientation.x,
+                                            msg.pose.pose.orientation.y,
+                                            msg.pose.pose.orientation.z],
+                                            axes='sxyz')
         self.linear_vel_setpoint = msg.twist.twist.linear.x
         self.odom_ctrl_time = self.time_now()
 
