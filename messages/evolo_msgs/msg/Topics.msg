@@ -5,7 +5,9 @@
 string EVOLO_STEERING_SETPOINT = ctrl/steering_setpoint
 string EVOLO_SPEED_SETPOINT = ctrl/speed_setpoint
 string EVOLO_TWIST_SETPOINT = ctrl/twist_setpoint #Type: TwistStamped
+string EVOLO_CONTROL_SETPOINT = ctrl/control_setpoint #Type: Odometry
 string EVOLO_TWIST_PLANNED = ctrl/twist_planned #Type: TwistStamped
+string EVOLO_CONTROL_PLANNED = ctrl/control_planned #Type: Odometry
 
 #communication to and from captain
 string EVOLO_CAPTAIN_TO = captain/to
