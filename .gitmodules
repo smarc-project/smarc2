@@ -84,3 +84,6 @@
 [submodule "drivers/ros_babel_fish"]
 	path = drivers/ros_babel_fish
 	url = https://github.com/LOEWE-emergenCITY/ros_babel_fish.git
+[submodule "vehicles/smarc_modelling"]
+	path = vehicles/smarc_modelling
+	url = git@github.com:smarc-project/smarc_modelling.git
