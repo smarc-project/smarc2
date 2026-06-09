@@ -5,6 +5,7 @@
     <arg name="link_suffix" default=""/>
     <arg name="agent_type" default="air"/>
     <arg name="pulse_rate" default="1.0"/>
+    <arg name="agent_uuid" default=""/>
     <arg name="bt_log_mode" default="verbose"/>
     <arg name="bt_health_timeout" default="10.0"/>
     <arg name="task_liveliness_timeout" default="10.0"/>
@@ -31,5 +32,6 @@
         <arg name="link_suffix" value="$(var link_suffix)"/>
         <arg name="agent_type" value="$(var agent_type)"/>
         <arg name="pulse_rate" value="$(var pulse_rate)"/>
+        <arg name="agent_uuid" value="$(var agent_uuid)"/>
     </include>
 </launch>

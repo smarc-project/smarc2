@@ -299,15 +299,24 @@ def main(args=None):
     node.declare_parameter("agent_type", "air")
     node.declare_parameter("pulse_rate", 1.0) # Hz
     node.declare_parameter("domain", "simulation")
+    node.declare_parameter("agent_uuid", "")  # optional static UUID; empty -> random
 
     agent_type = node.get_parameter("agent_type").value
     levels = ["sensor"]
     pulse_rate = node.get_parameter("pulse_rate").value
     robot_name = node.get_parameter("robot_name").value if node.has_parameter("robot_name") else "sam0"
 
+    # Use the provided UUID if non-empty, otherwise generate a random one
+    agent_uuid = node.get_parameter("agent_uuid").value
+    if not agent_uuid:
+        agent_uuid = str(uuid.uuid4())
+        node.get_logger().info(f"No agent_uuid provided, generated random UUID: {agent_uuid}")
+    else:
+        node.get_logger().info(f"Using static agent_uuid: {agent_uuid}")
+
     agent_waraps_dict = {
         "agent-type": agent_type,
-        "agent-uuid": str(uuid.uuid4()),
+        "agent-uuid": agent_uuid,
         "levels": levels,
         "name": robot_name,
         "pulse_rate": pulse_rate,

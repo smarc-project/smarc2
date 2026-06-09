@@ -1,19 +1,31 @@
 #! /bin/bash
-ROBOT_NAME=lolo
+
+# Allow custom robot name as first argument, default to 'lolo'
+ROBOT_NAME=${1:-lolo}
 SESSION=${ROBOT_NAME}_bringup
 USE_SIM_TIME=True
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
-CONTEXT=lolo # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
+AGENT_UUID="lolo-is-great" # set to a fixed UUID string to keep it stable across launches, leave empty for random
+# Only pass agent_uuid to launch when set; ros2 launch rejects an empty 'agent_uuid:=' value
+if [ -n "$AGENT_UUID" ]; then
+    AGENT_UUID_ARG="agent_uuid:=$AGENT_UUID"
+else
+    AGENT_UUID_ARG=""
+fi
+CONTEXT=tuper # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
 
 BT_LOG_MODE=compact # can be 'compact' or 'verbose'
 
 if [ "$USE_SIM_TIME" = "True" ]; then
     REALSIM=simulation
     LINK_SUFFIX="_gt"
-    ROBOT_NAME=lolo_auv_v1
+    # Optionally override robot name for simulation, but only if not set by user
+    if [ -z "$1" ]; then
+        ROBOT_NAME=lolo_auv_v1
+    fi
 else
     REALSIM=real
     LINK_SUFFIX=""
@@ -32,7 +44,7 @@ tmux send-keys "sleep 2; ros2 launch lolo_description lolo_description.launch" C
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'servers'
@@ -60,7 +72,7 @@ tmux select-window -t $SESSION:3
 if [ "$REALSIM" = "real" ]; then
     tmux send-keys "sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
 else
-    tmux send-keys "sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=127.0.0.1 broker_port:=1883 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
+    tmux send-keys "sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
     tmux new-window -t $SESSION:4 -n 'tcp-endpoint'
     tmux select-window -t $SESSION:4
     tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1" C-m
