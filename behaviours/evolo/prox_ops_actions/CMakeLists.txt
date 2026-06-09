@@ -7,10 +7,13 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(evolo_msgs REQUIRED)
+find_package(smarc_msgs REQUIRED)
+find_package(smarc_geofence_utils REQUIRED)
 find_package(smarc_action_base_cpp REQUIRED)
 
 add_executable(evolo_target_intercept
@@ -22,6 +25,8 @@ ament_target_dependencies(evolo_target_intercept
   nav_msgs
   std_msgs
   evolo_msgs
+  smarc_msgs
+  smarc_geofence_utils
   smarc_action_base_cpp
 )
 
@@ -30,6 +35,9 @@ add_executable(evolo_target_inspect
 )
 ament_target_dependencies(evolo_target_inspect
   rclcpp
+  geometry_msgs
+  nav_msgs
+  evolo_msgs
   smarc_action_base_cpp
 )
 
@@ -38,6 +46,8 @@ add_executable(evolo_loiter_patrol
 )
 ament_target_dependencies(evolo_loiter_patrol
   rclcpp
+  rclcpp_action
+  smarc_msgs
   smarc_action_base_cpp
 )
 

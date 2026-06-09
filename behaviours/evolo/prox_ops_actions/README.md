@@ -107,6 +107,43 @@ Purpose: backend's next desired control setpoint for the ASV.
 
 The action server forwards this to `ctrl/twist_planned` only if the latest candidate path is accepted as safe.
 
+### `smarc/geofence_status`
+
+Type:
+
+```text
+smarc_msgs/msg/GeofenceStatusStamped
+```
+
+Purpose: current geofence state published by `smarc_basic/geofence_node`.
+
+When `evolo_target_intercept` is started with `geofence_check_enabled:=true`,
+this status must be fresh and `STATUS_INSIDE` before backend control is
+forwarded.
+
+### `smarc/geofence_polygons`
+
+Type:
+
+```text
+smarc_msgs/msg/GeofencePolygonsStamped
+```
+
+Purpose: map-frame geofence and island polygons published by
+`smarc_basic/geofence_node`.
+
+When `geofence_check_enabled:=true`, `evolo_target_intercept` validates
+`backend/candidate_path` against these polygons through the reusable
+`smarc_geofence_utils` C++ library.
+
+The node parameter is the default. A specific intercept goal can override it:
+
+```json
+{
+  "geofence_check_enabled": false
+}
+```
+
 ## Action Server To Backend
 
 ### `backend/command`
@@ -199,7 +236,18 @@ Current safety gate before forwarding:
 - backend/twist_planned must have a non-empty frame_id.
 ```
 
-Geofence/path-boundary validation will be added on top of this gate.
+Optional geofence gate:
+
+```text
+- Enable with evolo_target_intercept parameter geofence_check_enabled:=true.
+- smarc/geofence_status must be fresh.
+- geofence status must be STATUS_INSIDE.
+- smarc/geofence_polygons must be fresh.
+- candidate_path frame_id must match geofence polygon frame_id.
+- candidate_path points must be inside at least one geofence polygon.
+- candidate_path points must not be inside an island polygon.
+- candidate_path segments must not cross geofence or island boundaries.
+```
 
 ## Prox-Ops Action Servers
 
@@ -209,17 +257,50 @@ evolo_target_intercept
   to ctrl/twist_planned.
 
 evolo_loiter_patrol
-  Placeholder C++ action. It accepts goals and remains RUNNING until the BT
-  preempts it. It does not command Evolo yet.
+  Implemented C++ action. It delegates to Evolo's existing `move_to` action,
+  alternates between two patrol waypoints, and remains RUNNING until the BT
+  preempts or cancels it.
 
 evolo_target_inspect
   Placeholder C++ action. It accepts goals and remains RUNNING until the BT
   post-condition/timeout preempts it. It does not command Evolo yet.
 ```
 
-The next implementation decision is how `evolo_loiter_patrol` should command
-safe foiling patrol behavior: delegate to existing Evolo motion actions such as
-`evolo_move_to` / `evolo_move_path`, or publish a dedicated patrol control stream.
+### `evolo_loiter_patrol` Goal
+
+The action accepts either an explicit waypoint list:
+
+```json
+{
+  "speed": "standard",
+  "waypoints": [
+    {"latitude": 58.822943, "longitude": 17.634076},
+    {"latitude": 58.821758, "longitude": 17.634371}
+  ]
+}
+```
+
+or the older LoLo-style waypoint keys:
+
+```json
+{
+  "speed": "standard",
+  "loiter_1": [58.822943, 17.634076],
+  "loiter_2": [58.821758, 17.634371]
+}
+```
+
+Useful params:
+
+```text
+move_to_action_name        default: move_to
+move_to_wait_timeout_s     default: 5.0
+default_speed              default: standard
+```
+
+The action does not inspect backend status. `prox_ops_bt` owns the precondition
+for when patrol should run and preempts patrol when another branch becomes
+active.
 
 ## Contract Semantics
 
@@ -236,6 +317,9 @@ safe foiling patrol behavior: delegate to existing Evolo motion actions such as
 10. prox_ops_bt owns backend lifecycle: RESET/START on goal start, RESET/STOP on inspection or patrol timeout.
 11. Backend messages older than the current action start are ignored, even if their fields indicate success or a valid plan.
 12. Backend messages with zero timestamps are treated as stale.
+13. Geofence validation reuses `smarc_basic/geofence_node` as the source of
+    geofence status and map-frame polygons; the per-path geometry check lives in
+    `smarc_geofence_utils`.
 ```
 
 ## Fake Backend

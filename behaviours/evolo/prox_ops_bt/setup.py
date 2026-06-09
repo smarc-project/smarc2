@@ -10,6 +10,10 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name, [
+            'prox_ops_bt/goal_example.json',
+            'prox_ops_bt/goal_example.md',
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

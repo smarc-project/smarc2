@@ -10,6 +10,9 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "smarc_msgs/msg/geofence_polygons_stamped.hpp"
+#include "smarc_msgs/msg/geofence_status_stamped.hpp"
+#include "smarc_geofence_utils/geofence_path_checker.hpp"
 #include "smarc_action_base_cpp/gentler_action_server.hpp"
 #include "smarc_action_base_cpp/graceful_shutdown.hpp"
 
@@ -33,6 +36,9 @@ class EvoloTargetIntercept {
     node_->declare_parameter("backend_status_max_age_s", 2.0);
     node_->declare_parameter("candidate_path_max_age_s", 2.0);
     node_->declare_parameter("backend_twist_max_age_s", 1.0);
+    node_->declare_parameter("geofence_check_enabled", false);
+    node_->declare_parameter("geofence_status_max_age_s", 2.0);
+    node_->declare_parameter("geofence_polygons_max_age_s", 10.0);
 
     backend_status_max_age_s_ =
         node_->get_parameter("backend_status_max_age_s").as_double();
@@ -40,6 +46,13 @@ class EvoloTargetIntercept {
         node_->get_parameter("candidate_path_max_age_s").as_double();
     backend_twist_max_age_s_ =
         node_->get_parameter("backend_twist_max_age_s").as_double();
+    default_geofence_check_enabled_ =
+        node_->get_parameter("geofence_check_enabled").as_bool();
+    geofence_check_enabled_ = default_geofence_check_enabled_;
+    geofence_status_max_age_s_ =
+        node_->get_parameter("geofence_status_max_age_s").as_double();
+    geofence_polygons_max_age_s_ =
+        node_->get_parameter("geofence_polygons_max_age_s").as_double();
 
     // TODO: We should find out a way to add the evolo_msgs/Topics names in here
     // to avoid hard-coding them.
@@ -64,6 +77,16 @@ class EvoloTargetIntercept {
             "backend/twist_planned", 10,
             std::bind(&EvoloTargetIntercept::backend_twist_cb, this,
                       std::placeholders::_1));
+    geofence_status_sub_ =
+        node_->create_subscription<smarc_msgs::msg::GeofenceStatusStamped>(
+            "smarc/geofence_status", 10,
+            std::bind(&EvoloTargetIntercept::geofence_status_cb, this,
+                      std::placeholders::_1));
+    geofence_polygons_sub_ =
+        node_->create_subscription<smarc_msgs::msg::GeofencePolygonsStamped>(
+            "smarc/geofence_polygons", 10,
+            std::bind(&EvoloTargetIntercept::geofence_polygons_cb, this,
+                      std::placeholders::_1));
   }
 
   void request_shutdown() {
@@ -78,13 +101,21 @@ class EvoloTargetIntercept {
   bool on_goal_received(const Json& goal) {
     reset_backend_cache();
     goal_json_ = goal.dump();
-    RCLCPP_INFO(node_->get_logger(), "Received intercept goal: %s",
-                goal_json_.c_str());
+
+    if (!parse_geofence_goal_override(goal)) {
+      return false;
+    }
+
+    RCLCPP_INFO(node_->get_logger(),
+                "Received intercept goal: %s. geofence_check_enabled=%s",
+                goal_json_.c_str(),
+                geofence_check_enabled_ ? "true" : "false");
     return true;
   }
 
   bool on_cancel_received() {
     reset_backend_cache();
+    geofence_check_enabled_ = default_geofence_check_enabled_;
     return true;
   }
 
@@ -96,11 +127,9 @@ class EvoloTargetIntercept {
 
   LoopStatus loop_inner() {
     if (!msg_is_fresh(last_status_, backend_status_max_age_s_)) {
-      // TODO: Decide whether stale backend/status should eventually fail this
-      // action and force the BT back to patrol, or remain RUNNING while the BT
-      // owns backend reset/restart policy.
-      feedback_ = "BACKEND_STATUS_STALE!";
-      return LoopStatus::FAILURE;
+      //feedback_ = "BACKEND_STATUS_STALE!";
+      feedback_ = "WAITING_FOR_BACKEND_STATUS";
+      return LoopStatus::RUNNING;
     }
 
     const auto& status = *last_status_;
@@ -115,7 +144,6 @@ class EvoloTargetIntercept {
 
     if (status.plan_available) {
       if (!candidate_control_is_safe_to_forward()) {
-        feedback_ = "BACKEND_TWIST_UNSAFE";
         return LoopStatus::FAILURE;
       }
 
@@ -127,6 +155,26 @@ class EvoloTargetIntercept {
   }
 
   std::string feedback() const { return feedback_; }
+
+  bool parse_geofence_goal_override(const Json& goal) {
+    geofence_check_enabled_ = default_geofence_check_enabled_;
+
+    if (!goal.contains("geofence_check_enabled")) {
+      return true;
+    }
+
+    const auto& geofence_check_enabled = goal.at("geofence_check_enabled");
+    if (!geofence_check_enabled.is_boolean()) {
+      feedback_ = "INVALID_GEOFENCE_CHECK_ENABLED";
+      RCLCPP_ERROR(
+          node_->get_logger(),
+          "Rejecting intercept goal; geofence_check_enabled must be boolean.");
+      return false;
+    }
+
+    geofence_check_enabled_ = geofence_check_enabled.get<bool>();
+    return true;
+  }
 
   void backend_status_cb(
       const evolo_msgs::msg::ProxOpsBackendStatus::SharedPtr msg) {
@@ -143,6 +191,16 @@ class EvoloTargetIntercept {
 
   void backend_twist_cb(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     last_backend_twist_ = msg;
+  }
+
+  void geofence_status_cb(
+      const smarc_msgs::msg::GeofenceStatusStamped::SharedPtr msg) {
+    last_geofence_status_ = msg;
+  }
+
+  void geofence_polygons_cb(
+      const smarc_msgs::msg::GeofencePolygonsStamped::SharedPtr msg) {
+    last_geofence_polygons_ = msg;
   }
 
   bool candidate_control_is_safe_to_forward() {
@@ -166,12 +224,10 @@ class EvoloTargetIntercept {
       return false;
     }
 
-    // Geofence requirements.
-    // TODO: Trigger whole-path geofence validation here
-    // before forwarding backend/twist_planned. The intended direction is to
-    // reuse/extend smarc_basic's geofence_node semantics so it can validate an
-    // entire candidate_path, not only start/end goals. Should we make this
-    // a cpp action server instead? is it gonna perform poorly in python?
+    if (!candidate_path_is_geofence_safe(*last_candidate_path_)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -206,6 +262,37 @@ class EvoloTargetIntercept {
     return true;
   }
 
+  bool candidate_path_is_geofence_safe(const nav_msgs::msg::Path& path) {
+    if (!geofence_check_enabled_) {
+      return true;
+    }
+
+    if (!geofence_status_is_fresh()) {
+      feedback_ = "GEOFENCE_STATUS_STALE";
+      return false;
+    }
+
+    if (last_geofence_status_->status !=
+        smarc_msgs::msg::GeofenceStatusStamped::STATUS_INSIDE) {
+      feedback_ = "GEOFENCE_STATUS_NOT_INSIDE";
+      return false;
+    }
+
+    if (!msg_is_fresh(last_geofence_polygons_, geofence_polygons_max_age_s_)) {
+      feedback_ = "GEOFENCE_POLYGONS_STALE";
+      return false;
+    }
+
+    const auto result = smarc_geofence_utils::check_path_against_geofence(
+        path, *last_geofence_polygons_);
+    if (!result.safe) {
+      feedback_ = result.feedback;
+      return false;
+    }
+
+    return true;
+  }
+
   template <typename MsgT>
   bool msg_is_fresh(const std::shared_ptr<MsgT>& msg, double max_age_s) const {
     if (!msg) {
@@ -226,11 +313,28 @@ class EvoloTargetIntercept {
     return age_s >= 0.0 && age_s <= max_age_s;
   }
 
+  bool geofence_status_is_fresh() const {
+    if (!last_geofence_status_) {
+      return false;
+    }
+
+    const rclcpp::Time stamp(last_geofence_status_->time,
+                             node_->get_clock()->get_clock_type());
+    if (stamp.nanoseconds() == 0) {
+      return false;
+    }
+
+    const auto age_s = (node_->get_clock()->now() - stamp).seconds();
+    return age_s >= 0.0 && age_s <= geofence_status_max_age_s_;
+  }
+
   void reset_backend_cache() {
     last_status_.reset();
     last_target_state_.reset();
     last_candidate_path_.reset();
     last_backend_twist_.reset();
+    last_geofence_status_.reset();
+    last_geofence_polygons_.reset();
     has_action_start_time_ = false;
     feedback_ = "IDLE";
   }
@@ -246,17 +350,27 @@ class EvoloTargetIntercept {
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr candidate_path_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr
       backend_twist_sub_;
+  rclcpp::Subscription<smarc_msgs::msg::GeofenceStatusStamped>::SharedPtr
+      geofence_status_sub_;
+  rclcpp::Subscription<smarc_msgs::msg::GeofencePolygonsStamped>::SharedPtr
+      geofence_polygons_sub_;
 
   evolo_msgs::msg::ProxOpsBackendStatus::SharedPtr last_status_;
   nav_msgs::msg::Odometry::SharedPtr last_target_state_;
   nav_msgs::msg::Path::SharedPtr last_candidate_path_;
   geometry_msgs::msg::TwistStamped::SharedPtr last_backend_twist_;
+  smarc_msgs::msg::GeofenceStatusStamped::SharedPtr last_geofence_status_;
+  smarc_msgs::msg::GeofencePolygonsStamped::SharedPtr last_geofence_polygons_;
 
   rclcpp::Time action_start_time_;
   bool has_action_start_time_ = false;
   double backend_status_max_age_s_ = 2.0;
   double candidate_path_max_age_s_ = 2.0;
   double backend_twist_max_age_s_ = 1.0;
+  bool default_geofence_check_enabled_ = false;
+  bool geofence_check_enabled_ = false;
+  double geofence_status_max_age_s_ = 2.0;
+  double geofence_polygons_max_age_s_ = 10.0;
 
   std::string goal_json_;
   std::string feedback_ = "IDLE";

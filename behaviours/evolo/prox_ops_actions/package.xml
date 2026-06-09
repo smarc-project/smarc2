@@ -10,10 +10,13 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>std_msgs</depend>
   <depend>evolo_msgs</depend>
+  <depend>smarc_msgs</depend>
+  <depend>smarc_geofence_utils</depend>
   <depend>smarc_action_base_cpp</depend>
 
   <test_depend>ament_lint_auto</test_depend>

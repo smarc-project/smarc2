@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import json
+import math
 from typing import Callable
 
 import py_trees as pt
@@ -23,6 +24,12 @@ from smarc_action_base.smarc_action_base import ActionClientState
 class ProxOpsBT:
     """Evolo prox-ops behaviour tree skeleton."""
 
+    REQUIRED_GOAL_SECTIONS = {
+        "inspect",
+        "intercept",
+        "loiter_patrol",
+    }
+
     def __init__(self, node: Node):
         self._node = node
         self.act_target_inspect = A_ActionClient(node, "evolo_target_inspect",
@@ -41,12 +48,7 @@ class ProxOpsBT:
             self.act_loiter_patrol,
         ]
 
-        self._goal: dict = {
-            "inspect": {},
-            "intercept": {},
-            "safety": {},
-            "loiter_patrol": {},
-        }
+        self._goal: dict = self._empty_goal()
 
         self._bt: BehaviourTree | None = None
         self._prev_tree_str = ""
@@ -140,22 +142,54 @@ class ProxOpsBT:
             ac.terminate(Status.INVALID)
         self.log("States reset")
 
+    def _empty_goal(self) -> dict:
+        return {
+            "inspect": {},
+            "intercept": {},
+            "loiter_patrol": {},
+        }
+
+    def _parse_goal_request(self, goal_request: dict) -> dict:
+        if not isinstance(goal_request, dict):
+            raise ValueError("prox-ops goal must be a JSON object")
+
+        provided_sections = set(goal_request.keys())
+        missing_sections = self.REQUIRED_GOAL_SECTIONS - provided_sections
+        if missing_sections:
+            raise ValueError(
+                f"prox-ops goal missing required sections: {sorted(missing_sections)}"
+            )
+
+        unknown_sections = provided_sections - self.REQUIRED_GOAL_SECTIONS
+        if unknown_sections:
+            raise ValueError(
+                f"prox-ops goal has unknown sections: {sorted(unknown_sections)}"
+            )
+
+        goal = self._empty_goal()
+        for section in self.REQUIRED_GOAL_SECTIONS:
+            section_goal = goal_request[section]
+            if not isinstance(section_goal, dict):
+                raise ValueError(
+                    f"prox-ops goal section '{section}' must be a JSON object"
+                )
+            goal[section] = section_goal
+
+        # TODO: Decide whether the intercept section should have an explicit
+        # mode field once evolo_target_intercept needs one.
+        return goal
+
     def _on_goal_received(self, goal_request: dict) -> bool:
         self.log(f"Received new prox-ops goal request: {goal_request}")
         self._reset_states()
 
         try:
-            if not (goal_request.keys() >= self._goal.keys()):
-                self.log("Goal request missing required fields, rejecting.")
-                self.log(
-                    f"Missing fields: {self._goal.keys() - goal_request.keys()}"
-                )
-                return False
+            self._goal = self._parse_goal_request(goal_request)
         except Exception as exc:
-            self.log(f"Exception while checking goal request fields: {exc}")
+            self.log(f"Rejecting prox-ops goal: {exc}")
             return False
 
-        self._goal = goal_request
+        self.log(f"Accepted prox-ops goal: {self._goal}")
         return True
 
     def _on_cancel_received(self) -> bool:
@@ -339,7 +373,7 @@ class ProxOpsBT:
 
     def _patrol_timeout_not_exceeded(self) -> bool:
         timeout_s = float(
-            self._goal.get("loiter_patrol", {}).get("patrol_timeout_s", 0.0))
+            self._goal.get("loiter_patrol", {}).get("timeout_s", 0.0))
         if timeout_s <= 0.0:
             return True
 

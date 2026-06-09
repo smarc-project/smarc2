@@ -114,7 +114,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
     status.long_range_track_converged = converged;
     status.terminal_track_live = false;
     status.target_lost = false;
-    status.plan_available = converged && !success;
+    status.plan_available = converged;
     status.target_intercepted = success;
     status.long_range_confidence = converged ? 0.95F : 0.4F;
     status.terminal_confidence = 0.0F;
