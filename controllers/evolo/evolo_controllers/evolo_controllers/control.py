@@ -16,6 +16,7 @@ from transforms3d._gohlketransforms import euler_from_quaternion
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics
+import numpy as np
 
 def vec2_directed_angle(v1, v2):
     """
@@ -204,11 +205,13 @@ class twist_control(Node):
 
         if(setpoint_OK and feedback_OK): #Closed loop control
             target_speed = max(0, min( self.max_speed, self.linear_vel_setpoint)) #m/s
-            angle_error_rads = -vec2_directed_angle(self.yaw_setpoint,
-                                                    self.yaw_feedback)
+            setpoint = np.array([np.cos(self.yaw_setpoint) , np.sin(self.yaw_setpoint)])
+            meassurement = np.array([np.cos(self.yaw_feedback) , np.sin(self.yaw_feedback)])
+            angle_error_rads = vec2_directed_angle(setpoint,
+                                                    meassurement)
             angle_error_degs = math.degrees(angle_error_rads)
 
-            pid_output = self.PID.update_error(angle_error_rads, self.time_now())
+            pid_output = self.PID.update_error(angle_error_degs, self.time_now())
 
             steering_output = max(-self.max_steering_output, min(self.max_steering_output, pid_output))
 
