@@ -6,12 +6,14 @@ from .dive_runner import Components, Rates, run_mode
 from .ParamUtils import DivingModelParam
 from .DiveSub import DiveSub
 from .DivePub import DivePub
-from .SimPub import SimPub
-from .AnalyticalSAMSim import AnalyticalSAMSim
+# Unused, analyticalsamsim imports smarc_modelling as a
+# pure py package, which is a PITA when using PID?
+# from .SimPub import SimPub
+# from .AnalyticalSAMSim import AnalyticalSAMSim
 from .ConveniencePub import ConveniencePub
 
 from .controllers.DiveControllerPID import DiveControllerPID
-from .controllers.DiveControllerMPC import DiveControllerMPC
+
 from .controllers.DiveControllerJoyPID import DiveControllerJoyPID
 
 from .ActionServerDiveSub import DiveActionServerSub, HydropointServer, MPCPathServer, PIDPathServer
@@ -154,11 +156,13 @@ def pid_trajectory_tracking():
              log_banner="PID Trajectory Tracking")
 
 def mpc_wp_following():
+    from .controllers.DiveControllerMPC import DiveControllerMPC
     run_mode(node_name="MpcWpFollowingNode",
              build=_build_mpc_wp_following,
              log_banner="MPC Waypoint Following")
 
 def mpc_trajectory_tracking():
+    from .controllers.DiveControllerMPC import DiveControllerMPC
     run_mode(node_name="MpcTrajectoryTracking",
              build=_build_mpc_trajectory_tracking,
              log_banner="MPC Trajectory tracking")

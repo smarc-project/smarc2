@@ -6,7 +6,7 @@ from sam_diving_controller.controllers.DiveControllerInterface import DiveContro
 from smarc_control_msgs.msg import ControlError, ControlInput, ControlReference
 from nav_msgs.msg import Odometry
 
-from smarc_modelling.control.control import *
+# from smarc_modelling.control.control import *
 
 
 class DiveControllerPID(DiveControllerInterface):
