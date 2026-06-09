@@ -10,7 +10,7 @@ from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from tf2_geometry_msgs import do_transform_pose_stamped
 
-from transforms3d._gohlketransforms import quaternion_from_euler
+from transforms3d.euler import euler2quat
 
 from rclpy.time import Duration, Time
 from nav_msgs.srv import SetMap
@@ -214,7 +214,7 @@ class EvoloMoveTo():
         dx = self.target_position.pose.position.x - self.robot_position.pose.position.x
         dy = self.target_position.pose.position.y - self.robot_position.pose.position.y
         targetYaw = math.atan2(dy,dx) # yaw in ENU
-        target_quaternion = quaternion_from_euler(0,0,targetYaw, axes='sxyz')
+        target_quaternion = euler2quat(0,0,targetYaw, axes='sxyz')
 
         control_msg = Odometry()
         control_msg.header.stamp    = self._node.get_clock().now().to_msg()
@@ -263,7 +263,7 @@ class EvoloMoveTo():
         self._node.get_logger().info(f"Utmpoint: {point}")
 
         #Add yaw
-        quaternion_values = quaternion_from_euler(0,0,yaw, axes='sxyz')
+        quaternion_values = euler2quat(0,0,yaw, axes='sxyz')
         pose_stamp.pose.orientation.x = quaternion_values[1]
         pose_stamp.pose.orientation.y = quaternion_values[2]
         pose_stamp.pose.orientation.z = quaternion_values[3]
