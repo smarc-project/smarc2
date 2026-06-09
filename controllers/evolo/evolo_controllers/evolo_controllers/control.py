@@ -207,7 +207,7 @@ class twist_control(Node):
             target_speed = max(0, min( self.max_speed, self.linear_vel_setpoint)) #m/s
             setpoint = np.array([np.cos(self.yaw_setpoint) , np.sin(self.yaw_setpoint)])
             meassurement = np.array([np.cos(self.yaw_feedback) , np.sin(self.yaw_feedback)])
-            angle_error_rads = vec2_directed_angle(setpoint,
+            angle_error_rads = -vec2_directed_angle(setpoint,
                                                     meassurement)
             angle_error_degs = math.degrees(angle_error_rads)
 
