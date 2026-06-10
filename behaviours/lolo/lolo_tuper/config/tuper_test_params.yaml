@@ -29,7 +29,7 @@
     # 'relative' -> vertices are (east, north) metres from the vehicle position
     #               captured when faking starts (handy: no GPS coords needed).
     # 'latlon'   -> vertices are absolute (latitude, longitude) degrees.
-    vertices_frame: "relative"
+    vertices_frame: "absolute"
 
     # Used when vertices_frame == 'relative' (an example L-shaped path).
     # These are metres East/North from LoLo's start, so they work regardless of
@@ -41,9 +41,13 @@
     # near the sim start (58.840386, 17.651664) matching the relative L above:
     #   vertices_lat: [58.8403858, 58.8403858, 58.8406553, 58.8409248]
     #   vertices_lon: [17.6516642, 17.6521854, 17.6521854, 17.6527070]
-    vertices_lat: []
-    vertices_lon: []
+    
+    #   starting points coords <58.823242><17.633864>
+    
+    vertices_lat: [58.822811, 58.821886, 58.821229]
+    vertices_lon: [17.633968, 17.633028, 17.634541]
 
+    
     # Setpoint speed envelope and corner behaviour.
     speed_min: 0.2              # [m/s] (around corners)
     speed_max: 0.4              # [m/s] (on straights)
