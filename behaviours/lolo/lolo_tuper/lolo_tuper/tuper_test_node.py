@@ -165,6 +165,7 @@ class TuperTestNode(Node):
         self._odom_topic = d('odom_topic', '/lolo/smarc/odom').value
         self._pose_topic = d('pose_topic', '/follower/ukf/pose').value
         self._setpoint_topic = d('setpoint_topic', '/follower/ukf/setpoint').value
+        self._ahead_distance_m = float(d('ahead_distance_m', 15.0).value)
 
         # Pose integrated noise (random walk: n <- (1-theta)*n + sigma*N(0,1)).
         self._pose_noise_sigma = float(d('pose_noise_sigma', 0.05).value)
@@ -226,10 +227,20 @@ class TuperTestNode(Node):
                 f"Warmup done but no truth position on {self._latlon_topic} yet; "
                 "waiting before faking.", throttle_duration_sec=5.0)
             return False
+        if self._odom_yaw is None:
+            self.get_logger().warn(
+                f"Warmup done but no odom heading on {self._odom_topic} yet; "
+                "waiting before faking.", throttle_duration_sec=5.0)
+            return False
 
         origin = self._latlon_to_utm(*self._truth_latlon)
         self._zone = origin.zone
         self._band = origin.band
+
+        # Anchor the fake trajectory ahead of the current vehicle pose so the
+        # first setpoint starts in front of LoLo instead of beside/behind it.
+        origin_easting = origin.easting + self._ahead_distance_m * math.cos(self._odom_yaw)
+        origin_northing = origin.northing + self._ahead_distance_m * math.sin(self._odom_yaw)
 
         if self._vertices_frame == 'latlon':
             if len(self._vertices_lat) < 2 or \
@@ -251,8 +262,8 @@ class TuperTestNode(Node):
                     "vertices_north of length >= 2. Setpoint disabled.")
                 return False
             points = np.column_stack([
-                origin.easting + np.asarray(self._vertices_a, dtype=float),
-                origin.northing + np.asarray(self._vertices_b, dtype=float),
+                origin_easting + np.asarray(self._vertices_a, dtype=float),
+                origin_northing + np.asarray(self._vertices_b, dtype=float),
             ])
 
         try:
