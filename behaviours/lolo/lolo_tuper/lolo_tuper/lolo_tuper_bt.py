@@ -6,8 +6,8 @@ goals) whose loop_inner ticks a py_trees BehaviourTree at a fixed rate.
 
 Mission:
   1. GoToStart        - delegate to the external auv_depth_move_to action to
-                        reach the start position at mission_depth (returns
-                        immediately if already there).
+                                                reach the start position at the surface (returns
+                                                immediately if already there).
   2. FollowSetpoint   - UKF-consistent COURSE control toward the live UKF
                         setpoint, holding depth + min-altitude, modulating RPM
                         with a PID/bang-bang law. Fails on excessive position
@@ -278,7 +278,7 @@ class LoloTuperBT:
             return False
         try:
             self._act_go_to_start.set_goal(self._move_to_goal_json(
-                g.start_lat, g.start_lon, g.mission_depth, g.max_rpm,
+                g.start_lat, g.start_lon, -1.0, g.max_rpm,
                 g.start_tolerance))
             return True
         except Exception as e:  # noqa: BLE001

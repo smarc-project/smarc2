@@ -118,6 +118,12 @@ class _CourseControlBehaviour(Behaviour):
     def _safe_hold_rpm(self, goal: TuperGoal) -> float:
         return max(goal.min_rpm, self._gains.hold_rpm)
 
+    def _can_bootstrap_without_pose(self, goal: TuperGoal) -> bool:
+        return False
+
+    def _pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
+        return self._fs.pose_utm
+
     def _hold(self, goal: TuperGoal) -> None:
         """Hold heading and command safe hold RPM."""
         heading = self._fs.heading_enu
@@ -170,11 +176,13 @@ class _CourseControlBehaviour(Behaviour):
         if dist <= deadband:
             hold_reason = "deadband"
         elif self._wait_when_target_not_ahead() and tracking_error <= deadband:
-            hold_reason = "target_not_ahead"
+            if dist <= 4.0:
+                hold_reason = "target_not_ahead"
 
         if hold_reason is not None:
             # For live setpoint following, do not turn toward side/behind
-            # targets. Keep only the safe forward RPM needed for depth control.
+            # targets when we're already close. Keep only the safe forward RPM
+            # needed for depth control.
             self._integral = 0.0
             self._last_time = now
             self._last_dist = None
@@ -202,7 +210,11 @@ class _CourseControlBehaviour(Behaviour):
 
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
                       uncertainty: float) -> float:
-        pose_xy = self._fs.pose_utm
+        pose_xy = self._pose_xy(goal)
+        if pose_xy is None:
+            self._hold(goal)
+            self.feedback_message = "No pose available yet, holding."
+            return float('inf')
         de = target_xy[0] - pose_xy[0]
         dn = target_xy[1] - pose_xy[1]
         dist = math.hypot(de, dn)
@@ -241,9 +253,12 @@ class _CourseControlBehaviour(Behaviour):
             self.feedback_message = "No goal/gains set."
             return Status.FAILURE
 
+        bootstrap_without_pose = not self._fs.pose_fresh and self._can_bootstrap_without_pose(goal)
+
         # 1. Freshness: if the UKF pose is stale we cannot verify safety, so we
-        #    hold heading at safe hold RPM and start a grace timer; fail if it lasts.
-        if not self._fs.pose_fresh:
+        #    normally hold heading at safe hold RPM and start a grace timer; the
+        #    follow phase is allowed to bootstrap from the known start position.
+        if not self._fs.pose_fresh and not bootstrap_without_pose:
             self._hold(goal)
             if self._stale_since is None:
                 self._stale_since = self._now
@@ -253,11 +268,14 @@ class _CourseControlBehaviour(Behaviour):
                 self.feedback_message = "UKF pose stale beyond grace period, failing."
                 return Status.FAILURE
             return Status.RUNNING
-        self._stale_since = None
+        else:
+            self._stale_since = None
 
         # 2. Uncertainty guard.
         uncertainty = self._fs.uncertainty_semimajor
-        if uncertainty is None or uncertainty > goal.max_pos_uncertainty:
+        if bootstrap_without_pose:
+            uncertainty = 0.0
+        elif uncertainty is None or uncertainty > goal.max_pos_uncertainty:
             self.feedback_message = (
                 f"Position uncertainty {uncertainty} > "
                 f"{goal.max_pos_uncertainty}m, failing.")
@@ -293,6 +311,12 @@ class FollowSetpoint(_CourseControlBehaviour):
 
     def _wait_when_target_not_ahead(self) -> bool:
         return True
+
+    def _can_bootstrap_without_pose(self, goal: TuperGoal) -> bool:
+        return True
+
+    def _pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
+        return self._fs.pose_utm or latlon_to_utm(goal.start_lat, goal.start_lon)
 
     def _target(self, goal: TuperGoal) -> tuple[float, float] | None:
         if self._fs.setpoint_fresh and self._fs.setpoint_utm is not None:
