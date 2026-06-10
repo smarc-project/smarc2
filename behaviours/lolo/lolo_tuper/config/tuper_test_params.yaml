@@ -30,11 +30,16 @@
     # 'latlon'   -> vertices are absolute (latitude, longitude) degrees.
     vertices_frame: "relative"
 
-    # Used when vertices_frame == 'relative' (an example L-shaped path):
+    # Used when vertices_frame == 'relative' (an example L-shaped path).
+    # These are metres East/North from LoLo's start, so they work regardless of
+    # the actual GPS start position (sim start observed at ~58.840386, 17.651664).
     vertices_east:  [0.0, 30.0, 60.0, 60.0]
     vertices_north: [0.0,  0.0, 30.0, 60.0]
 
-    # Used when vertices_frame == 'latlon' (leave empty otherwise):
+    # Used when vertices_frame == 'latlon' (leave empty otherwise). Example path
+    # near the sim start (58.840386, 17.651664) matching the relative L above:
+    #   vertices_lat: [58.8403858, 58.8403858, 58.8406553, 58.8409248]
+    #   vertices_lon: [17.6516642, 17.6521854, 17.6521854, 17.6527070]
     vertices_lat: []
     vertices_lon: []
 

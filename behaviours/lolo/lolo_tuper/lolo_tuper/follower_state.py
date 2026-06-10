@@ -184,14 +184,31 @@ class FollowerState:
         if not self.setpoint_fresh:
             return False
 
-        hist = [s for s in self._setpoint_history if now - s[0] <= period]
+        samples = list(self._setpoint_history)
+        if len(samples) < 2:
+            return False
+
+        # The retained history must reach back far enough, but the exact
+        # last-period sample window will almost always be a little shorter than
+        # `period` at finite publish rates. Requiring exact span can therefore
+        # miss a genuine stop forever.
+        window_start = now - period
+        if samples[-1][0] - samples[0][0] < period:
+            return False
+
+        hist = [s for s in samples if s[0] >= window_start]
         if len(hist) < 2:
             return False
 
-        # The retained window must actually span the requested period.
-        span = hist[-1][0] - hist[0][0]
-        if span < period:
-            return False
+        # Catch dropouts inside the stop window. Include the sample immediately
+        # before the window boundary, if any, so a boundary gap is visible.
+        prev = next((s for s in reversed(samples) if s[0] < window_start), None)
+        gap_hist = ([prev] if prev is not None else []) + hist
+        if len(gap_hist) >= 2:
+            max_gap = max(gap_hist[i + 1][0] - gap_hist[i][0]
+                          for i in range(len(gap_hist) - 1))
+            if max_gap > self._estimate_max_age:
+                return False
 
         xs = np.array([s[1] for s in hist], dtype=float)
         ys = np.array([s[2] for s in hist], dtype=float)

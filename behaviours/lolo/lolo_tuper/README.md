@@ -126,7 +126,7 @@ fields have defaults.
 | `arrival_tolerance`        | yes      | -       | m; radius to consider the last setpoint reached. |
 | `start_tolerance`          | yes      | -       | m; tolerance for the move_to legs. |
 | `timeout`                  | yes      | -       | s; per move_to leg timeout. |
-| `min_rpm`                  | no       | 400     | RPM floor so LoLo stays submerged; control never commands below this. |
+| `min_rpm`                  | no       | 400     | Moving RPM floor while actively tracking a target. |
 | `max_rpm`                  | no       | 700     | RPM saturation when far from the setpoint; also used for the transit (move_to) legs. |
 | `max_pos_uncertainty`      | no       | 4.0     | m; fail the task if the semi-major-axis uncertainty exceeds this. |
 
@@ -134,8 +134,8 @@ fields have defaults.
 
 ```json
 {
-  "start_position":   {"latitude": 58.811, "longitude": 17.591},
-  "initial_setpoint": {"latitude": 58.815, "longitude": 17.595},
+  "start_position":   {"latitude": 58.8403858, "longitude": 17.6516642},
+  "initial_setpoint": {"latitude": 58.8409250, "longitude": 17.6527070},
   "mission_depth": 10.0,
   "min_altitude": 5.0,
   "min_rpm": 400.0,
@@ -153,7 +153,7 @@ Send it (note the JSON is a string inside `goal.data`):
 
 ```bash
 ros2 action send_goal /lolo/lolo_tuper smarc_msgs/action/BaseAction \
-  "{goal: {data: '{\"start_position\":{\"latitude\":58.811,\"longitude\":17.591},\"initial_setpoint\":{\"latitude\":58.815,\"longitude\":17.595},\"mission_depth\":10.0,\"min_altitude\":5.0,\"setpoint_stop_tolerance\":5.0,\"setpoint_stop_period\":30.0,\"arrival_tolerance\":5.0,\"start_tolerance\":5.0,\"timeout\":600.0}'}}" \
+  "{goal: {data: '{\"start_position\":{\"latitude\":58.8403858,\"longitude\":17.6516642},\"initial_setpoint\":{\"latitude\":58.8409250,\"longitude\":17.6527070},\"mission_depth\":10.0,\"min_altitude\":5.0,\"setpoint_stop_tolerance\":5.0,\"setpoint_stop_period\":30.0,\"arrival_tolerance\":5.0,\"start_tolerance\":5.0,\"timeout\":600.0}'}}" \
   --feedback
 ```
 
@@ -174,19 +174,25 @@ Set in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml). These a
 | `pose_topic`              | `/follower/ukf/pose` | Estimator pose topic. |
 | `setpoint_topic`          | `/follower/ukf/setpoint` | Estimator setpoint topic. |
 | `move_to_action_name`     | `auv_depth_move_to`  | External depth-move-to action name. |
-| `kp_rpm` / `ki_rpm` / `kd_rpm` | `20 / 0 / 5`    | RPM PID gains (error = distance-to-setpoint, m). |
+| `kp_rpm` / `ki_rpm` / `kd_rpm` | `50 / 0 / 5`    | RPM PID gains (error = forward/ahead setpoint error, m). |
 | `integral_limit`          | `200.0`              | Clamp on the Ki contribution (RPM). |
-| `heading_gate_deg`        | `60.0`               | If `|heading error|` exceeds this, command only `min_rpm` (turn first). |
-| `uncertainty_deadband_k`  | `2.0`                | Deadband radius = `max(arrival_tolerance, k * sigma)`; hold `min_rpm` inside it. |
+| `hold_rpm`                | `400.0`              | Safe RPM while waiting, stale, inside the deadband, or not chasing a live setpoint that is side/behind LoLo. Clamped not below the mission `min_rpm`. |
+| `heading_gate_deg`        | `60.0`               | If `|heading error|` exceeds this during final static approach, use `min_rpm` to turn. Live following holds only when the setpoint is not ahead. |
+| `uncertainty_deadband_k`  | `2.0`                | Deadband radius = `max(arrival_tolerance, k * sigma)`; hold safe RPM inside it. |
 
 ### RPM control law
 
 ```
 deadband = max(arrival_tolerance, uncertainty_deadband_k * sigma)
-if dist <= deadband or |heading_err| > heading_gate_deg:
-    rpm = min_rpm                       # settle / turn-in-place, don't chase noise
+forward_error = projection of setpoint error onto LoLo's current heading
+if dist <= deadband:
+    rpm = max(min_rpm, hold_rpm)        # settle / don't chase estimator noise
+elif following_live_setpoint and forward_error <= deadband:
+    rpm = max(min_rpm, hold_rpm)        # keep depth authority, don't chase-turn
+elif |heading_err| > heading_gate_deg:
+    rpm = min_rpm                       # final static approach: keep flow to turn
 else:
-    rpm = min_rpm + Kp*dist + Ki*∫dist + Kd*d(dist)/dt
+    rpm = min_rpm + Kp*forward_error + Ki*∫forward_error + Kd*max(d(forward_error)/dt, 0)
 rpm = clip(rpm, min_rpm, max_rpm)
 ```
 

@@ -32,6 +32,7 @@ class ControlGains:
     ki_rpm: float
     kd_rpm: float
     integral_limit: float
+    hold_rpm: float
     heading_gate_deg: float
     uncertainty_deadband_k: float
     stale_grace_period: float
@@ -114,11 +115,14 @@ class _CourseControlBehaviour(Behaviour):
     def _now(self) -> float:
         return self._node.get_clock().now().nanoseconds * 1e-9
 
+    def _safe_hold_rpm(self, goal: TuperGoal) -> float:
+        return max(goal.min_rpm, self._gains.hold_rpm)
+
     def _hold(self, goal: TuperGoal) -> None:
-        """Hold heading and command min_rpm (used while waiting / settling)."""
+        """Hold heading and command safe hold RPM."""
         heading = self._fs.heading_enu
         yaw = heading if heading is not None else self._last_bearing
-        self._command(yaw, goal.min_rpm, goal)
+        self._command(yaw, self._safe_hold_rpm(goal), goal)
 
     def _command(self, yaw_enu: float, rpm: float, goal: TuperGoal) -> bool:
         self._last_bearing = yaw_enu
@@ -139,8 +143,13 @@ class _CourseControlBehaviour(Behaviour):
         self._vehicle.update()
         return True
 
-    def _compute_rpm(self, dist: float, heading_err: float,
-                     uncertainty: float, goal: TuperGoal) -> float:
+    def _wait_when_target_not_ahead(self) -> bool:
+        """True for live-following phases where the setpoint may catch up."""
+        return False
+
+    def _compute_rpm(self, dist: float, forward_error: float,
+                     heading_err: float, uncertainty: float,
+                     goal: TuperGoal) -> tuple[float, str | None]:
         gains = self._gains
         now = self._now
         if self._last_time is None:
@@ -148,33 +157,48 @@ class _CourseControlBehaviour(Behaviour):
         else:
             dt = max(now - self._last_time, 1e-3)
 
+        tracking_error = max(0.0, forward_error)
         if self._last_dist is None:
-            d_dot = 0.0
+            error_dot = 0.0
         else:
-            d_dot = (dist - self._last_dist) / dt
+            error_dot = (tracking_error - self._last_dist) / dt
 
         deadband = max(goal.arrival_tolerance,
                        gains.uncertainty_deadband_k * uncertainty)
 
-        if dist <= deadband or abs(heading_err) > math.radians(gains.heading_gate_deg):
-            # Settle / turn-in-place: do not power off in the wrong direction
-            # and do not chase estimator noise. Hold the floor RPM.
+        hold_reason = None
+        if dist <= deadband:
+            hold_reason = "deadband"
+        elif self._wait_when_target_not_ahead() and tracking_error <= deadband:
+            hold_reason = "target_not_ahead"
+
+        if hold_reason is not None:
+            # For live setpoint following, do not turn toward side/behind
+            # targets. Keep only the safe forward RPM needed for depth control.
+            self._integral = 0.0
+            self._last_time = now
+            self._last_dist = None
+            return self._safe_hold_rpm(goal), hold_reason
+
+        if (not self._wait_when_target_not_ahead() and
+                abs(heading_err) > math.radians(gains.heading_gate_deg)):
+            # Static-target phases still need some flow over the rudder to turn.
             self._integral = 0.0
             rpm = goal.min_rpm
         else:
-            self._integral += dist * dt
+            self._integral += tracking_error * dt
             i_term = gains.ki_rpm * self._integral
             i_term = max(-gains.integral_limit, min(gains.integral_limit, i_term))
             rpm = (goal.min_rpm
-                   + gains.kp_rpm * dist
+                   + gains.kp_rpm * tracking_error
                    + i_term
-                   + gains.kd_rpm * d_dot)
+                   + gains.kd_rpm * max(error_dot, 0.0))
 
         rpm = max(goal.min_rpm, min(goal.max_rpm, rpm))
 
         self._last_time = now
-        self._last_dist = dist
-        return rpm
+        self._last_dist = tracking_error
+        return rpm, None
 
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
                       uncertainty: float) -> float:
@@ -185,12 +209,18 @@ class _CourseControlBehaviour(Behaviour):
         bearing = math.atan2(dn, de)
         heading = self._fs.heading_enu
         heading_err = wrap_angle(bearing - heading) if heading is not None else 0.0
+        forward_error = (de * math.cos(heading) + dn * math.sin(heading)
+                         if heading is not None else dist)
 
-        rpm = self._compute_rpm(dist, heading_err, uncertainty, goal)
-        self._command(bearing, rpm, goal)
+        rpm, hold_reason = self._compute_rpm(
+            dist, forward_error, heading_err, uncertainty, goal)
+        yaw_cmd = heading if hold_reason is not None and heading is not None else bearing
+        self._command(yaw_cmd, rpm, goal)
+        hold_str = f" hold={hold_reason}" if hold_reason is not None else ""
         self.feedback_message = (
             f"dist={dist:.1f}m hErr={math.degrees(heading_err):.0f}deg "
-            f"rpm={rpm:.0f} sigma={uncertainty:.2f}m")
+            f"rpm={rpm:.0f} sigma={uncertainty:.2f}m "
+            f"fwd={forward_error:.1f}m{hold_str}")
         return dist
 
     # ------------------------------------------------------ subclass hooks
@@ -212,7 +242,7 @@ class _CourseControlBehaviour(Behaviour):
             return Status.FAILURE
 
         # 1. Freshness: if the UKF pose is stale we cannot verify safety, so we
-        #    hold heading at min_rpm and start a grace timer; fail if it lasts.
+        #    hold heading at safe hold RPM and start a grace timer; fail if it lasts.
         if not self._fs.pose_fresh:
             self._hold(goal)
             if self._stale_since is None:
@@ -260,6 +290,9 @@ class FollowSetpoint(_CourseControlBehaviour):
     available. Succeeds when the setpoint has stayed within
     setpoint_stop_tolerance for setpoint_stop_period.
     """
+
+    def _wait_when_target_not_ahead(self) -> bool:
+        return True
 
     def _target(self, goal: TuperGoal) -> tuple[float, float] | None:
         if self._fs.setpoint_fresh and self._fs.setpoint_utm is not None:

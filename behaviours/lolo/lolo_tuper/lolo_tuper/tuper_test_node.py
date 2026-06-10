@@ -33,7 +33,9 @@ from geodesy import utm as geo_utm
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from tf_transformations import euler_from_quaternion
 
@@ -175,10 +177,13 @@ class TuperTestNode(Node):
         #                   position captured when faking starts.
         #                   'latlon'  -> absolute (latitude, longitude) degrees.
         self._vertices_frame = d('vertices_frame', 'relative').value
-        self._vertices_a = list(d('vertices_east', [0.0, 30.0, 60.0, 60.0]).value)
-        self._vertices_b = list(d('vertices_north', [0.0, 0.0, 30.0, 60.0]).value)
-        self._vertices_lat = list(d('vertices_lat', []).value)
-        self._vertices_lon = list(d('vertices_lon', []).value)
+        # Declare the vertex arrays with an explicit DOUBLE_ARRAY type so that
+        # empty defaults (which rclpy cannot type-infer) are still valid.
+        double_array = ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE_ARRAY)
+        self._vertices_a = list(d('vertices_east', [0.0, 30.0, 60.0, 60.0], double_array).value or [])
+        self._vertices_b = list(d('vertices_north', [0.0, 0.0, 30.0, 60.0], double_array).value or [])
+        self._vertices_lat = list(d('vertices_lat', [], double_array).value or [])
+        self._vertices_lon = list(d('vertices_lon', [], double_array).value or [])
 
         # Setpoint motion.
         self._speed_min = float(d('speed_min', 0.5).value)
@@ -376,10 +381,12 @@ def main():
     node = TuperTestNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -22,16 +22,17 @@
     # External action server (lolo_depth_move_to) name.
     move_to_action_name: "auv_depth_move_to"
 
-    # RPM PID gains (error = distance-to-setpoint in metres).
-    kp_rpm: 20.0
+    # RPM PID gains (error = forward/ahead setpoint error in metres).
+    kp_rpm: 50.0
     ki_rpm: 0.0
     kd_rpm: 5.0
     integral_limit: 200.0         # clamp on Ki accumulator contribution (rpm).
+    hold_rpm: 400.0               # safe rpm while waiting / not chasing.
 
-    # Heading gate: if |heading error| exceeds this, command only min_rpm
-    # (turn toward setpoint instead of powering off in the wrong direction).
+    # Heading gate for final-approach phases. Live following holds only when
+    # the setpoint is not ahead of LoLo.
     heading_gate_deg: 60.0
 
     # Deadband radius = max(arrival_tolerance, uncertainty_deadband_k * sigma).
-    # Within the deadband we hold min_rpm to avoid chasing estimator noise.
+    # Within the deadband we hold at safe RPM to avoid chasing estimator noise.
     uncertainty_deadband_k: 2.0

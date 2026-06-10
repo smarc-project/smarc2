@@ -26,7 +26,7 @@ from py_trees.composites import Sequence
 from py_trees.trees import BehaviourTree
 
 import rclpy
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 
 from std_msgs.msg import String
@@ -86,6 +86,7 @@ class LoloTuperBT:
             ki_rpm=self._ki_rpm,
             kd_rpm=self._kd_rpm,
             integral_limit=self._integral_limit,
+            hold_rpm=self._hold_rpm,
             heading_gate_deg=self._heading_gate_deg,
             uncertainty_deadband_k=self._uncertainty_deadband_k,
             stale_grace_period=self._stale_grace_period,
@@ -158,10 +159,11 @@ class LoloTuperBT:
         self._pose_topic = gp('pose_topic', '/follower/ukf/pose')
         self._setpoint_topic = gp('setpoint_topic', '/follower/ukf/setpoint')
         self._move_to_action_name = gp('move_to_action_name', 'auv_depth_move_to')
-        self._kp_rpm = float(gp('kp_rpm', 20.0))
+        self._kp_rpm = float(gp('kp_rpm', 50.0))
         self._ki_rpm = float(gp('ki_rpm', 0.0))
         self._kd_rpm = float(gp('kd_rpm', 5.0))
         self._integral_limit = float(gp('integral_limit', 200.0))
+        self._hold_rpm = float(gp('hold_rpm', 400.0))
         self._heading_gate_deg = float(gp('heading_gate_deg', 60.0))
         self._uncertainty_deadband_k = float(gp('uncertainty_deadband_k', 2.0))
 
@@ -178,6 +180,19 @@ class LoloTuperBT:
         self._vehicle.reset_goal()
 
     # --------------------------------------------------------- goal handling
+    def _unwrap_goal(self, goal_request: dict) -> dict:
+        """Unwrap the WARA-PS custom-task envelope if present.
+
+        The GUI / MQTT bridge sends the goal as
+        {"action-name": "...", "json-params": "<json string or dict>"}.
+        A direct `ros2 action send_goal` sends the raw mission dict instead;
+        both are accepted.
+        """
+        if isinstance(goal_request, dict) and "json-params" in goal_request:
+            jp = goal_request["json-params"]
+            return json.loads(jp) if isinstance(jp, str) else jp
+        return goal_request
+
     def _validate_goal(self, req: dict) -> bool:
         if not isinstance(req, dict):
             self.log("Goal request is not a dict, rejecting.")
@@ -218,9 +233,10 @@ class LoloTuperBT:
         self._reset_states()
 
         try:
-            if not self._validate_goal(goal_request):
+            req = self._unwrap_goal(goal_request)
+            if not self._validate_goal(req):
                 return False
-            self._goal_obj = self._parse_goal(goal_request)
+            self._goal_obj = self._parse_goal(req)
         except Exception as e:  # noqa: BLE001
             self.log(f"Exception while parsing goal request: {e}")
             return False
@@ -398,8 +414,13 @@ def main():
 
     executor = MultiThreadedExecutor()
     executor.add_node(node)
-    rclpy.spin(node, executor=executor)
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node, executor=executor)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
