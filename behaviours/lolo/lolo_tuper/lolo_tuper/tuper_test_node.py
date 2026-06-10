@@ -129,6 +129,12 @@ class TuperTestNode(Node):
         # Pose integrated-noise (random walk with slight mean reversion).
         self._pose_noise = np.zeros(2)
 
+        # Glitches in UKF pose estimate
+        self._pose_jump_offset = np.zeros(2)
+        self._pose_jump_mag = np.zeros(2)
+        self._pose_jump_start = 0.0
+        self._next_pose_jump_time = self._start_time + self._warmup + self._pose_jump_period
+
         # Setpoint progression + glitch state.
         self._s = 0.0
         self._finished = False
@@ -173,6 +179,12 @@ class TuperTestNode(Node):
         # Reported 1-sigma (m) that becomes the pose covariance the BT gates on.
         self._reported_sigma = float(d('reported_sigma', 1.0).value)
 
+        # Pose estimate jumps: simulates the UKF briefly estimating the wrong position.
+        self._enable_pose_jumps = bool(d('enable_pose_jumps', True).value)
+        self._pose_jump_period = float(d('pose_jump_period_s', 2.0).value)
+        self._pose_jump_std = float(d('pose_jump_std', 1.5).value)
+        self._pose_jump_decay_s = float(d('pose_jump_decay_s', 1.0).value)
+
         # Trajectory vertices.
         #   vertices_frame: 'relative' -> (east, north) metres from the vehicle's
         #                   position captured when faking starts.
@@ -194,6 +206,7 @@ class TuperTestNode(Node):
         self._loop_trajectory = bool(d('loop_trajectory', False).value)
 
         # Glitches ("jumpy UKF": sideways jumps + along-track runaway/snap-back).
+        self._enable_trajectory_jumps = bool(d('enable_trajectory_jumps', True).value)
         self._jump_period = float(d('jump_period_s', 2.0).value)
         self._jump_lateral_std = float(d('jump_lateral_std', 1.5).value)
         self._jump_along_std = float(d('jump_along_std', 1.5).value)
@@ -305,8 +318,29 @@ class TuperTestNode(Node):
         # Integrated (random-walk) noise with mild mean reversion.
         self._pose_noise = ((1.0 - self._pose_noise_theta) * self._pose_noise
                             + self._pose_noise_sigma * self._rng.standard_normal(2))
-        px = truth.easting + self._pose_noise[0]
-        py = truth.northing + self._pose_noise[1]
+
+        now = self._now
+        if self._enable_pose_jumps:
+            # Sometimes wrong-estimate jump
+            if now >= self._next_pose_jump_time:
+                angle = self._rng.uniform(0.0, 2.0 * math.pi)
+                mag = abs(self._rng.normal(0.0, self._pose_jump_std))
+                self._pose_jump_mag = mag * np.array([
+                    math.cos(angle),
+                    math.sin(angle)
+                ])
+                self._pose_jump_start = now
+                self._next_pose_jump_time = now + self._sample_jump_interval()
+
+            # Decay jump back to zero, like the estimator snapping back.
+            age = now - self._pose_jump_start
+            decay = max(0.0, 1.0 - age / max(self._pose_jump_decay_s, 1e-3))
+            self._pose_jump_offset = self._pose_jump_mag * decay
+        else:
+            self._pose_jump_offset = np.zeros(2)
+
+        px = truth.easting + self._pose_noise[0] + self._pose_jump_offset[0]
+        py = truth.northing + self._pose_noise[1] + self._pose_jump_offset[1]
 
         msg = PoseWithCovarianceStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -334,6 +368,10 @@ class TuperTestNode(Node):
     def _sample_glitch_interval(self) -> float:
         # Poisson-ish spacing around the mean jump period.
         return float(self._rng.exponential(max(self._jump_period, 0.1)))
+    
+    def _sample_jump_interval(self) -> float:
+        # Poisson-ish spacing around the mean jump period.
+        return float(self._rng.exponential(max(self._pose_jump_period, 0.1)))
 
     def _publish_setpoint(self):
         now = self._now
@@ -342,7 +380,7 @@ class TuperTestNode(Node):
         point, theta, base_speed = self._traj.sample(
             self._s, self._speed_min, self._speed_max, self._curvature_ref)
 
-        if not self._finished:
+        if self._enable_trajectory_jumps and not self._finished:
             # Gentle OU jitter on speed, kept within [speed_min, speed_max].
             self._speed_factor += (-0.1 * (self._speed_factor - 1.0)
                                    + self._speed_jitter * self._rng.standard_normal())
