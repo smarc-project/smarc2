@@ -106,6 +106,10 @@ class _CourseControlBehaviour(Behaviour):
         self._last_dist = None
         self._stale_since = None
         self._last_bearing = 0.0
+        # Latches True once we have ever seen a fresh UKF pose. Bootstrapping
+        # without a pose is only allowed BEFORE this; afterwards a UKF death
+        # must fall through to the staleness grace/failure path.
+        self._ever_pose_fresh = False
 
     def initialise(self) -> None:
         self._reset_control_state()
@@ -253,11 +257,20 @@ class _CourseControlBehaviour(Behaviour):
             self.feedback_message = "No goal/gains set."
             return Status.FAILURE
 
-        bootstrap_without_pose = not self._fs.pose_fresh and self._can_bootstrap_without_pose(goal)
+        if self._fs.pose_fresh:
+            self._ever_pose_fresh = True
+
+        # Bootstrapping without a pose is only for the startup window (before the
+        # UKF has EVER been live). Once we have seen a fresh pose, a subsequent
+        # UKF death must NOT bootstrap - it has to trip the staleness failure.
+        bootstrap_without_pose = (not self._fs.pose_fresh
+                                  and self._can_bootstrap_without_pose(goal)
+                                  and not self._ever_pose_fresh)
 
         # 1. Freshness: if the UKF pose is stale we cannot verify safety, so we
         #    normally hold heading at safe hold RPM and start a grace timer; the
-        #    follow phase is allowed to bootstrap from the known start position.
+        #    follow phase is allowed to bootstrap from the known start position
+        #    ONLY until the first fresh pose arrives.
         if not self._fs.pose_fresh and not bootstrap_without_pose:
             self._hold(goal)
             if self._stale_since is None:

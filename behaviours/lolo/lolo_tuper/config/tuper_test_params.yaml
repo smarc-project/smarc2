@@ -4,7 +4,7 @@
 /**:
   ros__parameters:
     # Do nothing for this long, then start faking.
-    warmup_seconds: 30.0
+    warmup_seconds: 5.0
     publish_rate: 10.0          # Hz
 
     # Where to read the vehicle's TRUE state from (override per robot_name).
