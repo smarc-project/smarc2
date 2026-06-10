@@ -277,8 +277,8 @@ class DiveSub():
         if self._tf_base_link_global is None:
             return
 
-        self._waypoint_in_odom = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose.pose, self._tf_odom_global)
-        self._waypoint_in_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose.pose, self._tf_base_link_global)
+        self._waypoint_in_odom = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_odom_global)
+        self._waypoint_in_body = tf2_geometry_msgs.do_transform_pose(self._waypoint_global.pose, self._tf_base_link_global)
 
     def _transform_state(self):
         #self._loginfo(f"states_in_mocap: {self._states_in_mocap}")
@@ -307,7 +307,7 @@ class DiveSub():
     # Get methods
     def get_depth_setpoint(self):
         if self._waypoint_in_body is not None:
-            self._depth_setpoint = self._waypoint_global.pose.pose.position.z
+            self._depth_setpoint = self._waypoint_global.pose.position.z
 
         return self._depth_setpoint
 
@@ -315,10 +315,10 @@ class DiveSub():
     def get_pitch_setpoint(self):
         if self._waypoint_in_body is not None:
             rpy = euler_from_quaternion([
-                self._waypoint_global.pose.pose.orientation.x,
-                self._waypoint_global.pose.pose.orientation.y,
-                self._waypoint_global.pose.pose.orientation.z,
-                self._waypoint_global.pose.pose.orientation.w])
+                self._waypoint_global.pose.orientation.x,
+                self._waypoint_global.pose.orientation.y,
+                self._waypoint_global.pose.orientation.z,
+                self._waypoint_global.pose.orientation.w])
 
             self._pitch_setpoint = rpy[1]
 

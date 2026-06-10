@@ -8,6 +8,7 @@ from nav_msgs.msg import Odometry
 
 # from smarc_modelling.control.control import *
 
+import numpy as np # david plz :,(
 
 class DiveControllerPID(DiveControllerInterface):
 
@@ -231,9 +232,9 @@ class DiveControllerPID(DiveControllerInterface):
         s += f'wp odom: x: {waypoint_odom.position.x:.3f}'
         s += f' y: {waypoint_odom.position.y:.3f}'
         s += f' z: {waypoint_odom.position.z:.3f}\n '
-        s += f'wp global: x: {waypoint_global.pose.pose.position.x:.3f}'
-        s += f' y: {waypoint_global.pose.pose.position.y:.3f}'
-        s += f' z: {waypoint_global.pose.pose.position.z:.3f}\n'
+        s += f'wp global: x: {waypoint_global.pose.position.x:.3f}'
+        s += f' y: {waypoint_global.pose.position.y:.3f}'
+        s += f' z: {waypoint_global.pose.position.z:.3f}\n'
         s += f'distance: {current_distance:.3f}\n'
         s += f'heading: {current_heading:.3f}\n'
         s += f'heading setpoint: {heading_setpoint:.3f}\n'
