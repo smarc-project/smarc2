@@ -18,6 +18,16 @@ fi
 AGENT_TYPE=surface
 PULSE_RATE=0.5 # Hz
 CONTEXT=evolo # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
+# Only pass agent_uuid to launch when set; ros2 launch rejects an empty 'agent_uuid:=' value
+if [[ "$(whoami)" == *"evolo"* ]]; then
+    AGENT_UUID="7bc11ad5-a2fd-4326-b9d1-6a7b2a68c51d"
+    AGENT_UUID_ARG="agent_uuid:=$AGENT_UUID"
+elif [[ "$(whoami)" == *"smarc"* ]]; then
+    AGENT_UUID="0cc7a470-619b-4ce9-b5f0-0325ed2ba0d3"
+    AGENT_UUID_ARG="agent_uuid:=$AGENT_UUID"
+else
+    AGENT_UUID_ARG=""
+fi
 
 BT_LOG_MODE=compact # can be 'compact' or 'verbose'
 
@@ -48,6 +58,7 @@ TOPIC_TRANSPORT=False
 ROSBOARD=False
 JSON_TRANSLATOR=False
 TWIST_VIZ=False
+UW_COM=False
 
 if [[ "$(whoami)" == *"evolo"* ]]; then
     MODE="REAL" #[REAL, SIM, HITL]
@@ -84,6 +95,7 @@ if [ "$MODE" == "SIM" ]; then
     ROSBOARD=False
     JSON_TRANSLATOR=False
     TWIST_VIZ=True
+    UW_COM=False
 fi
 
 if [ "$MODE" == "REAL" ]; then
@@ -117,6 +129,7 @@ if [ "$MODE" == "REAL" ]; then
     ROSBOARD=True
     JSON_TRANSLATOR=True
     TWIST_VIZ=True
+    UW_COM=True
 
 fi
 
@@ -140,7 +153,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "Remember to start the logging!" 
 
 # Controllers
-CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_control:=True open_loop_gain:=3.0 closed_loop_p_gain:=0.1 closed_loop_i_gain:=2.0 closed_loop_d_gain:=0.0 max_steering_output:=40.0"
+CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_p_gain:=0.5 closed_loop_i_gain:=0.0 closed_loop_d_gain:=0.0 max_steering_output:=40.0"
 tmux_make_layout "$SESSION" Controllers "
 col(
     var(CONTROLLER_CMD)
@@ -148,7 +161,7 @@ col(
 
 
 # BT
-SMARC_BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE"
+SMARC_BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG"
 tmux_make_layout "$SESSION" wasp-bt "
 col(
     var(SMARC_BT_CMD)
@@ -159,16 +172,20 @@ col(
 MOVE_TO_ACTION_CMD="sleep 4; ros2 run evolo_move_to move_to_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 MOVE_PATH_ACTION_CMD="sleep 4; ros2 run evolo_move_path move_path_server_dubins_curves --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME --params-file \$(ros2 pkg prefix evolo_move_path)/share/evolo_move_path/config/evolo_params.yaml"
 EXTERNAL_CTRL_ACTION_CMD="sleep 4; ros2 run evolo_external_control externalcontrol_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-EMERGENCY_ACTION_CMD="TODO: emergency action server"
+EMERGENCY_ACTION_CMD="ros2 run evolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+DEPLOY_ACTION_CMD="ros2 run evolo_deploy evolo_deploy_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+DEPLOY_AT_ACTION_CMD="ros2 run evolo_deploy_at evolo_deploy_at_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 tmux_make_layout "$SESSION" Actions "
 col(
     row(
         var(MOVE_TO_ACTION_CMD),
-        var(MOVE_PATH_ACTION_CMD)
+        var(MOVE_PATH_ACTION_CMD),
+        var(DEPLOY_ACTION_CMD)
     ),
     row(
         var(EXTERNAL_CTRL_ACTION_CMD),
         var(EMERGENCY_ACTION_CMD),
+        var(DEPLOY_AT_ACTION_CMD)
     )
 )"
 
@@ -195,10 +212,13 @@ col(
 
 # WARA-PS bridge
 WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
-#WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=127.0.0.1 broker_port:=1883 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+#Evolo/ puffin broker
+EVOLO_WARA_PS_MQTT_CMD="sleep 7; ros2 launch evolo_private waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+
 tmux_make_layout "$SESSION" waraps-mqtt "
 col(
-    var(WARA_PS_MQTT_CMD)
+    var(WARA_PS_MQTT_CMD),
+    var(EVOLO_WARA_PS_MQTT_CMD)
 )"
 
 
@@ -210,15 +230,21 @@ col(
 )"
 
 #Obstacle avoidance
-if [ $OBSTACLE_AVOIDANCE=False == "True" ]; then
-    OBSTACLE_AVOIDANCE_CMD="ros2 run topic_tools relay /evolo/ctrl/twist_planned /evolo/ctrl/twist_setpoint"
+if [ $OBSTACLE_AVOIDANCE == "True" ]; then
+    OBSTACLE_AVOIDANCE_CMD="ros2 launch evolo_obstacle_avoidance evolo_obstacle_avoidance_launch.py"
+    CLUSTERING_CMD="ros2 launch evolo_map_cluster evolo_map_cluster_launch.py"
+    tmux_make_layout "$SESSION" Obstacle-avoidance "
+    col(
+        var(OBSTACLE_AVOIDANCE_CMD),
+        var(CLUSTERING_CMD)
+    )"
 else
     OBSTACLE_AVOIDANCE_CMD="ros2 run topic_tools relay /evolo/ctrl/twist_planned /evolo/ctrl/twist_setpoint"
+    tmux_make_layout "$SESSION" Obstacle-avoidance "
+    col(
+        var(OBSTACLE_AVOIDANCE_CMD)
+    )"
 fi
-tmux_make_layout "$SESSION" Obstacle-avoidance "
-col(
-    var(OBSTACLE_AVOIDANCE_CMD)
-)"
 
 ########################################################################
 ####################### Hardware drivers ###############################
@@ -320,6 +346,7 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
         robot_name:=\"$ROBOT_NAME\" \
         use_sim_time:=$USE_SIM_TIME"
     GIMBAL_CAM_ACTION_CLIENT_CMD="ros2 launch evolo_gimbal_remote_control gimbal_remote_control.launch.py robot_name:=evolo"
+    GIMBAL_JSON_FEEDBACK_CMD="ros2 run evolo_gimbal_remote_control gimbal_json_publisher.py"
 
     if [ $CAMERA_MQTT_CONTORL == "True" ]; then
         tmux_make_layout "$SESSION" Gimbal-driver "
@@ -329,7 +356,8 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
                 var(GIMBAL_CAM_ACTION_CMD)
             ),
             row(
-                var(GIMBAL_CAM_ACTION_CLIENT_CMD)
+                var(GIMBAL_CAM_ACTION_CLIENT_CMD),
+                var(GIMBAL_JSON_FEEDBACK_CMD)
             )
         )" 
     else
@@ -353,6 +381,17 @@ if [ $SIMULATOR_DRIVER == "True" ]; then
     )"
 fi
 
+#Uw com
+if [ $UW_COM == "True" ]; then
+    SERIAL_PARSER_CMD="ros2 run serial_parser serial_parser --ros-args   -p port:=\"/dev/ttyUSB0\"   -p baudrate:=9600   -p listen_to_topic:=\"/evolo/sensors/succor/to\"   -p publish_to_topic:=\"/evolo/sensors/succor/from\""
+    UWCOM_SCHEDULER="ros2 run evolo_accoustic_com succor_command_scheduler"
+    tmux_make_layout "$SESSION" succorfish "
+    col(
+        var(SERIAL_PARSER_CMD),
+        var(UWCOM_SCHEDULER)
+    )"
+fi
+    
 ########################################################################
 ######################## Location source ###############################
 ########################################################################
@@ -425,10 +464,12 @@ fi
 
 #Video stream
 if [ $VIDERO_STREAM == "True" ]; then
-    VIDEO_STREAM_CMD="bash ~/video_streaming/stream.sh"
+    MIRAYA_STREAM_CMD="bash ~/video_streaming/stream.sh"
+    RED5_STREAM_CMD="placeholder"
     tmux_make_layout "$SESSION" video_stream "
     col(
-        var(VIDEO_STREAM_CMD),
+        var(MIRAYA_STREAM_CMD),
+        var(RED5_STREAM_CMD)
     )"
 fi
 

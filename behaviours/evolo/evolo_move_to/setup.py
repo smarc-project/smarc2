@@ -14,7 +14,10 @@ setup(
         (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
         (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
     ],
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools',
+        'transforms3d',
+    ],
     zip_safe=True,
     maintainer='niklas',
     maintainer_email='nrol@kth.se',

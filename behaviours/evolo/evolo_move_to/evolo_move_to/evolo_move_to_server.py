@@ -9,7 +9,9 @@ from smarc_action_base.gentler_action_server import GentlerActionServer
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from tf2_geometry_msgs import do_transform_pose_stamped
-from tf_transformations import euler_from_quaternion
+
+from transforms3d.euler import euler2quat
+
 from rclpy.time import Duration, Time
 from nav_msgs.srv import SetMap
 from nav_msgs.msg import OccupancyGrid
@@ -26,14 +28,12 @@ from smarc_msgs.msg import Topics as smarcTopics
 from smarc_control_msgs.msg import Topics as controlTopics
 from tf2_ros import Buffer, TransformException, TransformListener
 import math
-from tf_transformations import euler_from_quaternion
 
 import numpy as np
 import time
 import math
 import json
 
-import tf_transformations
 
 from enum import Enum
 
@@ -127,12 +127,7 @@ class EvoloMoveTo():
         self._node.declare_parameter('d_gain', 0)
         self.pid_d_gain = float(self._node.get_parameter('d_gain').value)
 
-        self._node.declare_parameter('max_turnrate_deg', 15.0)
-        max_turnrate_deg = float(self._node.get_parameter('max_turnrate_deg').value)
-        self.max_turnrate_output_rad = math.radians(max_turnrate_deg)
-
-        self.max_speed = 8.0
-        
+        self.max_speed = 8.0        
         
         #Time of action start to check for timeout
         self.action_started_time = None
@@ -142,7 +137,8 @@ class EvoloMoveTo():
         self.subscriber_callback_group = ReentrantCallbackGroup()
 
         # Publishers
-        self.evolo_pub = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED, 10, callback_group=self.publisher_callback_group)
+        # FIXME: this is hacky, should be EVOLO_CONTROL_PLANNED instead.
+        self.evolo_pub = self._node.create_publisher(Odometry, evoloTopics.EVOLO_CONTROL_SETPOINT, 10, callback_group=self.publisher_callback_group)
         # Subscribers
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
         self._node.get_logger().info("Action server started")
@@ -210,7 +206,6 @@ class EvoloMoveTo():
             self._node.get_logger().error("ERROR no robot position")
             return False
 
-        #Calculate distance to our current loiter target and change target if we are close enough to switch to the next one
         self.distance_to_target = self.calculate_distance(self.robot_position, self.target_position)
         if(self.distance_to_target < self.target_tol):
             #TODO send speed = Stop
@@ -219,32 +214,19 @@ class EvoloMoveTo():
         dx = self.target_position.pose.position.x - self.robot_position.pose.position.x
         dy = self.target_position.pose.position.y - self.robot_position.pose.position.y
         targetYaw = math.atan2(dy,dx) # yaw in ENU
+        target_quaternion = euler2quat(0,0,targetYaw, axes='sxyz')
 
+        control_msg = Odometry()
+        control_msg.header.stamp    = self._node.get_clock().now().to_msg()
+        control_msg.header.frame_id = self.frame_id
+        control_msg.child_frame_id = "evolo/base_link"
+        control_msg.pose.pose.orientation.x = target_quaternion[1]
+        control_msg.pose.pose.orientation.y = target_quaternion[2]
+        control_msg.pose.pose.orientation.z = target_quaternion[3]
+        control_msg.pose.pose.orientation.w = target_quaternion[0]
+        control_msg.twist.twist.linear.x  = self.target_speed
+        self.evolo_pub.publish(control_msg)
 
-        # get pitch roll yaw from quaternion
-        orientation_q = self.robot_position.pose.orientation
-        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-        (roll, pitch, robot_yaw) = euler_from_quaternion(orientation_list)
-        self._node.get_logger().info(f"Robot yaw: {robot_yaw}")
-        
-        #TODO PID
-        setpoint = np.array([np.cos(targetYaw) , np.sin(targetYaw)])
-        current = np.array([np.cos(robot_yaw) , np.sin(robot_yaw)])
-        error = -vec2_directed_angle(setpoint, current)
-        self._node.get_logger().info(f"course error: {error}")
-        pid_output = error*self.pid_p_gain
-        #Clamp output
-        turnrate_cmd = max(-self.max_turnrate_output_rad , min(self.max_turnrate_output_rad, pid_output))
-        self._node.get_logger().info(f"turnrate_cmd (deg): {math.degrees(turnrate_cmd)}")
-
-        # Publication
-        twist_msg = TwistStamped()
-        twist_msg.header.stamp    = self._node.get_clock().now().to_msg()
-        twist_msg.header.frame_id = "evolo/base_link"
-        twist_msg.twist.linear.x  = self.target_speed
-        twist_msg.twist.angular.z = turnrate_cmd
-        self.evolo_pub.publish(twist_msg)
-        
         return None
     
     def _give_feedback(self) -> str:
@@ -281,11 +263,11 @@ class EvoloMoveTo():
         self._node.get_logger().info(f"Utmpoint: {point}")
 
         #Add yaw
-        quaternion_values = tf_transformations.quaternion_from_euler(0,0,yaw)
-        pose_stamp.pose.orientation.x = quaternion_values[0]
-        pose_stamp.pose.orientation.y = quaternion_values[1]
-        pose_stamp.pose.orientation.z = quaternion_values[2]
-        pose_stamp.pose.orientation.w = quaternion_values[3]
+        quaternion_values = euler2quat(0,0,yaw, axes='sxyz')
+        pose_stamp.pose.orientation.x = quaternion_values[1]
+        pose_stamp.pose.orientation.y = quaternion_values[2]
+        pose_stamp.pose.orientation.z = quaternion_values[3]
+        pose_stamp.pose.orientation.w = quaternion_values[0]
 
         t = self._tf_buffer.lookup_transform(
                 target_frame=self.frame_id,
