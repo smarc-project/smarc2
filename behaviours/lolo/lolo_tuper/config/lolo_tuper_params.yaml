@@ -1,0 +1,37 @@
+# Node-level tuning constants for the LoLo TUPER behaviour tree.
+# Per-mission values (start/setpoint positions, depth, rpm limits, tolerances)
+# are sent in the action goal JSON, NOT here.
+/**:
+  ros__parameters:
+    # Lolo vehicle object config.
+    robot_name: "lolo"
+    limits_filename: ""           # empty -> virtual_lolo default limits.
+
+    # BT / control loop rate (Hz). Passed as GentlerActionServer loop_frequency.
+    control_frequency: 10.0
+
+    # Max age (s) of a UKF pose before it is considered stale.
+    estimate_max_age: 5.0
+    # Grace period (s) we tolerate stale/missing UKF pose before failing.
+    stale_grace_period: 10.0
+
+    # Estimator topics (remappable).
+    pose_topic: "/follower/ukf/pose"
+    setpoint_topic: "/follower/ukf/setpoint"
+
+    # External action server (lolo_depth_move_to) name.
+    move_to_action_name: "auv_depth_move_to"
+
+    # RPM PID gains (error = distance-to-setpoint in metres).
+    kp_rpm: 20.0
+    ki_rpm: 0.0
+    kd_rpm: 5.0
+    integral_limit: 200.0         # clamp on Ki accumulator contribution (rpm).
+
+    # Heading gate: if |heading error| exceeds this, command only min_rpm
+    # (turn toward setpoint instead of powering off in the wrong direction).
+    heading_gate_deg: 60.0
+
+    # Deadband radius = max(arrival_tolerance, uncertainty_deadband_k * sigma).
+    # Within the deadband we hold min_rpm to avoid chasing estimator noise.
+    uncertainty_deadband_k: 2.0

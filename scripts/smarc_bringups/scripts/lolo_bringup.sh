@@ -136,6 +136,17 @@ tmux new-window -t $SESSION:11 -n 'proxops'
 tmux select-window -t $SESSION:11
 tmux send-keys "sleep 4; ros2 launch lolo_prox_ops lolo_prox_ops.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
+#Lolo TUPER task (action-server-as-BT). In sim, also run the estimate faker
+#(tuper_test) so the mission can be dry-run without the real acoustic UKF.
+tmux new-window -t $SESSION:13 -n 'tuper'
+tmux select-window -t $SESSION:13
+tmux send-keys "sleep 8; ros2 launch lolo_tuper lolo_tuper.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+if [ "$REALSIM" = "simulation" ]; then
+    tmux split-window -h -t $SESSION:13.0
+    tmux select-pane -t $SESSION:13.1
+    tmux send-keys "sleep 10; ros2 run lolo_tuper tuper_test --ros-args --params-file \$(ros2 pkg prefix lolo_tuper)/share/lolo_tuper/config/tuper_test_params.yaml -p use_sim_time:=$USE_SIM_TIME -p latlon_topic:=/$ROBOT_NAME/smarc/latlon -p odom_topic:=/$ROBOT_NAME/smarc/odom" C-m
+fi
+
 #Lolo menu
 if [ "$REALSIM" = "real" ]; then
     tmux new-window -t $SESSION:12 -n 'lolo_menu'

@@ -1,0 +1,52 @@
+# Parameters for the TUPER test/faker node (tuper_test).
+# Fakes /follower/ukf/pose and /follower/ukf/setpoint so the tuper BT can be
+# dry-run in sim without the real acoustic UKF.
+/**:
+  ros__parameters:
+    # Do nothing for this long, then start faking.
+    warmup_seconds: 30.0
+    publish_rate: 10.0          # Hz
+
+    # Where to read the vehicle's TRUE state from (override per robot_name).
+    latlon_topic: "/lolo/smarc/latlon"   # GeoPoint truth -> anchors absolute UTM
+    odom_topic: "/lolo/smarc/odom"       # used only for heading
+    # Where to publish the fakes (must match the tuper BT's inputs).
+    pose_topic: "/follower/ukf/pose"
+    setpoint_topic: "/follower/ukf/setpoint"
+
+    # --- Fake pose noise ------------------------------------------------------
+    # Integrated (random-walk) noise added to the true position, with mild mean
+    # reversion: n <- (1 - theta)*n + sigma * N(0,1) each tick.
+    pose_noise_sigma: 0.05      # per-tick step std [m]
+    pose_noise_theta: 0.01      # mean reversion (keeps the walk bounded)
+    # Reported 1-sigma that becomes the pose covariance the BT gates on.
+    # Keep below the mission's max_pos_uncertainty (default 4 m) to pass;
+    # raise above it to exercise the uncertainty-failure path.
+    reported_sigma: 1.0         # [m]
+
+    # --- Setpoint trajectory --------------------------------------------------
+    # 'relative' -> vertices are (east, north) metres from the vehicle position
+    #               captured when faking starts (handy: no GPS coords needed).
+    # 'latlon'   -> vertices are absolute (latitude, longitude) degrees.
+    vertices_frame: "relative"
+
+    # Used when vertices_frame == 'relative' (an example L-shaped path):
+    vertices_east:  [0.0, 30.0, 60.0, 60.0]
+    vertices_north: [0.0,  0.0, 30.0, 60.0]
+
+    # Used when vertices_frame == 'latlon' (leave empty otherwise):
+    vertices_lat: []
+    vertices_lon: []
+
+    # Setpoint speed envelope and corner behaviour.
+    speed_min: 0.5              # [m/s] (around corners)
+    speed_max: 0.8              # [m/s] (on straights)
+    corner_curvature_ref: 0.15  # [1/m] higher -> less aggressive slowdown
+    speed_jitter: 0.08          # gentle random speedups/slowdowns
+    loop_trajectory: false      # false -> hold last vertex at the end (tests stop-detect)
+
+    # --- Jumpiness ("ran away then snapped back") -----------------------------
+    jump_period_s: 2.0          # mean seconds between glitches
+    jump_lateral_std: 1.5       # sideways jump magnitude std [m]
+    jump_along_std: 1.5         # along-track runaway magnitude std [m]
+    jump_decay_s: 0.6           # how fast a glitch decays back to the path [s]
