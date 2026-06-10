@@ -29,7 +29,7 @@
     # 'relative' -> vertices are (east, north) metres from the vehicle position
     #               captured when faking starts (handy: no GPS coords needed).
     # 'latlon'   -> vertices are absolute (latitude, longitude) degrees.
-    vertices_frame: "absolute"
+    vertices_frame: "latlon"
 
     # Used when vertices_frame == 'relative' (an example L-shaped path).
     # These are metres East/North from LoLo's start, so they work regardless of
@@ -46,7 +46,6 @@
     
     vertices_lat: [58.822811, 58.821886, 58.821229]
     vertices_lon: [17.633968, 17.633028, 17.634541]
-
     
     # Setpoint speed envelope and corner behaviour.
     speed_min: 0.2              # [m/s] (around corners)
@@ -56,7 +55,16 @@
     loop_trajectory: false      # false -> hold last vertex at the end (tests stop-detect)
 
     # --- Jumpiness ("ran away then snapped back") -----------------------------
+    enable_trajectory_jumps: true
     jump_period_s: 2.0          # mean seconds between glitches
     jump_lateral_std: 1.5       # sideways jump magnitude std [m]
     jump_along_std: 1.5         # along-track runaway magnitude std [m]
     jump_decay_s: 0.6           # how fast a glitch decays back to the path [s]
+
+    # --- Fake pose wrong-estimate jumps ---------------------------------------
+    # Adds occasional jumps to /follower/ukf/pose on top of the random-walk noise.
+    # Use this to simulate the UKF briefly estimating the wrong position.
+    enable_pose_jumps: true
+    pose_jump_period_s: 8.0     # mean seconds between pose jumps
+    pose_jump_std: 4.0          # jump magnitude scale [m]
+    pose_jump_decay_s: 2.0      # snap-back duration [s]
