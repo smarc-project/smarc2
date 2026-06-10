@@ -33,8 +33,8 @@ from geodesy import utm as geo_utm
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
-from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 import rclpy
+from rclpy.parameter import Parameter
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from tf_transformations import euler_from_quaternion
@@ -190,13 +190,32 @@ class TuperTestNode(Node):
         #                   position captured when faking starts.
         #                   'latlon'  -> absolute (latitude, longitude) degrees.
         self._vertices_frame = d('vertices_frame', 'relative').value
-        # Declare the vertex arrays with an explicit DOUBLE_ARRAY type so that
-        # empty defaults (which rclpy cannot type-infer) are still valid.
-        double_array = ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE_ARRAY)
-        self._vertices_a = list(d('vertices_east', [0.0, 30.0, 60.0, 60.0], double_array).value or [])
-        self._vertices_b = list(d('vertices_north', [0.0, 0.0, 30.0, 60.0], double_array).value or [])
-        self._vertices_lat = list(d('vertices_lat', [], double_array).value or [])
-        self._vertices_lon = list(d('vertices_lon', [], double_array).value or [])
+
+        # IMPORTANT:
+        # Do not declare empty array defaults with [] in rclpy. An empty Python
+        # list is inferred as BYTE_ARRAY, so YAML overrides like
+        # vertices_lat: [58.8, 58.9] later fail with:
+        # "DOUBLE_ARRAY, expecting BYTE_ARRAY".
+        #
+        # For parameters that may legitimately default to an empty list, declare
+        # the parameter using Parameter.Type.DOUBLE_ARRAY instead. If the YAML
+        # file supplies values, rclpy accepts them as a double array; if not, the
+        # value remains unset/None and we return the requested Python default.
+        def declare_double_array(name: str, default: list[float]) -> list[float]:
+            default = [float(x) for x in default]
+            if default:
+                return list(d(name, default).value or [])
+
+            self.declare_parameter(name, Parameter.Type.DOUBLE_ARRAY)
+            value = self.get_parameter(name).value
+            return list(value) if value is not None else []
+
+        self._vertices_a = declare_double_array(
+            'vertices_east', [0.0, 30.0, 60.0, 60.0])
+        self._vertices_b = declare_double_array(
+            'vertices_north', [0.0, 0.0, 30.0, 60.0])
+        self._vertices_lat = declare_double_array('vertices_lat', [])
+        self._vertices_lon = declare_double_array('vertices_lon', [])
 
         # Setpoint motion.
         self._speed_min = float(d('speed_min', 0.5).value)
