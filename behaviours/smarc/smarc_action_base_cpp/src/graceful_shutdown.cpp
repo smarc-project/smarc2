@@ -45,7 +45,7 @@ void spin_some_for(
 {
   const auto start = std::chrono::steady_clock::now();
   while (rclcpp::ok() && std::chrono::steady_clock::now() - start < duration) {
-    executor.spin_some(spin_period);
+    executor.spin_once(spin_period);
   }
 }
 
@@ -56,7 +56,7 @@ void spin_with_graceful_shutdown(
     std::chrono::milliseconds flush_duration)
 {
   while (rclcpp::ok() && !signal_shutdown_requested()) {
-    executor.spin_some(spin_period);
+    executor.spin_once(spin_period);
   }
 
   on_shutdown();
