@@ -38,13 +38,21 @@ flowchart TD
    ([`lolo_depth_move_to`](../lolo_depth_move_to)) action to reach the start
    position at `mission_depth`. Returns immediately if already within tolerance.
    Uses `max_rpm` so LoLo transits briskly to catch up with the leaders.
-2. **FollowSetpoint** - a UKF-consistent **COURSE** control loop: LoLo steers
-   toward the live UKF setpoint while holding `mission_depth` and a min-altitude
-   floor, modulating RPM with a **velocity-matching** law (feed-forward to the
-   leader's speed + light along-track standoff correction + a slow trim on
-   measured speed; see [Control law](#control-law-velocity-matching)). While no
-   fresh UKF setpoint is available it bootstraps toward the goal's
-   `initial_setpoint`.
+2. **FollowSetpoint** - two phases sharing one COURSE control loop:
+   - **Bootstrap (onboard nav).** Before the UKF is live, LoLo steers toward the
+     goal's `initial_setpoint` using her **own** navigation (`smarc/latlon` for
+     position, `smarc/odom` for ENU heading), diving toward `mission_depth` so
+     she submerges and acoustic comms / the UKF can come up. No uncertainty or
+     staleness gating applies here - she is explicitly running without the UKF.
+     The Unity odom frame is translation-only vs UTM, so the odom yaw is the same
+     ENU heading the UTM control loop expects.
+   - **UKF follow.** Once the UKF pose **and** setpoint are both fresh (latched),
+     control hands over to the **velocity-matching** law (feed-forward to the
+     leader's speed + light along-track standoff correction + a slow trim on
+     measured speed; see [Control law](#control-law-velocity-matching)), tracking
+     the live UKF setpoint at `mission_depth` behind a min-altitude floor.
+   - After handover, a UKF dropout no longer reverts to bootstrap: it holds, then
+     fails the task if the pose stays stale beyond the grace period.
    - Fails the whole task if the position uncertainty exceeds
      `max_pos_uncertainty`.
    - Succeeds when the setpoint has stopped moving (leaders done).
@@ -93,10 +101,23 @@ pose, but without covariance).
 **Uncertainty metric:** the 1-sigma semi-major axis,
 `sqrt(largest eigenvalue([[cov0, cov1], [cov6, cov7]]))`.
 
-**Stop detection:** the setpoint is "stopped" when fresh, continuously-received
-samples spanning the full `setpoint_stop_period` all lie within
-`setpoint_stop_tolerance` of their centroid. Requiring *fresh* samples prevents a
-comms dropout from masquerading as "leaders done".
+**Stop detection:** the setpoint is "stopped" (leaders done) only when, over the
+full `setpoint_stop_period` of fresh, continuously-received samples, **both**:
+its least-squares ground **speed is below `setpoint_stop_speed`** *and* every
+sample lies within `setpoint_stop_tolerance` of the window centroid. The speed
+gate is the decisive one: a centroid-radius-only test is, for steady motion,
+equivalent to a speed threshold of `~2 * tolerance / period` (5 m / 30 s ~=
+0.33 m/s), so a leader merely cruising slowly around a corner used to trip a
+false stop and send LoLo home early. Keep `setpoint_stop_speed` well below the
+leaders' cruise speed. Requiring *fresh* samples prevents a comms dropout from
+masquerading as "leaders done".
+
+**Mission timer:** the BT owns one authoritative clock for the whole task. It
+starts when execution begins and **fails the mission** as soon as `timeout` is
+exhausted (so the task budget is actually respected). The delegated `move_to`
+legs (GoToStart / SurfaceAndReturn) are handed only the *remaining* budget, so a
+return leg can never silently overrun the mission `timeout`. Set `timeout`
+generously (e.g. ~2000 s) to cover a long follow plus the surface return.
 
 ---
 
@@ -126,14 +147,15 @@ fields have defaults.
 | Field                      | Required | Default | Units / meaning |
 |----------------------------|:--------:|:-------:|-----------------|
 | `start_position`           | yes      | -       | `{latitude, longitude}` - start AND return point. |
-| `initial_setpoint`         | yes      | -       | `{latitude, longitude}` - bootstrap target until a live UKF setpoint arrives. |
+| `initial_setpoint`         | yes      | -       | `{latitude, longitude}` - point/direction LoLo dives toward on onboard nav until the UKF is live. |
 | `mission_depth`            | yes      | -       | m, positive down; held through the dive. |
 | `min_altitude`             | yes      | -       | m; seabed safety floor (>= vehicle min, default 1 m). |
 | `setpoint_stop_tolerance`  | yes      | -       | m; radius the setpoint must stay within to count as stopped. |
 | `setpoint_stop_period`     | yes      | -       | s; duration of fresh in-radius samples to declare a stop. |
+| `setpoint_stop_speed`      | no       | node    | m/s; fitted setpoint speed below which (together with the radius test) the leaders count as stopped. Keep well below cruise. |
 | `arrival_tolerance`        | yes      | -       | m; radius to consider the last setpoint reached. |
 | `start_tolerance`          | yes      | -       | m; tolerance for the move_to legs. |
-| `timeout`                  | yes      | -       | s; per move_to leg timeout. |
+| `timeout`                  | yes      | -       | s; **whole-mission** budget. The BT fails the task when it elapses and hands each move_to leg only the remaining time. Set generously (~2000 s). |
 | `min_rpm`                  | no       | 400     | Commanded RPM floor while tracking. Also the eased RPM inside the deadband / when the target is behind. The dive floor (below) can raise the *effective* floor. |
 | `max_rpm`                  | no       | 700     | RPM saturation / catch-up cap; also used for the transit (move_to) legs. **This is what bounds the follow speed** (the loop has no separate speed clamp). |
 | `max_pos_uncertainty`      | no       | 4.0     | m; fail the task if the semi-major-axis uncertainty exceeds this. |
@@ -164,12 +186,13 @@ example further down).
   "setpoint_stop_period": 30.0,   // ... for this long to count as "leaders done"
   "arrival_tolerance": 5.0,       // m to consider the last setpoint reached
   "start_tolerance": 5.0,         // m tolerance for the move_to legs
-  "timeout": 600.0,               // s per move_to leg
+  "timeout": 2000.0,              // s whole-mission budget (BT fails on elapse; legs get the remainder)
   // --- RPM bounds (these bound the follow speed) ---
   "min_rpm": 400.0,               // commanded RPM floor while tracking
   "max_rpm": 700.0,               // catch-up cap; ~1.1 m/s territory (see calibration)
   // --- safety / following behaviour (optional; omit to use node defaults) ---
   "max_pos_uncertainty": 4.0,     // m; fail if estimate is shakier than this
+  "setpoint_stop_speed": 0.1,     // m/s; leaders "done" only below this fitted speed
   "standoff_distance": 5.0,       // m trailing gap behind the setpoint
   "dive_entry_rpm": 550.0,        // RPM floor while breaking the surface / diving down
   "dive_hold_rpm": 450.0          // RPM floor once submerged
@@ -222,10 +245,13 @@ Set in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml). These a
 | `stale_grace_period`      | `10.0`               | s; how long a stale pose is tolerated (holding) before failing. |
 | `pose_topic`              | `/follower/ukf/pose` | Estimator pose topic. |
 | `setpoint_topic`          | `/follower/ukf/setpoint` | Estimator setpoint topic. |
+| `odom_topic`              | `smarc/odom` | Onboard odometry (ENU heading source for the bootstrap phase). |
+| `latlon_topic`            | `smarc/latlon` | Onboard lat/lon (position source for the bootstrap phase). |
 | `move_to_action_name`     | `auv_depth_move_to`  | External depth-move-to action name. |
 | `rpm_idle`                | `0.0`                | Feed-forward intercept: `rpm = rpm_idle + rpm_per_mps * v_target`. |
 | `rpm_per_mps`             | `530.0`              | Feed-forward slope (RPM per m/s of target speed). ~`1/0.0019` from the field RPM->speed fit; the slow trim absorbs the ctrl-setpoint -> thruster-RPM offset. |
-| `kp_pos`                  | `0.05`               | Along-track position -> extra target speed (m/s per metre beyond the standoff). |
+| `kp_pos`                  | `0.15`               | Along-track position -> extra target speed (m/s per metre beyond the standoff). Higher closes the trailing gap faster (bounded by `max_rpm`). |
+| `setpoint_stop_speed`     | `0.1`                | m/s; fitted-speed gate for stop detection (fallback when omitted from the goal). |
 | `ki_speed`                | `20.0`               | Slow integral trim on **measured** speed (RPM per (m/s . s)). |
 | `speed_trim_limit`        | `150.0`              | Clamp on the speed-trim contribution (RPM). |
 | `hold_rpm`                | `400.0`              | Safe RPM while waiting / stale (clamped not below mission `min_rpm`, then dive-floored). |
@@ -233,10 +259,8 @@ Set in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml). These a
 | `uncertainty_deadband_k`  | `2.0`                | Deadband radius = `max(arrival_tolerance, k * sigma)`; ease to the RPM floor inside it. |
 | `leader_speed_window`     | `5.0`                | s; window for the least-squares leader-velocity estimate. |
 | `submersion_min_depth`    | `0.5`                | m; a `mission_depth` deeper than this means "submersion required" (engages the dive floor). |
-| `dive_enter_depth`        | `1.0`                | m; become `submerged` once measured depth reaches this. |
-| `dive_exit_depth`         | `0.5`                | m; revert to `surface` only once depth gets this shallow (hysteresis band). |
-| `dive_depth_tolerance`    | `1.0`                | m; under-dive watchdog trips if depth stays shallower than `mission_depth - this` ... |
-| `dive_warn_period`        | `15.0`               | s; ... for this long (warn-only; sets the telemetry `under_dive` flag, never fails). |
+| `dive_depth_tolerance`    | `1.5`                | m; "at depth" band below `mission_depth`. The cheaper `dive_hold_rpm` only engages once `depth >= mission_depth - this` (entry RPM the whole way down). Also the under-dive band. |
+| `dive_warn_period`        | `20.0`               | s; under-dive watchdog trips if depth stays shallower than `mission_depth - dive_depth_tolerance` for this long (warn-only; sets the telemetry `under_dive` flag, never fails). |
 | `standoff_distance` / `dive_entry_rpm` / `dive_hold_rpm` | `5.0 / 550 / 450` | Node fallbacks for the goal-JSON-overridable knobs above. |
 
 ### Control law (velocity-matching)
@@ -280,23 +304,31 @@ Key behaviours:
 - **Deadband widens with uncertainty,** so a noisy estimate produces calm
   behaviour rather than wiggling.
 
-### Dive-floor (hysteresis)
+### Dive-floor
 
-LoLo needs more thrust to **break the surface and get down** than to **stay
-down**. The follow loop can otherwise drop RPM (deadband / target-behind / hold)
-low enough that she silently surfaces while the BT still thinks she is at depth.
-So every commanded RPM is floored by a two-state machine on measured depth:
+LoLo needs more thrust to **get down** than to **hold station** at depth. The
+follow loop can otherwise drop RPM (deadband / target-behind / hold) low enough
+that she silently under-dives or surfaces while the BT still thinks she is at
+depth. So every commanded RPM is floored by a two-state machine — **switched
+relative to the mission depth, not a fixed shallow threshold**, so the descent
+is never cut short a metre or two down:
 
 ```
 submersion_required = mission_depth > submersion_min_depth
-surface  --(depth >= dive_enter_depth)-->  submerged      floor = dive_entry_rpm (surface)
-submerged --(depth <= dive_exit_depth)-->  surface                = dive_hold_rpm  (submerged)
+band     = dive_depth_tolerance
+enter_at = mission_depth - band         # reached cruising depth
+exit_at  = mission_depth - 2*band       # fell out of it (hysteresis)
+
+descending --(depth >= enter_at)--> at_depth     floor = dive_entry_rpm (descending)
+at_depth   --(depth <  exit_at )--> descending          = dive_hold_rpm  (at_depth)
 effective floor = max(min_rpm, that floor)
 ```
 
-`dive_enter_depth > dive_exit_depth` gives a hysteresis band so the floor does
-not chatter. A **warn-only** watchdog logs (and flags `under_dive` in telemetry)
-if she stays shallower than `mission_depth - dive_depth_tolerance` for
+So `dive_entry_rpm` is held the **whole way down** (surface through descent) and
+the cheaper `dive_hold_rpm` only kicks in once she is within `dive_depth_tolerance`
+of the commanded depth; the `2*band` exit gives a hysteresis band so the floor
+does not chatter. A **warn-only** watchdog logs (and flags `under_dive` in
+telemetry) if she stays shallower than `mission_depth - dive_depth_tolerance` for
 `dive_warn_period` despite the floor — it never fails the mission.
 
 ---

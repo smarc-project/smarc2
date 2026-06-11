@@ -21,6 +21,7 @@ import numpy as np
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from nav_msgs.msg import Odometry
 from rclpy.node import Node
 
 
@@ -30,6 +31,8 @@ class FollowerState:
                  pose_topic: str,
                  setpoint_topic: str,
                  estimate_max_age: float,
+                 odom_topic: str = "smarc/odom",
+                 latlon_topic: str = "smarc/latlon",
                  stop_window_period: float = 60.0):
         self._node = node
         self._estimate_max_age = float(estimate_max_age)
@@ -46,10 +49,24 @@ class FollowerState:
         # Rolling deque of (rx_time, x, y) of fresh setpoint receptions.
         self._setpoint_history: deque = deque()
 
+        # --- Onboard navigation (used to bootstrap toward initial_setpoint
+        # while there is no live UKF). Position from /smarc/latlon -> UTM,
+        # heading from /smarc/odom. The Unity odom frame is translation-only
+        # vs UTM (verified from field bags), so the odom quaternion yaw is the
+        # same ENU heading the UTM COURSE loop expects.
+        self._onboard_utm: tuple[float, float] | None = None
+        self._onboard_utm_time: float | None = None
+        self._onboard_heading: float | None = None
+        self._onboard_heading_time: float | None = None
+
         self._node.create_subscription(
             PoseWithCovarianceStamped, pose_topic, self._pose_cb, 10)
         self._node.create_subscription(
             GeoPoint, setpoint_topic, self._setpoint_cb, 10)
+        self._node.create_subscription(
+            Odometry, odom_topic, self._odom_cb, 10)
+        self._node.create_subscription(
+            GeoPoint, latlon_topic, self._latlon_cb, 10)
 
     # ------------------------------------------------------------------ time
     @property
@@ -60,9 +77,40 @@ class FollowerState:
         """Grow the retained history window if a longer stop period is needed."""
         self._stop_window_period = max(self._stop_window_period, float(period))
 
+    def reset(self) -> None:
+        """Clear cached UKF estimates so a new mission cannot reuse stale data.
+
+        Onboard nav (latlon/odom) is intentionally NOT cleared: it is a live,
+        continuously-published source and has nothing to do with mission state.
+        """
+        self._pose = None
+        self._setpoint = None
+        self._setpoint_utm = None
+        self._setpoint_rx_time = None
+        self._setpoint_history.clear()
+
     # -------------------------------------------------------------- callbacks
     def _pose_cb(self, msg: PoseWithCovarianceStamped) -> None:
         self._pose = msg
+
+    def _odom_cb(self, msg: Odometry) -> None:
+        q = msg.pose.pose.orientation
+        # Standard ENU yaw from a quaternion (x, y, z, w).
+        self._onboard_heading = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+        self._onboard_heading_time = self._now
+
+    def _latlon_cb(self, msg: GeoPoint) -> None:
+        try:
+            point = utm.fromMsg(msg).toPoint()
+        except Exception as e:  # noqa: BLE001
+            self._node.get_logger().warn(
+                f"(FollowerState) Failed to convert latlon to UTM: {e}",
+                throttle_duration_sec=5.0)
+            return
+        self._onboard_utm = (float(point.x), float(point.y))
+        self._onboard_utm_time = self._now
 
     def _setpoint_cb(self, msg: GeoPoint) -> None:
         try:
@@ -109,22 +157,42 @@ class FollowerState:
 
     @property
     def pose_utm(self) -> tuple[float, float] | None:
-        if self._pose is None:
+        # Freshness-gated: a stale pose must NOT leak into the control loop.
+        if self._pose is None or not self.pose_fresh:
             return None
         p = self._pose.pose.pose.position
         return (float(p.x), float(p.y))
 
     @property
     def heading_enu(self) -> float | None:
-        """Estimated heading in ENU radians.
+        """Estimated heading in ENU radians (None when the pose is stale).
 
         The estimator encodes heading purely in (z, w) of the quaternion
         (orientation about the vertical axis), so yaw = 2*atan2(z, w).
         """
-        if self._pose is None:
+        if self._pose is None or not self.pose_fresh:
             return None
         q = self._pose.pose.pose.orientation
         return 2.0 * math.atan2(q.z, q.w)
+
+    # ------------------------------------------------------------ onboard nav
+    @property
+    def onboard_utm(self) -> tuple[float, float] | None:
+        """Vehicle position in UTM from /smarc/latlon (None if stale/missing)."""
+        if self._onboard_utm is None or self._onboard_utm_time is None:
+            return None
+        if self._now - self._onboard_utm_time > self._estimate_max_age:
+            return None
+        return self._onboard_utm
+
+    @property
+    def onboard_heading_enu(self) -> float | None:
+        """Vehicle ENU heading from /smarc/odom (None if stale/missing)."""
+        if self._onboard_heading is None or self._onboard_heading_time is None:
+            return None
+        if self._now - self._onboard_heading_time > self._estimate_max_age:
+            return None
+        return self._onboard_heading
 
     @property
     def uncertainty_semimajor(self) -> float | None:
@@ -211,8 +279,21 @@ class FollowerState:
         return math.hypot(vel[0], vel[1])
 
     # --------------------------------------------------------- stop detection
-    def setpoint_stopped(self, tolerance: float, period: float) -> bool:
-        """True if the setpoint has stayed within `tolerance` for `period` s.
+    def setpoint_stopped(self, tolerance: float, period: float,
+                         speed_threshold: float = 0.1) -> bool:
+        """True if the leaders' setpoint has genuinely stopped.
+
+        Two conditions must BOTH hold over the last `period` seconds:
+          1. the regression (least-squares) leader speed is below
+             `speed_threshold` m/s, and
+          2. every sample lies within `tolerance` of the window centroid.
+
+        The speed test is the important one: the old centroid-only test was, for
+        steady motion, equivalent to a speed threshold of ~2*tolerance/period
+        (e.g. 5 m / 30 s ~= 0.33 m/s), so a leader merely cruising slowly around
+        a corner tripped a false "stop". Keying on the fitted speed (with a
+        threshold well below the leaders' cruise) decouples the two. The
+        centroid test stays as a cheap guard against wander/oscillation.
 
         Requires fresh, continuously-received samples spanning the full period
         so that a comms dropout (no new samples) is NOT mistaken for a stop.
@@ -256,4 +337,12 @@ class FollowerState:
         cx = float(xs.mean())
         cy = float(ys.mean())
         max_dist = float(np.max(np.hypot(xs - cx, ys - cy)))
-        return max_dist <= tolerance
+        if max_dist > tolerance:
+            return False
+
+        # Speed gate: fit a line over the same period and require a near-zero
+        # ground speed. None (too few samples) is treated as "not stopped".
+        speed = self.setpoint_speed(period)
+        if speed is None:
+            return False
+        return speed <= speed_threshold

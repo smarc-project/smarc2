@@ -49,12 +49,12 @@ class ControlGains:
     heading_gate_deg: float
     uncertainty_deadband_k: float
     stale_grace_period: float
-    # Dive-floor hysteresis (depths in m, positive down).
+    # Dive-floor (depths in m, positive down). The entry->hold switch is
+    # relative to the mission depth (see _update_dive_state).
     submersion_min_depth: float   # mission_depth above this => submersion needed.
-    dive_enter_depth: float       # become "submerged" once depth >= this.
-    dive_exit_depth: float        # revert to "surface" once depth <= this.
-    dive_depth_tolerance: float   # under-dive warn if depth < mission_depth-this.
-    dive_warn_period: float       # ... sustained for this long (s).
+    dive_depth_tolerance: float   # "at depth" band below mission_depth; also the
+                                  # under-dive warn threshold.
+    dive_warn_period: float       # under-dive sustained for this long (s) -> warn.
     # Window (s) for least-squares leader-velocity estimation.
     leader_speed_window: float
     control_period: float         # nominal loop period (s), used as dt fallback.
@@ -74,6 +74,7 @@ class TuperGoal:
     max_pos_uncertainty: float
     setpoint_stop_tolerance: float
     setpoint_stop_period: float
+    setpoint_stop_speed: float
     arrival_tolerance: float
     start_tolerance: float
     timeout: float
@@ -136,10 +137,13 @@ class _CourseControlBehaviour(Behaviour):
         self._last_time = None
         self._stale_since = None
         self._last_bearing = 0.0
-        # Latches True once we have ever seen a fresh UKF pose. Bootstrapping
-        # without a pose is only allowed BEFORE this; afterwards a UKF death
-        # must fall through to the staleness grace/failure path.
-        self._ever_pose_fresh = False
+        # Latches True once the UKF has EVER been ready (fresh pose AND fresh
+        # setpoint together). Onboard-nav bootstrap is only allowed BEFORE this;
+        # afterwards a UKF death must fall through to the staleness grace/fail.
+        self._ever_ukf_ready = False
+        # Whether THIS tick is running on onboard nav (latlon/odom) rather than
+        # the UKF. Set every tick in update(); read by the nav-source hooks.
+        self._bootstrap = False
         # Dive-floor hysteresis state + under-dive watchdog timer.
         self._submerged = False
         self._under_dive_since = None
@@ -170,6 +174,10 @@ class _CourseControlBehaviour(Behaviour):
         v = getattr(self._vehicle, 'vx', 0.0) or 0.0
         return max(0.0, float(v))
 
+    def _fresh_heading(self) -> float | None:
+        """UKF heading only if the pose is fresh (stale heading is useless)."""
+        return self._fs.heading_enu if self._fs.pose_fresh else None
+
     # -- velocity-matching hooks (overridden by the static move-to phase) --
     def _standoff(self, goal: TuperGoal) -> float:
         return goal.standoff_distance
@@ -178,15 +186,22 @@ class _CourseControlBehaviour(Behaviour):
         s = self._fs.setpoint_speed(self._gains.leader_speed_window)
         return float(s) if s is not None else 0.0
 
-    def _can_bootstrap_without_pose(self, goal: TuperGoal) -> bool:
+    def _can_bootstrap(self) -> bool:
+        """Whether this phase may run on onboard nav before the UKF is ready."""
         return False
 
-    def _pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
+    # -- nav source (UKF vs onboard). Overridden by FollowSetpoint to fall back
+    #    to /smarc/latlon + /smarc/odom while bootstrapping toward the
+    #    initial_setpoint. Both are freshness-gated at the FollowerState level.
+    def _nav_pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
         return self._fs.pose_utm
+
+    def _nav_heading(self, goal: TuperGoal) -> float | None:
+        return self._fresh_heading()
 
     def _hold(self, goal: TuperGoal) -> None:
         """Hold heading and command safe hold RPM (still dive-floored)."""
-        heading = self._fs.heading_enu
+        heading = self._nav_heading(goal)
         yaw = heading if heading is not None else self._last_bearing
         self._speed_trim = 0.0
         self._command(yaw, self._safe_hold_rpm(goal), goal)
@@ -208,10 +223,13 @@ class _CourseControlBehaviour(Behaviour):
     def _update_dive_state(self, goal: TuperGoal) -> tuple[float, bool]:
         """Hysteresis dive floor + warn-only under-dive watchdog.
 
-        Returns (rpm_floor, under_dive_flag). LoLo needs a higher RPM to break
-        the surface and get down (dive_entry_rpm), but can then hold depth at a
-        lower RPM (dive_hold_rpm); the two states switch on measured depth with
-        hysteresis so we do not chatter around a single threshold.
+        Returns (rpm_floor, under_dive_flag). LoLo needs a higher RPM to get
+        DOWN (dive_entry_rpm) and can hold station at a lower RPM once she is at
+        depth (dive_hold_rpm). The switch is relative to the MISSION DEPTH, not a
+        fixed shallow threshold: the cheaper hold RPM only engages once she is
+        within dive_depth_tolerance of the commanded depth, so the descent is not
+        cut short at a metre or two. Hysteresis (a 2*tolerance band) avoids
+        chatter around the threshold.
         """
         gains = self._gains
         depth = getattr(self._vehicle, 'depth', 0.0) or 0.0
@@ -221,18 +239,22 @@ class _CourseControlBehaviour(Behaviour):
             self._under_dive_since = None
             return goal.min_rpm, False
 
+        band = gains.dive_depth_tolerance
+        enter_at = goal.mission_depth - band         # reached cruising depth.
+        exit_at = goal.mission_depth - 2.0 * band    # fell out of it (hysteresis).
         if self._submerged:
-            if depth <= gains.dive_exit_depth:
+            if depth < exit_at:
                 self._submerged = False
         else:
-            if depth >= gains.dive_enter_depth:
+            if depth >= enter_at:
                 self._submerged = True
 
+        # Entry RPM the whole way down (surface -> depth); hold RPM only at depth.
         floor = goal.dive_hold_rpm if self._submerged else goal.dive_entry_rpm
         floor = max(goal.min_rpm, floor)
 
         under_dive = False
-        if depth < goal.mission_depth - gains.dive_depth_tolerance:
+        if depth < goal.mission_depth - band:
             now = self._now
             if self._under_dive_since is None:
                 self._under_dive_since = now
@@ -282,16 +304,18 @@ class _CourseControlBehaviour(Behaviour):
 
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
                       uncertainty: float) -> float:
-        pose_xy = self._pose_xy(goal)
+        pose_xy = self._nav_pose_xy(goal)
         if pose_xy is None:
             self._hold(goal)
-            self.feedback_message = "No pose available yet, holding."
+            self.feedback_message = (
+                "No onboard nav yet (latlon/odom), holding." if self._bootstrap
+                else "No pose available yet, holding.")
             return float('inf')
         de = target_xy[0] - pose_xy[0]
         dn = target_xy[1] - pose_xy[1]
         dist = math.hypot(de, dn)
         bearing = math.atan2(dn, de)
-        heading = self._fs.heading_enu
+        heading = self._nav_heading(goal)
         if heading is not None:
             heading_err = wrap_angle(bearing - heading)
             forward_error = de * math.cos(heading) + dn * math.sin(heading)
@@ -300,7 +324,11 @@ class _CourseControlBehaviour(Behaviour):
             forward_error = dist
 
         gains = self._gains
-        live = self._wait_when_target_not_ahead()
+        # "Live" (wait-for-setpoint-to-catch-up) behaviour only applies while we
+        # are actually tracking a FRESH moving setpoint. While bootstrapping
+        # toward a static initial_setpoint (no fresh UKF setpoint) we must steer
+        # toward it instead of holding heading.
+        live = self._wait_when_target_not_ahead() and self._fs.setpoint_fresh
         v_meas = self._measured_speed()
         dt = self._dt()
         standoff = self._standoff(goal)
@@ -373,27 +401,39 @@ class _CourseControlBehaviour(Behaviour):
             self.feedback_message = "No goal/gains set."
             return Status.FAILURE
 
+        # The UKF is "ready" only when BOTH the pose and the setpoint are fresh.
+        # We latch that: once the UKF has driven control, a later dropout must
+        # trip the staleness failure rather than silently fall back to onboard
+        # dead-reckoning.
+        if self._fs.pose_fresh and self._fs.setpoint_fresh:
+            self._ever_ukf_ready = True
+        self._bootstrap = self._can_bootstrap() and not self._ever_ukf_ready
+
         self._telemetry.update({
             'phase': self.name,
             'pose_fresh': self._fs.pose_fresh,
             'setpoint_fresh': self._fs.setpoint_fresh,
+            'bootstrap': self._bootstrap,
         })
 
-        if self._fs.pose_fresh:
-            self._ever_pose_fresh = True
+        if self._bootstrap:
+            # Onboard-nav bootstrap: drive toward the initial_setpoint using
+            # /smarc/latlon + /smarc/odom (no UKF yet), diving on the way so
+            # acoustic comms can come up. No uncertainty/staleness gating here;
+            # we are explicitly operating without the UKF until it shows up.
+            self._stale_since = None
+            target_xy = self._target(goal)
+            if target_xy is None:
+                self._hold(goal)
+                self.feedback_message = "Bootstrap: no target available, holding."
+                return Status.RUNNING
+            self._drive_toward(target_xy, goal, uncertainty=0.0)
+            return Status.RUNNING
 
-        # Bootstrapping without a pose is only for the startup window (before the
-        # UKF has EVER been live). Once we have seen a fresh pose, a subsequent
-        # UKF death must NOT bootstrap - it has to trip the staleness failure.
-        bootstrap_without_pose = (not self._fs.pose_fresh
-                                  and self._can_bootstrap_without_pose(goal)
-                                  and not self._ever_pose_fresh)
-
-        # 1. Freshness: if the UKF pose is stale we cannot verify safety, so we
-        #    normally hold heading at safe hold RPM and start a grace timer; the
-        #    follow phase is allowed to bootstrap from the known start position
-        #    ONLY until the first fresh pose arrives.
-        if not self._fs.pose_fresh and not bootstrap_without_pose:
+        # ---- UKF-driven control ----
+        # 1. Freshness: a stale UKF pose means we cannot verify safety, so hold
+        #    heading at safe hold RPM and run a grace timer before failing.
+        if not self._fs.pose_fresh:
             self._hold(goal)
             if self._stale_since is None:
                 self._stale_since = self._now
@@ -403,14 +443,11 @@ class _CourseControlBehaviour(Behaviour):
                 self.feedback_message = "UKF pose stale beyond grace period, failing."
                 return Status.FAILURE
             return Status.RUNNING
-        else:
-            self._stale_since = None
+        self._stale_since = None
 
         # 2. Uncertainty guard.
         uncertainty = self._fs.uncertainty_semimajor
-        if bootstrap_without_pose:
-            uncertainty = 0.0
-        elif uncertainty is None or uncertainty > goal.max_pos_uncertainty:
+        if uncertainty is None or uncertainty > goal.max_pos_uncertainty:
             self.feedback_message = (
                 f"Position uncertainty {uncertainty} > "
                 f"{goal.max_pos_uncertainty}m, failing.")
@@ -447,23 +484,38 @@ class FollowSetpoint(_CourseControlBehaviour):
     def _wait_when_target_not_ahead(self) -> bool:
         return True
 
-    def _can_bootstrap_without_pose(self, goal: TuperGoal) -> bool:
+    def _can_bootstrap(self) -> bool:
         return True
 
-    def _pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
-        return self._fs.pose_utm or latlon_to_utm(goal.start_lat, goal.start_lon)
+    def _nav_pose_xy(self, goal: TuperGoal) -> tuple[float, float] | None:
+        # While bootstrapping (no live UKF) navigate on onboard /smarc/latlon;
+        # once the UKF is driving, use its (fresh) pose.
+        if self._bootstrap:
+            return self._fs.onboard_utm
+        return self._fs.pose_utm
+
+    def _nav_heading(self, goal: TuperGoal) -> float | None:
+        if self._bootstrap:
+            return self._fs.onboard_heading_enu
+        return self._fresh_heading()
 
     def _target(self, goal: TuperGoal) -> tuple[float, float] | None:
+        if self._bootstrap:
+            # Steer toward the initial setpoint to get LoLo diving / submerged
+            # so acoustic comms (and the UKF) can come up.
+            return latlon_to_utm(goal.initial_setpoint_lat,
+                                 goal.initial_setpoint_lon)
         if self._fs.setpoint_fresh and self._fs.setpoint_utm is not None:
             return self._fs.setpoint_utm
-        # Bootstrap toward the initial setpoint until acoustic comms produce a
-        # live UKF setpoint.
-        return latlon_to_utm(goal.initial_setpoint_lat, goal.initial_setpoint_lon)
+        # UKF was ready but the setpoint dropped out: hold (do not revert to the
+        # bootstrap target).
+        return None
 
     def _check_exit(self, goal: TuperGoal, target_xy: tuple[float, float],
                     dist: float) -> Status | None:
         if self._fs.setpoint_stopped(goal.setpoint_stop_tolerance,
-                                      goal.setpoint_stop_period):
+                                      goal.setpoint_stop_period,
+                                      goal.setpoint_stop_speed):
             self.feedback_message = "Setpoint stopped moving, leaders done."
             return Status.SUCCESS
         return None

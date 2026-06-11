@@ -29,7 +29,9 @@
     rpm_idle: 0.0
     rpm_per_mps: 530.0
     # Along-track position -> extra target speed (m/s per metre beyond standoff).
-    kp_pos: 0.05
+    # Drives the closing of the trailing gap; higher = catches up to the standoff
+    # faster (bounded by max_rpm).
+    kp_pos: 0.15
     # Slow integral trim on MEASURED speed: rpm per (m/s . s), and its clamp (rpm).
     ki_speed: 20.0
     speed_trim_limit: 150.0
@@ -46,15 +48,16 @@
     # Window (s) for least-squares leader (setpoint) velocity estimation.
     leader_speed_window: 5.0
 
-    # --- Dive-floor hysteresis (depths in m, positive down) --------------
-    # LoLo needs a higher RPM to BREAK the surface and get down, then can hold
-    # depth at a lower RPM. These thresholds switch the two RPM floors with
-    # hysteresis (enter when deep enough, revert only when shallow again).
+    # --- Dive-floor (depths in m, positive down) -------------------------
+    # LoLo needs a higher RPM to GET DOWN (dive_entry_rpm), then can hold depth
+    # at a lower RPM (dive_hold_rpm). The entry->hold switch is relative to the
+    # MISSION DEPTH (not a fixed shallow threshold), so the cheaper hold RPM only
+    # engages once she is within dive_depth_tolerance of the commanded depth -
+    # otherwise the descent gets cut short a metre or two down.
     submersion_min_depth: 0.5     # mission_depth above this => submersion needed.
-    dive_enter_depth: 1.0         # become "submerged" once depth >= this.
-    dive_exit_depth: 0.5          # revert to "surface" once depth <= this.
-    dive_depth_tolerance: 1.0     # under-dive warn if depth < mission_depth-this
-    dive_warn_period: 15.0        # ... sustained for this long (warn only).
+    dive_depth_tolerance: 1.5     # "at depth" band below mission_depth; hold RPM
+                                  # engages within it. Also the under-dive band.
+    dive_warn_period: 20.0        # under-dive sustained this long (s) -> warn only.
 
     # --- Goal-JSON overridable defaults (per-mission fallback) -----------
     # Operators may override each of these in the action goal JSON; the values
@@ -64,3 +67,7 @@
     standoff_distance: 5.0        # desired trailing gap behind the setpoint (m).
     dive_entry_rpm: 550.0         # RPM floor while breaking the surface / diving.
     dive_hold_rpm: 450.0          # RPM floor once submerged.
+    # Leaders are "done" only when the fitted setpoint speed drops below this
+    # (m/s). Keep it well under the leaders' cruise speed so a slow corner is not
+    # mistaken for a stop (paired with setpoint_stop_tolerance / _period).
+    setpoint_stop_speed: 0.1

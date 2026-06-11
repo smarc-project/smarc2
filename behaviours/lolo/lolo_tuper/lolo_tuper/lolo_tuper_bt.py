@@ -67,6 +67,8 @@ class LoloTuperBT:
             pose_topic=self._pose_topic,
             setpoint_topic=self._setpoint_topic,
             estimate_max_age=self._estimate_max_age,
+            odom_topic=self._odom_topic,
+            latlon_topic=self._latlon_topic,
         )
 
         self._vehicle = Lolo(node=node,
@@ -94,8 +96,6 @@ class LoloTuperBT:
             uncertainty_deadband_k=self._uncertainty_deadband_k,
             stale_grace_period=self._stale_grace_period,
             submersion_min_depth=self._submersion_min_depth,
-            dive_enter_depth=self._dive_enter_depth,
-            dive_exit_depth=self._dive_exit_depth,
             dive_depth_tolerance=self._dive_depth_tolerance,
             dive_warn_period=self._dive_warn_period,
             leader_speed_window=self._leader_speed_window,
@@ -124,6 +124,12 @@ class LoloTuperBT:
         self._goal_obj: TuperGoal | None = None
         self._bt: BehaviourTree | None = None
         self._prev_tree_str = ""
+
+        # Whole-mission timer. The BT owns the authoritative clock: it fails the
+        # task when the budget is exhausted, and hands only the *remaining* time
+        # to the delegated move_to legs so they cannot outlive the mission.
+        self._mission_start_time: float | None = None
+        self._mission_timeout: float | None = None
 
         # Required goal structure (presence-checked like alars).
         self._goal_template = {
@@ -186,12 +192,16 @@ class LoloTuperBT:
         self._stale_grace_period = float(gp('stale_grace_period', 10.0))
         self._pose_topic = gp('pose_topic', '/follower/ukf/pose')
         self._setpoint_topic = gp('setpoint_topic', '/follower/ukf/setpoint')
+        # Onboard nav (relative -> resolved in the robot namespace) used to
+        # bootstrap toward the initial_setpoint before the UKF is live.
+        self._odom_topic = gp('odom_topic', 'smarc/odom')
+        self._latlon_topic = gp('latlon_topic', 'smarc/latlon')
         self._move_to_action_name = gp('move_to_action_name', 'auv_depth_move_to')
 
         # --- Velocity-matching follow loop (node-level tuning) ---------------
         self._rpm_idle = float(gp('rpm_idle', 0.0))
         self._rpm_per_mps = float(gp('rpm_per_mps', 530.0))
-        self._kp_pos = float(gp('kp_pos', 0.05))
+        self._kp_pos = float(gp('kp_pos', 0.15))
         self._ki_speed = float(gp('ki_speed', 20.0))
         self._speed_trim_limit = float(gp('speed_trim_limit', 150.0))
         self._hold_rpm = float(gp('hold_rpm', 400.0))
@@ -199,12 +209,10 @@ class LoloTuperBT:
         self._uncertainty_deadband_k = float(gp('uncertainty_deadband_k', 2.0))
         self._leader_speed_window = float(gp('leader_speed_window', 5.0))
 
-        # --- Dive-floor hysteresis (node-level depth thresholds) -------------
+        # --- Dive-floor (node-level depth thresholds) ------------------------
         self._submersion_min_depth = float(gp('submersion_min_depth', 0.5))
-        self._dive_enter_depth = float(gp('dive_enter_depth', 1.0))
-        self._dive_exit_depth = float(gp('dive_exit_depth', 0.5))
-        self._dive_depth_tolerance = float(gp('dive_depth_tolerance', 1.0))
-        self._dive_warn_period = float(gp('dive_warn_period', 15.0))
+        self._dive_depth_tolerance = float(gp('dive_depth_tolerance', 1.5))
+        self._dive_warn_period = float(gp('dive_warn_period', 20.0))
 
         # --- Goal-JSON overridable defaults (node fallback) -----------------
         # Operators may override these per-mission in the action goal JSON;
@@ -213,6 +221,10 @@ class LoloTuperBT:
         self._standoff_distance = float(gp('standoff_distance', 5.0))
         self._dive_entry_rpm = float(gp('dive_entry_rpm', 550.0))
         self._dive_hold_rpm = float(gp('dive_hold_rpm', 450.0))
+        # Leaders are "done" only when the fitted setpoint speed drops below
+        # this (m/s) - set well under the leaders' cruise so a slow corner does
+        # not read as a stop. Goal-JSON overridable.
+        self._setpoint_stop_speed = float(gp('setpoint_stop_speed', 0.1))
 
     # ------------------------------------------------------------- helpers
     def log(self, msg: str) -> None:
@@ -221,10 +233,28 @@ class LoloTuperBT:
     def _current_goal(self) -> TuperGoal | None:
         return self._goal_obj
 
+    @property
+    def _now(self) -> float:
+        return self._node.get_clock().now().nanoseconds * 1e-9
+
+    def _mission_elapsed(self) -> float:
+        if self._mission_start_time is None:
+            return 0.0
+        return self._now - self._mission_start_time
+
+    def _mission_remaining(self) -> float:
+        """Seconds left in the WHOLE-mission budget (goal.timeout)."""
+        if self._mission_timeout is None:
+            return float('inf')
+        return self._mission_timeout - self._mission_elapsed()
+
     def _reset_states(self) -> None:
         if self._bt is not None:
             self._bt.root.stop(Status.INVALID)
         self._vehicle.reset_goal()
+        # Drop any UKF estimates cached from a previous mission so a stale pose
+        # cannot leak into this run's control loop.
+        self._follower_state.reset()
 
     # --------------------------------------------------------- goal handling
     def _unwrap_goal(self, goal_request: dict) -> dict:
@@ -270,6 +300,8 @@ class LoloTuperBT:
             max_pos_uncertainty=float(g["max_pos_uncertainty"]),
             setpoint_stop_tolerance=float(g["setpoint_stop_tolerance"]),
             setpoint_stop_period=float(g["setpoint_stop_period"]),
+            setpoint_stop_speed=float(req.get(
+                "setpoint_stop_speed", self._setpoint_stop_speed)),
             arrival_tolerance=float(g["arrival_tolerance"]),
             start_tolerance=float(g["start_tolerance"]),
             timeout=float(g["timeout"]),
@@ -323,11 +355,22 @@ class LoloTuperBT:
 
     def _prepare_loop(self) -> None:
         self._reset_states()
+        # Start the whole-mission clock once, at the moment execution begins.
+        self._mission_start_time = self._now
+        self._mission_timeout = (
+            self._goal_obj.timeout if self._goal_obj is not None else None)
+        if self._mission_timeout is not None:
+            self.log(f"Mission clock started: budget {self._mission_timeout:.0f}s.")
 
     # ------------------------------------------------ move_to goal serializers
     def _move_to_goal_json(self, lat: float, lon: float, target_depth: float,
                            rpm: float, tolerance: float) -> str:
         g = self._goal_obj
+        # Hand the leg only the time the mission has left, so a delegated move_to
+        # can never overrun the whole-mission budget (the bug behind pass-1's
+        # return-leg timeout). Floored at a small positive value; if the budget
+        # is genuinely spent, _loop_inner fails the mission on the next tick.
+        leg_timeout = max(round(self._mission_remaining(), 1), 1.0)
         return json.dumps({
             "waypoint": {
                 "latitude": lat,
@@ -335,7 +378,7 @@ class LoloTuperBT:
                 "target_depth": target_depth,
                 "min_altitude": g.min_altitude,
                 "rpm": rpm,
-                "timeout": g.timeout,
+                "timeout": leg_timeout,
                 "tolerance": tolerance,
             }
         })
@@ -381,6 +424,10 @@ class LoloTuperBT:
         unc = fs.uncertainty_semimajor
         s += f"\n uncertainty(semi-major): {unc:.2f}m" if unc is not None else "\n uncertainty: ???"
         s += f"\n setpoint_fresh: {fs.setpoint_fresh}"
+        if self._mission_timeout is not None:
+            s += (f"\n mission: {self._mission_elapsed():.0f}s / "
+                  f"{self._mission_timeout:.0f}s "
+                  f"(remaining {self._mission_remaining():.0f}s)")
         return s
 
     # ------------------------------------------------------------- main loop
@@ -391,6 +438,16 @@ class LoloTuperBT:
         #   RUNNING -> None (keep going), SUCCESS -> True, FAILURE -> False.
         if self._bt is None:
             self.log("Behaviour tree not set up, failing.")
+            return False
+
+        # Whole-mission timeout: the BT is the authoritative timer. Fail the task
+        # as soon as the budget is exhausted, regardless of which phase is active.
+        if (self._mission_timeout is not None
+                and self._mission_elapsed() >= self._mission_timeout):
+            self.log(f"TUPER mission timed out after {self._mission_elapsed():.0f}s "
+                     f"(budget {self._mission_timeout:.0f}s).")
+            self._publish_telemetry()
+            self._reset_states()
             return False
 
         # One tick = one traversal of the tree (GoToStart -> Follow -> ...).
@@ -420,6 +477,9 @@ class LoloTuperBT:
         data["t"] = self._node.get_clock().now().nanoseconds * 1e-9
         data["tip"] = tip.name if tip is not None else "-"
         data["tip_status"] = str(tip.status) if tip is not None else "-"
+        data["mission_elapsed"] = round(self._mission_elapsed(), 1)
+        rem = self._mission_remaining()
+        data["mission_remaining"] = round(rem, 1) if rem != float('inf') else None
         msg = String()
         msg.data = json.dumps(data)
         self._telemetry_pub.publish(msg)
