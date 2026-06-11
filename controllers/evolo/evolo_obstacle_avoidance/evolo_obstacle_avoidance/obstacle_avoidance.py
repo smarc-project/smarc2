@@ -12,7 +12,9 @@ from geometry_msgs.msg import PoseStamped, Polygon, Point, PolygonStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from tf_transformations import euler_from_quaternion
 
-from smarc_msgs.msg import Topics as smarcTopics
+from transforms3d.euler import quat2euler
+
+from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics
 import json
 
@@ -33,11 +35,18 @@ class cbf_avoidance(Node):
         self.yaw_setpoint = None
         self.yaw_setpoint_time = None
 
+        # Odom sub
+        self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1)
+
+        # Speed sub
+        self.create_subscription(Float32, SmarcTopics.EVOLO_SPEED_SETPOINT , self.speed_cb, 1)
+
         # Requested control input sub
-        self.u_des = TwistStamped()
+        self.p = 1.0
+        self.yaw_des = 0.0
         self.agent_speed = 0.0
         self.requested_ctrl_topic = self.get_parameter("requested_ctrl_topic").value
-        self.requested_ctrl_sub = self.create_subscription(TwistStamped, 
+        self.requested_ctrl_sub = self.create_subscription(Float32, 
                                  f"{self.requested_ctrl_topic}", self.requested_ctrl_cb, 1)
         self.logger.info(f"Reciving requested control messages from /{self.robot_name}/{self.requested_ctrl_topic}")
         
@@ -54,7 +63,7 @@ class cbf_avoidance(Node):
 
         # Output
         self.safe_ctrl_topic = self.get_parameter("safe_ctrl_topic").value
-        self.safe_ctrl_pub = self.create_publisher(TwistStamped,
+        self.safe_ctrl_pub = self.create_publisher(Float32,
                                                 f"{self.safe_ctrl_topic}", 1)
         self.logger.info(f"Sending ctrl messages to /{self.robot_name}/{self.safe_ctrl_topic}")
 
@@ -86,6 +95,18 @@ class cbf_avoidance(Node):
         self.declare_parameter("obstacle_topic", "")
         self.declare_parameter("safe_ctrl_topic", "")
 
+    def odom_cb(self,msg : Odometry):
+        """Get current heading."""
+        _,_,self.yaw_current = quat2euler([msg.pose.pose.orientation.w,
+                                            msg.pose.pose.orientation.x,
+                                            msg.pose.pose.orientation.y,
+                                            msg.pose.pose.orientation.z],
+                                            axes='sxyz')
+
+    def speed_cb(self, msg):
+        """Get requested speed."""
+        self.agent_speed = msg.data
+
     def obstacle_cb(self, msg):
         """Callback when reciving a new obstacle."""
         obs_time = msg.header.stamp.sec * int(1e9) + msg.header.stamp.nanosec
@@ -107,25 +128,23 @@ class cbf_avoidance(Node):
     def requested_ctrl_cb(self, msg):
         """Callback when reciving a new desired yaw"""
         # Recive the message
-        self.u_des = msg
-        if self.is_sim:
-            w_des = self.u_des.twist.angular.z * np.pi / 180
-        else:
-            w_des = self.u_des.twist.angular.z
-        self.agent_speed = msg.twist.linear.x
-        
+        self.yaw_des = msg.data
+        yaw_diff = self.yaw_des - self.yaw_current
+
+        # Approximate w_des by P-controller approximation
+        w_des = yaw_diff * self.p
+        w_des = max(-self.w_max, min(self.w_max, w_des))
+
         # Apply the CBF
         w_safe = self.calc_safe_control(w_des)
 
         # Publish the safe control
-        u_safe = TwistStamped()
-        u_safe.twist.linear.x = msg.twist.linear.x
-        if self.is_sim:
-            u_safe.twist.angular.z = w_safe * 180 / (self.w_max_scale * np.pi)
-        else:
-            u_safe.twist.angular.z = w_safe
-        self.logger.info(f"Sending lx = {u_safe.twist.linear.x}, az = {u_safe.twist.angular.z}, having {self.n_obst} obstacles")
-        self.safe_ctrl_pub.publish(u_safe)
+        yaw_safe = Float32()
+        safe_diff = w_safe / self.p
+        yaw_safe.data = float(self.yaw_current + safe_diff)
+
+        self.logger.info(f"Requested yaw = {self.yaw_des}, safe yaw = {yaw_safe.data}, having {self.n_obst} obstacles")
+        self.safe_ctrl_pub.publish(yaw_safe)
         self.extrapolate_path(w_safe)
     
     def calc_safe_control(self, w_des):
