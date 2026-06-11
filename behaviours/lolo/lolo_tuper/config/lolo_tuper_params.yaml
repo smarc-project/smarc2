@@ -22,17 +22,45 @@
     # External action server (lolo_depth_move_to) name.
     move_to_action_name: "auv_depth_move_to"
 
-    # RPM PID gains (error = forward/ahead setpoint error in metres).
-    kp_rpm: 50.0
-    ki_rpm: 0.0
-    kd_rpm: 5.0
-    integral_limit: 200.0         # clamp on Ki accumulator contribution (rpm).
-    hold_rpm: 400.0               # safe rpm while waiting / not chasing.
+    # --- Velocity-matching follow loop -----------------------------------
+    # Feed-forward: commanded ctrl/rpm_setpoint = rpm_idle + rpm_per_mps*v_target.
+    # rpm_per_mps ~= 1/0.0019 from the Asko 2026 thruster-RPM->speed fit (the
+    # slow speed trim below absorbs the ctrl-setpoint -> thruster-rpm offset).
+    rpm_idle: 0.0
+    rpm_per_mps: 530.0
+    # Along-track position -> extra target speed (m/s per metre beyond standoff).
+    kp_pos: 0.05
+    # Slow integral trim on MEASURED speed: rpm per (m/s . s), and its clamp (rpm).
+    ki_speed: 20.0
+    speed_trim_limit: 150.0
+    hold_rpm: 400.0               # safe rpm while waiting (still dive-floored).
 
-    # Heading gate for final-approach phases. Live following holds only when
-    # the setpoint is not ahead of LoLo.
+    # Above this |bearing - heading| a live target counts as behind/side: hold
+    # heading and ease (let the moving setpoint catch up) instead of U-turning.
     heading_gate_deg: 60.0
 
     # Deadband radius = max(arrival_tolerance, uncertainty_deadband_k * sigma).
-    # Within the deadband we hold at safe RPM to avoid chasing estimator noise.
+    # Within the deadband we ease to the RPM floor (min_rpm) to avoid chasing.
     uncertainty_deadband_k: 2.0
+
+    # Window (s) for least-squares leader (setpoint) velocity estimation.
+    leader_speed_window: 5.0
+
+    # --- Dive-floor hysteresis (depths in m, positive down) --------------
+    # LoLo needs a higher RPM to BREAK the surface and get down, then can hold
+    # depth at a lower RPM. These thresholds switch the two RPM floors with
+    # hysteresis (enter when deep enough, revert only when shallow again).
+    submersion_min_depth: 0.5     # mission_depth above this => submersion needed.
+    dive_enter_depth: 1.0         # become "submerged" once depth >= this.
+    dive_exit_depth: 0.5          # revert to "surface" once depth <= this.
+    dive_depth_tolerance: 1.0     # under-dive warn if depth < mission_depth-this
+    dive_warn_period: 15.0        # ... sustained for this long (warn only).
+
+    # --- Goal-JSON overridable defaults (per-mission fallback) -----------
+    # Operators may override each of these in the action goal JSON; the values
+    # here are the fallback used when the field is omitted from the goal.
+    # NOTE: follow speed is bounded by the goal's min_rpm / max_rpm (RPM limits),
+    # NOT by an explicit speed clamp.
+    standoff_distance: 5.0        # desired trailing gap behind the setpoint (m).
+    dive_entry_rpm: 550.0         # RPM floor while breaking the surface / diving.
+    dive_hold_rpm: 450.0          # RPM floor once submerged.

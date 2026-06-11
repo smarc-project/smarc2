@@ -27,21 +27,42 @@ from lolo_tuper.follower_state import FollowerState
 
 @dataclass
 class ControlGains:
-    """Node-level (non-mission) control tuning constants."""
-    kp_rpm: float
-    ki_rpm: float
-    kd_rpm: float
-    integral_limit: float
+    """Node-level (non-mission) control tuning constants.
+
+    The follow loop is velocity-matching: command the RPM that yields the
+    leader's speed (feed-forward) plus a light along-track position correction
+    and a slow trim on measured speed. See README "Control law".
+    """
+    # Feed-forward: commanded ctrl/rpm_setpoint = rpm_idle + rpm_per_mps*v_target.
+    rpm_idle: float
+    rpm_per_mps: float
+    # Position -> target-speed correction (m/s of extra speed per metre of
+    # along-track error beyond the standoff).
+    kp_pos: float
+    # Slow integral trim on measured speed (rpm per (m/s . s)) + clamp (rpm).
+    ki_speed: float
+    speed_trim_limit: float
+    # Safe RPM while holding / waiting (still subject to the dive floor).
     hold_rpm: float
+    # Above this |bearing - heading| a live target is treated as behind/side:
+    # hold heading and ease instead of U-turning into the error.
     heading_gate_deg: float
     uncertainty_deadband_k: float
     stale_grace_period: float
-    control_period: float  # nominal loop period (s), used as dt fallback.
+    # Dive-floor hysteresis (depths in m, positive down).
+    submersion_min_depth: float   # mission_depth above this => submersion needed.
+    dive_enter_depth: float       # become "submerged" once depth >= this.
+    dive_exit_depth: float        # revert to "surface" once depth <= this.
+    dive_depth_tolerance: float   # under-dive warn if depth < mission_depth-this.
+    dive_warn_period: float       # ... sustained for this long (s).
+    # Window (s) for least-squares leader-velocity estimation.
+    leader_speed_window: float
+    control_period: float         # nominal loop period (s), used as dt fallback.
 
 
 @dataclass
 class TuperGoal:
-    """Parsed per-mission goal."""
+    """Parsed per-mission goal (defaults resolved from node params upstream)."""
     start_lat: float
     start_lon: float
     initial_setpoint_lat: float
@@ -56,6 +77,12 @@ class TuperGoal:
     arrival_tolerance: float
     start_tolerance: float
     timeout: float
+    # Velocity-matching / dive-floor knobs (goal-JSON overridable, node fallback).
+    # The follow speed is bounded by the RPM limits (min_rpm / max_rpm) above,
+    # NOT by an explicit speed clamp.
+    standoff_distance: float
+    dive_entry_rpm: float
+    dive_hold_rpm: float
 
 
 def latlon_to_utm(lat: float, lon: float) -> tuple[float, float]:
@@ -86,13 +113,17 @@ class _CourseControlBehaviour(Behaviour):
                  node: Node,
                  follower_state: FollowerState,
                  vehicle: Lolo,
-                 get_goal):
+                 get_goal,
+                 telemetry: dict | None = None):
         super().__init__(name)
         self._node = node
         self._fs = follower_state
         self._vehicle = vehicle
         self._get_goal = get_goal  # Callable[[], TuperGoal | None]
         self._gains: ControlGains | None = None  # set via set_gains()
+        # Shared dict the BT node publishes as structured telemetry. Behaviours
+        # write control quantities into it each tick.
+        self._telemetry = telemetry if telemetry is not None else {}
 
         self._reset_control_state()
 
@@ -101,15 +132,17 @@ class _CourseControlBehaviour(Behaviour):
 
     # ------------------------------------------------------ lifecycle
     def _reset_control_state(self) -> None:
-        self._integral = 0.0
+        self._speed_trim = 0.0          # slow measured-speed trim (rpm).
         self._last_time = None
-        self._last_dist = None
         self._stale_since = None
         self._last_bearing = 0.0
         # Latches True once we have ever seen a fresh UKF pose. Bootstrapping
         # without a pose is only allowed BEFORE this; afterwards a UKF death
         # must fall through to the staleness grace/failure path.
         self._ever_pose_fresh = False
+        # Dive-floor hysteresis state + under-dive watchdog timer.
+        self._submerged = False
+        self._under_dive_since = None
 
     def initialise(self) -> None:
         self._reset_control_state()
@@ -119,8 +152,31 @@ class _CourseControlBehaviour(Behaviour):
     def _now(self) -> float:
         return self._node.get_clock().now().nanoseconds * 1e-9
 
+    def _dt(self) -> float:
+        """Loop dt (s), capped so a long hold does not produce a huge step."""
+        now = self._now
+        if self._last_time is None:
+            dt = max(self._gains.control_period, 1e-3)
+        else:
+            dt = min(max(now - self._last_time, 1e-3), 1.0)
+        self._last_time = now
+        return dt
+
     def _safe_hold_rpm(self, goal: TuperGoal) -> float:
         return max(goal.min_rpm, self._gains.hold_rpm)
+
+    def _measured_speed(self) -> float:
+        """Forward speed (m/s) from the vehicle odom twist; clamped >= 0."""
+        v = getattr(self._vehicle, 'vx', 0.0) or 0.0
+        return max(0.0, float(v))
+
+    # -- velocity-matching hooks (overridden by the static move-to phase) --
+    def _standoff(self, goal: TuperGoal) -> float:
+        return goal.standoff_distance
+
+    def _leader_speed(self, goal: TuperGoal) -> float:
+        s = self._fs.setpoint_speed(self._gains.leader_speed_window)
+        return float(s) if s is not None else 0.0
 
     def _can_bootstrap_without_pose(self, goal: TuperGoal) -> bool:
         return False
@@ -129,88 +185,100 @@ class _CourseControlBehaviour(Behaviour):
         return self._fs.pose_utm
 
     def _hold(self, goal: TuperGoal) -> None:
-        """Hold heading and command safe hold RPM."""
+        """Hold heading and command safe hold RPM (still dive-floored)."""
         heading = self._fs.heading_enu
         yaw = heading if heading is not None else self._last_bearing
+        self._speed_trim = 0.0
         self._command(yaw, self._safe_hold_rpm(goal), goal)
+        self._telemetry.update({'v_target': 0.0, 'reason': 'hold'})
+
+    def _speed_to_rpm(self, v_target: float, v_meas: float, dt: float,
+                      goal: TuperGoal, integrate: bool) -> float:
+        """Feed-forward RPM for v_target plus a slow measured-speed trim."""
+        gains = self._gains
+        rpm_ff = gains.rpm_idle + gains.rpm_per_mps * v_target
+        if integrate:
+            self._speed_trim += gains.ki_speed * (v_target - v_meas) * dt
+            self._speed_trim = max(-gains.speed_trim_limit,
+                                   min(gains.speed_trim_limit, self._speed_trim))
+        else:
+            self._speed_trim = 0.0
+        return rpm_ff + self._speed_trim
+
+    def _update_dive_state(self, goal: TuperGoal) -> tuple[float, bool]:
+        """Hysteresis dive floor + warn-only under-dive watchdog.
+
+        Returns (rpm_floor, under_dive_flag). LoLo needs a higher RPM to break
+        the surface and get down (dive_entry_rpm), but can then hold depth at a
+        lower RPM (dive_hold_rpm); the two states switch on measured depth with
+        hysteresis so we do not chatter around a single threshold.
+        """
+        gains = self._gains
+        depth = getattr(self._vehicle, 'depth', 0.0) or 0.0
+        submersion_required = goal.mission_depth > gains.submersion_min_depth
+        if not submersion_required:
+            self._submerged = False
+            self._under_dive_since = None
+            return goal.min_rpm, False
+
+        if self._submerged:
+            if depth <= gains.dive_exit_depth:
+                self._submerged = False
+        else:
+            if depth >= gains.dive_enter_depth:
+                self._submerged = True
+
+        floor = goal.dive_hold_rpm if self._submerged else goal.dive_entry_rpm
+        floor = max(goal.min_rpm, floor)
+
+        under_dive = False
+        if depth < goal.mission_depth - gains.dive_depth_tolerance:
+            now = self._now
+            if self._under_dive_since is None:
+                self._under_dive_since = now
+            elif now - self._under_dive_since > gains.dive_warn_period:
+                under_dive = True
+                self._node.get_logger().warn(
+                    f"({self.name}) Under-diving: depth={depth:.1f}m < target "
+                    f"{goal.mission_depth:.1f}m for >{gains.dive_warn_period:.0f}s "
+                    f"at rpm-floor={floor:.0f}.", throttle_duration_sec=5.0)
+        else:
+            self._under_dive_since = None
+        return floor, under_dive
 
     def _command(self, yaw_enu: float, rpm: float, goal: TuperGoal) -> bool:
         self._last_bearing = yaw_enu
+        floor, under_dive = self._update_dive_state(goal)
+        rpm_cmd = max(float(rpm), floor)
+        rpm_cmd = min(rpm_cmd, goal.max_rpm)   # never exceed the vehicle/goal cap.
+        rpm_cmd = max(rpm_cmd, goal.min_rpm)
         ok = self._vehicle.set_goal(
             yaw_enu=float(yaw_enu),
             depth=float(goal.mission_depth),
             altitude=float(goal.min_altitude),
-            rpm=float(rpm),
+            rpm=float(rpm_cmd),
             timeout=float(min(goal.timeout, 1500.0)),
         )
         if not ok:
             self.feedback_message = "Lolo rejected COURSE goal (check depth/alt/rpm limits)."
             self._node.get_logger().error(
                 f"({self.name}) Lolo rejected goal: depth={goal.mission_depth}, "
-                f"alt={goal.min_altitude}, rpm={rpm}",
+                f"alt={goal.min_altitude}, rpm={rpm_cmd}",
                 throttle_duration_sec=5.0)
             return False
         self._vehicle.update()
+        self._telemetry.update({
+            'rpm_desired': round(float(rpm), 1),
+            'rpm_cmd': round(rpm_cmd, 1),
+            'rpm_floor': round(floor, 1),
+            'dive_state': 'submerged' if self._submerged else 'surface',
+            'under_dive': bool(under_dive),
+        })
         return True
 
     def _wait_when_target_not_ahead(self) -> bool:
         """True for live-following phases where the setpoint may catch up."""
         return False
-
-    def _compute_rpm(self, dist: float, forward_error: float,
-                     heading_err: float, uncertainty: float,
-                     goal: TuperGoal) -> tuple[float, str | None]:
-        gains = self._gains
-        now = self._now
-        if self._last_time is None:
-            dt = max(gains.control_period, 1e-3)
-        else:
-            dt = max(now - self._last_time, 1e-3)
-
-        tracking_error = max(0.0, forward_error)
-        if self._last_dist is None:
-            error_dot = 0.0
-        else:
-            error_dot = (tracking_error - self._last_dist) / dt
-
-        deadband = max(goal.arrival_tolerance,
-                       gains.uncertainty_deadband_k * uncertainty)
-
-        hold_reason = None
-        if dist <= deadband:
-            hold_reason = "deadband"
-        elif self._wait_when_target_not_ahead() and tracking_error <= deadband:
-            if dist <= 4.0:
-                hold_reason = "target_not_ahead"
-
-        if hold_reason is not None:
-            # For live setpoint following, do not turn toward side/behind
-            # targets when we're already close. Keep only the safe forward RPM
-            # needed for depth control.
-            self._integral = 0.0
-            self._last_time = now
-            self._last_dist = None
-            return self._safe_hold_rpm(goal), hold_reason
-
-        if (not self._wait_when_target_not_ahead() and
-                abs(heading_err) > math.radians(gains.heading_gate_deg)):
-            # Static-target phases still need some flow over the rudder to turn.
-            self._integral = 0.0
-            rpm = goal.min_rpm
-        else:
-            self._integral += tracking_error * dt
-            i_term = gains.ki_rpm * self._integral
-            i_term = max(-gains.integral_limit, min(gains.integral_limit, i_term))
-            rpm = (goal.min_rpm
-                   + gains.kp_rpm * tracking_error
-                   + i_term
-                   + gains.kd_rpm * max(error_dot, 0.0))
-
-        rpm = max(goal.min_rpm, min(goal.max_rpm, rpm))
-
-        self._last_time = now
-        self._last_dist = tracking_error
-        return rpm, None
 
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
                       uncertainty: float) -> float:
@@ -224,19 +292,67 @@ class _CourseControlBehaviour(Behaviour):
         dist = math.hypot(de, dn)
         bearing = math.atan2(dn, de)
         heading = self._fs.heading_enu
-        heading_err = wrap_angle(bearing - heading) if heading is not None else 0.0
-        forward_error = (de * math.cos(heading) + dn * math.sin(heading)
-                         if heading is not None else dist)
+        if heading is not None:
+            heading_err = wrap_angle(bearing - heading)
+            forward_error = de * math.cos(heading) + dn * math.sin(heading)
+        else:
+            heading_err = 0.0
+            forward_error = dist
 
-        rpm, hold_reason = self._compute_rpm(
-            dist, forward_error, heading_err, uncertainty, goal)
-        yaw_cmd = heading if hold_reason is not None and heading is not None else bearing
+        gains = self._gains
+        live = self._wait_when_target_not_ahead()
+        v_meas = self._measured_speed()
+        dt = self._dt()
+        standoff = self._standoff(goal)
+        v_leader = self._leader_speed(goal)
+        deadband = max(goal.arrival_tolerance,
+                       gains.uncertainty_deadband_k * uncertainty)
+        turn_needed = (heading is not None and
+                       abs(heading_err) > math.radians(gains.heading_gate_deg))
+
+        reason = None
+        if dist <= deadband:
+            # Inside the arrival / uncertainty deadband: ease to the RPM floor,
+            # hold heading, let the dive floor keep her wet. Avoids chasing noise.
+            yaw_cmd = heading if heading is not None else self._last_bearing
+            v_target = 0.0
+            self._speed_trim = 0.0
+            rpm = goal.min_rpm
+            reason = "deadband"
+        elif live and turn_needed:
+            # Live follow + target behind/far to the side: do NOT U-turn into the
+            # error (that only grows it). Hold heading and ease to the RPM floor
+            # so the moving setpoint catches back up.
+            yaw_cmd = heading
+            v_target = 0.0
+            self._speed_trim = 0.0
+            rpm = goal.min_rpm
+            reason = "target_behind"
+        else:
+            # Velocity matching: cruise at the leader's speed, plus a light
+            # along-track correction toward the desired standoff gap. The top end
+            # is bounded by max_rpm and the floor by min_rpm in _command (the
+            # engineers prefer RPM limits over an explicit speed clamp).
+            yaw_cmd = bearing
+            v_target = max(0.0, v_leader + gains.kp_pos * (forward_error - standoff))
+            rpm = self._speed_to_rpm(v_target, v_meas, dt, goal, integrate=True)
+
         self._command(yaw_cmd, rpm, goal)
-        hold_str = f" hold={hold_reason}" if hold_reason is not None else ""
+        self._telemetry.update({
+            'dist': round(dist, 1),
+            'fwd_err': round(forward_error, 1),
+            'heading_err_deg': round(math.degrees(heading_err), 0),
+            'v_leader': round(v_leader, 2),
+            'v_target': round(v_target, 2),
+            'v_meas': round(v_meas, 2),
+            'sigma': round(uncertainty, 2),
+            'reason': reason,
+        })
         self.feedback_message = (
             f"dist={dist:.1f}m hErr={math.degrees(heading_err):.0f}deg "
-            f"rpm={rpm:.0f} sigma={uncertainty:.2f}m "
-            f"fwd={forward_error:.1f}m{hold_str}")
+            f"vL={v_leader:.2f} vT={v_target:.2f} vM={v_meas:.2f} "
+            f"rpm={self._telemetry.get('rpm_cmd', 0):.0f} sigma={uncertainty:.2f}m"
+            + (f" [{reason}]" if reason else ""))
         return dist
 
     # ------------------------------------------------------ subclass hooks
@@ -256,6 +372,12 @@ class _CourseControlBehaviour(Behaviour):
         if goal is None or self._gains is None:
             self.feedback_message = "No goal/gains set."
             return Status.FAILURE
+
+        self._telemetry.update({
+            'phase': self.name,
+            'pose_fresh': self._fs.pose_fresh,
+            'setpoint_fresh': self._fs.setpoint_fresh,
+        })
 
         if self._fs.pose_fresh:
             self._ever_pose_fresh = True
@@ -358,6 +480,14 @@ class MoveToLastSetpoint(_CourseControlBehaviour):
     def initialise(self) -> None:
         super().initialise()
         self._target_xy = self._fs.setpoint_utm
+
+    # Static target: no leader to keep pace with, and close all the way in
+    # (the standoff gap only makes sense while chasing a moving setpoint).
+    def _standoff(self, goal: TuperGoal) -> float:
+        return 0.0
+
+    def _leader_speed(self, goal: TuperGoal) -> float:
+        return 0.0
 
     def _target(self, goal: TuperGoal) -> tuple[float, float] | None:
         if self._target_xy is not None:

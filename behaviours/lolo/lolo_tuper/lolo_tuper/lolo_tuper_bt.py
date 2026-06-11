@@ -17,6 +17,7 @@ Mission:
                         surface and return to the start position.
 """
 
+import dataclasses
 import json
 import sys
 
@@ -28,6 +29,7 @@ from py_trees.trees import BehaviourTree
 import rclpy
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile
 
 from std_msgs.msg import String
 
@@ -82,16 +84,27 @@ class LoloTuperBT:
             node, self._move_to_action_name, 'surface_and_return')
 
         gains = ControlGains(
-            kp_rpm=self._kp_rpm,
-            ki_rpm=self._ki_rpm,
-            kd_rpm=self._kd_rpm,
-            integral_limit=self._integral_limit,
+            rpm_idle=self._rpm_idle,
+            rpm_per_mps=self._rpm_per_mps,
+            kp_pos=self._kp_pos,
+            ki_speed=self._ki_speed,
+            speed_trim_limit=self._speed_trim_limit,
             hold_rpm=self._hold_rpm,
             heading_gate_deg=self._heading_gate_deg,
             uncertainty_deadband_k=self._uncertainty_deadband_k,
             stale_grace_period=self._stale_grace_period,
+            submersion_min_depth=self._submersion_min_depth,
+            dive_enter_depth=self._dive_enter_depth,
+            dive_exit_depth=self._dive_exit_depth,
+            dive_depth_tolerance=self._dive_depth_tolerance,
+            dive_warn_period=self._dive_warn_period,
+            leader_speed_window=self._leader_speed_window,
             control_period=1.0 / max(self._control_frequency, 1e-3),
         )
+
+        # Shared telemetry dict: the control behaviours write into it each tick,
+        # and the node publishes it as structured JSON (see _loop_inner).
+        self._telemetry: dict = {}
 
         # --- BT leaves (custom control phases) ------------------------------
         # Phase 2 and Phase 3 of the tree. These are the custom control-loop
@@ -100,12 +113,12 @@ class LoloTuperBT:
         # phase is SUCCESS/FAILURE/RUNNING. Wired into the tree in setup().
         self._follow = FollowSetpoint(
             "Follow setpoint", node, self._follower_state, self._vehicle,
-            self._current_goal)
+            self._current_goal, telemetry=self._telemetry)
         self._follow.set_gains(gains)
 
         self._move_to_last = MoveToLastSetpoint(
             "Move to last setpoint", node, self._follower_state, self._vehicle,
-            self._current_goal)
+            self._current_goal, telemetry=self._telemetry)
         self._move_to_last.set_gains(gains)
 
         self._goal_obj: TuperGoal | None = None
@@ -133,6 +146,21 @@ class LoloTuperBT:
             status_pub.publish(msg)
         node.create_timer(1.0, publish_status)
 
+        # Structured, machine-parseable telemetry at the control rate (so a bag
+        # captures the follow loop without lossy regex on the human status).
+        self._telemetry_pub = node.create_publisher(
+            String, 'lolo_tuper/telemetry', 10)
+
+        # Latched (transient-local) per-run goal+gains, so every recorded bag
+        # self-documents the parameters that were actually used.
+        latched_qos = QoSProfile(
+            depth=1,
+            history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self._goal_params_pub = node.create_publisher(
+            String, 'lolo_tuper/goal_params', latched_qos)
+        self._active_gains = gains
+
         self._as = GentlerActionServer(
             node,
             'lolo_tuper',
@@ -159,13 +187,32 @@ class LoloTuperBT:
         self._pose_topic = gp('pose_topic', '/follower/ukf/pose')
         self._setpoint_topic = gp('setpoint_topic', '/follower/ukf/setpoint')
         self._move_to_action_name = gp('move_to_action_name', 'auv_depth_move_to')
-        self._kp_rpm = float(gp('kp_rpm', 50.0))
-        self._ki_rpm = float(gp('ki_rpm', 0.0))
-        self._kd_rpm = float(gp('kd_rpm', 5.0))
-        self._integral_limit = float(gp('integral_limit', 200.0))
+
+        # --- Velocity-matching follow loop (node-level tuning) ---------------
+        self._rpm_idle = float(gp('rpm_idle', 0.0))
+        self._rpm_per_mps = float(gp('rpm_per_mps', 530.0))
+        self._kp_pos = float(gp('kp_pos', 0.05))
+        self._ki_speed = float(gp('ki_speed', 20.0))
+        self._speed_trim_limit = float(gp('speed_trim_limit', 150.0))
         self._hold_rpm = float(gp('hold_rpm', 400.0))
         self._heading_gate_deg = float(gp('heading_gate_deg', 60.0))
         self._uncertainty_deadband_k = float(gp('uncertainty_deadband_k', 2.0))
+        self._leader_speed_window = float(gp('leader_speed_window', 5.0))
+
+        # --- Dive-floor hysteresis (node-level depth thresholds) -------------
+        self._submersion_min_depth = float(gp('submersion_min_depth', 0.5))
+        self._dive_enter_depth = float(gp('dive_enter_depth', 1.0))
+        self._dive_exit_depth = float(gp('dive_exit_depth', 0.5))
+        self._dive_depth_tolerance = float(gp('dive_depth_tolerance', 1.0))
+        self._dive_warn_period = float(gp('dive_warn_period', 15.0))
+
+        # --- Goal-JSON overridable defaults (node fallback) -----------------
+        # Operators may override these per-mission in the action goal JSON;
+        # these node params are the fallback when a field is omitted. Follow
+        # speed itself is bounded by the goal's min_rpm / max_rpm, not a speed.
+        self._standoff_distance = float(gp('standoff_distance', 5.0))
+        self._dive_entry_rpm = float(gp('dive_entry_rpm', 550.0))
+        self._dive_hold_rpm = float(gp('dive_hold_rpm', 450.0))
 
     # ------------------------------------------------------------- helpers
     def log(self, msg: str) -> None:
@@ -226,6 +273,13 @@ class LoloTuperBT:
             arrival_tolerance=float(g["arrival_tolerance"]),
             start_tolerance=float(g["start_tolerance"]),
             timeout=float(g["timeout"]),
+            # Optional control knobs: goal JSON value > node param fallback.
+            standoff_distance=float(req.get(
+                "standoff_distance", self._standoff_distance)),
+            dive_entry_rpm=float(req.get(
+                "dive_entry_rpm", self._dive_entry_rpm)),
+            dive_hold_rpm=float(req.get(
+                "dive_hold_rpm", self._dive_hold_rpm)),
         )
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -245,8 +299,22 @@ class LoloTuperBT:
         self._follower_state.set_stop_window_period(
             self._goal_obj.setpoint_stop_period + 5.0)
 
+        self._publish_goal_params()
         self.log("Goal accepted.")
         return True
+
+    def _publish_goal_params(self) -> None:
+        """Latch the resolved per-run goal + active gains so bags self-document."""
+        g = self._goal_obj
+        if g is None:
+            return
+        payload = {
+            "goal": dataclasses.asdict(g),
+            "gains": dataclasses.asdict(self._active_gains),
+        }
+        msg = String()
+        msg.data = json.dumps(payload)
+        self._goal_params_pub.publish(msg)
 
     def _on_cancel_received(self) -> bool:
         self.log("Received goal cancel request.")
@@ -327,6 +395,7 @@ class LoloTuperBT:
 
         # One tick = one traversal of the tree (GoToStart -> Follow -> ...).
         self._bt.tick()
+        self._publish_telemetry()
 
         tree_str = pt.display.ascii_tree(self._bt.root, show_status=True)
         if tree_str != self._prev_tree_str:
@@ -343,6 +412,17 @@ class LoloTuperBT:
             self._reset_states()
             return False
         return None
+
+    def _publish_telemetry(self) -> None:
+        """Publish the shared control telemetry dict as JSON (control rate)."""
+        tip = self._bt.tip() if self._bt is not None else None
+        data = dict(self._telemetry)
+        data["t"] = self._node.get_clock().now().nanoseconds * 1e-9
+        data["tip"] = tip.name if tip is not None else "-"
+        data["tip_status"] = str(tip.status) if tip is not None else "-"
+        msg = String()
+        msg.data = json.dumps(data)
+        self._telemetry_pub.publish(msg)
 
     def _give_feedback(self) -> str:
         return self._status_str

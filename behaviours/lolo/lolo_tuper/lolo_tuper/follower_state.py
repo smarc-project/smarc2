@@ -169,6 +169,47 @@ class FollowerState:
     def setpoint_utm(self) -> tuple[float, float] | None:
         return self._setpoint_utm
 
+    def setpoint_velocity(self, window: float = 5.0) -> tuple[float, float] | None:
+        """Estimate the setpoint (leader) velocity in UTM, in m/s.
+
+        Returns (ve, vn) east/north velocity, or None if there are not enough
+        fresh samples. A least-squares line is fit to x(t) and y(t) over the
+        last `window` seconds, which is robust to the single-sample sideways
+        glitches the UKF setpoint exhibits (a least-squares slope ignores
+        symmetric outliers far better than a two-point finite difference).
+        """
+        now = self._now
+        self._prune_history(now)
+
+        # A stale setpoint means comms loss, not a known velocity.
+        if not self.setpoint_fresh:
+            return None
+
+        samples = [s for s in self._setpoint_history if now - s[0] <= window]
+        if len(samples) < 3:
+            return None
+
+        ts = np.array([s[0] for s in samples], dtype=float)
+        # Need a real time span to estimate a slope.
+        if ts[-1] - ts[0] < 1e-3:
+            return None
+        ts = ts - ts[0]
+        xs = np.array([s[1] for s in samples], dtype=float)
+        ys = np.array([s[2] for s in samples], dtype=float)
+        try:
+            ve = float(np.polyfit(ts, xs, 1)[0])
+            vn = float(np.polyfit(ts, ys, 1)[0])
+        except (np.linalg.LinAlgError, ValueError):
+            return None
+        return (ve, vn)
+
+    def setpoint_speed(self, window: float = 5.0) -> float | None:
+        """Scalar leader ground speed (m/s) over the recent window."""
+        vel = self.setpoint_velocity(window)
+        if vel is None:
+            return None
+        return math.hypot(vel[0], vel[1])
+
     # --------------------------------------------------------- stop detection
     def setpoint_stopped(self, tolerance: float, period: float) -> bool:
         """True if the setpoint has stayed within `tolerance` for `period` s.
