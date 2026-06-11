@@ -9,20 +9,25 @@ It fakes the two estimator outputs the BT consumes:
 
 Behaviour:
   1. Do nothing for `warmup_seconds` (default 30 s).
-  2. Then fake the follower pose from the vehicle's TRUE position
-     (/lolo/smarc/latlon -> absolute UTM) plus an integrated (random-walk)
-     noise, with heading taken from /lolo/smarc/odom. This is what makes the
-     closed loop work: as the BT drives LoLo, the fake pose tracks it.
+  2. Then fake the follower pose by tracking /lolo/smarc/odom from an absolute
+     UTM anchor captured at activation, plus an integrated (random-walk) noise,
+     with heading taken from /lolo/smarc/odom. This is what makes the closed
+     loop work: as the BT drives LoLo, the fake pose tracks it.
   3. At the same time, move a fake setpoint smoothly along a trajectory defined
      by a list of vertices, at 0.5-0.8 m/s, slowing down around corners, with
      occasional sideways "jumps" and along-track "runaway/snap-back" glitches to
      mimic the jumpiness of a real UKF estimate. When the trajectory finishes,
      the setpoint holds at the last vertex (so the BT's stop-detector fires).
 
-NOTE on position source: we anchor the fake pose to /lolo/smarc/latlon (the
-vehicle's true GeoPoint) rather than raw /lolo/smarc/odom, because the pose the
-BT expects is in ABSOLUTE UTM, while odom is in a local nav frame. odom is still
-used for the heading. Both topics are configurable below.
+NOTE on position source: the pose the BT expects is in ABSOLUTE UTM. We capture
+the vehicle's UTM position ONCE at activation (from /lolo/smarc/latlon) as an
+anchor, then integrate /lolo/smarc/odom displacement on top of it. We use odom
+(not the live latlon) for the displacement because in the SMARC sim the latlon
+is published through a Web-Mercator georeference that compresses ground motion
+by ~sec(latitude) (~1.9x at Asko), making the fake pose crawl at half the true
+hull speed. odom tracks the real hull motion and matches /lolo/smarc/speed, so
+the closed loop behaves realistically. odom is also used for the heading. Both
+topics are configurable below.
 """
 
 import math
@@ -120,6 +125,9 @@ class TuperTestNode(Node):
         # State.
         self._truth_latlon = None       # (lat, lon) from /smarc/latlon
         self._odom_yaw = None           # ENU yaw from /smarc/odom
+        self._odom_xy = None            # (x, y) position from /smarc/odom
+        self._utm_anchor = None         # absolute UTM (e, n) captured at activation
+        self._odom_xy0 = None           # odom (x, y) captured at activation
         self._start_time = self._now
         self._active = False
         self._traj: _TestTrajectory | None = None
@@ -243,6 +251,8 @@ class TuperTestNode(Node):
         q = msg.pose.pose.orientation
         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
         self._odom_yaw = yaw
+        p = msg.pose.pose.position
+        self._odom_xy = (p.x, p.y)
 
     def _latlon_to_utm(self, lat, lon):
         gp = GeoPoint()
@@ -259,15 +269,21 @@ class TuperTestNode(Node):
                 f"Warmup done but no truth position on {self._latlon_topic} yet; "
                 "waiting before faking.", throttle_duration_sec=5.0)
             return False
-        if self._odom_yaw is None:
+        if self._odom_yaw is None or self._odom_xy is None:
             self.get_logger().warn(
-                f"Warmup done but no odom heading on {self._odom_topic} yet; "
+                f"Warmup done but no odom on {self._odom_topic} yet; "
                 "waiting before faking.", throttle_duration_sec=5.0)
             return False
 
         origin = self._latlon_to_utm(*self._truth_latlon)
         self._zone = origin.zone
         self._band = origin.band
+
+        # Anchor the fake pose: absolute UTM position now, and the odom position
+        # now. The pose is then anchor_utm + (odom - odom0), so it tracks the
+        # real hull motion (odom) while staying in absolute UTM.
+        self._utm_anchor = (origin.easting, origin.northing)
+        self._odom_xy0 = self._odom_xy
 
         # Anchor the fake trajectory ahead of the current vehicle pose so the
         # first setpoint starts in front of LoLo instead of beside/behind it.
@@ -330,9 +346,14 @@ class TuperTestNode(Node):
 
     # ------------------------------------------------------------- pose
     def _publish_pose(self):
-        if self._truth_latlon is None:
+        if self._utm_anchor is None or self._odom_xy0 is None \
+                or self._odom_xy is None:
             return
-        truth = self._latlon_to_utm(*self._truth_latlon)
+        # Track odom displacement from the absolute UTM anchor (odom is
+        # direction-aligned with UTM and reflects the true hull speed; the live
+        # latlon is Web-Mercator-compressed in sim, see module docstring).
+        truth_e = self._utm_anchor[0] + (self._odom_xy[0] - self._odom_xy0[0])
+        truth_n = self._utm_anchor[1] + (self._odom_xy[1] - self._odom_xy0[1])
 
         # Integrated (random-walk) noise with mild mean reversion.
         self._pose_noise = ((1.0 - self._pose_noise_theta) * self._pose_noise
@@ -358,8 +379,8 @@ class TuperTestNode(Node):
         else:
             self._pose_jump_offset = np.zeros(2)
 
-        px = truth.easting + self._pose_noise[0] + self._pose_jump_offset[0]
-        py = truth.northing + self._pose_noise[1] + self._pose_jump_offset[1]
+        px = truth_e + self._pose_noise[0] + self._pose_jump_offset[0]
+        py = truth_n + self._pose_noise[1] + self._pose_jump_offset[1]
 
         msg = PoseWithCovarianceStamped()
         msg.header.stamp = self.get_clock().now().to_msg()

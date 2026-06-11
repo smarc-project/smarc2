@@ -48,8 +48,8 @@
     vertices_lon: [17.633968, 17.633028, 17.634541]
     
     # Setpoint speed envelope and corner behaviour.
-    speed_min: 0.2              # [m/s] (around corners)
-    speed_max: 0.4              # [m/s] (on straights)
+    speed_min: 0.6              # [m/s] (around corners)
+    speed_max: 0.8              # [m/s] (on straights)
     corner_curvature_ref: 0.15  # [1/m] higher -> less aggressive slowdown
     speed_jitter: 0.08          # gentle random speedups/slowdowns
     loop_trajectory: false      # false -> hold last vertex at the end (tests stop-detect)
