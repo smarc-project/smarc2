@@ -187,7 +187,7 @@
   </joint>
   <!-- Succorfish modem: measured 0.21 m ahead, 0.095 m right, 0.25 m up from usbl_link -->
   <joint name="lolo/modem_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="1.8203 0.0016 0.7302"/>
+    <origin rpy="0 0 0" xyz="1.8203 0.0 0.7302"/>
     <parent link="lolo/base_link"/>
     <child link="lolo/modem_link"/>
   </joint>
