@@ -87,3 +87,5 @@
 [submodule "vehicles/smarc_modelling"]
 	path = vehicles/smarc_modelling
 	url = git@github.com:smarc-project/smarc_modelling.git
+[submodule "navigation/dead_reckoning/hydrobatic_localization/"]
+	url = git@github.com:smarc-project/hydrobatic_localization.git
