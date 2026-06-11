@@ -12,63 +12,46 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from tf_transformations import euler_from_quaternion
 from rclpy.time import Duration, Time
 from nav_msgs.msg import Path, Odometry
-from geometry_msgs.msg import Twist, TwistStamped, PoseStamped, Quaternion
+from geometry_msgs.msg import PoseStamped, Quaternion
 from tf2_ros import Buffer, TransformListener
 from smarc_utilities import georef_utils
 import tf_transformations
+from std_msgs.msg import String
 
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as smarcTopics
-from smarc_control_msgs.msg import Topics as controlTopics
 
 from dubins_planner.dubins import Waypoint, calc_dubins_path, dubins_traj
 
 from smarc_msgs.msg import GeofencePolygonsStamped
-from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Point
 
 
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pure Pursuit Controller
 # ─────────────────────────────────────────────────────────────────────────────
 class PurePursuitController:
-    """
-    Combined path-tracking controller:
-      - Pure Pursuit      : geometric lookahead steering
-      - Feedforward       : anticipates upcoming curvature from the Dubins path
-      - CTE proportional  : immediate correction of lateral offset (cte_kp)
-      - CTE integral      : cancels persistent drift from wind / current (cte_ki)
-      - Heading alignment : corrects residual heading error against the path (heading_kp)
 
-    All angular outputs are in degrees (matching the Evolo command interface).
-    """
-
-    def __init__(self, Ld_base, Ld_gain, omega_max, dubins_step,
+    def __init__(self, Ld_base, omega_max, dubins_step,
                  cte_kp=0.0, cte_ki=0.0, cte_integral_max=10.0, heading_kp=0.0):
         self.Ld_base          = Ld_base
-        self.Ld_gain          = Ld_gain
         self.omega_max        = omega_max
         self.dubins_step      = dubins_step
         self.cte_kp           = cte_kp
         self.cte_ki           = cte_ki
         self.cte_integral_max = cte_integral_max
-        self.heading_kp       = heading_kp   # [deg/rad]
+        self.heading_kp       = heading_kp
         self._cte_integral    = 0.0
 
+    # ─────────────────────────────────────────────────────────────────────────────
     def reset(self):
         self._cte_integral = 0.0
 
+    # ─────────────────────────────────────────────────────────────────────────────
     def compute(self, robot_x, robot_y, robot_yaw, robot_v, path, cursor, dt):
-        # ── Dynamic lookahead distance ────────────────────────────────────────
-        Ld = self.Ld_base + self.Ld_gain * robot_v
 
-        # ── Find lookahead point ──────────────────────────────────────────────
         lookahead_idx = len(path) - 1
         for i in range(cursor, len(path)):
             px, py, _ = path[i]
-            if math.hypot(px - robot_x, py - robot_y) >= Ld:
+            if math.hypot(px - robot_x, py - robot_y) >= self.Ld_base:
                 lookahead_idx = i
                 break
 
@@ -81,14 +64,8 @@ class PurePursuitController:
         dist_to_target = math.hypot(lx - robot_x, ly - robot_y)
         kappa = 0.0 if dist_to_target < 0.1 else 2.0 * math.sin(alpha) / dist_to_target
 
-        # ── Pure Pursuit base command (rad/s) ─────────────────────────────────
         omega_pp = robot_v * kappa
 
-        # ── Feedforward from Dubins path curvature (rad/s) ────────────────────
-        # Reads the heading derivative at the lookahead point to anticipate turns.
-        ff_omega = 0.0
-
-        # ── Cross-track error (CTE) on the current path segment ───────────────
         x1, y1, _ = path[cursor]
         x2, y2, _ = path[min(cursor + 1, len(path) - 1)]
         dx, dy    = x2 - x1, y2 - y1
@@ -99,43 +76,29 @@ class PurePursuitController:
             t = max(0.0, min(1.0, t))
             foot_x = x1 + t * dx
             foot_y = y1 + t * dy
-            # Normal vector pointing to the left of the path direction
             nx = -dy / seg_len
             ny =  dx / seg_len
             cross_error = (robot_x - foot_x) * nx + (robot_y - foot_y) * ny
 
-        # ── CTE integral — always active, including in curves ─────────────────
-        # Never freezing the integral ensures that persistent external forces
-        # (wind, current) are compensated regardless of path curvature.
         self._cte_integral = max(
             -self.cte_integral_max,
             min(self.cte_integral_max, self._cte_integral + cross_error * dt)
         )
 
-        # CTE proportional + integral correction (degrees)
-        # cte_kp [deg/m] : immediate correction proportional to lateral offset
-        # cte_ki [deg/(m·s)] : slow correction that cancels steady-state drift
         omega_cte_deg = -(self.cte_kp * cross_error + self.cte_ki * self._cte_integral)
 
-        # ── Heading alignment with the path ───────────────────────────────────
-        # Pure Pursuit alone can leave a residual heading error (especially in
-        # curves or under side-forces). This term drives the robot heading toward
-        # the path tangent at the cursor position.
         _, _, path_yaw = path[cursor]
         heading_error = math.atan2(math.sin(path_yaw - robot_yaw),
                                    math.cos(path_yaw - robot_yaw))
-        # heading_kp [deg/rad]: proportional gain on heading error
         omega_heading_deg = self.heading_kp * heading_error
 
-        # ── Total omega (degrees) ─────────────────────────────────────────────
-        omega_deg = math.degrees(omega_pp + ff_omega) + omega_cte_deg + omega_heading_deg
+        omega_deg = math.degrees(omega_pp) + omega_cte_deg + omega_heading_deg
         omega_deg = max(-self.omega_max, min(self.omega_max, omega_deg))
 
         return omega_deg, lookahead_idx
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Action
+
 # ─────────────────────────────────────────────────────────────────────────────
 class EvoloMovePath:
 
@@ -149,24 +112,25 @@ class EvoloMovePath:
         self._node = node
 
         self._node.declare_parameters(namespace='', parameters=[
-            ('v_min',              rclpy.Parameter.Type.DOUBLE),
-            ('v_max',              rclpy.Parameter.Type.DOUBLE),
+            ('speed_slow',         rclpy.Parameter.Type.DOUBLE),
+            ('speed_standard',     rclpy.Parameter.Type.DOUBLE),
+            ('speed_fast',         rclpy.Parameter.Type.DOUBLE),
             ('omega_max',          rclpy.Parameter.Type.DOUBLE),
             ('ld_base',            rclpy.Parameter.Type.DOUBLE),
-            ('ld_gain',            rclpy.Parameter.Type.DOUBLE),
             ('min_turning_radius', rclpy.Parameter.Type.DOUBLE),
             ('dubins_step',        rclpy.Parameter.Type.DOUBLE),
             ('timeout',            rclpy.Parameter.Type.DOUBLE),
             ('frame_id',           rclpy.Parameter.Type.STRING),
-            ('cte_kp',             rclpy.Parameter.Type.DOUBLE),   # proportional CTE gain
+            ('cte_kp',             rclpy.Parameter.Type.DOUBLE),
             ('cte_ki',             rclpy.Parameter.Type.DOUBLE),
             ('cte_integral_max',   rclpy.Parameter.Type.DOUBLE),
-            ('heading_kp',         rclpy.Parameter.Type.DOUBLE),   # heading alignment gain
+            ('heading_kp',         rclpy.Parameter.Type.DOUBLE),
             ('dubins_mode',        rclpy.Parameter.Type.STRING),
         ])
 
-        self.V_MIN               = self._node.get_parameter('v_min').value
-        self.V_MAX               = self._node.get_parameter('v_max').value
+        self.SPEED_SLOW          = self._node.get_parameter('speed_slow').value
+        self.SPEED_STANDARD      = self._node.get_parameter('speed_standard').value
+        self.SPEED_FAST          = self._node.get_parameter('speed_fast').value
         self.OMEGA_MAX           = self._node.get_parameter('omega_max').value
         self.MIN_TURNING_RADIUS  = self._node.get_parameter('min_turning_radius').value
         self.DUBINS_STEP         = self._node.get_parameter('dubins_step').value
@@ -176,7 +140,6 @@ class EvoloMovePath:
 
         self.controller = PurePursuitController(
             Ld_base          = self._node.get_parameter('ld_base').value,
-            Ld_gain          = self._node.get_parameter('ld_gain').value,
             omega_max        = self.OMEGA_MAX,
             dubins_step      = self.DUBINS_STEP,
             cte_kp           = self._node.get_parameter('cte_kp').value,
@@ -224,29 +187,92 @@ class EvoloMovePath:
         sub_cbg = ReentrantCallbackGroup()
 
         self.dubins_path_pub = self._node.create_publisher(Path, "rviz/planned_path", 10, callback_group=pub_cbg)
-        self.speed_pub = self._node.create_publisher(TwistStamped, 'evolo/evolo_cmd', 10, callback_group=pub_cbg)
-        self.robot_sub = self._node.create_subscription(Odometry, 'evolo/smarc/odom', self.robot_odom_callback, 10, callback_group=sub_cbg)
-        # self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10,callback_group=self.subscriber_callback_group)
-        # self.speed_pub       = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED,    10, callback_group=self.publisher_callback_group)
-        # Subscriber geofence polygons
-        self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons', self._geofence_polygons_callback, 10,)
-        
+        self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10, callback_group=sub_cbg)
+        self.speed_pub = self._node.create_publisher(Odometry, evoloTopics.EVOLO_CONTROL_SETPOINT, 10, callback_group=pub_cbg)
+        self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, smarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10, callback_group=sub_cbg)
+
+        self._waraps_feedback_pub = self._node.create_publisher(String, 'waraps/current_waypoint', 10, callback_group=pub_cbg)
+
         self._node.get_logger().info("EvoloMovePath started")
 
-    # ── Goal / Cancel ─────────────────────────────────────────────────────────
-    def _on_goal_received(self, goal_request: dict) -> bool:
+    # ─────────────────────────────────────────────────────────────────────────
+    def _publish_waraps_feedback(self, payload: dict) -> None:
         try:
-            self.speed_kn = float(goal_request['speed'])
-        except (ValueError, TypeError):
-            self.speed_kn = 10.0
+            msg = String()
+            msg.data = json.dumps(payload)
+            self._waraps_feedback_pub.publish(msg)
+        except Exception as e:
+            self._node.get_logger().error(f"[WARAPS] Error : {e}")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def _geofence_polygons_callback(self, msg: GeofencePolygonsStamped):
+        if not msg.islands:
+            return
+
+        try:
+            if not self._tf_buffer.can_transform(
+                    self.frame_id, msg.header.frame_id, Time(seconds=0),
+                    timeout=Duration(seconds=0, nanoseconds=100_000_000)):
+                return
+            tf = self._tf_buffer.lookup_transform(
+                self.frame_id, msg.header.frame_id,
+                Time(seconds=0), timeout=Duration(seconds=1))
+        except Exception as e:
+            self._node.get_logger().warn(f'[Geofence] TF: {e}')
+            return
+
+        from tf2_geometry_msgs import do_transform_point
+        from geometry_msgs.msg import PointStamped
+
+        def _tr(pt):
+            ps = PointStamped()
+            ps.header = msg.header
+            ps.point.x, ps.point.y, ps.point.z = pt.x, pt.y, pt.z
+            try:
+                out = do_transform_point(ps, tf)
+                return (out.point.x, out.point.y)
+            except Exception:
+                return None
+
+        islands_local = []
+        for polygon in msg.islands:
+            pts = [_tr(p) for p in polygon.points]
+            pts = [p for p in pts if p is not None]
+            if len(pts) >= 3:
+                islands_local.append(pts)
+
+        if not islands_local:
+            self._node.get_logger().warn('[Geofence] No valid polygons after TF')
+            return
+
+        geofence_just_arrived = False
+        if geofence_just_arrived and self.dubins_path is not None:
+            self._node.get_logger().warn('[Geofence] Path planned without avoidance — invalidating')
+            self.dubins_path    = None
+            self.wp_end_indices = None
+            self.path_cursor    = 0
+            self.controller.reset()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def _on_goal_received(self, goal_request: dict) -> bool:
+        raw_speed = goal_request.get('speed', 'standard')
+        if isinstance(raw_speed, (int, float)):
+            self.speed_kn = float(raw_speed)
+        elif raw_speed == 'slow':
+            self.speed_kn = self.SPEED_SLOW
+        elif raw_speed == 'fast':
+            self.speed_kn = self.SPEED_FAST
+        else:
+            self.speed_kn = self.SPEED_STANDARD
 
         waypoints = goal_request.get('waypoints', [])
         if not waypoints:
             return False
 
-        self.target_list    = []
-        self.dubins_path    = None
-        self.wp_end_indices = None
+        self.target_list        = []
+        self.target_list_latlon = []
+        self.dubins_path        = None
+        self.wp_end_indices     = None
 
         for wp_params in waypoints:
             lat  = float(wp_params['latitude'])
@@ -256,6 +282,7 @@ class EvoloMovePath:
             if pose is None:
                 return False
             self.target_list.append(self.WP(p=pose, tol=tol, speed_kn=self.speed_kn))
+            self.target_list_latlon.append({'latitude': lat, 'longitude': lon})
             self._node.get_logger().info(
                 f"  WP{len(self.target_list)}: "
                 f"({pose.pose.position.x:.1f}, {pose.pose.position.y:.1f})"
@@ -267,10 +294,12 @@ class EvoloMovePath:
         ]
         return True
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _on_cancel_received(self) -> bool:
         self._send_stop()
         return True
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _prepare_loop(self) -> None:
         self.action_started_time    = int(self._node.get_clock().now().nanoseconds * 1e-9)
         self.dubins_path            = None
@@ -283,7 +312,7 @@ class EvoloMovePath:
         self._prev_omega            = 0.0
         self.controller.reset()
 
-    # ── Main loop ─────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _loop_inner(self) -> bool | None:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         if time_now - self.action_started_time > self.timeout:
@@ -295,7 +324,7 @@ class EvoloMovePath:
 
         robot_pos = self.robot_position.pose.position
 
-        # ── Distance travelled ────────────────────────────────────────────────
+        # distance
         if self._last_robot_pos is not None:
             self._distance_travelled += math.hypot(
                 robot_pos.x - self._last_robot_pos[0],
@@ -303,30 +332,41 @@ class EvoloMovePath:
             )
         self._last_robot_pos = (robot_pos.x, robot_pos.y)
 
-        # ── Plan once ─────────────────────────────────────────────────────────
         if self.dubins_path is None:
             if not self._plan_global_dubins():
                 return None
 
         path = self.dubins_path
 
-        # ── Cursor: small fixed window to prevent cross-loop jumps ────────────
-        # At v=14 m/s and 10 Hz → ~1.4 m/tick ≈ 3 pts/tick (step=0.5 m).
-        # A 40-point window (20 m) is wide enough to advance but too narrow
-        # to accidentally skip an entire Dubins arc.
         WINDOW     = 40
         search_end = min(len(path), self.path_cursor + WINDOW)
         candidate  = self._find_closest(robot_pos, self.path_cursor, search_end)
         self.path_cursor = max(self.path_cursor, candidate)
         self.path_cursor = min(self.path_cursor, len(path) - 1)
 
-        # ── End of path ───────────────────────────────────────────────────────
+        # WARAPS
+        if self.wp_end_indices is not None:
+            try:
+                wp_current_idx = len(self.wp_end_indices) - 1
+                for i, end_idx in enumerate(self.wp_end_indices):
+                    if self.path_cursor <= end_idx:
+                        wp_current_idx = i
+                        break
+                latlon = self.target_list_latlon[wp_current_idx]
+                self._publish_waraps_feedback({
+                    'index':     wp_current_idx,
+                    'latitude':  latlon['latitude'],
+                    'longitude': latlon['longitude'],
+                })
+            except Exception:
+                pass
+
+        # end 
         if self.path_cursor >= len(path) - 1:
             self._node.get_logger().info("End of Dubins path reached")
             self._send_stop()
             return True
 
-        # ── Precision metric (lateral distance to path) ───────────────────────
         cx, cy, cyaw = path[self.path_cursor]
         dx = robot_pos.x - cx
         dy = robot_pos.y - cy
@@ -335,10 +375,10 @@ class EvoloMovePath:
         if dist_to_curve < 1.0:
             self._precision_ticks_close += 1
 
-        # ── Speed ─────────────────────────────────────────────────────────────
-        v = max(self.V_MIN, min(self.V_MAX, self.speed_kn))
+        # speed
+        v = self.speed_kn
 
-        # ── Controller ────────────────────────────────────────────────────────
+        # control
         omega, _ = self.controller.compute(
             robot_x   = float(robot_pos.x),
             robot_y   = float(robot_pos.y),
@@ -349,22 +389,28 @@ class EvoloMovePath:
             dt        = 0.1,
         )
 
-        # ── Slew-rate limiter (prevents abrupt rudder jumps) ──────────────────
-        MAX_DELTA      = 4.0   # deg/tick
+        MAX_DELTA      = 4.0
         omega_smoothed = self._prev_omega + max(-MAX_DELTA, min(MAX_DELTA, omega - self._prev_omega))
         self._prev_omega = omega_smoothed
 
-        # ── Publish ───────────────────────────────────────────────────────────
-        cmd                 = TwistStamped()
-        cmd.header.stamp    = self._node.get_clock().now().to_msg()
-        cmd.header.frame_id = self.frame_id
-        cmd.twist.linear.x  = v
-        cmd.twist.angular.z = omega_smoothed
+        commanded_yaw = self.current_yaw + math.radians(omega_smoothed)
+        q = tf_transformations.quaternion_from_euler(0, 0, commanded_yaw)
+
+        cmd                         = Odometry()
+        cmd.header.stamp            = self._node.get_clock().now().to_msg()
+        cmd.header.frame_id         = self.frame_id
+        cmd.child_frame_id          = "evolo/base_link"
+        cmd.pose.pose.orientation.x = q[0]
+        cmd.pose.pose.orientation.y = q[1]
+        cmd.pose.pose.orientation.z = q[2]
+        cmd.pose.pose.orientation.w = q[3]
+        cmd.twist.twist.linear.x    = v
+        cmd.twist.twist.angular.z   = omega_smoothed
         self.speed_pub.publish(cmd)
 
         return None
 
-    # ── Dubins global planner ─────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────────
     def _plan_global_dubins(self) -> bool:
         if self.current_yaw is None:
             return False
@@ -372,7 +418,6 @@ class EvoloMovePath:
         robot_pos = self.robot_position.pose.position
         full_path, wp_ends = [], []
 
-        # Build the flat list of (x, y) positions: robot + all target waypoints
         positions = [(robot_pos.x, robot_pos.y)]
         for wp in self.target_list:
             positions.append((wp.p.pose.position.x, wp.p.pose.position.y))
@@ -380,7 +425,6 @@ class EvoloMovePath:
         R = self.MIN_TURNING_RADIUS
         n = len(positions)
 
-        # Build the list of Dubins states (x, y, heading)
         states = [(positions[0][0], positions[0][1], self.current_yaw)]
         real_wp_state_indices = []
 
@@ -389,20 +433,11 @@ class EvoloMovePath:
             prev = positions[i - 1]
 
             if self.DUBINS_MODE == 'vwp':
-                # Heading arriving at the current waypoint
                 h_in = math.atan2(curr[1] - prev[1], curr[0] - prev[0])
 
                 if i == n - 1:
-                    # ── Last waypoint ─────────────────────────────────────────
-                    # Stop exactly here; do NOT add a virtual exit waypoint.
-                    # The old code used h_exit = h_in + π which forced Dubins
-                    # to generate an unnecessary U-turn loop at the end.
                     states.append((curr[0], curr[1], h_in))
                 else:
-                    # ── Intermediate waypoint ─────────────────────────────────
-                    # Place a virtual waypoint (vwp) one turning-radius ahead
-                    # in the incoming direction to ensure the robot passes
-                    # through the real waypoint smoothly.
                     vwp = (curr[0] + R * math.cos(h_in),
                            curr[1] + R * math.sin(h_in))
                     nxt      = positions[i + 1]
@@ -421,7 +456,6 @@ class EvoloMovePath:
 
             real_wp_state_indices.append(len(states) - 1)
 
-        # Generate Dubins segments between consecutive states
         for i in range(len(states) - 1):
             s1, s2 = states[i], states[i + 1]
             w1 = Waypoint(s1[0], s1[1], math.degrees(s1[2]))
@@ -443,15 +477,30 @@ class EvoloMovePath:
         self.path_cursor           = 0
         self._last_calculated_path = full_path
         self._node.get_logger().info(f"Dubins path planned: {len(full_path)} points")
+
+        try:
+            waypoints_latlon = [
+                {
+                    'latitude':  ll['latitude'],
+                    'longitude': ll['longitude'],
+                    'tolerance': self.target_list[i].tol,
+                }
+                for i, ll in enumerate(self.target_list_latlon)
+            ]
+            self._publish_waraps_feedback({
+                'speed':     self.speed_kn,
+                'waypoints': waypoints_latlon,
+            })
+            self._node.get_logger().info(
+                f"[WARAPS] List sent ({len(waypoints_latlon)} pts)"
+            )
+        except Exception as e:
+            self._node.get_logger().error(f"[WARAPS] Error : {e}")
+
         return True
 
-    # ── Cursor helper ─────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _find_closest(self, robot_pos, start: int, end: int) -> int:
-        """
-        Score = distance + heading penalty.
-        No regressive term — higher indices are never penalised.
-        The fixed window prevents cross-loop jumps.
-        """
         path       = self.dubins_path
         yaw        = self.current_yaw or 0.0
         best_idx   = start
@@ -467,14 +516,20 @@ class EvoloMovePath:
                 best_idx   = i
         return best_idx
 
-    # ── Utilities ─────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     def _send_stop(self):
-        cmd = TwistStamped()
-        cmd.header.stamp    = self._node.get_clock().now().to_msg()
-        cmd.twist.linear.x  = 0.0
-        cmd.twist.angular.z = 0.0
+        cmd                         = Odometry()
+        cmd.header.stamp            = self._node.get_clock().now().to_msg()
+        cmd.header.frame_id         = self.frame_id
+        cmd.child_frame_id          = "evolo/base_link"
+        cmd.pose.pose.position.x    = self.robot_position.pose.position.x
+        cmd.pose.pose.position.y    = self.robot_position.pose.position.y
+        cmd.pose.pose.orientation   = self.robot_position.pose.orientation
+        cmd.twist.twist.linear.x    = 0.0
+        cmd.twist.twist.angular.z   = 0.0
         self.speed_pub.publish(cmd)
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _path_msg(self, configurations) -> Path:
         msg = Path()
         msg.header.frame_id = self.frame_id
@@ -492,30 +547,66 @@ class EvoloMovePath:
             msg.poses.append(ps)
         return msg
 
+    # ─────────────────────────────────────────────────────────────────────────
     def _give_feedback(self) -> str:
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         runtime  = time_now - self.action_started_time
         pct = (round(100.0 * self._precision_ticks_close / self._precision_ticks_total, 2)
                if self._precision_ticks_total > 0 else 0.0)
+
+        total_progress_pct = 0.0
+        wp_progress_pct    = 0.0
+        wp_current_idx     = 0
+
+        if self.dubins_path and self.wp_end_indices:
+            path_len = len(self.dubins_path)
+            cursor   = self.path_cursor
+
+            total_progress_pct = round(100.0 * cursor / max(path_len - 1, 1), 2)
+
+            wp_start_idx = 0
+            wp_end_idx   = self.wp_end_indices[0]
+
+            for i, end_idx in enumerate(self.wp_end_indices):
+                if cursor <= end_idx:
+                    wp_current_idx = i
+                    wp_start_idx   = self.wp_end_indices[i - 1] + 1 if i > 0 else 0
+                    wp_end_idx     = end_idx
+                    break
+            else:
+                wp_current_idx = len(self.wp_end_indices) - 1
+                wp_start_idx   = self.wp_end_indices[-2] + 1 if len(self.wp_end_indices) > 1 else 0
+                wp_end_idx     = self.wp_end_indices[-1]
+
+            seg_len = max(wp_end_idx - wp_start_idx, 1)
+            wp_progress_pct = round(
+                100.0 * (cursor - wp_start_idx) / seg_len, 2
+            )
+            wp_progress_pct = max(0.0, min(100.0, wp_progress_pct))
+
         self._node.get_logger().info(
             f"precision={pct}% | dist={self._distance_travelled:.1f}m"
             f" | cursor={self.path_cursor}/{len(self.dubins_path) if self.dubins_path else '?'}"
         )
+
         fb = {
             "runtime":            runtime,
             "precision_pct":      pct,
             "precision_close":    self._precision_ticks_close,
             "precision_total":    self._precision_ticks_total,
             "distance_travelled": round(self._distance_travelled, 2),
+            "total_progress_pct": total_progress_pct,
+            "wp_progress_pct":    wp_progress_pct,
+            "wp_current_idx":     wp_current_idx,
         }
-        if self._last_calculated_path is not None:
-            fb["full_path"] = self._last_calculated_path
-            self._last_calculated_path = None
+
         if hasattr(self, '_waypoints_for_client') and self._waypoints_for_client:
             fb['wps'] = self._waypoints_for_client
             self._waypoints_for_client = None
+
         return json.dumps(fb)
 
+    # ─────────────────────────────────────────────────────────────────────────
     def latlon_to_local_frame(self, point_list):
         geopoint           = GeoPoint()
         geopoint.latitude  = point_list[0]
@@ -540,6 +631,7 @@ class EvoloMovePath:
             self._node.get_logger().error(f"TF failed: {e}")
             return None
 
+    # ─────────────────────────────────────────────────────────────────────────
     def robot_odom_callback(self, msg: Odometry):
         if msg.header.frame_id == self.frame_id:
             self.robot_position        = PoseStamped()
@@ -568,10 +660,11 @@ class EvoloMovePath:
         self.current_angular_speed = msg.twist.twist.angular.z
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 def main():
     rclpy.init()
     node = Node("evolo_move_path_action_server")
-    EvoloMovePath(node, "move_path")
+    server_instance = EvoloMovePath(node, "move_path")
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:

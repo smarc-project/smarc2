@@ -28,6 +28,8 @@ setup(
         'console_scripts': [
             # Client
             'move_path_client = evolo_move_path.client:main',
+            'move_path_client_explore = evolo_move_path.client_explore:main',
+            'move_path_client_explore_obstacle = evolo_move_path.client_explore_obstacle:main',
             # Classical algorithms
             'move_path_server_a_star = evolo_move_path.evolo_move_path_server_a_star:main',
             'move_path_server_dubins_curves = evolo_move_path.evolo_move_path_server_dubins_curves:main',
@@ -35,7 +37,13 @@ setup(
             'move_path_server_dubins_curves_rrt = evolo_move_path.evolo_move_path_server_dubins_curves_rrt:main',
             'move_path_server_dubins_curves_rrt_star = evolo_move_path.evolo_move_path_server_dubins_curves_rrt_star:main',
             'move_path_server_shapely = evolo_move_path.evolo_move_path_server_shapely:main',
+            
+            'move_path_server_shapely_voronoi = evolo_move_path.evolo_move_path_server_shapely_voronoi:main',
             'move_path_server_visibility = evolo_move_path.evolo_move_path_server_visibility:main',
+            'move_path_server_dubins_explore = evolo_move_path.evolo_move_path_server_dubins_explore:main',
+            'evolo_move_path_server_odometry = evolo_move_path.evolo_move_path_server_odometry:main',
+            'evolo_move_path_server_dubins_curves_good_one = evolo_move_path.evolo_move_path_server_dubins_curves_good_one:main'
+
 
             # Geofence
             'move_path_server_geofence =  evolo_move_path.geofence_checker_evolo:main'

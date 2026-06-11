@@ -4,25 +4,24 @@
     timeout: 1200.0
 
     # Speed
-    v_min: 8.0
-    v_max: 14.0
+    speed_slow: 4.0
+    speed_standard: 5.0
+    speed_fast: 6.0
+
     omega_max: 16.0
 
     # Pure Pursuit
-    ld_base: 5.0    
+    ld_base: 7.0    
     ld_gain: 0.2  
+
+    cte_kp: 0.2
+    cte_ki: 0.02
+    cte_integral_max: 10.0
+    heading_kp: 2.0
 
     # Dubins planner
     min_turning_radius: 30.0
     dubins_step: 0.5
     dubins_mode: "vwp"  # "vwp" or "smooth"
 
-    # Cross-track error
-    cte_kp: 3.0         
-    cte_ki: 0.05         
-    cte_integral_max: 10.0  
-    heading_kp: 8.0
-
-    hard_buffer: 10.0
-    soft_buffer: 30.0
     geofence_timeout: 5.0

@@ -39,30 +39,22 @@ class EvoloMovePathClient(Node):
         self.path_pub        = self.create_publisher(Path,        'visual_path',      10)
         self.viz_pub         = self.create_publisher(MarkerArray, 'visualisation',    10)
         self.dubins_path_pub = self.create_publisher(Path,        'dubins_path',      10)
-        self.attractor_pub   = self.create_publisher(Marker,      'attractor_marker', 10)
+
         self.geofence_inside_pub  = self.create_publisher(MarkerArray, 'rviz/geofence_inside',  10)
         self.geofence_outside_pub = self.create_publisher(MarkerArray, 'rviz/geofence_outside', 10)
-        self.geopoint_pub    = self.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10)
 
         # ── Island buffer publishers ──────────────────────────────────────────
         # Soft buffer (white) — traversable, used as Dijkstra node source
-        self.island_soft_pub = self.create_publisher(
-            MarkerArray, 'rviz/island_buffer_soft', 10)
+        self.island_soft_pub = self.create_publisher(MarkerArray, 'rviz/island_buffer_soft', 10)
         # Hard buffer (orange) — absolute exclusion zone
-        self.island_hard_pub = self.create_publisher(
-            MarkerArray, 'rviz/island_buffer_hard', 10)
+        self.island_hard_pub = self.create_publisher(MarkerArray, 'rviz/island_buffer_hard', 10)
 
         # ── Subscribers ───────────────────────────────────────────────────────
-        self.gps_sub      = self.create_subscription(
-            NavSatFix, '/evolo/Lidar/gps', self._gps_callback, 10)
-        self.polygons_sub = self.create_subscription(
-            GeofencePolygonsStamped, '/smarc/geofence_polygons',
-            self._geofence_polygons_callback, 10)
-        self.odom_sub     = self.create_subscription(
-            Odometry, 'evolo/smarc/odom', self._odom_callback, 10)
+        self.polygons_sub = self.create_subscription(GeofencePolygonsStamped, '/smarc/geofence_polygons',self._geofence_polygons_callback, 10)
+        self.odom_sub     = self.create_subscription(Odometry, 'evolo/smarc/odom', self._odom_callback, 10)
 
-        self._geofence_start_client = RosActionClient(
-            self, BaseAction, 'smarc_start_geofence')
+        self._geofence_start_client = RosActionClient(self, BaseAction, 'smarc_start_geofence')
+
 
         self.robot_path_msg = Path()
         self.robot_path_msg.header.frame_id = self.frame_id
@@ -179,16 +171,6 @@ class EvoloMovePathClient(Node):
         )
 
     # ─────────────────────────────────────────────────────────────────────────
-    # GPS → GeoPoint relay
-    # ─────────────────────────────────────────────────────────────────────────
-    def _gps_callback(self, msg: NavSatFix):
-        gp = GeoPoint()
-        gp.latitude  = msg.latitude
-        gp.longitude = msg.longitude
-        gp.altitude  = msg.altitude
-        self.geopoint_pub.publish(gp)
-
-    # ─────────────────────────────────────────────────────────────────────────
     # Goal dispatch
     # ─────────────────────────────────────────────────────────────────────────
     def _send_polygons_to_geofence(self, polygons: list):
@@ -225,7 +207,7 @@ class EvoloMovePathClient(Node):
 
         goal_msg = BaseAction.Goal()
         payload = {
-            'speed': 'high',
+            'speed': 'slow',
             'waypoints': [
                 {'latitude': 58.8389422670, 'longitude': 17.6534623045, 'tolerance': 3.0},
                 {'latitude': 58.8400922670, 'longitude': 17.6540122932, 'tolerance': 3.0},
@@ -458,22 +440,6 @@ class EvoloMovePathClient(Node):
             f'[{ns}] {len(contours)} contour(s) | '
             f'{sum(len(c) for c in contours)} vertex markers published'
         )
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Attractor marker
-    # ─────────────────────────────────────────────────────────────────────────
-    def _publish_attractor(self, ax, ay):
-        m = Marker()
-        m.header.frame_id = self.frame_id
-        m.header.stamp    = self.get_clock().now().to_msg()
-        m.ns = 'attractor'; m.id = 0
-        m.type = Marker.SPHERE; m.action = Marker.ADD
-        m.pose.position.x = ax
-        m.pose.position.y = ay
-        m.pose.position.z = 1.0
-        m.scale.x = 3.0; m.scale.y = 3.0; m.scale.z = 3.0
-        m.color.r = 1.0; m.color.g = 1.0; m.color.b = 0.0; m.color.a = 0.9
-        self.attractor_pub.publish(m)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Waypoint markers
