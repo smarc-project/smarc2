@@ -39,10 +39,12 @@ class SAMSMARCPublisher(Node):
         self._create_odom_pubsub()
 
     def _utm_callback(self, msg):
-        if self.utm_frame is not None:
-            return
-        self.utm_frame = msg.data
-        self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
+        # commented out because the first ever one is almost always bad, we are in water :,)
+        # if self.utm_frame is not None:
+        #     return
+        if msg.data != self.utm_frame:
+            self.utm_frame = msg.data
+            self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
 
     def _create_tf_listener(self):
         self.odom_frame = f'{self.robot_name}/odom'
