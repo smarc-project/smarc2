@@ -819,6 +819,28 @@ class WaraPSTaskHandler:
                     task["params"] = {}
                 # merge common params into task params
                 task["params"].update(common_params)
+
+                # Custom task handling: a "custom-task" carries the real action
+                # name inside params["action-name"]. Rewrite the task name so it
+                # can be matched against the available tasks, mirroring the
+                # start-task (single task) flow.
+                if task["name"] == "custom-task":
+                    self._node.get_logger().info("WARNING: Custom task started (TST).")
+                    try:
+                        task["name"] = task["params"]["action-name"]
+                    except Exception as e:
+                        self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
+                        response_msg = {
+                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                            "com-uuid": command["com-uuid"],
+                            "response": "Rejected: Custom task missing 'action-name' in params",
+                            "response-to": command["com-uuid"]
+                        }
+                        msg = String()
+                        msg.data = json.dumps(response_msg)
+                        self._wara_ps_tst_response_pub.publish(msg)
+                        return
+
                 # add the task to the executing tasks list
                 task_dict = {
                     "task-uuid": task["task-uuid"],
