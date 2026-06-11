@@ -60,6 +60,9 @@ JSON_TRANSLATOR=False
 TWIST_VIZ=False
 UW_COM=False
 
+# ---- EXPERIMENTAL ----
+PROX_OPS=False
+
 if [[ "$(whoami)" == *"evolo"* ]]; then
     MODE="REAL" #[REAL, SIM, HITL]
 else
@@ -186,23 +189,6 @@ col(
         var(EXTERNAL_CTRL_ACTION_CMD),
         var(EMERGENCY_ACTION_CMD),
         var(DEPLOY_AT_ACTION_CMD)
-    )
-)"
-
-# Prox-ops action servers.
-LOITER_PATROL_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_loiter_patrol --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-TARGET_INTERCEPT_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_target_intercept --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-TARGET_INSPECT_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_target_inspect --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-PROX_OPS_BT_ACTION_CMD="sleep 10; ros2 run prox_ops_bt prox_ops_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-tmux_make_layout "$SESSION" Prox_ops_actions "
-col(
-    row(
-        var(PROX_OPS_BT_ACTION_CMD),
-        var(TARGET_INTERCEPT_ACTION_CMD)
-    ),
-    row(
-        var(LOITER_PATROL_ACTION_CMD),
-        var(TARGET_INSPECT_ACTION_CMD),
     )
 )"
 
@@ -525,12 +511,35 @@ if [ "$DUNE_BACKSEAT_DRIVER" = "True" ]; then
     )"
 fi
 
+########################################################################
+########################## EXPERIMENTAL ################################
+########################################################################
+if [ "$PROX_OPS" = "True" ]; then
+    # Prox-ops action servers.
+    LOITER_PATROL_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_loiter_patrol --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+    TARGET_INTERCEPT_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_target_intercept --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+    TARGET_INSPECT_ACTION_CMD="sleep 4; ros2 run prox_ops_actions evolo_target_inspect --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+    PROX_OPS_BT_ACTION_CMD="sleep 10; ros2 run prox_ops_bt prox_ops_bt --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+    tmux_make_layout "$SESSION" Prox_ops_actions "
+    col(
+        row(
+            var(PROX_OPS_BT_ACTION_CMD),
+            var(TARGET_INTERCEPT_ACTION_CMD)
+        ),
+        row(
+            var(LOITER_PATROL_ACTION_CMD),
+            var(TARGET_INSPECT_ACTION_CMD),
+        )
+    )"
+fi
+
 ZENOH_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
 
 tmux_make_layout "$SESSION" zenoh "
 col(
     var(ZENOH_CMD)
 )"
+
 
 
 # Set default window
