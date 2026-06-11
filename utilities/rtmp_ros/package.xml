@@ -5,10 +5,8 @@
   <name>rtmp_ros</name>
   <version>0.1.0</version>
   <description>Stream ROS 2 Image / CompressedImage topics to an RTMP server via GStreamer H.264.</description>
-  <maintainer email="todo@example.com">Your Name</maintainer>
+  <maintainer email="najafian@kth.se">Kaveh</maintainer>
   <license>MIT</license>
-
-  <buildtool_depend>ament_python</buildtool_depend>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
