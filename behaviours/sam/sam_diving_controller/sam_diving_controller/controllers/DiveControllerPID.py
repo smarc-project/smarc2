@@ -127,10 +127,9 @@ class DiveControllerPID(DiveControllerInterface):
 
         # Sketchy minus signs...
         #depth_setpoint *= -1
-        current_depth *= -1
+        # current_depth *= -1
 
-        depth_error = depth_setpoint - current_depth
-        
+        depth_error = depth_setpoint - current_depth      
         
         a_brake = 0.005  # m/s^2  — was 0.10; tightened to match real SAM capability
         d_eps   = 0.5   # m      — was 1.5; reduced to match final_pos_tolerance
@@ -143,7 +142,12 @@ class DiveControllerPID(DiveControllerInterface):
 
         # Choose active vs. static diving based on depth error, needed when
         # doing look ahead diving with fixed look ahead distance
+        if current_depth is not None and depth_setpoint is not None:
+            current_depth = np.abs(current_depth)
+            depth_setpoint = np.abs(depth_setpoint)
+            
         if np.abs(depth_error) <= 0.5:
+            print("Active diving")
             self._dive_mode = "Active Diving"
             pitch_setpoint = -1.0 * dive_pitch_setpoint
 
@@ -159,6 +163,7 @@ class DiveControllerPID(DiveControllerInterface):
             depth_error = depth_setpoint - current_depth
 
         else:
+            print("Static diving")
             self._dive_mode = "Static Diving"
             u_rpm = self.param['rpm_u_neutral']
             u_rpm_raw = self.param['rpm_u_neutral']
@@ -176,6 +181,8 @@ class DiveControllerPID(DiveControllerInterface):
         # Sketchy minus sign for the stern steering because we need a positive
         # steering angle when compensating for a negative pitch
         u_tv_stern = -u_tv_stern
+
+        print(f"Nacho u_vbs: {u_vbs :.3f}")
 
         self._dive_pub.set_vbs(u_vbs)
         self._dive_pub.set_lcg(u_lcg)
