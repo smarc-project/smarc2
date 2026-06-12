@@ -14,6 +14,7 @@ from tf_transformations import euler_from_quaternion
 
 from transforms3d.euler import quat2euler
 
+from evolo_msgs.msg import Topics as EvoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics
 import json
@@ -29,7 +30,6 @@ class cbf_avoidance(Node):
 
         self.update_rate = float(self.get_parameter("update_rate").value)
         self.logger.info(f"update rate: {self.update_rate}")
-        self.logger.info("Hello fromt the simulated controller!")
         self.robot_name = self.get_parameter("robot_name").value
 
         self.yaw_setpoint = None
@@ -39,7 +39,7 @@ class cbf_avoidance(Node):
         self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1)
 
         # Speed sub
-        self.create_subscription(Float32, SmarcTopics.EVOLO_SPEED_SETPOINT , self.speed_cb, 1)
+        self.create_subscription(Float32, EvoloTopics.EVOLO_SPEED_SETPOINT , self.speed_cb, 1)
 
         # Requested control input sub
         self.p = 1.0
@@ -80,10 +80,8 @@ class cbf_avoidance(Node):
         # CBF parameters
         self.is_sim = False
         self.agent_radius = 2.0
-        self.w_max = 30.0
-        self.u_max = self.w_max * np.pi / 180
-        self.w_max_virtual = 7.0
-        self.w_max_scale = self.w_max / self.w_max_virtual
+        self.w_max = 30.0 # In [deg/s]
+        self.w_max = self.w_max * np.pi / 180
 
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
@@ -213,14 +211,14 @@ class cbf_avoidance(Node):
         x = [0.0, 0.0, 0.0, self.agent_speed]
         o = [self.obst_list[obst_i, 0], self.obst_list[obst_i, 1], 0.0, 0.0]
         # Calculate abbreviations
-        r_min = x[3] / self.u_max
+        r_min = x[3] / self.w_max
         v_h = np.cos(th) * o[2] + np.sin(th) * o[3]
         if np.abs(v_h) < x[3]:
             gamma = np.arcsin(v_h / x[3])
         else:
             gamma = np.pi * 0.5
         beta = mu * (th - x[2]) - 0.5 * np.pi
-        beta = ((beta + np.pi) % (2 * np.pi)) - np.pi
+        beta = ((gamma + np.pi) % (2 * np.pi)) - gamma
 
         # Calculate h, lfh and lgh
         lfh = np.cos(th) * (np.cos(x[2]) * x[3] - o[2])
@@ -246,7 +244,7 @@ class cbf_avoidance(Node):
 
         # Check if plane is ok
         if h < 0:
-            u = mu * self.u_max
+            u = mu * self.w_max
             opt_type = False
 
         # If constraint not activated
@@ -254,8 +252,8 @@ class cbf_avoidance(Node):
             u = w_des
 
         # If constraint not possible
-        elif lfh + mu * self.u_max * lgh < -self.alpha(h):
-            u = mu * self.u_max
+        elif lfh + mu * self.w_max * lgh < -self.alpha(h):
+            u = mu * self.w_max
             opt_type = False
 
         # If optimal u exists
