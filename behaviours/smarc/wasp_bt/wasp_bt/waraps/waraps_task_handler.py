@@ -291,9 +291,15 @@ class WaraPSTaskHandler:
             return
         try:
             hb_data = json.loads(data.data)
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, TypeError) as e:
             self._node.get_logger().error(f"Failed to decode JSON from heartbeat data: {e}")
             return
+
+        # a heartbeat without an agent-uuid is useless to us; ignore it
+        if not isinstance(hb_data, dict) or hb_data.get("agent-uuid") is None:
+            self._node.get_logger().warn("Received Level 1 heartbeat without an 'agent-uuid'; ignoring")
+            return
+
         # update the WaraPS dictionary with the heartbeat data
         # log
         self._node.get_logger().info(f"Received Level 1 heartbeat. Copying agent-uuid: {hb_data['agent-uuid']}")
@@ -353,71 +359,96 @@ class WaraPSTaskHandler:
             # self._node.get_logger().info(f"Updated action server: {action_name} at {now_time}")
         
 
+    def _send_exec_response(self, com_uuid, response):
+        """
+        Publishes a simple response on the exec response topic. Centralising the
+        response shape keeps command handlers from crashing on missing keys.
+        """
+        response_msg = {
+            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+            "com-uuid": com_uuid,
+            "response": response,
+            "response-to": com_uuid,
+        }
+        msg = String()
+        msg.data = json.dumps(response_msg)
+        self._wara_ps_exec_response_pub.publish(msg)
+
+    def _send_tst_response(self, com_uuid, response):
+        """
+        Publishes a simple response on the TST response topic. Centralising the
+        response shape keeps command handlers from crashing on missing keys.
+        """
+        response_msg = {
+            "agent-uuid": self._wara_ps_dict["agent-uuid"],
+            "com-uuid": com_uuid,
+            "response": response,
+            "response-to": com_uuid,
+        }
+        msg = String()
+        msg.data = json.dumps(response_msg)
+        self._wara_ps_tst_response_pub.publish(msg)
+
     def _exec_command_cb(self, data: String):
         # this function is called when a new command is received from the MQTT broker
         # parse the command
         try:
             command = json.loads(data.data)
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, TypeError) as e:
             self._node.get_logger().error(f"The received command is not a valid JSON: {e}")
+            return
+
+        # commands must be JSON objects, otherwise we cannot index into them
+        if not isinstance(command, dict):
+            self._node.get_logger().error("Invalid command: expected a JSON object")
+            return
 
         self._node.get_logger().info(f"Received command: {command}")
 
+        # a command without a 'command' key is meaningless; bail out gracefully
+        if command.get("command") is None:
+            self._node.get_logger().error("Invalid command: missing 'command' key")
+            return
+
+        # Dispatch under a safety net so a single malformed command can never crash the node
+        try:
+            self._handle_exec_command(command)
+        except Exception as e:
+            self._node.get_logger().error(f"Error while handling exec command '{command.get('command')}': {e}")
+        return
+
+    def _handle_exec_command(self, command: dict):
+        command_type = command["command"]
+        com_uuid = command.get("com-uuid", "")
+
         # Refuse starts or signals if emergency flag is up
-        if (self.emergency_flag) and command["command"] in ["start-task"]:
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command.get("com-uuid", ""),
-                "response": "rejected: emergency flag is up",
-                "response-to": command.get("com-uuid", "")
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_exec_response_pub.publish(msg)
+        if (self.emergency_flag) and command_type in ["start-task"]:
+            self._send_exec_response(com_uuid, "rejected: emergency flag is up")
             self._node.get_logger().warn("Rejected start command due to emergency flag.")
             return
-        
+
         # refuse start or signal if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-task"]:
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command.get("com-uuid", ""),
-                "response": "rejected: vehicle health status is not ok",
-                "response-to": command.get("com-uuid", "")
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_exec_response_pub.publish(msg)
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command_type in ["start-task"]:
+            self._send_exec_response(com_uuid, "rejected: vehicle health status is not ok")
             self._node.get_logger().warn(f"Rejected start command due to vehicle health status: {self.health_status}.")
             return
 
         # handle ping command
-        if command["command"] == "ping":
-            # check if the command is valid
-            if "com-uuid" not in command:
-                self._node.get_logger().error("Invalid ping command: missing 'com-uuid' key")
-                return
-            # publish the response
-            pong_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command["com-uuid"],
-                "response": "pong",
-                "response-to": command["com-uuid"]
-            }
-
-            msg = String()
-            msg.data = json.dumps(pong_msg)
-            self._wara_ps_exec_response_pub.publish(msg)
+        if command_type == "ping":
+            self._send_exec_response(com_uuid, "pong")
             self._node.get_logger().info('Published Ping response message')
 
         # handle signal-task command
-        elif command["command"] == "signal-task":
+        elif command_type == "signal-task":
             # check if the command is valid
             if "task-uuid" not in command:
                 self._node.get_logger().error("Invalid signal-task command: missing 'task-uuid' key")
+                self._send_exec_response(com_uuid, "task not found")
+                return
 
+            signal = command.get("signal")
             status_msg = "task not found"
-            
+
             if command["task-uuid"] not in [task["task-uuid"] for task in self.tasks_executing]:
                 self._node.get_logger().error("Invalid signal-task command: task not found in executing tasks")
                 status_msg = "task not in current tasks"
@@ -426,25 +457,25 @@ class WaraPSTaskHandler:
                 status_msg = "ok"
                 # what is the signal asking for? options: enough, pause, continue, abort
 
-                if command["signal"] == WaraPSCommandSignals.ABORT.value:
+                if signal == WaraPSCommandSignals.ABORT.value:
                     # abort the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
                             task["status"] = WaraPSTaskStates.ABORTED.value
                             break
-                elif command["signal"] == WaraPSCommandSignals.ENOUGH.value:
+                elif signal == WaraPSCommandSignals.ENOUGH.value:
                     # enough of the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
                             task["status"] = WaraPSTaskStates.ENOUGH.value
                             break
-                elif command["signal"] == WaraPSCommandSignals.PAUSE.value:
+                elif signal == WaraPSCommandSignals.PAUSE.value:
                     # pause the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"]:
                             task["status"] = WaraPSTaskStates.PAUSED.value
                             break
-                elif command["signal"] == WaraPSCommandSignals.CONTINUE.value:
+                elif signal == WaraPSCommandSignals.CONTINUE.value:
                     # continue the task
                     for task in self.tasks_executing:
                         if task["task-uuid"] == command["task-uuid"] and task["status"] == WaraPSTaskStates.PAUSED.value:
@@ -452,11 +483,11 @@ class WaraPSTaskHandler:
                             break
 
             valid_signals = [s.value for s in WaraPSCommandSignals]
-            if command["signal"] not in valid_signals:
+            if signal not in valid_signals:
                 self._node.get_logger().error("Invalid signal-task command: invalid signal")
                 status_msg = "invalid signal"
 
-            if command["signal"] in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
+            if signal in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
                 # remove the task from the executing tasks list
                 for i in range(len(self.tasks_executing)):
                     task = self.tasks_executing[i]
@@ -466,23 +497,15 @@ class WaraPSTaskHandler:
                         self.aborted_flag = True
                         break
 
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command["com-uuid"],
-                "response": status_msg,
-                "response-to": command["com-uuid"]
-            }
-            
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_exec_response_pub.publish(msg)
+            self._send_exec_response(com_uuid, status_msg)
             self._node.get_logger().info('Published Signal Task response message')
 
         # handle query-task command
-        elif command["command"] == "query-task":
+        elif command_type == "query-task":
             # check if the command is valid
             if "task-uuid" not in command:
                 self._node.get_logger().error("Invalid query-task command: missing 'task-uuid' key")
+                self._send_exec_response(com_uuid, "task not found")
                 return
             
             # check if the task is valid
@@ -493,162 +516,79 @@ class WaraPSTaskHandler:
                     status_msg = task["status"]
                     break
             
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command["com-uuid"],
-                "response": status_msg,
-                "response-to": command["com-uuid"]
-            }
-            
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_exec_response_pub.publish(msg)
+            self._send_exec_response(com_uuid, status_msg)
             self._node.get_logger().info('Published Query Task response message')
 
         # handle start-task command
-        elif command["command"] == "start-task":
-            # check if the task is valid
-            if "task" not in command:
-                self._node.get_logger().error("Invalid start-task command: missing 'task' key")
-
-                # send response
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not found",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
+        elif command_type == "start-task":
+            # check that the task is present and well-formed
+            task = command.get("task")
+            if not isinstance(task, dict) or "name" not in task:
+                self._node.get_logger().error("Invalid start-task command: missing or malformed 'task'")
+                self._send_exec_response(com_uuid, "task not found")
                 return
-            
+
+            if "task-uuid" not in command:
+                self._node.get_logger().error("Invalid start-task command: missing 'task-uuid' key")
+                self._send_exec_response(com_uuid, "task not found")
+                return
+
+            task_uuid = command["task-uuid"]
+
             # check if the task is available
-            if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
-
-                if command["task"]["name"] == "custom-task":
-                    # Custom task handling, if the task is not in the available tasks, we can still start it
-                    # This is a special case where the task is not predefined but is sent by the user
-                    self._node.get_logger().info("WARNING: Custom task started.")
-
-                    try:
-                        command["task"]["name"] = command["task"]["params"]["action-name"]
-                    except Exception as e:
-                        self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
-                        # send response
-                        response_msg = {
-                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                            "com-uuid": command["com-uuid"],
-                            "response": "task not available",
-                            "response-to": command["com-uuid"]
-                        }
-                        msg = String()
-                        msg.data = json.dumps(response_msg)
-                        self._wara_ps_exec_response_pub.publish(msg)
-                        return
-                    
-                    # check if the action name is valid
-                    if command["task"]["name"] not in [task["name"] for task in self.tasks_available]:
-                        self._node.get_logger().error("Invalid start-task command: custom task action name not available")
-                        # send response
-                        response_msg = {
-                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                            "com-uuid": command["com-uuid"],
-                            "response": "task not available",
-                            "response-to": command["com-uuid"]
-                        }
-                        msg = String()
-                        msg.data = json.dumps(response_msg)
-                        self._wara_ps_exec_response_pub.publish(msg)
-                        return
-                    
-                    # if the task is available, we can start it
-                    self._node.get_logger().info(f"Starting custom task: {command['task']['name']}")
-                    # check if the task-uuid is already in the executing tasks
-                    if any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing):
-                        self._node.get_logger().error("Invalid start-task command: task already executing")
-                        # send response
-                        response_msg = {
-                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                            "com-uuid": command["com-uuid"],
-                            "response": "task already executing",
-                            "response-to": command["com-uuid"]
-                        }
-                        msg = String()
-                        msg.data = json.dumps(response_msg)
-                        self._wara_ps_exec_response_pub.publish(msg)
-                        return
-                    # if the task is not already executing, we can start it
-                    # add the task to the executing tasks list
-                    task_dict = {
-                        "task-uuid": command["task-uuid"],
-                        "task": command["task"],
-                        "status": WaraPSTaskStates.STARTED.value,
-                        "description": command["task"]["description"] if "description" in command["task"].keys() else "",
-                    }
-                    self.tasks_executing.append(task_dict)
-
-                    # publish the feedback
-                    feedback_msg = {
-                        "agent-uuid": self.wara_ps_dict["agent-uuid"],
-                        "com-uuid": command["com-uuid"],
-                        "task-uuid": command["task-uuid"],
-                        "task": command["task"],
-                        "status": WaraPSTaskStates.STARTED.value,
-                    }
-                    msg = String()
-                    msg.data = json.dumps(feedback_msg)
-                    self._wara_ps_exec_response_pub.publish(msg)
-
-                    self._node.get_logger().info('Published Start Task response message')
-
-
-
-
-
-
-
-
-                else:
-                    # Handle invalid task types
+            if task["name"] not in [t["name"] for t in self.tasks_available]:
+                if task["name"] != "custom-task":
+                    # Not a recognised task and not a custom task: reject
                     self._node.get_logger().error("Invalid start-task command: task not available")
+                    self._send_exec_response(com_uuid, "task not available")
+                    return
 
-                    # send response
-                    response_msg = {
-                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                        "com-uuid": command["com-uuid"],
-                        "response": "task not available",
-                        "response-to": command["com-uuid"]
-                    }
-                    msg = String()
-                    msg.data = json.dumps(response_msg)
-                    self._wara_ps_exec_response_pub.publish(msg)
+                # Custom task handling: a "custom-task" carries the real action
+                # name inside params["action-name"]. Resolve it so the task can
+                # be matched against the available tasks.
+                self._node.get_logger().info("WARNING: Custom task started.")
+                try:
+                    task["name"] = task["params"]["action-name"]
+                except Exception as e:
+                    self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
+                    self._send_exec_response(com_uuid, "task not available")
+                    return
+
+                # check if the resolved action name is available
+                if task["name"] not in [t["name"] for t in self.tasks_available]:
+                    self._node.get_logger().error("Invalid start-task command: custom task action name not available")
+                    self._send_exec_response(com_uuid, "task not available")
+                    return
+
+                self._node.get_logger().info(f"Starting custom task: {task['name']}")
+
+            # the task name now resolves to an available task
+            if any(t["task-uuid"] == task_uuid for t in self.tasks_executing):
+                self._node.get_logger().error("Invalid start-task command: task already executing")
+                self._send_exec_response(com_uuid, "task already executing")
                 return
 
+            # add the task to the executing tasks list
+            task_dict = {
+                "task-uuid": task_uuid,
+                "task": task,
+                "status": WaraPSTaskStates.STARTED.value,
+                "description": task.get("description", ""),
+            }
+            self.tasks_executing.append(task_dict)
 
-            if not any(task["task-uuid"] == command["task-uuid"] for task in self.tasks_executing): # if this task is not already executing
-                # add the task to the executing tasks list
-                task_dict = {
-                    "task-uuid": command["task-uuid"],
-                    "task": command["task"],
-                    "status": WaraPSTaskStates.STARTED.value,
-                    "description": command["task"]["description"] if "description" in command["task"].keys() else "",
-                }
-                self.tasks_executing.append(task_dict)
-                # self._node.get_logger().info(f"Starting task: {command['task']}")
-                # publish the feedback
-                feedback_msg = {
-                    "agent-uuid": self.wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "task-uuid": command["task-uuid"],
-                    "task": command["task"],
-                    "status": WaraPSTaskStates.STARTED.value,
-                }
-                msg = String()
-                msg.data = json.dumps(feedback_msg)
-                self._wara_ps_exec_response_pub.publish(msg)
-
-                self._node.get_logger().info('Published Start Task response message')
+            # publish the feedback
+            feedback_msg = {
+                "agent-uuid": self._wara_ps_dict["agent-uuid"],
+                "com-uuid": com_uuid,
+                "task-uuid": task_uuid,
+                "task": task,
+                "status": WaraPSTaskStates.STARTED.value,
+            }
+            msg = String()
+            msg.data = json.dumps(feedback_msg)
+            self._wara_ps_exec_response_pub.publish(msg)
+            self._node.get_logger().info('Published Start Task response message')
 
         return
     
@@ -656,76 +596,76 @@ class WaraPSTaskHandler:
         # This function is called when a new TST command is received from the MQTT broker
         try:
             command = json.loads(data.data)
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, TypeError) as e:
             self._node.get_logger().error(f"The received TST command is not a valid JSON: {e}")
             return
-        
+
+        # commands must be JSON objects, otherwise we cannot index into them
+        if not isinstance(command, dict):
+            self._node.get_logger().error("Invalid TST command: expected a JSON object")
+            return
+
         self._node.get_logger().info(f"Received TST command: {command}")
 
-        # Refuse starts or signals if emergency flag is up
-        if self.emergency_flag and command["command"] in ["start-tst"]:
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command.get("com-uuid", ""),
-                "response": "rejected: emergency flag is up",
-                "response-to": command.get("com-uuid", "")
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_tst_response_pub.publish(msg)
-            self._node.get_logger().warn("Rejected start TST command due to emergency flag.")
-            return
-        
-        # Refuse starts or signals if health status is not ok
-        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command["command"] in ["start-tst"]:
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command.get("com-uuid", ""),
-                "response": "rejected: vehicle health status is not ok",
-                "response-to": command.get("com-uuid", "")
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_tst_response_pub.publish(msg)
-            self._node.get_logger().warn(f"Rejected start TST command due to vehicle health status: {self.health_status}.")
-            return
-
-        # check if the command is valid
-        if "command" not in command:
+        # a command without a 'command' key is meaningless; bail out gracefully
+        if command.get("command") is None:
             self._node.get_logger().error("Invalid TST command: missing 'command' key")
             return
 
-        # Example: handle signal-tst command
-        elif command["command"] == "signal-unit":
-            if "unit" not in command:
-                self._node.get_logger().error("Invalid signal-task command: missing 'unit' key")
-                return
-                
+        # Dispatch under a safety net so a single malformed command can never crash the node
+        try:
+            self._handle_tst_command(command)
+        except Exception as e:
+            self._node.get_logger().error(f"Error while handling TST command '{command.get('command')}': {e}")
+        return
 
+    def _handle_tst_command(self, command: dict):
+        command_type = command["command"]
+        com_uuid = command.get("com-uuid", "")
+
+        # Refuse starts or signals if emergency flag is up
+        if self.emergency_flag and command_type in ["start-tst"]:
+            self._send_tst_response(com_uuid, "rejected: emergency flag is up")
+            self._node.get_logger().warn("Rejected start TST command due to emergency flag.")
+            return
+
+        # Refuse starts or signals if health status is not ok
+        if (self.health_status != Topics.VEHICLE_HEALTH_READY) and command_type in ["start-tst"]:
+            self._send_tst_response(com_uuid, "rejected: vehicle health status is not ok")
+            self._node.get_logger().warn(f"Rejected start TST command due to vehicle health status: {self.health_status}.")
+            return
+
+        # handle signal-unit command
+        if command_type == "signal-unit":
+            if "unit" not in command:
+                self._node.get_logger().error("Invalid signal-unit command: missing 'unit' key")
+                return
+
+            signal = command.get("signal")
             status_msg = "ok"
-            if command["signal"] == WaraPSCommandSignals.ABORT.value:
+            if signal == WaraPSCommandSignals.ABORT.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.ABORTED.value
-            elif command["signal"] == WaraPSCommandSignals.ENOUGH.value:
+            elif signal == WaraPSCommandSignals.ENOUGH.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.ENOUGH.value
-            elif command["signal"] == WaraPSCommandSignals.PAUSE.value:
+            elif signal == WaraPSCommandSignals.PAUSE.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.PAUSED.value
-            elif command["signal"] == WaraPSCommandSignals.CONTINUE.value:
+            elif signal == WaraPSCommandSignals.CONTINUE.value:
                 for task in self.tasks_executing:
                     task["status"] = WaraPSTaskStates.RESUMED.value
-            elif command["signal"] == WaraPSCommandSignals.CANCEL_ABORT.value:
+            elif signal == WaraPSCommandSignals.CANCEL_ABORT.value:
                 self.emergency_flag = False
                 self.mission_start_time = None
                 self.mission_timeout = None
 
             valid_signals = [s.value for s in WaraPSCommandSignals]
-            if command["signal"] not in valid_signals:
+            if signal not in valid_signals:
                 self._node.get_logger().error("Invalid signal-tst command: invalid signal")
                 status_msg = "invalid signal"
 
-            if command["signal"] in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
+            if signal in [WaraPSCommandSignals.ABORT.value, WaraPSCommandSignals.ENOUGH.value]:
                 for i in range(len(self.tasks_executing)):
                     task = self.tasks_executing[0]
                     self.past_tasks.append(task)
@@ -734,88 +674,61 @@ class WaraPSTaskHandler:
                 # raise aborted flag
                 self.aborted_flag = True
 
-                if command["signal"] == WaraPSCommandSignals.ABORT.value:
+                if signal == WaraPSCommandSignals.ABORT.value:
                     self.emergency_flag = True
 
-
-
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command["com-uuid"],
-                "response": status_msg,
-                "response-to": command["com-uuid"]
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_tst_response_pub.publish(msg)
+            self._send_tst_response(com_uuid, status_msg)
             self._node.get_logger().info('Published TST Signal Task response message')
 
-            
-        elif command["command"] == "start-tst": 
+        elif command_type == "start-tst": 
             # '''
             # {"receiver":"shekharu_lolo","tst":{"common-params":{"execunit":"/shekharu_lolo","node-uuid":"e5bcb11a-2c8f-48cc-94c1-747c88ab516e"},"params":{},"children":[{"description":"1","task-uuid":"03acd059-73d2-412f-8d75-f3fd2b9efac0","params":{"waypoint":{"latitude":58.850523629300554,"longitude":17.674904712183004,"target_depth":10.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"},{"description":"2","task-uuid":"c83ff631-8b63-4c69-a260-9008782ee41a","params":{"waypoint":{"latitude":58.850628267523796,"longitude":17.675200365495684,"target_depth":15.0,"min_altitude":5.0,"rpm":1000.0,"timeout":1000.0}},"name":"auv-depth-move-to"}],"tst-uuid":"0536c8e2-0d23-45e0-9434-eed663b14ec0","description":"Lolo Test","name":"seq"},"command":"start-tst","com-uuid":"fe38f852-7ff4-4f4a-bd78-62011e0fca00","sender":"UnityGUI"}
             # '''
             # check if the command is valid
-            if "tst" not in command.keys():
-                self._node.get_logger().error("Invalid start-tst command: missing 'tst' key")
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not found",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_tst_response_pub.publish(msg)
+            tst = command.get("tst")
+            if not isinstance(tst, dict):
+                self._node.get_logger().error("Invalid start-tst command: missing or malformed 'tst' key")
+                self._send_tst_response(com_uuid, "task not found")
                 return
-            
+
             # set mission command
             self.mission_command = command
-                            
-            # extract the mission timout from "params" key in tst
-            if "params" in command["tst"].keys() and "timeout" in command["tst"]["params"].keys():
-                self.mission_timeout = command["tst"]["params"]["timeout"]
+
+            # extract the mission timeout from "params" key in tst
+            params = tst.get("params")
+            if isinstance(params, dict) and "timeout" in params:
+                self.mission_timeout = params["timeout"]
             else:
                 self.mission_timeout = 1800 # default mission timeout
-            self._node.get_logger().info(f"No timeout provided. Mission timeout set to {self.mission_timeout} seconds")
+                self._node.get_logger().info(f"No timeout provided. Mission timeout set to {self.mission_timeout} seconds")
 
             # try to cast the timeout to a float, if it fails log an error and reject the command
             try:
                 self.mission_timeout = float(self.mission_timeout)
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 self._node.get_logger().error(f"Invalid mission timeout value: {e}")
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "Rejected: Mission timeout value should be a float representing seconds",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_tst_response_pub.publish(msg)
+                self._send_tst_response(com_uuid, "Rejected: Mission timeout value should be a float representing seconds")
                 return
 
             # extract the list of tasks from the command. They're the children of the tst key
-            if "children" not in command["tst"]:
-                self._node.get_logger().error("Invalid start-tst command: missing 'children' key in 'tst'")
-                response_msg = {
-                    "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                    "com-uuid": command["com-uuid"],
-                    "response": "task not found",
-                    "response-to": command["com-uuid"]
-                }
-                msg = String()
-                msg.data = json.dumps(response_msg)
-                self._wara_ps_tst_response_pub.publish(msg)
+            tasks = tst.get("children")
+            if not isinstance(tasks, list):
+                self._node.get_logger().error("Invalid start-tst command: missing or malformed 'children' key in 'tst'")
+                self._send_tst_response(com_uuid, "task not found")
                 return
 
-            common_params = command["tst"]["common-params"] if "common-params" in command["tst"].keys() else {}
-            tasks = command["tst"]["children"]
+            common_params = tst["common-params"] if isinstance(tst.get("common-params"), dict) else {}
 
             # inject common params into each tasks params
             tasks_to_start = []
             for task in tasks:
-                if "params" not in task:
+                # each child must be a well-formed task object
+                if not isinstance(task, dict) or "name" not in task or "task-uuid" not in task:
+                    self._node.get_logger().error("Invalid start-tst command: malformed task in 'children'")
+                    self._send_tst_response(com_uuid, "Rejected: malformed task in mission")
+                    return
+
+                if not isinstance(task.get("params"), dict):
                     task["params"] = {}
                 # merge common params into task params
                 task["params"].update(common_params)
@@ -830,15 +743,7 @@ class WaraPSTaskHandler:
                         task["name"] = task["params"]["action-name"]
                     except Exception as e:
                         self._node.get_logger().error(f"Failed to extract action name from custom task params: {e}")
-                        response_msg = {
-                            "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                            "com-uuid": command["com-uuid"],
-                            "response": "Rejected: Custom task missing 'action-name' in params",
-                            "response-to": command["com-uuid"]
-                        }
-                        msg = String()
-                        msg.data = json.dumps(response_msg)
-                        self._wara_ps_tst_response_pub.publish(msg)
+                        self._send_tst_response(com_uuid, "Rejected: Custom task missing 'action-name' in params")
                         return
 
                 # add the task to the executing tasks list
@@ -846,21 +751,13 @@ class WaraPSTaskHandler:
                     "task-uuid": task["task-uuid"],
                     "task": task,
                     "status": WaraPSTaskStates.STARTED.value,
-                    "description": task["description"] if "description" in task.keys() else "",
+                    "description": task.get("description", ""),
                 }
 
                 # check that the tasks are all available on the vehicle
                 if task["name"] not in [t["name"] for t in self.tasks_available]:
                     self._node.get_logger().error(f"Invalid start-tst command: task {task['name']} not available")
-                    response_msg = {
-                        "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                        "com-uuid": command["com-uuid"],
-                        "response": f"Rejected: Task {task['name']} not available",
-                        "response-to": command["com-uuid"]
-                    }
-                    msg = String()
-                    msg.data = json.dumps(response_msg)
-                    self._wara_ps_tst_response_pub.publish(msg)
+                    self._send_tst_response(com_uuid, f"Rejected: Task {task['name']} not available")
                     return
                 
                 tasks_to_start.append(task_dict)
@@ -871,16 +768,8 @@ class WaraPSTaskHandler:
             self.mission_start_time = self.current_time()
 
             # Publish acknowledgment that TST was accepted and queued
-            response_msg = {
-                "agent-uuid": self._wara_ps_dict["agent-uuid"],
-                "com-uuid": command.get("com-uuid", ""),
-                "response": "accepted",
-                "response-to": command.get("com-uuid", "")
-            }
-            msg = String()
-            msg.data = json.dumps(response_msg)
-            self._wara_ps_tst_response_pub.publish(msg)
-            self._node.get_logger().info(f"Published TST acceptance response for command {command.get('com-uuid', '')}")
+            self._send_tst_response(com_uuid, "accepted")
+            self._node.get_logger().info(f"Published TST acceptance response for command {com_uuid}")
 
         return        
     
