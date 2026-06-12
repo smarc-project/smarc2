@@ -37,7 +37,7 @@ tmux send-keys "sleep 2; ros2 launch lolo_description lolo_description.launch" C
 # BT, action servers etc.
 tmux new-window -t $SESSION:1 -n 'bt'
 tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE" C-m
+tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:2 -n 'servers'
