@@ -37,8 +37,9 @@
     speed_trim_limit: 150.0
     hold_rpm: 400.0               # safe rpm while waiting (still dive-floored).
 
-    # Above this |bearing - heading| a live target counts as behind/side: hold
-    # heading and ease (let the moving setpoint catch up) instead of U-turning.
+    # Telemetry only: above this |bearing - heading| the control 'reason' is
+    # tagged 'turning' (a come-about is in progress). Steering is pure pursuit
+    # (always aim at the target), so this no longer gates behaviour.
     heading_gate_deg: 60.0
 
     # Deadband radius = max(arrival_tolerance, uncertainty_deadband_k * sigma).
@@ -49,14 +50,14 @@
     leader_speed_window: 5.0
 
     # --- Dive-floor (depths in m, positive down) -------------------------
-    # LoLo needs a higher RPM to GET DOWN (dive_entry_rpm), then can hold depth
-    # at a lower RPM (dive_hold_rpm). The entry->hold switch is relative to the
-    # MISSION DEPTH (not a fixed shallow threshold), so the cheaper hold RPM only
-    # engages once she is within dive_depth_tolerance of the commanded depth -
-    # otherwise the descent gets cut short a metre or two down.
+    # LoLo needs a higher RPM to GET DOWN (dive_entry_rpm); once at depth she
+    # holds with the ordinary min_rpm. The entry->hold switch is relative to the
+    # MISSION DEPTH (not a fixed shallow threshold), so the entry floor stays on
+    # until she is within dive_depth_tolerance of the commanded depth - otherwise
+    # the descent gets cut short a metre or two down.
     submersion_min_depth: 0.5     # mission_depth above this => submersion needed.
-    dive_depth_tolerance: 1.5     # "at depth" band below mission_depth; hold RPM
-                                  # engages within it. Also the under-dive band.
+    dive_depth_tolerance: 1.5     # "at depth" band below mission_depth; entry
+                                  # floor releases within it. Also under-dive band.
     dive_warn_period: 20.0        # under-dive sustained this long (s) -> warn only.
 
     # --- Goal-JSON overridable defaults (per-mission fallback) -----------
@@ -64,9 +65,19 @@
     # here are the fallback used when the field is omitted from the goal.
     # NOTE: follow speed is bounded by the goal's min_rpm / max_rpm (RPM limits),
     # NOT by an explicit speed clamp.
-    standoff_distance: 5.0        # desired trailing gap behind the setpoint (m).
-    dive_entry_rpm: 550.0         # RPM floor while breaking the surface / diving.
-    dive_hold_rpm: 450.0          # RPM floor once submerged.
+    standoff_distance: 0.0        # desired trailing gap behind the setpoint (m).
+    # Arrival tolerance for the FINAL "move to last setpoint" leg only (m). Kept
+    # SEPARATE from (and larger than) the follow arrival_tolerance: LoLo cannot
+    # stop and has a finite turn radius, so she cannot settle on a static point -
+    # a roomy final tolerance lets her declare arrival on the first pass instead
+    # of orbiting. Does NOT affect the follow-phase deadband.
+    final_arrival_tolerance: 10.0
+    # RPM floor while breaking the surface / diving down to mission_depth. May
+    # exceed max_rpm to dive harder (a "dive boost"), bounded only by the
+    # vehicle's hard max_thruster_rpm. When max_rpm >= this, it has no extra
+    # effect (she can already use max_rpm to dive). Once at depth the floor drops
+    # back to the ordinary min_rpm.
+    dive_entry_rpm: 550.0
     # Leaders are "done" only when the fitted setpoint speed drops below this
     # (m/s). Keep it well under the leaders' cruise speed so a slow corner is not
     # mistaken for a stop (paired with setpoint_stop_tolerance / _period).

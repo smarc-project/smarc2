@@ -12,7 +12,7 @@ Mission:
                         setpoint, holding depth + min-altitude, modulating RPM
                         with a PID/bang-bang law. Fails on excessive position
                         uncertainty; succeeds when the setpoint stops moving.
-  3. MoveToLastSetpoint - settle on the last setpoint within arrival_tolerance.
+  3. MoveToLastSetpoint - settle on the last setpoint within final_arrival_tolerance.
   4. SurfaceAndReturn - delegate to auv_depth_move_to with target_depth=-1 to
                         surface and return to the start position.
 """
@@ -219,8 +219,8 @@ class LoloTuperBT:
         # these node params are the fallback when a field is omitted. Follow
         # speed itself is bounded by the goal's min_rpm / max_rpm, not a speed.
         self._standoff_distance = float(gp('standoff_distance', 5.0))
+        self._final_arrival_tolerance = float(gp('final_arrival_tolerance', 10.0))
         self._dive_entry_rpm = float(gp('dive_entry_rpm', 550.0))
-        self._dive_hold_rpm = float(gp('dive_hold_rpm', 450.0))
         # Leaders are "done" only when the fitted setpoint speed drops below
         # this (m/s) - set well under the leaders' cruise so a slow corner does
         # not read as a stop. Goal-JSON overridable.
@@ -303,6 +303,8 @@ class LoloTuperBT:
             setpoint_stop_speed=float(req.get(
                 "setpoint_stop_speed", self._setpoint_stop_speed)),
             arrival_tolerance=float(g["arrival_tolerance"]),
+            final_arrival_tolerance=float(req.get(
+                "final_arrival_tolerance", self._final_arrival_tolerance)),
             start_tolerance=float(g["start_tolerance"]),
             timeout=float(g["timeout"]),
             # Optional control knobs: goal JSON value > node param fallback.
@@ -310,8 +312,6 @@ class LoloTuperBT:
                 "standoff_distance", self._standoff_distance)),
             dive_entry_rpm=float(req.get(
                 "dive_entry_rpm", self._dive_entry_rpm)),
-            dive_hold_rpm=float(req.get(
-                "dive_hold_rpm", self._dive_hold_rpm)),
         )
 
     def _on_goal_received(self, goal_request: dict) -> bool:

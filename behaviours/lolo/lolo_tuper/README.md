@@ -28,7 +28,7 @@ flowchart TD
 
     follow --> fNote["RUNNING while following (velocity-matching)<br/>SUCCESS when setpoint stops moving<br/>FAILURE if uncertainty > max_pos_uncertainty<br/>or UKF pose stale beyond grace"]
 
-    moveLast --> mNote["Drive to last setpoint,<br/>SUCCESS within arrival_tolerance"]
+    moveLast --> mNote["Drive to last setpoint,<br/>SUCCESS within final_arrival_tolerance"]
 
     surfRet --> s1["Set move_to goal (start, target_depth=-1, max_rpm)"]
     surfRet --> s2["A_ActionClient -> auv_depth_move_to"]
@@ -57,7 +57,7 @@ flowchart TD
      `max_pos_uncertainty`.
    - Succeeds when the setpoint has stopped moving (leaders done).
 3. **MoveToLastSetpoint** - settle on the last known setpoint within
-   `arrival_tolerance` (still UKF-based, since onboard nav is unreliable
+   `final_arrival_tolerance` (still UKF-based, since onboard nav is unreliable
    underwater).
 4. **SurfaceAndReturn** - delegate to `auv_depth_move_to` with
    `target_depth = -1` to surface and return to the start position.
@@ -153,53 +153,28 @@ fields have defaults.
 | `setpoint_stop_tolerance`  | yes      | -       | m; radius the setpoint must stay within to count as stopped. |
 | `setpoint_stop_period`     | yes      | -       | s; duration of fresh in-radius samples to declare a stop. |
 | `setpoint_stop_speed`      | no       | node    | m/s; fitted setpoint speed below which (together with the radius test) the leaders count as stopped. Keep well below cruise. |
-| `arrival_tolerance`        | yes      | -       | m; radius to consider the last setpoint reached. |
+| `arrival_tolerance`        | yes      | -       | m; **follow-phase** closeness tolerance — sets the deadband floor (`deadband = max(arrival_tolerance, k·sigma)`) within which she eases to the RPM floor. Keep small (~1–2 m) for a tight follow; this does **not** affect the final settle. |
+| `final_arrival_tolerance`  | no       | node (10) | m; radius to consider the **last (stopped) setpoint** reached. Separate from (and larger than) `arrival_tolerance`: LoLo can't stop and has a finite turn radius, so she cannot sit on a static point — a roomy value lets her finish on the first pass instead of orbiting. |
 | `start_tolerance`          | yes      | -       | m; tolerance for the move_to legs. |
 | `timeout`                  | yes      | -       | s; **whole-mission** budget. The BT fails the task when it elapses and hands each move_to leg only the remaining time. Set generously (~2000 s). |
-| `min_rpm`                  | no       | 400     | Commanded RPM floor while tracking. Also the eased RPM inside the deadband / when the target is behind. The dive floor (below) can raise the *effective* floor. |
+| `min_rpm`                  | no       | 400     | Commanded RPM floor while tracking. Also the eased RPM inside the deadband / during a come-about toward a target abaft the beam, and the floor once she is at depth. The dive floor (below) can raise the *effective* floor during the descent. |
 | `max_rpm`                  | no       | 700     | RPM saturation / catch-up cap; also used for the transit (move_to) legs. **This is what bounds the follow speed** (the loop has no separate speed clamp). |
 | `max_pos_uncertainty`      | no       | 4.0     | m; fail the task if the semi-major-axis uncertainty exceeds this. |
 | `standoff_distance`        | no       | node    | m; desired trailing gap kept *behind* the moving setpoint (see Control law). `0` = sit on it. |
-| `dive_entry_rpm`           | no       | node    | RPM floor applied while LoLo is still at/near the surface and needs to break down to depth (higher). |
-| `dive_hold_rpm`            | no       | node    | RPM floor applied once submerged (lower — she stays down more cheaply than she gets down). |
+| `dive_entry_rpm`           | no       | node    | **Dive boost.** RPM floor used the whole way down (surface → mission depth) so she punches through to depth, then releases to `min_rpm` once at depth. May exceed `max_rpm` (bounded only by the vehicle's hard `max_thruster_rpm`) so you can dive faster than you cruise. If `max_rpm >= dive_entry_rpm` it has no extra effect — she can already use `max_rpm` to dive. |
 
-The last three fall back to their node-param values
-([`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml)) when omitted.
+The optional fields (`no` in the *required* column) fall back to their node-param
+values ([`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml)) when omitted.
 Precedence is **goal JSON > node param > built-in default**. Per the field team's
 guidance the loop is bounded by RPM limits (`min_rpm` / `max_rpm` / the dive
 floors), *not* by an explicit speed clamp.
 
-### Example (annotated)
+### Example (essential params only)
 
-Comments below are explanatory only — strip them for real JSON (or use the bare
-example further down).
-
-```jsonc
-{
-  // --- geometry ---
-  "start_position":   {"latitude": 58.8403858, "longitude": 17.6516642}, // start AND return point
-  "initial_setpoint": {"latitude": 58.8409250, "longitude": 17.6527070}, // bootstrap target until live UKF
-  "mission_depth": 10.0,          // m down, held through the dive
-  "min_altitude": 5.0,            // m seabed safety floor
-  // --- stop / arrival detection ---
-  "setpoint_stop_tolerance": 5.0, // m radius the setpoint must stay within ...
-  "setpoint_stop_period": 30.0,   // ... for this long to count as "leaders done"
-  "arrival_tolerance": 5.0,       // m to consider the last setpoint reached
-  "start_tolerance": 5.0,         // m tolerance for the move_to legs
-  "timeout": 2000.0,              // s whole-mission budget (BT fails on elapse; legs get the remainder)
-  // --- RPM bounds (these bound the follow speed) ---
-  "min_rpm": 400.0,               // commanded RPM floor while tracking
-  "max_rpm": 700.0,               // catch-up cap; ~1.1 m/s territory (see calibration)
-  // --- safety / following behaviour (optional; omit to use node defaults) ---
-  "max_pos_uncertainty": 4.0,     // m; fail if estimate is shakier than this
-  "setpoint_stop_speed": 0.1,     // m/s; leaders "done" only below this fitted speed
-  "standoff_distance": 5.0,       // m trailing gap behind the setpoint
-  "dive_entry_rpm": 550.0,        // RPM floor while breaking the surface / diving down
-  "dive_hold_rpm": 450.0          // RPM floor once submerged
-}
-```
-
-### Example (bare)
+The smallest valid goal: just the nine required fields. Everything else
+(`min_rpm`, `max_rpm`, `max_pos_uncertainty`, `standoff_distance`,
+`dive_entry_rpm`, `setpoint_stop_speed`, `final_arrival_tolerance`) falls back to
+the node params in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml).
 
 ```json
 {
@@ -207,25 +182,57 @@ example further down).
   "initial_setpoint": {"latitude": 58.8409250, "longitude": 17.6527070},
   "mission_depth": 10.0,
   "min_altitude": 5.0,
-  "min_rpm": 400.0,
-  "max_rpm": 700.0,
-  "max_pos_uncertainty": 4.0,
-  "standoff_distance": 5.0,
-  "dive_entry_rpm": 550.0,
-  "dive_hold_rpm": 450.0,
   "setpoint_stop_tolerance": 5.0,
   "setpoint_stop_period": 30.0,
-  "arrival_tolerance": 5.0,
+  "arrival_tolerance": 2.0,
   "start_tolerance": 5.0,
-  "timeout": 600.0
+  "timeout": 2000.0
 }
 ```
+
+### Example (all params, annotated)
+
+Every overridable knob spelled out. Comments are explanatory only — strip them
+for real JSON.
+
+```jsonc
+{
+  // --- geometry (required) ---
+  "start_position":   {"latitude": 58.8403858, "longitude": 17.6516642}, // start AND return point
+  "initial_setpoint": {"latitude": 58.8409250, "longitude": 17.6527070}, // bootstrap target until live UKF
+  "mission_depth": 10.0,          // m down, held through the dive
+  "min_altitude": 5.0,            // m seabed safety floor
+  // --- stop / arrival detection (required) ---
+  "setpoint_stop_tolerance": 5.0, // m radius the setpoint must stay within ...
+  "setpoint_stop_period": 30.0,   // ... for this long to count as "leaders done"
+  "arrival_tolerance": 2.0,       // m follow closeness (deadband floor) - keep small
+  "start_tolerance": 5.0,         // m tolerance for the move_to legs
+  "timeout": 2000.0,              // s whole-mission budget (BT fails on elapse; legs get the remainder)
+  // --- RPM bounds (optional; these bound the follow speed) ---
+  "min_rpm": 400.0,               // commanded RPM floor while tracking / at depth
+  "max_rpm": 700.0,               // catch-up + cruise cap; ~1.1 m/s territory (see calibration)
+  // --- safety / following behaviour (optional; omit to use node defaults) ---
+  "max_pos_uncertainty": 4.0,     // m; fail if estimate is shakier than this
+  "setpoint_stop_speed": 0.1,     // m/s; leaders "done" only below this fitted speed
+  "standoff_distance": 5.0,       // m trailing gap behind the setpoint (0 = sit on it)
+  "final_arrival_tolerance": 10.0,// m to consider the last (stopped) setpoint reached
+  "dive_entry_rpm": 550.0         // RPM "dive boost" floor used the whole way down;
+                                  // may exceed max_rpm (capped at the vehicle limit)
+}
+```
+
+> **Dive boost.** `dive_entry_rpm` only matters when you need to dive *harder*
+> than you cruise. If `max_rpm >= dive_entry_rpm` she already uses `max_rpm` to
+> descend, so the value is a no-op. Set `dive_entry_rpm` above `max_rpm` (e.g.
+> `max_rpm: 450`, `dive_entry_rpm: 550`) to punch down to depth, then hold at
+> `min_rpm` once there. The only hard ceiling is the vehicle's
+> `max_thruster_rpm`.
 
 Send it (note the JSON is a string inside `goal.data`):
 
 ```bash
 ros2 action send_goal /lolo/lolo_tuper smarc_msgs/action/BaseAction \
-  "{goal: {data: '{\"start_position\":{\"latitude\":58.8403858,\"longitude\":17.6516642},\"initial_setpoint\":{\"latitude\":58.8409250,\"longitude\":17.6527070},\"mission_depth\":10.0,\"min_altitude\":5.0,\"setpoint_stop_tolerance\":5.0,\"setpoint_stop_period\":30.0,\"arrival_tolerance\":5.0,\"start_tolerance\":5.0,\"timeout\":600.0}'}}" \
+  "{goal: {data: '{\"start_position\":{\"latitude\":58.8403858,\"longitude\":17.6516642},\"initial_setpoint\":{\"latitude\":58.8409250,\"longitude\":17.6527070},\"mission_depth\":10.0,\"min_altitude\":5.0,\"setpoint_stop_tolerance\":5.0,\"setpoint_stop_period\":30.0,\"arrival_tolerance\":2.0,\"start_tolerance\":5.0,\"timeout\":2000.0}'}}" \
   --feedback
 ```
 
@@ -255,13 +262,13 @@ Set in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml). These a
 | `ki_speed`                | `20.0`               | Slow integral trim on **measured** speed (RPM per (m/s . s)). |
 | `speed_trim_limit`        | `150.0`              | Clamp on the speed-trim contribution (RPM). |
 | `hold_rpm`                | `400.0`              | Safe RPM while waiting / stale (clamped not below mission `min_rpm`, then dive-floored). |
-| `heading_gate_deg`        | `60.0`               | Above this `|bearing - heading|` a *live* target is treated as behind/side: hold heading and ease (let the setpoint catch up) instead of U-turning. |
+| `heading_gate_deg`        | `60.0`               | Telemetry only: above this `|bearing - heading|` the `reason` field is tagged `turning` (a come-about is in progress). Control is pure pursuit, so this no longer gates behaviour. |
 | `uncertainty_deadband_k`  | `2.0`                | Deadband radius = `max(arrival_tolerance, k * sigma)`; ease to the RPM floor inside it. |
 | `leader_speed_window`     | `5.0`                | s; window for the least-squares leader-velocity estimate. |
 | `submersion_min_depth`    | `0.5`                | m; a `mission_depth` deeper than this means "submersion required" (engages the dive floor). |
-| `dive_depth_tolerance`    | `1.5`                | m; "at depth" band below `mission_depth`. The cheaper `dive_hold_rpm` only engages once `depth >= mission_depth - this` (entry RPM the whole way down). Also the under-dive band. |
+| `dive_depth_tolerance`    | `1.5`                | m; "at depth" band below `mission_depth`. The dive-entry floor releases (drops to `min_rpm`) only once `depth >= mission_depth - this` (entry RPM the whole way down). Also the under-dive band. |
 | `dive_warn_period`        | `20.0`               | s; under-dive watchdog trips if depth stays shallower than `mission_depth - dive_depth_tolerance` for this long (warn-only; sets the telemetry `under_dive` flag, never fails). |
-| `standoff_distance` / `dive_entry_rpm` / `dive_hold_rpm` | `5.0 / 550 / 450` | Node fallbacks for the goal-JSON-overridable knobs above. |
+| `standoff_distance` / `dive_entry_rpm` | `5.0 / 550` | Node fallbacks for the goal-JSON-overridable knobs above. |
 
 ### Control law (velocity-matching)
 
@@ -277,10 +284,8 @@ deadband     = max(arrival_tolerance, uncertainty_deadband_k * sigma)
 
 if dist <= deadband:                       # settled: don't chase estimator noise
     yaw = hold heading ; rpm = min_rpm
-elif live_follow and |heading_err| > heading_gate_deg:   # target behind/side
-    yaw = hold heading ; rpm = min_rpm     # wait, let the setpoint catch up (no U-turn)
-else:                                       # velocity matching
-    yaw      = bearing to target
+else:                                       # pure pursuit + velocity matching
+    yaw      = bearing to target            # ALWAYS steer straight at the target
     v_target = max(0, v_leader + kp_pos * (fwd_err - standoff))
     rpm      = (rpm_idle + rpm_per_mps * v_target)        # feed-forward
              + speed_trim                                  # slow ∫(v_target - v_meas)
@@ -289,13 +294,26 @@ rpm = dive_floor(rpm)                       # hysteresis: max(rpm, entry/hold fl
 rpm = clip(rpm, min_rpm, max_rpm)           # RPM bounds = the only speed bound
 ```
 
+**Why pure pursuit (and not "hold heading and wait"):** LoLo cannot stop — the
+dive floor keeps her at `min_rpm` (~0.6 m/s) the entire mission. Any heuristic
+that holds the current heading when the target is off to the side or behind has a
+lock state: she just motors *past/away* from the target forever while the
+setpoint sits on her beam, and the gap grows without bound (seen blowing up to
+100–200 m in sim). So we always steer straight at the target. The position term
+uses `fwd_err` (the along-heading projection), which is small or negative while
+she is still swinging onto the bearing, so `v_target` collapses to the floor and
+she comes about nearly in place; once pointed at the target it grows to the
+leader's speed and she closes the gap. No angle threshold, no lock state.
+
 Key behaviours:
 
 - **Steady follow:** when `fwd_err == standoff` the position term is zero, so
   `v_target == v_leader` — she paces the leader and holds the gap.
-- **Behind / caught-up:** if she gets ahead (`fwd_err < standoff`), `v_target`
-  drops below leader speed (toward `min_rpm`), so she eases and lets the setpoint
-  pull back out — no circling toward a behind/side target.
+- **Caught-up / overrun:** if she gets ahead (`fwd_err < standoff`), `v_target`
+  drops below leader speed toward `min_rpm`, so she eases off and lets the
+  setpoint pull back out. If she fully overruns (`fwd_err < 0`, target abaft the
+  beam) she turns toward it at the floor RPM — a tight, slow come-about rather
+  than a wide, fast circle.
 - **Catch-up:** far back, `v_target` is large and the feed-forward saturates at
   `max_rpm`. `max_rpm` is therefore the catch-up reserve **and** the top-speed cap.
 - **Slow trim** on measured speed (`Lolo.vx`) corrects the (non-1:1) commanded
@@ -307,7 +325,7 @@ Key behaviours:
 ### Dive-floor
 
 LoLo needs more thrust to **get down** than to **hold station** at depth. The
-follow loop can otherwise drop RPM (deadband / target-behind / hold) low enough
+follow loop can otherwise drop RPM (deadband / come-about / hold) low enough
 that she silently under-dives or surfaces while the BT still thinks she is at
 depth. So every commanded RPM is floored by a two-state machine — **switched
 relative to the mission depth, not a fixed shallow threshold**, so the descent
@@ -320,15 +338,17 @@ enter_at = mission_depth - band         # reached cruising depth
 exit_at  = mission_depth - 2*band       # fell out of it (hysteresis)
 
 descending --(depth >= enter_at)--> at_depth     floor = dive_entry_rpm (descending)
-at_depth   --(depth <  exit_at )--> descending          = dive_hold_rpm  (at_depth)
-effective floor = max(min_rpm, that floor)
+at_depth   --(depth <  exit_at )--> descending          = min_rpm       (at_depth)
+effective floor = max(min_rpm, that floor)   # capped at the vehicle max_thruster_rpm
 ```
 
 So `dive_entry_rpm` is held the **whole way down** (surface through descent) and
-the cheaper `dive_hold_rpm` only kicks in once she is within `dive_depth_tolerance`
-of the commanded depth; the `2*band` exit gives a hysteresis band so the floor
-does not chatter. A **warn-only** watchdog logs (and flags `under_dive` in
-telemetry) if she stays shallower than `mission_depth - dive_depth_tolerance` for
+releases to the ordinary `min_rpm` once she is within `dive_depth_tolerance` of
+the commanded depth; the `2*band` exit gives a hysteresis band so the floor does
+not chatter. Because the dive floor may exceed `max_rpm` (a *dive boost*, bounded
+only by the vehicle's `max_thruster_rpm`), you can descend faster than you
+cruise. A **warn-only** watchdog logs (and flags `under_dive` in telemetry) if
+she stays shallower than `mission_depth - dive_depth_tolerance` for
 `dive_warn_period` despite the floor — it never fails the mission.
 
 ---
@@ -502,10 +522,18 @@ ros2 run lolo_tuper lolo_tuper --ros-args --params-file \
 real acoustic UKF. It fakes the two estimator inputs the BT consumes:
 
 - After a configurable `warmup_seconds` (default 30 s) it starts publishing
-  `/follower/ukf/pose` from the vehicle's TRUE position (`/lolo/smarc/latlon`
-  converted to absolute UTM) plus an integrated random-walk noise, with heading
-  taken from `/lolo/smarc/odom`. Because it tracks the real (simulated) vehicle,
-  the control loop actually closes.
+  `/follower/ukf/pose`. It captures the vehicle's absolute UTM position **once**
+  at activation (from `/lolo/smarc/latlon`) as an anchor, then tracks
+  `/lolo/smarc/odom` displacement on top of it, plus an integrated random-walk
+  noise; heading also comes from odom. Because it tracks the real (simulated)
+  vehicle, the control loop actually closes.
+
+  > **Why odom, not the live latlon?** In the SMARC sim, `/lolo/smarc/latlon` is
+  > published through a Web-Mercator georeference that compresses ground motion by
+  > ~`sec(latitude)` (~1.9x at Askö), so a pose built from the live latlon crawls
+  > at roughly *half* the true hull speed and the follower can never keep up. odom
+  > tracks the real hull motion and matches `/lolo/smarc/speed`. (On the real
+  > vehicle latlon, odom, GPS and speed all agree, so this is sim-only.)
 - Simultaneously it moves `/follower/ukf/setpoint` smoothly along a trajectory
   defined by vertices, at 0.5-0.8 m/s, slowing around corners, with occasional
   sideways jumps and along-track "runaway / snap-back" glitches that mimic UKF

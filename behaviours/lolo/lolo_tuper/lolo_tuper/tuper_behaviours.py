@@ -76,6 +76,7 @@ class TuperGoal:
     setpoint_stop_period: float
     setpoint_stop_speed: float
     arrival_tolerance: float
+    final_arrival_tolerance: float
     start_tolerance: float
     timeout: float
     # Velocity-matching / dive-floor knobs (goal-JSON overridable, node fallback).
@@ -83,7 +84,6 @@ class TuperGoal:
     # NOT by an explicit speed clamp.
     standoff_distance: float
     dive_entry_rpm: float
-    dive_hold_rpm: float
 
 
 def latlon_to_utm(lat: float, lon: float) -> tuple[float, float]:
@@ -224,12 +224,12 @@ class _CourseControlBehaviour(Behaviour):
         """Hysteresis dive floor + warn-only under-dive watchdog.
 
         Returns (rpm_floor, under_dive_flag). LoLo needs a higher RPM to get
-        DOWN (dive_entry_rpm) and can hold station at a lower RPM once she is at
-        depth (dive_hold_rpm). The switch is relative to the MISSION DEPTH, not a
-        fixed shallow threshold: the cheaper hold RPM only engages once she is
-        within dive_depth_tolerance of the commanded depth, so the descent is not
-        cut short at a metre or two. Hysteresis (a 2*tolerance band) avoids
-        chatter around the threshold.
+        DOWN (dive_entry_rpm); once at depth she holds station at the ordinary
+        min_rpm. The switch is relative to the MISSION DEPTH, not a fixed shallow
+        threshold: the entry floor stays engaged until she is within
+        dive_depth_tolerance of the commanded depth, so the descent is not cut
+        short a metre or two down. Hysteresis (a 2*tolerance band) avoids chatter
+        around the threshold.
         """
         gains = self._gains
         depth = getattr(self._vehicle, 'depth', 0.0) or 0.0
@@ -249,8 +249,8 @@ class _CourseControlBehaviour(Behaviour):
             if depth >= enter_at:
                 self._submerged = True
 
-        # Entry RPM the whole way down (surface -> depth); hold RPM only at depth.
-        floor = goal.dive_hold_rpm if self._submerged else goal.dive_entry_rpm
+        # Entry RPM the whole way down (surface -> depth); ordinary min_rpm at depth.
+        floor = goal.min_rpm if self._submerged else goal.dive_entry_rpm
         floor = max(goal.min_rpm, floor)
 
         under_dive = False
@@ -271,8 +271,14 @@ class _CourseControlBehaviour(Behaviour):
     def _command(self, yaw_enu: float, rpm: float, goal: TuperGoal) -> bool:
         self._last_bearing = yaw_enu
         floor, under_dive = self._update_dive_state(goal)
-        rpm_cmd = max(float(rpm), floor)
-        rpm_cmd = min(rpm_cmd, goal.max_rpm)   # never exceed the vehicle/goal cap.
+        # Ordinary commands are capped at the mission cruise cap (max_rpm)...
+        rpm_cmd = min(float(rpm), goal.max_rpm)
+        # ...but the dive-entry floor may BOOST above max_rpm to punch down to
+        # depth when the cruise cap alone is too slow to dive. The only hard
+        # ceiling is the vehicle's thruster limit (else set_goal would reject).
+        hard_max = float(self._vehicle.limits.get('max_thruster_rpm', goal.max_rpm))
+        rpm_cmd = max(rpm_cmd, floor)
+        rpm_cmd = min(rpm_cmd, hard_max)
         rpm_cmd = max(rpm_cmd, goal.min_rpm)
         ok = self._vehicle.set_goal(
             yaw_enu=float(yaw_enu),
@@ -298,10 +304,6 @@ class _CourseControlBehaviour(Behaviour):
         })
         return True
 
-    def _wait_when_target_not_ahead(self) -> bool:
-        """True for live-following phases where the setpoint may catch up."""
-        return False
-
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
                       uncertainty: float) -> float:
         pose_xy = self._nav_pose_xy(goal)
@@ -324,11 +326,6 @@ class _CourseControlBehaviour(Behaviour):
             forward_error = dist
 
         gains = self._gains
-        # "Live" (wait-for-setpoint-to-catch-up) behaviour only applies while we
-        # are actually tracking a FRESH moving setpoint. While bootstrapping
-        # toward a static initial_setpoint (no fresh UKF setpoint) we must steer
-        # toward it instead of holding heading.
-        live = self._wait_when_target_not_ahead() and self._fs.setpoint_fresh
         v_meas = self._measured_speed()
         dt = self._dt()
         standoff = self._standoff(goal)
@@ -347,23 +344,25 @@ class _CourseControlBehaviour(Behaviour):
             self._speed_trim = 0.0
             rpm = goal.min_rpm
             reason = "deadband"
-        elif live and turn_needed:
-            # Live follow + target behind/far to the side: do NOT U-turn into the
-            # error (that only grows it). Hold heading and ease to the RPM floor
-            # so the moving setpoint catches back up.
-            yaw_cmd = heading
-            v_target = 0.0
-            self._speed_trim = 0.0
-            rpm = goal.min_rpm
-            reason = "target_behind"
         else:
-            # Velocity matching: cruise at the leader's speed, plus a light
-            # along-track correction toward the desired standoff gap. The top end
-            # is bounded by max_rpm and the floor by min_rpm in _command (the
-            # engineers prefer RPM limits over an explicit speed clamp).
+            # Pure pursuit: ALWAYS steer straight at the target. Speed is the
+            # leader's speed plus a light along-track correction toward the
+            # desired standoff gap, bounded by min/max_rpm in _command.
+            #
+            # We deliberately do NOT try to "hold heading and wait" when the
+            # target is off to the side or behind: LoLo cannot stop (the dive
+            # floor keeps her at min_rpm), so any wait-in-place heuristic just
+            # makes her motor away from the target forever. The position term
+            # uses forward_error (the along-heading projection), which is small
+            # or negative while she is still swinging onto the bearing, so
+            # v_target naturally collapses to the floor and she comes about
+            # nearly in place; once pointed at the target it grows to the
+            # leader's speed and she closes the gap.
             yaw_cmd = bearing
             v_target = max(0.0, v_leader + gains.kp_pos * (forward_error - standoff))
             rpm = self._speed_to_rpm(v_target, v_meas, dt, goal, integrate=True)
+            if turn_needed:
+                reason = "turning"
 
         self._command(yaw_cmd, rpm, goal)
         self._telemetry.update({
@@ -481,9 +480,6 @@ class FollowSetpoint(_CourseControlBehaviour):
     setpoint_stop_tolerance for setpoint_stop_period.
     """
 
-    def _wait_when_target_not_ahead(self) -> bool:
-        return True
-
     def _can_bootstrap(self) -> bool:
         return True
 
@@ -522,7 +518,7 @@ class FollowSetpoint(_CourseControlBehaviour):
 
 
 class MoveToLastSetpoint(_CourseControlBehaviour):
-    """Drive to the last known UKF setpoint and settle within arrival_tolerance.
+    """Drive to the last known UKF setpoint and settle within final_arrival_tolerance.
 
     Captures the last setpoint at initialise() so it does not keep chasing if
     new (post-stop) setpoints trickle in. Stays UKF-consistent because onboard
@@ -549,7 +545,12 @@ class MoveToLastSetpoint(_CourseControlBehaviour):
 
     def _check_exit(self, goal: TuperGoal, target_xy: tuple[float, float],
                     dist: float) -> Status | None:
-        if dist <= goal.arrival_tolerance:
+        # Use the (larger) final tolerance, NOT the follow arrival_tolerance:
+        # LoLo cannot stop (min_rpm floor) and has a finite turn radius, so she
+        # physically cannot settle on a static point - she overruns and orbits.
+        # A roomy final tolerance lets her declare arrival on the first pass
+        # instead of circling forever.
+        if dist <= goal.final_arrival_tolerance:
             self.feedback_message = f"Reached last setpoint (dist={dist:.1f}m)."
             return Status.SUCCESS
         return None
