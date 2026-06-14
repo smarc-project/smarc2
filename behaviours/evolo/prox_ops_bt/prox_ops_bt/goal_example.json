@@ -1,16 +1,3 @@
 {
-  "inspect": {
-    "timeout_s": 5.0
-  },
-  "intercept": {
-    "geofence_check_enabled": false
-  },
-  "loiter_patrol": {
-    "timeout_s": 30.0,
-    "speed": "standard",
-    "waypoints": [
-      {"latitude": 58.822943, "longitude": 17.634076},
-      {"latitude": 58.821758, "longitude": 17.634371}
-    ]
-  }
+  "json-params": "{\"inspect\":{\"timeout_s\":5.0},\"intercept\":{\"geofence_check_enabled\":false},\"loiter_patrol\":{\"timeout_s\":30.0,\"speed\":\"standard\",\"waypoints\":[{\"latitude\":58.822943,\"longitude\":17.634076},{\"latitude\":58.821758,\"longitude\":17.634371}]}}"
 }
