@@ -6,6 +6,9 @@ It fakes the two estimator outputs the BT consumes:
 
   * /follower/ukf/pose      (PoseWithCovarianceStamped, frame 'utm')
   * /follower/ukf/setpoint  (GeoPoint)
+  * /follower/ukf/delta_pos (std_msgs/Float32) - measured divergence of the
+    faked pose from the (known) truth, so the BT's divergence-failure path can
+    be exercised in sim. The pose jumps (enable_pose_jumps) drive this up.
 
 Behaviour:
   1. Do nothing for `warmup_seconds` (default 30 s).
@@ -42,6 +45,7 @@ import rclpy
 from rclpy.parameter import Parameter
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from std_msgs.msg import Float32
 from tf_transformations import euler_from_quaternion
 
 
@@ -160,6 +164,8 @@ class TuperTestNode(Node):
             PoseWithCovarianceStamped, self._pose_topic, 10)
         self._setpoint_pub = self.create_publisher(
             GeoPoint, self._setpoint_topic, 10)
+        self._delta_pos_pub = self.create_publisher(
+            Float32, self._delta_pos_topic, 10)
 
         self._dt = 1.0 / max(self._publish_rate, 1e-3)
         self.create_timer(self._dt, self._tick)
@@ -179,6 +185,7 @@ class TuperTestNode(Node):
         self._odom_topic = d('odom_topic', '/lolo/smarc/odom').value
         self._pose_topic = d('pose_topic', '/follower/ukf/pose').value
         self._setpoint_topic = d('setpoint_topic', '/follower/ukf/setpoint').value
+        self._delta_pos_topic = d('delta_pos_topic', '/follower/ukf/delta_pos').value
         self._ahead_distance_m = float(d('ahead_distance_m', 15.0).value)
 
         # Pose integrated noise (random walk: n <- (1-theta)*n + sigma*N(0,1)).
@@ -403,6 +410,12 @@ class TuperTestNode(Node):
         cov[35] = 1e6     # rot z
         msg.pose.covariance = cov
         self._pose_pub.publish(msg)
+
+        # Measured divergence of the faked estimate from the (known) truth, in
+        # metres. This is what the BT now gates on instead of the covariance, so
+        # a wrong-but-confident pose jump still trips the divergence failure.
+        delta = math.hypot(px - truth_e, py - truth_n)
+        self._delta_pos_pub.publish(Float32(data=float(delta)))
 
     # ------------------------------------------------------------- setpoint
     def _sample_glitch_interval(self) -> float:

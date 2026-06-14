@@ -10,8 +10,9 @@ Mission:
                                                 immediately if already there).
   2. FollowSetpoint   - UKF-consistent COURSE control toward the live UKF
                         setpoint, holding depth + min-altitude, modulating RPM
-                        with a PID/bang-bang law. Fails on excessive position
-                        uncertainty; succeeds when the setpoint stops moving.
+                        with a PID/bang-bang law. Fails when the estimate
+                        diverges from truth (measured delta_pos); succeeds when
+                        the setpoint stops moving.
   3. MoveToLastSetpoint - settle on the last setpoint within final_arrival_tolerance.
   4. SurfaceAndReturn - delegate to auv_depth_move_to with target_depth=-1 to
                         surface and return to the start position.
@@ -52,7 +53,7 @@ from lolo_tuper.tuper_behaviours import (
 GOAL_DEFAULTS = {
     "min_rpm": 400.0,
     "max_rpm": 700.0,
-    "max_pos_uncertainty": 4.0,
+    "max_delta_pos": 5.0,
 }
 
 
@@ -69,6 +70,7 @@ class LoloTuperBT:
             estimate_max_age=self._estimate_max_age,
             odom_topic=self._odom_topic,
             latlon_topic=self._latlon_topic,
+            delta_pos_topic=self._delta_pos_topic,
         )
 
         self._vehicle = Lolo(node=node,
@@ -93,7 +95,6 @@ class LoloTuperBT:
             speed_trim_limit=self._speed_trim_limit,
             hold_rpm=self._hold_rpm,
             heading_gate_deg=self._heading_gate_deg,
-            uncertainty_deadband_k=self._uncertainty_deadband_k,
             stale_grace_period=self._stale_grace_period,
             submersion_min_depth=self._submersion_min_depth,
             dive_depth_tolerance=self._dive_depth_tolerance,
@@ -109,8 +110,8 @@ class LoloTuperBT:
         # --- BT leaves (custom control phases) ------------------------------
         # Phase 2 and Phase 3 of the tree. These are the custom control-loop
         # behaviours (their per-tick logic lives in tuper_behaviours.py): they
-        # steer LoLo via COURSE goals, gate on uncertainty, and decide when the
-        # phase is SUCCESS/FAILURE/RUNNING. Wired into the tree in setup().
+        # steer LoLo via COURSE goals, gate on estimate divergence, and decide
+        # when the phase is SUCCESS/FAILURE/RUNNING. Wired into the tree in setup().
         self._follow = FollowSetpoint(
             "Follow setpoint", node, self._follower_state, self._vehicle,
             self._current_goal, telemetry=self._telemetry)
@@ -192,6 +193,9 @@ class LoloTuperBT:
         self._stale_grace_period = float(gp('stale_grace_period', 10.0))
         self._pose_topic = gp('pose_topic', '/follower/ukf/pose')
         self._setpoint_topic = gp('setpoint_topic', '/follower/ukf/setpoint')
+        # Measured estimate-vs-truth divergence (std_msgs/Float32). The follow
+        # loop fails the task when this exceeds the goal's max_delta_pos.
+        self._delta_pos_topic = gp('delta_pos_topic', '/follower/ukf/delta_pos')
         # Onboard nav (relative -> resolved in the robot namespace) used to
         # bootstrap toward the initial_setpoint before the UKF is live.
         self._odom_topic = gp('odom_topic', 'smarc/odom')
@@ -206,7 +210,6 @@ class LoloTuperBT:
         self._speed_trim_limit = float(gp('speed_trim_limit', 150.0))
         self._hold_rpm = float(gp('hold_rpm', 400.0))
         self._heading_gate_deg = float(gp('heading_gate_deg', 60.0))
-        self._uncertainty_deadband_k = float(gp('uncertainty_deadband_k', 2.0))
         self._leader_speed_window = float(gp('leader_speed_window', 5.0))
 
         # --- Dive-floor (node-level depth thresholds) ------------------------
@@ -297,7 +300,7 @@ class LoloTuperBT:
             min_altitude=float(g["min_altitude"]),
             min_rpm=float(g["min_rpm"]),
             max_rpm=float(g["max_rpm"]),
-            max_pos_uncertainty=float(g["max_pos_uncertainty"]),
+            max_delta_pos=float(g["max_delta_pos"]),
             setpoint_stop_tolerance=float(g["setpoint_stop_tolerance"]),
             setpoint_stop_period=float(g["setpoint_stop_period"]),
             setpoint_stop_speed=float(req.get(
@@ -421,8 +424,8 @@ class LoloTuperBT:
         s = f"Tip: {tip_str}"
         s += "\nFollower state:"
         s += f"\n pose_fresh: {fs.pose_fresh}"
-        unc = fs.uncertainty_semimajor
-        s += f"\n uncertainty(semi-major): {unc:.2f}m" if unc is not None else "\n uncertainty: ???"
+        dpos = fs.delta_pos
+        s += f"\n delta_pos: {dpos:.2f}m" if dpos is not None else "\n delta_pos: ??? (no truth)"
         s += f"\n setpoint_fresh: {fs.setpoint_fresh}"
         if self._mission_timeout is not None:
             s += (f"\n mission: {self._mission_elapsed():.0f}s / "

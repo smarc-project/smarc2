@@ -26,7 +26,7 @@ flowchart TD
     goStart --> g1["Set move_to goal (start, mission_depth, max_rpm)"]
     goStart --> g2["A_ActionClient -> auv_depth_move_to"]
 
-    follow --> fNote["RUNNING while following (velocity-matching)<br/>SUCCESS when setpoint stops moving<br/>FAILURE if uncertainty > max_pos_uncertainty<br/>or UKF pose stale beyond grace"]
+    follow --> fNote["RUNNING while following (velocity-matching)<br/>SUCCESS when setpoint stops moving<br/>FAILURE if delta_pos > max_delta_pos<br/>or UKF pose stale beyond grace"]
 
     moveLast --> mNote["Drive to last setpoint,<br/>SUCCESS within final_arrival_tolerance"]
 
@@ -42,7 +42,7 @@ flowchart TD
    - **Bootstrap (onboard nav).** Before the UKF is live, LoLo steers toward the
      goal's `initial_setpoint` using her **own** navigation (`smarc/latlon` for
      position, `smarc/odom` for ENU heading), diving toward `mission_depth` so
-     she submerges and acoustic comms / the UKF can come up. No uncertainty or
+     she submerges and acoustic comms / the UKF can come up. No divergence or
      staleness gating applies here - she is explicitly running without the UKF.
      The Unity odom frame is translation-only vs UTM, so the odom yaw is the same
      ENU heading the UTM control loop expects.
@@ -53,8 +53,11 @@ flowchart TD
      the live UKF setpoint at `mission_depth` behind a min-altitude floor.
    - After handover, a UKF dropout no longer reverts to bootstrap: it holds, then
      fails the task if the pose stays stale beyond the grace period.
-   - Fails the whole task if the position uncertainty exceeds
-     `max_pos_uncertainty`.
+   - Fails the whole task if the estimate's measured divergence from truth
+     (`/follower/ukf/delta_pos`) exceeds `max_delta_pos`. This gates on the
+     **actual** position error, not the filter's self-reported covariance, so a
+     confidently-wrong UKF still fails. When no truth (and thus no `delta_pos`)
+     is available, divergence is unknown and this check is skipped.
    - Succeeds when the setpoint has stopped moving (leaders done).
 3. **MoveToLastSetpoint** - settle on the last known setpoint within
    `final_arrival_tolerance` (still UKF-based, since onboard nav is unreliable
@@ -77,7 +80,7 @@ bearing_enu = atan2(north_setpoint - north_pose, east_setpoint - east_pose)
 ```
 
 This bearing is handed to the `Lolo` vehicle object as a **COURSE** goal
-(`yaw_enu`), so heading, distance-to-setpoint, uncertainty gating and
+(`yaw_enu`), so heading, distance-to-setpoint, divergence gating and
 stop-detection all live in one consistent UKF/UTM world with no TF lookups. The
 depth + min-altitude floor is delegated to `Lolo.control_depth()`, which already
 implements `min(goal.depth, (depth + altitude) - goal.min_altitude)` - the same
@@ -92,14 +95,18 @@ node only subscribes. `/follower/ukf/pose` is the single source of truth.
 
 | Topic (default)            | Type                                        | Used for |
 |----------------------------|---------------------------------------------|----------|
-| `/follower/ukf/pose`       | `geometry_msgs/PoseWithCovarianceStamped`   | Position (absolute UTM, frame `utm`), heading (ENU yaw in orientation `z,w`), and position uncertainty (2x2 covariance block). |
+| `/follower/ukf/pose`       | `geometry_msgs/PoseWithCovarianceStamped`   | Position (absolute UTM, frame `utm`) and heading (ENU yaw in orientation `z,w`). The covariance block is no longer used for gating. |
 | `/follower/ukf/setpoint`   | `geographic_msgs/GeoPoint`                  | Desired follower position (lat/lon). Has **no header**, so it is timestamped on arrival. |
+| `/follower/ukf/delta_pos`  | `std_msgs/Float32`                          | Measured divergence (m) of the estimate from a known truth. Drives the failure gate. Has **no header**, so it is timestamped on arrival; only published when a truth is available. |
 
 `navsatfix` is intentionally **ignored** (it is the same follower position as the
 pose, but without covariance).
 
-**Uncertainty metric:** the 1-sigma semi-major axis,
-`sqrt(largest eigenvalue([[cov0, cov1], [cov6, cov7]]))`.
+**Divergence metric:** the measured distance (m) between the UKF estimate and the
+known truth, published directly by the estimator on `/follower/ukf/delta_pos`.
+The task fails when a fresh sample exceeds `max_delta_pos`, regardless of the
+filter's self-reported covariance. A stale/absent sample means divergence is
+unknown (no truth), and the gate is skipped rather than failing.
 
 **Stop detection:** the setpoint is "stopped" (leaders done) only when, over the
 full `setpoint_stop_period` of fresh, continuously-received samples, **both**:
@@ -153,13 +160,13 @@ fields have defaults.
 | `setpoint_stop_tolerance`  | yes      | -       | m; radius the setpoint must stay within to count as stopped. |
 | `setpoint_stop_period`     | yes      | -       | s; duration of fresh in-radius samples to declare a stop. |
 | `setpoint_stop_speed`      | no       | node    | m/s; fitted setpoint speed below which (together with the radius test) the leaders count as stopped. Keep well below cruise. |
-| `arrival_tolerance`        | yes      | -       | m; **follow-phase** closeness tolerance — sets the deadband floor (`deadband = max(arrival_tolerance, k·sigma)`) within which she eases to the RPM floor. Keep small (~1–2 m) for a tight follow; this does **not** affect the final settle. |
+| `arrival_tolerance`        | yes      | -       | m; **follow-phase** closeness tolerance — the fixed deadband radius within which she eases to the RPM floor. Keep small (~1–2 m) for a tight follow; this does **not** affect the final settle. |
 | `final_arrival_tolerance`  | no       | node (10) | m; radius to consider the **last (stopped) setpoint** reached. Separate from (and larger than) `arrival_tolerance`: LoLo can't stop and has a finite turn radius, so she cannot sit on a static point — a roomy value lets her finish on the first pass instead of orbiting. |
 | `start_tolerance`          | yes      | -       | m; tolerance for the move_to legs. |
 | `timeout`                  | yes      | -       | s; **whole-mission** budget. The BT fails the task when it elapses and hands each move_to leg only the remaining time. Set generously (~2000 s). |
 | `min_rpm`                  | no       | 400     | Commanded RPM floor while tracking. Also the eased RPM inside the deadband / during a come-about toward a target abaft the beam, and the floor once she is at depth. The dive floor (below) can raise the *effective* floor during the descent. |
 | `max_rpm`                  | no       | 700     | RPM saturation / catch-up cap; also used for the transit (move_to) legs. **This is what bounds the follow speed** (the loop has no separate speed clamp). |
-| `max_pos_uncertainty`      | no       | 4.0     | m; fail the task if the semi-major-axis uncertainty exceeds this. |
+| `max_delta_pos`            | no       | 5.0     | m; fail the task if the estimate's measured divergence from truth (`/follower/ukf/delta_pos`) exceeds this. Gates on the actual error, not the covariance. Skipped when no truth is available. |
 | `standoff_distance`        | no       | node    | m; desired trailing gap kept *behind* the moving setpoint (see Control law). `0` = sit on it. |
 | `dive_entry_rpm`           | no       | node    | **Dive boost.** RPM floor used the whole way down (surface → mission depth) so she punches through to depth, then releases to `min_rpm` once at depth. May exceed `max_rpm` (bounded only by the vehicle's hard `max_thruster_rpm`) so you can dive faster than you cruise. If `max_rpm >= dive_entry_rpm` it has no extra effect — she can already use `max_rpm` to dive. |
 
@@ -172,7 +179,7 @@ floors), *not* by an explicit speed clamp.
 ### Example (essential params only)
 
 The smallest valid goal: just the nine required fields. Everything else
-(`min_rpm`, `max_rpm`, `max_pos_uncertainty`, `standoff_distance`,
+(`min_rpm`, `max_rpm`, `max_delta_pos`, `standoff_distance`,
 `dive_entry_rpm`, `setpoint_stop_speed`, `final_arrival_tolerance`) falls back to
 the node params in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml).
 
@@ -212,7 +219,7 @@ for real JSON.
   "min_rpm": 400.0,               // commanded RPM floor while tracking / at depth
   "max_rpm": 700.0,               // catch-up + cruise cap; ~1.1 m/s territory (see calibration)
   // --- safety / following behaviour (optional; omit to use node defaults) ---
-  "max_pos_uncertainty": 4.0,     // m; fail if estimate is shakier than this
+  "max_delta_pos": 5.0,           // m; fail if measured divergence from truth exceeds this
   "setpoint_stop_speed": 0.1,     // m/s; leaders "done" only below this fitted speed
   "standoff_distance": 5.0,       // m trailing gap behind the setpoint (0 = sit on it)
   "final_arrival_tolerance": 10.0,// m to consider the last (stopped) setpoint reached
@@ -263,7 +270,7 @@ Set in [`config/lolo_tuper_params.yaml`](config/lolo_tuper_params.yaml). These a
 | `speed_trim_limit`        | `150.0`              | Clamp on the speed-trim contribution (RPM). |
 | `hold_rpm`                | `400.0`              | Safe RPM while waiting / stale (clamped not below mission `min_rpm`, then dive-floored). |
 | `heading_gate_deg`        | `60.0`               | Telemetry only: above this `|bearing - heading|` the `reason` field is tagged `turning` (a come-about is in progress). Control is pure pursuit, so this no longer gates behaviour. |
-| `uncertainty_deadband_k`  | `2.0`                | Deadband radius = `max(arrival_tolerance, k * sigma)`; ease to the RPM floor inside it. |
+| `delta_pos_topic`         | `/follower/ukf/delta_pos` | Estimator divergence topic (`std_msgs/Float32`); failure gate source. |
 | `leader_speed_window`     | `5.0`                | s; window for the least-squares leader-velocity estimate. |
 | `submersion_min_depth`    | `0.5`                | m; a `mission_depth` deeper than this means "submersion required" (engages the dive floor). |
 | `dive_depth_tolerance`    | `1.5`                | m; "at depth" band below `mission_depth`. The dive-entry floor releases (drops to `min_rpm`) only once `depth >= mission_depth - this` (entry RPM the whole way down). Also the under-dive band. |
@@ -280,9 +287,9 @@ for the **leader's current speed** (feed-forward) and only trim from there.
 v_leader     = least-squares slope of the recent UKF setpoint history  (m/s)
 fwd_err      = projection of (setpoint - pose) onto LoLo's heading      (m)
 standoff     = desired trailing gap behind the setpoint                 (m)
-deadband     = max(arrival_tolerance, uncertainty_deadband_k * sigma)
+deadband     = arrival_tolerance           # fixed; NOT widened by delta_pos
 
-if dist <= deadband:                       # settled: don't chase estimator noise
+if dist <= deadband:                       # settled: don't chase estimator jitter
     yaw = hold heading ; rpm = min_rpm
 else:                                       # pure pursuit + velocity matching
     yaw      = bearing to target            # ALWAYS steer straight at the target
@@ -319,8 +326,9 @@ Key behaviours:
 - **Slow trim** on measured speed (`Lolo.vx`) corrects the (non-1:1) commanded
   `ctrl/rpm_setpoint` -> thruster-RPM gap, so `rpm_per_mps` only needs to be
   approximately right.
-- **Deadband widens with uncertainty,** so a noisy estimate produces calm
-  behaviour rather than wiggling.
+- **Deadband widens with measured divergence,** so an estimate drifting from
+  truth produces calm behaviour rather than wiggling (until it trips the
+  `max_delta_pos` failure).
 
 ### Dive-floor
 
@@ -557,8 +565,10 @@ ros2 run lolo_tuper tuper_test --ros-args \
 in simulation, this faker alongside it. Trigger the mission as usual (GUI / MQTT
 / `ros2 action send_goal`) once the faker is publishing.
 
-> Tip: set `reported_sigma` above the mission's `max_pos_uncertainty` (default
-> 4 m) to exercise the uncertainty-failure path.
+> Tip: the faker publishes a real `/follower/ukf/delta_pos` (the faked pose's
+> distance from truth). Raise `pose_jump_std` (or lower the mission's
+> `max_delta_pos`, default 5 m) so a pose jump pushes the divergence past the
+> threshold and exercises the divergence-failure path.
 
 ## Layout
 
@@ -571,7 +581,7 @@ lolo_tuper/
 └── lolo_tuper/
     ├── follower_state.py        # subscriber/holder of UKF estimates (no estimation here)
     ├── tuper_behaviours.py      # FollowSetpoint, MoveToLastSetpoint, TuperGoal, ControlGains
-    ├── tuper_test_node.py       # sim faker for /follower/ukf/pose + /follower/ukf/setpoint
+    ├── tuper_test_node.py       # sim faker for /follower/ukf/pose + /setpoint + /delta_pos
     └── lolo_tuper_bt.py         # goal handling, BT assembly, GentlerActionServer, main
 ```
 
@@ -585,7 +595,7 @@ lolo_tuper/
 
 - "Move to last setpoint" uses the UKF course-control loop (not a `move_to`
   leg), because onboard nav is unreliable underwater.
-- On an uncertainty failure the action simply aborts; there is no automatic
+- On a divergence failure the action simply aborts; there is no automatic
   emergency-surface here (left to the higher-level mission /
   `lolo_emergency_action`).
 - Pose UTM and setpoint UTM are assumed to share one UTM zone (true for a single

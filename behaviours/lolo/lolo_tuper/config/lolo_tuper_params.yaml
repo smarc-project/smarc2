@@ -18,6 +18,10 @@
     # Estimator topics (remappable).
     pose_topic: "/follower/ukf/pose"
     setpoint_topic: "/follower/ukf/setpoint"
+    # Measured estimate-vs-truth divergence (std_msgs/Float32). The follow loop
+    # fails the task when this exceeds the goal's max_delta_pos, regardless of
+    # the filter's self-reported covariance.
+    delta_pos_topic: "/follower/ukf/delta_pos"
 
     # External action server (lolo_depth_move_to) name.
     move_to_action_name: "auv_depth_move_to"
@@ -42,9 +46,10 @@
     # (always aim at the target), so this no longer gates behaviour.
     heading_gate_deg: 60.0
 
-    # Deadband radius = max(arrival_tolerance, uncertainty_deadband_k * sigma).
-    # Within the deadband we ease to the RPM floor (min_rpm) to avoid chasing.
-    uncertainty_deadband_k: 2.0
+    # Follow-phase deadband is a fixed radius = arrival_tolerance (set per-goal):
+    # within it we ease to the RPM floor (min_rpm) to avoid chasing estimator
+    # jitter. It is deliberately NOT widened by delta_pos -- that is the
+    # estimate's measured error and only drives the max_delta_pos failure gate.
 
     # Window (s) for least-squares leader (setpoint) velocity estimation.
     leader_speed_window: 5.0

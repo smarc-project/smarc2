@@ -47,7 +47,6 @@ class ControlGains:
     # Above this |bearing - heading| a live target is treated as behind/side:
     # hold heading and ease instead of U-turning into the error.
     heading_gate_deg: float
-    uncertainty_deadband_k: float
     stale_grace_period: float
     # Dive-floor (depths in m, positive down). The entry->hold switch is
     # relative to the mission depth (see _update_dive_state).
@@ -71,7 +70,9 @@ class TuperGoal:
     min_altitude: float
     min_rpm: float
     max_rpm: float
-    max_pos_uncertainty: float
+    # Fail the task if the estimate's measured divergence from truth (the
+    # delta_pos topic) exceeds this, regardless of the filter's own covariance.
+    max_delta_pos: float
     setpoint_stop_tolerance: float
     setpoint_stop_period: float
     setpoint_stop_speed: float
@@ -105,8 +106,8 @@ class _CourseControlBehaviour(Behaviour):
     """Shared base: hold depth/altitude, steer toward a target, modulate RPM.
 
     Subclasses provide the target (UTM) and the success/exit condition.
-    Returns FAILURE on excessive position uncertainty or on a UKF pose that
-    stays stale beyond the grace period.
+    Returns FAILURE on excessive estimate divergence (the measured delta_pos
+    error from truth) or on a UKF pose that stays stale beyond the grace period.
     """
 
     def __init__(self,
@@ -305,7 +306,7 @@ class _CourseControlBehaviour(Behaviour):
         return True
 
     def _drive_toward(self, target_xy: tuple[float, float], goal: TuperGoal,
-                      uncertainty: float) -> float:
+                      divergence: float) -> float:
         pose_xy = self._nav_pose_xy(goal)
         if pose_xy is None:
             self._hold(goal)
@@ -330,15 +331,18 @@ class _CourseControlBehaviour(Behaviour):
         dt = self._dt()
         standoff = self._standoff(goal)
         v_leader = self._leader_speed(goal)
-        deadband = max(goal.arrival_tolerance,
-                       gains.uncertainty_deadband_k * uncertainty)
+        # Fixed follow-phase closeness band. We deliberately do NOT widen this on
+        # delta_pos: that is the estimate's measured ERROR (a safety trip handled
+        # in update()), not its noisiness, so scaling the deadband on it would
+        # make her ease off following precisely as the estimate degrades.
+        deadband = goal.arrival_tolerance
         turn_needed = (heading is not None and
                        abs(heading_err) > math.radians(gains.heading_gate_deg))
 
         reason = None
         if dist <= deadband:
-            # Inside the arrival / uncertainty deadband: ease to the RPM floor,
-            # hold heading, let the dive floor keep her wet. Avoids chasing noise.
+            # Inside the arrival deadband: ease to the RPM floor, hold heading,
+            # let the dive floor keep her wet. Avoids chasing estimator jitter.
             yaw_cmd = heading if heading is not None else self._last_bearing
             v_target = 0.0
             self._speed_trim = 0.0
@@ -372,13 +376,13 @@ class _CourseControlBehaviour(Behaviour):
             'v_leader': round(v_leader, 2),
             'v_target': round(v_target, 2),
             'v_meas': round(v_meas, 2),
-            'sigma': round(uncertainty, 2),
+            'delta_pos': round(divergence, 2),
             'reason': reason,
         })
         self.feedback_message = (
             f"dist={dist:.1f}m hErr={math.degrees(heading_err):.0f}deg "
             f"vL={v_leader:.2f} vT={v_target:.2f} vM={v_meas:.2f} "
-            f"rpm={self._telemetry.get('rpm_cmd', 0):.0f} sigma={uncertainty:.2f}m"
+            f"rpm={self._telemetry.get('rpm_cmd', 0):.0f} delta_pos={divergence:.2f}m"
             + (f" [{reason}]" if reason else ""))
         return dist
 
@@ -418,7 +422,7 @@ class _CourseControlBehaviour(Behaviour):
         if self._bootstrap:
             # Onboard-nav bootstrap: drive toward the initial_setpoint using
             # /smarc/latlon + /smarc/odom (no UKF yet), diving on the way so
-            # acoustic comms can come up. No uncertainty/staleness gating here;
+            # acoustic comms can come up. No divergence/staleness gating here;
             # we are explicitly operating without the UKF until it shows up.
             self._stale_since = None
             target_xy = self._target(goal)
@@ -426,7 +430,7 @@ class _CourseControlBehaviour(Behaviour):
                 self._hold(goal)
                 self.feedback_message = "Bootstrap: no target available, holding."
                 return Status.RUNNING
-            self._drive_toward(target_xy, goal, uncertainty=0.0)
+            self._drive_toward(target_xy, goal, divergence=0.0)
             return Status.RUNNING
 
         # ---- UKF-driven control ----
@@ -444,12 +448,16 @@ class _CourseControlBehaviour(Behaviour):
             return Status.RUNNING
         self._stale_since = None
 
-        # 2. Uncertainty guard.
-        uncertainty = self._fs.uncertainty_semimajor
-        if uncertainty is None or uncertainty > goal.max_pos_uncertainty:
+        # 2. Divergence guard. Gate on the MEASURED error of the estimate from
+        #    truth (delta_pos), not the filter's self-reported covariance: a
+        #    confidently-wrong UKF must still fail the task. A divergence sample
+        #    is only published when a truth is available, so when it is absent we
+        #    cannot measure drift and keep going (unknown != diverged).
+        divergence = self._fs.delta_pos
+        if divergence is not None and divergence > goal.max_delta_pos:
             self.feedback_message = (
-                f"Position uncertainty {uncertainty} > "
-                f"{goal.max_pos_uncertainty}m, failing.")
+                f"UKF diverged: delta_pos {divergence:.2f}m > "
+                f"{goal.max_delta_pos}m, failing.")
             return Status.FAILURE
 
         # 3. Determine target.
@@ -460,7 +468,8 @@ class _CourseControlBehaviour(Behaviour):
             return Status.RUNNING
 
         # 4. Drive, then check exit condition.
-        dist = self._drive_toward(target_xy, goal, uncertainty)
+        dist = self._drive_toward(
+            target_xy, goal, divergence if divergence is not None else 0.0)
         exit_status = self._check_exit(goal, target_xy, dist)
         if exit_status is not None:
             return exit_status

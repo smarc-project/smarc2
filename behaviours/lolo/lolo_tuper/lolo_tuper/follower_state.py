@@ -23,6 +23,7 @@ from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from std_msgs.msg import Float32
 
 
 class FollowerState:
@@ -33,6 +34,7 @@ class FollowerState:
                  estimate_max_age: float,
                  odom_topic: str = "smarc/odom",
                  latlon_topic: str = "smarc/latlon",
+                 delta_pos_topic: str = "/follower/ukf/delta_pos",
                  stop_window_period: float = 60.0):
         self._node = node
         self._estimate_max_age = float(estimate_max_age)
@@ -41,6 +43,13 @@ class FollowerState:
         self._stop_window_period = float(stop_window_period)
 
         self._pose: PoseWithCovarianceStamped | None = None
+
+        # Measured divergence (m) of the UKF estimate from a known truth, as
+        # published by the estimator on delta_pos. Unlike the covariance, this
+        # is the ACTUAL position error, so a confidently-wrong filter still
+        # trips it. Float32 carries no stamp, so we time the reception ourselves.
+        self._delta_pos: float | None = None
+        self._delta_pos_rx_time: float | None = None
 
         self._setpoint: GeoPoint | None = None
         self._setpoint_utm: tuple[float, float] | None = None
@@ -67,6 +76,8 @@ class FollowerState:
             Odometry, odom_topic, self._odom_cb, 10)
         self._node.create_subscription(
             GeoPoint, latlon_topic, self._latlon_cb, 10)
+        self._node.create_subscription(
+            Float32, delta_pos_topic, self._delta_pos_cb, 10)
 
     # ------------------------------------------------------------------ time
     @property
@@ -88,6 +99,8 @@ class FollowerState:
         self._setpoint_utm = None
         self._setpoint_rx_time = None
         self._setpoint_history.clear()
+        self._delta_pos = None
+        self._delta_pos_rx_time = None
 
     # -------------------------------------------------------------- callbacks
     def _pose_cb(self, msg: PoseWithCovarianceStamped) -> None:
@@ -111,6 +124,10 @@ class FollowerState:
             return
         self._onboard_utm = (float(point.x), float(point.y))
         self._onboard_utm_time = self._now
+
+    def _delta_pos_cb(self, msg: Float32) -> None:
+        self._delta_pos = float(msg.data)
+        self._delta_pos_rx_time = self._now
 
     def _setpoint_cb(self, msg: GeoPoint) -> None:
         try:
@@ -214,6 +231,37 @@ class FollowerState:
             return None
         max_eig = float(max(eigvals[-1], 0.0))
         return math.sqrt(max_eig)
+
+    # --------------------------------------------------------- divergence
+    @property
+    def delta_pos_age(self) -> float | None:
+        if self._delta_pos_rx_time is None:
+            return None
+        return self._now - self._delta_pos_rx_time
+
+    @property
+    def delta_pos_fresh(self) -> bool:
+        """True only if a divergence sample arrived within estimate_max_age.
+
+        delta_pos is published only when a known truth (e.g. follower GPS) is
+        available, so it can legitimately be absent (deep dives, comms loss).
+        Callers must treat 'not fresh' as 'divergence unknown', not as zero.
+        """
+        age = self.delta_pos_age
+        if age is None:
+            return False
+        return 0.0 <= age <= self._estimate_max_age
+
+    @property
+    def delta_pos(self) -> float | None:
+        """Latest measured divergence (m) of the estimate from truth, or None.
+
+        Freshness-gated: a stale divergence sample is reported as None so a old
+        value cannot mask a current problem (or trip a false failure).
+        """
+        if self._delta_pos is None or not self.delta_pos_fresh:
+            return None
+        return self._delta_pos
 
     # ------------------------------------------------------------- setpoint
     @property

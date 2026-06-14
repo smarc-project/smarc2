@@ -1,6 +1,6 @@
 # Parameters for the TUPER test/faker node (tuper_test).
-# Fakes /follower/ukf/pose and /follower/ukf/setpoint so the tuper BT can be
-# dry-run in sim without the real acoustic UKF.
+# Fakes /follower/ukf/pose, /follower/ukf/setpoint and /follower/ukf/delta_pos
+# so the tuper BT can be dry-run in sim without the real acoustic UKF.
 /**:
   ros__parameters:
     # Do nothing for this long, then start faking.
@@ -13,6 +13,7 @@
     # Where to publish the fakes (must match the tuper BT's inputs).
     pose_topic: "/follower/ukf/pose"
     setpoint_topic: "/follower/ukf/setpoint"
+    delta_pos_topic: "/follower/ukf/delta_pos"  # faked estimate-vs-truth divergence
     ahead_distance_m: 15.0      # anchor the first setpoint this far ahead of LoLo
 
     # --- Fake pose noise ------------------------------------------------------
@@ -20,9 +21,9 @@
     # reversion: n <- (1 - theta)*n + sigma * N(0,1) each tick.
     pose_noise_sigma: 0.05      # per-tick step std [m]
     pose_noise_theta: 0.01      # mean reversion (keeps the walk bounded)
-    # Reported 1-sigma that becomes the pose covariance the BT gates on.
-    # Keep below the mission's max_pos_uncertainty (default 4 m) to pass;
-    # raise above it to exercise the uncertainty-failure path.
+    # Reported 1-sigma that becomes the pose covariance. The BT no longer gates
+    # on this (it gates on the measured delta_pos divergence below), so it is now
+    # cosmetic telemetry; the faker still publishes it for realism / analysis.
     reported_sigma: 1.0         # [m]
 
     # --- Setpoint trajectory --------------------------------------------------
