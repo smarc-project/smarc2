@@ -1,0 +1,40 @@
+<launch>
+  <arg name="robot_name" default="evolo"/>
+  <arg name="mqtt_agent_name" default="aldo_evolo"/>
+  <!--<arg name="broker_addr" default="localhost"/>-->
+  <!--<arg name="broker_port" default="1889"/>-->
+  <arg name="broker_addr" default="20.240.40.232"/>
+  <arg name="broker_port" default="1884"/>
+  <arg name="context" default="smarcsim"/>
+  <arg name="domain" default="surface"/>
+  <arg name="realsim" default="simulation"/>
+  <arg name="ellipse_x_m" default="5.0"/>
+  <arg name="ellipse_y_m" default="5.0"/>
+  <arg name="ellipse_z_m" default="0.0"/>
+  <arg name="utm_frame_override" default=""/>
+  <arg name="publish_rate_hz" default="1.0"/>
+
+  <arg name="mqtt_params_file" default="$(find-pkg-share mqtt_to_ros_agent)/config/mqtt_to_ros_agent.yaml"/>
+
+  <node name="mqtt_bridge_cloud" pkg="str_json_mqtt_bridge" exec="waraps_bridge" output="screen" namespace="$(var mqtt_agent_name)/waraps">
+    <param from="$(var mqtt_params_file)"/>
+    <param name="mqtt.connection.port" value="$(var broker_port)"/>
+    <param name="mqtt.connection.host" value="$(var broker_addr)"/>
+    <param name="mqtt.namespace" value="$(var context)/unit/$(var domain)/$(var realsim)/$(env USER nouser)_$(var robot_name)"/>
+  </node>
+
+  <node name="mqtt_to_ros_agent_publisher" pkg="mqtt_to_ros_agent" exec="mqtt_to_ros_agent_pub" output="screen">
+    <param from="$(var mqtt_params_file)"/>
+    <param name="robot_name" value="$(var robot_name)"/>
+    <param name="input_topic_prefix" value="$(var mqtt_agent_name)/waraps"/>
+    <param name="odom_topic" value="$(var mqtt_agent_name)/odom"/>
+    <param name="geopoint_topic" value="$(var mqtt_agent_name)/latlon"/>
+    <param name="odom_frame" value="$(var robot_name)/odom"/>
+    <param name="child_frame" value="$(var mqtt_agent_name)/base_link"/>
+    <param name="position_covariance.ellipse_x_m" value="$(var ellipse_x_m)" type="float"/>
+    <param name="position_covariance.ellipse_y_m" value="$(var ellipse_y_m)" type="float"/>
+    <param name="position_covariance.ellipse_z_m" value="$(var ellipse_z_m)" type="float"/>
+    <param name="utm_frame_override" value="$(var utm_frame_override)"/>
+    <param name="publish_rate_hz" value="$(var publish_rate_hz)" type="float"/>
+  </node>
+</launch>
