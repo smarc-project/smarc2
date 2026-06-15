@@ -262,12 +262,13 @@ SUCCOR_CMD="ros2 run serial_ping_pkg modem_ping_estimator_node --ros-args \
 -r __ns:=/$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p serial.port:=/dev/succorfish \
+-p serial.baudrate:=9600 \
 -p topics.own_latlon_topic:=/${ROBOT_NAME}/smarc/latlon \
 -p topics.own_depth_topic:=/${ROBOT_NAME}/sensor/hook_depth \
 -p teensy.own_modem_id:=\\'222\\' \
 -p topics.geopoint_topic:=/${ROBOT_NAME}/sensor/succorfish_geopoint \
 -p topics.marker_topic:=/${ROBOT_NAME}/rviz/succorfish_marker \
--p topics.map_frame:=/${ROBOT_NAME}/map"
+-p topics.map_frame:=${ROBOT_NAME}/map"
 # TODO these would better live in a py launchfile...
 
 tmux_make_layout "$SESSION" CamProc "

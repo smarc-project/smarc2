@@ -144,11 +144,14 @@ class PSDKFaker():
     def pub_psdk(self):
         # KTH F building :) 
         # 59.348397,18.0718507
+        # Asko small boathouse
+        # 58.8231049, 17.6364635
+        lat, lon = 58.8231049, 17.6364635
 
         # Publish fake GPS data
         gps_msg = NavSatFix()
-        gps_msg.latitude = 59.348397
-        gps_msg.longitude = 18.0718507
+        gps_msg.latitude = lat
+        gps_msg.longitude = lon
         gps_msg.altitude = 10.0
         self._gps_publisher.publish(gps_msg)
 
@@ -161,8 +164,8 @@ class PSDKFaker():
 
         # Publish fake home point data
         home_point_msg = NavSatFix()
-        home_point_msg.latitude = math.radians(59.348397)
-        home_point_msg.longitude = math.radians(18.0718507)
+        home_point_msg.latitude = math.radians(lat)
+        home_point_msg.longitude = math.radians(lon)
         home_point_msg.altitude = 10.0
         self._home_point_publisher.publish(home_point_msg)
 
