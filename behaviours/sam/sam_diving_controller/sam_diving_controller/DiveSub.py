@@ -52,15 +52,24 @@ class DiveSub():
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node)
 
-        # We need to declare the parameter we want to read out from the alunch file first.
+        # We need to declare the parameter we want to read out from the launch file first.
         self._node.declare_parameter('robot_name', 'sam0')
+        self._node.declare_parameter('world_prefix', '')    # choose if we're in the tank of not
         self._node.declare_parameter('tf_suffix', '')
         self._node.declare_parameter('acados_dir', '')
+        self._node.declare_parameter('dr_frame', '')    # In the sim, the DR frame is unity_origin, but in the real world it's odom.
+
         tf_suffix = self._node.get_parameter('tf_suffix').get_parameter_value().string_value
         self.robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self._robot_base_link = self.robot_name + '/base_link'+ tf_suffix
-        self._odom_link = self.robot_name + '/odom'
+        self._odom_link = self.robot_name + '/odom' # In the sim, this messes things up because we get the odom message not in the odom frame.
+        #self._odom_link = 'unity_origin'
         self.acados_dir = self._node.get_parameter('acados_dir').get_parameter_value().string_value
+        self.world_prefix = self._node.get_parameter('world_prefix').get_parameter_value().string_value
+        dr_frame = self._node.get_parameter('dr_frame').get_parameter_value().string_value
+        if dr_frame == '':
+            dr_frame = self.robot_name + '/odom'
+        self._dr_frame = dr_frame
 
         self._loginfo(f"robot base link: {self._robot_base_link}")
 
@@ -86,12 +95,16 @@ class DiveSub():
         self._tf_base_link_global = None
         self._tf_mocap_base_link = None
         self._tf_odom_global = None
+        self._tf_dr_frame_odom = None
 
         self._states = Odometry()
         self._received_states = False
 
         self._states_in_mocap = Odometry()
         self._transformed_state_to_mocap = False
+
+        self._states_in_dr = Odometry()
+        self._transformed_state_to_dr = False
 
         self._control_input = {} 
         self._control_input['vbs'] = self.param['vbs_u_neutral']
@@ -101,8 +114,8 @@ class DiveSub():
         self._control_input['stern'] = self.param['tv_u_neutral']
         self._control_input['rudder'] = self.param['tv_u_neutral']
 
-        self.state_sub = node.create_subscription(msg_type=Odometry, topic='odom_tf', callback=self._states_cb, qos_profile=10)
-        #self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
+        #self.state_sub = node.create_subscription(msg_type=Odometry, topic='smarc/odom', callback=self._states_cb, qos_profile=10)
+        self.state_sub = node.create_subscription(msg_type=Odometry, topic=ControlTopics.STATES, callback=self._states_cb, qos_profile=10)
         self.waypoint_sub = node.create_subscription(msg_type=PoseStamped, topic=ControlTopics.WAYPOINT, callback=self._wp_cb, qos_profile=10)
         self.joy_depth_setpoint_sub = node.create_subscription(msg_type=Float64, topic=ControlTopics.ELEV_SP_TOP, callback=self._joy_depth_setpoint_cb, qos_profile=10)
         self.depth_sub = node.create_subscription(msg_type=PoseWithCovarianceStamped, topic=DRTopics.DR_DEPTH_POSE_TOPIC, callback=self._depth_cb, qos_profile=10)
@@ -238,6 +251,23 @@ class DiveSub():
             self._loginfo(
                 f"Could not transform {self._robot_base_link} to {self._waypoint_global.header.frame_id}: {ex}")
             return
+    
+        self._transform_dr_to_odom()
+    
+    def _transform_dr_to_odom(self):
+        if self._dr_frame is None:
+            return
+
+        try:
+            self._tf_dr_frame_odom = self._tf_buffer.lookup_transform(
+                self.robot_name + '/odom',
+                self._dr_frame,
+                # self._odom_link,
+                rclpy.time.Time(seconds=0))
+        except Exception as ex:
+            self._loginfo(
+                f"Could not transform {self._dr_frame} to {self._odom_link}: {ex}")
+            return
 
 
     def _transform_wp(self):
@@ -254,16 +284,24 @@ class DiveSub():
         #self._loginfo(f"states_in_mocap: {self._states_in_mocap}")
         # FIXME: This is never true, because we initialize self._states as Odometry...
         if self._states is None:
-            return
+            return 
 
         if self._tf_mocap_base_link is None:
-            return
+            return 
 
         self._states_in_mocap.header.frame_id = self._waypoint_global.header.frame_id
         self._states_in_mocap.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_global_odom)
         self._states_in_mocap.twist = self._states.twist
+        
+        #self._loginfo(f"states_in_mocap: {self._states_in_mocap.pose.pose.position}")
+        #self._loginfo(f"states: {self._states.pose.pose.position}")
 
         self._transformed_state_to_mocap = True
+        
+        self._states_in_dr.header.frame_id = self.robot_name + '/odom'
+        self._states_in_dr.pose.pose = tf2_geometry_msgs.do_transform_pose(self._states.pose.pose, self._tf_dr_frame_odom)
+        self._states_in_dr.twist = self._states.twist
+        self._transformed_state_to_dr = True
 
 
     # Get methods
@@ -316,26 +354,41 @@ class DiveSub():
         else: 
             return None
 
+    def get_states_in_dr(self):
+        if self._transformed_state_to_dr:
+            return self._states_in_dr
+        else:
+            return self.get_states()
 
     def get_control_input(self):
         return self._control_input
     
 
     def get_depth(self):
-        return self._states.pose.pose.position.z
+        if self._transformed_state_to_dr:
+            return self._states_in_dr.pose.pose.position.z
+        else:
+            return self._states.pose.pose.position.z
 
     def get_sensor_depth(self):
         return self._depth
 
     def get_pitch(self):
+        if self._transformed_state_to_dr:
+            rpy = euler_from_quaternion([
+                self._states_in_dr.pose.pose.orientation.x,
+                self._states_in_dr.pose.pose.orientation.y,
+                self._states_in_dr.pose.pose.orientation.z,
+                self._states_in_dr.pose.pose.orientation.w])
+            return rpy[1]
+        else:
+            rpy = euler_from_quaternion([
+                self._states.pose.pose.orientation.x,
+                self._states.pose.pose.orientation.y,
+                self._states.pose.pose.orientation.z,
+                self._states.pose.pose.orientation.w])
 
-        rpy = euler_from_quaternion([
-            self._states.pose.pose.orientation.x,
-            self._states.pose.pose.orientation.y,
-            self._states.pose.pose.orientation.z,
-            self._states.pose.pose.orientation.w])
-
-        return rpy[1]
+            return rpy[1]
 
     def get_sensor_pitch(self):
         
@@ -470,9 +523,8 @@ class DiveSub():
         All the things when updating
         """
         self._update_tf()
-        #self._transform_wp()
+        self._transform_wp()
         self._transform_state()
-        #self._loginfo(f"Dive Sub update loop")
 
 
 

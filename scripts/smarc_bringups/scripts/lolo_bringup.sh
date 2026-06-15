@@ -1,9 +1,17 @@
 #! /bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/tmux_layout.sh"
+
 # Allow custom robot name as first argument, default to 'lolo'
 ROBOT_NAME=${1:-lolo}
 SESSION=${ROBOT_NAME}_bringup
-USE_SIM_TIME=True
+
+if [[ "$(whoami)" == *"lolo"* ]]; then
+    USE_SIM_TIME=False
+else
+    USE_SIM_TIME=True
+fi
 
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
@@ -31,76 +39,89 @@ else
     LINK_SUFFIX=""
 fi
 
-tmux -2 new-session -d -s $SESSION -n 'controllers'
+################## TMUX WINDOWS ##################
+
+# create a tmux session with a name
+tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
+
+#Logging
 tmux select-window -t $SESSION:0
-tmux select-pane -t $SESSION:0.0
-tmux split-window -v -t $SESSION:0.0
-tmux select-layout -t $SESSION:0 tiled
-tmux select-pane -t $SESSION:0.0
-tmux send-keys "sleep 2; ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
-tmux select-pane -t $SESSION:0.1
-tmux send-keys "sleep 2; ros2 launch lolo_description lolo_description.launch" C-m
+tmux send-keys "Remember to start the logging!" 
 
-# BT, action servers etc.
-tmux new-window -t $SESSION:1 -n 'bt'
-tmux select-window -t $SESSION:1
-tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG" C-m
+# Controllers
+CONTROLLER_CMD="sleep 2; ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+DESCRIPTION_CMD="sleep 2; ros2 launch lolo_description lolo_description.launch"
+tmux_make_layout "$SESSION" Controllers "
+col(
+    var(CONTROLLER_CMD),
+    var(DESCRIPTION_CMD)
+)"
 
-# controllers that are "constantly running"
-tmux new-window -t $SESSION:2 -n 'servers'
-tmux select-window -t $SESSION:2
-tmux select-pane -t $SESSION:2.0
-tmux split-window -h -t $SESSION:2.0
-tmux split-window -v -t $SESSION:2.0
-tmux split-window -v -t $SESSION:2.1
-tmux select-layout -t $SESSION:2 tiled
+# BT.
+SMARC_BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG"
+tmux_make_layout "$SESSION" wasp-bt "
+col(
+    var(SMARC_BT_CMD)
+)"
 
-tmux select-pane -t $SESSION:2.0
-tmux send-keys "sleep 4; ros2 run lolo_depth_move_to server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
-tmux select-pane -t $SESSION:2.1
-tmux send-keys "sleep 4; ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
-tmux select-pane -t $SESSION:2.2
-tmux send-keys "sleep 4; ros2 run lolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
-tmux select-pane -t $SESSION:2.3
-tmux send-keys "sleep 4; ros2 run lolo_loiter server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME" C-m
+# Lolo Action servers
+AUV_DEPTH_MOVE_TO_CMD="sleep 4; ros2 run lolo_depth_move_to server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+AUV_DEPTH_AT_HEADING="sleep 4; ros2 run lolo_cruise_depth_at_heading server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+EMERGENCY_ACTION_CMD="sleep 4; ros2 run lolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+LOITER_CMD="sleep 4; ros2 run lolo_loiter server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+tmux_make_layout "$SESSION" Actions "
+col(
+    row(
+        var(AUV_DEPTH_MOVE_TO_CMD),
+        var(AUV_DEPTH_AT_HEADING)
+    ),
+    row(
+        var(EMERGENCY_ACTION_CMD),
+        var(LOITER_CMD)
+    )
+)"
 
-# for the mqtt bridge.
-tmux new-window -t $SESSION:3 -n 'mqtt_bridge'
-tmux select-window -t $SESSION:3
+echo "Hejsan"
 
-# To connect to our MQTT broker
-if [ "$REALSIM" = "real" ]; then
-    tmux send-keys "sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
-else
-    tmux send-keys "sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT" C-m
-    tmux new-window -t $SESSION:4 -n 'tcp-endpoint'
-    tmux select-window -t $SESSION:4
-    tmux send-keys "ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p ROS_IP:=127.0.0.1" C-m
-fi
+# SMaRC Basic actions
+GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME \
+-p map_frame:=$ROBOT_NAME/odom"
 
+HUMAN_LOG_CMD="ros2 run smarc_basic log_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+WAIT_CMD="ros2 run smarc_basic wait_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
-# For local testing: use defaults
-# tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
+tmux_make_layout "$SESSION" BasicActions "
+row(
+    col(var(GEOFENCE_CMD), var(HUMAN_LOG_CMD)),
+    col(var(WAIT_CMD))
+)"
+
+# WARA-PS bridge
+WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+tmux_make_layout "$SESSION" waraps-mqtt "
+col(
+    var(WARA_PS_MQTT_CMD)
+)"
+
 
 # launch hardware drivers if REALSIM is set to real
 if [ "$REALSIM" = "real" ]; then
     
-    tmux new-window -t $SESSION:4 -n 'hardware1'
-    tmux select-window -t $SESSION:4
-    tmux send-keys "ros2 launch lolo_drivers lolo_hardware1_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
-    tmux new-window -t $SESSION:5 -n 'hardware2'
-    tmux select-window -t $SESSION:5
-    tmux send-keys "sleep 1; ros2 launch lolo_drivers lolo_hardware2_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
-    tmux new-window -t $SESSION:6 -n 'hardware3'
-    tmux select-window -t $SESSION:6
-    tmux send-keys "ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
-    tmux new-window -t $SESSION:7 -n 'usbl_interface'
-    tmux select-window -t $SESSION:7
-    tmux send-keys "ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME" C-m
-    tmux new-window -t $SESSION:8 -n 'flir_camera'
-    tmux select-window -t $SESSION:8
-    tmux send-keys "ros2 launch lolo_drivers spinnaker_camera_node_launch.py camera_type:=blackfly_s serial:="'23182955'" gev_scps_packet_size:=9000"
+    hardware_1_CMD="ros2 launch lolo_drivers lolo_hardware1_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+    hardware_2_CMD="sleep 1; ros2 launch lolo_drivers lolo_hardware2_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+    hardware_3_CMD="ros2 launch lolo_drivers lolo_hardware3_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+    hardware_4_CMD="ros2 run lolo_drivers usbl_interface --ros-args -r __ns:=/$ROBOT_NAME"
+    hardware_5_CMD="ros2 launch lolo_drivers spinnaker_camera_node_launch.py camera_type:=blackfly_s serial:="'23182955'" gev_scps_packet_size:=9000"
     
+    tmux_make_layout "$SESSION" Hardware "
+    col(
+        var(hardware_1_CMD),
+        var(hardware_2_CMD),
+        var(hardware_3_CMD),
+        var(hardware_4_CMD),
+        var(hardware_5_CMD)
+    )"
     echo "Launching hardware drivers in real mode."
 
 else
@@ -108,46 +129,51 @@ else
 fi
 
 if [ "$REALSIM" = "real" ]; then
-    tmux new-window -t $SESSION:9 -n 'vehicle_health'
-    # one window for lolo: left:waraps_agent launch, right: lolo_waraps_bridge launch
-    tmux select-window -t $SESSION:9
-    tmux split-window -h -t $SESSION:9.0
-    #Health checker
-    tmux select-pane -t $SESSION:9.0
-    tmux send-keys "sleep 5; ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME" C-m
-    #Geofence checker
-    tmux select-pane -t $SESSION:9.1
-    tmux send-keys "sleep 5; ros2 launch lolo_drivers lolo_geofence_check.launch robot_name:=$ROBOT_NAME"
+    HEALTH_MONITORING_CMD="sleep 5; ros2 launch lolo_health_checker lolo_health_checker.launch robot_name:=$ROBOT_NAME"
+    LOLO_MQTT_BRIDGE_CMD="ros2 run lolo_local_mqtt_translator lolo_local_translator_node"
+    tmux_make_layout "$SESSION" Health-monitoring "
+    col(
+        var(HEALTH_MONITORING_CMD),
+        var(LOLO_MQTT_BRIDGE_CMD)
+    )"
     
 else
     # new window just publishing int8 0 to /lolo/smarc/vehicle_health
-    tmux new-window -t $SESSION:9 -n 'vehicle_health'
-    tmux select-window -t $SESSION:9
-    tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " C-m
+    HEALTH_MONITORING_CMD="ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' "
+    tmux_make_layout "$SESSION" Fake-health-monitoring "
+    col(
+        var(HEALTH_MONITORING_CMD)
+    )"
 fi
 
-# Logging window.
-tmux new-window -t $SESSION:10 -n 'logging'
-tmux select-window -t $SESSION:10
 
 
 #Lolo prox ops action
-tmux new-window -t $SESSION:11 -n 'proxops'
-tmux select-window -t $SESSION:11
-tmux send-keys "sleep 4; ros2 launch lolo_prox_ops lolo_prox_ops.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
+
+PROX_OPS_CMD="sleep 4; ros2 launch lolo_prox_ops lolo_prox_ops.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+tmux_make_layout "$SESSION" prox-ops "
+col(
+    var(PROX_OPS_CMD)
+)"
 
 #Lolo menu
 if [ "$REALSIM" = "real" ]; then
-    tmux new-window -t $SESSION:12 -n 'lolo_menu'
-    tmux select-window -t $SESSION:12
-    tmux split-window -h -t $SESSION:12.0
-    #Menu output
-    tmux select-pane -t $SESSION:12.0
-    tmux send-keys "ros2 run lolo_drivers menu_output" C-m
-    menu input
-    tmux select-pane -t $SESSION:12.1
-    tmux send-keys "ros2 run lolo_drivers menu_input" C-m
+    
+    MENU_CMD_1="ros2 run lolo_drivers menu_output"
+    MENU_CMD_2="ros2 run lolo_drivers menu_input"
+    tmux_make_layout "$SESSION" Menu "
+    col(
+        var(MENU_CMD_1),
+        var(MENU_CMD_2)
+    )"
 fi
+
+ZENOH_CMD="ros2 run rmw_zenoh_cpp rmw_zenohd"
+
+tmux_make_layout "$SESSION" zenoh "
+col(
+    var(ZENOH_CMD)
+)"
 
 # Set default window
 tmux select-window -t $SESSION:1

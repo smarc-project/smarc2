@@ -33,7 +33,7 @@ class Components:
 
 def declare_and_get_rates(node: Node) -> Rates:
     node.declare_parameter("dive_pub_rate", 0.1)
-    node.declare_parameter("dive_controller_rate", 0.1)
+    node.declare_parameter("dive_controller_rate", 0.2)
     node.declare_parameter("dive_sub_rate", 0.1)
     node.declare_parameter("convenience_rate", 0.1)
 

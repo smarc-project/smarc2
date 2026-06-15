@@ -2,6 +2,7 @@
 
     <arg name="robot_name" default="sam0"/>
     <arg name="tf_suffix" default=""/>
+    <arg name="world_prefix" default=""/>
     <arg name="control_yaml" default="$(find-pkg-share sam_diving_controller)/config/sam_diving_controller_config.yaml"/>
    
     <group>
@@ -9,7 +10,15 @@
        <node name="diving_node" pkg="sam_diving_controller" exec="mpc_wp_following" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
+        <param name="world_prefix" value="$(var world_prefix)"/>
 	<param from="$(var control_yaml)"/>
+	<param name="use_sim_time" value="$(var use_sim_time)" />
+	<param name="target_frame" value="base_link" />
+	<param name="distance_frame" value="base_link" />
+	<param name="distance_frame_suffix" value="" />
+	<param name="frame_suffix" value="" />
+	<param name="setpoint_tolerance" value="0.5" />
+        <param name="goal_threshold" value="9" />
        </node>
     </group>
 
