@@ -4,6 +4,8 @@
   <arg name="home_altitude_above_water" default="0.0"/>
   <arg name="max_load_kg" default="4.0"/>
   <arg name="min_altitude_above_water" default="1.0"/>
+  <arg name="rope_length" default="10.0"/>
+  
 
 
 
@@ -16,6 +18,7 @@
       <param name="robot_name" value="$(var robot_name)"/>
       <param name="max_load_kg" value="$(var max_load_kg)"/>
       <param name="min_altitude_above_water" value="$(var min_altitude_above_water)"/>
+      <param name="rope_length" value="$(var rope_length)"/>
     </node>
 
     <node name="esc_splitter" pkg="dji_captain" exec="esc_splitter" respawn="false" output="screen">

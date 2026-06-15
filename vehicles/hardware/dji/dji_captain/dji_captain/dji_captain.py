@@ -149,6 +149,10 @@ class DjiCaptain():
         self._MAX_LOAD_KG : float = self._node.get_parameter("max_load_kg").get_parameter_value().double_value
         self._load_cell_weight : float | None = None
 
+        self._node.declare_parameter("rope_length", 10.0)
+        self._ROPE_LENGTH : float = self._node.get_parameter("rope_length").get_parameter_value().double_value
+
+
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
 
@@ -299,11 +303,16 @@ class DjiCaptain():
         return self._move_to_setpoint.header.stamp.sec + self._move_to_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_setpoint is not None else None
     
     @property
-    def altitude_above_water(self) -> float:
-        if self._base_pose_in_home is not None:
-            return self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER
-        else:
-            return -1.0
+    def altitude_above_water(self) -> float|None:
+        if self._base_pose_in_home is None: return None
+        return self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER
+
+    @property
+    def depth_of_hook(self) -> float | None:
+        alt = self.altitude_above_water
+        if alt is None: return None
+        return alt - self._ROPE_LENGTH
+
     
     
     @property
@@ -333,6 +342,11 @@ class DjiCaptain():
             s += f"  Load Cell Weight: {self._load_cell_weight:+.2f} kg (max: {self._MAX_LOAD_KG} kg)\n"
         else:
             s += f"  Load Cell Weight: N/A\n"
+
+        if self.depth_of_hook is not None:
+            s += f"  Depth of Hook: {self.depth_of_hook:+.2f} m (rope length: {self._ROPE_LENGTH} m)\n"
+        else:
+            s += f"  Depth of Hook: N/A\n"
 
         s += f"  Flying: {self._flying} [{', '.join(f'{rpm:.2f}' for rpm in self._prop_rpms)}]\n"
         
