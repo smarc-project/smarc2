@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped, Polygon, Point, PolygonStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from tf_transformations import euler_from_quaternion
 
-from transforms3d.euler import quat2euler
+from transforms3d.euler import quat2euler, euler2quat
 
 from evolo_msgs.msg import Topics as EvoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
@@ -42,11 +42,10 @@ class cbf_avoidance(Node):
         self.create_subscription(Float32, EvoloTopics.EVOLO_SPEED_SETPOINT , self.speed_cb, 1)
 
         # Requested control input sub
-        self.p = 1.0
         self.yaw_des = 0.0
         self.agent_speed = 0.0
         self.requested_ctrl_topic = self.get_parameter("requested_ctrl_topic").value
-        self.requested_ctrl_sub = self.create_subscription(Float32, 
+        self.requested_ctrl_sub = self.create_subscription(Odometry, 
                                  f"{self.requested_ctrl_topic}", self.requested_ctrl_cb, 1)
         self.logger.info(f"Reciving requested control messages from /{self.robot_name}/{self.requested_ctrl_topic}")
         
@@ -63,7 +62,7 @@ class cbf_avoidance(Node):
 
         # Output
         self.safe_ctrl_topic = self.get_parameter("safe_ctrl_topic").value
-        self.safe_ctrl_pub = self.create_publisher(Float32,
+        self.safe_ctrl_pub = self.create_publisher(Odometry,
                                                 f"{self.safe_ctrl_topic}", 1)
         self.logger.info(f"Sending ctrl messages to /{self.robot_name}/{self.safe_ctrl_topic}")
 
@@ -80,7 +79,9 @@ class cbf_avoidance(Node):
         # CBF parameters
         self.is_sim = False
         self.agent_radius = 2.0
-        self.w_max = 30.0 # In [deg/s]
+        self.p = 1.0 # Of the simulated P-controller
+        self.max_yaw_diff = 30.0 # In [deg/s]
+        self.w_max = self.max_yaw_diff * self.p # In [deg/s]
         self.w_max = self.w_max * np.pi / 180
 
     def time_now(self):
@@ -126,23 +127,35 @@ class cbf_avoidance(Node):
     def requested_ctrl_cb(self, msg):
         """Callback when reciving a new desired yaw"""
         # Recive the message
-        self.yaw_des = msg.data
+        _,_,self.yaw_des = quat2euler([msg.pose.pose.orientation.w,
+                                        msg.pose.pose.orientation.x,
+                                        msg.pose.pose.orientation.y,
+                                        msg.pose.pose.orientation.z],
+                                        axes='sxyz')
         yaw_diff = self.yaw_des - self.yaw_current
+        yaw_diff = max(-self.max_yaw_diff, min(self.max_yaw_diff, yaw_diff))
 
         # Approximate w_des by P-controller approximation
         w_des = yaw_diff * self.p
-        w_des = max(-self.w_max, min(self.w_max, w_des))
 
         # Apply the CBF
         w_safe = self.calc_safe_control(w_des)
 
-        # Publish the safe control
-        yaw_safe = Float32()
+        #  Calculate safe heading
         safe_diff = w_safe / self.p
-        yaw_safe.data = float(self.yaw_current + safe_diff)
-
+        yaw_safe = self.yaw_current + safe_diff
         self.logger.info(f"Requested yaw = {self.yaw_des}, safe yaw = {yaw_safe.data}, having {self.n_obst} obstacles")
-        self.safe_ctrl_pub.publish(yaw_safe)
+        self.logger.info(f"Requested quat: w {msg.pose.pose.orientation.w}, x {msg.pose.pose.orientation.x}, y {msg.pose.pose.orientation.y}, z {msg.pose.pose.orientation.z}")
+
+        # Publish the safe control
+        w, x, y, z = euler2quat([0, 0, yaw_safe], axes='sxyz')
+        msg.pose.pose.orientation.w = w
+        msg.pose.pose.orientation.x = x
+        msg.pose.pose.orientation.y = y
+        msg.pose.pose.orientation.z = z
+
+        self.logger.info(f"     Safe quat: w {w}, x {x}, y {y}, z {z}")
+        self.safe_ctrl_pub.publish(msg)
         self.extrapolate_path(w_safe)
     
     def calc_safe_control(self, w_des):
