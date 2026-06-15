@@ -213,6 +213,14 @@ col(
     var(HEALTH_MONITORING_CMD)
 )"
 
+# Jetson stats publishing
+JETSTAT_CMD="ros2 run ros2_jetson_stats ros2_jtop"
+tmux_make_layout "$SESSION" Jetson-Stats "
+col(
+    var(JETSTAT_CMD)
+)"
+
+
 # WARA-PS bridge
 WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
 #Evolo/ puffin broker
@@ -323,7 +331,7 @@ if [ $YOLO_DRIVER == "True" ]; then
     YOLO_CMD="export PYTHONPATH=$YOLO_PYTHONPATH:\$PYTHONPATH && \
         ros2 launch yolo_bringup yolo.launch.py \
         model_type:=YOLOE \
-        model:=/home/evolo/yolo/yoloe-26s-seg.pt \
+        model:=/home/evolo/yolo/yoloe-26l-seg.pt \
         input_image_topic:=/$ROBOT_NAME/sensors/gimbal_camera/camera/image_raw \
         image_reliability:=2 \
         device:=cuda:0 \
