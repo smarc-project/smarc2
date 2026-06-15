@@ -38,9 +38,6 @@ class cbf_avoidance(Node):
         # Odom sub
         self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1)
 
-        # Speed sub
-        self.create_subscription(Float32, EvoloTopics.EVOLO_SPEED_SETPOINT , self.speed_cb, 1)
-
         # Requested control input sub
         self.yaw_des = 0.0
         self.agent_speed = 0.0
@@ -102,10 +99,6 @@ class cbf_avoidance(Node):
                                             msg.pose.pose.orientation.z],
                                             axes='sxyz')
 
-    def speed_cb(self, msg):
-        """Get requested speed."""
-        self.agent_speed = msg.data
-
     def obstacle_cb(self, msg):
         """Callback when reciving a new obstacle."""
         obs_time = msg.header.stamp.sec * int(1e9) + msg.header.stamp.nanosec
@@ -134,6 +127,7 @@ class cbf_avoidance(Node):
                                         axes='sxyz')
         yaw_diff = self.yaw_des - self.yaw_current
         yaw_diff = max(-self.max_yaw_diff, min(self.max_yaw_diff, yaw_diff))
+        self.agent_speed = msg.twist.twist.linear.x
 
         # Approximate w_des by P-controller approximation
         w_des = yaw_diff * self.p
@@ -148,7 +142,7 @@ class cbf_avoidance(Node):
         self.logger.info(f"Requested quat: w {msg.pose.pose.orientation.w}, x {msg.pose.pose.orientation.x}, y {msg.pose.pose.orientation.y}, z {msg.pose.pose.orientation.z}")
 
         # Publish the safe control
-        w, x, y, z = euler2quat([0, 0, yaw_safe], axes='sxyz')
+        w, x, y, z = euler2quat(0, 0, yaw_safe, axes='sxyz')
         msg.pose.pose.orientation.w = w
         msg.pose.pose.orientation.x = x
         msg.pose.pose.orientation.y = y
