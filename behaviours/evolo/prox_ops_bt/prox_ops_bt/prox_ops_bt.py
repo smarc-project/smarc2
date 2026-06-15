@@ -149,9 +149,31 @@ class ProxOpsBT:
             "loiter_patrol": {},
         }
 
-    def _parse_goal_request(self, goal_request: dict) -> dict:
+    def _unwrap_goal_request(self, goal_request: dict) -> dict:
         if not isinstance(goal_request, dict):
             raise ValueError("prox-ops goal must be a JSON object")
+
+        if "json-params" not in goal_request:
+            return goal_request
+
+        params = goal_request["json-params"]
+        if isinstance(params, str):
+            try:
+                params = json.loads(params)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "prox-ops goal json-params must contain valid JSON"
+                ) from exc
+
+        if not isinstance(params, dict):
+            raise ValueError(
+                "prox-ops goal json-params must be a JSON object or encoded JSON object"
+            )
+
+        return params
+
+    def _parse_goal_request(self, goal_request: dict) -> dict:
+        goal_request = self._unwrap_goal_request(goal_request)
 
         provided_sections = set(goal_request.keys())
         missing_sections = self.REQUIRED_GOAL_SECTIONS - provided_sections
