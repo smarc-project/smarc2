@@ -345,7 +345,7 @@ class AlarsPingSearch():
             FuncToStatus("Set goal low", self._set_goal_move_to_ping_low),
             self.act_move_to_low,
             FuncToStatus("Do ping", self._set_goal_ping),
-            pt.decorators.FailureIsSuccess(self.act_ping), # we dont really care about the failure of pinging, keep pinging other places
+            pt.decorators.FailureIsSuccess(name= "Do Ping", child=self.act_ping), # we dont really care about the failure of pinging, keep pinging other places
             FuncToStatus("Count ping", self._count_ping)
         ])
 
