@@ -76,11 +76,11 @@ class AlarsPingSearch():
                                            lambda msg: setattr(self, "_auv_position_estimate_pings", msg),
                                            10)
 
-            # self._auv_position_estimate_pings_visual : PointStamped|None = None
-            # self._node.create_subscription(PointStamped,
-            #                                DJITopics.ESTIMATED_AUV_TOPIC,
-            #                                lambda msg: setattr(self, "_auv_position_estimate_pings_visual", msg),
-            #                                10)
+            self._auv_position_estimate_visual : PoseWithCovarianceStamped|None = None
+            self._node.create_subscription(PoseWithCovarianceStamped,
+                                           DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
+                                           lambda msg: setattr(self, "_auv_position_estimate_visual", msg),
+                                           10)
 
             
             
@@ -118,17 +118,109 @@ class AlarsPingSearch():
             }
 
 
-    
-
     def _reset_states(self) -> None:
         self.ping_index : int = 0
         self.ping_count : int = 0
         self.done : bool = False
         self._auv_position_estimate_pings = None
+        self._auv_position_estimate_visual = None
 
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
         self.log("States reset")
+
+    
+    def _loop_inner(self) -> bool|None:
+        if self._bt is None:
+            self.log("Behaviour tree not set up, failing?!")
+            return False
+                    
+        self._bt.tick()
+
+        str = "States:\n"
+        # str = pt.display.ascii_tree(self._bt.root, show_status=True)
+        str += self._status_str
+        if str != self._prev_str:
+            self.log("\n" + str)
+            self._prev_str = str
+
+
+        status = self._bt.root.status 
+        if self.done:
+            self.log("We have succeeded at ping search!")
+            return True
+        
+        if status == Status.FAILURE:
+            self.log("We have failed ping search")
+            self._reset_states()
+            return False
+
+        return None
+
+
+    def setup(self) -> bool:
+        self.log("Setting up actions...")
+
+        for ac in self._action_clients:
+            ac.setup()
+            if ac.state != ActionClientState.READY:
+                self.log(f"{ac.name} failed to setup! State: {str(ac.state)}")
+                return False
+        
+        self.log("All actions setup successfully!")
+
+
+        do_go_to_estimate_ping = Sequence("SQ Go to ping estimate", memory=True, children=[
+            FuncToStatus("Set goal", self._set_goal_move_to_estimate_ping),
+            self.act_move_to_estimate_ping,
+            FuncToStatus("Mark done", self._mark_done)
+        ])
+
+        go_to_estimate = self._post_pre_act(
+            title = "Go to estimate",
+            post_condition = lambda: self._auv_position_estimate_visual is not None,
+            post_title = "Reached estimate",
+            pre_condition = lambda: self._auv_position_estimate_pings is not None,
+            pre_title = "Have AUV position estimate",
+            act = do_go_to_estimate_ping
+        )
+
+        
+
+        do_ping = Sequence("SQ Do ping", memory=True, children=[
+            FuncToStatus("Set goal high", self._set_goal_move_to_ping_high),
+            self.act_move_to_high,
+            FuncToStatus("Set goal low", self._set_goal_move_to_ping_low),
+            self.act_move_to_low,
+            FuncToStatus("Do ping", self._set_goal_ping),
+            pt.decorators.FailureIsSuccess(
+                name="Some pings",
+                child=Sequence("SQ Ping attempts", memory=False, children=[
+                    self.act_ping1,
+                    self.act_ping2,
+                    self.act_ping3
+                ])
+            ),
+            FuncToStatus("Count ping", self._count_ping)
+        ])
+
+        ping = self._post_pre_act(
+            title = "Ping",
+            post_condition = lambda: self._auv_position_estimate_pings is not None,
+            post_title = "Have AUV position estimate",
+            pre_condition = lambda: self.ping_count < self._goal['max_pings'],
+            pre_title = "Have not exceeded max pings",
+            act = do_ping
+        )
+
+        root = Fallback("FB Root", memory=False, children=[
+            go_to_estimate,
+            ping
+        ])
+       
+        self._bt = BehaviourTree(root)
+
+        return True        
 
 
 
@@ -176,36 +268,12 @@ class AlarsPingSearch():
         str += f"Tip: {tip_str}"
         str += f"\nPing idx: {self.ping_index+1}/{len(self._goal['waypoints'])}"
         str += f"\nPing count: {self.ping_count}/{self._goal['max_pings']}"
-
+        str += f"\nAUV position estimate (pings): {self._auv_position_estimate_pings}"
+        str += f"\nAUV position estimate (visual): {self._auv_position_estimate_visual}"
         return str
-
-
-    def _loop_inner(self) -> bool|None:
-        if self._bt is None:
-            self.log("Behaviour tree not set up, failing?!")
-            return False
-                    
-        self._bt.tick()
-
-        str = pt.display.ascii_tree(self._bt.root, show_status=True)
-        # str += self._status_str
-        if str != self._prev_str:
-            self.log("\n" + str)
-            self._prev_str = str
-
-
-        status = self._bt.root.status 
-        if self.done:
-            self.log("We have succeeded at ping search!")
-            return True
-        
-        if status == Status.FAILURE:
-            self.log("We have failed ping search")
-            self._reset_states()
-            return False
-
-        return None
     
+
+
     def _set_goal(self, action_client: A_ActionClient, goal_dict: dict) -> bool:
         try:
             action_client.set_goal(json.dumps(goal_dict))
@@ -214,6 +282,9 @@ class AlarsPingSearch():
         except Exception as e:
             self.log(f"Failed to set goal for {action_client.name}: {e}")
             return False
+
+
+    
 
     
     def _set_goal_move_to_ping_high(self) -> bool:
@@ -315,73 +386,8 @@ class AlarsPingSearch():
         subtree.add_child(action_seq)
         return subtree
 
-    
-
-    def setup(self) -> bool:
-        self.log("Setting up actions...")
-
-        for ac in self._action_clients:
-            ac.setup()
-            if ac.state != ActionClientState.READY:
-                self.log(f"{ac.name} failed to setup! State: {str(ac.state)}")
-                return False
-        
-        self.log("All actions setup successfully!")
 
 
-        do_go_to_estimate_ping = Sequence("SQ Go to ping estimate", memory=True, children=[
-            FuncToStatus("Set goal", self._set_goal_move_to_estimate_ping),
-            self.act_move_to_estimate_ping,
-            FuncToStatus("Mark done", self._mark_done)
-        ])
-
-        go_to_estimate = self._post_pre_act(
-            title = "Go to estimate",
-            post_condition = lambda: False, # just do it to completion
-            post_title = "Reached estimate",
-            pre_condition = lambda: self._auv_position_estimate_pings is not None,
-            pre_title = "Have AUV position estimate",
-            act = do_go_to_estimate_ping
-        )
-
-        
-
-        do_ping = Sequence("SQ Do ping", memory=True, children=[
-            FuncToStatus("Set goal high", self._set_goal_move_to_ping_high),
-            self.act_move_to_high,
-            FuncToStatus("Set goal low", self._set_goal_move_to_ping_low),
-            self.act_move_to_low,
-            FuncToStatus("Do ping", self._set_goal_ping),
-            pt.decorators.FailureIsSuccess(
-                name="Some pings",
-                child=Sequence("SQ Ping attempts", memory=False, children=[
-                    self.act_ping1,
-                    self.act_ping2,
-                    self.act_ping3
-                ])
-            ),
-            FuncToStatus("Count ping", self._count_ping)
-        ])
-
-        ping = self._post_pre_act(
-            title = "Ping",
-            post_condition = lambda: self._auv_position_estimate_pings is not None,
-            post_title = "Have AUV position estimate",
-            pre_condition = lambda: self.ping_count < self._goal['max_pings'],
-            pre_title = "Have not exceeded max pings",
-            act = do_ping
-        )
-
-        root = Fallback("FB Root", memory=False, children=[
-            go_to_estimate,
-            ping
-        ])
-       
-        self._bt = BehaviourTree(root)
-
-        return True        
-
-    
     def _give_feedback(self) -> str:
         return self._status_str
 
