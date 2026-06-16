@@ -47,7 +47,7 @@ class MoveToAction():
         self._node.declare_parameter('default_tolerance', 0.3)
         self._default_goal_tolerance : float = self._node.get_parameter('default_tolerance').get_parameter_value().double_value
 
-        self._node.declare_parameter("speeds", [0.5, 1.5, 2.5])
+        self._node.declare_parameter("speeds", [1.0, 3.0, 10.0])
         speeds = self._node.get_parameter("speeds").get_parameter_value().double_array_value
         self.SPEED_VALUES : dict[SpeedNames, float] = {
             SpeedNames.SLOW: speeds[0],
