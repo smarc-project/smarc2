@@ -44,7 +44,9 @@ class AlarsPingSearch():
 
             self.act_move_to_high = A_ActionClient(node, 'move_to', 'move_to_high')
             self.act_move_to_low = A_ActionClient(node, 'move_to', 'move_to_low')
-            self.act_ping = A_ActionClient(node, 'smarc_modem_ping', 'ping')
+            self.act_ping1 = A_ActionClient(node, 'smarc_modem_ping', 'ping1')
+            self.act_ping2 = A_ActionClient(node, 'smarc_modem_ping', 'ping2')
+            self.act_ping3 = A_ActionClient(node, 'smarc_modem_ping', 'ping3')
             self.act_move_to_estimate_ping = A_ActionClient(node, 'move_to', 'move_to_estimate_ping')
 
             self._node.declare_parameter('robot_name', 'M350')
@@ -55,7 +57,9 @@ class AlarsPingSearch():
             self._action_clients = [
                 self.act_move_to_high,
                 self.act_move_to_low,
-                self.act_ping,
+                self.act_ping1,
+                self.act_ping2,
+                self.act_ping3,
                 self.act_move_to_estimate_ping,
             ]
 
@@ -120,6 +124,7 @@ class AlarsPingSearch():
         self.ping_index : int = 0
         self.ping_count : int = 0
         self.done : bool = False
+        self._auv_position_estimate_pings = None
 
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
@@ -274,7 +279,9 @@ class AlarsPingSearch():
             "retry_count": 3,
             "task_timeout": 30.0
         }
-        return self._set_goal(self.act_ping, goal_dict)
+        self._set_goal(self.act_ping1, goal_dict)
+        self._set_goal(self.act_ping2, goal_dict)
+        return self._set_goal(self.act_ping3, goal_dict)
 
 
     def _count_ping(self) -> bool:
@@ -345,7 +352,14 @@ class AlarsPingSearch():
             FuncToStatus("Set goal low", self._set_goal_move_to_ping_low),
             self.act_move_to_low,
             FuncToStatus("Do ping", self._set_goal_ping),
-            pt.decorators.FailureIsSuccess(name= "Do Ping", child=self.act_ping), # we dont really care about the failure of pinging, keep pinging other places
+            pt.decorators.FailureIsSuccess(
+                name="Some pings",
+                child=Sequence("SQ Ping attempts", memory=False, children=[
+                    self.act_ping1,
+                    self.act_ping2,
+                    self.act_ping3
+                ])
+            ),
             FuncToStatus("Count ping", self._count_ping)
         ])
 
