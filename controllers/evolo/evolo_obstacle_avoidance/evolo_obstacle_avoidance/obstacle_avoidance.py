@@ -4,6 +4,7 @@ import math
 import rclpy
 import numpy as np
 from rclpy.node import Node
+from rclpy.time import Duration, Time
 from std_msgs.msg import String, Float32
 from geometry_msgs.msg import TwistStamped
 from rclpy.executors import MultiThreadedExecutor
@@ -11,6 +12,8 @@ from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped, Polygon, Point, PolygonStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from tf_transformations import euler_from_quaternion
+from tf2_ros import Buffer, TransformException, TransformListener
+from tf2_geometry_msgs import do_transform_pose_stamped
 
 from transforms3d.euler import quat2euler, euler2quat
 
@@ -34,6 +37,12 @@ class cbf_avoidance(Node):
 
         self.yaw_setpoint = None
         self.yaw_setpoint_time = None
+
+        # Tf listener
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(
+            self._tf_buffer, self._node, spin_thread=True
+        )
 
         # Odom sub
         self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1)
@@ -101,21 +110,36 @@ class cbf_avoidance(Node):
 
     def obstacle_cb(self, msg):
         """Callback when reciving a new obstacle."""
-        obs_time = msg.header.stamp.sec * int(1e9) + msg.header.stamp.nanosec
+        # obs_time = msg.header.stamp.sec * int(1e9) + msg.header.stamp.nanosec
         # Check if from new time
-        if obs_time > self.last_time:
-            self.last_time = obs_time
-            self.n_obst = 0
-            self.obst_header = msg.header
+        # if obs_time > self.last_time:
+        #     self.last_time = obs_time
+        #     self.n_obst = 0
+        #     self.obst_header = msg.header
 
         # Add to obstacle list
-        if self.n_obst < self.max_n_obst:
-            self.obst_list[self.n_obst, 0] = msg.pose.pose.position.x
-            self.obst_list[self.n_obst, 1] = msg.pose.pose.position.y
-            self.obst_list[self.n_obst, 2] = msg.pose.covariance[0]
+        self.n_obst = 0
+        self.obst_list[self.n_obst, 2] = msg.pose.covariance[0]
+
+        pose_stamped = PoseStamped()
+        pose_stamped.header = msg.header
+        pose_stamped.pose = msg.pose.pose
+
+        t = self._tf_buffer.lookup_transform(
+                target_frame="base_footprint",
+                source_frame=msg.header.frame_id,
+                time=Time(seconds=0),
+                timeout=Duration(seconds=1),
+            )
+        tf_msg = do_transform_pose_stamped(pose_stamped, t)
+
+        # if self.n_obst < self.max_n_obst:
+        self.obst_list[self.n_obst, 0] = tf_msg.pose.position.x
+        self.obst_list[self.n_obst, 1] = tf_msg.pose.position.y
         
-        self.n_obst += 1
-        # self.logger.info(f"Recived obstacle {self.n_obst} at time {obs_time}")
+        self.n_obst = 1
+        self.logger.info(f"Recived obstacle x: {tf_msg.pose.position.x}, y: {tf_msg.pose.position.y}, r: {msg.pose.covariance[0]}")
+        self.logger.info(f"From frame: {msg.header.frame_id}")
 
     def vec2_directed_angle(v1, v2):
         """
