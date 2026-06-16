@@ -256,8 +256,8 @@ class AlarsPingSearch():
         alt = ping_position["altitude"] 
         goal_dict = {
             "waypoint" : {
-                "latitude": gp.point.latitude,
-                "longitude": gp.point.longitude,
+                "latitude": gp.latitude,
+                "longitude": gp.longitude,
                 "altitude": alt,
                 "tolerance": 1.0,
             },
@@ -337,13 +337,15 @@ class AlarsPingSearch():
             act = do_go_to_estimate_ping
         )
 
+        
+
         do_ping = Sequence("SQ Do ping", memory=True, children=[
             FuncToStatus("Set goal high", self._set_goal_move_to_ping_high),
             self.act_move_to_high,
             FuncToStatus("Set goal low", self._set_goal_move_to_ping_low),
             self.act_move_to_low,
             FuncToStatus("Do ping", self._set_goal_ping),
-            self.act_ping,
+            pt.decorators.FailureIsSuccess(self.act_ping), # we dont really care about the failure of pinging, keep pinging other places
             FuncToStatus("Count ping", self._count_ping)
         ])
 
