@@ -106,7 +106,7 @@ class AlarsPingSearch():
             )
 
             self._goal : dict = {
-                "ping_positions": [],
+                "waypoints": [],
                 "modem_to_ping": None,
                 "modem_depth": None,
                 "dipping_altitude": None,
@@ -169,7 +169,7 @@ class AlarsPingSearch():
             tip_str = f"{tip.name}({tip.status}):{tip.feedback_message}"
         str = ""
         str += f"Tip: {tip_str}"
-        str += f"\nPing idx: {self.ping_index+1}/{len(self._goal['ping_positions'])}"
+        str += f"\nPing idx: {self.ping_index+1}/{len(self._goal['waypoints'])}"
         str += f"\nPing count: {self.ping_count}/{self._goal['max_pings']}"
 
         return str
@@ -212,31 +212,37 @@ class AlarsPingSearch():
 
     
     def _set_goal_move_to_ping_high(self) -> bool:
-        if self.ping_index >= len(self._goal['ping_positions']):
+        if self.ping_index >= len(self._goal['waypoints']):
             self.log("Ping index out of range, cannot set goal.")
             return False
         
-        ping_position = self._goal['ping_positions'][self.ping_index]
+        ping_position = self._goal['waypoints'][self.ping_index]
         goal_dict = {
-            "latitude": ping_position["latitude"],
-            "longitude": ping_position["longitude"],
-            "altitude": ping_position["altitude"],
-            "tolerance": ping_position["tolerance"],
+            "waypoint" : {
+                "latitude": ping_position["latitude"],
+                "longitude": ping_position["longitude"],
+                "altitude": ping_position["altitude"],
+                "tolerance": ping_position["tolerance"],
+            },
+            "speed":"fast"
         }
         return self._set_goal(self.act_move_to_high, goal_dict)
 
 
     def _set_goal_move_to_ping_low(self) -> bool:
-        if self.ping_index >= len(self._goal['ping_positions']):
+        if self.ping_index >= len(self._goal['waypoints']):
             self.log("Ping index out of range, cannot set goal.")
             return False
         
-        ping_position = self._goal['ping_positions'][self.ping_index]
+        ping_position = self._goal['waypoints'][self.ping_index]
         goal_dict = {
-            "latitude": ping_position["latitude"],
-            "longitude": ping_position["longitude"],
-            "altitude": self._goal["dipping_altitude"],
-            "tolerance": ping_position["tolerance"],
+            "waypoint" : {
+                "latitude": ping_position["latitude"],
+                "longitude": ping_position["longitude"],
+                "altitude": self._goal["dipping_altitude"],
+                "tolerance": ping_position["tolerance"],
+            },
+            "speed":"fast"
         }
         return self._set_goal(self.act_move_to_low, goal_dict)
 
@@ -246,13 +252,16 @@ class AlarsPingSearch():
             return False
         
         gp = self._auv_position_estimate_pings.position
-        ping_position = self._goal['ping_positions'][0]
+        ping_position = self._goal['waypoints'][0]
         alt = ping_position["altitude"] 
         goal_dict = {
-            "latitude": gp.point.latitude,
-            "longitude": gp.point.longitude,
-            "altitude": alt,
-            "tolerance": 1.0,
+            "waypoint" : {
+                "latitude": gp.point.latitude,
+                "longitude": gp.point.longitude,
+                "altitude": alt,
+                "tolerance": 1.0,
+            },
+            "speed":"fast"
         }
         return self._set_goal(self.act_move_to_estimate_ping, goal_dict)
 
@@ -270,7 +279,7 @@ class AlarsPingSearch():
 
     def _count_ping(self) -> bool:
         self.ping_index += 1
-        self.ping_index %= len(self._goal['ping_positions'])
+        self.ping_index %= len(self._goal['waypoints'])
         self.ping_count += 1
         return True
 
@@ -315,7 +324,7 @@ class AlarsPingSearch():
 
         do_go_to_estimate_ping = Sequence("SQ Go to ping estimate", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_move_to_estimate_ping),
-            self.act_move_to_estimate_ping
+            self.act_move_to_estimate_ping,
             FuncToStatus("Mark done", self._mark_done)
         ])
 
