@@ -119,6 +119,7 @@ class AlarsPingSearch():
     def _reset_states(self) -> None:
         self.ping_index : int = 0
         self.ping_count : int = 0
+        self.done : bool = False
 
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)
@@ -188,8 +189,8 @@ class AlarsPingSearch():
             self._prev_str = str
 
 
-        status = self._bt.root.status
-        if status == Status.SUCCESS:
+        status = self._bt.root.status 
+        if self.done:
             self.log("We have succeeded at ping search!")
             return True
         
@@ -272,6 +273,10 @@ class AlarsPingSearch():
         self.ping_index %= len(self._goal['ping_positions'])
         self.ping_count += 1
         return True
+
+    def _mark_done(self) -> bool:
+        self.done = True
+        return True
     
 
     def _post_pre_act(self,
@@ -311,6 +316,7 @@ class AlarsPingSearch():
         do_go_to_estimate_ping = Sequence("SQ Go to ping estimate", memory=True, children=[
             FuncToStatus("Set goal", self._set_goal_move_to_estimate_ping),
             self.act_move_to_estimate_ping
+            FuncToStatus("Mark done", self._mark_done)
         ])
 
         go_to_estimate = self._post_pre_act(
