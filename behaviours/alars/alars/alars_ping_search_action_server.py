@@ -247,7 +247,7 @@ class AlarsPingSearch():
                 "altitude": self._goal["dipping_altitude"],
                 "tolerance": ping_position["tolerance"],
             },
-            "speed":"fast"
+            "speed":"standard"
         }
         return self._set_goal(self.act_move_to_low, goal_dict)
 
