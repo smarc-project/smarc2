@@ -192,12 +192,18 @@ ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME"
 
+
+ALARS_PING_SEARCH_CMD="ros2 run alars alars_ping_search_action_server --ros-args -r __ns:=/$ROBOT_NAME \
+-p robot_name:=$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME"
+
 tmux_make_layout "$SESSION" ALARSActions "
 col(
     var(ALARS_SEARCH_CMD),
     var(ALARS_FOLLOW_AUV_CMD),
     var(ALARS_RECOVER_CMD),
-    var(ALARS_MOVE_TO_CMD)
+    var(ALARS_MOVE_TO_CMD),
+    var(ALARS_PING_SEARCH_CMD)
 )"
 
 ############

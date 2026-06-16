@@ -18,7 +18,7 @@ string FISHEYE_CAMERA_INFO_TOPIC = 'fisheye_camera/camera/camera_info' #CameraIn
 string LOAD_CELL_RAW_TOPIC = 'sensor/load_cell_raw' # Int32
 string LOAD_CELL_WEIGHT_TOPIC = 'sensor/load_cell_weight' # Float32
 string HOOK_DEPTH_TOPIC = 'sensor/hook_depth" # Float32
-string SUCCOR_ESTIMATE_TOPIC = 'sensor/succorfish_geopoint" #GeoPoint
+string SUCCOR_ESTIMATE_TOPIC = 'sensor/succorfish_geopoint" #GeoPointStamped
 
 
 # propeller rpms all Float32, corresponds to esc_data[0..3] in this order
