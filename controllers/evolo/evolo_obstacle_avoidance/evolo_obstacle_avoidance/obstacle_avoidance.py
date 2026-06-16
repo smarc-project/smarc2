@@ -76,10 +76,10 @@ class cbf_avoidance(Node):
         # CBF parameters
         self.is_sim = False
         self.agent_radius = 2.0
-        self.p = 1.0 # Of the simulated P-controller
-        self.max_yaw_diff = 30.0 # In [deg/s]
-        self.w_max = self.max_yaw_diff * self.p # In [deg/s]
-        self.w_max = self.w_max * np.pi / 180
+        self.p = 2.0 # Of the simulated P-controller
+        self.max_yaw_diff = 20.0 # In [deg/s]
+        self.max_yaw_diff = self.max_yaw_diff * np.pi / 180.0
+        self.w_max = self.max_yaw_diff * self.p # In [rad/s]
 
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
@@ -117,6 +117,39 @@ class cbf_avoidance(Node):
         self.n_obst += 1
         # self.logger.info(f"Recived obstacle {self.n_obst} at time {obs_time}")
 
+    def vec2_directed_angle(v1, v2):
+        """
+        # Author: Ozer Ozkahraman (ozkahramanozer@gmail.com)
+        # Date: 2018-07-10
+
+        returns the shortest angle from v1 to v2 in radians.
+        v1 + angle = v2.
+
+        positive value means ccw rotation from v1 to v2.
+        negative value means cw.
+
+        v1, v2 can be (N,2)
+        """
+        v1 = np.array(np.atleast_2d(v1))
+        v2 = np.array(np.atleast_2d(v2))
+        assert v1.shape == v2.shape
+
+        x1s = v1[:,0]
+        x2s = v2[:,0]
+        y1s = v1[:,1]
+        y2s = v2[:,1]
+
+        dots = x1s*x2s + y1s*y2s
+        dets = x1s*y2s - y1s*x2s
+
+        angles = np.arctan2(dets,dots)
+
+        N,_ = v1.shape
+        if N == 1:
+            return angles[0]
+        else:
+            return angles
+
     def requested_ctrl_cb(self, msg):
         """Callback when reciving a new desired yaw"""
         # Recive the message
@@ -125,7 +158,10 @@ class cbf_avoidance(Node):
                                         msg.pose.pose.orientation.y,
                                         msg.pose.pose.orientation.z],
                                         axes='sxyz')
-        yaw_diff = self.yaw_des - self.yaw_current
+        v1 = np.array([np.cos(self.yaw_current), np.sin(self.yaw_current)])
+        v2 = np.array([np.cos(self.yaw_des), np.sin(self.yaw_des)])
+
+        yaw_diff = self.vec2_directed_angle(v1, v2)
         yaw_diff = max(-self.max_yaw_diff, min(self.max_yaw_diff, yaw_diff))
         self.agent_speed = msg.twist.twist.linear.x
 
@@ -138,11 +174,11 @@ class cbf_avoidance(Node):
         #  Calculate safe heading
         safe_diff = w_safe / self.p
         yaw_safe = self.yaw_current + safe_diff
-        self.logger.info(f"Requested yaw = {self.yaw_des}, safe yaw = {yaw_safe.data}, having {self.n_obst} obstacles")
+        self.logger.info(f"Requested yaw = {self.yaw_des}, safe yaw = {yaw_safe}, having {self.n_obst} obstacles")
         self.logger.info(f"Requested quat: w {msg.pose.pose.orientation.w}, x {msg.pose.pose.orientation.x}, y {msg.pose.pose.orientation.y}, z {msg.pose.pose.orientation.z}")
 
         # Publish the safe control
-        w, x, y, z = euler2quat(0, 0, yaw_safe, axes='sxyz')
+        w, x, y, z = euler2quat(0.0, 0.0, yaw_safe, axes='sxyz')
         msg.pose.pose.orientation.w = w
         msg.pose.pose.orientation.x = x
         msg.pose.pose.orientation.y = y
