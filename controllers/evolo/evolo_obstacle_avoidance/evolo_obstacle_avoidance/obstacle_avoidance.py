@@ -28,7 +28,6 @@ class cbf_avoidance(Node):
         super().__init__("cbf_avoidance")
         self.logger = self.get_logger()
         self.logger.info("CBF obstacle avoidance initiated!")
-
         self.declare_node_parameters()
 
         self.update_rate = float(self.get_parameter("update_rate").value)
@@ -41,7 +40,7 @@ class cbf_avoidance(Node):
         # Tf listener
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(
-            self._tf_buffer, self._node, spin_thread=True
+            self._tf_buffer, self, spin_thread=True
         )
 
         # Odom sub
@@ -83,12 +82,17 @@ class cbf_avoidance(Node):
         self.safe_path_pub = self.create_publisher(Path, "rviz/safe_path", 1)
 
         # CBF parameters
-        self.is_sim = False
-        self.agent_radius = 2.0
-        self.p = 2.0 # Of the simulated P-controller
-        self.max_yaw_diff = 20.0 # In [deg/s]
+        self.agent_radius = float(self.get_parameter("robot_radius").value)
+        self.alpha_value = float(self.get_parameter("alpha_value").value)
+        self.logger.info(f"Agent radius: {self.agent_radius} m, cbf alpha: {self.alpha_value}")
+
+        self.p = float(self.get_parameter("p_value").value) # Of the simulated P-controller
+        self.max_yaw_diff = float(self.get_parameter("max_yaw_diff").value) # In [deg/s]
+        self.logger.info(f"Max yaw diff: {self.max_yaw_diff}, p: {self.p}")
+
         self.max_yaw_diff = self.max_yaw_diff * np.pi / 180.0
         self.w_max = self.max_yaw_diff * self.p # In [rad/s]
+        self.logger.info(f"Estimated minimum turning radius at 4.5 knots: {round(4.5 / (self.max_yaw_diff * self.p), 1)} m")
 
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
@@ -99,6 +103,10 @@ class cbf_avoidance(Node):
         self.declare_parameter("requested_ctrl_topic", "")
         self.declare_parameter("obstacle_topic", "")
         self.declare_parameter("safe_ctrl_topic", "")
+        self.declare_parameter("max_yaw_diff", 1.0)
+        self.declare_parameter("p_value", 1.0)
+        self.declare_parameter("alpha_value", 1.0)
+        self.declare_parameter("robot_radius", 1.0)
 
     def odom_cb(self,msg : Odometry):
         """Get current heading."""
@@ -428,7 +436,7 @@ class cbf_avoidance(Node):
 
     def alpha(self, x):
         """A very simple alpha function"""
-        return x
+        return x * self.agent_radius
 
 
 def main(args=None, namespace=None):
