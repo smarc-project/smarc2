@@ -94,6 +94,9 @@ class cbf_avoidance(Node):
         self.w_max = self.max_yaw_diff * self.p # In [rad/s]
         self.logger.info(f"Estimated minimum turning radius at 4.5 knots: {round(4.5 / (self.max_yaw_diff * self.p), 1)} m")
 
+        # Nicer obstacle publisher for rviz
+        self.rviz_obs_pub = self.create_publisher(MarkerArray, "rvizObstacles", 1)
+
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
 
@@ -108,7 +111,7 @@ class cbf_avoidance(Node):
         self.declare_parameter("alpha_value", 1.0)
         self.declare_parameter("robot_radius", 1.0)
 
-    def odom_cb(self,msg : Odometry):
+    def odom_cb(self, msg : Odometry):
         """Get current heading."""
         _,_,self.yaw_current = quat2euler([msg.pose.pose.orientation.w,
                                             msg.pose.pose.orientation.x,
@@ -146,10 +149,37 @@ class cbf_avoidance(Node):
         self.obst_list[self.n_obst, 1] = tf_msg.pose.position.y
         
         self.n_obst = 1
-        self.logger.info(f"Recived obstacle x: {tf_msg.pose.position.x}, y: {tf_msg.pose.position.y}, r: {msg.pose.covariance[0]}")
-        self.logger.info(f"From frame: {msg.header.frame_id}")
+        # self.logger.info(f"Recived obstacle x: {tf_msg.pose.position.x}, y: {tf_msg.pose.position.y}, r: {msg.pose.covariance[0]}")
+        # self.logger.info(f"From frame: {msg.header.frame_id}")
 
-    def vec2_directed_angle(v1, v2):
+        # Nicer in Rviz
+        rviz_obs_array = MarkerArray()
+        obs_msg = Marker()
+        obs_msg.header = msg.header
+
+        obs_msg.ns = "obstacles"
+        obs_msg.id = 0
+        obs_msg.type = Marker.SPHERE
+        obs_msg.action = Marker.ADD
+
+        obs_msg.pose = msg.pose.pose
+        
+        obs_msg.scale.x = msg.pose.covariance[0] * 2.0  # Diameter
+        obs_msg.scale.y = msg.pose.covariance[0] * 2.0
+        obs_msg.scale.z = msg.pose.covariance[0] * 2.0
+
+        obs_msg.color.r = 0.0
+        obs_msg.color.g = 0.0
+        obs_msg.color.b = 1.0
+        obs_msg.color.a = 1.0
+
+        obs_msg.lifetime.sec = 2
+        obs_msg.lifetime.nanosec = 0
+
+        rviz_obs_array.markers.append(obs_msg)
+        self.rviz_obs_pub.publish(rviz_obs_array)
+
+    def vec2_directed_angle(self, v1, v2):
         """
         # Author: Ozer Ozkahraman (ozkahramanozer@gmail.com)
         # Date: 2018-07-10
@@ -207,7 +237,7 @@ class cbf_avoidance(Node):
         safe_diff = w_safe / self.p
         yaw_safe = self.yaw_current + safe_diff
         self.logger.info(f"Requested yaw = {self.yaw_des}, safe yaw = {yaw_safe}, having {self.n_obst} obstacles")
-        self.logger.info(f"Requested quat: w {msg.pose.pose.orientation.w}, x {msg.pose.pose.orientation.x}, y {msg.pose.pose.orientation.y}, z {msg.pose.pose.orientation.z}")
+        # self.logger.info(f"Requested quat: w {msg.pose.pose.orientation.w}, x {msg.pose.pose.orientation.x}, y {msg.pose.pose.orientation.y}, z {msg.pose.pose.orientation.z}")
 
         # Publish the safe control
         w, x, y, z = euler2quat(0.0, 0.0, yaw_safe, axes='sxyz')
@@ -216,9 +246,9 @@ class cbf_avoidance(Node):
         msg.pose.pose.orientation.y = y
         msg.pose.pose.orientation.z = z
 
-        self.logger.info(f"     Safe quat: w {w}, x {x}, y {y}, z {z}")
+        # self.logger.info(f"     Safe quat: w {w}, x {x}, y {y}, z {z}")
         self.safe_ctrl_pub.publish(msg)
-        self.extrapolate_path(w_safe)
+        # self.extrapolate_path(w_safe)
     
     def calc_safe_control(self, w_des):
         """To handle multiple obstacles"""
@@ -276,7 +306,7 @@ class cbf_avoidance(Node):
                         th_opt = th
 
         # Send polygon halfplane to rviz
-        self.poly_from_point(obst_i, th_opt, mu)
+        # self.poly_from_point(obst_i, th_opt, mu)
 
         return u_opt_th, opt_found, h_opt
 
