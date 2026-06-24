@@ -39,7 +39,6 @@ class EvoloTargetIntercept {
     node_->declare_parameter("geofence_check_enabled", false);
     node_->declare_parameter("geofence_status_max_age_s", 2.0);
     node_->declare_parameter("geofence_polygons_max_age_s", 10.0);
-    node_->declare_parameter("odom_max_age_s", 1.0);
 
     backend_status_max_age_s_ =
         node_->get_parameter("backend_status_max_age_s").as_double();
@@ -54,8 +53,6 @@ class EvoloTargetIntercept {
         node_->get_parameter("geofence_status_max_age_s").as_double();
     geofence_polygons_max_age_s_ =
         node_->get_parameter("geofence_polygons_max_age_s").as_double();
-    odom_max_age_s_ =
-        node_->get_parameter("odom_max_age_s").as_double();
 
     // TODO: We should find out a way to add the evolo_msgs/Topics names in here
     // to avoid hard-coding them.
@@ -90,10 +87,6 @@ class EvoloTargetIntercept {
             "smarc/geofence_polygons", 10,
             std::bind(&EvoloTargetIntercept::geofence_polygons_cb, this,
                       std::placeholders::_1));
-    odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-        "smarc/odom", 10,
-        std::bind(&EvoloTargetIntercept::odom_cb, this,
-                  std::placeholders::_1));
   }
 
   void request_shutdown() {
@@ -138,16 +131,6 @@ class EvoloTargetIntercept {
       return LoopStatus::RUNNING;
     }
 
-    if (!msg_is_fresh(last_odom_, odom_max_age_s_)) {
-      feedback_ = "WAITING_FOR_ODOMETRY";
-      return LoopStatus::RUNNING;
-    }
-
-    if (!odom_orientation_is_valid(*last_odom_)) {
-      feedback_ = "ODOM_ORIENTATION_INVALID";
-      return LoopStatus::RUNNING;
-    }
-
     const auto& status = *last_status_;
     feedback_ = status.status_text.empty() ? "BACKEND_STATUS_RECEIVED"
                                            : status.status_text;
@@ -162,8 +145,7 @@ class EvoloTargetIntercept {
       if (!candidate_control_is_safe_to_forward()) {
         return LoopStatus::FAILURE;
       }
-      ctrl_odom_pub_->publish(
-          make_control_setpoint(*last_backend_control_, *last_odom_));
+      ctrl_odom_pub_->publish(*last_backend_control_);
       feedback_ = "FORWARDING_BACKEND_CONTROL";
     }
 
@@ -171,32 +153,6 @@ class EvoloTargetIntercept {
   }
 
   std::string feedback() const { return feedback_; }
-
-  nav_msgs::msg::Odometry make_control_setpoint(
-      const nav_msgs::msg::Odometry& backend_control,
-      const nav_msgs::msg::Odometry& odom) {
-    nav_msgs::msg::Odometry control;
-    control.header.stamp = node_->get_clock()->now();
-    control.header.frame_id = odom.header.frame_id;
-    control.child_frame_id = odom.child_frame_id;
-
-    // Current position from odometry; desired orientation and speed from the
-    // backend — the backend owns the full heading and velocity command.
-    control.pose.pose = odom.pose.pose;
-    control.pose.pose.orientation = backend_control.pose.pose.orientation;
-    control.twist.twist.linear = backend_control.twist.twist.linear;
-    control.twist.twist.angular.z = 0.0;
-
-    return control;
-  }
-
-  bool odom_orientation_is_valid(const nav_msgs::msg::Odometry& odom) const {
-    const auto& q = odom.pose.pose.orientation;
-    const double norm_squared =
-        q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
-    return std::isfinite(q.x) && std::isfinite(q.y) && std::isfinite(q.z) &&
-           std::isfinite(q.w) && norm_squared > 1e-12;
-  }
 
   bool parse_geofence_goal_override(const Json& goal) {
     geofence_check_enabled_ = default_geofence_check_enabled_;
@@ -243,10 +199,6 @@ class EvoloTargetIntercept {
   void geofence_polygons_cb(
       const smarc_msgs::msg::GeofencePolygonsStamped::SharedPtr msg) {
     last_geofence_polygons_ = msg;
-  }
-
-  void odom_cb(const nav_msgs::msg::Odometry::SharedPtr msg) {
-    last_odom_ = msg;
   }
 
   bool candidate_control_is_safe_to_forward() {
@@ -386,7 +338,6 @@ class EvoloTargetIntercept {
     last_backend_control_.reset();
     last_geofence_status_.reset();
     last_geofence_polygons_.reset();
-    last_odom_.reset();
     has_action_start_time_ = false;
     feedback_ = "IDLE";
   }
@@ -404,7 +355,6 @@ class EvoloTargetIntercept {
       geofence_status_sub_;
   rclcpp::Subscription<smarc_msgs::msg::GeofencePolygonsStamped>::SharedPtr
       geofence_polygons_sub_;
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
   evolo_msgs::msg::ProxOpsBackendStatus::SharedPtr last_status_;
   nav_msgs::msg::Odometry::SharedPtr last_target_state_;
@@ -412,7 +362,6 @@ class EvoloTargetIntercept {
   nav_msgs::msg::Odometry::SharedPtr last_backend_control_;
   smarc_msgs::msg::GeofenceStatusStamped::SharedPtr last_geofence_status_;
   smarc_msgs::msg::GeofencePolygonsStamped::SharedPtr last_geofence_polygons_;
-  nav_msgs::msg::Odometry::SharedPtr last_odom_;
 
   rclcpp::Time action_start_time_;
   bool has_action_start_time_ = false;
@@ -423,7 +372,6 @@ class EvoloTargetIntercept {
   bool geofence_check_enabled_ = false;
   double geofence_status_max_age_s_ = 2.0;
   double geofence_polygons_max_age_s_ = 10.0;
-  double odom_max_age_s_ = 1.0;
 
   std::string goal_json_;
   std::string feedback_ = "IDLE";
