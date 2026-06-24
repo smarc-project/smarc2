@@ -63,19 +63,22 @@ class ghost_obstacles(Node):
         self.radius = float(self.get_parameter("obstacle_radius").value) # [m]
         evolo_speed = 4.5 # [m/s]
         time_to_collision = float(self.get_parameter("time_to_collision").value) # [s]
-        obstacle_angle = float(self.get_parameter("obstacle_angle").value) # [rad]
-        obstacle_speed = float(self.get_parameter("obstacle_speed").value) # [m/s]
+        self.obstacle_angle = float(self.get_parameter("obstacle_angle").value) # [rad]
+        self.obstacle_speed = float(self.get_parameter("obstacle_speed").value) # [m/s]
         self.t = 0 # [s]
         self.t_tot = time_to_collision * 2
-        self.logger.info(f"Radius: {self.radius}, time to collision: {time_to_collision}, angle: {obstacle_angle}, speed: {obstacle_speed}")
+        self.logger.info(f"Radius: {self.radius}, time to collision: {time_to_collision}, angle: {self.obstacle_angle}, speed: {self.obstacle_speed}")
 
         evolo_dist_to_col = evolo_speed * time_to_collision
-        obst_dist_to_col = obstacle_speed * time_to_collision
+        obst_dist_to_col = self.obstacle_speed * time_to_collision
 
-        x_obst_start = evolo_dist_to_col + obst_dist_to_col * np.cos(obstacle_angle)
-        y_obst_start = obst_dist_to_col * np.sin(obstacle_angle)
-        x_obst_goal = evolo_dist_to_col - obst_dist_to_col * np.cos(obstacle_angle)
-        y_obst_goal = -obst_dist_to_col * np.sin(obstacle_angle)
+        x_obst_start = evolo_dist_to_col + obst_dist_to_col * np.cos(self.obstacle_angle)
+        y_obst_start = obst_dist_to_col * np.sin(self.obstacle_angle)
+        x_obst_goal = evolo_dist_to_col - obst_dist_to_col * np.cos(self.obstacle_angle)
+        y_obst_goal = -obst_dist_to_col * np.sin(self.obstacle_angle)
+
+        self.x_vel = -self.obstacle_speed * np.cos(self.obstacle_angle)
+        self.y_vel = -self.obstacle_speed * np.sin(self.obstacle_angle)
 
         # Transform them to odom frame
         self.start_point = PointStamped()
@@ -158,6 +161,9 @@ class ghost_obstacles(Node):
 
         obstacle_msg.pose.pose.position.x = self.start_point.point.x * (1 - t_frac) + self.goal_point.point.x * t_frac
         obstacle_msg.pose.pose.position.y = self.start_point.point.y * (1 - t_frac) + self.goal_point.point.y * t_frac
+
+        obstacle_msg.twist.twist.linear.x = self.x_vel
+        obstacle_msg.twist.twist.linear.y = self.y_vel
 
         self.obstacle_pub.publish(obstacle_msg)
         self.logger.info(f"Updating obstacle position to x: {obstacle_msg.pose.pose.position.x}, y: {obstacle_msg.pose.pose.position.y}")

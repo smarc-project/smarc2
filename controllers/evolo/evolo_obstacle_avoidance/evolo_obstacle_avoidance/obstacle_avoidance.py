@@ -16,6 +16,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 from transforms3d.euler import quat2euler, euler2quat
+from tf_transformations import quaternion_matrix
 
 from evolo_msgs.msg import Topics as EvoloTopics
 from smarc_msgs.msg import Topics as SmarcTopics
@@ -58,7 +59,7 @@ class cbf_avoidance(Node):
         self.max_n_obst = 10
         self.last_time = 0
         self.n_obst = 0
-        self.obst_list = np.zeros((self.max_n_obst, 3))
+        self.obst_list = np.zeros((self.max_n_obst, 5))
         self.obst_header = None
         self.obstacle_topic = self.get_parameter("obstacle_topic").value
         self.obstacle_sub = self.create_subscription(Odometry, 
@@ -80,6 +81,7 @@ class cbf_avoidance(Node):
         self.safe_steps = 30
         self.safe_dt = 0.5
         self.safe_path_pub = self.create_publisher(Path, "rviz/safe_path", 1)
+        self.planned_path_pub = self.create_publisher(Path, "rviz/planned_path", 1)
 
         # CBF parameters
         self.agent_radius = float(self.get_parameter("robot_radius").value)
@@ -126,7 +128,6 @@ class cbf_avoidance(Node):
         # if obs_time > self.last_time:
         #     self.last_time = obs_time
         #     self.n_obst = 0
-        #     self.obst_header = msg.header
 
         # Add to obstacle list
         self.n_obst = 0
@@ -147,6 +148,24 @@ class cbf_avoidance(Node):
         # if self.n_obst < self.max_n_obst:
         self.obst_list[self.n_obst, 0] = tf_msg.pose.position.x
         self.obst_list[self.n_obst, 1] = tf_msg.pose.position.y
+
+        # Transform the velocity to base_footprint
+
+        q = t.transform.rotation
+
+        # Rotation matrix
+        R = quaternion_matrix([q.x, q.y, q.z, q.w])[:3, :3]
+
+        v = np.array([
+            msg.twist.twist.linear.x,
+            msg.twist.twist.linear.y,
+            msg.twist.twist.linear.z
+        ])
+
+        v_tf = R @ v
+        self.obst_list[self.n_obst, 3] = v_tf[0] # x
+        self.obst_list[self.n_obst, 4] = v_tf[1] # y
+        self.logger.info(f"Obstacle moving at x: {v_tf[0]}, y: {v_tf[1]}")
         
         self.n_obst = 1
         # self.logger.info(f"Recived obstacle x: {tf_msg.pose.position.x}, y: {tf_msg.pose.position.y}, r: {msg.pose.covariance[0]}")
@@ -178,6 +197,9 @@ class cbf_avoidance(Node):
 
         rviz_obs_array.markers.append(obs_msg)
         self.rviz_obs_pub.publish(rviz_obs_array)
+
+        self.obst_header = msg.header
+        self.obst_header.frame_id = "base_footprint"
 
     def vec2_directed_angle(self, v1, v2):
         """
@@ -248,7 +270,8 @@ class cbf_avoidance(Node):
 
         # self.logger.info(f"     Safe quat: w {w}, x {x}, y {y}, z {z}")
         self.safe_ctrl_pub.publish(msg)
-        # self.extrapolate_path(w_safe)
+        self.extrapolate_path(w_safe, True)
+        self.extrapolate_path(w_des, False)
     
     def calc_safe_control(self, w_des):
         """To handle multiple obstacles"""
@@ -306,7 +329,7 @@ class cbf_avoidance(Node):
                         th_opt = th
 
         # Send polygon halfplane to rviz
-        # self.poly_from_point(obst_i, th_opt, mu)
+        self.poly_from_point(obst_i, th_opt, mu)
 
         return u_opt_th, opt_found, h_opt
 
@@ -314,7 +337,7 @@ class cbf_avoidance(Node):
         """For a single fixed plane and fixed turning direction, calculate safe u"""
         opt_type = True
         x = [0.0, 0.0, 0.0, self.agent_speed]
-        o = [self.obst_list[obst_i, 0], self.obst_list[obst_i, 1], 0.0, 0.0]
+        o = [self.obst_list[obst_i, 0], self.obst_list[obst_i, 1], self.obst_list[obst_i, 3], self.obst_list[obst_i, 4]]
         # Calculate abbreviations
         r_min = x[3] / self.w_max
         v_h = np.cos(th) * o[2] + np.sin(th) * o[3]
@@ -431,7 +454,7 @@ class cbf_avoidance(Node):
         self.halfplane_array.markers.append(hp)
         self.halfplane_pub.publish(self.halfplane_array)
 
-    def extrapolate_path(self, ctrl):
+    def extrapolate_path(self, ctrl, is_safe):
         """Extrapolates the path given the given control"""
         if self.obst_header is not None:
             # Current pose in the agent's frame
@@ -459,7 +482,10 @@ class cbf_avoidance(Node):
                 p.pose.position.y = y
                 safe_path.poses.append(p)
 
-            self.safe_path_pub.publish(safe_path)
+            if is_safe:
+                self.safe_path_pub.publish(safe_path)
+            else:
+                self.planned_path_pub.publish(safe_path)
 
     def update(self):
         pass
