@@ -4,7 +4,7 @@
 
 #include "evolo_msgs/msg/prox_ops_backend_status.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/twist_stamped.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -33,8 +33,8 @@ class FakeProxOpsBackend : public rclcpp::Node {
     status_pub_ =
         create_publisher<evolo_msgs::msg::ProxOpsBackendStatus>("backend/status", 10);
     path_pub_ = create_publisher<nav_msgs::msg::Path>("backend/candidate_path", 10);
-    twist_pub_ =
-        create_publisher<geometry_msgs::msg::TwistStamped>("backend/twist_planned", 10);
+    control_pub_ =
+        create_publisher<nav_msgs::msg::Odometry>("backend/control_planned", 10);
 
     command_sub_ = create_subscription<std_msgs::msg::String>(
         "backend/command", 10,
@@ -157,12 +157,14 @@ class FakeProxOpsBackend : public rclcpp::Node {
     }
     path_pub_->publish(path);
 
-    geometry_msgs::msg::TwistStamped twist;
-    twist.header.stamp = now();
-    twist.header.frame_id = "base_link";
-    twist.twist.linear.x = 0.5;
-    twist.twist.angular.z = 0.0;
-    twist_pub_->publish(twist);
+    nav_msgs::msg::Odometry control;
+    control.header.stamp = now();
+    control.header.frame_id = "map";
+    control.child_frame_id = "base_link";
+    // Fake backend has no real target heading — publish identity orientation.
+    control.pose.pose.orientation.w = 1.0;
+    control.twist.twist.linear.x = 0.5;
+    control_pub_->publish(control);
   }
 
   State state_ = State::IDLE;
@@ -178,7 +180,7 @@ class FakeProxOpsBackend : public rclcpp::Node {
 
   rclcpp::Publisher<evolo_msgs::msg::ProxOpsBackendStatus>::SharedPtr status_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr control_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
