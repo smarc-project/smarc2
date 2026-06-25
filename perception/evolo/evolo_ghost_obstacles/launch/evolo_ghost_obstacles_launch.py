@@ -17,6 +17,7 @@ def generate_launch_description():
     time_to_collision = LaunchConfiguration('time_to_collision')
     obstacle_angle = LaunchConfiguration('obstacle_angle')
     obstacle_speed = LaunchConfiguration('obstacle_speed')
+    p_value = LaunchConfiguration('p_value')
 
     robot_ns_launch_arg = DeclareLaunchArgument(
         'robot_name',
@@ -27,6 +28,7 @@ def generate_launch_description():
     time_to_collision_arg = DeclareLaunchArgument('time_to_collision', default_value="10.0") #[s]
     obstacle_angle_arg = DeclareLaunchArgument('obstacle_angle', default_value="1.5708") # [rad]
     obstacle_speed_arg = DeclareLaunchArgument('obstacle_speed', default_value="0.0") # [m/s]
+    p_value_arg = DeclareLaunchArgument('p_value', default_value="0.5")
 
     ghost = Node(
         package='evolo_ghost_obstacles',
@@ -39,6 +41,7 @@ def generate_launch_description():
                      "time_to_collision": time_to_collision,
                      "obstacle_angle": obstacle_angle,
                      "obstacle_speed": obstacle_speed,
+                     "p_value": p_value,
                      }]
     )
 
@@ -49,5 +52,6 @@ def generate_launch_description():
         time_to_collision_arg,
         obstacle_angle_arg,
         obstacle_speed_arg,
+        p_value_arg,
         ghost
     ])

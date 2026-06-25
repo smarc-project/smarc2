@@ -48,7 +48,7 @@ class ghost_obstacles(Node):
 
         # Relay control to Unity
         unity_sim = True
-        self.p_value = 0.5
+        self.p_value = float(self.get_parameter("p_value").value)
         if unity_sim:
             self.control_sub = self.create_subscription(Float32, f"{EvoloTopics.EVOLO_STEERING_SETPOINT}", self.ctrl_cb, 1)
             self.control_pub = self.create_publisher(TwistStamped, "/evolo/ctrl/twist_setpoint", 10)
@@ -115,6 +115,7 @@ class ghost_obstacles(Node):
 
             except Exception as e:
                 self.get_logger().error(f"Start transform failed: {e}")
+                time.sleep(3.0)
 
             try:
                 self.goal_point.header.stamp = self.current_time
@@ -131,7 +132,7 @@ class ghost_obstacles(Node):
 
             except Exception as e:
                 self.get_logger().error(f"Goal transform failed: {e}")
-            time.sleep(5.0)
+                time.sleep(3.0)
 
     def clock_cb(self, msg):
         self.current_time = msg.clock
@@ -144,6 +145,7 @@ class ghost_obstacles(Node):
         self.declare_parameter("time_to_collision", 1.0)
         self.declare_parameter("obstacle_angle", 1.0)
         self.declare_parameter("obstacle_speed", 1.0)
+        self.declare_parameter("p_value", 1.0)
 
     def update(self):
         """Calculate the updated position of the obstacle in odom frame, then send it"""

@@ -346,32 +346,32 @@ class cbf_avoidance(Node):
         else:
             gamma = np.pi * 0.5
         beta = mu * (th - x[2]) - 0.5 * np.pi
-        beta = ((gamma + np.pi) % (2 * np.pi)) - gamma
+        beta = ((gamma + np.pi) % (2.0 * np.pi)) - gamma
 
         # Calculate h, lfh and lgh
         lfh = np.cos(th) * (np.cos(x[2]) * x[3] - o[2])
         lfh += np.sin(th) * (np.sin(x[2]) * x[3] - o[3])
-        lgh = 0
+        lgh = 0.0
 
         h = np.cos(th) * (x[0] - o[0])
         h += np.sin(th) * (x[1] - o[1])
         h -= self.agent_radius + self.obst_list[obst_i, 2]
 
         # Check if plane is ok
-        if h < 0:
+        if h < 0.0:
             opt_type = False
 
         # If the distance is decreasing
         self.b = 0.0
-        if lfh < 0:
+        if lfh < 0.0:
             h -= r_min * (np.cos(gamma) - np.cos(beta))
             h -= r_min * (beta + gamma) * v_h / x[3]
             lgh += mu * r_min * (np.sin(beta) + v_h / x[3])
 
-        u = 0
+        u = 0.0
 
         # Check if plane is ok
-        if h < 0:
+        if h < 0.0:
             u = mu * self.w_max
             opt_type = False
 
@@ -386,7 +386,7 @@ class cbf_avoidance(Node):
 
         # If optimal u exists
         else:
-            if lfh < 0:
+            if lfh < 0.0:
                 u = (-self.alpha(h) - lfh) / lgh
             else:
                 raise ValueError
