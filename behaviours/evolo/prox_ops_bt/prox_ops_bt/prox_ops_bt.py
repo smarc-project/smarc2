@@ -255,9 +255,7 @@ class ProxOpsBT:
             return True
 
         root_status = self._bt.root.status
-        # FIXME: Will this fail prematurely? Should it only be a failure
-        # if the patrol timeout is reached?
-        if root_status == Status.FAILURE or not self._patrol_timeout_not_exceeded():
+        if root_status == Status.FAILURE:
             self.log("We have failed to prox-ops.")
             self._reset_states()
             return False
