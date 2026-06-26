@@ -284,10 +284,11 @@ class DjiCaptain():
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-        self._tf_timer = node.create_timer(0.1, self._publish_tf)
+        self._tf_timer = node.create_timer(1./10., self._publish_tf)
         self._static_tf_timer = node.create_timer(1.0, self._publish_static_tf) 
-        self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
-        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
+        self._odom_timer = node.create_timer(1./50., self._publish_odom)
+        self._smarc_timer = node.create_timer(1./10., self._publish_smarc)
+        self._status_str_timer = node.create_timer(1./10., lambda: self._status_pub.publish(String(data=self.status_str)))
         
         
 
@@ -993,6 +994,29 @@ class DjiCaptain():
             self._tf_pub.sendTransform(move_to_setpoint_tf)
 
 
+    def _publish_odom(self):
+        if self._base_pose_in_home is not None:
+            odom = Odometry()
+            odom.header.stamp = self.now_stamp
+            odom.header.frame_id = self.ODOM_FRAME
+            odom.child_frame_id = self.BASE_FRAME
+
+            odom.pose.pose.position.x = self._base_pose_in_home.pose.position.x
+            odom.pose.pose.position.y = self._base_pose_in_home.pose.position.y
+            odom.pose.pose.position.z = self._base_pose_in_home.pose.position.z
+            odom.pose.pose.orientation = self._base_pose_in_home.pose.orientation
+
+            if self._velocity_ground is not None:
+                odom.twist.twist.linear.x = self._velocity_ground.vector.x
+                odom.twist.twist.linear.y = self._velocity_ground.vector.y
+                odom.twist.twist.linear.z = self._velocity_ground.vector.z
+
+            if self._angular_rate_ground is not None:
+                odom.twist.twist.angular.x = self._angular_rate_ground.vector.x
+                odom.twist.twist.angular.y = self._angular_rate_ground.vector.y
+                odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
+
+            self._odom_pub.publish(odom)
 
 
     def _publish_smarc(self):
@@ -1008,28 +1032,6 @@ class DjiCaptain():
             self.log("[smarc] UTM frame label not set, cannot publish latlon position.")
             return
         
-
-        odom = Odometry()
-        odom.header.stamp = self.now_stamp
-        odom.header.frame_id = self.ODOM_FRAME
-        odom.child_frame_id = self.BASE_FRAME
-
-        odom.pose.pose.position.x = self._base_pose_in_home.pose.position.x
-        odom.pose.pose.position.y = self._base_pose_in_home.pose.position.y
-        odom.pose.pose.position.z = self._base_pose_in_home.pose.position.z
-        odom.pose.pose.orientation = self._base_pose_in_home.pose.orientation
-
-        if self._velocity_ground is not None:
-            odom.twist.twist.linear.x = self._velocity_ground.vector.x
-            odom.twist.twist.linear.y = self._velocity_ground.vector.y
-            odom.twist.twist.linear.z = self._velocity_ground.vector.z
-
-        if self._angular_rate_ground is not None:
-            odom.twist.twist.angular.x = self._angular_rate_ground.vector.x
-            odom.twist.twist.angular.y = self._angular_rate_ground.vector.y
-            odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
-
-        self._odom_pub.publish(odom)
         
         base_in_utm = PointStamped()
         base_in_utm.header.frame_id = self._utm_zb_label
@@ -1044,7 +1046,6 @@ class DjiCaptain():
         self._pos_latlon_pub.publish(base_in_geopoint)
 
         self._altitude_pub.publish(Float32(data = alt_above_water))
-
 
         if self._heading_deg is not None:
             self._heading_pub.publish(Float32(data=self._heading_deg))
