@@ -32,7 +32,7 @@ from dji_msgs.msg import PsdkTopics as PSDKTopics
 
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
-from tf_transformations import euler_from_quaternion, quaternion_from_euler, quaternion_matrix
+from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 
@@ -749,12 +749,14 @@ class DjiCaptain():
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
 
-        rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
+        # rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
+        rpy_enu = quat2euler([msg.quaternion.w, msg.quaternion.x, msg.quaternion.y, msg.quaternion.z])
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
         self._base_pose_in_home.pose.orientation = msg.quaternion
 
         flat_quat = Quaternion()
-        flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
+        # flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
+        flat_quat.w, flat_quat.x, flat_quat.y, flat_quat.z = euler2quat(0, 0, rpy_enu[2])
         self._base_pose_flat_in_home.pose.orientation = flat_quat
 
 
@@ -1078,11 +1080,17 @@ def format_point_stamped(point: PointStamped|None) -> str:
 def format_pose_stamped(pose: PoseStamped|None) -> str:
         if( pose is None):
             return "None"
-        rpy = euler_from_quaternion([
+        # rpy = euler_from_quaternion([
+        #     pose.pose.orientation.x,
+        #     pose.pose.orientation.y,
+        #     pose.pose.orientation.z,
+        #     pose.pose.orientation.w
+        # ])
+        rpy = quat2euler([
+            pose.pose.orientation.w,
             pose.pose.orientation.x,
             pose.pose.orientation.y,
-            pose.pose.orientation.z,
-            pose.pose.orientation.w
+            pose.pose.orientation.z
         ])
         return f"(x={pose.pose.position.x:+.3f}, y={pose.pose.position.y:+.3f}, z={pose.pose.position.z:+.3f}, " \
                f"roll={math.degrees(rpy[0]):+.3f}, pitch={math.degrees(rpy[1]):+.3f}, yaw={math.degrees(rpy[2]):+.3f}, " \
@@ -1152,7 +1160,8 @@ def transform_velocity_vector(
     q /= n
 
     # 3x3 rotation matrix
-    R = quaternion_matrix(q)[0:3, 0:3]
+    # R = quaternion_matrix(q)[0:3, 0:3]
+    R = quat2mat([q[3], q[0], q[1], q[2]])[0:3, 0:3]  # w, x, y, z
 
     v_src = np.array(
         [vel_src.vector.x, vel_src.vector.y, vel_src.vector.z],
