@@ -87,6 +87,7 @@ elif [[ $ROBOT_NAME == "FC30" ]]; then
     MIN_ALTITUDE_ABOVE_WATER="3.0"
 fi
 AUV_BUOY_LINE_LENGTH=5.0
+HOOK_LINE_LENGTH=10.0
 # fake-sam measurements
 AUV_LENGTH_M=1.3
 AUV_WIDTH_M=0.16
@@ -115,7 +116,9 @@ CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
     use_sim_time:=$USE_SIM_TIME \
     home_altitude_above_water:=$HOME_ABOVE_WATER \
     max_load_kg:=$MAX_LOAD_KG \
-    min_altitude_above_water:=$MIN_ALTITUDE_ABOVE_WATER"
+    min_altitude_above_water:=$MIN_ALTITUDE_ABOVE_WATER \
+    rope_length:=$HOOK_LINE_LENGTH"
+    
 CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/captain_status std_msgs/msg/String --field data"
 WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper"
 # DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
@@ -189,12 +192,18 @@ ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME"
 
+
+ALARS_PING_SEARCH_CMD="ros2 run alars alars_ping_search_action_server --ros-args -r __ns:=/$ROBOT_NAME \
+-p robot_name:=$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME"
+
 tmux_make_layout "$SESSION" ALARSActions "
 col(
     var(ALARS_SEARCH_CMD),
     var(ALARS_FOLLOW_AUV_CMD),
     var(ALARS_RECOVER_CMD),
-    var(ALARS_MOVE_TO_CMD)
+    var(ALARS_MOVE_TO_CMD),
+    var(ALARS_PING_SEARCH_CMD)
 )"
 
 ############
@@ -255,7 +264,27 @@ else
     "
 fi
 
-tmux_make_layout "$SESSION" CamProc "row(var(YOLO_CMD), var(PROJECTION_CMD))"
+SUCCOR_CMD="ros2 run serial_ping_pkg modem_ping_estimator_node --ros-args \
+-r __ns:=/$ROBOT_NAME \
+-p use_sim_time:=$USE_SIM_TIME \
+-p serial.port:=/dev/succorfish \
+-p serial.baudrate:=9600 \
+-p topics.own_latlon_topic:=/${ROBOT_NAME}/smarc/latlon \
+-p topics.own_depth_topic:=/${ROBOT_NAME}/sensor/hook_depth \
+-p teensy.own_modem_id:=\\'222\\' \
+-p topics.geopoint_topic:=/${ROBOT_NAME}/sensor/succorfish_geopoint \
+-p topics.marker_topic:=/${ROBOT_NAME}/rviz/succorfish_marker \
+-p topics.map_frame:=${ROBOT_NAME}/map"
+# TODO these would better live in a py launchfile...
+
+tmux_make_layout "$SESSION" CamProc "
+col(
+    row(
+        var(YOLO_CMD), 
+        var(PROJECTION_CMD)
+    ),
+    var(SUCCOR_CMD)
+)"
 
 
 ############

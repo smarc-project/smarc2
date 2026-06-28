@@ -11,6 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name, [
+            'README.md',
             'prox_ops_bt/goal_example.json',
             'prox_ops_bt/goal_example.md',
         ]),

@@ -1,18 +1,53 @@
 # Prox-Ops BT Goal Example
 
-`goal_example.json` is the JSON payload that goes inside
+`goal_example.json` is the WARA-compatible JSON payload that goes inside
 `smarc_msgs/action/BaseAction.goal.data` when sending a goal to
-`/prox_ops_bt`.
+`/prox_ops_bt`. The action server also accepts the unwrapped nested prox-ops
+mission object directly for developer tests.
 
 Example command:
 
 ```bash
-GOAL_JSON="$(tr -d '\n' < install/share/prox_ops_bt/goal_example.json)"
+GOAL_JSON="$(jq -c . install/share/prox_ops_bt/goal_example.json)"
 ros2 action send_goal /evolo/prox_ops_bt smarc_msgs/action/BaseAction \
 "{goal: {data: '${GOAL_JSON}'}}"
 ```
 
-## Top-Level Sections
+## Accepted Goal Formats
+
+Recommended WARA-compatible wrapper:
+
+```json
+{
+  "json-params": "{\"inspect\":{\"timeout_s\":5.0},\"intercept\":{\"geofence_check_enabled\":false},\"loiter_patrol\":{\"timeout_s\":30.0,\"speed\":\"standard\",\"waypoints\":[{\"latitude\":58.822943,\"longitude\":17.634076},{\"latitude\":58.821758,\"longitude\":17.634371}]}}"
+}
+```
+
+Developer-friendly direct payload, also accepted:
+
+```json
+{
+  "inspect": {
+    "timeout_s": 5.0
+  },
+  "intercept": {
+    "geofence_check_enabled": false
+  },
+  "loiter_patrol": {
+    "timeout_s": 30.0,
+    "speed": "standard",
+    "waypoints": [
+      {"latitude": 58.822943, "longitude": 17.634076},
+      {"latitude": 58.821758, "longitude": 17.634371}
+    ]
+  }
+}
+```
+
+When `json-params` is present, `prox_ops_bt` parses it first and validates the
+inner object.
+
+## Inner Sections
 
 `inspect`
 : Configuration for the inspection branch. The BT forwards this object to

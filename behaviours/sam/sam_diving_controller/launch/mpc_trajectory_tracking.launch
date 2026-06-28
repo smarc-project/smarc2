@@ -2,14 +2,46 @@
 
     <arg name="robot_name" default="sam0"/>
     <arg name="tf_suffix" default=""/>
+    <arg name="world_prefix" default=""/>
     <arg name="control_yaml" default="$(find-pkg-share sam_diving_controller)/config/sam_diving_controller_config.yaml"/>
-   
+    <arg name="use_sim_time" default="false"/>
+    <arg name="debug_print_ref_state" default="false"/>
+    <!-- Set to true if the AUV turns the wrong direction (e.g. port instead of starboard for a 180) -->
+    <arg name="flip_rudder_command" default="True"/>
+    <arg name="flip_stern_command" default="True"/>
+    <arg name="traj_d_tolerance_m" default="0.5"/>
+    <arg name="traj_yaw_tolerance_deg" default="25.0"/>
+    
+    <!-- How many trajectory WPs to place in the prediction horizon:
+         0 = full remaining trajectory (best for maneuvers like 180 turns).
+         1 = current WP only (repeated across the horizon).
+         N = next N WPs sequentially, padded with the last. -->
+    <arg name="horizon_max_waypoints" default="0"/>
+    <!-- Fraction of horizon dedicated to the CURRENT waypoint when >= 2 WPs remain.
+         0.0 = disabled (sequential packing, 1 stage per WP, rest padded).
+         0.33 = 1/3 current, 2/3 next.   0.5 = even split.   0.7 = 70% current, 30% next.
+         With dense intermediate waypoints the velocity transitions are smooth,
+         so a 70/30 split lets the solver anticipate the next segment without
+         conflicting direction references. -->
+    <arg name="horizon_current_wp_ratio" default="0.0"/>
+    <arg name="build_ocp" default="False"/>
+
     <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
        <node name="diving_node" pkg="sam_diving_controller" exec="mpc_trajectory_tracking" output="screen">
         <param name="robot_name" value="$(var robot_name)"/>
         <param name="tf_suffix" value="$(var tf_suffix)"/>
-	<param from="$(var control_yaml)"/>
+        <param name="world_prefix" value="$(var world_prefix)"/>
+        <param from="$(var control_yaml)"/>
+        <param name="use_sim_time" value="$(var use_sim_time)"/>
+        <param name="debug_print_ref_state" value="$(var debug_print_ref_state)"/>
+        <param name="flip_rudder_command" value="$(var flip_rudder_command)"/>
+        <param name="flip_stern_command" value="$(var flip_stern_command)"/>
+        <param name="traj_d_tolerance_m" value="$(var traj_d_tolerance_m)"/>
+        <param name="traj_yaw_tolerance_deg" value="$(var traj_yaw_tolerance_deg)"/>
+        <param name="horizon_max_waypoints" value="$(var horizon_max_waypoints)"/>
+        <param name="horizon_current_wp_ratio" value="$(var horizon_current_wp_ratio)"/>
+        <param name="build_ocp" value="$(var build_ocp)"/>
        </node>
     </group>
 

@@ -69,6 +69,8 @@ class DivePub(IDivePub):
         Set vbs
         """
         self._vbs_msg.value = float(vbs)
+        now = self._node.get_clock().now()
+        self._vbs_msg.header.stamp = now.to_msg()
 
 
     def set_lcg(self, lcg: float) -> None:
@@ -76,6 +78,8 @@ class DivePub(IDivePub):
         Set LCG
         """
         self._lcg_msg.value = float(lcg)
+        now = self._node.get_clock().now()
+        self._lcg_msg.header.stamp = now.to_msg()
 
 
     def set_rpm(self, rpm1: float, rpm2: float) -> None:
@@ -87,11 +91,9 @@ class DivePub(IDivePub):
         self.rpm_msg.thruster_1_rpm = int(rpm1)
         self.rpm_msg.thruster_2_rpm = int(rpm2)
 
-        # FOR DEBUG ONLY!!!!
-        #self._t1_msg.rpm = int(600)
-        #self._t2_msg.rpm = int(600)
-        #self.rpm_msg.thruster_1_rpm = int(600)
-        #self.rpm_msg.thruster_2_rpm = int(600)
+        now = self._node.get_clock().now()
+        self.rpm_msg.header.stamp = now.to_msg()
+
 
     def set_thrust_vector(self, horizontal_tv: float, vertical_tv: float) -> None:
         """
@@ -99,6 +101,9 @@ class DivePub(IDivePub):
         """
         self._thrust_vector_msg.thruster_horizontal_radians = float(horizontal_tv)
         self._thrust_vector_msg.thruster_vertical_radians = float(vertical_tv)
+
+        now = self._node.get_clock().now()
+        self._thrust_vector_msg.header.stamp = now.to_msg()
 
 
     def set_stern(self, u_tv_ver):
@@ -140,7 +145,6 @@ class DivePub(IDivePub):
         Publish all actuator values
         """
         if self._actuator_state == ActuatorStates.DISENGAGED:
-            #self._loginfo(f"Actuators disengaged")
             return
         
         if self._actuator_state == ActuatorStates.NEUTRAL:

@@ -39,10 +39,12 @@ class SAMSMARCPublisher(Node):
         self._create_odom_pubsub()
 
     def _utm_callback(self, msg):
-        if self.utm_frame is not None:
-            return
-        self.utm_frame = msg.data
-        self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
+        # commented out because the first ever one is almost always bad, we are in water :,)
+        # if self.utm_frame is not None:
+        #     return
+        if msg.data != self.utm_frame:
+            self.utm_frame = msg.data
+            self.get_logger().info(f'Using UTM frame: {self.utm_frame}')
 
     def _create_tf_listener(self):
         self.odom_frame = f'{self.robot_name}/odom'
@@ -92,14 +94,7 @@ class SAMSMARCPublisher(Node):
 
     def _create_altitude_pubsub(self):
         self.altitude_pub = self.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, 10)
-        self.altitude_sub = self.create_subscription(DVL, SamTopics.DVL_TOPIC, self.dvl_callback, 10)
-
-    def dvl_callback(self, msg):
-        """
-        Callback for the DVL topic. It publishes the altitude to the SMaRC topic.
-        """
         
-        self.altitude_pub.publish(Float32(data=msg.altitude))
 
     def _create_odom_pubsub(self):
         """
@@ -148,8 +143,9 @@ class SAMSMARCPublisher(Node):
             self.heading_pub.publish(compass_heading_msg)
 
             latlon_msg = convert_utm_to_latlon(transform_pose)
-            latlon_msg.altitude = -1.
+            latlon_msg.altitude = msg.pose.pose.position.z
             self.latlon_pub.publish(latlon_msg)
+            self.altitude_pub.publish(Float32(data=latlon_msg.altitude))
 
             if self.current_pose_utm is not None and self.prev_pose_utm is not None:
                 course_msg = compute_course_from_two_poses(self.prev_pose_utm, self.current_pose_utm)

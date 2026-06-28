@@ -41,32 +41,34 @@ class PathAction:
 
         if component is ActionComponent.GOAL:
             path = TrajectoryMPC()
-            #path.header = str(fmt_dict["path"]["header"])
             for i in range(0,len(fmt_dict['path']['trajectory'])):
+                wp = fmt_dict["path"]["trajectory"][str(i)]
                 wp_mpc = WpMPC()
-                wp_mpc.header.frame_id = fmt_dict["path"]["trajectory"][str(i)]["wp"]["frame_id"]
-                wp_mpc.wp.pose.position.x = fmt_dict["path"]["trajectory"][str(i)]["wp"]["position"]["x"]
-                wp_mpc.wp.pose.position.y = fmt_dict["path"]["trajectory"][str(i)]["wp"]["position"]["y"]
-                wp_mpc.wp.pose.position.z = fmt_dict["path"]["trajectory"][str(i)]["wp"]["position"]["z"]
-                wp_mpc.wp.pose.orientation.x = fmt_dict["path"]["trajectory"][str(i)]["wp"]["orientation"]["x"]
-                wp_mpc.wp.pose.orientation.y = fmt_dict["path"]["trajectory"][str(i)]["wp"]["orientation"]["y"]
-                wp_mpc.wp.pose.orientation.z = fmt_dict["path"]["trajectory"][str(i)]["wp"]["orientation"]["z"]
-                wp_mpc.wp.pose.orientation.w = fmt_dict["path"]["trajectory"][str(i)]["wp"]["orientation"]["w"]
-                wp_mpc.velocities.linear.x = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["linear"]["x"]
-                wp_mpc.velocities.linear.y = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["linear"]["y"]
-                wp_mpc.velocities.linear.z = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["linear"]["z"]
-                wp_mpc.velocities.angular.x = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["angular"]["x"]
-                wp_mpc.velocities.angular.x = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["angular"]["y"]
-                wp_mpc.velocities.angular.x = fmt_dict["path"]["trajectory"][str(i)]["velocities"]["angular"]["z"]
-                wp_mpc.nominal_control.rpms.thruster_1_rpm = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["rpms"]["thruster_1_rpm"]
-                wp_mpc.nominal_control.rpms.thruster_2_rpm = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["rpms"]["thruster_2_rpm"]
-                wp_mpc.nominal_control.thruster_angles.thruster_vertical_radians = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["thruster_angles"]["thruster_vertical_radians"] 
-                wp_mpc.nominal_control.thruster_angles.thruster_horizontal_radians = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["thruster_angles"]["thruster_horizontal_radians"]
-                wp_mpc.nominal_control.vbs.value = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["vbs"]
-                wp_mpc.nominal_control.lcg.value = fmt_dict["path"]["trajectory"][str(i)]["nominal_control"]["lcg"]
+                wp_mpc.header.frame_id = wp["wp"]["frame_id"]
+                wp_mpc.wp.pose.position.x = wp["wp"]["position"]["x"]
+                wp_mpc.wp.pose.position.y = wp["wp"]["position"]["y"]
+                wp_mpc.wp.pose.position.z = wp["wp"]["position"]["z"]
+                wp_mpc.wp.pose.orientation.x = wp["wp"]["orientation"]["x"]
+                wp_mpc.wp.pose.orientation.y = wp["wp"]["orientation"]["y"]
+                wp_mpc.wp.pose.orientation.z = wp["wp"]["orientation"]["z"]
+                wp_mpc.wp.pose.orientation.w = wp["wp"]["orientation"]["w"]
+                wp_mpc.velocities.linear.x = wp["velocities"]["linear"]["x"]
+                wp_mpc.velocities.linear.y = wp["velocities"]["linear"]["y"]
+                wp_mpc.velocities.linear.z = wp["velocities"]["linear"]["z"]
+                wp_mpc.velocities.angular.x = wp["velocities"]["angular"]["x"]
+                wp_mpc.velocities.angular.y = wp["velocities"]["angular"]["y"]
+                wp_mpc.velocities.angular.z = wp["velocities"]["angular"]["z"]
+
+                # Actuator references are not tracked by the MPC cost — use
+                # neutral defaults regardless of what the JSON carries.
+                wp_mpc.nominal_control.vbs.value = 50.0
+                wp_mpc.nominal_control.lcg.value = 50.0
+                wp_mpc.nominal_control.rpms.thruster_1_rpm = 0
+                wp_mpc.nominal_control.rpms.thruster_2_rpm = 0
+                wp_mpc.nominal_control.thruster_angles.thruster_vertical_radians = 0.0
+                wp_mpc.nominal_control.thruster_angles.thruster_horizontal_radians = 0.0
 
                 path.trajectory.append(wp_mpc)
-
 
             return path
 

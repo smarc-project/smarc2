@@ -32,7 +32,7 @@ from dji_msgs.msg import PsdkTopics as PSDKTopics
 
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
-from tf_transformations import euler_from_quaternion, quaternion_from_euler, quaternion_matrix
+from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 
@@ -85,7 +85,11 @@ class DjiCaptain():
         
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : Timer | None = None
-        self.JOY_PUB_MAX = 1.5
+        if self.ROBOT_NAME == "M350":
+            self.JOY_PUB_MAX = 10.0
+        else:
+            self.JOY_PUB_MAX = 2.5
+            
         self.JOY_PUB_PERIOD = 1.0 / 50.0
         self._prev_joy_output : np.ndarray | None = None
         self._last_pubbed_fluvel_joy : Joy | None = None
@@ -148,6 +152,10 @@ class DjiCaptain():
         self._node.declare_parameter("max_load_kg", 4.0)
         self._MAX_LOAD_KG : float = self._node.get_parameter("max_load_kg").get_parameter_value().double_value
         self._load_cell_weight : float | None = None
+
+        self._node.declare_parameter("rope_length", 10.0)
+        self._ROPE_LENGTH : float = self._node.get_parameter("rope_length").get_parameter_value().double_value
+
 
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
@@ -276,10 +284,11 @@ class DjiCaptain():
         self._altitude_pub = node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, qos_profile=10)
 
         self._vehicle_health_timer = node.create_timer(1, self._publish_vehicle_health)
-        self._tf_timer = node.create_timer(0.1, self._publish_tf)
+        self._tf_timer = node.create_timer(1./10., self._publish_tf)
         self._static_tf_timer = node.create_timer(1.0, self._publish_static_tf) 
-        self._smarc_timer = node.create_timer(0.1, self._publish_smarc)
-        self._status_str_timer = node.create_timer(0.1,lambda: self._status_pub.publish(String(data=self.status_str)))
+        self._odom_timer = node.create_timer(1./50., self._publish_odom)
+        self._smarc_timer = node.create_timer(1./10., self._publish_smarc)
+        self._status_str_timer = node.create_timer(1./10., lambda: self._status_pub.publish(String(data=self.status_str)))
         
         
 
@@ -299,11 +308,16 @@ class DjiCaptain():
         return self._move_to_setpoint.header.stamp.sec + self._move_to_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_setpoint is not None else None
     
     @property
-    def altitude_above_water(self) -> float:
-        if self._base_pose_in_home is not None:
-            return self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER
-        else:
-            return -1.0
+    def altitude_above_water(self) -> float|None:
+        if self._base_pose_in_home is None: return None
+        return self._base_pose_in_home.pose.position.z + self._HOME_ALT_ABOVE_WATER
+
+    @property
+    def depth_of_hook(self) -> float | None:
+        alt = self.altitude_above_water
+        if alt is None: return None
+        return alt - self._ROPE_LENGTH
+
     
     
     @property
@@ -333,6 +347,11 @@ class DjiCaptain():
             s += f"  Load Cell Weight: {self._load_cell_weight:+.2f} kg (max: {self._MAX_LOAD_KG} kg)\n"
         else:
             s += f"  Load Cell Weight: N/A\n"
+
+        if self.depth_of_hook is not None:
+            s += f"  Depth of Hook: {self.depth_of_hook:+.2f} m (rope length: {self._ROPE_LENGTH} m)\n"
+        else:
+            s += f"  Depth of Hook: N/A\n"
 
         s += f"  Flying: {self._flying} [{', '.join(f'{rpm:.2f}' for rpm in self._prop_rpms)}]\n"
         
@@ -730,12 +749,14 @@ class DjiCaptain():
             self._base_pose_flat_in_home = PoseStamped()
             self._base_pose_flat_in_home.header.frame_id = self.ODOM_FRAME
 
-        rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
+        # rpy_enu = euler_from_quaternion([msg.quaternion.x, msg.quaternion.y, msg.quaternion.z, msg.quaternion.w])
+        rpy_enu = quat2euler([msg.quaternion.w, msg.quaternion.x, msg.quaternion.y, msg.quaternion.z])
         self._heading_deg = 90 - math.degrees(rpy_enu[2])
         self._base_pose_in_home.pose.orientation = msg.quaternion
 
         flat_quat = Quaternion()
-        flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
+        # flat_quat.x, flat_quat.y, flat_quat.z, flat_quat.w = quaternion_from_euler(0, 0, rpy_enu[2])
+        flat_quat.w, flat_quat.x, flat_quat.y, flat_quat.z = euler2quat(0, 0, rpy_enu[2])
         self._base_pose_flat_in_home.pose.orientation = flat_quat
 
 
@@ -860,12 +881,14 @@ class DjiCaptain():
         self._prop_rpms = [esc.speed for esc in list(self._esc_data.esc)[:self.NUM_PROPS]]
         self._flying = all(rpm > self.ESC_IDLE_RPM for rpm in self._prop_rpms)
 
-        if not self._cleared_water_level_once and self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER:
-            self.log(f"Cleared water level for the first time! Altitude above water: {self.altitude_above_water:.2f} m > {self.MIN_ALTITUDE_ABOVE_WATER:.2f} m")
-        self._cleared_water_level_once = self._cleared_water_level_once or self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER
+        water_altitude_error = False
+        if self.altitude_above_water is not None:
+            if not self._cleared_water_level_once and self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER:
+                self.log(f"Cleared water level for the first time! Altitude above water: {self.altitude_above_water:.2f} m > {self.MIN_ALTITUDE_ABOVE_WATER:.2f} m")
+            self._cleared_water_level_once = self._cleared_water_level_once or self.altitude_above_water > self.MIN_ALTITUDE_ABOVE_WATER
+            water_altitude_error = self.altitude_above_water < self.MIN_ALTITUDE_ABOVE_WATER and self._cleared_water_level_once
 
         if self._flying:
-            water_altitude_error = self.altitude_above_water < self.MIN_ALTITUDE_ABOVE_WATER and self._cleared_water_level_once
             if water_altitude_error:
                 self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING
                 self.logerr(f"TOO CLOSE TO WATER: {self.altitude_above_water:.2f} < {self.MIN_ALTITUDE_ABOVE_WATER:.2f}")
@@ -975,6 +998,29 @@ class DjiCaptain():
             self._tf_pub.sendTransform(move_to_setpoint_tf)
 
 
+    def _publish_odom(self):
+        if self._base_pose_in_home is not None:
+            odom = Odometry()
+            odom.header.stamp = self.now_stamp
+            odom.header.frame_id = self.ODOM_FRAME
+            odom.child_frame_id = self.BASE_FRAME
+
+            odom.pose.pose.position.x = self._base_pose_in_home.pose.position.x
+            odom.pose.pose.position.y = self._base_pose_in_home.pose.position.y
+            odom.pose.pose.position.z = self._base_pose_in_home.pose.position.z
+            odom.pose.pose.orientation = self._base_pose_in_home.pose.orientation
+
+            if self._velocity_ground is not None:
+                odom.twist.twist.linear.x = self._velocity_ground.vector.x
+                odom.twist.twist.linear.y = self._velocity_ground.vector.y
+                odom.twist.twist.linear.z = self._velocity_ground.vector.z
+
+            if self._angular_rate_ground is not None:
+                odom.twist.twist.angular.x = self._angular_rate_ground.vector.x
+                odom.twist.twist.angular.y = self._angular_rate_ground.vector.y
+                odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
+
+            self._odom_pub.publish(odom)
 
 
     def _publish_smarc(self):
@@ -990,28 +1036,6 @@ class DjiCaptain():
             self.log("[smarc] UTM frame label not set, cannot publish latlon position.")
             return
         
-
-        odom = Odometry()
-        odom.header.stamp = self.now_stamp
-        odom.header.frame_id = self.ODOM_FRAME
-        odom.child_frame_id = self.BASE_FRAME
-
-        odom.pose.pose.position.x = self._base_pose_in_home.pose.position.x
-        odom.pose.pose.position.y = self._base_pose_in_home.pose.position.y
-        odom.pose.pose.position.z = self._base_pose_in_home.pose.position.z
-        odom.pose.pose.orientation = self._base_pose_in_home.pose.orientation
-
-        if self._velocity_ground is not None:
-            odom.twist.twist.linear.x = self._velocity_ground.vector.x
-            odom.twist.twist.linear.y = self._velocity_ground.vector.y
-            odom.twist.twist.linear.z = self._velocity_ground.vector.z
-
-        if self._angular_rate_ground is not None:
-            odom.twist.twist.angular.x = self._angular_rate_ground.vector.x
-            odom.twist.twist.angular.y = self._angular_rate_ground.vector.y
-            odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
-
-        self._odom_pub.publish(odom)
         
         base_in_utm = PointStamped()
         base_in_utm.header.frame_id = self._utm_zb_label
@@ -1026,7 +1050,6 @@ class DjiCaptain():
         self._pos_latlon_pub.publish(base_in_geopoint)
 
         self._altitude_pub.publish(Float32(data = alt_above_water))
-
 
         if self._heading_deg is not None:
             self._heading_pub.publish(Float32(data=self._heading_deg))
@@ -1057,11 +1080,17 @@ def format_point_stamped(point: PointStamped|None) -> str:
 def format_pose_stamped(pose: PoseStamped|None) -> str:
         if( pose is None):
             return "None"
-        rpy = euler_from_quaternion([
+        # rpy = euler_from_quaternion([
+        #     pose.pose.orientation.x,
+        #     pose.pose.orientation.y,
+        #     pose.pose.orientation.z,
+        #     pose.pose.orientation.w
+        # ])
+        rpy = quat2euler([
+            pose.pose.orientation.w,
             pose.pose.orientation.x,
             pose.pose.orientation.y,
-            pose.pose.orientation.z,
-            pose.pose.orientation.w
+            pose.pose.orientation.z
         ])
         return f"(x={pose.pose.position.x:+.3f}, y={pose.pose.position.y:+.3f}, z={pose.pose.position.z:+.3f}, " \
                f"roll={math.degrees(rpy[0]):+.3f}, pitch={math.degrees(rpy[1]):+.3f}, yaw={math.degrees(rpy[2]):+.3f}, " \
@@ -1131,7 +1160,8 @@ def transform_velocity_vector(
     q /= n
 
     # 3x3 rotation matrix
-    R = quaternion_matrix(q)[0:3, 0:3]
+    # R = quaternion_matrix(q)[0:3, 0:3]
+    R = quat2mat([q[3], q[0], q[1], q[2]])[0:3, 0:3]  # w, x, y, z
 
     v_src = np.array(
         [vel_src.vector.x, vel_src.vector.y, vel_src.vector.z],
