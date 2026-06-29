@@ -62,10 +62,11 @@ class ControlGains:
 @dataclass
 class TuperGoal:
     """Parsed per-mission goal (defaults resolved from node params upstream)."""
-    start_lat: float
-    start_lon: float
-    initial_setpoint_lat: float
-    initial_setpoint_lon: float
+    # Geopoints (geographic_msgs/GeoPoint), like the move_to action servers.
+    # Only latitude/longitude drive control; any altitude carried on the
+    # geopoint is ignored here (depth is commanded via mission_depth).
+    start_position: GeoPoint
+    initial_setpoint: GeoPoint
     mission_depth: float
     min_altitude: float
     min_rpm: float
@@ -95,6 +96,11 @@ def latlon_to_utm(lat: float, lon: float) -> tuple[float, float]:
     gp.altitude = 0.0
     point = utm.fromMsg(gp).toPoint()
     return (float(point.x), float(point.y))
+
+
+def geopoint_to_utm(gp: GeoPoint) -> tuple[float, float]:
+    """Convert a geographic_msgs/GeoPoint to absolute UTM (easting, northing)."""
+    return latlon_to_utm(gp.latitude, gp.longitude)
 
 
 def wrap_angle(a: float) -> float:
@@ -508,8 +514,7 @@ class FollowSetpoint(_CourseControlBehaviour):
         if self._bootstrap:
             # Steer toward the initial setpoint to get LoLo diving / submerged
             # so acoustic comms (and the UKF) can come up.
-            return latlon_to_utm(goal.initial_setpoint_lat,
-                                 goal.initial_setpoint_lon)
+            return geopoint_to_utm(goal.initial_setpoint)
         if self._fs.setpoint_fresh and self._fs.setpoint_utm is not None:
             return self._fs.setpoint_utm
         # UKF was ready but the setpoint dropped out: hold (do not revert to the
@@ -550,7 +555,7 @@ class MoveToLastSetpoint(_CourseControlBehaviour):
         if self._target_xy is not None:
             return self._target_xy
         # Fallback if we somehow never saw a setpoint.
-        return latlon_to_utm(goal.initial_setpoint_lat, goal.initial_setpoint_lon)
+        return geopoint_to_utm(goal.initial_setpoint)
 
     def _check_exit(self, goal: TuperGoal, target_xy: tuple[float, float],
                     dist: float) -> Status | None:
