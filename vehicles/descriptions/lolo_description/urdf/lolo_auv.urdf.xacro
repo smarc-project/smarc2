@@ -30,6 +30,7 @@
   <link name="$(arg robot_namespace)/mbes_link"/>
   <link name="$(arg robot_namespace)/enu/mbes_link"/>
   <link name="$(arg robot_namespace)/usbl_link"/>
+  <link name="$(arg robot_namespace)/modem_link"/>
 
   <link name="$(arg robot_namespace)/elevator">
     <visual>
@@ -214,9 +215,16 @@
   </joint>
 
   <joint name="$(arg robot_namespace)/usbl_joint" type="fixed">
-    <origin xyz="0.389 0.002 0.337" rpy="0 0 0" />
+    <origin xyz="1.6103 0.0966 0.4802" rpy="0 0 0" />
     <parent link="$(arg robot_namespace)/base_link"/>
     <child link="$(arg robot_namespace)/usbl_link"/>
+  </joint>
+
+  <!-- Succorfish modem: measured 0.21 m ahead, 0.095 m right, 0.25 m up from usbl_link -->
+  <joint name="$(arg robot_namespace)/modem_joint" type="fixed">
+    <origin xyz="1.8203 0.0016 0.7302" rpy="0 0 0" />
+    <parent link="$(arg robot_namespace)/base_link"/>
+    <child link="$(arg robot_namespace)/modem_link"/>
   </joint>
 
 </robot>

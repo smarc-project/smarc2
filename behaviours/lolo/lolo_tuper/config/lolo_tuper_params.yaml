@@ -1,0 +1,89 @@
+# Node-level tuning constants for the LoLo TUPER behaviour tree.
+# Per-mission values (start/setpoint positions, depth, rpm limits, tolerances)
+# are sent in the action goal JSON, NOT here.
+/**:
+  ros__parameters:
+    # Lolo vehicle object config.
+    robot_name: "lolo"
+    limits_filename: ""           # empty -> virtual_lolo default limits.
+
+    # BT / control loop rate (Hz). Passed as GentlerActionServer loop_frequency.
+    control_frequency: 10.0
+
+    # Max age (s) of a UKF pose before it is considered stale.
+    estimate_max_age: 5.0
+    # Grace period (s) we tolerate stale/missing UKF pose before failing.
+    stale_grace_period: 10.0
+
+    # Estimator topics (remappable).
+    pose_topic: "/follower/ukf/pose"
+    setpoint_topic: "/follower/ukf/setpoint"
+    # Measured estimate-vs-truth divergence (std_msgs/Float32). The follow loop
+    # fails the task when this exceeds the goal's max_delta_pos, regardless of
+    # the filter's self-reported covariance.
+    delta_pos_topic: "/follower/ukf/delta_pos"
+
+    # External action server (lolo_depth_move_to) name.
+    move_to_action_name: "auv_depth_move_to"
+
+    # --- Velocity-matching follow loop -----------------------------------
+    # Feed-forward: commanded ctrl/rpm_setpoint = rpm_idle + rpm_per_mps*v_target.
+    # rpm_per_mps ~= 1/0.0019 from the Asko 2026 thruster-RPM->speed fit (the
+    # slow speed trim below absorbs the ctrl-setpoint -> thruster-rpm offset).
+    rpm_idle: 0.0
+    rpm_per_mps: 530.0
+    # Along-track position -> extra target speed (m/s per metre beyond standoff).
+    # Drives the closing of the trailing gap; higher = catches up to the standoff
+    # faster (bounded by max_rpm).
+    kp_pos: 0.15
+    # Slow integral trim on MEASURED speed: rpm per (m/s . s), and its clamp (rpm).
+    ki_speed: 20.0
+    speed_trim_limit: 150.0
+    hold_rpm: 400.0               # safe rpm while waiting (still dive-floored).
+
+    # Telemetry only: above this |bearing - heading| the control 'reason' is
+    # tagged 'turning' (a come-about is in progress). Steering is pure pursuit
+    # (always aim at the target), so this no longer gates behaviour.
+    heading_gate_deg: 60.0
+
+    # Follow-phase deadband is a fixed radius = arrival_tolerance (set per-goal):
+    # within it we ease to the RPM floor (min_rpm) to avoid chasing estimator
+    # jitter. It is deliberately NOT widened by delta_pos -- that is the
+    # estimate's measured error and only drives the max_delta_pos failure gate.
+
+    # Window (s) for least-squares leader (setpoint) velocity estimation.
+    leader_speed_window: 5.0
+
+    # --- Dive-floor (depths in m, positive down) -------------------------
+    # LoLo needs a higher RPM to GET DOWN (dive_entry_rpm); once at depth she
+    # holds with the ordinary min_rpm. The entry->hold switch is relative to the
+    # MISSION DEPTH (not a fixed shallow threshold), so the entry floor stays on
+    # until she is within dive_depth_tolerance of the commanded depth - otherwise
+    # the descent gets cut short a metre or two down.
+    submersion_min_depth: 0.5     # mission_depth above this => submersion needed.
+    dive_depth_tolerance: 1.5     # "at depth" band below mission_depth; entry
+                                  # floor releases within it. Also under-dive band.
+    dive_warn_period: 20.0        # under-dive sustained this long (s) -> warn only.
+
+    # --- Goal-JSON overridable defaults (per-mission fallback) -----------
+    # Operators may override each of these in the action goal JSON; the values
+    # here are the fallback used when the field is omitted from the goal.
+    # NOTE: follow speed is bounded by the goal's min_rpm / max_rpm (RPM limits),
+    # NOT by an explicit speed clamp.
+    standoff_distance: 0.0        # desired trailing gap behind the setpoint (m).
+    # Arrival tolerance for the FINAL "move to last setpoint" leg only (m). Kept
+    # SEPARATE from (and larger than) the follow arrival_tolerance: LoLo cannot
+    # stop and has a finite turn radius, so she cannot settle on a static point -
+    # a roomy final tolerance lets her declare arrival on the first pass instead
+    # of orbiting. Does NOT affect the follow-phase deadband.
+    final_arrival_tolerance: 10.0
+    # RPM floor while breaking the surface / diving down to mission_depth. May
+    # exceed max_rpm to dive harder (a "dive boost"), bounded only by the
+    # vehicle's hard max_thruster_rpm. When max_rpm >= this, it has no extra
+    # effect (she can already use max_rpm to dive). Once at depth the floor drops
+    # back to the ordinary min_rpm.
+    dive_entry_rpm: 550.0
+    # Leaders are "done" only when the fitted setpoint speed drops below this
+    # (m/s). Keep it well under the leaders' cruise speed so a slow corner is not
+    # mistaken for a stop (paired with setpoint_stop_tolerance / _period).
+    setpoint_stop_speed: 0.1

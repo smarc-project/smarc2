@@ -1,0 +1,71 @@
+# Parameters for the TUPER test/faker node (tuper_test).
+# Fakes /follower/ukf/pose, /follower/ukf/setpoint and /follower/ukf/delta_pos
+# so the tuper BT can be dry-run in sim without the real acoustic UKF.
+/**:
+  ros__parameters:
+    # Do nothing for this long, then start faking.
+    warmup_seconds: 5.0
+    publish_rate: 10.0          # Hz
+
+    # Where to read the vehicle's TRUE state from (override per robot_name).
+    latlon_topic: "/lolo/smarc/latlon"   # GeoPoint truth -> anchors absolute UTM
+    odom_topic: "/lolo/smarc/odom"       # used only for heading
+    # Where to publish the fakes (must match the tuper BT's inputs).
+    pose_topic: "/follower/ukf/pose"
+    setpoint_topic: "/follower/ukf/setpoint"
+    delta_pos_topic: "/follower/ukf/delta_pos"  # faked estimate-vs-truth divergence
+    ahead_distance_m: 15.0      # anchor the first setpoint this far ahead of LoLo
+
+    # --- Fake pose noise ------------------------------------------------------
+    # Integrated (random-walk) noise added to the true position, with mild mean
+    # reversion: n <- (1 - theta)*n + sigma * N(0,1) each tick.
+    pose_noise_sigma: 0.05      # per-tick step std [m]
+    pose_noise_theta: 0.01      # mean reversion (keeps the walk bounded)
+    # Reported 1-sigma that becomes the pose covariance. The BT no longer gates
+    # on this (it gates on the measured delta_pos divergence below), so it is now
+    # cosmetic telemetry; the faker still publishes it for realism / analysis.
+    reported_sigma: 1.0         # [m]
+
+    # --- Setpoint trajectory --------------------------------------------------
+    # 'relative' -> vertices are (east, north) metres from the vehicle position
+    #               captured when faking starts (handy: no GPS coords needed).
+    # 'latlon'   -> vertices are absolute (latitude, longitude) degrees.
+    vertices_frame: "latlon"
+
+    # Used when vertices_frame == 'relative' (an example L-shaped path).
+    # These are metres East/North from LoLo's start, so they work regardless of
+    # the actual GPS start position (sim start observed at ~58.840386, 17.651664).
+    vertices_east:  [0.0, 30.0, 60.0, 60.0]
+    vertices_north: [0.0,  0.0, 30.0, 60.0]
+
+    # Used when vertices_frame == 'latlon' (leave empty otherwise). Example path
+    # near the sim start (58.840386, 17.651664) matching the relative L above:
+    #   vertices_lat: [58.8403858, 58.8403858, 58.8406553, 58.8409248]
+    #   vertices_lon: [17.6516642, 17.6521854, 17.6521854, 17.6527070]
+    
+    #   starting points coords <58.823242><17.633864>
+    
+    vertices_lat: [58.822811, 58.821886, 58.821229]
+    vertices_lon: [17.633968, 17.633028, 17.634541]
+    
+    # Setpoint speed envelope and corner behaviour.
+    speed_min: 0.6              # [m/s] (around corners)
+    speed_max: 0.8              # [m/s] (on straights)
+    corner_curvature_ref: 0.15  # [1/m] higher -> less aggressive slowdown
+    speed_jitter: 0.08          # gentle random speedups/slowdowns
+    loop_trajectory: false      # false -> hold last vertex at the end (tests stop-detect)
+
+    # --- Jumpiness ("ran away then snapped back") -----------------------------
+    enable_trajectory_jumps: true
+    jump_period_s: 2.0          # mean seconds between glitches
+    jump_lateral_std: 1.5       # sideways jump magnitude std [m]
+    jump_along_std: 1.5         # along-track runaway magnitude std [m]
+    jump_decay_s: 0.6           # how fast a glitch decays back to the path [s]
+
+    # --- Fake pose wrong-estimate jumps ---------------------------------------
+    # Adds occasional jumps to /follower/ukf/pose on top of the random-walk noise.
+    # Use this to simulate the UKF briefly estimating the wrong position.
+    enable_pose_jumps: true
+    pose_jump_period_s: 8.0     # mean seconds between pose jumps
+    pose_jump_std: 4.0          # jump magnitude scale [m]
+    pose_jump_decay_s: 2.0      # snap-back duration [s]
