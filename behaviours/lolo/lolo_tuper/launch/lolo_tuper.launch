@@ -1,0 +1,13 @@
+<launch>
+  <arg name="robot_name" default="lolo" />
+  <arg name="use_sim_time" default="False" />
+  <arg name="config_file" default="$(find-pkg-share lolo_tuper)/config/lolo_tuper_params.yaml" />
+
+  <!-- NOTE: requires the external auv_depth_move_to (lolo_depth_move_to) server
+       and the UKF estimator node to be running. -->
+  <node pkg="lolo_tuper" exec="lolo_tuper" name="lolo_tuper" output="screen" namespace="$(var robot_name)">
+    <param from="$(var config_file)" />
+    <param name="robot_name" value="$(var robot_name)" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
+  </node>
+</launch>

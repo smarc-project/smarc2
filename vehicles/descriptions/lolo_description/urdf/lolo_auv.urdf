@@ -21,6 +21,7 @@
   <link name="lolo/mbes_link"/>
   <link name="lolo/enu/mbes_link"/>
   <link name="lolo/usbl_link"/>
+  <link name="lolo/modem_link"/>
   <link name="lolo/elevator">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -180,8 +181,13 @@
     <child link="lolo/enu/mbes_link"/>
   </joint>
   <joint name="lolo/usbl_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0.389 0.002 0.337"/>
+    <origin rpy="0 0 0" xyz="1.6103 0.0966 0.4802"/>
     <parent link="lolo/base_link"/>
     <child link="lolo/usbl_link"/>
+  </joint>
+  <joint name="lolo/modem_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="1.8203 0.0 0.7302"/>
+    <parent link="lolo/base_link"/>
+    <child link="lolo/modem_link"/>
   </joint>
 </robot>

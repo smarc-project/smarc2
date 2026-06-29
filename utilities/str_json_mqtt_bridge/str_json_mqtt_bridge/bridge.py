@@ -159,8 +159,17 @@ class WaraMQTTNode:
         self._mqtt_client.on_connect = self._on_connect
         self._mqtt_client.on_disconnect = self._on_disconnect
 
-        ros_to_mqtt_topics = node.get_parameter("mqtt.to_mqtt").value
-        mqtt_to_ros_topics = node.get_parameter("mqtt.to_ros").value
+        try:
+            ros_to_mqtt_topics = node.get_parameter("mqtt.to_mqtt").value
+        except:
+            self._log("No mqtt.to_mqtt parameter found, defaulting to empty list")
+            ros_to_mqtt_topics = []
+        try:
+            mqtt_to_ros_topics = node.get_parameter("mqtt.to_ros").value
+        except:
+            self._log("No mqtt.to_ros parameter found, defaulting to empty list")
+            mqtt_to_ros_topics = []
+
         self._mqtt_namespace = node.get_parameter("mqtt.namespace").value
         self._log(f"ROS to MQTT topics: {ros_to_mqtt_topics}")
         self._log(f"MQTT to ROS topics: {mqtt_to_ros_topics}")

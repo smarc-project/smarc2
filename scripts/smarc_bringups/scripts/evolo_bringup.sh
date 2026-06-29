@@ -264,17 +264,21 @@ fi
 #Connection to evolo captain
 if [ $CAPTAIN_DRIVER == "Serial" ]; then
     CAPTAIN_DRIVER_CMD="ros2 launch evolo_serial_bridge evolo_serial_launch.py"
+    GPSRELAY_CMD="ros2 run evolo_captain_interface gps_relay"
     tmux_make_layout "$SESSION" Evolo-captain "
     col(
-        var(CAPTAIN_DRIVER_CMD)
+        var(CAPTAIN_DRIVER_CMD),
+        var(GPSRELAY_CMD)
     )"
 fi
 
 if [ $CAPTAIN_DRIVER == "MQTT" ]; then
     CAPTAIN_DRIVER_CMD="ros2 launch evolo_mqtt_bridge evolo_mqtt_launch.py"
+    GPSRELAY_CMD="ros2 run evolo_captain_interface gps_relay"
     tmux_make_layout "$SESSION" Evolo-captain "
     col(
-        var(CAPTAIN_DRIVER_CMD)
+        var(CAPTAIN_DRIVER_CMD),
+        var(GPSRELAY_CMD)
     )"
 fi
 #else None
