@@ -252,7 +252,9 @@ class ProxOpsBT:
             return True
 
         root_status = self._bt.root.status
-        if root_status == Status.FAILURE:
+        patrol_timed_out = (self._patrol_started_time_s is not None
+                            and not self._patrol_timeout_not_exceeded())
+        if root_status == Status.FAILURE or patrol_timed_out:
             self.log("We have failed to prox-ops.")
             self._reset_states()
             return False
