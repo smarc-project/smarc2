@@ -225,9 +225,6 @@ class ProxOpsBT:
         self.log("Sending backend RESET/START from prox_ops_bt prepare_loop.")
         self._publish_backend_command("RESET", "prox_ops_bt started")
         self._publish_backend_command("START", "prox_ops_bt started")
-        
-        # Start patrol timer/counter.
-        self._patrol_started_time_s = self._now_s
 
     @property
     def _status_str(self) -> str:
