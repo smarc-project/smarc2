@@ -93,6 +93,13 @@ class EKFNode(Node):
                 continue
 
             now : Time = self.get_clock().now()
+            
+            wait_time = (now - arrival).nanoseconds * 1e-9
+            if wait_time > 0.3:
+                self.log_info(f"Polygon arrived too far in the past:{wait_time:.3f}s")
+                self.q.popleft()
+                continue
+
             if self.last_processed_measurement_time is not None:
                 state_age = (now - self.last_processed_measurement_time).nanoseconds * 1e-9
                 if state_age > self.stale_state_age:
@@ -127,13 +134,7 @@ class EKFNode(Node):
                 self.log_info(f"Cant transform from {self.cam_frame} to {self.map_frame} at msg time, dropping msg.")
                 self.log_info(f"Transform error: {e}")
                 self.q.popleft()
-
-            wait_time = (now - arrival).nanoseconds * 1e-9
-            if wait_time > 0.3:
-                self.log_info(f"Dropping msg after waiting {wait_time:.3f}s for TF")
-                self.q.popleft()
                 continue
-
             break
 
     def pol_to_array(self, msg: PolygonStamped):
