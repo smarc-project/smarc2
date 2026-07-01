@@ -39,9 +39,6 @@ class MoveToAction():
         
         self._drone_state = DroneState(node, self._robot_name)
 
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
-
         self._goal_in_map : PoseStamped|None = None
         self._goal_tolerance : None | float = None
         self._node.declare_parameter('default_tolerance', 0.3)
@@ -66,9 +63,7 @@ class MoveToAction():
             qos_profile= 10)
         
         self._distance_remaining : None|float = None
-        
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
+    
 
         self._as = GentlerActionServer(
             node,
