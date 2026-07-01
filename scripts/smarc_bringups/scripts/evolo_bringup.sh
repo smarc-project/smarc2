@@ -240,7 +240,8 @@ col(
 
 #Obstacle avoidance
 if [ $OBSTACLE_AVOIDANCE == "True" ]; then
-    OBSTACLE_AVOIDANCE_CMD="ros2 launch evolo_obstacle_avoidance evolo_obstacle_avoidance_launch.py"
+    #OBSTACLE_AVOIDANCE_CMD="ros2 run topic_tools relay /evolo/ctrl/twist_planned /evolo/ctrl/twist_setpoint"
+    OBSTACLE_AVOIDANCE_CMD="ros2 run evolo_obstacle_avoidance_simple_cpp evolo_obstacle_avoidance_cpp --ros-args -r __ns:=/evolo"
     CLUSTERING_CMD="ros2 launch evolo_map_cluster evolo_map_cluster_launch.py"
     tmux_make_layout "$SESSION" Obstacle-avoidance "
     col(
