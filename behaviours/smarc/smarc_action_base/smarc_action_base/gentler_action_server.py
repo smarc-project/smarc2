@@ -75,30 +75,35 @@ class GentlerActionServer(SMARCActionServer):
         result_msg = BaseAction.Result()
         feedback_msg = BaseAction.Feedback()
 
-        def cancel():
+        def cancel_forever():
             result_msg.success = False
             goal_handle.canceled()
             self._user_failure = True
+            return result_msg
+
+        def cancel_normal():
+            result_msg.success = False
+            goal_handle.canceled()
             return result_msg
 
         try:
             self._prepare_loop()
         except Exception as e:
             self._node.get_logger().error(f"Exception occurred in user-supplied prepare_loop callback while preparing for goal execution:\n {e}")
-            return cancel()
+            return cancel_forever()
 
         try:
             rate = self._node.create_rate(self._loop_frequency)
         except:
             self._node.get_logger().error(f"Exception occurred while creating rate, user-supplied loop_frequency: {self._loop_frequency}")
-            return cancel()
+            return cancel_forever()
 
         while rclpy.ok() and not goal_handle.is_cancel_requested:
             try:
                 loop_status : bool|None = self._loop_inner()
             except Exception as e:
                 self._node.get_logger().error(f"Exception occurred in user-supplied loop inner callback:\n {e}")
-                return cancel()
+                return cancel_forever()
             
             if loop_status is None:
                 # loop continues, not successful or failed yet
@@ -107,7 +112,7 @@ class GentlerActionServer(SMARCActionServer):
                     goal_handle.publish_feedback(feedback_msg)
                 except Exception as e:
                     self._node.get_logger().error(f"Exception occurred in user-supplied give_feedback callback:\n {e}")
-                    return cancel()
+                    return cancel_forever()
             else:
                 result_msg.success = loop_status
                 rate.destroy()
@@ -119,7 +124,7 @@ class GentlerActionServer(SMARCActionServer):
             
             rate.sleep()
         
-        return cancel()
+        return cancel_normal()
 
 
 
