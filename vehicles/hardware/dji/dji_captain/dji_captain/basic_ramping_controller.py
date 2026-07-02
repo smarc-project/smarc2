@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class DjiPositionController:
+class BasicRampingController:
     """
     Velocity controller parameters
     Tuning: For large movements, k_pose will have essentially no impact on the startup. 
@@ -37,8 +37,11 @@ class DjiPositionController:
         self.log = log_func
         self._prev_vel_out : np.ndarray|None = None
 
-    
-    def pos_err_to_vel(self, e_forw: float, e_left: float, e_up: float) -> None|np.ndarray:
+    def cancel(self) -> None:
+        self._prev_vel_out = None
+        self.log("Controller cancelled, previous velocity output cleared.")
+
+    def cmd_pos_err(self, e_forw: float, e_left: float, e_up: float) -> None|np.ndarray:
         if (abs(e_forw) < self.POS_ERR_EPS and\
             abs(e_left) < self.POS_ERR_EPS and\
             abs(e_up) < self.POS_ERR_EPS):
@@ -56,10 +59,13 @@ class DjiPositionController:
             self._prev_vel_out = None
             return None
 
-
         speed_forward = self.K_POSE * e_forw
         speed_left = self.K_POSE * e_left
         speed_up = self.K_POSE * e_up
+
+        return self.cmd_vel(speed_forward, speed_left, speed_up)
+
+    def cmd_vel(self, speed_forward: float, speed_left: float, speed_up: float) -> np.ndarray:
 
         if (self._prev_vel_out is None):
             max_speed = 0.1
@@ -74,7 +80,6 @@ class DjiPositionController:
                 vel_net = vel_net / vel_norm * max_speed
             return vel_net
 
-        # limit the velocity to the maximum joy value
         vel_err = np.array([speed_forward, speed_left, speed_up])
         vel_err = limit_speed(vel_err, max_speed)
 

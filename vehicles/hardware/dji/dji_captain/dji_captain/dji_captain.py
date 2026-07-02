@@ -36,7 +36,7 @@ from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 
-from .position_controller import DjiPositionController
+from .basic_ramping_controller import BasicRampingController
 
 class DjiCaptain():
     def __init__(self, node: Node):
@@ -65,7 +65,8 @@ class DjiCaptain():
 
         
         
-        self._move_to_setpoint : PoseStamped | None = None
+        self._move_to_position_setpoint : PoseStamped | None = None
+        self._move_to_velocity_setpoint : TwistStamped | None = None
         self._joy_timer : Timer | None = None
         if self.ROBOT_NAME == "M350":
             self.JOY_PUB_MAX = 10.0
@@ -75,12 +76,12 @@ class DjiCaptain():
         self.JOY_PUB_PERIOD = 1.0 / 50.0
         self._last_pubbed_fluvel_joy : Joy | None = None
         
-        self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.5 #How long we keep the move to setpoint before we consider it stale
-        self.MAX_SETPOINT_DISTANCE : float = 100.0 # meters, max distance from current position to accept a move to setpoint
+        self.MOTION_SETPOINT_MAX_AGE : float = 1.5 #How long we keep the move to setpoint before we consider it stale
+        self.MAX_POSITION_SETPOINT_DISTANCE : float = 100.0 # meters, max distance from current position to accept a move to setpoint
 
-        self._position_controller = DjiPositionController(
+        self._basic_controller = BasicRampingController(
             max_speed=self.JOY_PUB_MAX,
-            position_error_max = self.MAX_SETPOINT_DISTANCE,
+            position_error_max = self.MAX_POSITION_SETPOINT_DISTANCE,
             log_func=self.log)
 
         # if new setpoint time is close to current setpoint time
@@ -226,8 +227,15 @@ class DjiCaptain():
         node.create_subscription(
             PoseStamped,
             DjiTopics.MOVE_TO_SETPOINT_TOPIC,
-            self._move_to_setpoint_callback,
+            self._move_to_position_setpoint_callback,
             qos_profile=qos_best_effort10)
+        
+        node.create_subscription(
+            TwistStamped,
+            DjiTopics.VELOCITY_SETPOINT_TOPIC,
+            self._move_to_velocity_setpoint_callback,
+            qos_profile=qos_best_effort10
+        )
         
         node.create_subscription(
             Float32,
@@ -290,8 +298,12 @@ class DjiCaptain():
         return self.now_stamp.sec + self.now_stamp.nanosec * 1e-9
     
     @property
-    def setpoint_received_at(self) -> float|None:
-        return self._move_to_setpoint.header.stamp.sec + self._move_to_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_setpoint is not None else None
+    def position_setpoint_received_at(self) -> float|None:
+        return self._move_to_position_setpoint.header.stamp.sec + self._move_to_position_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_position_setpoint is not None else None
+    
+    @property
+    def velocity_setpoint_received_at(self) -> float|None:
+        return self._move_to_velocity_setpoint.header.stamp.sec + self._move_to_velocity_setpoint.header.stamp.nanosec * 1e-9 if self._move_to_velocity_setpoint is not None else None
     
     @property
     def altitude_above_water(self) -> float|None:
@@ -367,12 +379,12 @@ class DjiCaptain():
         s += f"  Velocity Ground: {format_vector3_stamped(self._velocity_ground)}\n"
         s += f"  Angular Rate Ground: {format_vector3_stamped(self._angular_rate_ground)}\n"
                 
-        if self.setpoint_received_at is None and self._move_to_setpoint is None:
+        if self.position_setpoint_received_at is None and self._move_to_position_setpoint is None:
             s += f"  No setpoint set.\n"
-        elif self.setpoint_received_at is None and self._move_to_setpoint is not None:
+        elif self.position_setpoint_received_at is None and self._move_to_position_setpoint is not None:
             s += f"  Setpoint received time unknown, this is a bug! FIX THIS\n"
-        elif self.setpoint_received_at is not None and self._move_to_setpoint is not None:
-            s += f"  Current target setpoint: {format_pose_stamped(self._move_to_setpoint)} ({self.now_time - self.setpoint_received_at:.2f}s ago)\n"
+        elif self.position_setpoint_received_at is not None and self._move_to_position_setpoint is not None:
+            s += f"  Current target setpoint: {format_pose_stamped(self._move_to_position_setpoint)} ({self.now_time - self.position_setpoint_received_at:.2f}s ago)\n"
         
         return s
     
@@ -437,29 +449,73 @@ class DjiCaptain():
     ############
     # Motion commands
     ############
-    def _move_to_setpoint_callback(self, msg: PoseStamped):
+    def setpoint_valid(self, msg: PoseStamped|TwistStamped) -> bool:
         # check if the message even has anything in it
-        if msg.pose.position.x == 0 and msg.pose.position.y == 0 and msg.pose.position.z == 0:
-            self.logwarn(f"Move to setpoint message is all zeros, ignoring it.\nSetpoint msg:\n{msg}")
-            self._move_to_setpoint = None
-            return
-        
-        msg_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if isinstance(msg, PoseStamped):
+            if msg.pose.position.x == 0 and msg.pose.position.y == 0 and msg.pose.position.z == 0:
+                self.logwarn(f"Move to setpoint message is all zeros, ignoring it.\nSetpoint msg:\n{msg}")
+                return False
         
         # check if message time makes sense. sim time vs real time etc
+        msg_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         if msg_time > self.now_time + 2.0:
-            s = f"Move to setpoint message time is >2s in the future, ignoring it. Probably because the publisher and captain have different time sources."
+            s = f"Setpoint message time is >2s in the future, ignoring it. Probably because the publisher and captain have different time sources."
             s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
             self.logwarn(s)
-            self._move_to_setpoint = None
-            return
+            return False
         
         # check if the message is too old
-        if self.now_time - msg_time > self.MOVE_TO_SETPOINT_MAX_AGE:
-            s = f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, ignoring it."
+        if self.now_time - msg_time > self.MOTION_SETPOINT_MAX_AGE:
+            s = f"Setpoint message is older than {self.MOTION_SETPOINT_MAX_AGE}s, ignoring it."
             s += f"\nCurrent time: {self.now_time}\nSetpoint Time: {msg_time}"
             self.logwarn(s)
-            self._move_to_setpoint = None
+            return False
+        
+        return True
+
+
+    def _move_to_velocity_setpoint_callback(self, msg: TwistStamped):
+        if not self.setpoint_valid(msg):
+            return
+            
+        if msg.header.frame_id != self.BASE_FLAT_FRAME:
+            self.logerr(f"Move to velocity setpoint is not in {self.BASE_FLAT_FRAME} frame, ignoring it. It is in {msg.header.frame_id} frame.")
+            return
+        
+        # check if the new setpoint is roughly in the same direction as the current setpoint
+        # so we can prevent quick back-and-forth if sth is publishing setpoints in a loop...
+        if self._move_to_velocity_setpoint is not None:
+            # only relevant to check if the points are coming in at a high rate
+            # if there is time between, we can turn around np
+            # if there is very little time between, we dont want to turn around at 10hz or sth dumb
+            time_between_setpoints = self.now_time - self.velocity_setpoint_received_at if self.velocity_setpoint_received_at is not None else None
+            if time_between_setpoints is not None and time_between_setpoints < self.CHECK_SETPOINT_SIMILARITY_TIME_THRESHOLD:
+                old_vec = np.array([
+                    self._move_to_velocity_setpoint.twist.linear.x,
+                    self._move_to_velocity_setpoint.twist.linear.y,
+                    self._move_to_velocity_setpoint.twist.linear.z])
+                new_vec = np.array([
+                    msg.twist.linear.x,
+                    msg.twist.linear.y,
+                    msg.twist.linear.z])
+                old_norm = np.linalg.norm(old_vec)
+                new_norm = np.linalg.norm(new_vec)
+                if old_norm > 0 and new_norm > 0:
+                    cos_angle = np.dot(old_vec, new_vec) / (old_norm * new_norm)
+                    if cos_angle < self.CHECK_SETPOINT_SIMILARITY_COSINE_THRESHOLD:
+                        self.logwarn(f"New velocity setpoint is too soon, too different. Ignoring. dT: {time_between_setpoints:.2f}s, Cosine of angle: {cos_angle:.2f}")
+                        return
+                    
+         # finally, good point, do it
+        self._move_to_velocity_setpoint = msg
+        if self._joy_timer is None:
+            self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_velocity_setpoint_FLUvel)
+            self.log(">>> Joy timer started for velocity setpoint. <<<")
+
+            
+
+    def _move_to_position_setpoint_callback(self, msg: PoseStamped):
+        if not self.setpoint_valid(msg):
             return
 
         # transform it into base link frame
@@ -471,22 +527,22 @@ class DjiCaptain():
             new_setpoint = do_transform_pose_stamped(msg, transform)
         except Exception as e:
             self.logwarn(f"Failed to transform move to setpoint from {msg.header.frame_id} to {self.BASE_FLAT_FRAME}, ignoring it. Error: {e}")
-            self._move_to_setpoint = None
+            self._move_to_position_setpoint = None
             return
         
         # check if the new setpoint is roughly in the same direction as the current setpoint
         # so we can prevent quick back-and-forth if sth is publishing setpoints in a loop...
         # at this point, both setpoints are in base_flat_frame
-        if self._move_to_setpoint is not None:
+        if self._move_to_position_setpoint is not None:
             # only relevant to check if the points are coming in at a high rate
             # if there is time between, we can turn around np
             # if there is very little time between, we dont want to turn around at 10hz or sth dumb
-            time_between_setpoints = self.now_time - self.setpoint_received_at if self.setpoint_received_at is not None else None
+            time_between_setpoints = self.now_time - self.position_setpoint_received_at if self.position_setpoint_received_at is not None else None
             if time_between_setpoints is not None and time_between_setpoints < self.CHECK_SETPOINT_SIMILARITY_TIME_THRESHOLD:
                 old_vec = np.array([
-                    self._move_to_setpoint.pose.position.x,
-                    self._move_to_setpoint.pose.position.y,
-                    self._move_to_setpoint.pose.position.z])
+                    self._move_to_position_setpoint.pose.position.x,
+                    self._move_to_position_setpoint.pose.position.y,
+                    self._move_to_position_setpoint.pose.position.z])
                 new_vec = np.array([
                     new_setpoint.pose.position.x,
                     new_setpoint.pose.position.y,
@@ -501,18 +557,22 @@ class DjiCaptain():
 
         
         # finally, good point, do it
-        self._move_to_setpoint = new_setpoint
+        self._move_to_position_setpoint = new_setpoint
         if self._joy_timer is None:
-            self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_setpoint_FLUvel)
-            self.log("Joy timer started to move with joy.")
+            self._joy_timer = self._node.create_timer(self.JOY_PUB_PERIOD, self._move_towards_position_setpoint_FLUvel)
+            self.log(">>> Joy timer started for position setpoint. <<<")
 
 
 
     def _pub_flu_vel_joy(self, joy: list[float]):
         if abs(joy[0]) < 1e-5 and abs(joy[1]) < 1e-5 and abs(joy[2]) < 1e-5:
             # publishing 0s on F,L,U axes crashes the PSDK bridge...
-            self.log("Not publishing zero joy on FLU velocity, ignoring.")
+            # so instead, we cancel our publisher (joy timer) and let dji handle
+            # the lack of commands by stopping.
+            self.log("Got 0 joy command, cancelling joy timer.")
+            self._cancel_joy_timer()
             return
+        
         joy_msg = Joy()
         joy_msg.header.stamp = self.now_stamp
         joy_msg.axes = joy
@@ -522,7 +582,8 @@ class DjiCaptain():
         
         
     def _cancel_joy_timer(self):
-        self._move_to_setpoint = None
+        self._move_to_position_setpoint = None
+        self._basic_controller.cancel()
         self.log("Setpoint discarded.")
         if self._joy_timer is not None:
             self._joy_timer.cancel()
@@ -530,38 +591,67 @@ class DjiCaptain():
             self.log("Joy timer cancelled.")
 
 
-    def _move_towards_setpoint_FLUvel(self):
-        # by this point move_to_setpoint should be in BASE_FLAT_FRAME already
-        if self._move_to_setpoint.header.frame_id != self.BASE_FLAT_FRAME:
-            self.logerr(f"Move to setpoint is not in {self.BASE_FLAT_FRAME} frame, cannot move with joy. It is in {self._move_to_setpoint.header.frame_id} frame.")
-            self._cancel_joy_timer()
-            return
-
-        if self._move_to_setpoint is None or self.setpoint_received_at is None:
-            self.log("No move to setpoint set, cannot move with joy.")
-            self._cancel_joy_timer()
-            return
-
-        if self.now_time - self.setpoint_received_at > self.MOVE_TO_SETPOINT_MAX_AGE:
-            self.log(f"Move to setpoint message is older than {self.MOVE_TO_SETPOINT_MAX_AGE}s, cancelling joy timer.")
-            self._cancel_joy_timer()
-            return
+    def _setpoint_still_usable(self, setpoint: PoseStamped|TwistStamped) -> bool:
+        if setpoint is None:
+            self.log("Setpoint is None, cannot use it.")
+            return False
+        
+        if setpoint.header.frame_id != self.BASE_FLAT_FRAME:
+            self.logerr(f"Setpoint is not in {self.BASE_FLAT_FRAME} frame, cannot use it. It is in {setpoint.header.frame_id} frame.")
+            return False
+        
+        if isinstance(setpoint, PoseStamped):
+            setpoint_time = self.position_setpoint_received_at
+        elif isinstance(setpoint, TwistStamped):
+            setpoint_time = self.velocity_setpoint_received_at
+        else:
+            self.logerr(f"Unknown setpoint type: {type(setpoint)}")
+            return False
+        
+        if setpoint_time is None:
+            self.log("Setpoint time is None, cannot use it.")
+            return False
+        
+        if self.now_time - setpoint_time > self.MOTION_SETPOINT_MAX_AGE:
+            self.log(f"Setpoint is older than {self.MOTION_SETPOINT_MAX_AGE}s, cannot use it.")
+            return False
         
         if not self._got_control:
-            self.log("Not got control, cannot move with joy.")
+            self.log("Not got control, cannot use setpoint.")
+            return False
+        
+        if self._velocity_ground is None:
+            self.log("Ground velocity not defined, cannot use setpoint.")
+            return False
+        
+        return True
+    
+
+    def _move_towards_velocity_setpoint_FLUvel(self):
+        if not self._setpoint_still_usable(self._move_to_velocity_setpoint):
+            self.log("Velocity setpoint is not usable, cancelling joy timer.")
             self._cancel_joy_timer()
             return
         
-        if(self._velocity_ground == None):
-            self.log(f"Ground Velocity not defined, cancelling Joy")
+        joy_net = self._basic_controller.cmd_vel(
+            self._move_to_velocity_setpoint.twist.linear.x,
+            self._move_to_velocity_setpoint.twist.linear.y,
+            self._move_to_velocity_setpoint.twist.linear.z
+            )
+        J = [joy_net[0], joy_net[1], joy_net[2], self._move_to_velocity_setpoint.twist.angular.z]
+        self._pub_flu_vel_joy(J)
+        return  
+
+
+
+    def _move_towards_position_setpoint_FLUvel(self):
+        if not self._setpoint_still_usable(self._move_to_position_setpoint):
+            self.log("Position setpoint is not usable, cancelling joy timer.")
             self._cancel_joy_timer()
             return
         
-        joy_net = self._position_controller.pos_err_to_vel(
-            self._move_to_setpoint.pose.position.x,
-            self._move_to_setpoint.pose.position.y,
-            self._move_to_setpoint.pose.position.z
-        )
+        pos_err = self._move_to_position_setpoint.pose.position
+        joy_net = self._basic_controller.cmd_pos_err(pos_err.x, pos_err.y, pos_err.z)
 
         if joy_net is None:
             self.log("Position controller returned None, cancelling joy timer.")
@@ -570,6 +660,7 @@ class DjiCaptain():
 
         J = [joy_net[0], joy_net[1], joy_net[2], 0.0]
         self._pub_flu_vel_joy(J)
+
     
 
     ###########
@@ -937,14 +1028,14 @@ class DjiCaptain():
             self._tf_pub.sendTransform(base_flat_in_home)
 
         
-        if self._move_to_setpoint is not None:
+        if self._move_to_position_setpoint is not None:
             move_to_setpoint_tf = TransformStamped()
             move_to_setpoint_tf.header.stamp = now
-            move_to_setpoint_tf.header.frame_id = self._move_to_setpoint.header.frame_id
+            move_to_setpoint_tf.header.frame_id = self._move_to_position_setpoint.header.frame_id
             move_to_setpoint_tf.child_frame_id = self._TF_NS + "move_to_setpoint"
-            move_to_setpoint_tf.transform.translation.x = self._move_to_setpoint.pose.position.x
-            move_to_setpoint_tf.transform.translation.y = self._move_to_setpoint.pose.position.y
-            move_to_setpoint_tf.transform.translation.z = self._move_to_setpoint.pose.position.z
+            move_to_setpoint_tf.transform.translation.x = self._move_to_position_setpoint.pose.position.x
+            move_to_setpoint_tf.transform.translation.y = self._move_to_position_setpoint.pose.position.y
+            move_to_setpoint_tf.transform.translation.z = self._move_to_position_setpoint.pose.position.z
             self._tf_pub.sendTransform(move_to_setpoint_tf)
 
 

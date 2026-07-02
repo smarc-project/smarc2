@@ -31,6 +31,8 @@ class DroneState():
         self._robot_name : str = robot_name
         self.MAP_FRAME : str = robot_name + '/' + DJILinks.MAP
         self.ODOM_FRAME : str = robot_name + '/' + DJILinks.ODOM
+        self.BASE_FLAT_FRAME : str = robot_name + '/' + DJILinks.BASE_FLAT
+        
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
 
@@ -154,22 +156,28 @@ class DroneState():
 
         in_utm = do_transform_pose_stamped(ps, tf)
         return convert_utm_to_latlon(in_utm)
-        
-
-    def pose_stamped_in_map(self, pose: PoseStamped) -> PoseStamped|None:
-        if pose.header.frame_id == self.MAP_FRAME:
+    
+    def _pose_in_frame(self, pose: PoseStamped, target_frame: str) -> PoseStamped|None:
+        if pose.header.frame_id == target_frame:
             return pose
         else:
-            if not self._tf_buffer.can_transform(self.MAP_FRAME, pose.header.frame_id, Time(seconds=0)):
-                self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+            if not self._tf_buffer.can_transform(target_frame, pose.header.frame_id, Time(seconds=0)):
+                self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{target_frame}> frame.")
                 return None
             
             tf = self._tf_buffer.lookup_transform(
-                target_frame = self.MAP_FRAME,
+                target_frame = target_frame,
                 source_frame = pose.header.frame_id,
                 time = Time(seconds=0),
                 timeout = Duration(seconds=1)
             )
-            in_map = do_transform_pose_stamped(pose, tf)
-            return in_map
+            in_target = do_transform_pose_stamped(pose, tf)
+            return in_target
+        
+
+    def pose_stamped_in_map(self, pose: PoseStamped) -> PoseStamped|None:
+        return self._pose_in_frame(pose, self.MAP_FRAME)
+        
+    def pose_stamped_in_base_flat(self, pose: PoseStamped) -> PoseStamped|None:
+        return self._pose_in_frame(pose, self.BASE_FLAT_FRAME)
         

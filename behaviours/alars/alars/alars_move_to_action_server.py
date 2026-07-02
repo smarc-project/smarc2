@@ -9,7 +9,7 @@ from rclpy.time import Time, Duration
 
 import traceback
 
-from geometry_msgs.msg import  PointStamped, PoseStamped
+from geometry_msgs.msg import  PointStamped, PoseStamped, TwistStamped
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry
@@ -35,7 +35,7 @@ class MoveToAction():
 
         self._node.declare_parameter('robot_name', 'M350')
         self._robot_name : str = self._node.get_parameter('robot_name').get_parameter_value().string_value
-        self.MAP_FRAME : str = self._robot_name + '/' + DJILinks.MAP
+        self.BASE_FLAT_FRAME : str = self._robot_name + '/' + DJILinks.BASE_FLAT
         
         self._drone_state = DroneState(node, self._robot_name)
 
@@ -58,8 +58,8 @@ class MoveToAction():
         self._VERTICAL_FIRST_MODE : bool = self._node.get_parameter("vertical_first").get_parameter_value().bool_value
 
         self._setpoint_pub = self._node.create_publisher(
-            msg_type = PoseStamped,
-            topic = DJITopics.MOVE_TO_SETPOINT_TOPIC,
+            msg_type = TwistStamped,
+            topic = DJITopics.VELOCITY_SETPOINT_TOPIC,
             qos_profile= 10)
         
         self._distance_remaining : None|float = None
@@ -103,6 +103,10 @@ class MoveToAction():
             if self._goal_in_map is None:
                 self._node.get_logger().error("Failed to transform goal from latlon to map frame")
                 return False
+            self._goal_in_base_flat = self._drone_state.pose_stamped_in_base_flat(self._goal_in_map)
+            if self._goal_in_base_flat is None:
+                self._node.get_logger().error("Failed to transform goal from map frame to base_flat frame")
+                return False
 
             self._goal_tolerance = float(goal_request['waypoint']['tolerance']) if 'tolerance' in goal_request['waypoint'] else self._default_goal_tolerance
             speed_str = goal_request['speed'] if 'speed' in goal_request else 'standard'
@@ -122,6 +126,10 @@ class MoveToAction():
             self.log(
                 f"Received goal in map: [{pos.x:.2f},{pos.y:.2f},{pos.z:.2f}], tolerance: {self._goal_tolerance}, speed: {self._goal_speed}"
             )
+            pos_base_flat = self._goal_in_base_flat.pose.position
+            self.log(
+                f"Same goal in base_flat: [{pos_base_flat.x:.2f},{pos_base_flat.y:.2f},{pos_base_flat.z:.2f}]"
+            )
             return True
         
         except:
@@ -139,7 +147,9 @@ class MoveToAction():
         return
 
     def _loop_inner(self) -> bool|None:
-        if self._goal_in_map is None:
+        self._goal_in_base_flat = self._drone_state.pose_stamped_in_base_flat(self._goal_in_map)
+
+        if self._goal_in_base_flat is None:
             self.log("No goal set, failing...")
             return False
         
@@ -155,61 +165,55 @@ class MoveToAction():
             self.log("No drone position available yet, waiting...")
             return None
 
-        goal_position = np.array([self._goal_in_map.pose.position.x,
-                                  self._goal_in_map.pose.position.y,
-                                  self._goal_in_map.pose.position.z])
-        self_position = np.array([self._drone_state.drone_in_map.pose.position.x,
-                                  self._drone_state.drone_in_map.pose.position.y,
-                                  self._drone_state.drone_in_map.pose.position.z])
+        goal_error = np.array([
+            self._goal_in_base_flat.pose.position.x,
+            self._goal_in_base_flat.pose.position.y,
+            self._goal_in_base_flat.pose.position.z
+        ])
+        vertical_error = abs(goal_error[2])
         
-        self.log(f"Current position: [{self_position[0]:.2f}, {self_position[1]:.2f}, {self_position[2]:.2f}]")
-        self.log(f"Goal position:    [{goal_position[0]:.2f}, {goal_position[1]:.2f}, {goal_position[2]:.2f}]")
-        
+        self.log(f"Goal error: [{goal_error[0]:.2f}, {goal_error[1]:.2f}, {goal_error[2]:.2f}], vertical first: {self._VERTICAL_FIRST_MODE}")
+       
         # if vertical first mode, check if we need to move vertically first
         if self._VERTICAL_FIRST_MODE:
-            vertical_error = abs(goal_position[2] - self_position[2])
             if vertical_error > self._goal_tolerance:
                 # need to move vertically first
-                goal_position[0] = self_position[0]
-                goal_position[1] = self_position[1]
+                goal_error[0] = 0.0
+                goal_error[1] = 0.0
 
-        goal_error = goal_position - self_position
-        if self._VERTICAL_FIRST_MODE:
-            # consider only the vertical error first
-            vertical_error = abs(goal_error[2])
-            if vertical_error < self._goal_tolerance:
-                # vertically close enough, consider the full 3D error now
-                goal_error_mag = np.linalg.norm(goal_error)
-            else:
-                goal_error_mag = vertical_error
-        else:
-            # otherwise, sphere
-            goal_error_mag = np.linalg.norm(goal_error)
-
+        goal_error_mag = np.linalg.norm(goal_error)
         self._distance_remaining = float(goal_error_mag)
 
         # maybe we reached already
         if self._distance_remaining <= self._goal_tolerance:
             self.log(f"Reached goal within tolerance {self._goal_tolerance}m")
+            setpoint = TwistStamped()
+            setpoint.header.stamp = self.now_stamp
+            setpoint.header.frame_id = self.BASE_FLAT_FRAME
+            setpoint.twist.linear.x = 0.0
+            setpoint.twist.linear.y = 0.0
+            setpoint.twist.linear.z = 0.0
+            setpoint.twist.angular.x = 0.0
+            setpoint.twist.angular.y = 0.0
+            setpoint.twist.angular.z = 0.0
+            self._setpoint_pub.publish(setpoint)
             return True
         
-        # not reached, publish a setpoint in the direction of the goal
-        # "speed away"
-        if goal_error_mag > self._goal_speed:
-            goal_direction_vec = goal_error / goal_error_mag
-            setpoint_position = self_position + goal_direction_vec * self._goal_speed
-        else:
-            # if we are very close, just go to the goal
-            setpoint_position = goal_position
+        # otherwise, set the velocity setpoint
+        # normalize the goal error to get the direction, then multiply by the speed
+        goal_direction = goal_error / goal_error_mag
+        velocity_setpoint = goal_direction * self._goal_speed
 
         # publish the setpoint
-        setpoint = PoseStamped()
+        setpoint = TwistStamped()
         setpoint.header.stamp = self.now_stamp
-        setpoint.header.frame_id = self.MAP_FRAME
-        setpoint.pose.position.x = setpoint_position[0]
-        setpoint.pose.position.y = setpoint_position[1]
-        setpoint.pose.position.z = setpoint_position[2]
-        setpoint.pose.orientation.w = 1.0  # neutral orientation
+        setpoint.header.frame_id = self.BASE_FLAT_FRAME
+        setpoint.twist.linear.x = velocity_setpoint[0]
+        setpoint.twist.linear.y = velocity_setpoint[1]
+        setpoint.twist.linear.z = velocity_setpoint[2]
+        setpoint.twist.angular.x = 0.0
+        setpoint.twist.angular.y = 0.0
+        setpoint.twist.angular.z = 0.0
         self._setpoint_pub.publish(setpoint)
 
         return None
