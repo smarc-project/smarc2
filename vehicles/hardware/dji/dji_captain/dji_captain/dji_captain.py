@@ -36,30 +36,11 @@ from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
 
+from .position_controller import DjiPositionController
+
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
-
-        try:
-            self._RUNNING_IN_SIM : bool = self._node.get_parameter("use_sim_time").get_parameter_value().bool_value
-        except:
-            self._RUNNING_IN_SIM : bool = False
-
-        # Velocity controller parameters
-        #Tuning: For large movements, k_pose will have essentially no impact on the startup. r_sigma dominates in this range, with a larger r_sigma producing a smoother 
-        #start and a smaller r_sigma producing a faster start. When stopping, both variables matter. A larger r_sigma will produce more overshoot in the target position.
-        #A smaller k_pose will cause this to behave more like a normal proportional controller, reducing overshoot by making the deceleration happen over a greater 
-        #distance. A larger k_pose will decrease the time spent decelerating, which could either increase or decrease overshoot, depending on how large it is. The best 
-        #choice for these values is also dependent on JOY_PUB_MAX and even more so on JOY_PUB_PERIOD, so make sure to be very careful and retune after adjusting these.
-
-        if self._RUNNING_IN_SIM:
-            self._k_pose = .4
-            self._r_sigma = 0.8
-        else:
-            # these are tested and liked for the real M350 as of writing this (Oct 1st, 2025)
-            self._k_pose = .5 #proportional gain
-            self._r_sigma = .9 #"gain" on previous output, between 0 and 1 (kind of, the "desired output" is multiplied by 1 - r_sigma and the previous output is multiplied by r_sigma).
-
 
         self._node.declare_parameter("robot_name", "M350")
         self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
@@ -83,6 +64,7 @@ class DjiCaptain():
             self.MIN_ALTITUDE_ABOVE_WATER = 1.5
 
         
+        
         self._move_to_setpoint : PoseStamped | None = None
         self._joy_timer : Timer | None = None
         if self.ROBOT_NAME == "M350":
@@ -91,12 +73,16 @@ class DjiCaptain():
             self.JOY_PUB_MAX = 2.5
             
         self.JOY_PUB_PERIOD = 1.0 / 50.0
-        self._prev_joy_output : np.ndarray | None = None
         self._last_pubbed_fluvel_joy : Joy | None = None
-        
         
         self.MOVE_TO_SETPOINT_MAX_AGE : float = 1.5 #How long we keep the move to setpoint before we consider it stale
         self.MAX_SETPOINT_DISTANCE : float = 100.0 # meters, max distance from current position to accept a move to setpoint
+
+        self._position_controller = DjiPositionController(
+            max_speed=self.JOY_PUB_MAX,
+            position_error_max = self.MAX_SETPOINT_DISTANCE,
+            log_func=self.log)
+
         # if new setpoint time is close to current setpoint time
         # we check if new setpoint is similar enough to current setpoint
         self.CHECK_SETPOINT_SIMILARITY_TIME_THRESHOLD : float = 0.3 
@@ -537,7 +523,6 @@ class DjiCaptain():
         
     def _cancel_joy_timer(self):
         self._move_to_setpoint = None
-        self._prev_joy_output = None
         self.log("Setpoint discarded.")
         if self._joy_timer is not None:
             self._joy_timer.cancel()
@@ -546,7 +531,11 @@ class DjiCaptain():
 
 
     def _move_towards_setpoint_FLUvel(self):
-        # assumes move_to_setpoint is in BASE_FLAT_FRAME already
+        # by this point move_to_setpoint should be in BASE_FLAT_FRAME already
+        if self._move_to_setpoint.header.frame_id != self.BASE_FLAT_FRAME:
+            self.logerr(f"Move to setpoint is not in {self.BASE_FLAT_FRAME} frame, cannot move with joy. It is in {self._move_to_setpoint.header.frame_id} frame.")
+            self._cancel_joy_timer()
+            return
 
         if self._move_to_setpoint is None or self.setpoint_received_at is None:
             self.log("No move to setpoint set, cannot move with joy.")
@@ -568,58 +557,19 @@ class DjiCaptain():
             self._cancel_joy_timer()
             return
         
-        
+        joy_net = self._position_controller.pos_err_to_vel(
+            self._move_to_setpoint.pose.position.x,
+            self._move_to_setpoint.pose.position.y,
+            self._move_to_setpoint.pose.position.z
+        )
 
-        e_forw = self._move_to_setpoint.pose.position.x # error about each axis
-        e_left = self._move_to_setpoint.pose.position.y
-        e_updn = self._move_to_setpoint.pose.position.z # we like mirrors around a point
-
-        if (abs(e_forw) < 0.1 and abs(e_left) < 0.1 and abs(e_updn) < 0.1):
-            self.log("Reached setpoint within 10cm on all axes, cancelling joy timer.")
+        if joy_net is None:
+            self.log("Position controller returned None, cancelling joy timer.")
             self._cancel_joy_timer()
             return
-
-        if np.linalg.norm([e_forw, e_left]) > self.MAX_SETPOINT_DISTANCE:
-            self.log(f"Setpoint is more than {self.MAX_SETPOINT_DISTANCE}m away horizontally, cancelling joy timer.")
-            self._cancel_joy_timer()
-            return
-        
-        if abs(e_updn) > self.MAX_SETPOINT_DISTANCE:
-            self.log(f"Setpoint is more than {self.MAX_SETPOINT_DISTANCE}m away vertically, cancelling joy timer.")
-            self._cancel_joy_timer()
-            return
-
-
-        joy_forw = self._k_pose * e_forw
-        joy_left = self._k_pose * e_left
-        joy_updn = self._k_pose * e_updn
-
-        if (self._prev_joy_output is None):
-            max_speed = 0.1
-            self._prev_joy_output = np.array([0.0, 0.0, 0.0])
-            self.log(f"No previous joy output using low initial max speed of {max_speed} m/s for smooth start.")
-        else:
-            max_speed = self.JOY_PUB_MAX
-
-        # limit the velocity to the maximum joy value
-        joy_err = np.array([joy_forw, joy_left, joy_updn])
-        joy_err = self._normalize_max_speed(joy_err, max_speed)
-
-        joy_net = (1 - self._r_sigma) * joy_err + self._r_sigma * self._prev_joy_output
-        joy_net = self._normalize_max_speed(joy_net, max_speed)
-
-        #self.log(f"\njoy_err: {joy_err}\njoy_pre: {self._prev_joy_output}\njoy_net: {joy_net}")
 
         J = [joy_net[0], joy_net[1], joy_net[2], 0.0]
         self._pub_flu_vel_joy(J)
-        self._prev_joy_output = np.array([joy_net[0], joy_net[1], joy_net[2]])
-
-
-    def _normalize_max_speed(self, joy_net, max_speed):
-        joy_norm = np.linalg.norm(joy_net)
-        if joy_norm > max_speed:
-            joy_net = joy_net / joy_norm * max_speed
-        return joy_net
     
 
     ###########
