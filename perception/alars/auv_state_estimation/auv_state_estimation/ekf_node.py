@@ -8,7 +8,7 @@ import rclpy
 from rclpy.time import Time
 from rclpy.duration import Duration
 from rclpy.node import Node
-from geometry_msgs.msg import PolygonStamped, TransformStamped, PoseWithCovarianceStamped, Vector3Stamped
+from geometry_msgs.msg import PolygonStamped, TransformStamped, PoseWithCovarianceStamped
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from scipy.stats import chi2
@@ -32,6 +32,7 @@ class EKFNode(Node):
 
         self.logger_info_enable : bool = self.get_parameter("logger_info.enable").get_parameter_value().bool_value
 
+        self.log_info(f"Object name: {self.object_name}")
         self.log_info(f"Motion model type: {self.motion_model_type}")
 
         self.motion_model = self.get_motion_model(self.motion_model_type)
@@ -41,20 +42,43 @@ class EKFNode(Node):
         self.meas_dim = 3 if self.state_dim == 5 else 5
         self.outlier_threshold = chi2.ppf(self.gating_prob, df=self.meas_dim)
 
-        # tf
+        # TF
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
-        # publishers and subscribers
+        # Publishers
         self.pub = self.create_publisher(PoseWithCovarianceStamped, self.topic_estimated_pose, 10)
         self.pub_status = self.create_publisher(Float32MultiArray, self.topic_ekf_status, 10) 
 
+        # Subscribers
         self.sub_pose = self.create_subscription(PolygonStamped, self.topic_in_poly, self.poly_cb, 10)
         self.sub_odom = self.create_subscription(Odometry, self.topic_odom, self.odom_cb, 10)
-        self.sub_head = self.create_subscription(PolygonStamped, self.topic_input_auv_head, self.head_cb, 10)
 
-        self.reset_srv = self.create_service(Trigger, "alars_auv_ekf/reset", self.handle_reset_service)
+        # In case of AUV estimation, we can optionally subscribe to a head topic
+
+        # Optional head/yaw disambiguation.
+        # For generic object estimation this is disabled by default.
+        self.sub_head = None
+        if self.enable_head_disambiguation and self.topic_input_head != "":
+            self.sub_head = self.create_subscription(
+                PolygonStamped,
+                self.topic_input_head,
+                self.head_cb,
+                10,
+            )
+            self.get_logger().info(
+                f"Head disambiguation enabled. Subscribing to {self.topic_input_head}"
+            )
+        else:
+            self.get_logger().info("Head disambiguation disabled.")
+
+        # Generic object-specific reset service.
+        self.reset_srv = self.create_service(
+            Trigger,
+            self.reset_service,
+            self.handle_reset_service,
+        )
 
         self.current_transform = None
         self.current_cam_pos_map = None
@@ -68,9 +92,19 @@ class EKFNode(Node):
 
         self.initialize_components()
 
-        self.get_logger().info(f"EKF node started. map_frame={self.map_frame}, cam_frame={self.cam_frame}, estimated_auv_frame={self.output_frame}")
+        self.get_logger().info(
+            "EKF node started. "
+            f"object_name={self.object_name}, "
+            f"map_frame={self.map_frame}, "
+            f"cam_frame={self.cam_frame}, "
+            f"output_frame={self.output_frame}, "
+            f"input_polygon={self.topic_in_poly}, "
+            f"output_topic={self.topic_estimated_pose}, "
+            f"reset_service={self.reset_service}"
+        )
 
-        self.q : deque[tuple[PolygonStamped | None, Time | None]] = deque()
+        self.q: deque[tuple[PolygonStamped | None, Time | None]] = deque()
+
         self.timer = self.create_timer(0.01, self.process_q)
         self.status_timer = self.create_timer(0.5, self.publish_status)
         self.check_time_since_last_meas_timer = self.create_timer(0.01, self.check_time_since_last_measurement)
@@ -79,15 +113,15 @@ class EKFNode(Node):
         if self.logger_info_enable:
             self.get_logger().info(msg)
 
-    def poly_cb(self, msg : PolygonStamped):
+    def poly_cb(self, msg: PolygonStamped):
         arrival = self.get_clock().now()
         self.q.append((msg, arrival))
 
     def process_q(self):
         while self.q:
             msg, arrival = self.q[0]
-            
-            if msg is None or arrival is None: 
+
+            if msg is None or arrival is None:
                 self.log_info("Received None message or timestamp in queue, skipping.")
                 self.q.popleft()
                 continue
@@ -109,14 +143,17 @@ class EKFNode(Node):
             else:
                 self.log_info("First measurement received.")
 
-            stamp : Time = Time.from_msg(msg.header.stamp)
+            stamp: Time = Time.from_msg(msg.header.stamp)
             if stamp.seconds_nanoseconds() == (0, 0):
                 self.log_info("Received message with zero timestamp, skipping.")
                 self.q.popleft()
                 continue
 
+            # Use latest available TF instead of exact measurement time.
+            # This avoids lookup-in-the-future problems when images arrive faster than TF.
             check_time = Time(seconds=0)
             check_duration = Duration(seconds=1)
+
             try:
                 transform = self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, check_time, check_duration)
                 # if self.tf_buffer.can_transform(self.map_frame, self.cam_frame, t, d):
@@ -130,22 +167,28 @@ class EKFNode(Node):
                 self.z(msg, transform)
                 self.last_processed_measurement_time = arrival
                 continue
+
             except Exception as e:
                 self.log_info(f"Cant transform from {self.cam_frame} to {self.map_frame} at msg time, dropping msg.")
                 self.log_info(f"Transform error: {e}")
                 self.q.popleft()
+
                 continue
             break
 
     def pol_to_array(self, msg: PolygonStamped):
-        # polygon -> array of normalized image coordinates
+        # Polygon -> array of normalized image coordinates.
         return np.array([(p.x, p.y) for p in msg.polygon.points])
 
     def head_cb(self, msg: PolygonStamped):
-        # simple voting-based logic to determine the direction of the auv's head.
+        # Optional voting-based logic to determine the direction/front of the object.
+        # Disabled by default for generic object estimation.
+        if not self.enable_head_disambiguation:
+            return
+
         if (not self.ekf.initialized) or (self.current_cam_pos_map is None):
             return
-        pts = self.pol_to_array(msg)
+
         uv_img = self.measurement_model.norm_to_pixels(self.pol_to_array(msg))
         ray = self.measurement_model.back_projection(uv_img[0], self.current_R_map_cam)
         if ray is None:
@@ -171,18 +214,19 @@ class EKFNode(Node):
         self.ang_vel_map = self.current_R_map_cam @ np.array([-msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z])
 
     def predict_to_measurement_time(self, dt_total):
-        # perfoems multiple prediction steps between measurements.
-        # this should imporve predictions duering longer time gaps.
+        # Performs multiple prediction steps between measurements.
+        # This improves predictions during longer time gaps.
 
         dt_max = 0.01
         n_steps = max(1, int(np.ceil(dt_total / dt_max)))
         dt_step = dt_total / n_steps
+
         for _ in range(n_steps):
             X, F = self.motion_model.predict(self.ekf.X, dt_step)
             Q = self.motion_model.build_Q(dt_step)
             self.ekf.predict(X, F, Q, self.ekf.last_t + dt_step)
-        return X # type: ignore
-    
+
+        return X
 
     def z(self, msg: PolygonStamped, transform: TransformStamped):
             
@@ -240,12 +284,18 @@ class EKFNode(Node):
             self.nr_of_consecutive_invalid_measurements = 0
         self.log_info(f"Update successful. Post-update state: {X.flatten()[:3]}")
         self.publish_estimate(stamp)
-    
+
     def publish_estimate(self, stamp):
         # publishes the current state estimate as a PoseWithCovarianceStamped message and also broadcasts a TF.
-        flip_decision = np.sum(self.flip_buffer)
         yaw_idx = 2 if self.state_dim == 5 else 3
-        yaw_out = self.ekf.X[yaw_idx, 0] + (np.pi if (flip_decision > 0) else 0.0)
+        yaw_out = self.ekf.X[yaw_idx, 0]
+
+        if self.enable_head_disambiguation:
+            flip_decision = np.sum(self.flip_buffer)
+
+            if flip_decision > 0:
+                yaw_out += np.pi
+
         yaw_out = wrap(yaw_out)
         if self.state_dim == 5:
             q = R.from_euler("z", yaw_out).as_quat()
@@ -263,7 +313,7 @@ class EKFNode(Node):
         self.tf_broadcaster.sendTransform(create_transform_msg(stamp, self.motion_model_type, q, self.map_frame, self.output_frame, self.ekf.X, self.water_surface_height))
 
     def check_time_since_last_measurement(self, max_time_without_meas=0.5):
-        # checks the time since the last measurement and resets the filter if it exceeds a threshold.
+        # Predicts forward if measurements temporarily stop.
         if self.ekf.last_t is None and not self.ekf.initialized:
             return
         now = self.get_clock().now().nanoseconds * 1e-9
@@ -303,22 +353,22 @@ class EKFNode(Node):
             float(self.nr_of_consecutive_invalid_measurements),
             cov_trace,
             innovation_norm,
-            ]
+        ]
 
         self.pub_status.publish(msg)
 
     def handle_reset_service(self, request, response):
         self.reset_filter()
         response.success = True
-        response.message = "EKF reset successfully."
+        response.message = f"{self.object_name} EKF reset successfully."
         return response
-    
+
     def reset_filter(self):
         self.ekf = EKFCore(
             self.water_surface_height,
             state_dim=self.state_dim,
-            outlier_threshold=self.outlier_threshold, # type: ignore
-            #logger=self.get_logger(),
+            outlier_threshold=self.outlier_threshold,
+            logger=self.get_logger(),
         )
 
         self.flip_buffer = [-1]
@@ -329,7 +379,10 @@ class EKFNode(Node):
         self.ang_vel_map = np.zeros(3)
         self.q.clear()
         self.last_processed_measurement_time = None
-        self.get_logger().info("EKF internal state reset.")
+        self.nr_of_consecutive_invalid_measurements = 0
+        self.last_innovation_norm = -1.0
+
+        self.get_logger().info(f"{self.object_name} EKF internal state reset.")
 
     def get_motion_model(self, model_type):
         if model_type == "surface":
@@ -337,20 +390,23 @@ class EKFNode(Node):
                 sigma_a=self.sigma_a_xy,
                 sigma_yaw=self.sigma_yaw,
             )
-        elif model_type == "depth":
+
+        if model_type == "depth":
             return DepthModel(
                 sigma_a=self.sigma_a_xy,
                 sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
             )
-        elif model_type == "pitch":
+
+        if model_type == "pitch":
             return PitchModel(
                 sigma_a=self.sigma_a_xy,
                 sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
                 sigma_pitch=self.sigma_pitch_process,
             )
-        elif model_type == "oscillator":
+
+        if model_type == "oscillator":
             return OscillatorModel(
                 sigma_a=self.sigma_a_xy,
                 sigma_z=self.oscillator_sigma_z_process,
@@ -358,7 +414,8 @@ class EKFNode(Node):
                 omega=self.oscillator_omega,
                 zeta=self.oscillator_zeta,
             )
-        elif model_type == "double_oscillator":
+
+        if model_type == "double_oscillator":
             return DoubleOscillatorModel(
                 sigma_a=self.sigma_a_xy,
                 sigma_z_slow=self.double_oscillator_sigma_z_slow,
@@ -369,9 +426,9 @@ class EKFNode(Node):
                 omega_fast=self.double_oscillator_omega_fast,
                 zeta_fast=self.double_oscillator_zeta_fast,
             )
-        else:
-            raise ValueError(f"Unknown motion model type: {model_type}")
-        
+
+        raise ValueError(f"Unknown motion model type: {model_type}")
+
     def initialize_components(self):
         self.initializer = Initializer(
             z_water=self.water_surface_height,
@@ -386,6 +443,7 @@ class EKFNode(Node):
             motion_model_type=self.motion_model_type,
             logger=self.get_logger(),
         )
+
         self.measurement_model = MeasurementModel(
             meas_dim=self.meas_dim,
             state_dim=self.state_dim,
@@ -408,7 +466,7 @@ class EKFNode(Node):
             height=self.height,
             R_u=self.R_u,
             R_v=self.R_v,
-            R_alpha=self.R_alpha,   
+            R_alpha=self.R_alpha,
             R_len=self.R_len,
             R_wid=self.R_wid,
             R_pose_x=self.R_pose_x,
@@ -430,45 +488,60 @@ class EKFNode(Node):
             R_dyn_dt=self.R_dyn_dt,
             meas_dim=self.meas_dim,
         )
+
         self.ekf = EKFCore(
             self.water_surface_height,
             state_dim=self.state_dim,
-            outlier_threshold=self.outlier_threshold, # type: ignore
-            logger=self.get_logger(),   
+            outlier_threshold=self.outlier_threshold,
+            logger=self.get_logger(),
         )
 
     def get_params(self):
         PARAMS = [
-            ("topics.input_polygon", Topics.ESTIMATED_AUV_OBB_TOPIC),
-            ("topics.input_auv_head", Topics.ESTIMATED_AUV_HEAD_TOPIC),
-            ("topics.output_topic", "rviz/estimated_pose"),
+            ("object_name", "object"),
+
+            # Generic object input. Must be provided by object_estimation.yaml / launch.
+            ("topics.input_polygon", ""),
+
+            # Optional head topic. Disabled by default.
+            ("topics.input_head", ""),
+
+            # Generic output topic. If empty, it becomes
+            # "<object_name>_projection/pose_with_cov".
+            ("topics.output_topic", ""),
+
             ("topics.odom", SmarcTopics.ODOM_TOPIC),
-            ("topics.ekf_status", "alars_auv_ekf/status"),
+
+            # If empty, it becomes "<object_name>_ekf/status".
+            ("topics.ekf_status", ""),
 
             ("robot_name", "M350"),
             ("frames.map", Links.MAP),
-            ("frames.output_link", Links.ESTIMATED_AUV),
+
+            # Generic output TF frame. If empty, it becomes "estimated_<object_name>".
+            ("frames.output_link", ""),
+
             ("frames.camera", Links.GIMBAL_OPTICAL_FRAME),
 
             ("camera_info", ""),
 
             ("environment.water_surface_height", 0.0),
 
-            # note that these are dimensions of the AUV in the measurement model (OBB), not necessarily the true dimensions of the AUV.
-            ("obb.length_m", 1.3), # auv length in meters, may need to be adjusted
-            ("obb.width_m", 0.16), # auv width in meters, may need to be adjusted
+            # Dimensions of the object model used by the measurement model.
+            ("obb.length_m", 1.3),
+            ("obb.width_m", 0.16),
 
-            ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization
+            ("alpha_line_pixels", 40), # pixels along the alpha direction to compute the front and back rays for yaw estimation in initialization.
 
-            ("motion.sigma_a_xy", 0.01), # m/s^2, could split up into x, y
-            ("motion.sigma_yaw", 3.0), # deg/s
+            ("motion.sigma_a_xy", 0.01),# m/s^2, could split up into x, y
+            ("motion.sigma_yaw", 3.0), #deg/s
             ("motion.model_type", "double_oscillator"),
 
-            ("depth.sigma_z_process", 1.0), 
+            ("depth.sigma_z_process", 1.0),
             ("depth.k_z", 0.4),
             ("depth.d_z", 0.1),
 
-            ("pitch.sigma_pitch_process", 15.0), 
+            ("pitch.sigma_pitch_process", 15.0),
 
             ("oscillator.sigma_z_process", 5.0),
             ("oscillator.omega", 2.0),
@@ -481,22 +554,21 @@ class EKFNode(Node):
             ("double_oscillator.omega_fast", 2.0),
             ("double_oscillator.zeta_fast", 0.01),
 
-            # measurement noise stddev (pixels)
-            ("measurement_noise.R_u", 10.0), 
+            # Measurement noise stddev (pixels)
+            ("measurement_noise.R_u", 10.0),
             ("measurement_noise.R_v", 10.0),
             ("measurement_noise.R_alpha_deg", 5.0),
             ("measurement_noise.R_len", 200.0),
             ("measurement_noise.R_wid", 40.0),
 
-            # dynamic measurement noise stddev (pixels)
-            # increases with distance from image center
-            ("measurement_noise.center_gain_u", 50.0), 
+            # Dynamic measurement noise stddev (pixels).
+            ("measurement_noise.center_gain_u", 50.0),
             ("measurement_noise.center_gain_v", 50.0),
             ("measurement_noise.center_gain_alpha_deg", 10.0),
             ("measurement_noise.center_gain_len", 10.0),
             ("measurement_noise.center_gain_wid", 10.0),
 
-            # increases with drone speed
+            # Increases with drone speed
             ("measurement_noise.speed_gain_u", 50.0),
             ("measurement_noise.speed_gain_v", 50.0),
             ("measurement_noise.speed_gain_alpha_deg", 10.0),
@@ -505,23 +577,21 @@ class EKFNode(Node):
 
             ("measurement_noise.R_dyn_dt", 0.5),
 
-            # drone pose noise
+            # Drone pose noise.
             ("camera_pose_noise.R_pose_x", 0.03),
             ("camera_pose_noise.R_pose_y", 0.03),
             ("camera_pose_noise.R_pose_z", 0.03),
             ("camera_pose_noise.R_pose_r", 1.0),
             ("camera_pose_noise.R_pose_p", 1.0),
             ("camera_pose_noise.R_pose_yaw", 3.0),
-
-            # dynamic measurement noise update rate (s)
-
+            # Dynamic measurement noise update rate (s)
             ("initialization.min_valid_meas_needed", 5),
             ("initialization.max_pos_spread", 2.0),
             ("initialization.max_yaw_spread", 0.7),
 
             ("gating.prob", 0.99),
 
-            # jacobian epsilons for numerical differentiation
+            # Jacobian epsilon values for numerical differentiation
             ("jacobian.eps_state_pos", 1e-3),
             ("jacobian.eps_state_yaw", 1e-3),
             ("jacobian.eps_state_vel", 1e-3),
@@ -530,11 +600,26 @@ class EKFNode(Node):
 
             ("logger_info.enable", True),
 
-            # if the state is older than this many seconds when a new measurement arrives, reset the filter.
-            ("stale_state_age", 3.0)
-            ]
-        
+            # If true, uses the optional head topic to resolve the 180-degree yaw ambiguity.
+            ("enable_head_disambiguation", False),
+
+            # If empty, it becomes "<object_name>_ekf/reset".
+            ("reset_service", ""),
+
+            # If the state is older than this many seconds, reset the filter.
+            ("stale_state_age", 3.0),
+        ]
+
         self.declare_parameters(namespace="", parameters=PARAMS)
+
+        self.object_name: str = (
+            self.get_parameter("object_name")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.object_name == "":
+            self.object_name = "object"
 
         self.water_surface_height :float = self.get_parameter("environment.water_surface_height").get_parameter_value().double_value
 
@@ -603,25 +688,100 @@ class EKFNode(Node):
         self.eps_pose_pos :float = self.get_parameter("jacobian.eps_pose_pos").get_parameter_value().double_value
         self.eps_pose_ang :float = self.get_parameter("jacobian.eps_pose_ang").get_parameter_value().double_value
 
-        self.topic_in_poly : str = self.get_parameter("topics.input_polygon").get_parameter_value().string_value
-        self.topic_input_auv_head : str = self.get_parameter("topics.input_auv_head").get_parameter_value().string_value
-        self.topic_estimated_pose : str = self.get_parameter("topics.output_topic").get_parameter_value().string_value
-        self.topic_odom : str = self.get_parameter("topics.odom").get_parameter_value().string_value
-        self.topic_ekf_status : str = self.get_parameter("topics.ekf_status").get_parameter_value().string_value
+        self.topic_in_poly: str = (
+            self.get_parameter("topics.input_polygon")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.topic_in_poly == "":
+            raise RuntimeError(
+                "topics.input_polygon must be set. "
+                "This should come from object_estimation.yaml, e.g. "
+                "alars_detection/auv_obb or alars_detection/buoy_obb."
+            )
+
+        self.topic_input_head: str = (
+            self.get_parameter("topics.input_head")
+            .get_parameter_value()
+            .string_value
+        )
+
+        self.topic_estimated_pose: str = (
+            self.get_parameter("topics.output_topic")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.topic_estimated_pose == "":
+            self.topic_estimated_pose = f"{self.object_name}_projection/pose_with_cov"
+
+        self.topic_odom: str = (
+            self.get_parameter("topics.odom")
+            .get_parameter_value()
+            .string_value
+        )
+
+        self.topic_ekf_status: str = (
+            self.get_parameter("topics.ekf_status")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.topic_ekf_status == "":
+            self.topic_ekf_status = f"{self.object_name}_ekf/status"
+
+        self.enable_head_disambiguation: bool = (
+            self.get_parameter("enable_head_disambiguation")
+            .get_parameter_value()
+            .bool_value
+        )
+
+        self.reset_service: str = (
+            self.get_parameter("reset_service")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.reset_service == "":
+            self.reset_service = f"{self.object_name}_ekf/reset"
 
         # how long do we hold on to the state after last measurement before considering it stale and reinitializing?
         self.stale_state_age : float = self.get_parameter("stale_state_age").get_parameter_value().double_value
-        self.last_processed_measurement_time : Time | None = None
 
+        self.last_processed_measurement_time: Time | None = None
 
-        robot_name : str = self.get_parameter("robot_name").get_parameter_value().string_value
-        map_frame : str = self.get_parameter("frames.map").get_parameter_value().string_value
-        output_frame : str = self.get_parameter("frames.output_link").get_parameter_value().string_value
-        camera_frame : str = self.get_parameter("frames.camera").get_parameter_value().string_value
+        robot_name: str = (
+            self.get_parameter("robot_name")
+            .get_parameter_value()
+            .string_value
+            .strip("/")
+        )
 
-        self.map_frame = f"{robot_name}/{map_frame}"
-        self.output_frame = f"{robot_name}/{output_frame}"
-        self.cam_frame = f"{robot_name}/{camera_frame}"
+        map_frame: str = (
+            self.get_parameter("frames.map")
+            .get_parameter_value()
+            .string_value
+        )
+
+        output_frame: str = (
+            self.get_parameter("frames.output_link")
+            .get_parameter_value()
+            .string_value
+        )
+
+        camera_frame: str = (
+            self.get_parameter("frames.camera")
+            .get_parameter_value()
+            .string_value
+        )
+
+        if output_frame == "":
+            output_frame = f"estimated_{self.object_name}"
+
+        self.map_frame = self.resolve_frame(robot_name, map_frame)
+        self.output_frame = self.resolve_frame(robot_name, output_frame)
+        self.cam_frame = self.resolve_frame(robot_name, camera_frame)
 
         self.width = None
         self.height = None
@@ -639,7 +799,18 @@ class EKFNode(Node):
             self.get_logger().info(f"Loaded CameraInfo from yaml: {self.width}x{self.height}")
         else:
             raise RuntimeError("camera_info parameter must be set")
-        
+
+    @staticmethod
+    def resolve_frame(robot_name: str, frame: str) -> str:
+        frame = str(frame).strip("/")
+
+        if robot_name == "":
+            return frame
+
+        if frame.startswith(f"{robot_name}/"):
+            return frame
+
+        return f"{robot_name}/{frame}"
 
 def main():
     rclpy.init()

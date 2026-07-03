@@ -20,8 +20,8 @@ setup(
     zip_safe=True,
     maintainer='sebbe',
     maintainer_email='sebbe@todo.todo',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='ROS2 package for ALARS state estimation',
+    license='MIT',
     extras_require={
         'test': [
             'pytest',
@@ -31,6 +31,7 @@ setup(
         'console_scripts': [
             'projection = auv_state_estimation.projection:main',
             'ekf_node = auv_state_estimation.ekf_node:main',
+            'yolo_estimator_adapter = auv_state_estimation.yolo_estimator_adapter:main',
         ],
     },
 )
