@@ -254,30 +254,36 @@ if [[ "$NO_CAM" == "True" ]]; then
     PROJECTION_CMD="echo 'Camera disabled, not launching projection node'"
 else
     YOLO_DEVICE=0
+    YOLO_THRESHOLD=0.5
     CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
     YOLO_MODEL="yolo_model_2cls_may.pt" # Options: alars_labeling_training/trained_models
+    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
+    
     if [[ $USE_SIM_TIME = "True" ]]; then
         YOLO_DEVICE=cpu
         CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
         # seems to be doing better in sim
         YOLO_MODEL="yolo_model_2cls_mixed.pt"
     fi
-    YOLO_CMD="ros2 launch alars_auv_perception alars_yolo_detector.launch.py \
-    robot_name:=$ROBOT_NAME \
-    device:=$YOLO_DEVICE \
-    use_sim_time:=$USE_SIM_TIME \
-    model_package:=alars_labeling_training \
-    model_file:=$YOLO_MODEL"
 
-    PROJECTION_CMD="ros2 launch auv_state_estimation auv_buoy_ekf_launch.py \
+    YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
+    robot_name:=$ROBOT_NAME \
+    model_package:=alars_labeling_training \
+    model_subdir:=trained_models \
+    model_file:=$YOLO_MODEL \
+    namespace:=$ROBOT_NAME/yolo \
+    device:=$YOLO_DEVICE \
+    threshold:=$YOLO_THRESHOLD
+    "
+
+    # Creates the projection of every object considered in the object_config_file
+    PROJECTION_CMD="ros2 launch auv_state_estimation object_ekf_launch.py \
     robot_name:=$ROBOT_NAME \
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
-    auv_ekf_staleness_seconds:=$EKF_STALENESS_SECONDS \
-    buoy_ekf_staleness_seconds:=10.0 \
-    auv_length_m:=$AUV_LENGTH_M \
-    auv_width_m:=$AUV_WIDTH_M
+    object_config_file:=$OBJECT_CONFIG_FILE
     "
+
 fi
 
 tmux_make_layout "$SESSION" CamProc "
