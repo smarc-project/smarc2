@@ -15,8 +15,6 @@
         environment:
           water_surface_height: 0.0
 
-        enable_head_disambiguation: false
-
         parameters:
           motion:
             sigma_a_xy: 0.03

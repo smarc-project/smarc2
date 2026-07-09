@@ -84,5 +84,4 @@
       enable: true
 
     enable_head_disambiguation: false
-    reset_service: ""
     stale_state_age: 3.0

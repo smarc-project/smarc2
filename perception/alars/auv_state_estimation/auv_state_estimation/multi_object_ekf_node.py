@@ -7,7 +7,7 @@ from rclpy.node import Node
 from rclpy.time import Time
 from rclpy.duration import Duration
 
-from geometry_msgs.msg import PolygonStamped, Point
+from geometry_msgs.msg import PolygonStamped
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
 import tf2_ros
@@ -33,7 +33,6 @@ class MultiObjectEKFNode(Node):
         self.declare_parameter("topics.status_array", Topics.OBJECT_EKF_STATUS_ARRAY_TOPIC)
 
         # Visualization
-        self.declare_parameter("visualization.enable", True)
         self.declare_parameter("visualization_enable", True)
         self.declare_parameter("topics.markers", Topics.OBJECT_EKF_MARKERS_TOPIC)
 
@@ -80,9 +79,7 @@ class MultiObjectEKFNode(Node):
         self.input_detections_corners_topic = self.get_parameter("topics.input_detections_corners").get_parameter_value().string_value
         self.output_poses_array_topic = self.get_parameter("topics.output_poses_array").get_parameter_value().string_value
         self.status_array_topic = self.get_parameter("topics.status_array").get_parameter_value().string_value
-        flat_visualization_enabled = self.get_parameter("visualization_enable").get_parameter_value().bool_value
-        nested_visualization_enabled = self.get_parameter("visualization.enable").get_parameter_value().bool_value
-        self.visualization_enable = bool(flat_visualization_enabled and nested_visualization_enabled)
+        self.visualization_enable = self.get_parameter("visualization_enable").get_parameter_value().bool_value
         self.markers_topic = self.get_parameter("topics.markers").get_parameter_value().string_value
         self.reset_service_name = self.get_parameter("services.reset").get_parameter_value().string_value
         self.odom_topic = self.get_parameter("topics.odom").get_parameter_value().string_value

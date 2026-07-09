@@ -94,7 +94,7 @@ def generate_launch_description():
                         "topics.output_poses_array": Topics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC,
                         "topics.status_array": Topics.OBJECT_EKF_STATUS_ARRAY_TOPIC,
 
-                        "visualization.enable": visualization_enable,
+                        "visualization_enable": visualization_enable,
                         "topics.markers": Topics.OBJECT_EKF_MARKERS_TOPIC,
 
                         "services.reset": Topics.OBJECT_EKF_RESET_SERVICE,

@@ -12,7 +12,7 @@ from .noise_models import NoiseModels
 from .initializer import Initializer
 from .visualization import create_pose_msg
 from .geometry_utils import residual_z, wrap
-from .motion_model import DepthModel, DoubleOscillatorModel, OscillatorModel, PitchModel, SurfaceModel, PitchModel
+from .motion_model import DepthModel, DoubleOscillatorModel, OscillatorModel, PitchModel, SurfaceModel
 
 class ObjectEKF:
     """
@@ -490,6 +490,8 @@ class ObjectEKF:
             "motion_model_type",
             params["motion.model_type"],
         )
+
+        params["stale_state_age"] = cfg.get("stale_state_age", params["stale_state_age"])
 
         env = cfg.get("environment", {})
         params["environment.water_surface_height"] = env.get(
