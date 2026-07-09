@@ -65,4 +65,10 @@ string PROJECTED_BUOY_POSE_WITH_COV_TOPIC = 'alars_projection/buoy_pose_with_cov
 string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
 string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector' # Trigger
 
+# Multi-object estimation outputs.
+string PROJECTED_OBJECT_POSES_ARRAY_TOPIC = 'alars_projection/object_poses_array' # dji_msgs/ObjectPoseWithCovarianceArray
+string OBJECT_EKF_STATUS_ARRAY_TOPIC = 'alars_ekf/status_array' # dji_msgs/ObjectEkfStatusArray
+string OBJECT_EKF_RESET_SERVICE = 'alars_ekf/reset' # dji_msgs/ResetObjectEkf
 
+# Only for visualization
+string OBJECT_EKF_MARKERS_TOPIC = 'alars_projection/object_pose_markers' # visualization_msgs/MarkerArray

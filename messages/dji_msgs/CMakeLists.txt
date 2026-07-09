@@ -20,6 +20,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Links.msg"          # links for drone
   "msg/PsdkTopics.msg"     # base topics from psdk_wrapper    
   "msg/LabeledOBBs.msg"    # custom message for labeled object detections
+
+  "msg/ObjectPoseWithCovariance.msg"       # estimated object pose with covariance matrix
+  "msg/ObjectPoseWithCovarianceArray.msg"  # array of estimated object poses with covariance
+  "msg/ObjectEkfStatus.msg"                # EKF status information for a single estimated object
+  "msg/ObjectEkfStatusArray.msg"           # array of EKF status for all estimated objects
+  
+  "srv/ResetObjectEkf.srv"                 # service to reset EKF filters
+
   "srv/DronePath.srv"
   "srv/InitAUVSearch.srv"  
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs geographic_msgs
