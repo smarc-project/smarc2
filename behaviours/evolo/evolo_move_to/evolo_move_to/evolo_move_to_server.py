@@ -98,7 +98,7 @@ class EvoloMoveTo():
         self._node.declare_parameter("xte_pid_p", 0.2)
         self._node.declare_parameter("xte_pid_i", 0.1)
         self._node.declare_parameter("xte_pid_d", 1.0)
-        self._node.declare_parameter("xte_pid_max_integral", 10.0)
+        self._node.declare_parameter("xte_pid_max_integral", 5.0)
         self._node.declare_parameter("xte_pid_max_output", 10.0) 
         
         self.xte_pid_p = float(self._node.get_parameter("xte_pid_p").value)
@@ -202,7 +202,7 @@ class EvoloMoveTo():
             #TODO send speed = Stop
             return True
 
-        if(self.use_xte_compensation):
+        if(self.use_xte_compensation and self.robot_speed > 0.514444444*7): #Only use XTE when foiling
             # XTE math. (Coordinate system is in meters)
             #(1) create local coordinate system start_pos = origin
             goalX = self.target_position.pose.position.x - self.start_location.pose.position.x
