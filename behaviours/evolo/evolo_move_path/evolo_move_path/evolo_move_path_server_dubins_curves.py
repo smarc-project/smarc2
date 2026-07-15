@@ -14,7 +14,7 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from tf_transformations import euler_from_quaternion
 from rclpy.time import Duration, Time
 from nav_msgs.msg import Path, Odometry
-from geometry_msgs.msg import TwistStamped, PoseStamped, Quaternion, Point
+from geometry_msgs.msg import TwistStamped, PoseStamped, Quaternion, Point, PointStamped
 from tf2_ros import Buffer, TransformListener
 from smarc_utilities import georef_utils
 import tf_transformations
@@ -186,18 +186,9 @@ class EvoloMovePath:
         self.speed_pub = self._node.create_publisher(Odometry, evoloTopics.EVOLO_CONTROL_PLANNED, 10, callback_group=pub_cbg)
         self.robot_sub    = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10, callback_group=sub_cbg)
         self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, smarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10, callback_group=sub_cbg)
-        self._waraps_feedback_pub = self._node.create_publisher(String, 'waraps/current_waypoint', 10, callback_group=pub_cbg)
-
+        self.target_pub = self._node.create_publisher(PointStamped, evoloTopics.EVOLO_CURRENT_WP, 10, callback_group=self.publisher_callback_group)
         self._node.get_logger().info("EvoloMovePath started")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    def _publish_waraps_feedback(self, payload: dict) -> None:
-        try:
-            msg = String()
-            msg.data = json.dumps(payload)
-            self._waraps_feedback_pub.publish(msg)
-        except Exception as e:
-            self._node.get_logger().error(f"[WARAPS] Error publication feedback : {e}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Geofence callback
@@ -686,27 +677,6 @@ class EvoloMovePath:
         self._node.get_logger().info(
             f'✓ Dubins path: {len(full_path)} pts | '
             f'{len(wp_ends)} WP end(s) | {n_via} via-pt(s)')
-        
-
-        # ── Publication WARAPS ──────────────
-        try:
-            waypoints_latlon = [
-                {
-                    'latitude':  ll['latitude'],
-                    'longitude': ll['longitude'],
-                    'tolerance': self.target_list[i].tol,
-                }
-                for i, ll in enumerate(self.target_list_latlon)
-            ]
-            self._publish_waraps_feedback({
-                'speed':     self.speed_kn,
-                'waypoints': waypoints_latlon,
-            })
-            self._node.get_logger().info(
-                f"[WARAPS] List sent ({len(waypoints_latlon)} pts)"
-            )
-        except Exception as e:
-            self._node.get_logger().error(f"[WARAPS] Erreor : {e}")
 
         return True
 
@@ -736,6 +706,7 @@ class EvoloMovePath:
         for wp_params in waypoints:
             lat  = float(wp_params['latitude'])
             lon  = float(wp_params['longitude'])
+            alt  = float(wp_params.get('altitude', 0.0))
             tol  = float(wp_params['tolerance'])
             pose = self.latlon_to_local_frame([lat, lon])
             if pose is None:
@@ -743,7 +714,7 @@ class EvoloMovePath:
                     f'[GoalReceived] TF failed for ({lat:.6f},{lon:.6f}) — skipping')
                 continue
             self.target_list.append(self.WP(p=pose, tol=tol, speed_kn=self.speed_kn))
-            self.target_list_latlon.append({'latitude': lat, 'longitude': lon}) 
+            self.target_list_latlon.append({'latitude': lat, 'longitude': lon, 'altitude': alt})
             self._node.get_logger().info(
                 f'[GoalReceived] WP{len(self.target_list)}: '
                 f'({pose.pose.position.x:.1f}, {pose.pose.position.y:.1f}) queued')
@@ -876,7 +847,7 @@ class EvoloMovePath:
         self.path_cursor = max(self.path_cursor, candidate)
         self.path_cursor = min(self.path_cursor, len(path) - 1)
 
-        # ── Publication WARAPS ───────
+        # ── Point courant ───────
         if self.wp_end_indices is not None:
             try:
                 wp_current_idx = len(self.wp_end_indices) - 1
@@ -886,11 +857,13 @@ class EvoloMovePath:
                         break
 
                 latlon = self.target_list_latlon[wp_current_idx]
-                self._publish_waraps_feedback({
-                    'index':     wp_current_idx,
-                    'latitude':  latlon['latitude'],
-                    'longitude': latlon['longitude'],
-                })
+                pt_msg = PointStamped()
+                pt_msg.header.stamp    = self._node.get_clock().now().to_msg()
+                pt_msg.header.frame_id = self.frame_id
+                pt_msg.point.x = latlon['longitude']
+                pt_msg.point.y = latlon['latitude']
+                pt_msg.point.z = latlon.get('altitude', 0.0)
+                self.target_pub.publish(pt_msg)
             except Exception:
                 pass
 
