@@ -236,7 +236,7 @@ col(
 # WARA-PS bridge
 WARA_PS_MQTT_CMD="sleep 7; ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
 #Evolo/ puffin broker
-EVOLO_WARA_PS_MQTT_CMD="sleep 7; ros2 launch evolo_private waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=$CONTEXT"
+EVOLO_WARA_PS_MQTT_CMD="sleep 7; ros2 launch evolo_private waraps_bridge.launch robot_name:=$ROBOT_NAME domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME context:=evolo"
 
 tmux_make_layout "$SESSION" waraps-mqtt "
 col(
