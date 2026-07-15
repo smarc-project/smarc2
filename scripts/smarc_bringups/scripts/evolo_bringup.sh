@@ -371,7 +371,7 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
         tf_frame_prefix:=$ROBOT_NAME/ \
         camera_ip:=192.168.2.210 \
         camera_port:=2332 \
-        camera_below_base:=False" \
+        camera_below_base:=False \
         publish_period_ms:=100"
     GIMBAL_CAM_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
         robot_name:=\"$ROBOT_NAME\" \
