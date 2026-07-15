@@ -847,7 +847,7 @@ class EvoloMovePath:
         self.path_cursor = max(self.path_cursor, candidate)
         self.path_cursor = min(self.path_cursor, len(path) - 1)
 
-        # ── Point courant ───────
+        # ── Current waypoint ───────
         if self.wp_end_indices is not None:
             try:
                 wp_current_idx = len(self.wp_end_indices) - 1
