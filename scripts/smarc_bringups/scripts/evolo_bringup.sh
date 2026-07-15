@@ -1,5 +1,11 @@
 #! /bin/bash
 
+#Kill earler instance of dune if it was not closed
+echo "Kill previous dune process"
+pkill dune
+sleep 1
+echo "Starting bringup"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/tmux_layout.sh"
 
@@ -130,6 +136,9 @@ if [ "$MODE" == "REAL" ]; then
     ROSBOARD=True
     JSON_TRANSLATOR=True
     UW_COM=True
+
+    #Backseat
+    DUNE_BACKSEAT_DRIVER=True #[True , False]
 
 fi
 
@@ -357,7 +366,8 @@ if [ $CAMERA_GIMBALL_DRIVER == "True" ]; then
         tf_frame_prefix:=$ROBOT_NAME/ \
         camera_ip:=192.168.2.210 \
         camera_port:=2332 \
-        camera_below_base:=False"
+        camera_below_base:=False" \
+        publish_period_ms:=100"
     GIMBAL_CAM_ACTION_CMD="ros2 launch z1_pro_driver z1_pro_action_launch.py \
         robot_name:=\"$ROBOT_NAME\" \
         use_sim_time:=$USE_SIM_TIME"
@@ -428,7 +438,7 @@ fi
 if [ "$LOCATION_SOURCE" = "MQTT" ] || [ "$LOCATION_SOURCE" = "SERIAL" ]; then
     ODOM_INIT_CMD="ros2 launch evolo_captain_interface evolo_captain_odom_initializer_launch.py use_sim_time:=$USE_SIM_TIME"
     CAPTAIN_TO_ODOM_CMD="ros2 launch evolo_captain_interface evolo_captain_odom_launch.py use_sim_time:=$USE_SIM_TIME"
-    tmux_make_layout "$SESSION" SBG-localization "
+    tmux_make_layout "$SESSION" Captain-localization "
     col(
         var(ODOM_INIT_CMD),
         var(CAPTAIN_TO_ODOM_CMD)
@@ -444,7 +454,7 @@ fi
 if [ $LIDAR_PROCESSING == "True" ]; then
     POINTCLOUD_PEPROCESSING_CMD="ros2 launch pointcloud_preprocessing pointcloud_preprocessing_launch_evolo.py use_sim_time:=$USE_SIM_TIME"
     POINTCLOUD_CLUSTERING_CMD="ros2 run clustering_segmentation clustering_segmentation --ros-args -p use_sim_time:=$USE_SIM_TIME -p DynamicStatic_clusters_segmentation:=True"
-    tmux_make_layout "$SESSION" SBG-localization "
+    tmux_make_layout "$SESSION" pointcloud-processing "
     col(
         var(POINTCLOUD_PEPROCESSING_CMD),
         var(POINTCLOUD_CLUSTERING_CMD)
@@ -492,7 +502,7 @@ fi
 #Node-red-translator
 if [ $JSON_TRANSLATOR == "True" ]; then
     JSON_TRANSLATOR_CMD="ros2 launch evolo_json_bridge json_bridge_launch.py"
-    tmux_make_layout "$SESSION" json_translator"
+    tmux_make_layout "$SESSION" json_translator "
     col(
         var(JSON_TRANSLATOR_CMD),
     )"
