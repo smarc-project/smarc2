@@ -196,7 +196,7 @@ col(
     ),
     row(
         var(EXTERNAL_CTRL_ACTION_CMD),
-        var(DEPLOY_AT_ACTION_CMD)
+        var(DEPLOY_AT_ACTION_CMD),
         var(DEPLOY_ACTION_CMD)
     )
 )"
