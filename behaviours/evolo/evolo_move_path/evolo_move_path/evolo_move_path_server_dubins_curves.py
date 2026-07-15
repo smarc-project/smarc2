@@ -186,7 +186,7 @@ class EvoloMovePath:
         self.speed_pub = self._node.create_publisher(Odometry, evoloTopics.EVOLO_CONTROL_PLANNED, 10, callback_group=pub_cbg)
         self.robot_sub    = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback, 10, callback_group=sub_cbg)
         self.polygons_sub = self._node.create_subscription(GeofencePolygonsStamped, smarcTopics.GEOFENCE_POLYGONS_TOPIC, self._geofence_polygons_callback, 10, callback_group=sub_cbg)
-        self.target_pub = self._node.create_publisher(PointStamped, evoloTopics.EVOLO_CURRENT_WP, 10, callback_group=self.publisher_callback_group)
+        self.target_pub = self._node.create_publisher(PointStamped, evoloTopics.EVOLO_CURRENT_WP, 10, callback_group=pub_cbg)
         self._node.get_logger().info("EvoloMovePath started")
 
 
@@ -856,14 +856,12 @@ class EvoloMovePath:
                         wp_current_idx = i
                         break
 
-                latlon = self.target_list_latlon[wp_current_idx]
-                pt_msg = PointStamped()
-                pt_msg.header.stamp    = self._node.get_clock().now().to_msg()
-                pt_msg.header.frame_id = self.frame_id
-                pt_msg.point.x = latlon['longitude']
-                pt_msg.point.y = latlon['latitude']
-                pt_msg.point.z = latlon.get('altitude', 0.0)
-                self.target_pub.publish(pt_msg)
+                target_pose = self.target_list[wp_current_idx].p
+
+                target_point = PointStamped()
+                target_point.header = target_pose.header
+                target_point.point = target_pose.pose.position
+                self.target_pub.publish(target_point)
             except Exception:
                 pass
 
