@@ -181,20 +181,23 @@ col(
 MOVE_TO_ACTION_CMD="sleep 4; ros2 run evolo_move_to move_to_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 MOVE_PATH_ACTION_CMD="sleep 4; ros2 run evolo_move_path move_path_server_dubins_curves --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME --params-file \$(ros2 pkg prefix evolo_move_path)/share/evolo_move_path/config/evolo_params.yaml"
 EXTERNAL_CTRL_ACTION_CMD="sleep 4; ros2 run evolo_external_control externalcontrol_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
-EMERGENCY_ACTION_CMD="ros2 run evolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 DEPLOY_ACTION_CMD="ros2 run evolo_deploy evolo_deploy_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 DEPLOY_AT_ACTION_CMD="ros2 run evolo_deploy_at evolo_deploy_at_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+SEARCH_AREA_ACTION_CMD="ros2 run search_areas search_area --ros-args -r __ns:=/evolo --params-file $(ros2 pkg prefix search_areas)/share/search_areas/config/search_area.yaml"
+SEARCH_AREAS_ACTION_CMD="ros2 run search_areas search_areas --ros-args -r __ns:=/evolo"
+
 tmux_make_layout "$SESSION" Actions "
 col(
     row(
         var(MOVE_TO_ACTION_CMD),
         var(MOVE_PATH_ACTION_CMD),
-        var(DEPLOY_ACTION_CMD)
+        var(SEARCH_AREA_ACTION_CMD),
+        var(SEARCH_AREAS_ACTION_CMD)
     ),
     row(
         var(EXTERNAL_CTRL_ACTION_CMD),
-        var(EMERGENCY_ACTION_CMD),
         var(DEPLOY_AT_ACTION_CMD)
+        var(DEPLOY_ACTION_CMD)
     )
 )"
 
@@ -205,11 +208,13 @@ GEOFENCE_CMD="ros2 run smarc_basic geofence_node --ros-args -r __ns:=/$ROBOT_NAM
 
 HUMAN_LOG_CMD="ros2 run smarc_basic log_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 WAIT_CMD="ros2 run smarc_basic wait_action --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+EMERGENCY_ACTION_CMD="ros2 run evolo_emergency_action server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 
 tmux_make_layout "$SESSION" BasicActions "
 row(
     col(var(GEOFENCE_CMD), var(HUMAN_LOG_CMD)),
-    col(var(WAIT_CMD))
+    col(var(WAIT_CMD)),
+    col(var(EMERGENCY_ACTION_CMD))
 )"
 
 # Health monitoring
