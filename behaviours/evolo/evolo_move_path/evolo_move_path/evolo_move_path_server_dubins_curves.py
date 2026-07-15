@@ -909,7 +909,7 @@ class EvoloMovePath:
         cmd.pose.pose.orientation.z = q[2]
         cmd.pose.pose.orientation.w = q[3]
         cmd.twist.twist.linear.x    = v
-        cmd.twist.twist.angular.z   = yaw_diff  #
+        cmd.twist.twist.angular.z   = yaw_diff  
         self.speed_pub.publish(cmd)
 
         return None
