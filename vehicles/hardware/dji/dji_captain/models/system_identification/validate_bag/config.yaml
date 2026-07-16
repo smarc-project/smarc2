@@ -1,0 +1,24 @@
+paths:
+  bag_dir : "/home/aleba/alars/bags/M350/m350_1_bis"
+  bag_name : "rosbag2_2026_06_16-20_35_03_0.db3"
+  processed_bag_name: "bag1_processed_40hz.parquet"
+  drone_name: "M350"
+  clock: "bag_timestamp_sec"
+
+grid_freq: 40
+
+prop_names:
+  FC30: ["bl", "blb", "br", "brb", "fl", "flb", "fr", "frb"]
+  M350: ["bl", "br", "fl", "fr"]
+
+odom_attributes: ["pose_pose_position_x", "pose_pose_position_y", "pose_pose_position_z",
+               "twist_twist_linear_x", "twist_twist_linear_y", "twist_twist_linear_z",
+               "twist_twist_angular_x", "twist_twist_angular_y", "twist_twist_angular_z"]
+              
+flu_attributes: ["axes_0", "axes_1", "axes_2", "axes_3"]
+
+attitue_attributes: ["quaternion_x", "quaternion_y", "quaternion_z", "quaternion_w"]
+
+vl_gf_attributes: ["vector_x", "vector_y", "vector_z"]
+
+acceleration_attributes: ["accel_linear_x", "accel_linear_y", "accel_linear_z"]
