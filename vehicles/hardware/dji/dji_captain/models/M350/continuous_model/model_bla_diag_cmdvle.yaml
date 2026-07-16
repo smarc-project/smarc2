@@ -1,0 +1,37 @@
+inputs:
+- FLU_axes_0
+- FLU_axes_1
+- FLU_axes_2
+outputs:
+- FLUvelocity_ground_fused_x
+- FLUvelocity_ground_fused_y
+- FLUvelocity_ground_fused_z
+fs: 40.0
+structure: 'diagonal SISO channels: vel_out = G(s) * cmd_in'
+notes: diagonal closed-loop velocity model (BLA + AIC order fit); small-signal regime,
+  DC gain extrapolated below excited band
+channels:
+  FLU_axes_0__to__FLUvelocity_ground_fused_x:
+    num_b:
+    - 1.8745702086694371
+    den_a:
+    - 1.0
+    - 1.7159353508255013
+    dc_gain: 1.0924480387723348
+    tau_s: 0.5827725383237314
+  FLU_axes_1__to__FLUvelocity_ground_fused_y:
+    num_b:
+    - 2.167594888390379
+    den_a:
+    - 1.0
+    - 2.140497258843787
+    dc_gain: 1.0126595021015017
+    tau_s: 0.4671811635676473
+  FLU_axes_2__to__FLUvelocity_ground_fused_z:
+    num_b:
+    - 3.113142972673463
+    den_a:
+    - 1.0
+    - 3.2243121615748738
+    dc_gain: 0.9655215800051098
+    tau_s: 0.310143667823888
