@@ -162,7 +162,7 @@ tmux select-window -t $SESSION:0
 tmux send-keys "Remember to start the logging!" 
 
 # Controllers
-CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_p_gain:=2.0 closed_loop_i_gain:=0.0 closed_loop_d_gain:=0.75 max_steering_output:=40.0"
+CONTROLLER_CMD="ros2 launch evolo_controllers evolo_controllers_launch.py closed_loop_p_gain:=1.0 closed_loop_i_gain:=0.1 closed_loop_d_gain:=0.0 max_steering_output:=40.0 max_integral:=10.0"
 tmux_make_layout "$SESSION" Controllers "
 col(
     var(CONTROLLER_CMD)

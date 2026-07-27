@@ -10,11 +10,11 @@
     omega_max: 30.0
 
     # Pure Pursuit
-    ld_base: 12.0   
-    ld_min: 7.0     
+    ld_base: 20.0
+    ld_min: 10.0
 
     # Dubins planner
-    min_turning_radius: 30.0
+    min_turning_radius: 20.0
     dubins_step: 0.5
     dubins_mode: "smooth"  # "vwp" or "smooth"
 
