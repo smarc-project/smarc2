@@ -266,7 +266,7 @@ else
         YOLO_DEVICE=cpu
         CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
         # seems to be doing better in sim
-        YOLO_MODEL="yolo_model_2cls_mixed.pt"
+        YOLO_MODEL="yolo_model_4cls_july.pt" # Updated for sim (+ hook, land_pad), prev was yolo_model_2cls_mixed.pt
     fi
 
     YOLO_CMD="ros2 launch yolo_smarc_actions alars_yolo_corners.launch.py \
