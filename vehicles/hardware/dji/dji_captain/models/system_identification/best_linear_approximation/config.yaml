@@ -1,0 +1,9 @@
+paths:
+  exp1: '/home/aleba/alars/bags/M350/bag4/processed/bag4_processed_40hz_'
+  exp2: '/home/aleba/alars/bags/M350/bag5/processed/bag4_processed_40hz_'
+  exp3: "/home/aleba/alars/bags/M350/bag6/processed/bag4_processed_40hz_"
+
+end: '.parquet'
+flu_attributes: ["FLU_axes_0", "FLU_axes_1", "FLU_axes_2"]
+vl_gf_attributes: ["FLUvelocity_ground_fused_x", "FLUvelocity_ground_fused_y", "FLUvelocity_ground_fused_z"]
+motor_attributs: ["prop_bl", "prop_br", "prop_fl", "prop_fr"]
