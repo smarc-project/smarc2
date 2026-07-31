@@ -963,3 +963,7 @@ the same place (§11 explains why: you *feed* the BLA to PEM). The superiority i
 * Search terms for the estimator details: *robust method BLA*, *fast method BLA detection
   lines*, *random-phase multisine*, *Riemann equivalence class*, *stochastic nonlinear
   distortion*.
+
+
+## Use of generative AI
+Generative AI was used to write this file by synthesizing sections from the papers and books listed above, and the final report was manually reviewed. This document is intended as an introductory overview of the method, all information should be verified against the cited literature.

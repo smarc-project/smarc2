@@ -25,6 +25,8 @@ If your input is the *commanded* multisine (known, identical every period) you m
 pass u of shape (M, N) or (N,) and it will be broadcast; the input-noise terms
 then vanish automatically.
 
+Use of AI: Used Generative AI to test and verify the correctness of various functions.
+
 """
 
 from __future__ import annotations
@@ -117,12 +119,10 @@ def robust_bla(u: np.ndarray,
         raise ValueError("need M >= 2 seeds to estimate the distortion band")
     u = _as_MPN(u, M, P, N)
 
-    # --- DFT of every period (same rfft on both sides -> 1/N cancels in ratio)
     U = np.fft.rfft(u, axis=2)          # (M, P, K)
     Y = np.fft.rfft(y, axis=2)          # (M, P, K)
     f_all = np.fft.rfftfreq(N, d=1.0 / fs)
 
-    # --- excited lines
     if excited_lines is None:
         Umag = np.abs(U).mean(axis=(0, 1))          # (K,)
         excited_lines = detect_excited_lines(Umag, thr_ratio)
@@ -137,11 +137,9 @@ def robust_bla(u: np.ndarray,
     U = U[:, :, excited_lines]          # (M, P, L)
     Y = Y[:, :, excited_lines]
 
-    # --- Step 1: average over periods; estimate measurement-noise (co)variance
     Ubar = U.mean(axis=1)               # (M, L)
     Ybar = Y.mean(axis=1)               # (M, L)
 
-    # variance of the *mean* over periods = (1/(P(P-1))) * sum |x - xbar|^2
     def var_of_mean(X, Xbar):
         return (np.abs(X - Xbar[:, None, :]) ** 2).sum(axis=1) / (P * (P - 1))
 
@@ -150,10 +148,8 @@ def robust_bla(u: np.ndarray,
     covYU = ((Y - Ybar[:, None, :]) *
              np.conj(U - Ubar[:, None, :])).sum(axis=1) / (P * (P - 1))  # (M,L)
 
-    # --- Step 2: one FRF per seed
     G_seed = Ybar / Ubar                # (M, L)
 
-    # noise variance of each seed's FRF  (ratio error propagation, first order)
     varG_seed_noise = (np.abs(G_seed) ** 2) * (
         varY / np.abs(Ybar) ** 2
         + varU / np.abs(Ubar) ** 2
@@ -161,16 +157,12 @@ def robust_bla(u: np.ndarray,
     )
     varG_seed_noise = np.maximum(varG_seed_noise, 0.0)
 
-    # --- Step 3: average over seeds -> BLA
     G = G_seed.mean(axis=0)             # (L,)
 
-    # total variance of the BLA (mean over seeds): captures noise + distortion
     varG_total = (np.abs(G_seed - G[None, :]) ** 2).sum(axis=0) / (M * (M - 1))
 
-    # noise part of the BLA variance = (1/M^2) * sum_m varG_seed_noise[m]
     varG_noise = varG_seed_noise.sum(axis=0) / (M ** 2)
 
-    # distortion part (uncertainty of the mean) and single-realisation level
     varG_nl = np.maximum(varG_total - varG_noise, 0.0)
 
     return BLAResult(
@@ -203,11 +195,10 @@ def fit_tf(f: np.ndarray,
     """
     Fit a continuous-time rational model  G(s) = B(s)/A(s),  s = j*2*pi*f,
     to the (complex) FRF G at frequencies f [Hz], by weighted equation-error LS
-    with Sanathanan-Koerner reweighting (approximates the true output-error cost).
+    with Sanathanan-Koerner reweighting.
 
     na, nb : denominator / numerator orders.
-    weights: per-line weights (use 1/var_total from the BLA so distorted / noisy
-             lines are trusted less). Defaults to 1.
+    weights: per-line weights. Defaults to 1.
 
     Returns dict with:
         b, a       : real numerator/denominator coeffs, DESCENDING power (scipy order)
@@ -230,41 +221,38 @@ def fit_tf(f: np.ndarray,
     w = np.sqrt(np.maximum(w, 0.0))
 
     omega = 2.0 * np.pi * f
-    c = omega.max()                       # frequency scale for conditioning
-    shat = 1j * (omega / c)               # normalised s
+    c = omega.max()                       
+    shat = 1j * (omega / c)               
 
     # regressor columns: [ shat^0..shat^nb ,  -G*shat^1 .. -G*shat^na ]
     num_powers = np.vstack([shat ** k for k in range(nb + 1)]).T          # (L, nb+1)
     den_powers = np.vstack([-G * shat ** k for k in range(1, na + 1)]).T  # (L, na)
-    Phi = np.hstack([num_powers, den_powers])                            # (L, nb+1+na)
+    Phi = np.hstack([num_powers, den_powers])                             # (L, nb+1+na)
     rhs = G.copy()
 
-    a_full = np.concatenate([[1.0], np.zeros(na)])   # ascending, a0 = 1
+    a_full = np.concatenate([[1.0], np.zeros(na)])   
     for _ in range(iterations):
         Aeval = _polyval_asc(a_full, shat)
-        wk = (w / np.abs(Aeval))[:, None]            # SK reweight
+        wk = (w / np.abs(Aeval))[:, None]            
         theta, *_ = np.linalg.lstsq(Phi * wk, rhs * wk[:, 0], rcond=None)
         bhat = theta[:nb + 1]
         ahat = np.concatenate([[1.0], theta[nb + 1:]])
-        a_full = ahat  # coefficients come out ~real; kept complex-safe for the loop
+        a_full = ahat  
 
     bhat = np.real(bhat)
     ahat = np.real(a_full)
 
-    # un-normalise: coeff_k(s) = coeff_k(shat) / c^k  (ascending index k)
     b_real_asc = np.array([bhat[k] / c ** k for k in range(nb + 1)])
     a_real_asc = np.array([ahat[k] / c ** k for k in range(na + 1)])
 
-    # descending order 
     b = b_real_asc[::-1].copy()
     a = a_real_asc[::-1].copy()
 
     poles = np.roots(a)
     zeros = np.roots(b)
-    wn = np.abs(poles) / (2 * np.pi)                     # Hz
+    wn = np.abs(poles) / (2 * np.pi)                     
     zeta = -np.real(poles) / np.maximum(np.abs(poles), 1e-300)
 
-    # model on grid
     s = 1j * omega
     G_fit = np.polyval(b, s) / np.polyval(a, s)
 
@@ -310,7 +298,7 @@ def fit_tf_auto(f: np.ndarray,
     scores = []
     for na in na_range:
         nb = na - 1 if strictly_proper else na
-        if n < (na + nb + 1) + 1:          # need more data points than parameters
+        if n < (na + nb + 1) + 1:          
             continue
         try:
             fit = fit_tf(f, G, na=na, nb=nb, weights=weights, iterations=iterations)
@@ -395,73 +383,6 @@ def plot_bla(res: BLAResult, tf_fit: dict | None = None, path: str | None = None
     return fig
 
 
-# --------------------------------------------------------------------------- #
-#  Demo / self-test on a synthetic nonlinear system
-# --------------------------------------------------------------------------- #
-def demo():
-    """
-    Synthetic Hammerstein system:  v = u + alpha*u^3   ->   y = H(s) * v
-    H is a lightly damped 2nd-order resonance at 1 Hz. The cubic creates genuine
-    nonlinear distortion; measurement noise is added per period. We check that the
-    robust method recovers H, separates noise from distortion, and that the fit
-    finds the right resonance.
-    """
-    rng = np.random.default_rng(0)
-    fs = 20.0
-    N = 2000                       # samples/period  -> f0 = 0.01 Hz
-    M, P = 8, 6                    # seeds, periods
-    alpha = 0.15                   # cubic strength
-    noise_std = 0.02               # measurement noise on output
-
-    # excite a band 0.2..4 Hz on a subset of lines
-    f0 = fs / N
-    band = np.arange(int(0.2 / f0), int(4.0 / f0) + 1)
-    excited = band[::7]            # sparse grid
-
-    # true linear system H(s): wn=1 Hz, zeta=0.08
-    wn = 2 * np.pi * 1.0
-    zeta = 0.08
-    freqs = np.fft.rfftfreq(N, 1 / fs)
-    s = 1j * 2 * np.pi * freqs
-    H = wn ** 2 / (s ** 2 + 2 * zeta * wn * s + wn ** 2)
-
-    u = np.zeros((M, P, N))
-    y = np.zeros((M, P, N))
-    for m in range(M):
-        xu = multisine(N, fs, excited, rms=1.0, seed=1000 + m)   # same every period
-        v = xu + alpha * xu ** 3                                 # static nonlinearity
-        V = np.fft.rfft(v)
-        y_clean = np.fft.irfft(H * V, n=N)                       # exact periodic steady state
-        for p in range(P):
-            u[m, p] = xu
-            y[m, p] = y_clean + noise_std * rng.standard_normal(N)
-
-    res = robust_bla(u, y, fs)
-
-    # weight the fit by 1/var_total so noisy/distorted lines count less
-    w = 1.0 / (res.G_std_total ** 2 + 1e-18)
-    fit = fit_tf(res.f, res.G, na=2, nb=0, weights=w, iterations=10)
-
-    # --- report
-    print(f"excited lines detected : {res.excited_lines.size} "
-          f"(designed {excited.size})")
-    print(f"median noise/signal    : {np.median(res.noise_to_signal_db):6.1f} dB")
-    print(f"median distortion/signal: {np.median(res.dist_to_signal_db):6.1f} dB")
-    # dominant pole
-    k = np.argmax(res.wn if False else np.ones(1))  # placeholder
-    poles = fit["poles"]
-    dom = poles[np.argmax(np.abs(poles.imag))]
-    print(f"true resonance         : wn=1.000 Hz, zeta={zeta:.3f}")
-    print(f"identified resonance   : wn={np.abs(dom)/(2*np.pi):.3f} Hz, "
-          f"zeta={-dom.real/np.abs(dom):.3f}")
-    dc_true = 1.0
-    dc_fit = fit["b"][-1] / fit["a"][-1]
-    print(f"true DC gain ~{dc_true:.3f}   identified DC gain {dc_fit:.3f}")
-
-    plot_bla(res, fit, path="/mnt/user-data/outputs/bla_demo.png")
-    print("saved figure -> bla_demo.png")
-    return res, fit
-
 
 if __name__ == "__main__":
-    demo()
+    pass

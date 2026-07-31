@@ -329,3 +329,6 @@ python3 robust_BLA.py     # runs demo(); fix the output path first
   lowest excited line — it is not measured there.
 * **The `.npz`/`.yaml` export only saves the diagonal channels.** If the validation plot
   shows that the off-diagonal terms matter, `save_model` needs extending.
+
+## Use of generative AI
+Generative AI was used to rewrite and polish the text above.
