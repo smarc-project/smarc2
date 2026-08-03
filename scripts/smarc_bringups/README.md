@@ -43,6 +43,12 @@ Launches everything related to DJI drones and the ALARS project.
   - `apt install ros-humble-rmw-zenoh-cpp`
     - You can skip this if your usecase is confined almost entirely to sim/rosbag use.
     - If you skip it, ignore the follow parts about Zenoh as well!
+  - `pip3 install control`
+    - Needed by `sway_controller` (payload sway damping: `LQG.py` builds the state
+      feedback, and the hook Kalman filter re-discretizes its model every tick).
+    - **Not declared in `package.xml`**: the [Python Control Systems Library](https://python-control.readthedocs.io)
+      has no rosdep key and no Debian package, so `rosdep install` cannot provide
+      it. Anything importing `control` fails at runtime without this.
   - `git submodule update --init messages/psdk_interfaces`
   - If you want to run the full vision->motion stack: alars_auv_perception has requirements that need special care, check its readme!
     - If you do not need the vision capabilities, you can skip this on your personal machine.
