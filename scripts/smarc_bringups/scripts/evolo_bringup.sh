@@ -178,7 +178,7 @@ col(
 
 
 # Evolo action servers
-MOVE_TO_ACTION_CMD="sleep 4; ros2 run evolo_move_to move_to_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
+MOVE_TO_ACTION_CMD="sleep 4; ros2 run evolo_move_to move_to_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p use_xte:=True -p aim_ahead_dist_max:=40"
 MOVE_PATH_ACTION_CMD="sleep 4; ros2 run evolo_move_path move_path_server_dubins_curves --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME --params-file \$(ros2 pkg prefix evolo_move_path)/share/evolo_move_path/config/evolo_params.yaml"
 EXTERNAL_CTRL_ACTION_CMD="sleep 4; ros2 run evolo_external_control externalcontrol_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 DEPLOY_ACTION_CMD="ros2 run evolo_deploy evolo_deploy_server --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
@@ -356,7 +356,7 @@ if [ $YOLO_DRIVER == "True" ]; then
         use_tracking:=True \
         tracker:=botsort.yaml \
         use_debug:=True"
-    YOLO_ACTION_CMD="ros2 launch yolo_smarc_actions smarc_yolo_action_launch.py robot_name:=evolo"
+    YOLO_ACTION_CMD="ros2 run yolo_smarc_actions yolo_action.py --ros-args -r __ns:=/evolo -p image_poi_output:=/evolo/gimbal_camera/tracked_poi_image -p startup_classes:=\"[person, boat, buoy]\""
     tmux_make_layout "$SESSION" YOLO "
     col(
         var(YOLO_CMD),
@@ -486,8 +486,8 @@ fi
 
 #Video stream
 if [ $VIDERO_STREAM == "True" ]; then
-    MIRAYA_STREAM_CMD="bash ~/video_streaming/stream.sh"
-    RED5_STREAM_CMD="placeholder"
+    MIRAYA_STREAM_CMD="ros2 run evolo_private stream_miraya_raw.sh"
+    RED5_STREAM_CMD="ros2 run evolo_private stream_red5_yolo.sh"
     tmux_make_layout "$SESSION" video_stream "
     col(
         var(MIRAYA_STREAM_CMD),

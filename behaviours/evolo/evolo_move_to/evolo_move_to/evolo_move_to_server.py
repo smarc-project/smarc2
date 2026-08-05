@@ -91,8 +91,6 @@ class EvoloMoveTo():
         self.aim_ahead_dist_m = float(self._node.get_parameter('aim_ahead_dist_max').value)
         self.aim_ahead_dist_m = max(0,min(40,self.aim_ahead_dist_m))
 
-        self.aim_ahead_dist_m = 1000.0
-
         #PID parameters
         #Closed loop gains
         self._node.declare_parameter("xte_pid_p", 0.2)
