@@ -61,9 +61,7 @@ def generate_launch_description():
     config_file = PathJoinSubstitution([config_dir, config_file_name])
 
     def make_node(context, *args, **kwargs):
-        # A LaunchConfiguration can only be read inside a context, which is why
-        # this lives in an OpaqueFunction: an argument becomes a ROS parameter
-        # only if it was actually typed, otherwise the yaml value stands.
+        
         overrides = {}
         for name, cast in (('L', float),
                            ('xi', float),
@@ -82,7 +80,6 @@ def generate_launch_description():
             name='hook_kalman_filter_node',
             namespace=robot_name,
             output='screen',
-            # Later entries win: yaml < robot_name/use_sim_time < command line
             parameters=[
                 config_file,
                 {
