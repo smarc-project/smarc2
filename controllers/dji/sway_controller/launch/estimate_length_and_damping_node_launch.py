@@ -5,9 +5,7 @@ from launch_ros.actions    import Node
 
 
 def generate_launch_description():
-    """The sysid action server. It has no tunables worth a config yaml - the fit
-    parameters live in EstimateLengthAndDamping itself - so this is just the
-    namespace wrapper the relative topic/action names need."""
+    
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='M350',

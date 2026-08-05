@@ -17,10 +17,7 @@ def generate_launch_description():
         default_value='False',
         description='Use simulation clock instead of wall clock'
     )
-    # The tunables below default to '' (empty) rather than to a value, so that
-    # anything not passed on the command line falls through to the config yaml.
-    # A real default here would always beat the yaml and it would stop being the
-    # fallback. default_value must be a STRING - a float raises.
+   
     L_arg = DeclareLaunchArgument(
         'L',
         default_value='',
