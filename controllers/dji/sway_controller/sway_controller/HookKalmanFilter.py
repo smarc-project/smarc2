@@ -306,10 +306,7 @@ class HookKalmanFilter:
             self._node.get_logger().warning(
                 f'Camera boresight is {tilt_from_down_deg:.0f}deg off straight-down '
                 f'(limit {self._max_boresight_tilt_deg:.0f}deg) - the pendulum-angle '
-                f'measurement is not valid in this pose, skipping this detection. '
-                f'Is the gimbal pointed down? '
-                f'(sim: ros2 topic pub -r 2 -t 5 {self._robot_name}/gimbal_camera/gimbal_cmd '
-                f'geometry_msgs/msg/Vector3 "{{x: 0.0, y: 90.0, z: 0.0}}")',
+                f'measurement is not valid in this pose, skipping this detection. ',
                 throttle_duration_sec=5.0
             )
             return
@@ -334,15 +331,13 @@ class HookKalmanFilter:
             wd = float(w @ d)
             disc = wd * wd - float(w @ w) + self._L * self._L
             if disc < 0.0:
-                # Ray misses the sphere entirely: the detection is inconsistent
-                # with L (bad L, bad detection, or the hook is not on this rope).
                 self._node.get_logger().warning(
                     'Hook detection ray does not intersect the pendulum sphere '
                     f'(L={self._L:.2f}m) - skipping it',
                     throttle_duration_sec=5.0
                 )
                 return
-            s = -wd + np.sqrt(disc)   # far intersection = the hook below the drone
+            s = -wd + np.sqrt(disc)   
             if s <= 0.0:
                 self._node.get_logger().warning(
                     'Hook intersection resolved behind the camera - skipping it',
@@ -350,27 +345,16 @@ class HookKalmanFilter:
                 )
                 return
 
-            r = cam + s * d - pivot   # hook position relative to the pivot
+            r = cam + s * d - pivot   
             self._last_meas[0] = np.arctan2(r[0], -r[2])
             self._last_meas[1] = np.arctan2(r[1], -r[2])
             self._pivot_in_base_flat = pivot
-
-        # Publish the raw single-detection measurement (pre-fusion, pre-gating)
         
         self._publish_raw_measurement(msg.header.stamp)
 
         self._update()
 
     def _publish_raw_measurement(self, stamp):
-        """Publishes the hook position implied by the latest single detection
-        (theta_x/theta_y already rotated into base_flat_link), BEFORE any Kalman
-        prediction/update or Mahalanobis gating. This is the clean signal to
-        compare against hook_ground_truth_base_flat to check the
-        camera->base_flat_link axis mapping in isolation: hook_state is
-        confounded both by rejected updates (which fall back to pure prediction)
-        and by the prediction step being forced with real cmd_vel/odom, so if the
-        frames are consistent it's *this* topic - not hook_state - that should
-        land on the same axis as the ground truth."""
         theta_x, theta_y = self._last_meas
         msg = Odometry()
         msg.header.stamp = stamp
@@ -421,7 +405,7 @@ class HookKalmanFilter:
 
         if dt < 0.0:
             self._node.get_logger().warning(
-                f'Clock went backwards ({dt:.3f}s between predictions), resynchronising',
+                f'Clock went backwards ({dt:.3f}s between predictions)',
                 throttle_duration_sec=5.0
             )
             return
@@ -521,12 +505,6 @@ class HookKalmanFilter:
             )
 
     def _publish_pendulum_params(self, L: float, xi: float):
-        """Publish the L/xi this filter is actually running with, once, latched.
-
-        Deliberately the values the FILTER uses, not whatever the sysid returned:
-        if the filter fell back to the yaml or to placeholder defaults, consumers
-        must see that same fallback, otherwise the controller would be tuned for
-        a pendulum the estimator is not modelling."""
         msg = Float64MultiArray()
         msg.layout.dim = [MultiArrayDimension(label='length', size=1, stride=2),
                           MultiArrayDimension(label='damping', size=1, stride=1)]
@@ -534,14 +512,6 @@ class HookKalmanFilter:
         self._pendulum_params_pub.publish(msg)
 
     def _publish_swing_state(self, stamp):
-        """The raw filter state [theta_x, omega_x, theta_y, omega_y] - what a
-        controller consumes. Ordering matches LQG.LQR.IDX's theta_x/omega_x/
-        theta_y/omega_y entries, so it slices straight into the LQR state
-        vector with no conversion.
-
-        Variances come from the same Sigma the cartesian covariances are
-        linearised from, but UNlinearised - these are the angle/rate variances
-        themselves, so a controller can gate on estimate quality directly."""
         theta_x, omega_x, theta_y, omega_y = self._mu
 
         msg = JointState()
