@@ -39,6 +39,7 @@ from gi.repository import Gst, GLib
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage, Image
+from rclpy.qos import qos_profile_sensor_data
 import numpy as np
 import cv2
 
@@ -63,10 +64,16 @@ class RtmpRosNode(Node):
 
         topic = self.get_parameter("image_topic").value
         self._is_compressed = topic.endswith("/compressed")
+        # BEST_EFFORT (sensor-data profile): the DDS middleware drops frames it
+        # cannot deliver immediately rather than buffering them.  With the default
+        # RELIABLE policy every camera frame is queued in the DDS layer whenever
+        # the ROS callback is slow, which independently fills RAM on network loss.
         if self._is_compressed:
-            self.create_subscription(CompressedImage, topic, self._on_compressed, 1)
+            self.create_subscription(CompressedImage, topic, self._on_compressed,
+                                     qos_profile_sensor_data)
         else:
-            self.create_subscription(Image, topic, self._on_raw, 1)
+            self.create_subscription(Image, topic, self._on_raw,
+                                     qos_profile_sensor_data)
 
         self.get_logger().info(f"RTMP node ready. {topic} → {self._url}")
 
@@ -95,22 +102,40 @@ class RtmpRosNode(Node):
             )
             decode = ""
 
+        # max-bytes=1000 was the original limit but with block=False (default)
+        # it only fires the "enough-data" signal — it does NOT drop or block.
+        # max-buffers + leaky-type (GStreamer ≥ 1.20, present on JetPack 6 /
+        # L4T 36.4) make the appsrc itself discard the oldest queued frame when
+        # full.  Verify with: gst-inspect-1.0 appsrc | grep -A2 leaky-type
         appsrc = (
             f"appsrc name=src is-live=true do-timestamp=true format=time "
-            f"min-latency=0 max-latency=0 max-bytes=1000 "
+            f"min-latency=0 max-latency=0 "
+            f"max-buffers=2 max-bytes=0 max-time=0 leaky-type=downstream "
             f"caps={appsrc_caps}"
         )
 
+        # timeout=5 is a librtmp option passed through the location string.
+        # Without it rtmpsink blocks indefinitely on a half-open TCP connection
+        # (OS-level keepalive can take minutes), stalling the whole pipeline
+        # before any of the leaky-queue limits even get a chance to help.
         rtmp_tail = (
             f"! h264parse config-interval=-1 "
             f"! video/x-h264,stream-format=avc,alignment=au "
             f"! flvmux streamable=true "
-            f'! rtmpsink location="{self._url} live=1"'
+            f'! rtmpsink location="{self._url} live=1 timeout=5"'
         )
+
+        # Belt-and-braces leaky queue placed *before* the decoder so frames are
+        # discarded as raw compressed bytes — no wasted decode work on frames that
+        # will never reach the encoder.  leaky=downstream drops the oldest buffered
+        # frame when the queue is full.  Always drop before the encoder: discarding
+        # H.264 mid-GOP corrupts the stream for every downstream decoder.
+        leaky_queue = "! queue max-size-buffers=2 max-size-bytes=0 max-size-time=0 leaky=downstream "
 
         # Jetson HW path.
         jetson_pipe = (
             f"{appsrc} "
+            f"{leaky_queue}"
             f"{decode}! videoconvert ! video/x-raw,format=BGRx "
             f"! nvvidconv "
             f"! video/x-raw(memory:NVMM),format=NV12,width={out_w},height={out_h} "
@@ -121,6 +146,7 @@ class RtmpRosNode(Node):
         # CPU fallback.
         cpu_pipe = (
             f"{appsrc} "
+            f"{leaky_queue}"
             f"{decode}! videoconvert ! video/x-raw,format=I420 "
             f"! videoscale ! video/x-raw,width={out_w},height={out_h} "
             f"! x264enc bitrate={self._bitrate // 1000} tune=zerolatency speed-preset=ultrafast "
@@ -131,7 +157,18 @@ class RtmpRosNode(Node):
             try:
                 self._pipeline = Gst.parse_launch(pipe_str)
                 self._appsrc   = self._pipeline.get_by_name("src")
-                self._pipeline.set_state(Gst.State.PLAYING)
+                # set_state() returns a status enum, not an exception — check it.
+                # The try/except above only catches parse failures (missing element),
+                # not runtime failures like a missing NV encoder.
+                if self._pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
+                    raise RuntimeError(f"{label} pipeline failed to start")
+                # Watch for runtime errors (network drop, encoder crash, etc.).
+                # Without this, errors are silently swallowed: _pipeline stays
+                # non-None and _ensure_encoder never reinitialises it.
+                bus = self._pipeline.get_bus()
+                bus.add_signal_watch()
+                bus.connect("message::error", self._on_bus_error)
+                bus.connect("message::eos",   self._on_bus_error)
                 self.get_logger().info(
                     f"[{label}] {src_w}x{src_h} → {out_w}x{out_h}, "
                     f"{self._bitrate // 1000} kbps → {self._url}"
@@ -142,6 +179,25 @@ class RtmpRosNode(Node):
                 self._pipeline = None
 
         raise RuntimeError("No H.264 encoder available (tried nvv4l2h264enc, x264enc)")
+
+    # ── GStreamer bus ──────────────────────────────────────────────────────────
+
+    def _on_bus_error(self, bus, message):
+        """Tear down the broken pipeline so the next frame triggers a clean rebuild.
+
+        On network loss rtmpsink posts an ERROR on the bus after the timeout
+        expires.  Setting _pipeline = None makes the existing lazy-init path in
+        _ensure_encoder rebuild and reconnect automatically on the next frame.
+        """
+        if message.type == Gst.MessageType.ERROR:
+            err, debug = message.parse_error()
+            self.get_logger().warn(f"GStreamer error: {err} — {debug}")
+        else:
+            self.get_logger().warn("GStreamer pipeline reached EOS unexpectedly")
+        if self._pipeline:
+            self._pipeline.set_state(Gst.State.NULL)
+        self._pipeline = None
+        self._appsrc   = None
 
     # ── Frame push ────────────────────────────────────────────────────────────
 
