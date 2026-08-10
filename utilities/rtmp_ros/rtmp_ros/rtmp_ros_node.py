@@ -167,8 +167,9 @@ class RtmpRosNode(Node):
                 # non-None and _ensure_encoder never reinitialises it.
                 bus = self._pipeline.get_bus()
                 bus.add_signal_watch()
-                bus.connect("message::error", self._on_bus_error)
-                bus.connect("message::eos",   self._on_bus_error)
+                gen = self._pipeline_gen  # capture before any callback can change it
+                bus.connect("message::error", lambda b, m, g=gen: self._on_bus_error(b, m, g))
+                bus.connect("message::eos",   lambda b, m, g=gen: self._on_bus_error(b, m, g))
                 self.get_logger().info(
                     f"[{label}] {src_w}x{src_h} → {out_w}x{out_h}, "
                     f"{self._bitrate // 1000} kbps → {self._url}"
@@ -182,13 +183,19 @@ class RtmpRosNode(Node):
 
     # ── GStreamer bus ──────────────────────────────────────────────────────────
 
-    def _on_bus_error(self, bus, message):
+    def _on_bus_error(self, bus, message, gen):
         """Tear down the broken pipeline so the next frame triggers a clean rebuild.
 
         On network loss rtmpsink posts an ERROR on the bus after the timeout
         expires.  Setting _pipeline = None makes the existing lazy-init path in
         _ensure_encoder rebuild and reconnect automatically on the next frame.
+
+        `gen` must match _pipeline_gen or the callback is stale (e.g. an EOS
+        posted by set_state(NULL) on the *old* pipeline that arrives after the
+        ROS callback has already rebuilt a new one) and should be ignored.
         """
+        if gen != self._pipeline_gen:
+            return  # stale callback from an already-replaced pipeline
         if message.type == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
             self.get_logger().warn(f"GStreamer error: {err} — {debug}")
@@ -196,15 +203,17 @@ class RtmpRosNode(Node):
             self.get_logger().warn("GStreamer pipeline reached EOS unexpectedly")
         if self._pipeline:
             self._pipeline.set_state(Gst.State.NULL)
-        self._pipeline = None
-        self._appsrc   = None
+        self._pipeline     = None
+        self._appsrc       = None
+        self._pipeline_gen += 1  # invalidate any further callbacks for this generation
 
     # ── Frame push ────────────────────────────────────────────────────────────
 
     def _push_frame(self, frame: np.ndarray):
         h, w = frame.shape[:2]
         self._ensure_encoder(w, h)
-
+        if self._appsrc is None:  # _ensure_encoder failed or lost a race with _on_bus_error
+            return
         buf = Gst.Buffer.new_wrapped(frame.tobytes())
         buf.set_flags(Gst.BufferFlags.LIVE)
         self._appsrc.emit("push-buffer", buf)
@@ -219,6 +228,8 @@ class RtmpRosNode(Node):
                 return
             h, w = frame.shape[:2]
             self._ensure_encoder(w, h)
+        if self._appsrc is None:  # _ensure_encoder failed or lost a race with _on_bus_error
+            return
         buf = Gst.Buffer.new_wrapped(bytes(msg.data))
         buf.set_flags(Gst.BufferFlags.LIVE)
         self._appsrc.emit("push-buffer", buf)
