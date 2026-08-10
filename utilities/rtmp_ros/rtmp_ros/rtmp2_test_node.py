@@ -154,6 +154,8 @@ class Rtmp2TestNode(Node):
                 return
             except Exception as e:
                 self.get_logger().warn(f"{label} failed: {e}")
+                if self._pipeline:
+                    self._pipeline.set_state(Gst.State.NULL)
                 self._pipeline = None
 
         raise RuntimeError("No H.264 encoder available (tried nvv4l2h264enc, x264enc)")
@@ -163,10 +165,19 @@ class Rtmp2TestNode(Node):
     def _on_bus_error(self, bus, message):
         err, debug = message.parse_error()
         self.get_logger().warn(f"GStreamer error: {err} — {debug}; reconnecting on next frame")
+        # Defer teardown — calling set_state(NULL) directly here (from the GLib
+        # signal handler) blocks the GLib main loop thread while waiting for
+        # streaming threads, which may themselves be trying to post through the
+        # same GLib context — deadlock → segfault.
+        GLib.idle_add(self._reset_pipeline)
+
+    def _reset_pipeline(self):
+        """Deferred teardown, called by GLib.idle_add from _on_bus_error."""
         if self._pipeline:
             self._pipeline.set_state(Gst.State.NULL)
         self._pipeline = None
         self._appsrc   = None
+        return GLib.SOURCE_REMOVE  # run once only
 
     # ── Callbacks ─────────────────────────────────────────────────────────────
 

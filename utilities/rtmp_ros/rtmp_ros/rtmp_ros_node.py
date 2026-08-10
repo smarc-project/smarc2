@@ -177,6 +177,14 @@ class RtmpRosNode(Node):
                 return
             except Exception as e:
                 self.get_logger().warn(f"{label} failed: {e}")
+                # Call set_state(NULL) before dropping the reference.  If
+                # set_state(PLAYING) returned ASYNC and the exception was raised
+                # afterwards, the pipeline is already transitioning to PLAYING;
+                # releasing the Python reference without NULL-ing it first causes
+                # GStreamer to dispose elements while they are still in PLAYING
+                # state — triggering the segfault we saw.
+                if self._pipeline:
+                    self._pipeline.set_state(Gst.State.NULL)
                 self._pipeline = None
 
         raise RuntimeError("No H.264 encoder available (tried nvv4l2h264enc, x264enc)")
@@ -184,15 +192,16 @@ class RtmpRosNode(Node):
     # ── GStreamer bus ──────────────────────────────────────────────────────────
 
     def _on_bus_error(self, bus, message, gen):
-        """Tear down the broken pipeline so the next frame triggers a clean rebuild.
+        """Log the error and schedule a deferred pipeline teardown.
 
-        On network loss rtmpsink posts an ERROR on the bus after the timeout
-        expires.  Setting _pipeline = None makes the existing lazy-init path in
-        _ensure_encoder rebuild and reconnect automatically on the next frame.
+        IMPORTANT: do NOT call set_state(NULL) directly here.  This callback
+        runs on the GLib main loop thread.  set_state(NULL) blocks that thread
+        while waiting for GStreamer's streaming threads to stop — but those
+        threads may themselves be trying to post messages through the same GLib
+        main context, creating a deadlock that manifests as a segfault.
 
-        `gen` must match _pipeline_gen or the callback is stale (e.g. an EOS
-        posted by set_state(NULL) on the *old* pipeline that arrives after the
-        ROS callback has already rebuilt a new one) and should be ignored.
+        GLib.idle_add defers the actual teardown to the *next* main-loop
+        iteration, after this handler returns and the GLib context is free.
         """
         if gen != self._pipeline_gen:
             return  # stale callback from an already-replaced pipeline
@@ -201,11 +210,18 @@ class RtmpRosNode(Node):
             self.get_logger().warn(f"GStreamer error: {err} — {debug}")
         else:
             self.get_logger().warn("GStreamer pipeline reached EOS unexpectedly")
+        GLib.idle_add(self._reset_pipeline, gen)
+
+    def _reset_pipeline(self, gen):
+        """Deferred teardown, called by GLib.idle_add from _on_bus_error."""
+        if gen != self._pipeline_gen:
+            return GLib.SOURCE_REMOVE  # already replaced by a newer pipeline
         if self._pipeline:
             self._pipeline.set_state(Gst.State.NULL)
         self._pipeline     = None
         self._appsrc       = None
         self._pipeline_gen += 1  # invalidate any further callbacks for this generation
+        return GLib.SOURCE_REMOVE  # run once only
 
     # ── Frame push ────────────────────────────────────────────────────────────
 
