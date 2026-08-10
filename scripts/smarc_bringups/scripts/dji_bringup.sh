@@ -207,7 +207,7 @@ col(
 WASP_BT_CMD="ros2 launch wasp_bt wasp_bt.launch \
 robot_name:=$ROBOT_NAME \
 agent_type:=air \
-pulse_rate:=10.0 \
+pulse_rate:=2.0 \
 use_sim_time:=$USE_SIM_TIME \
 bt_health_timeout:=5.0 \
 task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"

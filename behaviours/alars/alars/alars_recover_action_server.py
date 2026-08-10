@@ -124,11 +124,11 @@ class RecoverAction():
     def _on_goal_received(self, goal_request: dict) -> bool:
         # goal: {
         #   "no_buoy": bool 
-        #   "no_buoy_radius": float,
-        #   "forward_distance": float,
-        #   "forward_altitude": float,
-        #   "dipping_altitude" : float,
-        #   "raising_altitude" : float
+        #   "no-buoy-radius": float,
+        #   "forward-distance": float,
+        #   "forward-altitude": float,
+        #   "dipping-altitude" : float,
+        #   "raising-altitude" : float
         # }
         #            D
         # A          |
@@ -141,12 +141,12 @@ class RecoverAction():
         # O = where the object and buoy are, perpendicular to screen
         
         try:
-            self._no_buoy_radius = float(goal_request['no_buoy_radius'])
+            self._no_buoy_radius = float(goal_request['no-buoy-radius'])
             self._recover_without_buoy = self._no_buoy_radius > 0
-            self._forward_distance = float(goal_request['forward_distance'])
-            self._forward_altitude = float(goal_request['forward_altitude'])
-            self._dipping_altitude = float(goal_request['dipping_altitude'])
-            self._raising_altitude = float(goal_request['raising_altitude'])
+            self._forward_distance = float(goal_request['forward-distance'])
+            self._forward_altitude = float(goal_request['forward-altitude'])
+            self._dipping_altitude = float(goal_request['dipping-altitude'])
+            self._raising_altitude = float(goal_request['raising-altitude'])
         except KeyError:
             self._loginfo(f"Goal request is missing a required field, received:\n {goal_request}")
             return False

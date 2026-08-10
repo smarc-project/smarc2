@@ -111,10 +111,10 @@ class AlarsPingSearch():
 
             self._goal : dict = {
                 "waypoints": [],
-                "modem_to_ping": None,
-                "modem_depth": None,
-                "dipping_altitude": None,
-                "max_pings": None
+                "modem-to-ping": None,
+                "modem-depth": None,
+                "dipping-altitude": None,
+                "max-pings": None
             }
 
 
@@ -208,7 +208,7 @@ class AlarsPingSearch():
             title = "Ping",
             post_condition = lambda: self._auv_position_estimate_pings is not None,
             post_title = "Have AUV position estimate",
-            pre_condition = lambda: self.ping_count < self._goal['max_pings'],
+            pre_condition = lambda: self.ping_count < self._goal['max-pings'],
             pre_title = "Have not exceeded max pings",
             act = do_ping
         )
@@ -267,7 +267,7 @@ class AlarsPingSearch():
         str = ""
         str += f"Tip: {tip_str}"
         str += f"\nPing idx: {self.ping_index+1}/{len(self._goal['waypoints'])}"
-        str += f"\nPing count: {self.ping_count}/{self._goal['max_pings']}"
+        str += f"\nPing count: {self.ping_count}/{self._goal['max-pings']}"
         str += f"\nAUV position estimate (pings): {self._auv_position_estimate_pings}"
         str += f"\nAUV position estimate (visual): {self._auv_position_estimate_visual}"
         return str
@@ -315,7 +315,7 @@ class AlarsPingSearch():
             "waypoint" : {
                 "latitude": ping_position["latitude"],
                 "longitude": ping_position["longitude"],
-                "altitude": self._goal["dipping_altitude"],
+                "altitude": self._goal["dipping-altitude"],
                 "tolerance": ping_position["tolerance"],
             },
             "speed":"standard"
@@ -345,8 +345,8 @@ class AlarsPingSearch():
     def _set_goal_ping(self) -> bool:
         goal_dict = {
             "mode":"ping",
-            "modem_id": self._goal["modem_to_ping"],
-            "depth": self._goal["modem_depth"],
+            "modem_id": self._goal["modem-to-ping"],
+            "depth": self._goal["modem-depth"],
             "retry_count": 3,
             "task_timeout": 30.0
         }

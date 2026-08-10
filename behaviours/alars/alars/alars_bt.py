@@ -133,17 +133,17 @@ class AlarsBT():
             )
 
             self._goal : dict = {
-                "search_position": {
+                "search-position": {
                     "latitude": None,
                     "longitude": None,
                     "altitude": None,
                     "tolerance": None
                 },
-                "forward_distance": None,
-                "forward_altitude": None,
-                "dipping_altitude": None,
-                "raising_altitude": None,
-                "num_retries": None
+                "forward-distance": None,
+                "forward-altitude": None,
+                "dipping-altitude": None,
+                "raising-altitude": None,
+                "num-retries": None
             }
 
 
@@ -221,8 +221,8 @@ class AlarsBT():
         str = ""
         str += f"Tip: {tip_str}"
         str += "\nStates:"
-        str += f"\n Failed search: {self._search_fail_count}/{self._goal['num_retries']}"
-        str += f"\n Failed recover: {self._recover_fail_count}/{self._goal['num_retries']}"
+        str += f"\n Failed search: {self._search_fail_count}/{self._goal['num-retries']}"
+        str += f"\n Failed recover: {self._recover_fail_count}/{self._goal['num-retries']}"
         str += f"\n Vulture timeouts: {self._vulture_timeout_count}/{len(self.VULTURE_RANGES)}"
         str += f"\n AUV position live: {self._is_auv_position_live}"
         str += f"\n BUOY position live: {self._is_buoy_position_live}"
@@ -270,20 +270,20 @@ class AlarsBT():
     
     def _set_goal_recover_with_buoy(self) -> bool:
         return self._set_goal(self.act_recover_bouy, {
-            "forward_distance": self._goal["forward_distance"],
-            "forward_altitude": self._goal["forward_altitude"],
-            "dipping_altitude": self._goal["dipping_altitude"],
-            "raising_altitude": self._goal["raising_altitude"],
+            "forward-distance": self._goal["forward-distance"],
+            "forward-altitude": self._goal["forward-altitude"],
+            "dipping-altitude": self._goal["dipping-altitude"],
+            "raising-altitude": self._goal["raising-altitude"],
             "no_buoy": False, 
             "no_buoy_radius": 0.0,
         })
 
     def _set_goal_recover_without_buoy(self) -> bool:
         return self._set_goal(self.act_recover_no_bouy, {
-            "forward_distance": self._goal["forward_distance"],
-            "forward_altitude": self._goal["forward_altitude"],
-            "dipping_altitude": self._goal["dipping_altitude"],
-            "raising_altitude": self._goal["raising_altitude"],
+            "forward-distance": self._goal["forward-distance"],
+            "forward-altitude": self._goal["forward-altitude"],
+            "dipping-altitude": self._goal["dipping-altitude"],
+            "raising-altitude": self._goal["raising-altitude"],
             "no_buoy": True, 
             "no_buoy_radius": self.RECOVER_WO_BUOY_RADIUS
         })
@@ -291,11 +291,11 @@ class AlarsBT():
     
     def _set_goal_search_global(self) -> bool:
         return self._set_goal(self.act_search_global, {
-            "search_position": {
-                "latitude": self._goal["search_position"]["latitude"],
-                "longitude": self._goal["search_position"]["longitude"],
-                "altitude": self._goal["search_position"]["altitude"],
-                "tolerance": self._goal["search_position"]["tolerance"]
+            "search-position": {
+                "latitude": self._goal["search-position"]["latitude"],
+                "longitude": self._goal["search-position"]["longitude"],
+                "altitude": self._goal["search-position"]["altitude"],
+                "tolerance": self._goal["search-position"]["tolerance"]
             }
         })
     
@@ -304,17 +304,17 @@ class AlarsBT():
         if last_known_auv_geopoint is None: return False
 
         return self._set_goal(self.act_search_local, {
-            "search_position": {
+            "search-position": {
                 "latitude": last_known_auv_geopoint.latitude,
                 "longitude": last_known_auv_geopoint.longitude,
-                "altitude": self._goal["search_position"]["altitude"],
+                "altitude": self._goal["search-position"]["altitude"],
                 "tolerance": self.LOCAL_SEARCH_RADIUS
             }
         })
     
     def _set_goal_vulture(self) -> bool:
         return self._set_goal(self.act_vulture, {
-            "follow_altitude": self._goal["search_position"]["altitude"],
+            "follow_altitude": self._goal["search-position"]["altitude"],
             "vulture_radius": self.VULTURE_RANGES[self._vulture_timeout_count],
             "vulture_speed_deg": self.VULTURE_SPEED_DEG,
             "timeout": self.VULTURE_TIMEOUTS[self._vulture_timeout_count]
@@ -382,7 +382,7 @@ class AlarsBT():
             title = "Recover with buoy",
             post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
-            pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_buoy_position_live and self._is_auv_position_live,
+            pre_condition = lambda: self._recover_fail_count < float(self._goal['num-retries']) and self._is_buoy_position_live and self._is_auv_position_live,
             pre_title = "Can retry, AUV position is live",
             act = Fallback("FB Recover, buoy", memory=True, children=[
                 do_recover_with_buoy,
@@ -400,7 +400,7 @@ class AlarsBT():
             title = "Recover without buoy",
             post_condition = lambda: self._recovery_success,
             post_title = "AUV is hanging",
-            pre_condition = lambda: self._recover_fail_count < float(self._goal['num_retries']) and self._is_auv_position_live and self._vulture_timeout_count >= len(self.VULTURE_RANGES),
+            pre_condition = lambda: self._recover_fail_count < float(self._goal['num-retries']) and self._is_auv_position_live and self._vulture_timeout_count >= len(self.VULTURE_RANGES),
             pre_title = "Can retry, AUV position is live and vulture t/o cnt exceeded",
             act = Fallback("FB Recover, no buoy", memory=True, children=[
                 do_recover_without_buoy,
@@ -430,7 +430,7 @@ class AlarsBT():
             title = "Search local",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._auv_position_estimate is not None and self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._auv_position_estimate is not None and self._search_fail_count < float(self._goal['num-retries']),
             pre_title = "Have seen AUV at least once and retries not exceeded",
             act = Fallback("FB Search local", memory=True, children=[
                 do_search_local,
@@ -447,7 +447,7 @@ class AlarsBT():
             title = "Search global",
             post_condition = lambda: self._is_auv_position_live,
             post_title= "AUV position live",
-            pre_condition = lambda: self._search_fail_count < float(self._goal['num_retries']),
+            pre_condition = lambda: self._search_fail_count < float(self._goal['num-retries']),
             pre_title = "Havent seen AUV before and retries not exceeded",
             act = Fallback("FB Search global", memory=True, children=[
                 do_search_global,
