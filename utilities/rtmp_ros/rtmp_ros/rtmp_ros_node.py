@@ -167,9 +167,11 @@ class RtmpRosNode(Node):
                 # non-None and _ensure_encoder never reinitialises it.
                 bus = self._pipeline.get_bus()
                 bus.add_signal_watch()
-                gen = self._pipeline_gen  # capture before any callback can change it
-                bus.connect("message::error", lambda b, m, g=gen: self._on_bus_error(b, m, g))
-                bus.connect("message::eos",   lambda b, m, g=gen: self._on_bus_error(b, m, g))
+                # Only connect ERROR, not EOS.  EOS is never expected on a live
+                # push source.  Connecting it would cause the EOS that GStreamer
+                # posts during set_state(NULL) teardown to fire the handler
+                # again — potentially on a freshly rebuilt pipeline.
+                bus.connect("message::error", self._on_bus_error)
                 self.get_logger().info(
                     f"[{label}] {src_w}x{src_h} → {out_w}x{out_h}, "
                     f"{self._bitrate // 1000} kbps → {self._url}"
@@ -191,37 +193,14 @@ class RtmpRosNode(Node):
 
     # ── GStreamer bus ──────────────────────────────────────────────────────────
 
-    def _on_bus_error(self, bus, message, gen):
-        """Log the error and schedule a deferred pipeline teardown.
-
-        IMPORTANT: do NOT call set_state(NULL) directly here.  This callback
-        runs on the GLib main loop thread.  set_state(NULL) blocks that thread
-        while waiting for GStreamer's streaming threads to stop — but those
-        threads may themselves be trying to post messages through the same GLib
-        main context, creating a deadlock that manifests as a segfault.
-
-        GLib.idle_add defers the actual teardown to the *next* main-loop
-        iteration, after this handler returns and the GLib context is free.
-        """
-        if gen != self._pipeline_gen:
-            return  # stale callback from an already-replaced pipeline
-        if message.type == Gst.MessageType.ERROR:
-            err, debug = message.parse_error()
-            self.get_logger().warn(f"GStreamer error: {err} — {debug}")
-        else:
-            self.get_logger().warn("GStreamer pipeline reached EOS unexpectedly")
-        GLib.idle_add(self._reset_pipeline, gen)
-
-    def _reset_pipeline(self, gen):
-        """Deferred teardown, called by GLib.idle_add from _on_bus_error."""
-        if gen != self._pipeline_gen:
-            return GLib.SOURCE_REMOVE  # already replaced by a newer pipeline
+    def _on_bus_error(self, bus, message):
+        """Tear down the broken pipeline; the next frame triggers a clean rebuild."""
+        err, debug = message.parse_error()
+        self.get_logger().warn(f"GStreamer error: {err} — {debug}")
         if self._pipeline:
             self._pipeline.set_state(Gst.State.NULL)
-        self._pipeline     = None
-        self._appsrc       = None
-        self._pipeline_gen += 1  # invalidate any further callbacks for this generation
-        return GLib.SOURCE_REMOVE  # run once only
+        self._pipeline = None
+        self._appsrc   = None
 
     # ── Frame push ────────────────────────────────────────────────────────────
 
