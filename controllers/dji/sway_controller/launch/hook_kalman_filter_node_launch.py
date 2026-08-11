@@ -53,8 +53,16 @@ def generate_launch_description():
         default_value='',
         description='Max gimbal tilt from straight-down before detections are dropped NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
+   
+    camera_calibration_file_arg = DeclareLaunchArgument(
+        'camera_calibration_file',
+        default_value='z1_720p_cam_params.yaml',
+        description='Camera calibration yaml in auv_state_estimation/config'
+    )
+
     robot_name = LaunchConfiguration('robot_name')
     use_sim_time = LaunchConfiguration('use_sim_time')
+    camera_calibration_file = LaunchConfiguration('camera_calibration_file')
 
     config_file_name = 'hook_kalman_filter_node_config.yaml'
     config_dir = os.path.join(get_package_share_directory('sway_controller'), 'config')
@@ -71,12 +79,14 @@ def generate_launch_description():
                 {
                 'robot_name': robot_name,
                 'use_sim_time': use_sim_time,
+                'camera_calibration_file': camera_calibration_file,
             }]
-        )    
+        )
 
     return LaunchDescription([
         robot_name_arg,
         use_sim_time_arg,
+        camera_calibration_file_arg,
         L_arg,
         xi_arg,
         qc_arg,
