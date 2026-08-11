@@ -15,13 +15,16 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
   <exec_depend>dji_msgs</exec_depend>
-  <exec_depend>smarc_msgs</exec_depend>
-  <exec_depend>smarc_action_base</exec_depend>
+  <exec_depend>yolo_msgs</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>auv_state_estimation</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>smarc_action_base</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
