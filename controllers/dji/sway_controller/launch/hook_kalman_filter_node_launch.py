@@ -3,7 +3,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch.substitutions        import PathJoinSubstitution, LaunchConfiguration
 from launch                      import LaunchDescription
-from launch.actions              import DeclareLaunchArgument, OpaqueFunction
+from launch.actions              import DeclareLaunchArgument
 from launch_ros.actions          import Node
 
 def generate_launch_description():
@@ -17,41 +17,41 @@ def generate_launch_description():
         default_value='False',
         description='Use simulation clock instead of wall clock'
     )
-   
+    
     L_arg = DeclareLaunchArgument(
         'L',
         default_value='',
-        description='Lenght of the rope, negative value for not identified (unset -> yaml)'
+        description='Lenght of the rope, negative value for not identified. NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     xi_arg = DeclareLaunchArgument(
         'xi',
         default_value='',
-        description='Damping factor, negative value for not identified (unset -> yaml)'
+        description='Damping factor, negative value for not identified NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     qc_arg = DeclareLaunchArgument(
         'qc',
         default_value='',
-        description='Process noise density, rescale with loop_freq by (dt_old/dt_new)^2 (unset -> yaml)'
+        description='Process noise density, rescale with loop_freq by (dt_old/dt_new)^2 NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     loop_freq_arg = DeclareLaunchArgument(
         'loop_freq',
         default_value='',
-        description='Prediction rate in Hz (unset -> yaml)'
+        description='Prediction rate in Hz NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     sigma_initial_arg = DeclareLaunchArgument(
         'sigma_initial',
         default_value='',
-        description='Initial estimate uncertainty (unset -> yaml)'
+        description='Initial estimate uncertainty NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     mahalanobis_thr_arg = DeclareLaunchArgument(
         'mahalanobis_thr',
         default_value='',
-        description='Threshold for outliers rejection (unset -> yaml)'
+        description='Threshold for outliers rejection NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     max_boresight_tilt_deg_arg = DeclareLaunchArgument(
         'max_boresight_tilt_deg',
         default_value='',
-        description='Max gimbal tilt from straight-down before detections are dropped (unset -> yaml)'
+        description='Max gimbal tilt from straight-down before detections are dropped NOT settable here, edit hook_kalman_filter_node_config.yaml'
     )
     robot_name = LaunchConfiguration('robot_name')
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -60,21 +60,7 @@ def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('sway_controller'), 'config')
     config_file = PathJoinSubstitution([config_dir, config_file_name])
 
-    def make_node(context, *args, **kwargs):
-        
-        overrides = {}
-        for name, cast in (('L', float),
-                           ('xi', float),
-                           ('qc', float),
-                           ('loop_freq', int),
-                           ('sigma_initial', float),
-                           ('mahalanobis_thr', float),
-                           ('max_boresight_tilt_deg', float)):
-            value = LaunchConfiguration(name).perform(context)
-            if value != '':
-                overrides[name] = cast(value)
-
-        node = Node(
+    node = Node(
             package='sway_controller',
             executable='hook_kalman_filter_node',
             name='hook_kalman_filter_node',
@@ -83,13 +69,10 @@ def generate_launch_description():
             parameters=[
                 config_file,
                 {
-                    'robot_name':robot_name,
-                    'use_sim_time':use_sim_time
-                },
-                overrides
-            ]
-        )
-        return [node]
+                'robot_name': robot_name,
+                'use_sim_time': use_sim_time,
+            }]
+        )    
 
     return LaunchDescription([
         robot_name_arg,
@@ -101,5 +84,5 @@ def generate_launch_description():
         sigma_initial_arg,
         mahalanobis_thr_arg,
         max_boresight_tilt_deg_arg,
-        OpaqueFunction(function=make_node)
+        node
     ])
