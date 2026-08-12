@@ -3,7 +3,9 @@ from rclpy.qos      import QoSProfile, ReliabilityPolicy, QoSDurabilityPolicy
 from rclpy.time     import Time
 from rclpy.duration import Duration
 
-from dji_msgs.msg       import Topics, Links, LabeledOBBs
+from dji_msgs.msg       import Topics, Links
+from yolo_msgs.msg      import DetectionArray
+from smarc_msgs.msg     import Topics as SmarcTopics 
 from geometry_msgs.msg  import Vector3Stamped
 from nav_msgs.msg       import Odometry
 from sensor_msgs.msg    import CameraInfo, JointState
@@ -26,6 +28,7 @@ class HookKalmanFilter:
                  kx:float, ky:float, 
                  qc:float, sigma_initial:float,
                  mahalanobis_thr:float,
+                 camera_calibration_file:str,
                  max_boresight_tilt_deg:float = 45.0):
 
         self._node:Node = node
@@ -44,13 +47,11 @@ class HookKalmanFilter:
         self._loaded_camera_parameters: bool = False
 
         pkg_share = get_package_share_directory('auv_state_estimation')
-        filename = 'sim_1080p_cam_params.yaml' if use_simtime else 'z1_720p_cam_params.yaml'
-        self._camera_config_path = os.path.join(pkg_share, 'config', filename) 
+        self._camera_config_path = os.path.join(pkg_share, 'config', camera_calibration_file)
 
         self._read_camera_params()
 
-        camera_optical_frame = 'z1_optical_frame' if use_simtime else Links.GIMBAL_OPTICAL_FRAME
-        self._camera_frame:str    = self._robot_name + '/' + camera_optical_frame
+        self._camera_frame:str    = self._robot_name + '/' + Links.GIMBAL_OPTICAL_FRAME
         self._base_flat_frame:str = self._robot_name + '/' + Links.BASE_FLAT
         
         self._pivot_frame:str     = self._robot_name + '/' + Links.ROPE_BASE_LINK
@@ -137,30 +138,31 @@ class HookKalmanFilter:
         qos_best_effort10 = QoSProfile(depth=10, 
                                                reliability=ReliabilityPolicy.BEST_EFFORT, 
                                                durability=QoSDurabilityPolicy.VOLATILE)
-        _hook_state_topic:str = 'hook_state'
+        _hook_state_topic:str = Topics.HOOK_STATE_CARTESIAN
         self._hook_state_pub = self._node.create_publisher(Odometry, _hook_state_topic, qos_best_effort10)
         self._node.get_logger().info(f'Publishing hook state on:{_hook_state_topic}')
 
-        _hook_raw_meas_topic:str = 'hook_raw_measurement'
+        _hook_raw_meas_topic:str = Topics.HOOK_RAW_MEASUREMENT
         self._hook_raw_meas_pub = self._node.create_publisher(Odometry, _hook_raw_meas_topic, qos_best_effort10)
         self._node.get_logger().info(f'Publishing raw hook measurement on:{_hook_raw_meas_topic}')
 
         qos_latched = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
                                  durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        _params_topic:str = 'hook_pendulum_params'
+        _params_topic:str = Topics.HOOK_PENDULUM_PARAMETERS
         self._pendulum_params_pub = self._node.create_publisher(
             Float64MultiArray, _params_topic, qos_latched)
         self._node.get_logger().info(f'Publishing identified pendulum params on:{_params_topic}')
 
-        _hook_swing_topic:str = 'hook_swing_state'
+        _hook_swing_topic:str = Topics.HOOK_STATE_ANGULAR
         self._hook_swing_pub = self._node.create_publisher(JointState, _hook_swing_topic, qos_best_effort10)
         self._node.get_logger().info(f'Publishing hook swing state on:{_hook_swing_topic}')
 
     def _create_node_subscriptions(self):
-        _detection_topic_name:str = Topics.LABELED_OBBS_TOPIC
-        self._detection_subscription = self._node.create_subscription(LabeledOBBs, 
-                                                                      _detection_topic_name, 
-                                                                      self._detection_callback, 
+        
+        _detection_topic_name:str = Topics.YOLO_DETECTIONS
+        self._detection_subscription = self._node.create_subscription(DetectionArray,
+                                                                      _detection_topic_name,
+                                                                      self._detection_callback,
                                                                       10)
         self._node.get_logger().info(f'Succesfully subscribed to:{_detection_topic_name}')
 
@@ -168,7 +170,7 @@ class HookKalmanFilter:
                                        reliability=ReliabilityPolicy.BEST_EFFORT, 
                                        durability=QoSDurabilityPolicy.VOLATILE)
 
-        _cmd_vel_topic:str = 'cmd_vel_drone_frame'
+        _cmd_vel_topic:str = Topics.CMD_VELOCITY_DRONE_FRAME
         self._cmd_vel_subscriber = self._node.create_subscription(Vector3Stamped, 
                                                                   _cmd_vel_topic, 
                                                                   self._cmd_vel_callback, 
@@ -183,7 +185,7 @@ class HookKalmanFilter:
                                                                         10)
         self._node.get_logger().info(f'Succesfully subscribed to:{_camera_info_topic}')
 
-        _odom_topic:str = 'smarc/odom'
+        _odom_topic:str = SmarcTopics.ODOM_TOPIC
         self._odom_subscription = self._node.create_subscription(Odometry,
                                                                  _odom_topic,
                                                                  self._odom_callback,
@@ -191,10 +193,7 @@ class HookKalmanFilter:
         self._node.get_logger().info(f'Succesfully subscribed to:{_odom_topic}')
 
     def _lookup_pivot(self) -> "np.ndarray|None":
-        """Position of the rope attachment point (the pendulum pivot) in
-        base_flat_link. Not cached: rope_base_link is rigid w.r.t. base_link, but
-        base_flat_link differs from base_link by the drone's roll/pitch, so the
-        pivot does move slightly in this frame as the drone tilts."""
+        
         try:
             tf = self._tf_buffer.lookup_transform(
                 self._base_flat_frame, self._pivot_frame, Time(), timeout=Duration(seconds=0.05)
@@ -255,25 +254,13 @@ class HookKalmanFilter:
             self._node.get_logger().warning('Camera parameters not loaded yet, skipping measurement')
             return 
 
-        hook_indices = [i for i, cls_id in enumerate(msg.ids) if cls_id == "hook"]
-        if not hook_indices:
+        hook_dets = [d for d in msg.detections if d.class_name == "hook"]
+        if not hook_dets:
             self._node.get_logger().info(f'No hook detection in this frame', throttle_duration_sec=1.0)
-            return 
+            return
 
-        norm_x:float = 0.0
-        norm_y:float = 0.0
-        for idx in hook_indices:
-            pts = msg.obbs[idx].points
-            pts_norm_x:float = sum(p.x for p in pts) / len(pts)
-            pts_norm_y:float = sum(p.y for p in pts) / len(pts)
-            norm_x += pts_norm_x
-            norm_y += pts_norm_y
-
-        norm_x /= len(hook_indices)
-        norm_y /= len(hook_indices)
-    
-        u:float = norm_x * (self._image_width / 2) + (self._image_width / 2)
-        v:float = norm_y * (self._image_height / 2) + (self._image_height / 2)
+        u:float = sum(float(d.bbox.center.position.x) for d in hook_dets) / len(hook_dets)
+        v:float = sum(float(d.bbox.center.position.y) for d in hook_dets) / len(hook_dets)
 
         ray_in = Vector3Stamped()
         
@@ -331,6 +318,7 @@ class HookKalmanFilter:
             wd = float(w @ d)
             disc = wd * wd - float(w @ w) + self._L * self._L
             if disc < 0.0:
+                
                 self._node.get_logger().warning(
                     'Hook detection ray does not intersect the pendulum sphere '
                     f'(L={self._L:.2f}m) - skipping it',
@@ -345,7 +333,7 @@ class HookKalmanFilter:
                 )
                 return
 
-            r = cam + s * d - pivot   
+            r = cam + s * d - pivot   # hook position relative to the pivot
             self._last_meas[0] = np.arctan2(r[0], -r[2])
             self._last_meas[1] = np.arctan2(r[1], -r[2])
             self._pivot_in_base_flat = pivot
@@ -355,6 +343,7 @@ class HookKalmanFilter:
         self._update()
 
     def _publish_raw_measurement(self, stamp):
+        
         theta_x, theta_y = self._last_meas
         msg = Odometry()
         msg.header.stamp = stamp
@@ -405,7 +394,7 @@ class HookKalmanFilter:
 
         if dt < 0.0:
             self._node.get_logger().warning(
-                f'Clock went backwards ({dt:.3f}s between predictions)',
+                f'Clock went backwards ({dt:.3f}s between predictions), resynchronising',
                 throttle_duration_sec=5.0
             )
             return
@@ -505,6 +494,10 @@ class HookKalmanFilter:
             )
 
     def _publish_pendulum_params(self, L: float, xi: float):
+        """
+        Publish the L/xi this filter is actually running with, once, latched.
+
+        """
         msg = Float64MultiArray()
         msg.layout.dim = [MultiArrayDimension(label='length', size=1, stride=2),
                           MultiArrayDimension(label='damping', size=1, stride=1)]
@@ -512,6 +505,7 @@ class HookKalmanFilter:
         self._pendulum_params_pub.publish(msg)
 
     def _publish_swing_state(self, stamp):
+        """The raw filter state [theta_x, omega_x, theta_y, omega_y]"""
         theta_x, omega_x, theta_y, omega_y = self._mu
 
         msg = JointState()

@@ -109,6 +109,7 @@ def main():
     node.declare_parameter("mahalanobis_thr", 16.0)
     node.declare_parameter("max_boresight_tilt_deg", 45.0)
     node.declare_parameter("continuous_model_path", "")
+    node.declare_parameter("camera_calibration_file", "z1_720p_cam_params.yaml")
     robot_name = node.get_parameter("robot_name").value
 
     try:
@@ -161,6 +162,7 @@ def main():
             qc=node.get_parameter("qc").value,
             sigma_initial=node.get_parameter("sigma_initial").value,
             mahalanobis_thr=node.get_parameter("mahalanobis_thr").value,
+            camera_calibration_file=node.get_parameter("camera_calibration_file").value,
             max_boresight_tilt_deg=node.get_parameter("max_boresight_tilt_deg").value,
         )
 
