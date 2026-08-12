@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, QoSDurabilityPolicy
+from dji_msgs.msg import Topics as DJITopics
 from smarc_msgs.action import BaseAction
 from std_msgs.msg import String, Float64MultiArray
 
@@ -50,7 +51,7 @@ def _wait_for_identified_params(node: Node,
             received['xi'] = float(msg.data[1])
 
     sub = node.create_subscription(
-        Float64MultiArray, 'hook_pendulum_params_identified', _cb, qos_latched)
+        Float64MultiArray, DJITopics.HOOK_PENDULUM_PARAMETERS_IDENTIFIED, _cb, qos_latched)
     deadline = time.time() + timeout_sec
     while time.time() < deadline and not received:
         rclpy.spin_once(node, timeout_sec=0.05)

@@ -84,8 +84,10 @@ string HOOK_STATE_ANGULAR = "alars_hook_kf/hook_swing_state" # nav_msgs.msg/Odom
 string HOOK_RAW_MEASUREMENT = "alars_hook_kf/hook_raw_measurement" # sensor_msgs.msg/JointState -- takes the yolo measurement and compute the hook position, needed for diagnostic
 string YOLO_DETECTIONS = "yolo/detections" # yolo_msgs.msg/DetectionArray
 
-# Hook Parameters 
+# Hook Parameters
 string HOOK_PENDULUM_PARAMETERS = "alars_pendulum/hook_pendulum_parameters" # std_msgs.msg/Float64MultiArray
+# Raw sysid output: estimate_length_and_damping -> hook_kalman_filter_node. 
+string HOOK_PENDULUM_PARAMETERS_IDENTIFIED = "alars_pendulum/hook_pendulum_parameters_identified" # std_msgs.msg/Float64MultiArray
 
 # Move_to_damped Topics 
 string CMD_VELOCITY_DRONE_FRAME = "alars_move_to_damped/cmd_vel_drone_frame" # geometry_msgs.msg/Vector3Stamped
