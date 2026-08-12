@@ -27,7 +27,7 @@ def generate_launch_description():
 
     camera_calibration_file = PathJoinSubstitution([config_dir, LaunchConfiguration("camera_calibration_file")])
 
-    yolo_detections_corners_topic = LaunchConfiguration("yolo_detections_corners_topic")
+    yolo_detections_topic = LaunchConfiguration("yolo_detections_topic")
 
     return LaunchDescription(
         [
@@ -65,8 +65,8 @@ def generate_launch_description():
                 default_value="cam_params.yaml",
             ),
             DeclareLaunchArgument(
-                "yolo_detections_corners_topic",
-                default_value="yolo/detections_with_corners",
+                "yolo_detections_topic",
+                default_value="yolo/detections",
             ),
 
             LogInfo(msg=["[multi_ekf_launch] base params file = ", base_params_file]),
@@ -88,7 +88,7 @@ def generate_launch_description():
                         "object_config_file": object_config_file,
                         "camera_info": camera_calibration_file,
 
-                        "topics.input_detections_corners": yolo_detections_corners_topic,
+                        "topics.input_detections": yolo_detections_topic,
                         "topics.odom": SmarcTopics.ODOM_TOPIC,
 
                         "topics.output_poses_array": Topics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC,

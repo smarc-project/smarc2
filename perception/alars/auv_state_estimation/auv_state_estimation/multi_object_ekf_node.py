@@ -7,7 +7,6 @@ from rclpy.node import Node
 from rclpy.time import Time
 from rclpy.duration import Duration
 
-from geometry_msgs.msg import PolygonStamped
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
 import tf2_ros
@@ -16,7 +15,7 @@ from dji_msgs.msg import Links, Topics, ObjectPoseWithCovarianceArray, ObjectEkf
 
 from dji_msgs.srv import ResetObjectEkf
 from smarc_msgs.msg import Topics as SmarcTopics
-from yolo_msgs.msg import DetectionWithCornersArray
+from yolo_msgs.msg import DetectionArray
 from visualization_msgs.msg import Marker, MarkerArray
 
 from .object_ekf import ObjectEKF
@@ -26,7 +25,7 @@ class MultiObjectEKFNode(Node):
         super().__init__("multi_object_ekf_node")
 
         # Input
-        self.declare_parameter("topics.input_detections_corners", "yolo/detections_with_corners")
+        self.declare_parameter("topics.input_detections", "yolo/detections")
 
         # Outputs for all estimated objects.
         self.declare_parameter("topics.output_poses_array", Topics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
@@ -76,7 +75,7 @@ class MultiObjectEKFNode(Node):
         object_config = self.load_ros_params_yaml(object_config_file)
         camera_info = self.load_camera_info(camera_info_file)
 
-        self.input_detections_corners_topic = self.get_parameter("topics.input_detections_corners").get_parameter_value().string_value
+        self.input_detections_topic = self.get_parameter("topics.input_detections").get_parameter_value().string_value
         self.output_poses_array_topic = self.get_parameter("topics.output_poses_array").get_parameter_value().string_value
         self.status_array_topic = self.get_parameter("topics.status_array").get_parameter_value().string_value
         self.visualization_enable = self.get_parameter("visualization_enable").get_parameter_value().bool_value
@@ -122,7 +121,7 @@ class MultiObjectEKFNode(Node):
             self.pub_markers = self.create_publisher(MarkerArray, self.markers_topic, 10)
 
         # Subscribers
-        self.sub_detections = self.create_subscription(DetectionWithCornersArray, self.input_detections_corners_topic, self.detections_cb, 10)
+        self.sub_detections = self.create_subscription(DetectionArray, self.input_detections_topic, self.detections_cb, 10)
         self.sub_odom = self.create_subscription(Odometry, self.odom_topic, self.odom_cb, 10)
 
         # Reset service
@@ -135,7 +134,7 @@ class MultiObjectEKFNode(Node):
             f"classes={list(self.tracks.keys())}, "
             f"map_frame={self.map_frame}, "
             f"cam_frame={self.cam_frame}, "
-            f"input_detections_corners={self.input_detections_corners_topic}, "
+            f"input_detections={self.input_detections_topic}, "
             f"output_poses_array={self.output_poses_array_topic}, "
             f"status_array={self.status_array_topic}, "
             f"Markers visualization={self.visualization_enable}, "
@@ -164,7 +163,7 @@ class MultiObjectEKFNode(Node):
             "D": np.array(calib["distortion_coefficients"]["data"]),
         }
 
-    def detections_cb(self, msg: DetectionWithCornersArray):
+    def detections_cb(self, msg: DetectionArray):
         # Shared detection callback.
         # Each configured ObjectEKF selects the best detection for its class.
         transform = self.lookup_camera_transform()
@@ -183,15 +182,11 @@ class MultiObjectEKFNode(Node):
             if best_det is None:
                 continue
 
-            poly_msg = PolygonStamped()
-            poly_msg.header = msg.header
-            poly_msg.header.frame_id = self.cam_frame
-            poly_msg.polygon = best_det.bbox.normalized_corners
-
             track.last_detection_score = float(best_det.score)
 
             track.z(
-                msg=poly_msg,
+                det=best_det,
+                stamp=msg.header.stamp,
                 cam_pos_map=cam_pos_map,
                 R_map_cam=R_map_cam,
                 lin_vel_map=self.lin_vel_map,
@@ -219,7 +214,7 @@ class MultiObjectEKFNode(Node):
             if score < track.confidence_threshold:
                 continue
 
-            if len(det.bbox.normalized_corners.points) < 4:
+            if float(det.bbox.size.x) <= 0.0 or float(det.bbox.size.y) <= 0.0:
                 continue
 
             if score > best_score:

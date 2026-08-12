@@ -28,9 +28,6 @@ class ObjectEKF:
 
         self.get_params(cfg, base_params, camera_info)
 
-        self.log_info(f"Object/class name: {self.class_name}")
-        self.log_info(f"Motion model type: {self.motion_model_type}")
-
         self.motion_model = self.get_motion_model(self.motion_model_type)
         self.eps = self.motion_model.eps
 
@@ -81,13 +78,9 @@ class ObjectEKF:
     def matches_detection(self, det):
         return str(det.class_name) == self.class_name
 
-    def pol_to_array(self, msg):
-        # polygon -> array of normalized image coordinates
-        return np.array([(p.x, p.y) for p in msg.polygon.points])
-
-    def z(self, msg, cam_pos_map, R_map_cam, lin_vel_map, ang_vel_map, now):
+    def z(self, det, stamp, cam_pos_map, R_map_cam, lin_vel_map, ang_vel_map, now):
         # main callback for processing incoming measurements, performing EKF prediction and update, and preparing the estimated pose.
-        stamp = msg.header.stamp
+        # stamp = msg.header.stamp
         t: float = stamp.sec + stamp.nanosec * 1e-9
 
         self.current_cam_pos_map = cam_pos_map
@@ -107,8 +100,17 @@ class ObjectEKF:
                 return
         else:
             self.log_info(f"{self.class_name}: First measurement received.")
-
-        z_center_img, z_alpha_img, z_len_px, z_wid_px, _ = self.measurement_model.extract_features(self.pol_to_array(msg))
+        
+        # Direct measurement from yolo_ros OBB.
+        # Changes to consider:
+        #   EKF center = YOLO center
+        #   EKF alpha  = YOLO theta + pi/2
+        #   EKF length = YOLO size.y
+        #   EKF width  = YOLO size.x
+        z_center_img = np.array([float(det.bbox.center.position.x),float(det.bbox.center.position.y),])
+        z_alpha_img = wrap(float(det.bbox.center.theta) + np.pi / 2.0)
+        z_len_px = float(det.bbox.size.y)
+        z_wid_px = float(det.bbox.size.x)
 
         if not self.ekf.initialized:
             init_result = self.initializer.try_initialize(stamp, z_center_img, z_alpha_img, self.measurement_model, self.current_cam_pos_map, self.current_R_map_cam)
