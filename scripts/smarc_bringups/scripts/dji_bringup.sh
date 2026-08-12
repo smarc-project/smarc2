@@ -269,12 +269,11 @@ else
         YOLO_MODEL="yolo_model_4cls_july.pt" # Updated for sim (+ hook, land_pad), prev was yolo_model_2cls_mixed.pt
     fi
 
-    YOLO_CMD="ros2 launch yolo_smarc_actions alars_yolo_corners.launch.py \
+    YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
     robot_name:=$ROBOT_NAME \
     model_package:=alars_labeling_training \
     model_subdir:=trained_models \
     model_file:=$YOLO_MODEL \
-    namespace:=$ROBOT_NAME/yolo \
     device:=$YOLO_DEVICE \
     threshold:=$YOLO_THRESHOLD \
     enable:=$YOLO_ENABLE
