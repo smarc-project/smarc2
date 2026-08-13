@@ -48,6 +48,7 @@ class PurePursuitController:
         self.dubins_step = dubins_step
         arc_len = min_turning_radius * math.pi / 2
         self.lookahead_pts = max(3, int(arc_len / dubins_step))
+        useless_change = 3
 
     def _path_curvature_ahead(self, path, cursor):
         end = min(len(path), cursor + self.lookahead_pts)
