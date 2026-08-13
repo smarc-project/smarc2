@@ -51,9 +51,20 @@ jobs:
               "create_subscription": 1,
           }
 
+          IGNORED_TOPIC_SUBSTRINGS = {
+              "debug",
+              "rviz",
+              "dbg",
+          }
+
 
           def is_string_literal(node):
               return isinstance(node, ast.Constant) and isinstance(node.value, str)
+
+
+          def is_ignored_topic(value):
+              value = value.lower()
+              return any(part in value for part in IGNORED_TOPIC_SUBSTRINGS)
 
 
           def assigned_name(node):
@@ -108,6 +119,9 @@ jobs:
                   # input_topic = "/foo"
                   # topic_output = "/foo"
                   # self.camera_topic_name = "/foo"
+                  #
+                  # Ignores values containing:
+                  # debug, rviz, dbg
                   if isinstance(node, (ast.Assign, ast.AnnAssign)):
                       value = node.value
 
@@ -117,7 +131,10 @@ jobs:
                           else [node.target]
                       )
 
-                      if is_string_literal(value):
+                      if (
+                          is_string_literal(value)
+                          and not is_ignored_topic(value.value)
+                      ):
                           for target in targets:
                               name = assigned_name(target)
 
@@ -141,6 +158,7 @@ jobs:
                               keyword.arg
                               and looks_like_topic_name(keyword.arg)
                               and is_string_literal(keyword.value)
+                              and not is_ignored_topic(keyword.value.value)
                           ):
                               violations.append(
                                   (
@@ -163,13 +181,14 @@ jobs:
                       ):
                           arg = node.args[topic_arg_index]
 
-                          violations.append(
-                              (
-                                  path,
-                                  arg.lineno,
-                                  f"{name}(..., {arg.value!r}, ...)",
+                          if not is_ignored_topic(arg.value):
+                              violations.append(
+                                  (
+                                      path,
+                                      arg.lineno,
+                                      f"{name}(..., {arg.value!r}, ...)",
+                                  )
                               )
-                          )
 
           if violations:
               print()
