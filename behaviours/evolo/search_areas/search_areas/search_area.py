@@ -123,7 +123,7 @@ class SearchArea(Node):
         )
 
         self._tf_buffer   = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread=True)
+        self._tf_listener = TransformListener(self._tf_buffer, self)
         self._robot_pose_raw: PoseStamped | None = None
 
         self.robot_sub = self.create_subscription(

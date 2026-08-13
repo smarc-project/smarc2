@@ -140,7 +140,7 @@ class EvoloMoveTo():
             speed = float(speed)
         except Exception as e:
             self._node.get_logger().info(f"Tried to parse speed as float. Did not work: {speed}, {e}")
-            if(speed == "slow"): speed = 2.0
+            if(speed == "slow"): speed = 4.63
             elif(speed == "standard"): speed = 4.9
             elif(speed == "fast"): speed = 6
             else: speed = 0.0

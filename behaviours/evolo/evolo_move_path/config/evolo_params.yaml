@@ -4,8 +4,8 @@
     timeout: 1200.0
 
     # Speed
-    speed_slow: 4.0
-    speed_standard: 5.0
+    speed_slow: 4.63
+    speed_standard: 4.9
     speed_fast: 6.0
     omega_max: 30.0
 
