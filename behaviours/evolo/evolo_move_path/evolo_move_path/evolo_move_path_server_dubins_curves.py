@@ -11,13 +11,13 @@ from rclpy.executors import MultiThreadedExecutor
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from geographic_msgs.msg import GeoPoint
 from tf2_geometry_msgs import do_transform_pose_stamped
-from tf_transformations import euler_from_quaternion
+
+from transforms3d.euler import euler2quat, quat2euler
 from rclpy.time import Duration, Time
 from nav_msgs.msg import Path, Odometry
 from geometry_msgs.msg import TwistStamped, PoseStamped, Quaternion, Point, PointStamped
 from tf2_ros import Buffer, TransformListener
 from smarc_utilities import georef_utils
-import tf_transformations
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as smarcTopics
 from dubins_planner.dubins import Waypoint, calc_dubins_path, dubins_traj
@@ -895,7 +895,7 @@ class EvoloMovePath:
         )
 
         commanded_yaw = math.atan2(ly - robot_pos.y, lx - robot_pos.x)
-        q = tf_transformations.quaternion_from_euler(0, 0, commanded_yaw)
+        q = euler2quat(0, 0, commanded_yaw, axes='sxyz')
 
         yaw_diff = math.atan2(math.sin(commanded_yaw - self.current_yaw),
                                math.cos(commanded_yaw - self.current_yaw))
@@ -904,10 +904,10 @@ class EvoloMovePath:
         cmd.header.stamp            = self._node.get_clock().now().to_msg()
         cmd.header.frame_id         = self.frame_id
         cmd.child_frame_id          = "evolo/base_link"
-        cmd.pose.pose.orientation.x = q[0]
-        cmd.pose.pose.orientation.y = q[1]
-        cmd.pose.pose.orientation.z = q[2]
-        cmd.pose.pose.orientation.w = q[3]
+        cmd.pose.pose.orientation.w = q[0]
+        cmd.pose.pose.orientation.x = q[1]
+        cmd.pose.pose.orientation.y = q[2]
+        cmd.pose.pose.orientation.z = q[3]
         cmd.twist.twist.linear.x    = v
         cmd.twist.twist.angular.z   = yaw_diff  
         self.speed_pub.publish(cmd)
@@ -1005,11 +1005,11 @@ class EvoloMovePath:
             ps.header = msg.header
             ps.pose.position.x = x
             ps.pose.position.y = y
-            q = tf_transformations.quaternion_from_euler(0, 0, yaw)
-            ps.pose.orientation.x = q[0]
-            ps.pose.orientation.y = q[1]
-            ps.pose.orientation.z = q[2]
-            ps.pose.orientation.w = q[3]
+            q = euler2quat(0, 0, yaw, axes='sxyz')
+            ps.pose.orientation.w = q[0]
+            ps.pose.orientation.x = q[1]
+            ps.pose.orientation.y = q[2]
+            ps.pose.orientation.z = q[3]
             msg.poses.append(ps)
         return msg
 
@@ -1085,8 +1085,8 @@ class EvoloMovePath:
         ps.header        = utm_pt.header
         ps.pose.position = utm_pt.point
         yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
-        q   = tf_transformations.quaternion_from_euler(0, 0, yaw)
-        ps.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+        q = euler2quat(0, 0, yaw, axes='sxyz')
+        ps.pose.orientation = Quaternion(x=q[1], y=q[2], z=q[3], w=q[0])
         try:
             t = self._tf_buffer.lookup_transform(
                 target_frame=self.frame_id,
@@ -1120,7 +1120,7 @@ class EvoloMovePath:
 
         self.robot_position_time   = int(self._node.get_clock().now().nanoseconds * 1e-9)
         oq = self.robot_position.pose.orientation
-        (_, _, self.current_yaw)   = euler_from_quaternion([oq.x, oq.y, oq.z, oq.w])
+        (_, _, self.current_yaw)   = quat2euler([oq.w, oq.x, oq.y, oq.z], axes='sxyz')
         self.current_linear_speed  = msg.twist.twist.linear.x
         self.current_angular_speed = msg.twist.twist.angular.z
 
