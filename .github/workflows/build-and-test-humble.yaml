@@ -8,23 +8,23 @@ on:
     paths-ignore:
     - '**/*.md'
     - 'docs/**'
+    - 'docker/**'
+    - 'documentation/**'
+    - 'drivers/**'
+    - 'simulation/**'
     - 'LICENSE'
     - '.gitignore'
-    - 'docker'
-    - 'documentation'
-    - 'drivers'
-    - 'simulation'
   pull_request:
     branches: [humble, gh_workflow_testing]
     paths-ignore:
     - '**/*.md'
     - 'docs/**'
+    - 'docker/**'
+    - 'documentation/**'
+    - 'drivers/**'
+    - 'simulation/**'
     - 'LICENSE'
     - '.gitignore'
-    - 'docker'
-    - 'documentation'
-    - 'drivers'
-    - 'simulation'
 
 jobs:
   build-and-test:
