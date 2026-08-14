@@ -89,3 +89,6 @@
 	url = git@github.com:smarc-project/smarc_modelling.git
 [submodule "navigation/dead_reckoning/hydrobatic_localization/"]
 	url = git@github.com:smarc-project/hydrobatic_localization.git
+[submodule "drivers/succorfish_driver"]
+	path = drivers/succorfish_driver
+	url = https://github.com/NinjaTuna007/succorfish_driver.git
