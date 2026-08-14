@@ -17,7 +17,7 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*launch.py')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'simpy', 'PyYAML', 'control'],
     zip_safe=True,
     maintainer='aleba',
     maintainer_email='alebas@kth.se',
@@ -31,7 +31,6 @@ setup(
     entry_points={
         'console_scripts': [
             'hook_kalman_filter_node = sway_controller.Kalman_Filter.hook_kalman_filter_node:main',
-            'estimate_length_and_damping_node = sway_controller.Kalman_Filter.estimate_length_and_damping_node:main',
         ],
     },
 )

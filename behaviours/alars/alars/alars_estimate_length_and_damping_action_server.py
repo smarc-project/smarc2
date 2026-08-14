@@ -4,6 +4,8 @@ from enum import Enum, auto
 
 import numpy as np
 
+import rclpy
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, QoSDurabilityPolicy
 
@@ -109,14 +111,14 @@ class EstimateLengthAndDamping:
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         try:
-            self._excitation_speed    = float(goal_request.get('excitation_speed', 1.0))
-            self._excitation_duration = float(goal_request.get('excitation_duration', 3.0))
-            self._collection_duration = float(goal_request.get('collection_duration', 20.0))
-            self._min_periods         = int(goal_request.get('min_periods', 4))
-            self._refractory_window   = float(goal_request.get('refractory_window', 1.5))
-            self._smoothing_window    = int(goal_request.get('smoothing_window', 5))
-            
-            self._axis_selection_duration = float(goal_request.get('axis_selection_duration', 2.0))
+            self._excitation_speed    = float(goal_request.get('excitation-speed', 1.0))
+            self._excitation_duration = float(goal_request.get('excitation-duration', 3.0))
+            self._collection_duration = float(goal_request.get('collection-duration', 20.0))
+            self._min_periods         = int(goal_request.get('min-periods', 4))
+            self._refractory_window   = float(goal_request.get('refractory-window', 1.5))
+            self._smoothing_window    = int(goal_request.get('smoothing-window', 5))
+
+            self._axis_selection_duration = float(goal_request.get('axis-selection-duration', 2.0))
             return True
         except Exception:
             self._node.get_logger().error("Failed to parse goal request")
@@ -320,3 +322,26 @@ class EstimateLengthAndDamping:
 
         slope, _ = np.polyfit(times, np.log(amps), 1)
         return max(0.0, float(-slope / wn))
+
+
+def main():
+    rclpy.init()
+
+    node = Node("estimate_length_and_damping_node")
+    node.declare_parameter("robot_name", "M350")
+    robot_name = node.get_parameter("robot_name").value
+
+    EstimateLengthAndDamping(
+        node,
+        robot_name=robot_name,
+    )
+
+    executor = MultiThreadedExecutor()
+    rclpy.spin(node, executor=executor)
+
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

@@ -5,7 +5,6 @@ from launch_ros.actions    import Node
 
 
 def generate_launch_description():
-    
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='M350',
@@ -21,8 +20,8 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
 
     node = Node(
-        package='sway_controller',
-        executable='estimate_length_and_damping_node',
+        package='alars',
+        executable='alars_estimate_length_and_damping_action_server',
         name='estimate_length_and_damping_node',
         namespace=robot_name,
         output='screen',

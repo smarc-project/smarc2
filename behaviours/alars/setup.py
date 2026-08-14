@@ -29,6 +29,7 @@ setup(
             "alars_follow_auv_action_server = alars.alars_follow_auv_action_server:main",
             "alars_bt = alars.alars_bt:main",
             "alars_ping_search_action_server = alars.alars_ping_search_action_server:main",
+            "alars_estimate_length_and_damping_action_server = alars.alars_estimate_length_and_damping_action_server:main",
         ],
     },
 )
