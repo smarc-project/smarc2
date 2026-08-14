@@ -1,0 +1,36 @@
+inputs:
+- FLU_axes_0
+- FLU_axes_1
+- FLU_axes_2
+outputs:
+- FLUvelocity_ground_fused_x
+- FLUvelocity_ground_fused_y
+- FLUvelocity_ground_fused_z
+fs: 50.0
+
+
+channels:
+  Gxd:
+    num_b:
+    - 0.03685537260331673
+    den_a:
+    - 1.0
+    - -0.9662635006011508
+    dc_gain: 1.0924480387723323
+    dt: 0.02
+  Gyd:
+    num_b:
+    - 0.04243705284439314
+    den_a:
+    - 1.0
+    - -0.9580934630482146
+    dc_gain: 1.0126595021015015
+    dt: 0.02
+  Gzd:
+    num_b:
+    - 0.06029777678231629
+    den_a:
+    - 1.0
+    - -0.9375490118180505
+    dc_gain: 0.9655215800051095
+    dt: 0.02

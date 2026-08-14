@@ -14,7 +14,7 @@ string EVOLO_CURRENT_WP = "ctrl/target_wp" # type: PointStamped
 string PROX_OPS_BACKEND_STATUS = "backend/status" #Type: evolo_msgs/ProxOpsBackendStatus
 string PROX_OPS_BACKEND_TARGET_STATE = "backend/target_state" #Type: nav_msgs/Odometry
 string PROX_OPS_BACKEND_CANDIDATE_PATH = "backend/candidate_path" #Type: nav_msgs/Path
-string PROX_OPS_BACKEND_TWIST_PLANNED = "backend/twist_planned" #Type: geometry_msgs/TwistStamped
+string PROX_OPS_BACKEND_CONTROL_PLANNED = "backend/control_planned" #Type: nav_msgs/Odometry
 string PROX_OPS_BACKEND_COMMAND = "backend/command" #Type: std_msgs/String
 
 #communication to and from captain

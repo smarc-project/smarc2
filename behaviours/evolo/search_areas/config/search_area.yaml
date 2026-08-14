@@ -1,0 +1,6 @@
+/**/search_area:
+  ros__parameters:
+    move_path_action: "move_path"
+    spacing: 30.0
+    waypoint_tol: 3.0
+    speed: 5.0

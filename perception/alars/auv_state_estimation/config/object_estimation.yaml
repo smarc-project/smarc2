@@ -1,0 +1,42 @@
+# This file contains the configuration for the object estimation EKF nodes. 
+# In case to estimate a new object, it should be added here with its parameters.
+/**:
+  ros__parameters:
+    classes:
+      sam:
+        enabled: true
+        confidence_threshold: 0.5
+
+        length_m: 1.3
+        width_m: 0.16
+        motion_model_type: "double_oscillator"
+        stale_state_age: 3.0
+
+        environment:
+          water_surface_height: 0.0
+
+        parameters:
+          motion:
+            sigma_a_xy: 0.03
+          measurement_noise:
+            R_len: 100.0
+            R_wid: 40.0
+
+      buoy:
+        enabled: true
+        confidence_threshold: 0.5
+
+        length_m: 0.27
+        width_m: 0.09
+        motion_model_type: "surface"
+        stale_state_age: 10.0
+        
+        environment:
+          water_surface_height: 0.0
+
+        parameters:
+          motion:
+            sigma_a_xy: 0.01
+          measurement_noise:
+            R_len: 80.0
+            R_wid: 40.0

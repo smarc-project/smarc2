@@ -6,6 +6,10 @@
   <link name="alars_module_base_link"/>
   <link name="z1_base_link"/>
   <link name="rope_base_link"/>
+  <link name="prop_br_link"/>
+  <link name="prop_bl_link"/>
+  <link name="prop_fr_link"/>
+  <link name="prop_fl_link"/>
   <!-- <link name="fisheye_base_link"/>
   <link name="fisheye_camera_link"/>
   <link name="fisheye_optical_frame"/> -->
@@ -33,6 +37,30 @@
     <origin rpy="0 0 0" xyz="0.01545 0 0.31254"/>
     <parent link="landing_gear_center_link"/>
     <child link="rope_base_link"/>
+  </joint>
+
+  <joint name="prop_br_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="-0.70002747 -0.82522742 0.01435877"/>
+    <parent link="base_link"/>
+    <child link="prop_br_link"/>
+  </joint>
+
+  <joint name="prop_bl_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="-0.70002747 0.82522742 0.01435877"/>
+    <parent link="base_link"/>
+    <child link="prop_bl_link"/>
+  </joint>
+
+  <joint name="prop_fr_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.73712709 -0.87278271 -0.05622613"/>
+    <parent link="base_link"/>
+    <child link="prop_fr_link"/>
+  </joint>
+
+  <joint name="prop_fl_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.73712709 0.87278271 -0.05622613"/>
+    <parent link="base_link"/>
+    <child link="prop_fl_link"/>
   </joint>
 
   <!-- 

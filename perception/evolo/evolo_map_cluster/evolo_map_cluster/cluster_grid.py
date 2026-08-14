@@ -153,7 +153,7 @@ class cluster_grid(Node):
             # Calculate radial distance to obstacle
             obs_r = np.sqrt(obs_x**2 + obs_y**2)
 
-            if obs_x > 0 and obs_r > self.obstacle_closeness_limit:
+            if obs_r > self.obstacle_closeness_limit:
                 for x, y in self.cluster_list[i]:
                     r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + add_r
                     if r > max_r:
@@ -161,6 +161,7 @@ class cluster_grid(Node):
 
                 msg = Odometry()
                 msg.header = self.header
+                msg.child_frame_id = "obstacle_"+str(i)
                 msg.pose.pose.position.x = obs_x
                 msg.pose.pose.position.y = obs_y
                 msg.pose.covariance[0] = max_r

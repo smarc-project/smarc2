@@ -1,0 +1,109 @@
+# .github/workflows/tf-transformations.yaml
+
+name: Check tf_transformations imports
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+    branches: [humble, gh_workflow_testing]
+
+jobs:
+  check-tf-transformations-imports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Find modified Python files
+        id: changed
+        shell: bash
+        run: |
+          git diff --name-only --diff-filter=ACMR \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            -- '*.py' > changed_python_files.txt
+
+          echo "Modified Python files:"
+          cat changed_python_files.txt
+
+      - name: Check for tf_transformations imports
+        shell: bash
+        run: |
+            python - <<'PY'
+            import ast
+            import pathlib
+            import sys
+
+            files_file = pathlib.Path("changed_python_files.txt")
+
+            if not files_file.exists():
+                print("No changed Python file list found.")
+                sys.exit(0)
+
+            files = [
+                pathlib.Path(line.strip())
+                for line in files_file.read_text().splitlines()
+                if line.strip()
+            ]
+
+            violations = []
+
+            for path in files:
+                if not path.exists():
+                    continue
+
+                try:
+                    source = path.read_text(encoding="utf-8")
+                    tree = ast.parse(source, filename=str(path))
+                except (SyntaxError, UnicodeDecodeError) as exc:
+                    print(f"::error file={path}::Could not parse Python file: {exc}")
+                    continue
+
+                for node in ast.walk(tree):
+                    # import tf_transformations
+                    # import tf_transformations as tf
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            if alias.name == "tf_transformations":
+                                violations.append(
+                                    (path, node.lineno, f"import {alias.name}")
+                                )
+
+                    # from tf_transformations import ...
+                    if isinstance(node, ast.ImportFrom):
+                        if node.module == "tf_transformations":
+                            violations.append(
+                                (
+                                    path,
+                                    node.lineno,
+                                    f"from {node.module} import ...",
+                                )
+                            )
+
+            if violations:
+                print()
+                print("tf_transformations imports detected:")
+                print()
+
+                for path, line, description in violations:
+                    print(
+                        f"::error file={path},line={line}::"
+                        f"Changed Python file imports tf_transformations: {description}"
+                    )
+                    print(f"  {path}:{line}: {description}")
+
+                print()
+                print(f"Found {len(violations)} tf_transformations import(s). Migrate to transforms3d!")
+                sys.exit(1)
+
+            print("No tf_transformations imports found in changed Python files.")
+            PY

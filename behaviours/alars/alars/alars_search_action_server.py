@@ -106,7 +106,7 @@ class SearchAction():
         search_center_gp = GeoPoint()
 
         try:
-            p = goal_request['search_position']
+            p = goal_request['search-position']
             search_center_gp.latitude = p['latitude']
             search_center_gp.longitude = p['longitude']
             search_center_gp.altitude = float(p['altitude'])

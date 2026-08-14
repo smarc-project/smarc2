@@ -225,9 +225,6 @@ class ProxOpsBT:
         self.log("Sending backend RESET/START from prox_ops_bt prepare_loop.")
         self._publish_backend_command("RESET", "prox_ops_bt started")
         self._publish_backend_command("START", "prox_ops_bt started")
-        
-        # Start patrol timer/counter.
-        self._patrol_started_time_s = self._now_s
 
     @property
     def _status_str(self) -> str:
@@ -255,9 +252,9 @@ class ProxOpsBT:
             return True
 
         root_status = self._bt.root.status
-        # FIXME: Will this fail prematurely? Should it only be a failure
-        # if the patrol timeout is reached?
-        if root_status == Status.FAILURE or not self._patrol_timeout_not_exceeded():
+        patrol_timed_out = (self._patrol_started_time_s is not None
+                            and not self._patrol_timeout_not_exceeded())
+        if root_status == Status.FAILURE or patrol_timed_out:
             self.log("We have failed to prox-ops.")
             self._reset_states()
             return False

@@ -113,9 +113,9 @@ class FollowAUVAction():
         self._loginfo(f"Received goal request: {goal_request}")
 
         try:
-            self._follow_altitude = float(goal_request['follow_altitude'])
-            self._vulture_radius = float(goal_request['vulture_radius'])
-            self._vulture_speed_deg = float(goal_request['vulture_speed_deg'])
+            self._follow_altitude = float(goal_request['follow-altitude'])
+            self._vulture_radius = float(goal_request['vulture-radius'])
+            self._vulture_speed_deg = float(goal_request['vulture-speed-deg'])
             self._timeout = float(goal_request['timeout'])
         except:
             self._loginfo('Action goal could not be parsed?') 

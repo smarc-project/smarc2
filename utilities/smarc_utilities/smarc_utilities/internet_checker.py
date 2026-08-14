@@ -5,7 +5,7 @@ import subprocess
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int32
+from std_msgs.msg import Float32
 
 
 class InternetMonitorNode(Node):
@@ -14,28 +14,25 @@ class InternetMonitorNode(Node):
         super().__init__('internet_monitor')
 
         self.publisher_ = self.create_publisher(
-            Int32,
-            'internet_connected',
+            Float32,
+            'sensor/ping_time',
             10
         )
 
         self.timer = self.create_timer(1.0, self.timer_callback)
+        self.msg = Float32()
 
         self.get_logger().info('Internet monitor node started')
 
     def timer_callback(self):
-        ttl = self.get_ping_ttl('8.8.8.8')
+        time = self.get_ping_time('8.8.8.8')
 
-        msg = Int32()
-        msg.data = ttl
+        self.msg.data = time
 
-        self.publisher_.publish(msg)
+        self.publisher_.publish(self.msg)
+        self.get_logger().info(f'internet_connected time = {time}')
 
-        self.get_logger().info(
-            f'internet_connected TTL = {ttl}'
-        )
-
-    def get_ping_ttl(self, host: str) -> int:
+    def get_ping_time(self, host: str) -> float:
         try:
             result = subprocess.run(
                 ['ping', '-c', '1', '-W', '1', host],
@@ -44,20 +41,20 @@ class InternetMonitorNode(Node):
             )
 
             if result.returncode != 0:
-                return -1
+                return -1.0
 
             # Example line:
             # 64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=14.2 ms
-            match = re.search(r'ttl=(\d+)', result.stdout)
+            match = re.search(r'time=(\d+\.?\d*)', result.stdout)
 
             if match:
-                return int(match.group(1))
+                return float(match.group(1))
 
-            return -1
+            return -1.0
 
         except Exception as e:
             self.get_logger().error(f'Ping failed: {e}')
-            return -1
+            return -1.0
 
 
 def main(args=None):

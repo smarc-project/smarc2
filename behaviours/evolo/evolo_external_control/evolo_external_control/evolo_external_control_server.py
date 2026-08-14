@@ -9,7 +9,7 @@ from smarc_action_base.gentler_action_server import GentlerActionServer
 from geodesy import utm
 from geographic_msgs.msg import GeoPoint
 from tf2_geometry_msgs import do_transform_pose_stamped
-from tf_transformations import euler_from_quaternion
+from transforms3d.euler import euler2quat
 from rclpy.time import Duration, Time
 from nav_msgs.srv import SetMap
 from nav_msgs.msg import OccupancyGrid
@@ -26,7 +26,6 @@ from smarc_msgs.msg import Topics as smarcTopics
 from smarc_control_msgs.msg import Topics as controlTopics
 from tf2_ros import Buffer, TransformException, TransformListener
 import math
-from tf_transformations import euler_from_quaternion
 
 import numpy as np
 import time
@@ -36,39 +35,6 @@ import json
 import tf_transformations
 
 from enum import Enum
-
-def vec2_directed_angle(v1, v2):
-    """
-    # Author: Ozer Ozkahraman (ozkahramanozer@gmail.com)
-    # Date: 2018-07-10
-
-    returns the shortest angle from v1 to v2 in radians.
-    v1 + angle = v2.
-
-    positive value means ccw rotation from v1 to v2.
-    negative value means cw.
-
-    v1, v2 can be (N,2)
-    """
-    v1 = np.array(np.atleast_2d(v1))
-    v2 = np.array(np.atleast_2d(v2))
-    assert v1.shape == v2.shape
-
-    x1s = v1[:,0]
-    x2s = v2[:,0]
-    y1s = v1[:,1]
-    y2s = v2[:,1]
-
-    dots = x1s*x2s + y1s*y2s
-    dets = x1s*y2s - y1s*x2s
-
-    angles = np.arctan2(dets,dots)
-
-    N,_ = v1.shape
-    if N == 1:
-        return angles[0]
-    else:
-        return angles
 
 class EvoloExternalControl():
 
@@ -117,15 +83,6 @@ class EvoloExternalControl():
         #Settings etc
         self.timeout = 1800.0
 
-        self._node.declare_parameter('p_gain', 0.25)
-        self.pid_p_gain = float(self._node.get_parameter('p_gain').value)
-
-        self._node.declare_parameter('i_gain', 0)
-        self.pid_i_gain = float(self._node.get_parameter('i_gain').value)
-
-        self._node.declare_parameter('d_gain', 0)
-        self.pid_d_gain = float(self._node.get_parameter('d_gain').value)
-
         self._node.declare_parameter('max_turnrate_deg', 15.0)
         max_turnrate_deg = float(self._node.get_parameter('max_turnrate_deg').value)
         self.max_turnrate_output_rad = math.radians(max_turnrate_deg)
@@ -141,7 +98,7 @@ class EvoloExternalControl():
         self.subscriber_callback_group = ReentrantCallbackGroup()
 
         # Publishers
-        self.evolo_pub = self._node.create_publisher(TwistStamped, evoloTopics.EVOLO_TWIST_PLANNED, 10, callback_group=self.publisher_callback_group)
+        self.evolo_pub = self._node.create_publisher(Odometry, evoloTopics.EVOLO_CONTROL_PLANNED, 10, callback_group=self.publisher_callback_group)
         # Subscribers
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
 
@@ -185,7 +142,7 @@ class EvoloExternalControl():
         time_now = int(self._node.get_clock().now().nanoseconds * 1e-9)
         runtime = (time_now - self.action_started_time)
         if(runtime > self.timeout):
-            return False # Failure
+            return True # Done
 
         if(self.robot_position is None or (time_now - self.robot_position_time) > 10):
             self._node.get_logger().error("ERROR no robot position")
@@ -200,32 +157,22 @@ class EvoloExternalControl():
         if(self.target_speed_time is None):
             allow_control = False
         
-        
+        # Publication
         if(allow_control):
             targetYaw = self.target_yaw
-            # get pitch roll yaw from quaternion
-            orientation_q = self.robot_position.pose.orientation
-            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-            (roll, pitch, robot_yaw) = euler_from_quaternion(orientation_list)
-            #self._node.get_logger().info(f"Robot yaw: {robot_yaw}")
-            
-            #TODO PID
-            setpoint = np.array([np.cos(targetYaw) , np.sin(targetYaw)])
-            current = np.array([np.cos(robot_yaw) , np.sin(robot_yaw)])
-            error = -vec2_directed_angle(setpoint, current)
-            self._node.get_logger().info(f"course error: {error}")
-            pid_output = error*self.pid_p_gain
-            #Clamp output
-            turnrate_cmd = max(-self.max_turnrate_output_rad , min(self.max_turnrate_output_rad, pid_output))
-            self._node.get_logger().info(f"turnrate_cmd (deg): {math.degrees(turnrate_cmd)}")
+            target_quaternion = euler2quat(0,0,targetYaw, axes='sxyz')
 
-            # Publication
-            twist_msg = TwistStamped()
-            twist_msg.header.stamp    = self._node.get_clock().now().to_msg()
-            twist_msg.header.frame_id = "evolo/base_link"
-            twist_msg.twist.linear.x  = self.target_speed
-            twist_msg.twist.angular.z = turnrate_cmd
-            self.evolo_pub.publish(twist_msg)
+            control_msg = Odometry()
+            control_msg.header.stamp    = self._node.get_clock().now().to_msg()
+            control_msg.header.frame_id = self.frame_id
+            control_msg.child_frame_id = "evolo/base_link"
+            control_msg.pose.pose.orientation.x = target_quaternion[1]
+            control_msg.pose.pose.orientation.y = target_quaternion[2]
+            control_msg.pose.pose.orientation.z = target_quaternion[3]
+            control_msg.pose.pose.orientation.w = target_quaternion[0]
+            control_msg.twist.twist.linear.x  = self.target_speed
+            self.evolo_pub.publish(control_msg)
+            
         else:
             self._node.get_logger().error("ERROR external control timeout")
             pass

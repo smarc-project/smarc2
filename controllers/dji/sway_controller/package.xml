@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>sway_controller</name>
+  <version>0.0.0</version>
+  <description>Path parametrization, ZVD input shaping, and LQG control for payload swing damping</description>
+  <maintainer email="alebas@kth.se">aleba</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-sympy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>dji_msgs</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>auv_state_estimation</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>smarc_action_base</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

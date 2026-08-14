@@ -1,0 +1,7 @@
+# Service to reset EKF filters
+# Use object_name: "all" to reset all object EKFs.
+
+string class_name
+---
+bool success
+string message

@@ -1,0 +1,7 @@
+string robot_id
+float64[] pref_velocity
+float64[] goal_position
+---
+float64[] safe_velocity
+bool success
+bool change

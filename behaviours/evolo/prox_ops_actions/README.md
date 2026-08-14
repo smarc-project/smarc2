@@ -95,17 +95,29 @@ Purpose: current receding-horizon candidate path proposed by the backend.
 
 The action server validates this path against safety and geofence constraints before forwarding planned control to Evolo.
 
-### `backend/twist_planned`
+### `backend/control_planned`
 
 Type:
 
 ```text
-geometry_msgs/msg/TwistStamped
+nav_msgs/msg/Odometry
 ```
 
 Purpose: backend's next desired control setpoint for the ASV.
 
-The action server forwards this to `ctrl/twist_planned` only if the latest candidate path is accepted as safe.
+The action server reads `pose.pose.orientation` (desired heading in the world/odom frame)
+and `twist.twist.linear` (forward velocity in the body frame).  It forwards these to
+`ctrl/control_planned` only if the latest candidate path is accepted as safe.
+
+Requirements:
+
+```text
+- header.frame_id must not be empty and must identify the orientation reference frame
+  (typically the odom / ENU world frame).
+- pose.pose.orientation must be a valid, finite, non-zero quaternion.
+- child_frame_id should be 'base_link' to indicate the twist reference frame.
+- pose.pose.position is ignored by the action server; backends may leave it as zeros.
+```
 
 ### `smarc/geofence_status`
 
@@ -159,8 +171,8 @@ Purpose: JSON command topic from the prox-ops layer to the backend.
 Current default model: `prox_ops_bt` sends `RESET` then `START` whenever it
 accepts a new prox-ops goal. The BT/action layer then observes
 `backend/status`, starts intercept only once the backend is healthy and
-controlling, and gates `backend/twist_planned` before forwarding to
-`ctrl/twist_planned`.
+controlling, and gates `backend/control_planned` before forwarding to
+`ctrl/control_planned`.
 
 `evolo_target_intercept` does not publish START/STOP by default. Backend
 lifecycle is owned by `prox_ops_bt`.
@@ -199,12 +211,12 @@ RESUME
 
 ## Action Server To Controller
 
-### `ctrl/twist_planned`
+### `ctrl/control_planned`
 
 Type:
 
 ```text
-geometry_msgs/msg/TwistStamped
+nav_msgs/msg/Odometry
 ```
 
 Purpose: safety-gated control setpoint forwarded from the backend to Evolo.
@@ -213,27 +225,28 @@ Flow:
 
 ```text
 backend/candidate_path
-backend/twist_planned
+backend/control_planned
         |
         v
 evolo_target_intercept safety gate
         |
         v
-ctrl/twist_planned
+ctrl/control_planned
 ```
 
-If the candidate path is unsafe, the action server does not forward `backend/twist_planned`.
+If the candidate path is unsafe, the action server does not forward `backend/control_planned`.
 
 Current safety gate before forwarding:
 
 ```text
 - backend/status must be fresh and newer than the action start.
 - backend/candidate_path must be fresh and newer than the action start.
-- backend/twist_planned must be fresh and newer than the action start.
+- backend/control_planned must be fresh and newer than the action start.
 - backend/candidate_path must have a non-empty frame_id.
 - backend/candidate_path must contain at least one pose.
 - backend/candidate_path poses must not contradict the path frame_id.
-- backend/twist_planned must have a non-empty frame_id.
+- backend/control_planned must have a non-empty frame_id.
+- backend/control_planned orientation quaternion must be finite and non-zero.
 ```
 
 Optional geofence gate:
@@ -254,7 +267,7 @@ Optional geofence gate:
 ```text
 evolo_target_intercept
   Implemented C++ action. It owns the runtime control gate from backend output
-  to ctrl/twist_planned.
+  to ctrl/control_planned.
 
 evolo_loiter_patrol
   Implemented C++ action. It delegates to Evolo's existing `move_to` action,
@@ -307,8 +320,8 @@ active.
 ```text
 1. All backend messages must be timestamped with the time they became valid.
 2. The action server will treat stale status, path, and twist messages as unsafe.
-3. The action server will not forward backend/twist_planned unless the latest backend/candidate_path is safe.
-4. backend/twist_planned and backend/candidate_path should be consistent; the twist should correspond to the currently published candidate path.
+3. The action server will not forward backend/control_planned unless the latest backend/candidate_path is safe.
+4. backend/control_planned and backend/candidate_path should be consistent; the control setpoint should correspond to the currently published candidate path.
 5. If the backend has no valid plan, set plan_available=false.
 6. If backend health is HEALTH_ERROR, the action server may abort the intercept action.
 7. If target_intercepted=true or mode=MODE_INSPECT, the BT will preempt intercept and move into inspection.

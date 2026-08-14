@@ -1,19 +1,5 @@
 /**:
   ros__parameters:
-    topics:
-      input_polygon: "estimated_auv_obb"
-      input_auv_head: "estimated_auv_head"
-      output_topic: "rviz/estimated_pose"
-      odom: "smarc/odom"
-      ekf_status: "alars_auv_ekf/status"
-
-    frames:
-      map: "map"
-      output_link: "estimated_auv"
-      camera: "z1_optical_frame"
-
-    camera_info: ""
-
     environment:
       water_surface_height: 0.0 # height of water surface in map frame.
     
@@ -97,4 +83,5 @@
     logger_info:
       enable: true
 
+    enable_head_disambiguation: false
     stale_state_age: 3.0

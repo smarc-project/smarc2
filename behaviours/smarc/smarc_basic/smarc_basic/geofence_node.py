@@ -249,9 +249,9 @@ class GeofenceNode():
                 return False
             
             try:
-                inside = bool(goal_request['stay_inside'])
+                inside = bool(goal_request['stay-inside'])
             except KeyError:
-                self._node.get_logger().warn("No 'stay_inside' field in geofence goal, defaulting to stay_inside=True")
+                self._node.get_logger().warn("No 'stay-inside' field in geofence goal, defaulting to stay_inside=True")
                 inside = True
 
             poly = [(GeoPoint(latitude=float(wp['latitude']), longitude=float(wp['longitude']))) for wp in wps]
@@ -260,8 +260,8 @@ class GeofenceNode():
             else:
                 self._islands.append(poly)
 
-            ceiling = float(goal_request['ceiling_altitude'])
-            floor = float(goal_request['floor_altitude'])
+            ceiling = float(goal_request['ceiling-altitude'])
+            floor = float(goal_request['floor-altitude'])
             if ceiling > floor:
                 self._ceiling_altitude = ceiling 
                 self._floor_altitude = floor
@@ -279,13 +279,13 @@ class GeofenceNode():
             return False
         
     def _on_goal_received_stop(self, goal_request: dict) -> bool:
-        fence_reset = bool(goal_request['reset_geofence'])
+        fence_reset = bool(goal_request['reset-geofence'])
         if fence_reset:
             self._fences = []
             self._floor_altitude = None
             self._ceiling_altitude = None
         
-        island_reset = bool(goal_request['reset_islands'])
+        island_reset = bool(goal_request['reset-islands'])
         if island_reset:
             self._islands = []
 
