@@ -23,6 +23,11 @@
     # the filter's self-reported covariance.
     delta_pos_topic: "/follower/ukf/delta_pos"
 
+    # BT output topics (relative -> resolved in the robot namespace).
+    status_topic: "lolo_tuper/status"
+    telemetry_topic: "lolo_tuper/telemetry"
+    goal_params_topic: "lolo_tuper/goal_params"
+
     # External action server (lolo_depth_move_to) name.
     move_to_action_name: "auv_depth_move_to"
 

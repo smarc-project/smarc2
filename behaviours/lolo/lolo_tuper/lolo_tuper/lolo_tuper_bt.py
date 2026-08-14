@@ -34,6 +34,8 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile
 
 from std_msgs.msg import String
 
+from geographic_msgs.msg import GeoPoint
+
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from smarc_action_base.smarc_action_base import ActionClientState
@@ -132,10 +134,14 @@ class LoloTuperBT:
         self._mission_start_time: float | None = None
         self._mission_timeout: float | None = None
 
-        # Required goal structure (presence-checked like alars).
+        # Required goal structure (presence-checked like alars). start_position
+        # and initial_setpoint are geopoints in the move_to "waypoint" style:
+        # latitude/longitude are required, altitude is optional and ignored.
         self._goal_template = {
-            "start_position": {"latitude": None, "longitude": None},
-            "initial_setpoint": {"latitude": None, "longitude": None},
+            "start_position": {"latitude": None, "longitude": None,
+                               "altitude": None},
+            "initial_setpoint": {"latitude": None, "longitude": None,
+                                 "altitude": None},
             "mission_depth": None,
             "min_altitude": None,
             "setpoint_stop_tolerance": None,
@@ -145,7 +151,7 @@ class LoloTuperBT:
             "timeout": None,
         }
 
-        status_pub = node.create_publisher(String, 'lolo_tuper/status', 10)
+        status_pub = node.create_publisher(String, self._status_topic, 10)
 
         def publish_status():
             msg = String()
@@ -156,7 +162,7 @@ class LoloTuperBT:
         # Structured, machine-parseable telemetry at the control rate (so a bag
         # captures the follow loop without lossy regex on the human status).
         self._telemetry_pub = node.create_publisher(
-            String, 'lolo_tuper/telemetry', 10)
+            String, self._telemetry_topic, 10)
 
         # Latched (transient-local) per-run goal+gains, so every recorded bag
         # self-documents the parameters that were actually used.
@@ -165,7 +171,7 @@ class LoloTuperBT:
             history=HistoryPolicy.KEEP_LAST,
             durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self._goal_params_pub = node.create_publisher(
-            String, 'lolo_tuper/goal_params', latched_qos)
+            String, self._goal_params_topic, latched_qos)
         self._active_gains = gains
 
         self._as = GentlerActionServer(
@@ -200,6 +206,9 @@ class LoloTuperBT:
         # bootstrap toward the initial_setpoint before the UKF is live.
         self._odom_topic = gp('odom_topic', 'smarc/odom')
         self._latlon_topic = gp('latlon_topic', 'smarc/latlon')
+        self._status_topic = gp('status_topic', 'lolo_tuper/status')
+        self._telemetry_topic = gp('telemetry_topic', 'lolo_tuper/telemetry')
+        self._goal_params_topic = gp('goal_params_topic', 'lolo_tuper/goal_params')
         self._move_to_action_name = gp('move_to_action_name', 'auv_depth_move_to')
 
         # --- Velocity-matching follow loop (node-level tuning) ---------------
@@ -284,18 +293,38 @@ class LoloTuperBT:
         for key in ("start_position", "initial_setpoint"):
             sub = req.get(key)
             if not isinstance(sub, dict) or not ({"latitude", "longitude"} <= sub.keys()):
-                self.log(f"Goal field '{key}' must contain latitude and longitude.")
+                self.log(f"Goal field '{key}' must be a geopoint with "
+                         "latitude and longitude (altitude optional).")
                 return False
         return True
+
+    @staticmethod
+    def _to_geopoint(wp: dict) -> GeoPoint:
+        """Parse a move_to-style waypoint dict into a geographic_msgs/GeoPoint.
+
+        latitude/longitude are required; altitude is accepted but unused for
+        control (depth is commanded separately via mission_depth).
+        """
+        gp = GeoPoint()
+        gp.latitude = float(wp["latitude"])
+        gp.longitude = float(wp["longitude"])
+        gp.altitude = float(wp.get("altitude", 0.0))
+        return gp
+
+    @staticmethod
+    def _geopoint_to_dict(gp: GeoPoint) -> dict:
+        return {
+            "latitude": gp.latitude,
+            "longitude": gp.longitude,
+            "altitude": gp.altitude,
+        }
 
     def _parse_goal(self, req: dict) -> TuperGoal:
         g = dict(GOAL_DEFAULTS)
         g.update(req)
         return TuperGoal(
-            start_lat=float(req["start_position"]["latitude"]),
-            start_lon=float(req["start_position"]["longitude"]),
-            initial_setpoint_lat=float(req["initial_setpoint"]["latitude"]),
-            initial_setpoint_lon=float(req["initial_setpoint"]["longitude"]),
+            start_position=self._to_geopoint(req["start_position"]),
+            initial_setpoint=self._to_geopoint(req["initial_setpoint"]),
             mission_depth=float(g["mission_depth"]),
             min_altitude=float(g["min_altitude"]),
             min_rpm=float(g["min_rpm"]),
@@ -343,8 +372,13 @@ class LoloTuperBT:
         g = self._goal_obj
         if g is None:
             return
+        # dataclasses.asdict can't serialize the GeoPoint fields, so replace
+        # them with plain {latitude, longitude, altitude} dicts for the JSON.
+        goal_dict = {f.name: getattr(g, f.name) for f in dataclasses.fields(g)}
+        goal_dict["start_position"] = self._geopoint_to_dict(g.start_position)
+        goal_dict["initial_setpoint"] = self._geopoint_to_dict(g.initial_setpoint)
         payload = {
-            "goal": dataclasses.asdict(g),
+            "goal": goal_dict,
             "gains": dataclasses.asdict(self._active_gains),
         }
         msg = String()
@@ -366,7 +400,7 @@ class LoloTuperBT:
             self.log(f"Mission clock started: budget {self._mission_timeout:.0f}s.")
 
     # ------------------------------------------------ move_to goal serializers
-    def _move_to_goal_json(self, lat: float, lon: float, target_depth: float,
+    def _move_to_goal_json(self, geopoint: GeoPoint, target_depth: float,
                            rpm: float, tolerance: float) -> str:
         g = self._goal_obj
         # Hand the leg only the time the mission has left, so a delegated move_to
@@ -376,8 +410,8 @@ class LoloTuperBT:
         leg_timeout = max(round(self._mission_remaining(), 1), 1.0)
         return json.dumps({
             "waypoint": {
-                "latitude": lat,
-                "longitude": lon,
+                "latitude": geopoint.latitude,
+                "longitude": geopoint.longitude,
                 "target_depth": target_depth,
                 "min_altitude": g.min_altitude,
                 "rpm": rpm,
@@ -392,7 +426,7 @@ class LoloTuperBT:
             return False
         try:
             self._act_go_to_start.set_goal(self._move_to_goal_json(
-                g.start_lat, g.start_lon, -1.0, g.max_rpm,
+                g.start_position, -1.0, g.max_rpm,
                 g.start_tolerance))
             return True
         except Exception as e:  # noqa: BLE001
@@ -406,7 +440,7 @@ class LoloTuperBT:
         try:
             # target_depth = -1 -> stay on the surface for the return leg.
             self._act_surface_return.set_goal(self._move_to_goal_json(
-                g.start_lat, g.start_lon, -1.0, g.max_rpm, g.start_tolerance))
+                g.start_position, -1.0, g.max_rpm, g.start_tolerance))
             return True
         except Exception as e:  # noqa: BLE001
             self.log(f"Failed to set surface-return goal: {e}")
