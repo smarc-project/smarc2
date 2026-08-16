@@ -14,7 +14,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob.glob('config/*')),
         (os.path.join('share', package_name, 'launch'), glob.glob('launch/*')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'control'],
     zip_safe=True,
     maintainer='Ozer Ozkahraman',
     maintainer_email='ozero@kth.se',
@@ -29,7 +29,8 @@ setup(
             "alars_follow_auv_action_server = alars.alars_follow_auv_action_server:main",
             "alars_bt = alars.alars_bt:main",
             "alars_ping_search_action_server = alars.alars_ping_search_action_server:main",
-            "alars_estimate_length_and_damping_action_server = alars.alars_estimate_length_and_damping_action_server:main",
+            "alars_move_to_damped_action_server = alars.alars_move_to_damped_action_server:main",
+            "alars_estimate_length_and_damping_action_server = alars.alars_estimate_length_and_damping_action_server:main"
         ],
     },
 )

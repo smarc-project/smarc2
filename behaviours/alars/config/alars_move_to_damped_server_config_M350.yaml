@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    # --- mission / trajectory ---
+    'goal_tolerance': 0.2
+    'max_speed': 1.0
+    'max_acceleration': 2.0
+    'settle_extra': 20.0
+
+    'continuous_model_path': 'vehicles/hardware/dji/dji_captain/models/M350/continuous_model/model_bla_diag_cmdvle.npz'
+    'discrete_model_path': 'vehicles/hardware/dji/dji_captain/models/M350/discrete_model/discrete_models.yaml'
+
+    # --- LQG trim during the mission ---
+    # False = fly the ZVD feedforward open loop (the A/B baseline).
+    'enable_lqg': True
+    'lqg_rho': 10.0
+    'lqg_theta_max': 0.3
+    'lqg_position_max': 0.3
+    'max_estimate_age': 0.5
+    'max_trim_speed': 0.5
+    'max_theta_for_lqg': 0.35
+
+    # --- payload stabilisation before departing ---
+    'stabilize_before_mission': True
+    'stabilize_theta_tol': 0.02
+    'stabilize_omega_tol': 0.05
+    'stabilize_settle_time': 1.0
+    'stabilize_timeout': 45.0
+    'stabilize_rho': 2.0
+    'stabilize_theta_max': 0.3
+    'stabilize_position_max': 2.0
