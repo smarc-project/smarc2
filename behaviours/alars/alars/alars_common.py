@@ -12,8 +12,8 @@ from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry
 
-from tf2_geometry_msgs import PoseWithCovarianceStamped, do_transform_pose_stamped
-from tf2_ros import Buffer, TransformListener
+from tf2_geometry_msgs import PoseWithCovarianceStamped, do_transform_pose_stamped, do_transform_vector3
+from tf2_ros import Buffer, TransformListener, Vector3Stamped
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
 from dji_msgs.msg import Topics as DJITopics
@@ -181,3 +181,23 @@ class DroneState():
     def pose_stamped_in_base_flat(self, pose: PoseStamped) -> PoseStamped|None:
         return self._pose_in_frame(pose, self.BASE_FLAT_FRAME)
         
+
+    def _vector_in_frame(self, vec: Vector3Stamped, target_frame: str) -> Vector3Stamped|None:
+        if vec.header.frame_id == target_frame:
+            return vec
+        else:
+            if not self._tf_buffer.can_transform(target_frame, vec.header.frame_id, Time(seconds=0)):
+                self._loginfo(f"Cannot transform vector in frame <{vec.header.frame_id}> to <{target_frame}> frame.")
+                return None
+
+            tf = self._tf_buffer.lookup_transform(
+                target_frame = target_frame,
+                source_frame = vec.header.frame_id,
+                time = Time(seconds=0),
+                timeout = Duration(seconds=1)
+            )
+            in_target = do_transform_vector3(vec, tf)
+            return in_target
+
+    def vector_stamped_in_base_flat(self, vec: Vector3Stamped) -> Vector3Stamped|None:
+        return self._vector_in_frame(vec, self.BASE_FLAT_FRAME)

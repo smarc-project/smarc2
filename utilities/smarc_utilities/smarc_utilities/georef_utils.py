@@ -3,7 +3,8 @@ from geodesy.utm import fromMsg, UTMPoint
 from geometry_msgs.msg import PointStamped, Pose, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from std_msgs.msg import Float32
-from tf_transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
+
 import math
 
 def convert_latlon_to_utm(gp: GeoPoint) -> PointStamped:
@@ -48,8 +49,9 @@ def convert_enu_pose_to_heading(enu_pose: Pose) -> Float32:
     :return: Float32 message with compass heading in degrees (0-360)
     """
     enu_orientation = enu_pose.orientation
-    rpy_enu = euler_from_quaternion(
-        [enu_orientation.x, enu_orientation.y, enu_orientation.z, enu_orientation.w])
+    # rpy_enu = euler_from_quaternion(
+    #     [enu_orientation.x, enu_orientation.y, enu_orientation.z, enu_orientation.w])
+    rpy_enu = quat2euler([enu_orientation.w, enu_orientation.x, enu_orientation.y, enu_orientation.z])
     yaw = rpy_enu[2]  # Yaw in radians
 
     # Convert input yaw to degrees

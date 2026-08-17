@@ -2,7 +2,8 @@
 
 from rclpy.node import Node
 import tf2_ros
-from tf_transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
+
 
 from std_msgs.msg import Float32, Int8
 from geographic_msgs.msg import GeoPoint
@@ -100,10 +101,9 @@ class GenericSMaRCVehicle(IVehicleStateContainer):
         self._vehicle_state.update_sensor(SensorNames.BATTERY, [data.data], sec)
 
     def _odom_cb(self, data: Odometry):
-
         # read rpy from odometry message
         orientation = data.pose.pose.orientation
-        rpy = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        rpy = quat2euler([orientation.w, orientation.x, orientation.y, orientation.z])
         sec = self.current_time()
         # self._vehicle_state.update_sensor(SensorNames.POSITION, [data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z], sec)
         self._vehicle_state.update_sensor(SensorNames.ORIENTATION_EULER, [rpy[0], rpy[1], rpy[2]], sec)

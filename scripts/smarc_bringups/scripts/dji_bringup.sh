@@ -66,6 +66,14 @@ else
     USE_SIM_TIME=True
 fi
 
+
+if [[ $USE_SIM_TIME == "True" ]]; then
+    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
+else
+    CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
+fi
+
+
 # if [[ $USE_SIM_TIME == "True" ]]; then
 #     # useful to make sure we don't accidentally connect to real hardware with the sim bringup
 #     # or when your pc has these set for the real thing and you dont want to swap around :,)
@@ -188,18 +196,49 @@ ALARS_RECOVER_CMD="ros2 run alars alars_recover_action_server --ros-args -r __ns
 -p max_auv_age:=5.0 \
 -p max_buoy_age:=5.0"
 
+tmux_make_layout "$SESSION" AlarsActions "
+col(
+    var(ALARS_SEARCH_CMD),
+    var(ALARS_FOLLOW_AUV_CMD),
+    var(ALARS_RECOVER_CMD)
+)"
+
+
 ALARS_MOVE_TO_CMD="ros2 run alars alars_move_to_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME"
 
+ESTIMATE_LENGTH_AND_DAMPING_CMD="ros2 launch alars estimate_length_and_damping_node_launch.py \
+robot_name:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME"
 
-tmux_make_layout "$SESSION" MovingActions "
+HOOK_KF_CMD="ros2 launch sway_controller hook_kalman_filter_node_launch.py \
+robot_name:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME \
+camera_calibration_file:=$CAM_CALIBRATION_FILE"
+
+# ENABLE_LQG=False flies the ZVD feedforward OPEN LOOP - the known-good
+# baseline, and the A/B test for whether the feedback helps. The first
+# closed-loop flight (2026-07-26) diverged, so start here when in doubt:
+#   ENABLE_LQG=False ./dji_bringup2.sh M350 5.0
+ENABLE_LQG=${ENABLE_LQG:-True}
+ALARS_MOVE_TO_DAMPED_CMD="ros2 launch alars alars_move_to_damped_server_launch.py \
+robot_name:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME \
+enable_lqg:=$ENABLE_LQG"
+
+tmux_make_layout "$SESSION" MoveTo "
 col(
-    var(ALARS_SEARCH_CMD),
-    var(ALARS_FOLLOW_AUV_CMD),
-    var(ALARS_RECOVER_CMD),
-    var(ALARS_MOVE_TO_CMD)
+    row(
+        var(ALARS_MOVE_TO_CMD),
+        var(ALARS_MOVE_TO_DAMPED_CMD)
+    ),
+    row(
+        var(ESTIMATE_LENGTH_AND_DAMPING_CMD),
+        var(HOOK_KF_CMD)
+    )
 )"
+
 
 ############
 # 3 BTs
@@ -253,18 +292,16 @@ if [[ "$NO_CAM" == "True" ]]; then
     YOLO_CMD="echo 'Camera disabled, not launching YOLO detector'"
     PROJECTION_CMD="echo 'Camera disabled, not launching projection node'"
 else
-    YOLO_DEVICE=0
+    YOLO_DEVICE="cuda:0"
     YOLO_THRESHOLD=0.5
     YOLO_ENABLE=True
-    
-    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
+
     YOLO_MODEL="yolo_model_2cls_may.pt" # Options: alars_labeling_training/trained_models
     OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
     MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
     
     if [[ $USE_SIM_TIME = "True" ]]; then
-        YOLO_DEVICE=cpu
-        CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
+        YOLO_DEVICE="cpu"
         # seems to be doing better in sim
         YOLO_MODEL="yolo_model_4cls_july.pt" # Updated for sim (+ hook, land_pad), prev was yolo_model_2cls_mixed.pt
     fi
