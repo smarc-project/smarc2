@@ -17,6 +17,7 @@ from std_msgs.msg        import Float64MultiArray
 from smarc_action_base.gentler_action_server import GentlerActionServer
 
 from alars.alars_common import DroneState
+from alars.speed_names import SpeedNames
 
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links  as DJILinks
@@ -93,6 +94,8 @@ class MoveToDampedAction():
         node.declare_parameter('max_speed', 1.0, double_desc)
         node.declare_parameter('max_acceleration', 2.0, double_desc)
         node.declare_parameter('settle_extra', 20.0, double_desc)
+        node.declare_parameter('speeds', [0.5, 1.0, 2.0])
+        node.declare_parameter('altitude_tolerance', 0.5, double_desc)
         
         
         node.declare_parameter('enable_lqg', True, bool_desc)
@@ -162,6 +165,28 @@ class MoveToDampedAction():
         self._stabilize_rho = self._node.get_parameter('stabilize_rho').get_parameter_value().double_value
         self._stabilize_theta_max = self._node.get_parameter('stabilize_theta_max').get_parameter_value().double_value
         self._stabilize_position_max = self._node.get_parameter('stabilize_position_max').get_parameter_value().double_value
+
+    def _resolve_goal_speed(self, goal_request: dict) -> float:
+        """waraps-style speed: a name ('slow'/'standard'/'fast') or a number.
+
+        Note this also becomes v_max for the LQR, since Q and R are both
+        normalised by it - a 'fast' goal is therefore flown with a
+        proportionally different trim authority, not just a higher cap.
+        """
+        speeds = self._node.get_parameter('speeds').get_parameter_value().double_array_value
+        table = {SpeedNames.SLOW: speeds[0],
+                 SpeedNames.STANDARD: speeds[1],
+                 SpeedNames.FAST: speeds[2]}
+
+        speed_str = goal_request.get('speed', 'standard')
+        try:
+            return float(speed_str)
+        except (TypeError, ValueError):
+            try:
+                return table[SpeedNames[str(speed_str).upper()]]
+            except KeyError:
+                self.log(f"Unknown speed name: '{speed_str}', defaulting to STANDARD")
+                return table[SpeedNames.STANDARD]
 
     def _refresh_tuning_parameters(self):
         g = lambda n: self._node.get_parameter(n).get_parameter_value()
@@ -328,14 +353,36 @@ class MoveToDampedAction():
                 self._node.get_logger().error('Error: no trone in map position')
                 return False 
             
+            self._refresh_tuning_parameters()
+
+            self._max_speed = self._resolve_goal_speed(goal_request)
+            open_loop = bool(goal_request.get('open-loop', not self._enable_lqg))
+            self._enable_lqg = not open_loop
+            self.log(
+                f'Goal options: speed={self._max_speed:.2f} m/s, '
+                f'open-loop={open_loop} '
+                f'({"ZVD feedforward only" if open_loop else "ZVD + LQG trim"})'
+            )
+
             drone_pose = self._drone_state._drone_in_map.pose.position
             drone_position = np.asarray([drone_pose.x, drone_pose.y], float)
             target_position = np.array([pos.x, pos.y], float)
             self._path_parametrizer = PathParametrizer(drone_position, target_position,
                                                          self._max_speed, self._max_acceleration)
-            
 
-            self._refresh_tuning_parameters()
+            self._altitude_tolerance = self._node.get_parameter(
+                'altitude_tolerance').get_parameter_value().double_value
+            self._target_altitude_map = float(pos.z)
+            altitude_error = self._target_altitude_map - float(drone_pose.z)
+            self._needs_altitude_leg = abs(altitude_error) > self._altitude_tolerance
+            if self._needs_altitude_leg:
+                self.log(
+                    f'Goal altitude {self._target_altitude_map:.2f} m is '
+                    f'{altitude_error:+.2f} m from the current {drone_pose.z:.2f} m '
+                    f'(tol {self._altitude_tolerance:.2f}) - flying a plain vertical '
+                    f'leg first, no sway control.'
+                )
+
             identified = self._load_identified_pendulum_params()
             if identified is None:
                 return False
@@ -377,9 +424,8 @@ class MoveToDampedAction():
                 self._lqr_stabilize = None
                 self.log('LQG disabled (enable_lqg=False) - flying the ZVD feedforward open loop')
 
-            self._phase = ('STABILIZING'
-                           if (self._stabilize_before_mission and self._lqr_stabilize is not None)
-                           else 'MOVING')
+            self._phase = ('ALTITUDE' if self._needs_altitude_leg
+                           else self._phase_after_altitude())
             self._stabilize_started = self.now_time
             self._within_tol_since:None|float = None
             self._hold_position_map:None|np.ndarray = None
@@ -566,13 +612,56 @@ class MoveToDampedAction():
         self._publish_velocity(u[:2])
         return None
 
+    def _phase_after_altitude(self) -> str:
+        return ('STABILIZING'
+                if (self._stabilize_before_mission and self._lqr_stabilize is not None)
+                else 'MOVING')
+
+    def _altitude_tick(self) -> bool|None:
+        here = self._drone_state.drone_in_map_numpy
+        if here is None:
+            self.log('No drone position yet, holding during the altitude leg.')
+            self._publish_velocity(np.zeros(2))
+            return None
+
+        altitude_error = self._target_altitude_map - float(here[2])
+
+        if abs(altitude_error) <= self._altitude_tolerance:
+            self.log(f'Reached goal altitude ({here[2]:.2f} m, error {altitude_error:+.2f} m) '
+                     f'- starting the sway-damped mission.')
+            self._publish_velocity(np.zeros(2), vz=0.0)
+            drone_now = self._drone_state.drone_in_map_numpy
+            goal = self._goal_in_map.pose.position
+            self._path_parametrizer = PathParametrizer(
+                np.asarray([drone_now[0], drone_now[1]], float),
+                np.asarray([goal.x, goal.y], float),
+                self._max_speed, self._max_acceleration)
+            self._stabilize_started = self.now_time
+            self._within_tol_since = None
+            self._hold_position_map = None
+            next_phase = self._phase_after_altitude()
+            if next_phase == 'MOVING':
+                self._begin_mission()
+            else:
+                self._phase = next_phase
+            return None
+
+        vz = float(np.clip(altitude_error, -self._max_speed, self._max_speed))
+        self._node.get_logger().info(
+            f'[altitude] {here[2]:.2f} -> {self._target_altitude_map:.2f} m '
+            f'(error {altitude_error:+.2f} m, vz={vz:+.2f} m/s)',
+            throttle_duration_sec=1.0
+        )
+        self._publish_velocity(np.zeros(2), vz=vz)
+        return None
+
     def _begin_mission(self):
         self._phase = 'MOVING'
         self._start_mission_time = self.now_time
         self._t_end = (self._start_mission_time + self._path_parametrizer._missionTime
                        + self.Ti[-1] + self._settle_extra)
 
-    def _publish_velocity(self, u_xy:np.ndarray) -> np.ndarray:
+    def _publish_velocity(self, u_xy:np.ndarray, vz: float = 0.0) -> np.ndarray:
         speed = float(np.linalg.norm(u_xy))
         if speed > self._max_speed:
             u_xy = u_xy * (self._max_speed / speed)
@@ -581,6 +670,7 @@ class MoveToDampedAction():
         setpoint.header.frame_id = self.BASE_FLAT_FRAME
         setpoint.twist.linear.x = float(u_xy[0])
         setpoint.twist.linear.y = float(u_xy[1])
+        setpoint.twist.linear.z = float(vz)
         self.ref_publisher.publish(setpoint)
 
         drone_frame_cmd = Vector3Stamped()
@@ -592,6 +682,9 @@ class MoveToDampedAction():
         return u_xy
 
     def _loop_inner(self) -> bool|None:
+        if self._phase == 'ALTITUDE':
+            return self._altitude_tick()
+
         if self._phase == 'STABILIZING':
             return self._stabilize_tick()
 

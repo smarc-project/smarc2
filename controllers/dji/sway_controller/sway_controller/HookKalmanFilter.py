@@ -14,11 +14,14 @@ from tf2_ros            import Buffer, TransformListener
 from tf2_geometry_msgs  import do_transform_vector3
 
 import os
+import time
 import yaml
 import numpy   as np
 import control as ct
 
+import rclpy
 from ament_index_python import get_package_share_directory
+
 
 class HookKalmanFilter:
     def __init__(self, node:Node ,robot_name:str, 
@@ -541,3 +544,149 @@ class HookKalmanFilter:
 
         if (np.trace(self._Sigma_bar) - np.trace(self._Sigma)<0):
             self._node.get_logger().warning(f'Uncertainty INCREASED after the update')
+
+
+def _load_identified_gains(model_path: str):
+    """Drone velocity-response gains k, tau per axis, from the sysid npz."""
+    d = np.load(model_path)
+
+    tf_x = ct.tf(
+        d['b__FLU_axes_0__to__FLUvelocity_ground_fused_x'],
+        d['a__FLU_axes_0__to__FLUvelocity_ground_fused_x'],
+    )
+    tf_y = ct.tf(
+        d['b__FLU_axes_1__to__FLUvelocity_ground_fused_y'],
+        d['a__FLU_axes_1__to__FLUvelocity_ground_fused_y'],
+    )
+
+    k_x = float(tf_x.num[0][0][0])
+    tau_x = float(tf_x.den[0][0][1])
+    k_y = float(tf_y.num[0][0][0])
+    tau_y = float(tf_y.den[0][0][1])
+
+    return k_x, tau_x, k_y, tau_y
+
+
+def _wait_for_identified_params(node: Node,
+                                timeout_sec: "float|None" = None) -> "tuple[float, float]|None":
+    
+    received: dict = {}
+    qos_latched = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+
+    def _cb(msg):
+        if len(msg.data) >= 2:
+            received['L'] = float(msg.data[0])
+            received['xi'] = float(msg.data[1])
+
+    sub = node.create_subscription(
+        Float64MultiArray, Topics.HOOK_PENDULUM_PARAMETERS_IDENTIFIED, _cb, qos_latched)
+
+    node.get_logger().info(
+        f'Waiting for identified pendulum params on '
+        f'{Topics.HOOK_PENDULUM_PARAMETERS_IDENTIFIED} - run the '
+        f'estimate_length_and_damping action to produce them.')
+
+    deadline = None if timeout_sec is None else time.time() + timeout_sec
+    last_log = 0.0
+    while not received and rclpy.ok():
+        if deadline is not None and time.time() > deadline:
+            break
+        rclpy.spin_once(node, timeout_sec=0.1)
+        now = time.time()
+        if now - last_log > 10.0:
+            node.get_logger().info('Still waiting for pendulum params...')
+            last_log = now
+
+    node.destroy_subscription(sub)
+
+    if not received:
+        return None
+    return received['L'], received['xi']
+
+
+def main():
+    rclpy.init()
+
+    node = Node("hook_kalman_filter_node")
+    node.declare_parameter("robot_name", "M350")
+    node.declare_parameter("loop_freq", 50)
+    node.declare_parameter("L", -1.0)
+    node.declare_parameter("xi", -1.0)
+    node.declare_parameter("qc", 3.1)
+    node.declare_parameter("sigma_initial", 1.0)
+    node.declare_parameter("mahalanobis_thr", 16.0)
+    node.declare_parameter("max_boresight_tilt_deg", 45.0)
+    node.declare_parameter("continuous_model_path", "")
+    node.declare_parameter("camera_calibration_file", "z1_720p_cam_params.yaml")
+    # Seconds to wait for identified L/xi. <= 0 means wait forever.
+    node.declare_parameter("params_wait_timeout", 0.0)
+    robot_name = node.get_parameter("robot_name").value
+
+    try:
+        continuous_model_path = node.get_parameter("continuous_model_path").value
+        if not continuous_model_path:
+            continuous_model_path = os.path.join(
+                get_package_share_directory("dji_captain"),
+                "models", robot_name,
+                "continuous_model", "model_bla_diag_cmdvle.npz",
+            )
+
+        k_x, tau_x, k_y, tau_y = _load_identified_gains(continuous_model_path)
+        node.get_logger().info(
+            f"Loaded identified gains from {continuous_model_path}: "
+            f"k_x={k_x}, tau_x={tau_x}, k_y={k_y}, tau_y={tau_y}"
+        )
+
+        L = node.get_parameter("L").value
+        xi = node.get_parameter("xi").value
+        if L < 0 or xi < 0:
+            timeout = node.get_parameter("params_wait_timeout").value
+            identified = _wait_for_identified_params(
+                node, timeout_sec=None if timeout <= 0.0 else timeout)
+            if identified is not None and identified[0] > 0.0:
+                if L < 0:
+                    L = identified[0]
+                if xi < 0:
+                    xi = identified[1]
+                node.get_logger().info(f'Using identified L={L}, xi={xi}')
+            else:
+                node.get_logger().error(
+                    'No usable L/xi arrived on '
+                    f'{Topics.HOOK_PENDULUM_PARAMETERS_IDENTIFIED} '
+                    f'(got {identified}). Run estimate_length_and_damping first, '
+                    'or set L and xi in the config yaml.')
+                node.destroy_node()
+                if rclpy.ok():
+                    rclpy.shutdown()
+                return
+
+        HookKalmanFilter(
+            node,
+            robot_name=robot_name,
+            use_simtime=node.get_parameter("use_sim_time").value,
+            loop_freq=node.get_parameter("loop_freq").value,
+            L=L,
+            xi=xi,
+            taux=tau_x,
+            tauy=tau_y,
+            kx=k_x,
+            ky=k_y,
+            qc=node.get_parameter("qc").value,
+            sigma_initial=node.get_parameter("sigma_initial").value,
+            mahalanobis_thr=node.get_parameter("mahalanobis_thr").value,
+            camera_calibration_file=node.get_parameter("camera_calibration_file").value,
+            max_boresight_tilt_deg=node.get_parameter("max_boresight_tilt_deg").value,
+        )
+
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
