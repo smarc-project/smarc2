@@ -25,6 +25,7 @@
     'stabilize_omega_tol': 0.05
     'stabilize_settle_time': 1.0
     'stabilize_timeout': 45.0
-    'stabilize_rho': 2.0
+    # gain is 1/sqrt(rho), more rho aggressive -> might osscilate forever, less rho-> might never reach stable
+    'stabilize_rho': 4.0
     'stabilize_theta_max': 0.3
     'stabilize_position_max': 2.0

@@ -182,6 +182,7 @@ class EstimateLengthAndDamping:
                     if now - self._phase_start_time >= self._axis_selection_duration:
                         self._select_axis()
                 else:
+                    self.log(f'Processing measurement at, x={self._last_x:.1f}, y={self._last_y:.1f}')
                     self._process_measurement(now, (self._last_x, self._last_y)[self._axis_index])
 
             enough_periods = self._n_periods >= self._min_periods

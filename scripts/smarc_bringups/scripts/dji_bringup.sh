@@ -296,7 +296,7 @@ else
     YOLO_THRESHOLD=0.5
     YOLO_ENABLE=True
 
-    YOLO_MODEL="yolo_model_4cls_july.pt" # Options: alars_labeling_training/trained_models
+    YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
     OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
     MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
     
