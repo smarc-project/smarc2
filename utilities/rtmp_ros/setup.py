@@ -22,7 +22,6 @@ setup(
     entry_points={
         "console_scripts": [
             "rtmp_ros_node = rtmp_ros.rtmp_ros_node:main",
-            "rtmp2_test_node = rtmp_ros.rtmp2_test_node:main",
         ],
     },
 )
