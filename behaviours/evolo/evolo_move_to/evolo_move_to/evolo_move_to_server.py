@@ -1,7 +1,6 @@
 import rclpy
 
 from rclpy.node import Node
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
@@ -13,20 +12,12 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from transforms3d.euler import euler2quat
 
 from rclpy.time import Duration, Time
-from nav_msgs.srv import SetMap
-from nav_msgs.msg import OccupancyGrid
-from nav_msgs.msg import MapMetaData
-from nav_msgs.srv import GetPlan
-from nav_msgs.msg import Path
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, Twist
 from geometry_msgs.msg import PoseStamped, PointStamped
-from std_msgs.msg import Float32, Empty
-from std_msgs.msg import String
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as smarcTopics
 from smarc_control_msgs.msg import Topics as controlTopics
-from tf2_ros import Buffer, TransformException, TransformListener
+from tf2_ros import Buffer, TransformListener
 import math
 from evolo_controllers.control import PID
 
@@ -133,32 +124,38 @@ class EvoloMoveTo():
         # Return True to accept the goal, False to reject it
         #params = json.loads(goal_request['json-params'])
 
-        speed = goal_request['speed']
-        waypoint = goal_request['waypoint']
-
         try:
-            speed = float(speed)
+
+            speed = goal_request['speed']
+            waypoint = goal_request['waypoint']
+
+            try:
+                speed = float(speed)
+            except Exception as e:
+                self._node.get_logger().info(f"Tried to parse speed as float. Did not work: {speed}, {e}")
+                if(speed == "slow"): speed = 4.63
+                elif(speed == "standard"): speed = 4.9
+                elif(speed == "fast"): speed = 6
+                else: speed = 0.0
+
+            assert type(speed) == float
+
+            self._node.get_logger().info(f"speed: {speed}, waypoint: {waypoint}")
+
+            #if 'timeout' in params.keys() : self.timeout = min(3600, max(1, params['timeout']))
+            #self.timeout = 600
+            #self._node.get_logger().info('timeout: ' + str(self.timeout))
+
+            #Compute target position from lat lon
+            lat = float(waypoint['latitude'])
+            lon = float(waypoint['longitude'])
+            #self._node.get_logger().info(f"lat lon sent to function: {lat}, {lon}")
+            self.target_position = self.latlon_to_local_frame([lat,lon])
+            self.target_speed = speed
         except Exception as e:
-            self._node.get_logger().info(f"Tried to parse speed as float. Did not work: {speed}, {e}")
-            if(speed == "slow"): speed = 4.63
-            elif(speed == "standard"): speed = 4.9
-            elif(speed == "fast"): speed = 6
-            else: speed = 0.0
+            self._node.get_logger().info(f"Failed to parse goal request: {str(e)}")
+            return False
 
-        assert type(speed) == float
-
-        self._node.get_logger().info(f"speed: {speed}, waypoint: {waypoint}")
-
-        #if 'timeout' in params.keys() : self.timeout = min(3600, max(1, params['timeout']))
-        #self.timeout = 600
-        #self._node.get_logger().info('timeout: ' + str(self.timeout))
-
-        #Compute target position from lat lon
-        lat = float(waypoint['latitude'])
-        lon = float(waypoint['longitude'])
-        #self._node.get_logger().info(f"lat lon sent to function: {lat}, {lon}")
-        self.target_position = self.latlon_to_local_frame([lat,lon])
-        self.target_speed = speed
         return True
     
     def _on_cancel_received(self) -> bool:

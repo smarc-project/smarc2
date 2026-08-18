@@ -684,50 +684,54 @@ class EvoloMovePath:
     # Action callbacks
     # ─────────────────────────────────────────────────────────────────────────
     def _on_goal_received(self, goal_request):
-        raw_speed = goal_request.get('speed', 'standard')
-        if isinstance(raw_speed, (int, float)):
-            self.speed_kn = float(raw_speed)
-        elif raw_speed == 'slow':
-            self.speed_kn = self.SPEED_SLOW
-        elif raw_speed == 'fast':
-            self.speed_kn = self.SPEED_FAST
-        else:
-            self.speed_kn = self.SPEED_STANDARD
+        try:
+            raw_speed = goal_request.get('speed', 'standard')
+            if isinstance(raw_speed, (int, float)):
+                self.speed_kn = float(raw_speed)
+            elif raw_speed == 'slow':
+                self.speed_kn = self.SPEED_SLOW
+            elif raw_speed == 'fast':
+                self.speed_kn = self.SPEED_FAST
+            else:
+                self.speed_kn = self.SPEED_STANDARD
 
-        waypoints = goal_request.get('waypoints', [])
-        if not waypoints:
-            return False
+            waypoints = goal_request.get('waypoints', [])
+            if not waypoints:
+                return False
 
-        self.target_list    = []
-        self.target_list_latlon = []
-        self.dubins_path    = None
-        self.wp_end_indices = None
+            self.target_list    = []
+            self.target_list_latlon = []
+            self.dubins_path    = None
+            self.wp_end_indices = None
 
-        for wp_params in waypoints:
-            lat  = float(wp_params['latitude'])
-            lon  = float(wp_params['longitude'])
-            alt  = float(wp_params.get('altitude', 0.0))
-            tol  = float(wp_params['tolerance'])
-            pose = self.latlon_to_local_frame([lat, lon])
-            if pose is None:
+            for wp_params in waypoints:
+                lat  = float(wp_params['latitude'])
+                lon  = float(wp_params['longitude'])
+                alt  = float(wp_params.get('altitude', 0.0))
+                tol  = float(wp_params['tolerance'])
+                pose = self.latlon_to_local_frame([lat, lon])
+                if pose is None:
+                    self._node.get_logger().error(
+                        f'[GoalReceived] TF failed for ({lat:.6f},{lon:.6f}) — skipping')
+                    continue
+                self.target_list.append(self.WP(p=pose, tol=tol, speed_kn=self.speed_kn))
+                self.target_list_latlon.append({'latitude': lat, 'longitude': lon, 'altitude': alt})
+                self._node.get_logger().info(
+                    f'[GoalReceived] WP{len(self.target_list)}: '
+                    f'({pose.pose.position.x:.1f}, {pose.pose.position.y:.1f}) queued')
+
+            if not self.target_list:
                 self._node.get_logger().error(
-                    f'[GoalReceived] TF failed for ({lat:.6f},{lon:.6f}) — skipping')
-                continue
-            self.target_list.append(self.WP(p=pose, tol=tol, speed_kn=self.speed_kn))
-            self.target_list_latlon.append({'latitude': lat, 'longitude': lon, 'altitude': alt})
+                    '[GoalReceived] No valid waypoints — goal rejected')
+                return False
+
             self._node.get_logger().info(
-                f'[GoalReceived] WP{len(self.target_list)}: '
-                f'({pose.pose.position.x:.1f}, {pose.pose.position.y:.1f}) queued')
-
-        if not self.target_list:
-            self._node.get_logger().error(
-                '[GoalReceived] No valid waypoints — goal rejected')
+                f'[GoalReceived] {len(self.target_list)} waypoint(s) queued — '
+                'filtering deferred to prepare_loop')
+            return True
+        except Exception as e:
+            self._node.get_logger().info(f"Failed to parse goal request: {str(e)}")
             return False
-
-        self._node.get_logger().info(
-            f'[GoalReceived] {len(self.target_list)} waypoint(s) queued — '
-            'filtering deferred to prepare_loop')
-        return True
 
     def _on_cancel_received(self):
         self._send_stop()
