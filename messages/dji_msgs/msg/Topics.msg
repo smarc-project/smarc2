@@ -5,6 +5,7 @@
 # Captain's status string
 string CAPTAIN_STATUS_STR_TOPIC = 'status_str/captain_status'
 string ALARS_BT_STATUS_STR_TOPIC = 'status_str/alars_bt'
+string ALARS_PING_SEARCH_STATUS_STR_TOPIC = 'status_str/ping_search'
 
 # moving around
 string MOVE_TO_SETPOINT_TOPIC = 'move_base' # PoseStamped
