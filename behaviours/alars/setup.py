@@ -23,14 +23,14 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "alars_move_to_action_server = alars.alars_move_to_action_server:main",
-            "alars_recover_action_server = alars.alars_recover_action_server:main",
-            "alars_search_action_server = alars.alars_search_action_server:main",
-            "alars_follow_auv_action_server = alars.alars_follow_auv_action_server:main",
             "alars_bt = alars.alars_bt:main",
-            "alars_ping_search_action_server = alars.alars_ping_search_action_server:main",
-            "alars_move_to_damped_action_server = alars.alars_move_to_damped_action_server:main",
-            "alars_estimate_length_and_damping_action_server = alars.alars_estimate_length_and_damping_action_server:main"
+            "alars_move_to_action_server = alars.alars_move_to_as:main",
+            "alars_recover_action_server = alars.alars_recover_as:main",
+            "alars_search_action_server = alars.alars_search_as:main",
+            "alars_follow_auv_action_server = alars.alars_follow_auv_as:main",
+            "alars_ping_search_action_server = alars.alars_ping_search_as:main",
+            "alars_move_to_damped_action_server = alars.alars_move_to_damped_as:main",
+            "alars_estimate_length_and_damping_action_server = alars.alars_estimate_rope_swing_as:main"
         ],
     },
 )

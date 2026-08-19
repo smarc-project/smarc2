@@ -45,7 +45,7 @@ class EstimateLengthAndDamping:
 
         self._as = GentlerActionServer(
             self._node,
-            'estimate_length_and_damping',
+            'alars_estimate_rope_swing',
             self._on_goal_received,
             self._on_cancel_received,
             self._prepare_loop,

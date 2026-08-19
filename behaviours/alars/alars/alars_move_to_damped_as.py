@@ -55,7 +55,7 @@ class MoveToDampedAction():
 
         self._as = GentlerActionServer(
                     node,
-                    'move_to_damped',
+                    'alars_move_to_damped',
                     self._on_goal_received,
                     self._on_cancel_received,
                     self._prepare_loop,
