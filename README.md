@@ -1,5 +1,5 @@
-# SMaRC 2 for ROS 2 Humble
-This is the repository of packages for ROS Humble.
+# SMaRC 2 for ROS 2 Jazzy (WIP)
+This is the repository of packages for ROS Jazzy. 
 Each of the following directories also include more detailed readmes within.
 
 ## [Fresh install? Start here.](/documentation/Installing%20ROS2.md)
