@@ -42,22 +42,34 @@ for arg in "$@"; do
     fi
 done
 
-FAKE_IT_TILL_YOU_MAKE_IT=False
+FAKE_PSDK=False
 for arg in "$@"; do
     if [[ "$arg" == "fake_it" ]]; then
         echo "A fake version of PSDK will be launched. Useful for testing without a drone connected."
-        FAKE_IT_TILL_YOU_MAKE_IT=True
+        FAKE_PSDK=True
         break
     fi
 done
+
+
+if [[ "$(whoami)" == *"alars"* ]]; then
+    USE_SIM_TIME=False
+    CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
+else
+    USE_SIM_TIME=True
+    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
+fi
+
 
 TESTING_MODE=False
 for arg in "$@"; do
     if [[ "$arg" == "testing" ]]; then
         echo "Testing mode enabled!"
         TESTING_MODE=True
-        FAKE_IT_TILL_YOU_MAKE_IT=True
+        FAKE_PSDK=True
         NO_CAM=True
+        # use realtime, so we dont have to publish a clock in testing...
+        USE_SIM_TIME=False
         break
     fi
 done
@@ -74,27 +86,7 @@ if tmux has-session -t $SESSION 2>/dev/null; then
 fi
 
 
-if [[ "$(whoami)" == *"alars"* ]]; then
-    USE_SIM_TIME=False
-else
-    USE_SIM_TIME=True
-fi
 
-
-if [[ $USE_SIM_TIME == "True" ]]; then
-    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
-else
-    CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
-fi
-
-
-# if [[ $USE_SIM_TIME == "True" ]]; then
-#     # useful to make sure we don't accidentally connect to real hardware with the sim bringup
-#     # or when your pc has these set for the real thing and you dont want to swap around :,)
-#     export ROS_SUPER_CLIENT=""
-#     export ROS_DISCOVERY_SERVER=""
-#     export ROS_DOMAIN_ID=""
-# fi
 
 ########
 # PARAMS
@@ -148,7 +140,7 @@ DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.
 SERVICE_CALLER_CMD="ros2 run dji_captain service_caller --ros-args -r __ns:=/$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME -p robot_name:=$ROBOT_NAME"
 ALARS_SERVICES_CMD="ros2 launch dji_captain alars_services.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 
-if [[ $FAKE_IT_TILL_YOU_MAKE_IT == "True" ]]; then
+if [[ $FAKE_PSDK == "True" ]]; then
     WRAPPER_CMD="ros2 run dji_captain psdk_faker --ros-args -r __ns:=/$ROBOT_NAME -p robot_name:=$ROBOT_NAME -p use_sim_time:=$USE_SIM_TIME"
 fi
 
@@ -370,7 +362,7 @@ row(
 ##### STOP IF TESTING MODE
 ##########################
 
-if [[ $TESTING_MODE == "True"]]; 
+if [[ $TESTING_MODE == "True" ]]; then
     echo "Testing mode enabled, not launching drivers, mqtt or ros bridge. Exiting happy."
     exit 0
 fi
