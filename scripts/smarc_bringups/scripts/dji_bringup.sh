@@ -33,20 +33,34 @@ if ! [[ "$HOME_ABOVE_WATER" =~ ^[0-9]+\.[0-9]+$ ]]; then
     echo "HOME_ABOVE_WATER is set to $HOME_ABOVE_WATER"
 fi
 
-NO_CAM=$3
-if [[ "$NO_CAM" == "no_cam" ]]; then
-    echo "Camera will be disabled in the dji_captain node. Useful for testing without a camera connected."
-    NO_CAM=True
-else
-    NO_CAM=False
-fi
+NO_CAM=False
+for arg in "$@"; do
+    if [[ "$arg" == "no_cam" ]]; then
+        echo "Camera will be disabled in the dji_captain node. Useful for testing without a camera connected."
+        NO_CAM=True
+        break
+    fi
+done
 
-FAKE_IT_TILL_YOU_MAKE_IT=$4
-if [[ "$FAKE_IT_TILL_YOU_MAKE_IT" == "fake_it" ]]; then
-    FAKE_IT_TILL_YOU_MAKE_IT=True
-else
-    FAKE_IT_TILL_YOU_MAKE_IT=False
-fi
+FAKE_IT_TILL_YOU_MAKE_IT=False
+for arg in "$@"; do
+    if [[ "$arg" == "fake_it" ]]; then
+        echo "A fake version of PSDK will be launched. Useful for testing without a drone connected."
+        FAKE_IT_TILL_YOU_MAKE_IT=True
+        break
+    fi
+done
+
+TESTING_MODE=False
+for arg in "$@"; do
+    if [[ "$arg" == "testing" ]]; then
+        echo "Testing mode enabled!"
+        TESTING_MODE=True
+        FAKE_IT_TILL_YOU_MAKE_IT=True
+        NO_CAM=True
+        break
+    fi
+done
 
 
 SESSION=${ROBOT_NAME}_bringup
@@ -350,6 +364,21 @@ row(
 )"
 
 
+
+
+##########################
+##### STOP IF TESTING MODE
+##########################
+
+if [[ $TESTING_MODE == "True"]]; 
+    echo "Testing mode enabled, not launching drivers, mqtt or ros bridge. Exiting happy."
+    exit 0
+fi
+
+
+
+
+
 ############
 # 6 Drivers
 ############
@@ -449,6 +478,8 @@ if [[ $USE_SIM_TIME = "True" ]]; then
 fi
 
 
+
 tmux -2 attach-session -t "$SESSION"
 tmux set-option -t "$SESSION" mouse on
 tmux select-window -t "$SESSION:Captains"
+

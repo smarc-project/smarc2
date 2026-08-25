@@ -97,3 +97,10 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon build --symlink-install
+
+      - name: Run dji_bringup.sh
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
