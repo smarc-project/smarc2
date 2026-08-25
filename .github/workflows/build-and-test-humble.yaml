@@ -103,6 +103,7 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
+          export ROS_DOMAIN_ID=1
           nohup ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing \
           > /dev/null 2>&1 &
           echo "Waiting for dji_bringup.sh to start..."
@@ -113,6 +114,7 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
+          export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
 
       - name: Kill tmux server
