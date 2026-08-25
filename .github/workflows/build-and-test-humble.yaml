@@ -81,6 +81,14 @@ jobs:
             git submodule update --init external_packages/mqtt_bridge/
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
+            
+      - name: Get ALARS submodules and dependencies
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/external_packages/ALARS
+        run: |
+            git submodule update --init messages/psdk_interfaces
+
+
       - name: Rosdep
         shell: bash
         working-directory: colcon_ws
@@ -108,6 +116,8 @@ jobs:
           echo "Waiting for dji_bringup.sh to start..."
           sleep 5
           bash src/smarc2/.github/workflows/list_tmux_panes.sh
+          echo ">>>> ROS NODES"
+          ros2 node list
 
       - name: Test dji_captain topics
         shell: bash
@@ -115,10 +125,6 @@ jobs:
         run: |
           source install/setup.bash
           export ROS_DOMAIN_ID=1
-          echo ">>>> ROS NODES"
-          ros2 node list
-          echo ">>>> ROS TOPICS"
-          ros2 topic list"
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=600.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
 
       - name: Kill tmux server
