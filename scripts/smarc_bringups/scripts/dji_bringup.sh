@@ -358,19 +358,6 @@ row(
 
 
 
-##########################
-##### STOP IF TESTING MODE
-##########################
-
-if [[ $TESTING_MODE == "True" ]]; then
-    echo "Testing mode enabled, not launching drivers, mqtt or ros bridge. Exiting happy."
-    exit 0
-fi
-
-
-
-
-
 ############
 # 6 Drivers
 ############

@@ -103,4 +103,23 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
+          nohup ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing \
+          > /dev/null 2>&1 &
+          echo "Waiting for dji_bringup.sh to start..."
+          sleep 5
+
+      - name: Check dji_captain status string
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          timeout 30 ros2 topic echo /M350/status_str/captain_status --once
+
+      - name: Kill tmux server
+        if: always()
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          tmux kill-server
+
+          
