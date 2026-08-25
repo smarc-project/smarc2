@@ -113,7 +113,7 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=10 -p topics_file:=dji_captain.yaml -r __ns:=/M350
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=10.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
 
       - name: Kill tmux server
         if: always()
