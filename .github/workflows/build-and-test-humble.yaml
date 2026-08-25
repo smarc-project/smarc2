@@ -81,10 +81,10 @@ jobs:
             git submodule update --init external_packages/mqtt_bridge/
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
-            
+
       - name: Get ALARS submodules and dependencies
         shell: bash
-        working-directory: colcon_ws/src/${{ github.event.repository.name }}/external_packages/ALARS
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
 
@@ -115,7 +115,10 @@ jobs:
           ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
           echo "Waiting for dji_bringup.sh to start..."
           sleep 5
+          echo ">>>> TMUX PANES"
           bash src/smarc2/.github/workflows/list_tmux_panes.sh
+          echo ">>>> PANE OUTPUTS"
+          bash src/smarc2/.github/workflows/print_tmux_panes.sh
           echo ">>>> ROS NODES"
           ros2 node list
 
