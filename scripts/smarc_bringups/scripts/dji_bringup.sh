@@ -457,8 +457,12 @@ if [[ $USE_SIM_TIME = "True" ]]; then
 fi
 
 
+if [[ $TESTING_MODE == "False" ]]; then
+    tmux -2 attach-session -t "$SESSION"
+    tmux set-option -t "$SESSION" mouse on
+    tmux select-window -t "$SESSION:Captains"
+else
+    exit 0    
+fi
 
-tmux -2 attach-session -t "$SESSION"
-tmux set-option -t "$SESSION" mouse on
-tmux select-window -t "$SESSION:Captains"
 

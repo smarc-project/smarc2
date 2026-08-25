@@ -113,7 +113,7 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          timeout 30 ros2 topic echo /M350/status_str/captain_status --once
+          ros2 run dji_captain dji_captain_tester 
 
       - name: Kill tmux server
         if: always()

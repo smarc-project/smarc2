@@ -31,6 +31,7 @@ setup(
             'service_caller = dji_captain.dji_service_caller:main',
             'joy_tester = dji_captain.joy_tester:main',
             'psdk_faker = dji_captain.psdk_faker:main',
+            'dji_captain_tester = dji_captain.dji_captain_tester:main',
         ],
     },
 )
