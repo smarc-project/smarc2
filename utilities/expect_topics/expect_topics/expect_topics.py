@@ -192,8 +192,8 @@ class ExpectTopics(Node):
             )
 
         yaml_config = self._load_yaml(topics_file)
-        self.expected_topics = self._load_topics(yaml_config)
-        self.expected_nodes = self._load_nodes(yaml_config)
+        self.expected_topics = self._validate_topics(yaml_config)
+        self.expected_nodes = self._validate_and_namespace_nodes(yaml_config)
 
         # Keyed by the resolved ROS topic/node name.
         self.received_topics: dict[str, bool] = {}
@@ -281,8 +281,10 @@ class ExpectTopics(Node):
         if not isinstance(config, dict):
             raise RuntimeError(f"YAML root in '{path}' must be a dictionary")
 
+        return config
 
-    def _load_nodes(self, config: dict) -> list[dict]:
+
+    def _validate_and_namespace_nodes(self, config: dict) -> list[dict]:
         nodes = config.get("nodes")
 
         if not isinstance(nodes, list):
@@ -304,9 +306,11 @@ class ExpectTopics(Node):
             if node_name[0] != "/":
                 node_name = f"{self.get_namespace()}/{node_name}" if self.get_namespace() else f"/{node_name}"
 
+            entry["name"] = node_name
+
         return nodes
 
-    def _load_topics(self, config: dict) -> list[dict]:
+    def _validate_topics(self, config: dict) -> list[dict]:
         topics = config.get("topics")
 
         if not isinstance(topics, list):
