@@ -1,3 +1,5 @@
+nodes:
+  - name: "dji_captain"
 topics:
   # dji specific
   - topic: "dji_msgs.msg::Topics.CAPTAIN_STATUS_STR_TOPIC"

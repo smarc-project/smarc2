@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -189,13 +190,16 @@ class ExpectTopics(Node):
                 "'topics_file' ROS parameter must point to a YAML file"
             )
 
-        self.expected_topics = self._load_topics(topics_file)
+        yaml_config = self._load_yaml(topics_file)
+        self.expected_topics = self._load_topics(yaml_config)
+        self.expected_nodes = self._load_nodes(yaml_config)
 
-        # Keyed by the resolved ROS topic name.
-        self.received: dict[str, bool] = {}
+        # Keyed by the resolved ROS topic/node name.
+        self.received_topics: dict[str, bool] = {}
+        self.received_nodes: dict[str, bool] = {}
 
         # Keep subscription objects alive.
-        self.subscriptions_ = []
+        self.subs = []
 
         for entry in self.expected_topics:
 
@@ -204,10 +208,8 @@ class ExpectTopics(Node):
 
             topic = resolve_topic(topic_spec)
 
-            if topic in self.received:
-                raise RuntimeError(
-                    f"Duplicate topic after resolution: '{topic}'"
-                )
+            if topic in self.received_topics:
+                raise RuntimeError(f"Duplicate topic after resolution: '{topic}'")
 
             try:
                 msg_type = get_message(type_name)
@@ -219,12 +221,10 @@ class ExpectTopics(Node):
 
             qos = parse_qos(entry.get("qos"))
 
-            self.received[topic] = False
+            self.received_topics[topic] = False
 
             if topic == topic_spec:
-                self.get_logger().info(
-                    f"Expecting: {topic} [{type_name}]"
-                )
+                self.get_logger().info(f"Expecting: {topic} [{type_name}]")
             else:
                 self.get_logger().info(
                     f"Expecting: {topic} [{type_name}] "
@@ -238,7 +238,7 @@ class ExpectTopics(Node):
                 qos,
             )
 
-            self.subscriptions_.append(subscription)
+            self.subs.append(subscription)
 
         self.done = False
         self.success = False
@@ -247,18 +247,15 @@ class ExpectTopics(Node):
         # is enabled but /clock has not started yet.
         self.start_time = time.monotonic()
 
-        self.timer = self.create_timer(
-            0.1,
-            self._check,
-        )
+        self.timer = self.create_timer(0.1, self._check)
+        self.node_timer = self.create_timer(1.0, self._check_nodes)
 
         self.get_logger().info(
             f"Waiting up to {self.timeout_sec:.1f}s for "
-            f"{len(self.received)} expected topic(s)..."
+            f"{len(self.received_topics)} expected topic(s)..."
         )
 
-    def _load_topics(self, filename: str) -> list[dict]:
-
+    def _load_yaml(self, filename: str) -> dict:
         path = Path(filename).expanduser()
 
         if not path.is_file():
@@ -279,76 +276,128 @@ class ExpectTopics(Node):
                 f"YAML root in '{path}' must be a dictionary"
             )
 
+    def _load_nodes(self, config: dict) -> list[dict]:
+        nodes = config.get("nodes")
+
+        if not isinstance(nodes, list):
+            raise RuntimeError("YAML must contain a 'nodes' list")
+
+        if not nodes:
+            raise RuntimeError("YAML 'nodes' list is empty")
+
+        for index, entry in enumerate(nodes):
+
+            if not isinstance(entry, dict):
+                raise RuntimeError(f"nodes[{index}] must be a dictionary")
+
+            if "name" not in entry:
+                raise RuntimeError(f"nodes[{index}] is missing 'name'")
+
+            node_name = entry["name"]
+
+            if not isinstance(node_name, str) or not node_name:
+                raise RuntimeError(f"nodes[{index}].name must be a non-empty string")
+
+            if node_name[0] != "/":
+                node_name = f"{self.get_namespace()}/{node_name}" if self.get_namespace() else f"/{node_name}"
+
+        return nodes
+
+    def _load_topics(self, config: dict) -> list[dict]:
         topics = config.get("topics")
 
         if not isinstance(topics, list):
-            raise RuntimeError(
-                "YAML must contain a 'topics' list"
-            )
+            raise RuntimeError("YAML must contain a 'topics' list")
 
         if not topics:
-            raise RuntimeError(
-                "YAML 'topics' list is empty"
-            )
+            raise RuntimeError("YAML 'topics' list is empty")
 
         for index, entry in enumerate(topics):
 
             if not isinstance(entry, dict):
-                raise RuntimeError(
-                    f"topics[{index}] must be a dictionary"
-                )
+                raise RuntimeError(f"topics[{index}] must be a dictionary")
 
             if "topic" not in entry:
-                raise RuntimeError(
-                    f"topics[{index}] is missing 'topic'"
-                )
+                raise RuntimeError(f"topics[{index}] is missing 'topic'")
 
             if "type" not in entry:
-                raise RuntimeError(
-                    f"topics[{index}] is missing 'type'"
-                )
+                raise RuntimeError(f"topics[{index}] is missing 'type'")
 
             topic_spec = entry["topic"]
             type_name = entry["type"]
 
             if not isinstance(topic_spec, str) or not topic_spec:
-                raise RuntimeError(
-                    f"topics[{index}].topic must be a non-empty string"
-                )
+                raise RuntimeError(f"topics[{index}].topic must be a non-empty string")
 
             if not isinstance(type_name, str) or not type_name:
-                raise RuntimeError(
-                    f"topics[{index}].type must be a non-empty string"
-                )
+                raise RuntimeError(f"topics[{index}].type must be a non-empty string")
 
             if "qos" in entry and not isinstance(entry["qos"], dict):
-                raise RuntimeError(
-                    f"topics[{index}].qos must be a dictionary"
-                )
+                raise RuntimeError(f"topics[{index}].qos must be a dictionary")
 
         return topics
 
     def _topic_callback(self, topic: str):
 
-        if self.received[topic]:
+        if self.received_topics[topic]:
             return
 
-        self.received[topic] = True
+        self.received_topics[topic] = True
 
-        received_count = sum(self.received.values())
-        total_count = len(self.received)
+        received_count = sum(self.received_topics.values())
+        total_count = len(self.received_topics)
 
         self.get_logger().info(
             f"Received: {topic} "
             f"({received_count}/{total_count})"
         )
 
+    def _node_callback(self, node_name: str):
+        
+        if self.received_nodes[node_name]:
+            return
+
+        self.received_nodes[node_name] = True
+
+        received_count = sum(self.received_nodes.values())
+        total_count = len(self.received_nodes)
+
+        self.get_logger().info(
+            f"Detected node: {node_name} "
+            f"({received_count}/{total_count})"
+        )
+
+    def _check_nodes(self):
+        try:
+            result = subprocess.run(
+                ["ros2", "node", "list"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception as exc:
+            self.get_logger().warning(f"Failed to run 'ros2 node list': {exc}")
+            return
+
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            self.get_logger().warning(
+                f"'ros2 node list' failed with code {result.returncode}: {stderr}"
+            )
+            return
+
+        for node_name in result.stdout.splitlines():
+            node_name = node_name.strip()
+            if not node_name:
+                continue
+            self._node_callback(node_name)
+
     def _check(self):
 
         if self.done:
             return
 
-        if all(self.received.values()):
+        if all(self.received_topics.values()) and all(self.received_nodes.values()):
 
             self.success = True
             self.done = True
@@ -356,11 +405,13 @@ class ExpectTopics(Node):
             elapsed = time.monotonic() - self.start_time
 
             self.get_logger().info(
-                f"SUCCESS: all {len(self.received)} expected topics "
+                f"SUCCESS: all {len(self.received_topics)} expected topics "
+                f"and {len(self.received_nodes)} expected nodes "
                 f"received in {elapsed:.2f}s."
             )
 
             self.timer.cancel()
+            self.node_timer.cancel()
             return
 
         elapsed = time.monotonic() - self.start_time
@@ -371,30 +422,49 @@ class ExpectTopics(Node):
         self.success = False
         self.done = True
 
-        missing = [
+        missing_topics = [
             topic
-            for topic, received in self.received.items()
+            for topic, received in self.received_topics.items()
             if not received
         ]
 
-        received = [
+        received_topics = [
             topic
-            for topic, got_it in self.received.items()
+            for topic, got_it in self.received_topics.items()
+            if got_it
+        ]
+
+        missing_nodes = [
+            node
+            for node, received in self.received_nodes.items()
+            if not received
+        ]
+
+        received_nodes = [
+            node
+            for node, got_it in self.received_nodes.items()
             if got_it
         ]
 
         message = (
             f"FAILURE: timeout after {elapsed:.2f}s.\n"
-            f"Received {len(received)}/{len(self.received)} topics.\n"
-            f"Missing {len(missing)} topic(s):"
+            f"Received {len(received_topics)}/{len(self.received_topics)} topics.\n"
+            f"Received {len(received_nodes)}/{len(self.received_nodes)} nodes.\n"
+            f"Missing {len(missing_topics)} topic(s):"
         )
 
-        for topic in missing:
+        for topic in missing_topics:
             message += f"\n  - {topic}"
+
+        message += f"\nMissing {len(missing_nodes)} node(s):"
+
+        for node in missing_nodes:
+            message += f"\n  - {node}"
 
         self.get_logger().error(message)
 
         self.timer.cancel()
+        self.node_timer.cancel()
 
 
 def main(args=None):

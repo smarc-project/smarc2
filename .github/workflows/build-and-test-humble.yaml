@@ -114,11 +114,7 @@ jobs:
           export ROS_DOMAIN_ID=1
           ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
           echo "Waiting for dji_bringup.sh to start..."
-          sleep 5
-          echo ">>>> TMUX PANES"
-          bash src/smarc2/.github/workflows/list_tmux_panes.sh
-          echo ">>>> PANE OUTPUTS"
-          bash src/smarc2/.github/workflows/print_tmux_panes.sh
+          sleep 10
           echo ">>>> ROS NODES"
           ros2 node list
 
