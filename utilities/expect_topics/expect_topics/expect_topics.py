@@ -345,7 +345,9 @@ class ExpectTopics(Node):
         return topics
 
     def _topic_callback(self, topic: str):
-        if self.received_topics.get(topic, False):
+        # if it exists, and received, skip
+        # if it doesnt exist, skip it too
+        if self.received_topics.get(topic, True):
             return
 
         self.received_topics[topic] = True
@@ -359,7 +361,9 @@ class ExpectTopics(Node):
         )
 
     def _node_callback(self, node_name: str):
-        if self.received_nodes.get(node_name, False):
+        # if it exists, and received, skip
+        # if it doesnt exist, skip it too
+        if self.received_nodes.get(node_name, True):
             return
 
         self.received_nodes[node_name] = True
