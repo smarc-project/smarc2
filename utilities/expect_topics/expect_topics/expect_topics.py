@@ -4,6 +4,7 @@ import importlib
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 
@@ -201,8 +202,17 @@ class ExpectTopics(Node):
         # Keep subscription objects alive.
         self.subs = []
 
-        for entry in self.expected_topics:
+        for entry in self.expected_nodes:
+            node_name = entry["name"]
 
+            if node_name in self.received_nodes:
+                raise RuntimeError(f"Duplicate node name: '{node_name}'")
+
+            self.received_nodes[node_name] = False
+            self.get_logger().info(f"Expecting node: {node_name}")
+
+
+        for entry in self.expected_topics:
             topic_spec = entry["topic"]
             type_name = entry["type"]
 
@@ -255,41 +265,34 @@ class ExpectTopics(Node):
             f"{len(self.received_topics)} expected topic(s)..."
         )
 
+
     def _load_yaml(self, filename: str) -> dict:
         path = Path(filename).expanduser()
 
         if not path.is_file():
-            raise RuntimeError(
-                f"Topics YAML file does not exist: '{path}'"
-            )
+            raise RuntimeError(f"Topics YAML file does not exist: '{path}'")
 
         try:
             with path.open("r") as f:
                 config = yaml.safe_load(f)
         except Exception as exc:
-            raise RuntimeError(
-                f"Failed to load YAML file '{path}': {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to load YAML file '{path}': {exc}") from exc
 
         if not isinstance(config, dict):
-            raise RuntimeError(
-                f"YAML root in '{path}' must be a dictionary"
-            )
+            raise RuntimeError(f"YAML root in '{path}' must be a dictionary")
+
 
     def _load_nodes(self, config: dict) -> list[dict]:
         nodes = config.get("nodes")
 
         if not isinstance(nodes, list):
             raise RuntimeError("YAML must contain a 'nodes' list")
-
         if not nodes:
             raise RuntimeError("YAML 'nodes' list is empty")
 
         for index, entry in enumerate(nodes):
-
             if not isinstance(entry, dict):
                 raise RuntimeError(f"nodes[{index}] must be a dictionary")
-
             if "name" not in entry:
                 raise RuntimeError(f"nodes[{index}] is missing 'name'")
 
@@ -487,7 +490,7 @@ def main(args=None):
 
     except KeyboardInterrupt:
         print(
-            "[ERROR] Topic reception test interrupted.",
+            "[ERROR] Topic/Node reception test interrupted.",
             file=sys.stderr,
             flush=True,
         )
@@ -495,10 +498,11 @@ def main(args=None):
 
     except Exception as exc:
         print(
-            f"[ERROR] Topic reception test setup failed: {exc}",
+            f"[ERROR] Topic/Node reception test setup failed: {exc}",
             file=sys.stderr,
             flush=True,
         )
+        traceback.print_exc(file=sys.stderr)
         success = False
 
     finally:
