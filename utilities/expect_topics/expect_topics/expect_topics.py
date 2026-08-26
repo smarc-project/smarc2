@@ -345,8 +345,7 @@ class ExpectTopics(Node):
         return topics
 
     def _topic_callback(self, topic: str):
-
-        if self.received_topics[topic]:
+        if self.received_topics.get(topic, False):
             return
 
         self.received_topics[topic] = True
@@ -360,8 +359,7 @@ class ExpectTopics(Node):
         )
 
     def _node_callback(self, node_name: str):
-        
-        if self.received_nodes[node_name]:
+        if self.received_nodes.get(node_name, False):
             return
 
         self.received_nodes[node_name] = True
