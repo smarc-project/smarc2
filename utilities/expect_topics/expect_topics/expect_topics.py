@@ -233,7 +233,19 @@ class ExpectTopics(Node):
             qos = parse_qos(entry.get("qos"))
 
             self.received_topics[topic] = False
-            self.expected_content[topic] = entry.get("content")
+
+            content = entry.get("content")
+            if content is None:
+                self.expected_content[topic] = None
+            else:
+                # Track every configured value independently. A topic is only
+                # considered received once all values have been observed.
+                values = list(dict.fromkeys(content["values"]))
+                self.expected_content[topic] = {
+                    "field": content["field"],
+                    "values": values,
+                    "remaining": values.copy(),
+                }
 
             if topic == topic_spec:
                 self.get_logger().info(f"Expecting: {topic} [{type_name}]")
@@ -243,9 +255,12 @@ class ExpectTopics(Node):
                     f"<- {topic_spec}"
                 )
 
-            content = entry.get("content")
+            content = self.expected_content[topic]
             if content is not None:
-                 self.get_logger().info(f"  content: {content['field']} contains {content['value']!r}")
+                self.get_logger().info(
+                    f"  content: {content['field']} must receive all of "
+                    f"{content['values']!r}"
+                )
 
             subscription = self.create_subscription(
                 msg_type,
@@ -357,12 +372,16 @@ class ExpectTopics(Node):
                  if "field" not in content:
                      raise RuntimeError(f"topics[{index}].content is missing 'field'")
  
-                 if "value" not in content:
-                     raise RuntimeError(f"topics[{index}].content is missing 'value'")
+                 if "values" not in content:
+                     raise RuntimeError(f"topics[{index}].content is missing 'values'")
  
                  field = content["field"]
                  if not isinstance(field, str) or not field:
                      raise RuntimeError(f"topics[{index}].content.field must be a non-empty string")
+
+                 values = content["values"]
+                 if not isinstance(values, list) or not values:
+                     raise RuntimeError(f"topics[{index}].content.values must be a non-empty list")
 
         return topics
 
@@ -383,7 +402,7 @@ class ExpectTopics(Node):
                     f"while resolving '{field}'"
                 )
             value = getattr(value, part)
-            return value
+        return value
 
     @staticmethod
     def _content_matches(actual, expected) -> bool:
@@ -410,22 +429,43 @@ class ExpectTopics(Node):
         content = self.expected_content.get(topic)
         if content is not None:
             field = content["field"]
-            expected = content["value"]
+            remaining = content["remaining"]
 
             try:
                 actual = self._get_message_field(msg, field)
             except AttributeError as exc:
-                self.get_logger().warning(f"Received {topic}, but could not inspect content: {exc}")
-                return
-
-            if not self._content_matches(actual, expected):
-                self.get_logger().debug(
-                    f"Received {topic}, but content did not match: "
-                    f"{field}={actual!r}, expected to contain {expected!r}"
+                self.get_logger().warning(
+                    f"Received {topic}, but could not inspect content: {exc}"
                 )
                 return
 
-        # If we got here, either there was no content to check, or the content matched.
+            matched = [
+                expected
+                for expected in remaining
+                if self._content_matches(actual, expected)
+            ]
+
+            if not matched:
+                self.get_logger().debug(
+                    f"Received {topic}, but content did not match any remaining value: "
+                    f"{field}={actual!r}, remaining={remaining!r}"
+                )
+                return
+
+            for expected in matched:
+                remaining.remove(expected)
+                self.get_logger().info(
+                    f"Received expected content: {topic} "
+                    f"[{field}={expected!r}] "
+                    f"({len(content['values']) - len(remaining)}/"
+                    f"{len(content['values'])} values)"
+                )
+
+            if remaining:
+                return
+
+        # If we got here, either there was no content check, or every configured
+        # value for this topic has now been observed at least once.
         self.received_topics[topic] = True
 
         received_count = sum(self.received_topics.values())
@@ -438,8 +478,8 @@ class ExpectTopics(Node):
             )
         else:
             self.get_logger().info(
-                f"Received matching content: {topic} "
-                f"[{content['field']} contains {content['value']!r}] "
+                f"Received all expected content: {topic} "
+                f"[{content['field']}: {content['values']!r}] "
                 f"({received_count}/{total_count})"
             )
 
@@ -547,6 +587,9 @@ class ExpectTopics(Node):
 
         for topic in missing_topics:
             message += f"\n  - {topic}"
+            content = self.expected_content.get(topic)
+            if content is not None and content["remaining"]:
+                message += f" (missing values: {content['remaining']!r})"
 
         message += f"\nMissing {len(missing_nodes)} node(s):"
 

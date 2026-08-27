@@ -1,0 +1,37 @@
+nodes:
+  - name: "alars_move_to_action_server"
+  - name: "land_action_server"
+  - name: "takeoff_action_server"
+  - name: "release_control_action_server"
+  - name: "take_control_action_server"
+
+topics:
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_ACTION_SERVER_HB_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+    content:
+      field: "data"
+      values: 
+        - "/M350/move_to"
+        - "/M350/alars_land"
+        - "/M350/alars_takeoff"
+        - "/M350/alars_release_control"
+        - "/M350/alars_take_control"
+
+        # - "/M350/alars_follow_auv"
+        # - "/M350/alars_recover"
+        # - "/M350/alars_search"
+
+        # - "/M350/alars_estimate_rope_swing"
+
+        # - "/M350/smarc_log"
+        # - "/M350/smarc_start_geofence"
+        # - "/M350/smarc_stop_geofence"
+        # - "/M350/smarc_wait"
+
+
+
+

@@ -118,6 +118,15 @@ jobs:
           echo ">>>> ROS NODES"
           ros2 node list
 
+      - name: smarc basics live
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          export ROS_DOMAIN_ID=1
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=smarc_basics.yaml -r __ns:=/M350
+
+
       - name: dji_captain lives
         shell: bash
         working-directory: colcon_ws
@@ -126,13 +135,21 @@ jobs:
           export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
 
-      - name: alars move_to lives
+      - name: dji basics live
         shell: bash
         working-directory: colcon_ws
         run: |
           source install/setup.bash
           export ROS_DOMAIN_ID=1
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_move_to.yaml -r __ns:=/M350         
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_basics.yaml -r __ns:=/M350
+
+      - name: alars actions live
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          export ROS_DOMAIN_ID=1
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_actions.yaml -r __ns:=/M350         
 
       - name: Kill tmux server
         if: always()
