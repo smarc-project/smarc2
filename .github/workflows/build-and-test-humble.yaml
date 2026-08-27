@@ -89,6 +89,8 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
+            sudo apt remove -y python3-transforms3d
+            pip install -y sympy control transforms3d numpy==1.26.4
 
 
       - name: Rosdep
@@ -154,6 +156,13 @@ jobs:
         run: |
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=wasp_bt.yaml -r __ns:=/M350
+
+      - name: dji rope swingers live
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
 
       - name: Kill tmux server
         if: always()
