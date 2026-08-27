@@ -125,17 +125,18 @@ jobs:
 
       - name: Setup tmux logging
         shell: bash
-        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        working-directory: colcon_ws
         run: |
           tmux start-server \; set-option -g exit-empty off
+          LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
           tmux set-hook -g after-new-session \
-            "run-shell 'log_tmux_pane.sh \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
           tmux set-hook -g after-new-window \
-            "run-shell 'log_tmux_pane.sh \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
           tmux set-hook -g after-split-window \
-            "run-shell 'log_tmux_pane.sh \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
 
       - name: Run dji_bringup.sh
