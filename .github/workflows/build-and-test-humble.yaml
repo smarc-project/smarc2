@@ -127,6 +127,7 @@ jobs:
         shell: bash
         working-directory: colcon_ws
         run: |
+          source install/setup.bash
           tmux start-server \; set-option -g exit-empty off
           LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
           tmux set-hook -g after-new-session \
