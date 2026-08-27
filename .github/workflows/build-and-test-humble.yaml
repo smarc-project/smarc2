@@ -127,6 +127,7 @@ jobs:
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
         run: |
+          tmux start-server \; set-option -g exit-empty off
           tmux set-hook -g after-new-session "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
           tmux set-hook -g after-new-window "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
           tmux set-hook -g after-split-window "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
