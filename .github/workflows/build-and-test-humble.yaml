@@ -84,7 +84,7 @@ jobs:
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
 
-      - name: Get ALARS submodules and dependencies
+      - name: Get ALARS submodules
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
@@ -100,7 +100,20 @@ jobs:
           sudo rosdep init
           rosdep update
           source /opt/ros/humble/setup.bash
-          rosdep install --from-paths src --ignore-src -r -y
+          rosdep install --from-paths src --ignore-src -r -
+          
+
+
+
+      - name: Hacky bits of installation for ALARS
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            sudo apt remove -y python3-transforms3d
+            pip install --no-input sympy control transforms3d numpy==1.26.4      
+
+
+
 
       - name: Build workspace
         shell: bash
@@ -108,6 +121,9 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon build --symlink-install
+
+
+
 
       - name: Run dji_bringup.sh
         shell: bash
@@ -126,7 +142,6 @@ jobs:
         run: |
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=smarc_basics.yaml -r __ns:=/M350
-
 
       - name: dji_captain lives
         shell: bash
@@ -162,6 +177,8 @@ jobs:
         run: |
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
+
+
 
       - name: Kill tmux server
         if: always()
