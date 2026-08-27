@@ -29,6 +29,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-22.04
+    env: 
+      ROS_DOMAIN_ID: 1
 
     steps:
       - uses: actions/checkout@v7
@@ -111,7 +113,6 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          export ROS_DOMAIN_ID=1
           ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
           echo "Waiting for dji_bringup.sh to start..."
           sleep 10
@@ -123,7 +124,6 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=smarc_basics.yaml -r __ns:=/M350
 
 
@@ -132,7 +132,6 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
 
       - name: dji basics live
@@ -140,7 +139,6 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_basics.yaml -r __ns:=/M350
 
       - name: alars actions live
@@ -148,7 +146,6 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          export ROS_DOMAIN_ID=1
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_actions.yaml -r __ns:=/M350         
 
       - name: Kill tmux server
