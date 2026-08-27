@@ -4,6 +4,7 @@ nodes:
   - name: "takeoff_action_server"
   - name: "release_control_action_server"
   - name: "take_control_action_server"
+  - name: "dji_service_caller_node"
 
 topics:
   - topic: "smarc_msgs.msg::Topics.WARA_PS_ACTION_SERVER_HB_TOPIC"
@@ -21,16 +22,6 @@ topics:
         - "/M350/alars_release_control"
         - "/M350/alars_take_control"
 
-        # - "/M350/alars_follow_auv"
-        # - "/M350/alars_recover"
-        # - "/M350/alars_search"
-
-        # - "/M350/alars_estimate_rope_swing"
-
-        # - "/M350/smarc_log"
-        # - "/M350/smarc_start_geofence"
-        # - "/M350/smarc_stop_geofence"
-        # - "/M350/smarc_wait"
 
 
 

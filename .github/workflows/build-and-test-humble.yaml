@@ -146,7 +146,14 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_actions.yaml -r __ns:=/M350         
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_actions.yaml -r __ns:=/M350
+
+      - name: wasp_bt lives
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=wasp_bt.yaml -r __ns:=/M350
 
       - name: Kill tmux server
         if: always()
