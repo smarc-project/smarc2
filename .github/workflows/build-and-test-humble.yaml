@@ -89,7 +89,6 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
-            sudo apt remove -y python3-transforms3d
             pip install -y sympy control transforms3d numpy==1.26.4
 
 
