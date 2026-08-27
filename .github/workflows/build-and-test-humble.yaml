@@ -90,7 +90,6 @@ jobs:
         run: |
             git submodule update --init messages/psdk_interfaces
             git submodule update --init perception/smarc_yolo/yolo_ros
-            pip install --no-input sympy control transforms3d numpy==1.26.4
 
 
       - name: Rosdep
