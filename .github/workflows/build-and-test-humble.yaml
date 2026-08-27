@@ -189,9 +189,9 @@ jobs:
       - name: Print tmux pane output and kill tmux server
         if: always()
         shell: bash
-        working-directory: colcon_ws
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
         run: |
-          sh .github/workflows/print_tmux_logs.sh
+          sh print_tmux_logs.sh
           tmux kill-server
 
           
