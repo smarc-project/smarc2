@@ -123,6 +123,13 @@ jobs:
           colcon build --symlink-install
 
 
+      - name: Setup tmux logging
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        run: |
+          tmux set-hook -g after-new-session "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+          tmux set-hook -g after-new-window "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+          tmux set-hook -g after-split-window "run-shell 'log_tmux_pane \"#{hook_pane}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
 
       - name: Run dji_bringup.sh
@@ -178,13 +185,12 @@ jobs:
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
 
-
-
-      - name: Kill tmux server
+      - name: Print tmux pane output and kill tmux server
         if: always()
         shell: bash
         working-directory: colcon_ws
         run: |
+          sh .github/workflows/print_tmux_logs.sh
           tmux kill-server
 
           
