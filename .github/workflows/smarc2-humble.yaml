@@ -1,34 +1,52 @@
 # .github/workflows/build-and-test-humble.yaml
 
-name: Build ROS2 Humble workspace(and run tests)
+name: SMaRC2 Base on Humble
 
 on:
   push:
     branches: [humble, gh_workflow_testing]
-    paths-ignore:
-    - '**/*.md'
-    - 'docs/**'
-    - 'docker/**'
-    - 'documentation/**'
-    - 'drivers/**'
-    - 'simulation/**'
-    - 'LICENSE'
-    - '.gitignore'
+    paths:
+    - '**/CMakeLists.txt'
+    - '**/package.xml'
+    - '**/*.cmake'
+    - '**/*.c'
+    - '**/*.cc'
+    - '**/*.cpp'
+    - '**/*.cxx'
+    - '**/*.h'
+    - '**/*.hh'
+    - '**/*.hpp'
+    - '**/*.hxx'
+    - '**/*.msg'
+    - '**/*.srv'
+    - '**/*.action'
+    - '**/*.idl'
+    - '.github/workflows/smarc2-humble.yaml'
   pull_request:
     branches: [humble, gh_workflow_testing]
-    paths-ignore:
-    - '**/*.md'
-    - 'docs/**'
-    - 'docker/**'
-    - 'documentation/**'
-    - 'drivers/**'
-    - 'simulation/**'
-    - 'LICENSE'
-    - '.gitignore'
+    paths:
+    - '**/CMakeLists.txt'
+    - '**/package.xml'
+    - '**/*.cmake'
+    - '**/*.c'
+    - '**/*.cc'
+    - '**/*.cpp'
+    - '**/*.cxx'
+    - '**/*.h'
+    - '**/*.hh'
+    - '**/*.hpp'
+    - '**/*.hxx'
+    - '**/*.msg'
+    - '**/*.srv'
+    - '**/*.action'
+    - '**/*.idl'
+    - '.github/workflows/smarc2-humble.yaml'
 
 jobs:
   build-and-test:
     runs-on: ubuntu-22.04
+    env: 
+      ROS_DOMAIN_ID: 1
 
     steps:
       - uses: actions/checkout@v7
@@ -82,13 +100,6 @@ jobs:
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
 
-      - name: Get ALARS submodules and dependencies
-        shell: bash
-        working-directory: colcon_ws/src/${{ github.event.repository.name }}
-        run: |
-            git submodule update --init messages/psdk_interfaces
-
-
       - name: Rosdep
         shell: bash
         working-directory: colcon_ws
@@ -99,38 +110,11 @@ jobs:
           source /opt/ros/humble/setup.bash
           rosdep install --from-paths src --ignore-src -r -y
 
+
       - name: Build workspace
         shell: bash
         working-directory: colcon_ws
         run: |
           source /opt/ros/humble/setup.bash
           colcon build --symlink-install
-
-      - name: Run dji_bringup.sh
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          export ROS_DOMAIN_ID=1
-          ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
-          echo "Waiting for dji_bringup.sh to start..."
-          sleep 10
-          echo ">>>> ROS NODES"
-          ros2 node list
-
-      - name: Test dji_captain topics
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          export ROS_DOMAIN_ID=1
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=600.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
-
-      - name: Kill tmux server
-        if: always()
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          tmux kill-server
-
           

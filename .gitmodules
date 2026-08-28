@@ -74,7 +74,7 @@
 	url = git@github.com:smarc-project/smarc_qgis_mission_control.git
 [submodule "perception/smarc_yolo/yolo_ros"]
 	path = perception/smarc_yolo/yolo_ros
-	url = git@github.com:smarc-project/yolo_ros.git
+	url = https://github.com/smarc-project/yolo_ros.git
 [submodule "navigation/dead_reckoning/hydrobatic_localization"]
 	path = navigation/dead_reckoning/hydrobatic_localization
 	url = git@github.com:ignaciotb/hydrobatic_localization.git
