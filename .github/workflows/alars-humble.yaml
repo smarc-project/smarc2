@@ -1,19 +1,31 @@
-# .github/workflows/build-and-test-humble.yaml
+# .github/workflows/alars-humble.yaml
 
-name: Build ROS2 Humble workspace(and run tests)
+name: Test ALARS Bringup on Humble
 
 on:
   push:
     branches: [humble, gh_workflow_testing]
-    paths-ignore:
-    - '**/*.md'
-    - 'docs/**'
-    - 'docker/**'
-    - 'documentation/**'
-    - 'drivers/**'
-    - 'simulation/**'
-    - 'LICENSE'
-    - '.gitignore'
+    paths:
+    - '**/CMakeLists.txt'
+    - '**/package.xml'
+    - '**/*.cmake'
+    - '**/*.c'
+    - '**/*.cc'
+    - '**/*.cpp'
+    - '**/*.cxx'
+    - '**/*.h'
+    - '**/*.hh'
+    - '**/*.hpp'
+    - '**/*.hxx'
+    - '**/*.msg'
+    - '**/*.srv'
+    - '**/*.action'
+    - '**/*.idl'
+    - '.github/workflows/alars-humble.yaml'
+    - '**/*dji*/**'
+    - '**/*alars*/**'
+    - '**/*psdk*/**'
+    - '**/*smarc*/**'
   pull_request:
     branches: [humble, gh_workflow_testing]
     paths-ignore:
@@ -25,9 +37,14 @@ on:
     - 'simulation/**'
     - 'LICENSE'
     - '.gitignore'
+    - '.github/workflows/alars-humble.yaml'
+    - '**/*dji*/**'
+    - '**/*alars*/**'
+    - '**/*psdk*/**'
+    - '**/*smarc*/**'
 
 jobs:
-  build-and-test:
+  alars-humble:
     runs-on: ubuntu-22.04
     env: 
       ROS_DOMAIN_ID: 1
@@ -89,7 +106,7 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
-            git submodule update --init perception/smarc_yolo/yolo_ros
+            pip install --no-input sympy control transforms3d numpy==1.26.4
 
 
       - name: Rosdep
@@ -100,7 +117,7 @@ jobs:
           sudo rosdep init
           rosdep update
           source /opt/ros/humble/setup.bash
-          rosdep install --from-paths src --ignore-src -r -y
+          rosdep install --from-paths src --ignore-src -r -
           
 
 
@@ -123,21 +140,6 @@ jobs:
           colcon build --symlink-install
 
 
-      - name: Setup tmux logging
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          tmux start-server \; set-option -g exit-empty off
-          LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
-          tmux set-hook -g after-new-session \
-            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
-
-          tmux set-hook -g after-new-window \
-            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
-
-          tmux set-hook -g after-split-window \
-            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
 
       - name: Run dji_bringup.sh
@@ -193,12 +195,13 @@ jobs:
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
 
-      - name: Print tmux pane output and kill tmux server
+
+
+      - name: Kill tmux server
         if: always()
         shell: bash
-        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        working-directory: colcon_ws
         run: |
-          sh print_tmux_logs.sh
           tmux kill-server
 
           
