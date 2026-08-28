@@ -113,6 +113,7 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
+            git submodule update --init perception/smarc_yolo/yolo_ros
 
 
       - name: Rosdep
