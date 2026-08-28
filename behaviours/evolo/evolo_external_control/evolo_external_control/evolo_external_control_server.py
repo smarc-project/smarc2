@@ -74,7 +74,7 @@ class EvoloExternalControl():
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
 
         self.target_yaw_sub = self._node.create_subscription(Float32, evoloTopics.EVOLO_EXTERNAL_CONTROL_YAW_SETPOINT, self.robot_target_yaw_callback,10, callback_group=self.subscriber_callback_group)
-        self.target_speed_sub = self._node.create_subscription(Float32, evoloTopics.EVOLo_EXTERNAL_CONTROL_, self.robot_target_speed_callback,10, callback_group=self.subscriber_callback_group)
+        self.target_speed_sub = self._node.create_subscription(Float32, evoloTopics.EVOLO_EXTERNAL_CONTROL_SPEED_SETPOINT, self.robot_target_speed_callback,10, callback_group=self.subscriber_callback_group)
 
         self._node.get_logger().info("Action server started")
 
