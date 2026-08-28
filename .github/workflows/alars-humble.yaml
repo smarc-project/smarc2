@@ -113,7 +113,6 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init messages/psdk_interfaces
-            pip install --no-input sympy control transforms3d numpy==1.26.4
 
 
       - name: Rosdep
@@ -124,7 +123,7 @@ jobs:
           sudo rosdep init
           rosdep update
           source /opt/ros/humble/setup.bash
-          rosdep install --from-paths src --ignore-src -r -
+          rosdep install --from-paths src --ignore-src -r -y
           
 
 
@@ -147,6 +146,21 @@ jobs:
           colcon build --symlink-install
 
 
+      - name: Setup tmux logging
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          tmux start-server \; set-option -g exit-empty off
+          LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
+          tmux set-hook -g after-new-session \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-new-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-split-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
 
       - name: Run dji_bringup.sh
@@ -204,11 +218,12 @@ jobs:
 
 
 
-      - name: Kill tmux server
+      - name: Print tmux pane output and kill tmux server
         if: always()
         shell: bash
-        working-directory: colcon_ws
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
         run: |
+          sh print_tmux_logs.sh
           tmux kill-server
 
           
