@@ -1,0 +1,43 @@
+teleop_twist_joy_node:
+  ros__parameters:
+
+    #we are not using enable buton (for now)
+    require_enable_button: false
+
+    # -------------------------
+    # LINEAR MOVEMENTS
+    # -------------------------
+
+    # Left Stick Y -> Forward / Backward
+    axis_linear:
+      x: 1
+
+      # we don't have linear.y movement
+      y: -1
+
+      # will be 6 when R2-L2 is added
+      z: 6
+
+    scale_linear:
+      x: 1.0
+      y: 0.0
+      z: 1.0
+
+
+    # -------------------------
+    # ANGULAR MOVEMENTS
+    # -------------------------
+
+    # Right Stick X -> Roll
+    # Right Stick Y -> Pitch
+    # Left Stick X  -> Yaw
+    axis_angular:
+      roll: 3
+      pitch: 4
+      yaw: 0
+
+    scale_angular:
+      roll: 1.0
+      pitch: 1.0
+      yaw: 1.0
+
