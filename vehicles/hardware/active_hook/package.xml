@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>active_hook_captain</name>
+  <name>active_hook</name>
   <version>0.0.0</version>
   <description>Teleop + mavros bridge captain interface for an ardusub rov</description>
   <maintainer email="aliulvi4103@hotmail.com">Ali Ulvi Kaplan</maintainer>
@@ -14,7 +14,7 @@
 
   <exec_depend>joy</exec_depend>
   <exec_depend>teleop_twist_joy</exec_depend>
-  <exec_depend>mavros</exec_depend>s
+  <exec_depend>mavros</exec_depend>
 
 
   <test_depend>ament_copyright</test_depend>

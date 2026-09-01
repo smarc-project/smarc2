@@ -15,23 +15,33 @@ STABILIZE_MODE_BUTTON = 2   # TRIANGLE
 DEPTH_HOLD_MODE_BUTTON = 1  # CIRCLE
 
 
+EXPO = 1.8
+
+FORWARD_SCALE = 1.0
+VERTICAL_SCALE = 1.0
+
+YAW_SCALE = 0.8
+PITCH_SCALE = 0.3
+ROLL_SCALE = 0.3
+
+
 class ActiveHookCaptain(Node):
 
     def __init__(self):
         super().__init__('active_hook_captain')
 
         # TODO: yayıncılar (joy_rov_publisher, manual_control_publisher)
-        self.joy_rov_publisher = self.create_publisher(Joy, 'joy_rov', 10)
-        self.manual_control_publisher = self.create_publisher(ManualControl, 'mavros/manual_control/control', 10)
+        self.joy_rov_publisher = self.create_publisher(Joy, '/joy_rov', 10)
+        self.manual_control_publisher = self.create_publisher(ManualControl, '/mavros/manual_control/send', 10)
 
         # TODO: dinleyiciler (joy_subscriber, twist_subscriber, state_subscriber)
-        self.joy_subscriber = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
-        self.twist_subscriber = self.create_subscription(Twist, 'cmd_vel', self.twist_callback, 10)
-        self.state_subscriber = self.create_subscription(State, 'mavros/state', self.state_callback, 10)
+        self.joy_subscriber = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
+        self.twist_subscriber = self.create_subscription(Twist, '/rov/autonomy/cmd_vel', self.twist_callback, 10)
+        self.state_subscriber = self.create_subscription(State, '/mavros/state', self.state_callback, 10)
 
         # TODO: servis istemcileri (arming_client, set_mode_client)
-        self.arming_client = self.create_client(CommandBool, 'mavros/cmd/arming')
-        self.set_mode_client = self.create_client(SetMode, 'mavros/set_mode')
+        self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
+        self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
 
         # TODO: durum değişkenleri (previous_button_states, current_mode, current_armed)
         self.previous_button_states = {}
@@ -40,6 +50,8 @@ class ActiveHookCaptain(Node):
 
     # === A) Joystick ön işleme ===
     def joy_callback(self, joy_message):
+        if len(joy_message.axes) < 6:
+            return
 
         l2 = joy_message.axes[2]
         r2 = joy_message.axes[5]
@@ -54,16 +66,11 @@ class ActiveHookCaptain(Node):
         self.handle_buttons(joy_message)
 
 
-    @staticmethod
-    def get_button(joy_message, button_index):
-        if button_index < 0 :
-            return 0
-        if button_index >= len(joy_message.buttons):
-            return 0
-        return int(joy_message.buttons[button_index])
-
     def button_pressed_once(self, joy_message, button_index):
-        current_state = self.get_button(joy_message, button_index)
+        if not (0 <= button_index < len(joy_message.buttons)):
+            return False
+    
+        current_state = int(joy_message.buttons[button_index])
         previous_state = self.previous_button_states.get(button_index, 0)
         self.previous_button_states[button_index] = current_state
 
@@ -72,32 +79,115 @@ class ActiveHookCaptain(Node):
     def handle_buttons(self, joy_message):
         if self.button_pressed_once(joy_message, ARM_BUTTON):
             self.send_arm_command(True)
-        elif self.button_pressed_once(joy_message, DISARM_BUTTON):
-            self.send_disarm_command(True)
-        elif self.button_pressed_once(joy_message, MANUAL_MODE_BUTTON):
+        if self.button_pressed_once(joy_message, DISARM_BUTTON):
+            self.send_arm_command(False)
+        if self.button_pressed_once(joy_message, MANUAL_MODE_BUTTON):
             self.send_mode_command('MANUAL')
-        elif self.button_pressed_once(joy_message, STABILIZE_MODE_BUTTON):
+        if self.button_pressed_once(joy_message, STABILIZE_MODE_BUTTON):
             self.send_mode_command('STABILIZE')
-        elif self.button_pressed_once(joy_message, DEPTH_HOLD_MODE_BUTTON):
+        if self.button_pressed_once(joy_message, DEPTH_HOLD_MODE_BUTTON):
             self.send_mode_command('ALT_HOLD')
+
     # === B) Komut çevirisi ===
-    def twist_callback(self, msg):
+    def twist_callback(self, twist_message):
+        forward = self.shape_axis(twist_message.linear.x, FORWARD_SCALE)
+        vertical = self.shape_axis(twist_message.linear.z, VERTICAL_SCALE)
+        roll = self.shape_axis(-twist_message.angular.x, ROLL_SCALE)
+        pitch = self.shape_axis(twist_message.angular.y, PITCH_SCALE)
+        yaw = self.shape_axis(twist_message.angular.z, YAW_SCALE)
+
         
+        manual_message = ManualControl()
+        manual_message.header.stamp = self.get_clock().now().to_msg()
+
+        manual_message.x = forward * 1000.0
+        manual_message.y = 0.0
+        manual_message.z = 500 + vertical * 500.0
+        manual_message.r = yaw * 1000.0
+        manual_message.s = pitch * 1000.0
+        manual_message.t = roll * 1000.0
+
+        manual_message.buttons = 0
+        manual_message.buttons2 = 0
+        manual_message.enabled_extensions = 0b00000011
+
+        manual_message.aux1 = 0.0
+        manual_message.aux2 = 0.0
+        manual_message.aux3 = 0.0
+        manual_message.aux4 = 0.0
+        manual_message.aux5 = 0.0
+        manual_message.aux6 = 0.0
+
+        self.manual_control_publisher.publish(manual_message)
 
     @staticmethod
     def shape_axis(value, scale):
-        
+        value = max(-1.0, min(1.0, value))
+        value = math.copysign(abs(value) ** EXPO, value)
+        value *= scale
+        return max(-1.0, min(1.0, value))
+    
 
     # === C) MAVROS durum takibi ===
-    def state_callback(self, msg):
-        
+    def state_callback(self, state_message):
+        if state_message.mode != self.current_mode:
+            self.current_mode = state_message.mode
+            self.get_logger().info(f"Vehicle mode changed to: {self.current_mode}")
+
+        if state_message.armed != self.current_armed:
+            self.current_armed = state_message.armed
+            arm_state = "ARMED" if self.current_armed else "DISARMED"
+            self.get_logger().info(f"Vehicle state changed to: {arm_state}")
 
     # === D) MAVROS servis çağrıları ===
     def send_arm_command(self, arm):
-        
+        action = "ARM" if arm else "DISARM"
+
+        if not self.arming_client.service_is_ready():
+            self.get_logger().warning(f"{action} request ignored: service not available.")
+            return
+
+        request = CommandBool.Request()
+        request.value = arm
+        future = self.arming_client.call_async(request)
+
+        def on_response(completed_future):
+            try:
+                response = completed_future.result()
+                if response.success:
+                    self.get_logger().info(f"{action} accepted.")
+                else:
+                    self.get_logger().warning(f"{action} rejected.")
+            except Exception as error:
+                self.get_logger().error(f"{action} failed: {error}")
+
+        future.add_done_callback(on_response)
 
     def send_mode_command(self, mode_name):
-        
+        if self.current_mode == mode_name:
+            self.get_logger().info(f"Vehicle is already in {mode_name} mode.")
+            return
+
+        if not self.set_mode_client.service_is_ready():
+            self.get_logger().warning(f"{mode_name} request ignored: service not available.")
+            return
+
+        request = SetMode.Request()
+        request.base_mode = 0
+        request.custom_mode = mode_name
+        future = self.set_mode_client.call_async(request)
+
+        def on_response(completed_future):
+            try:
+                response = completed_future.result()
+                if response.mode_sent:
+                    self.get_logger().info(f"{mode_name} mode request sent.")
+                else:
+                    self.get_logger().warning(f"{mode_name} mode request rejected.")
+            except Exception as error:
+                self.get_logger().error(f"{mode_name} mode service call failed: {error}")
+
+        future.add_done_callback(on_response)
 
 
 def main(args=None):
