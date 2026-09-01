@@ -30,25 +30,25 @@ class ActiveHookCaptain(Node):
     def __init__(self):
         super().__init__('active_hook_captain')
 
-        # TODO: yayıncılar (joy_rov_publisher, manual_control_publisher)
+        # (joy_rov_publisher, manual_control_publisher)
         self.joy_rov_publisher = self.create_publisher(Joy, '/joy_rov', 10)
         self.manual_control_publisher = self.create_publisher(ManualControl, '/mavros/manual_control/send', 10)
 
-        # TODO: dinleyiciler (joy_subscriber, twist_subscriber, state_subscriber)
+        # (joy_subscriber, twist_subscriber, state_subscriber)
         self.joy_subscriber = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
         self.twist_subscriber = self.create_subscription(Twist, '/rov/autonomy/cmd_vel', self.twist_callback, 10)
         self.state_subscriber = self.create_subscription(State, '/mavros/state', self.state_callback, 10)
 
-        # TODO: servis istemcileri (arming_client, set_mode_client)
+        # (arming_client, set_mode_client)
         self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
         self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
 
-        # TODO: durum değişkenleri (previous_button_states, current_mode, current_armed)
+        # (previous_button_states, current_mode, current_armed)
         self.previous_button_states = {}
         self.current_mode = ''
         self.current_armed = False      
 
-    # === A) Joystick ön işleme ===
+    # Joystick 
     def joy_callback(self, joy_message):
         if len(joy_message.axes) < 6:
             return
@@ -88,7 +88,7 @@ class ActiveHookCaptain(Node):
         if self.button_pressed_once(joy_message, DEPTH_HOLD_MODE_BUTTON):
             self.send_mode_command('ALT_HOLD')
 
-    # === B) Komut çevirisi ===
+    # -velocity to manual control conversion
     def twist_callback(self, twist_message):
         forward = self.shape_axis(twist_message.linear.x, FORWARD_SCALE)
         vertical = self.shape_axis(twist_message.linear.z, VERTICAL_SCALE)
@@ -128,7 +128,7 @@ class ActiveHookCaptain(Node):
         return max(-1.0, min(1.0, value))
     
 
-    # === C) MAVROS durum takibi ===
+    # MAVROS State 
     def state_callback(self, state_message):
         if state_message.mode != self.current_mode:
             self.current_mode = state_message.mode
@@ -139,7 +139,7 @@ class ActiveHookCaptain(Node):
             arm_state = "ARMED" if self.current_armed else "DISARMED"
             self.get_logger().info(f"Vehicle state changed to: {arm_state}")
 
-    # === D) MAVROS servis çağrıları ===
+    # MAVROS Command Services
     def send_arm_command(self, arm):
         action = "ARM" if arm else "DISARM"
 
