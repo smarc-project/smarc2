@@ -31,17 +31,17 @@ class ActiveHookCaptain(Node):
         super().__init__('active_hook_captain')
 
         # (joy_rov_publisher, manual_control_publisher)
-        self.joy_rov_publisher = self.create_publisher(Joy, '/joy_rov', 10)
-        self.manual_control_publisher = self.create_publisher(ManualControl, '/mavros/manual_control/send', 10)
+        self.joy_rov_publisher = self.create_publisher(Joy, 'joy_rov', 10)
+        self.manual_control_publisher = self.create_publisher(ManualControl, 'mavros/manual_control/send', 10)
 
         # (joy_subscriber, twist_subscriber, state_subscriber)
-        self.joy_subscriber = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
-        self.twist_subscriber = self.create_subscription(Twist, '/rov/autonomy/cmd_vel', self.twist_callback, 10)
-        self.state_subscriber = self.create_subscription(State, '/mavros/state', self.state_callback, 10)
+        self.joy_subscriber = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
+        self.twist_subscriber = self.create_subscription(Twist, 'rov/autonomy/cmd_vel', self.twist_callback, 10)
+        self.state_subscriber = self.create_subscription(State, 'mavros/state', self.state_callback, 10)
 
         # (arming_client, set_mode_client)
-        self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
-        self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
+        self.arming_client = self.create_client(CommandBool, 'mavros/cmd/arming')
+        self.set_mode_client = self.create_client(SetMode, 'mavros/set_mode')
 
         # (previous_button_states, current_mode, current_armed)
         self.previous_button_states = {}
@@ -87,14 +87,16 @@ class ActiveHookCaptain(Node):
             self.send_mode_command('STABILIZE')
         if self.button_pressed_once(joy_message, DEPTH_HOLD_MODE_BUTTON):
             self.send_mode_command('ALT_HOLD')
+            
 
     # -velocity to manual control conversion
+    # yaw is reversed to keep control scheme as wanted
     def twist_callback(self, twist_message):
         forward = self.shape_axis(twist_message.linear.x, FORWARD_SCALE)
         vertical = self.shape_axis(twist_message.linear.z, VERTICAL_SCALE)
         roll = self.shape_axis(-twist_message.angular.x, ROLL_SCALE)
         pitch = self.shape_axis(twist_message.angular.y, PITCH_SCALE)
-        yaw = self.shape_axis(twist_message.angular.z, YAW_SCALE)
+        yaw = self.shape_axis(-twist_message.angular.z, YAW_SCALE)
 
         
         manual_message = ManualControl()
