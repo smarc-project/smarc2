@@ -1,4 +1,4 @@
-teleop_twist_joy_node:
+/**:
   ros__parameters:
 
     #we are not using enable buton (for now)
