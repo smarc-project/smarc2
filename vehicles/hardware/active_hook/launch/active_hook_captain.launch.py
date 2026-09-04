@@ -42,51 +42,23 @@ def generate_launch_description():
         ]
     )
 
-    mavros_container = ComposableNodeContainer(
-        name='mavros_container',
-        namespace='ActiveHook',
-        package='rclcpp_components',
-        executable='component_container_mt',
-        composable_node_descriptions=[
-            ComposableNode(
-                package='mavros',
-                plugin='mavros::router::Router',
-                name='router',
-                namespace='ActiveHook',
-                parameters=[{
-                    'fcu_urls': ['udp://0.0.0.0:14551@'],
-                    'uas_urls': ['/uas1'],
-                }],
-            ),
-            ComposableNode(
-                package='mavros',
-                plugin='mavros::uas::UAS',
-                name='uas',
-                namespace='ActiveHook/mavros',
-                parameters=[{
-                    'uas_url': '/uas1',
-                    'system_id': 255,
-                    'component_id': 191,
-                    'target_system_id': 1,
-                    'target_component_id': 1,
-                    'plugin_denylist': [
-                        'actuator_control', 'altitude', 'ftp', 'geofence',
-                        'global_position', 'home_position', 'imu', 'local_position',
-                        'nav_controller_output', 'param', 'rallypoint', 'rc_io',
-                        'setpoint_accel', 'setpoint_attitude', 'setpoint_position',
-                        'setpoint_raw', 'setpoint_trajectory', 'setpoint_velocity',
-                        'sys_time', 'waypoint', 'wind_estimation',
-                    ],
-                }],
-                extra_arguments=[{'use_intra_process_comms': True}]
-            ),
-        ],
-        output='screen',
-    )
+    mavros_node = Node(
+    package='mavros',
+    executable='mavros_node',
+    namespace='ActiveHook/mavros',
+    output='screen',
+    parameters=[{
+        'fcu_url': 'udp://0.0.0.0:14551@',
+        'system_id': 255,
+        'component_id': 191,
+        'target_system_id': 1,
+        'target_component_id': 1,
+    }]
+)
 
     return LaunchDescription([
         joy_node,
         captain_node,
         teleop_node,
-        mavros_container
+        mavros_node
     ])
