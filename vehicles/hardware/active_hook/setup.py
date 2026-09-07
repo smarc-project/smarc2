@@ -6,7 +6,7 @@ package_name = 'active_hook'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='0.0.1',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -21,8 +21,8 @@ setup(
     zip_safe=True,
     maintainer='kaplan',
     maintainer_email='aliulvi4103@hotmail.com',
-    description='Teleop + mavros bridge captain interface for an ardusub rov',
-    license='Apache-2.0',
+    description='Teleop + mavros bridge captain interface for an ArduSub ROV',
+    license='MIT',
     extras_require={
         'test': [
             'pytest',
