@@ -7,6 +7,8 @@ from geometry_msgs.msg import Twist
 from mavros_msgs.msg import ManualControl, State
 from mavros_msgs.srv import CommandBool, SetMode
 
+from active_hook_msgs.msg import Topics as ActiveHookTopics
+
 ARM_BUTTON = 9              # OPTIONS
 DISARM_BUTTON = 8           # CREATE
 
@@ -31,17 +33,17 @@ class ActiveHookCaptain(Node):
         super().__init__('active_hook_captain')
 
         # (joy_rov_publisher, manual_control_publisher)
-        self.joy_rov_publisher = self.create_publisher(Joy, 'joy_rov', 10)
-        self.manual_control_publisher = self.create_publisher(ManualControl, 'mavros/manual_control/send', 10)
+        self.joy_rov_publisher = self.create_publisher(Joy, ActiveHookTopics.JOY_ROV_TOPIC, 10)
+        self.manual_control_publisher = self.create_publisher(ManualControl, ActiveHookTopics.MAVROS_MANUAL_CONTROL_TOPIC, 10)
 
         # (joy_subscriber, twist_subscriber, state_subscriber)
-        self.joy_subscriber = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
-        self.twist_subscriber = self.create_subscription(Twist, 'rov/autonomy/cmd_vel', self.twist_callback, 10)
-        self.state_subscriber = self.create_subscription(State, 'mavros/state', self.state_callback, 10)
+        self.joy_subscriber = self.create_subscription(Joy, ActiveHookTopics.JOY_TOPIC, self.joy_callback, 10)
+        self.twist_subscriber = self.create_subscription(Twist, ActiveHookTopics.AUTONOMY_CMD_VEL_TOPIC, self.twist_callback, 10)
+        self.state_subscriber = self.create_subscription(State, ActiveHookTopics.MAVROS_STATE_TOPIC, self.state_callback, 10)
 
         # (arming_client, set_mode_client)
-        self.arming_client = self.create_client(CommandBool, 'mavros/cmd/arming')
-        self.set_mode_client = self.create_client(SetMode, 'mavros/set_mode')
+        self.arming_client = self.create_client(CommandBool, ActiveHookTopics.MAVROS_ARMING_SRV)
+        self.set_mode_client = self.create_client(SetMode, ActiveHookTopics.MAVROS_SET_MODE_SRV)
 
         # (previous_button_states, current_mode, current_armed)
         self.previous_button_states = {}
