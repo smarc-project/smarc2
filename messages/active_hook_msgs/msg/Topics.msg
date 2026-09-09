@@ -4,10 +4,9 @@
 
 # joystick chain
 string JOY_TOPIC='joy'                                            # sensor_msgs/msg/Joy - raw PS5 controller input
-string JOY_ROV_TOPIC='joy_rov'                                    # sensor_msgs/msg/Joy - with L2/R2 vertical axis added, feeds into teleop_twist_joy
 
 # motion command
-string AUTONOMY_CMD_VEL_TOPIC='rov/autonomy/cmd_vel'              # geometry_msgs/msg/Twist - velocity command from teleop
+string AUTONOMY_CMD_VEL_TOPIC='cmd_vel'                           # geometry_msgs/msg/Twist - velocity commands for autonomous tasks
 
 # mavros / ArduSub bridge
 string MAVROS_MANUAL_CONTROL_TOPIC='mavros/manual_control/send'   # mavros_msgs/msg/ManualControl
