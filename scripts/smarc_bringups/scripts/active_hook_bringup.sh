@@ -54,6 +54,8 @@ if [[ "$MODE" == "real" ]]; then
     -p target_system_id:=1 \
     -p target_component_id:=1"
 
+    CAM_CMD="ros2 launch active_hook cameras.launch.py robot_name:=$ROBOT_NAME"
+
     tmux_make_layout "$SESSION" Captain "
     col(
         row(
@@ -65,6 +67,8 @@ if [[ "$MODE" == "real" ]]; then
             var(STATE_ECHO_CMD)
         )
     )"
+
+    tmux new-window -d -t "$SESSION" -n Cameras "$CAM_CMD; exec bash"
 else
     tmux_make_layout "$SESSION" Captain "
     col(
