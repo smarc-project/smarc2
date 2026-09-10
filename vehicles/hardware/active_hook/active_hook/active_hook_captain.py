@@ -16,6 +16,12 @@ MANUAL_MODE_BUTTON = 3      # SQUARE
 STABILIZE_MODE_BUTTON = 2   # TRIANGLE
 DEPTH_HOLD_MODE_BUTTON = 1  # CIRCLE
 
+AXIS_YAW = 0        # Left Stick X
+AXIS_FORWARD = 1    # Left Stick Y
+AXIS_L2 = 2
+AXIS_ROLL = 3       # Right Stick X
+AXIS_PITCH = 4      # Right Stick Y
+AXIS_R2 = 5
 
 EXPO = 1.8
 
@@ -27,13 +33,13 @@ PITCH_SCALE = 0.3
 ROLL_SCALE = 0.3
 
 
+
 class ActiveHookCaptain(Node):
 
     def __init__(self):
         super().__init__('active_hook_captain')
 
-        # (joy_rov_publisher, manual_control_publisher)
-        self.joy_rov_publisher = self.create_publisher(Joy, ActiveHookTopics.JOY_ROV_TOPIC, 10)
+        # (manual_control_publisher)
         self.manual_control_publisher = self.create_publisher(ManualControl, ActiveHookTopics.MAVROS_MANUAL_CONTROL_TOPIC, 10)
 
         # (joy_subscriber, twist_subscriber, state_subscriber)
@@ -55,16 +61,16 @@ class ActiveHookCaptain(Node):
         if len(joy_message.axes) < 6:
             return
 
-        l2 = joy_message.axes[2]
-        r2 = joy_message.axes[5]
-        vertical = (l2 - r2) / 2.0
+        vertical = (joy_message.axes[AXIS_L2] - joy_message.axes[AXIS_R2]) / 2.0
 
-        new_msg = Joy()
-        new_msg.header = joy_message.header
-        new_msg.axes = list(joy_message.axes[:6]) + [vertical]
-        new_msg.buttons = list(joy_message.buttons)
+        twist = Twist()
+        twist.linear.x = joy_message.axes[AXIS_FORWARD]
+        twist.linear.z = vertical
+        twist.angular.x = joy_message.axes[AXIS_ROLL]
+        twist.angular.y = joy_message.axes[AXIS_PITCH]
+        twist.angular.z = joy_message.axes[AXIS_YAW]
 
-        self.joy_rov_publisher.publish(new_msg)
+        self.apply_twist(twist)
         self.handle_buttons(joy_message)
 
 
@@ -93,36 +99,42 @@ class ActiveHookCaptain(Node):
 
     # -velocity to manual control conversion
     # yaw is reversed to keep control scheme as wanted
+
+    
     def twist_callback(self, twist_message):
+        self.apply_twist(twist_message)
+ 
+    def apply_twist(self, twist_message):
         forward = self.shape_axis(twist_message.linear.x, FORWARD_SCALE)
         vertical = self.shape_axis(twist_message.linear.z, VERTICAL_SCALE)
         roll = self.shape_axis(-twist_message.angular.x, ROLL_SCALE)
         pitch = self.shape_axis(twist_message.angular.y, PITCH_SCALE)
         yaw = self.shape_axis(-twist_message.angular.z, YAW_SCALE)
-
+ 
         
         manual_message = ManualControl()
         manual_message.header.stamp = self.get_clock().now().to_msg()
-
+ 
         manual_message.x = forward * 1000.0
         manual_message.y = 0.0
         manual_message.z = 500 + vertical * 500.0
         manual_message.r = yaw * 1000.0
         manual_message.s = pitch * 1000.0
         manual_message.t = roll * 1000.0
-
+ 
         manual_message.buttons = 0
         manual_message.buttons2 = 0
         manual_message.enabled_extensions = 0b00000011
-
+ 
         manual_message.aux1 = 0.0
         manual_message.aux2 = 0.0
         manual_message.aux3 = 0.0
         manual_message.aux4 = 0.0
         manual_message.aux5 = 0.0
         manual_message.aux6 = 0.0
-
+ 
         self.manual_control_publisher.publish(manual_message)
+
 
     @staticmethod
     def shape_axis(value, scale):

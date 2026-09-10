@@ -31,6 +31,7 @@ setup(
     entry_points={
         'console_scripts': [
             'active_hook_captain = active_hook.active_hook_captain:main',
+            'camera_node = active_hook.camera_node:main',
         ],
     },
 )

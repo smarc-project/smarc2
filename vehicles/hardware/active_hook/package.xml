@@ -14,7 +14,6 @@
   <depend>active_hook_msgs</depend>
 
   <exec_depend>joy</exec_depend>
-  <exec_depend>teleop_twist_joy</exec_depend>
   <exec_depend>mavros</exec_depend>
 
 
