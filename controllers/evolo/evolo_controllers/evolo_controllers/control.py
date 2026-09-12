@@ -9,6 +9,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, Float32
 from nav_msgs.msg import Odometry
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from transforms3d.euler import quat2euler
@@ -168,12 +169,14 @@ class twist_control(Node):
         self.odom_feedback_time = None
 
         #Inputs
-        self.create_subscription(Odometry, evoloTopics.EVOLO_CONTROL_SETPOINT , self.odom_ctrl_cb, 1)
-        self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1)
+        sub_cbg = ReentrantCallbackGroup()
+        self.create_subscription(Odometry, evoloTopics.EVOLO_CONTROL_SETPOINT , self.odom_ctrl_cb, 1, callback_group=sub_cbg)
+        self.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC , self.odom_cb, 1, callback_group=sub_cbg)
 
         #Outputs
-        self.steering_pub = self.create_publisher(Float32, evoloTopics.EVOLO_STEERING_SETPOINT, 1)
-        self.speed_pub = self.create_publisher(Float32, evoloTopics.EVOLO_SPEED_SETPOINT, 1)
+        pub_cbg = ReentrantCallbackGroup()
+        self.steering_pub = self.create_publisher(Float32, evoloTopics.EVOLO_STEERING_SETPOINT, 1, callback_group=pub_cbg)
+        self.speed_pub = self.create_publisher(Float32, evoloTopics.EVOLO_SPEED_SETPOINT, 1, callback_group=pub_cbg)
 
     def time_now(self):
         return self.get_clock().now().nanoseconds * 1e-9
