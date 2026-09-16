@@ -67,7 +67,7 @@ MANUAL_CONTROL_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/manual_control/send
 STATE_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/state mavros_msgs/msg/State"
 
 if [[ "$MODE" == "real" ]]; then
-    MAVROS_CMD="ros2 run mavros mavros_node --ros-args -r __ns:=/$ROBOT_NAME/mavros \
+    MAVROS_CMD="ros2 run mavros mavros_node --ros-args -r __ns:=/$ROBOT_NAME \
     -p fcu_url:=udp://0.0.0.0:14551@ \
     -p system_id:=255 \
     -p component_id:=191 \
@@ -104,6 +104,7 @@ if [[ "$MODE" == "real" ]]; then
     FRONT_CAM_PORT=5602
     BOTTOM_CAM_PORT=5601
 
+
     GSCAM_CONFIG_FRONT="udpsrc port=$FRONT_CAM_PORT ! application/x-rtp,payload=96 ! \
     rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! \
     video/x-raw,format=RGB ! queue max-size-buffers=1 leaky=downstream"
@@ -117,6 +118,8 @@ if [[ "$MODE" == "real" ]]; then
         -p frame_id:=front_camera_optical_frame \
         -p image_encoding:=rgb8 \
         -p sync_sink:=false \
+        -p camera_name:=front_camera \
+        -p camera_info_url:=\"file://$HOME/.ros/camera_info/front_camera.yaml\" \
         -p camera.image_raw.enable_pub_plugins:="['image_transport/raw']" \
         -r __ns:=/$ROBOT_NAME/front_camera"
 
@@ -125,6 +128,8 @@ if [[ "$MODE" == "real" ]]; then
         -p frame_id:=bottom_camera_optical_frame \
         -p image_encoding:=rgb8 \
         -p sync_sink:=false \
+        -p camera_name:=bottom_camera \
+        -p camera_info_url:=\"file://$HOME/.ros/camera_info/bottom_camera.yaml\" \
         -p camera.image_raw.enable_pub_plugins:="['image_transport/raw']" \
         -r __ns:=/$ROBOT_NAME/bottom_camera"
 
