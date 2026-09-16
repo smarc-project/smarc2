@@ -30,7 +30,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'active_hook_captain = active_hook.active_hook_captain:main',
+            'active_hook_captain = active_hook.active_hook_captain:main',   
         ],
     },
 )
