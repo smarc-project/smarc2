@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
 if (( $# == 0 )); then
     echo "Usage: $0 STRING [STRING ...]" >&2
     exit 1
