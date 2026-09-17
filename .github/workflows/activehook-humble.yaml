@@ -180,7 +180,7 @@ jobs:
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run smarc_bringups active_hook_bringup.sh sim
+          ros2 run smarc_bringups active_hook_bringup.sh testing
           echo "Waiting for active_hook_bringup.sh to start..."
           sleep 10
           echo ">>>> ROS NODES"
