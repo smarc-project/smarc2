@@ -125,7 +125,7 @@ jobs:
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
-            bash .github/workflows/create_colcon_ignores.sh lolo sam brov evolo proxops tank dead_reckoning
+            bash .github/workflows/create_colcon_ignores.sh lolo sam brov evolo proxops tank dead_reckoning smarc_control
 
 
 
