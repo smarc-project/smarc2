@@ -118,7 +118,14 @@ jobs:
             git clone https://github.com/mavlink/mavros.git
             cd mavros
             git checkout 7f7e8fdda872a13755ea3f5814b7a42ac2660eef
-            rm -rf mavros_examples
+            rm -rf 
+            
+
+      - name: Ignore unrelated packages
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        run: |
+            sh create_colcon_ignores.sh lolo sam brov evolo proxops tank dead_reckoning
 
 
       - name: Rosdep
