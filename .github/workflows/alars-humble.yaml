@@ -4,7 +4,7 @@ name: Test ALARS Bringup on Humble
 
 on:
   push:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, alars_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
@@ -27,7 +27,7 @@ on:
     - '**/*psdk*/**'
     - '**/*smarc*/**'
   pull_request:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, alars_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'

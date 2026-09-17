@@ -4,7 +4,7 @@ name: SMaRC2 Base on Humble
 
 on:
   push:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, smarc_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
@@ -23,7 +23,7 @@ on:
     - '**/*.idl'
     - '.github/workflows/smarc2-humble.yaml'
   pull_request:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, smarc_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'

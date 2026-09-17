@@ -4,7 +4,7 @@ name: Test ActiveHook Bringup on Humble
 
 on:
   push:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, activehook_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
@@ -25,7 +25,7 @@ on:
     - '**/*active_hook*/**'
     - '**/*smarc*/**'
   pull_request:
-    branches: [humble, gh_workflow_testing]
+    branches: [humble, activehook_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
