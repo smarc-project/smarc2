@@ -116,6 +116,8 @@ jobs:
         working-directory: colcon_ws/src/
         run: |
             git clone https://github.com/mavlink/mavros.git
+            cd mavros
+            git checkout 7f7e8fdda872a13755ea3f5814b7a42ac2660eef
 
 
       - name: Rosdep
