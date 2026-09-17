@@ -15,7 +15,8 @@
 
   <exec_depend>joy</exec_depend>
   <exec_depend>gscam</exec_depend>
-  <exec_depend>mavros</exec_depend>
+   <!-- Add this back in once mavros is back in apt! And remove the temp install in activehook-humble.yaml -->
+  <!-- <exec_depend>mavros</exec_depend>-->
 
 
   <test_depend>ament_copyright</test_depend>

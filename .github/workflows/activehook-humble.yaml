@@ -111,6 +111,13 @@ jobs:
             echo "TODO"
 
 
+      - name: Temp mavros install until it is back in apt...
+        shell: bash
+        working-directory: colcon_ws/src/
+        run: |
+            git clone https://github.com/mavlink/mavros.git
+
+
       - name: Rosdep
         shell: bash
         working-directory: colcon_ws
@@ -129,7 +136,6 @@ jobs:
         run: |
             sudo apt remove -y python3-transforms3d
             pip install --no-input transforms3d numpy==1.26.4
-
 
 
 
