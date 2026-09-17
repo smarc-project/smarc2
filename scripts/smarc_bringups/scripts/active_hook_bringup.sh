@@ -15,9 +15,9 @@ if [[ -z "$MODE" ]]; then
     exit 1
 fi
 
-if [[ "$MODE" != "real" && "$MODE" != "sim" ]]; then
+if [[ "$MODE" != "real" && "$MODE" != "sim" && "$MODE" != "testing" ]]; then
     echo "Invalid mode: $MODE"
-    echo "Please pass either real or sim as the first argument."
+    echo "Please pass either real, sim or testing as the first argument."
     echo "Exiting."
     exit 1
 fi
@@ -159,6 +159,8 @@ if [[ "$MODE" == "real" ]]; then
     )"
 fi
 
-tmux -2 attach-session -t "$SESSION"
-tmux set-option -t "$SESSION" mouse on
-tmux select-window -t "$SESSION:Captain"
+if [[ "$MODE" != "testing" ]]; then
+    tmux -2 attach-session -t "$SESSION"
+    tmux set-option -t "$SESSION" mouse on
+    tmux select-window -t "$SESSION:Captain"
+fi
