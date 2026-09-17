@@ -220,7 +220,7 @@ class ActiveHookCaptain(Node):
         #TODO Actually keep tracks of health in some way!
         # At the moment, just a placeholder to act as a heartbeat
         health_msg = Int8()
-        health_msg.value = SmarcTopics.VEHICLE_HEALTH_READY
+        health_msg.data = SmarcTopics.VEHICLE_HEALTH_READY
         self._vehicle_health_pub.publish(health_msg)
 
 
