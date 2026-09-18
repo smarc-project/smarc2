@@ -1,10 +1,10 @@
-# .github/workflows/alars-humble.yaml
+# .github/workflows/activehook-humble.yaml
 
-name: Test ALARS Bringup on Humble
+name: Test ActiveHook Bringup on Humble
 
 on:
   push:
-    branches: [humble, alars_gh_workflow_testing]
+    branches: [humble, activehook_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
@@ -21,13 +21,11 @@ on:
     - '**/*.srv'
     - '**/*.action'
     - '**/*.idl'
-    - '.github/workflows/alars-humble.yaml'
-    - '**/*dji*/**'
-    - '**/*alars*/**'
-    - '**/*psdk*/**'
+    - '.github/workflows/activehook-humble.yaml'
+    - '**/*active_hook*/**'
     - '**/*smarc*/**'
   pull_request:
-    branches: [humble, alars_gh_workflow_testing]
+    branches: [humble, activehook_gh_workflow_testing]
     paths:
     - '**/CMakeLists.txt'
     - '**/package.xml'
@@ -44,14 +42,12 @@ on:
     - '**/*.srv'
     - '**/*.action'
     - '**/*.idl'
-    - '.github/workflows/alars-humble.yaml'
-    - '**/*dji*/**'
-    - '**/*alars*/**'
-    - '**/*psdk*/**'
+    - '.github/workflows/activehook-humble.yaml'
+    - '**/*active_hook*/**'
     - '**/*smarc*/**'
 
 jobs:
-  alars-humble:
+  activehook-humble:
     runs-on: ubuntu-22.04
     env: 
       ROS_DOMAIN_ID: 1
@@ -108,19 +104,31 @@ jobs:
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
 
-      - name: Get ALARS submodules
+      - name: Get ActiveHook submodules
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
-            git submodule update --init messages/psdk_interfaces
-            git submodule update --init perception/smarc_yolo/yolo_ros
+            echo "TODO"
 
+
+      - name: Temp mavros install until it is back in apt...
+        shell: bash
+        working-directory: colcon_ws/src/
+        run: |
+            sudo apt install ros-humble-mavros ros-humble-mavros-msgs ros-humble-mavros-extras || {
+              git clone https://github.com/mavlink/mavros.git
+              cd mavros
+              git checkout 7f7e8fdda872a13755ea3f5814b7a42ac2660eef
+              rm -rf mavros_examples
+            }
             
+
       - name: Ignore unrelated packages
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             bash .github/workflows/create_colcon_ignores.sh lolo sam brov evolo proxops tank dead_reckoning smarc_control
+
 
 
       - name: Rosdep
@@ -135,14 +143,12 @@ jobs:
           
 
 
-
-      - name: Hacky bits of installation for ALARS
+      - name: Hacky bits of installation for ActiveHook
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             sudo apt remove -y python3-transforms3d
-            pip install --no-input sympy control transforms3d numpy==1.26.4      
-
+            pip install --no-input transforms3d numpy==1.26.4
 
 
 
@@ -171,58 +177,23 @@ jobs:
             "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
 
 
-      - name: Run dji_bringup.sh
+      - name: Run active_hook_bringup.sh
         shell: bash
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run smarc_bringups dji_bringup.sh M350 15.0 testing
-          echo "Waiting for dji_bringup.sh to start..."
+          ros2 run smarc_bringups active_hook_bringup.sh testing
+          echo "Waiting for active_hook_bringup.sh to start..."
           sleep 10
           echo ">>>> ROS NODES"
           ros2 node list
 
-      - name: smarc basics live
+      - name: Active hook captain lives
         shell: bash
         working-directory: colcon_ws
         run: |
           source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=smarc_basics.yaml -r __ns:=/M350
-
-      - name: dji_captain lives
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_captain.yaml -r __ns:=/M350
-
-      - name: dji basics live
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_basics.yaml -r __ns:=/M350
-
-      - name: alars actions live
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=alars_actions.yaml -r __ns:=/M350
-
-      - name: wasp_bt lives
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=wasp_bt.yaml -r __ns:=/M350
-
-      - name: dji rope swingers live
-        shell: bash
-        working-directory: colcon_ws
-        run: |
-          source install/setup.bash
-          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=active_hook_captain.yaml -r __ns:=/ActiveHook
 
 
 
