@@ -46,6 +46,15 @@ if [[ "$MODE" == "real" ]]; then
     fi
 fi
 
+YOLO_TEST=False
+for arg in "$@"; do
+    if [[ "$arg" == "yolo" ]]; then
+        echo "Standalone detection test mode enabled: YOLO (sam only) will be launched."
+        YOLO_TEST=True
+        break
+    fi
+done
+
 SESSION=${ROBOT_NAME}_bringup
 
 # check if there is already a tmux session with this name
@@ -58,6 +67,8 @@ fi
 
 # create a tmux session with a name
 tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
+
+
 
 ############
 # 1 Captain
@@ -158,6 +169,53 @@ if [[ "$MODE" == "real" ]]; then
         var(BOTTOM_PANE_CMD)
     )"
 fi
+
+############
+# 3 Camera & Detection
+############
+
+if [[ "$YOLO_TEST" == "True" ]]; then
+    YOLO_MODEL="yolo_model_4cls_august.pt"
+    OBJECT_CONFIG_FILE="object_estimation.yaml"
+    MARKERS_VISUALIZATION_ENABLE=True
+
+    YOLO_DEVICE="cuda:0"
+    YOLO_THRESHOLD=0.5
+    YOLO_ENABLE=True
+
+    YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
+    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
+    MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
+    if [[ $USE_SIM_TIME = "True" ]]; then
+        YOLO_DEVICE="cpu"
+    fi
+
+    CAMERA_IMAGE_TOPIC="/$ROBOT_NAME/front_camera/camera/image_raw"
+
+    YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
+    input_image_topic:=$CAMERA_IMAGE_TOPIC \
+    robot_name:=$ROBOT_NAME \
+    model_package:=alars_labeling_training \
+    model_subdir:=trained_models \
+    model_file:=$YOLO_MODEL \
+    device:=$YOLO_DEVICE \
+    threshold:=$YOLO_THRESHOLD \
+    enable:=$YOLO_ENABLE
+    "
+
+else
+    YOLO_CMD="echo 'yolo flag not given, skipping standalone detection test'"
+    PROJECTION_CMD="echo 'yolo flag not given, skipping projection node'"
+fi
+
+tmux_make_layout "$SESSION" CamProc "
+row(
+    var(YOLO_CMD),
+    var(PROJECTION_CMD)
+)"
+
+############
+
 
 tmux -2 attach-session -t "$SESSION"
 tmux set-option -t "$SESSION" mouse on
