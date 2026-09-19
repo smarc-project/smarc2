@@ -1,13 +1,17 @@
 import math
 
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Int8
+
 from mavros_msgs.msg import ManualControl, State
 from mavros_msgs.srv import CommandBool, SetMode
 
 from active_hook_msgs.msg import Topics as ActiveHookTopics
+from smarc_msgs.msg import Topics as SmarcTopics
 
 ARM_BUTTON = 9              # OPTIONS
 DISARM_BUTTON = 8           # CREATE
@@ -55,6 +59,12 @@ class ActiveHookCaptain(Node):
         self.previous_button_states = {}
         self.current_mode = ''
         self.current_armed = False      
+
+        # smarc pubs
+        self._vehicle_health_pub = self.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
+        self._vehicle_health_timer = self.create_timer(1, self._publish_vehicle_health)
+
+
 
     # Joystick 
     def joy_callback(self, joy_message):
@@ -204,6 +214,14 @@ class ActiveHookCaptain(Node):
                 self.get_logger().error(f"{mode_name} mode service call failed: {error}")
 
         future.add_done_callback(on_response)
+
+
+    def _publish_vehicle_health(self):
+        #TODO Actually keep tracks of health in some way!
+        # At the moment, just a placeholder to act as a heartbeat
+        health_msg = Int8()
+        health_msg.data = SmarcTopics.VEHICLE_HEALTH_READY
+        self._vehicle_health_pub.publish(health_msg)
 
 
 def main(args=None):
