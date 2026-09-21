@@ -46,6 +46,15 @@ if [[ "$MODE" == "real" ]]; then
     fi
 fi
 
+YOLO_TEST=False
+for arg in "$@"; do
+    if [[ "$arg" == "yolo" ]]; then
+        echo "Standalone detection test mode enabled: YOLO (sam only) will be launched."
+        YOLO_TEST=True
+        break
+    fi
+done
+
 SESSION=${ROBOT_NAME}_bringup
 
 # check if there is already a tmux session with this name
@@ -62,9 +71,10 @@ tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 ############
 # 1 Captain
 ############
-CAPTAIN_CMD="ros2 launch active_hook active_hook_captain.launch.py use_sim_time:=$USE_SIM_TIME"
+CAPTAIN_CMD="ros2 launch active_hook_captain active_hook_captain.launch.py use_sim_time:=$USE_SIM_TIME"
 MANUAL_CONTROL_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/manual_control/send mavros_msgs/msg/ManualControl"
 STATE_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/state mavros_msgs/msg/State"
+SERVICE_CALLER_CMD="ros2 run active_hook_captain active_hook_service_caller --ros-args -r __ns:=/$ROBOT_NAME"
 
 if [[ "$MODE" == "real" ]]; then
     MAVROS_CMD="ros2 run mavros mavros_node --ros-args -r __ns:=/$ROBOT_NAME \
@@ -83,7 +93,8 @@ if [[ "$MODE" == "real" ]]; then
         row(
             var(MANUAL_CONTROL_ECHO_CMD),
             var(STATE_ECHO_CMD)
-        )
+        ),
+        var(SERVICE_CALLER_CMD)
     )"
 else
     tmux_make_layout "$SESSION" Captain "
@@ -92,12 +103,19 @@ else
         row(
             var(MANUAL_CONTROL_ECHO_CMD),
             var(STATE_ECHO_CMD)
-        )
+        ),
     )"
 fi
 
 ############
-# 2 Drivers 
+# 2 Behaviours
+############
+SPIN_TEST_CMD="ros2 run active_hook spin_test_action_server --ros-args -r __ns:=/$ROBOT_NAME"
+
+tmux_make_layout "$SESSION" Behaviours "var(SPIN_TEST_CMD)"
+
+############
+# 3 Drivers 
 ############
 if [[ "$MODE" == "real" ]]; then
 
@@ -159,6 +177,51 @@ if [[ "$MODE" == "real" ]]; then
     )"
 fi
 
+############
+# 4 Camera & Detection
+############
+
+if [[ "$YOLO_TEST" == "True" ]]; then
+    YOLO_MODEL="yolo_model_4cls_august.pt"
+    OBJECT_CONFIG_FILE="object_estimation.yaml"
+    MARKERS_VISUALIZATION_ENABLE=True
+
+    YOLO_DEVICE="cuda:0"
+    YOLO_THRESHOLD=0.5
+    YOLO_ENABLE=True
+
+    YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
+    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
+    MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
+    if [[ $USE_SIM_TIME = "True" ]]; then
+        YOLO_DEVICE="cpu"
+    fi
+
+    CAMERA_IMAGE_TOPIC="/$ROBOT_NAME/front_camera/camera/image_raw"
+
+    YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
+    input_image_topic:=$CAMERA_IMAGE_TOPIC \
+    robot_name:=$ROBOT_NAME \
+    model_package:=alars_labeling_training \
+    model_subdir:=trained_models \
+    model_file:=$YOLO_MODEL \
+    device:=$YOLO_DEVICE \
+    threshold:=$YOLO_THRESHOLD \
+    enable:=$YOLO_ENABLE
+    "
+
+else
+    YOLO_CMD="echo 'yolo flag not given, skipping standalone detection test'"
+fi
+
+tmux_make_layout "$SESSION" YOLO "var(YOLO_CMD)"
+
+############
+
+
+tmux -2 attach-session -t "$SESSION"
+tmux set-option -t "$SESSION" mouse on
+tmux select-window -t "$SESSION:Captain"
 if [[ "$MODE" != "testing" ]]; then
     tmux -2 attach-session -t "$SESSION"
     tmux set-option -t "$SESSION" mouse on

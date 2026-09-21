@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import find_packages, setup
 
-package_name = 'active_hook'
+package_name = 'active_hook_captain'
 
 setup(
     name=package_name,
@@ -30,7 +30,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'active_hook_captain = active_hook.active_hook_captain:main',   
+            'active_hook_captain = active_hook_captain.active_hook_captain:main',   
+            "active_hook_service_caller = active_hook_captain.active_hook_service_caller:main",
         ],
     },
 )
