@@ -71,9 +71,10 @@ tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 ############
 # 1 Captain
 ############
-CAPTAIN_CMD="ros2 launch active_hook active_hook_captain.launch.py use_sim_time:=$USE_SIM_TIME"
+CAPTAIN_CMD="ros2 launch active_hook_captain active_hook_captain.launch.py use_sim_time:=$USE_SIM_TIME"
 MANUAL_CONTROL_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/manual_control/send mavros_msgs/msg/ManualControl"
 STATE_ECHO_CMD="ros2 topic echo /$ROBOT_NAME/mavros/state mavros_msgs/msg/State"
+SERVICE_CALLER_CMD="ros2 run active_hook_captain active_hook_service_caller --ros-args -r __ns:=/$ROBOT_NAME"
 
 if [[ "$MODE" == "real" ]]; then
     MAVROS_CMD="ros2 run mavros mavros_node --ros-args -r __ns:=/$ROBOT_NAME \
@@ -92,7 +93,8 @@ if [[ "$MODE" == "real" ]]; then
         row(
             var(MANUAL_CONTROL_ECHO_CMD),
             var(STATE_ECHO_CMD)
-        )
+        ),
+        var(SERVICE_CALLER_CMD)
     )"
 else
     tmux_make_layout "$SESSION" Captain "
@@ -101,12 +103,19 @@ else
         row(
             var(MANUAL_CONTROL_ECHO_CMD),
             var(STATE_ECHO_CMD)
-        )
+        ),
     )"
 fi
 
 ############
-# 2 Drivers 
+# 2 Behaviours
+############
+SPIN_TEST_CMD="ros2 run active_hook spin_test_action_server --ros-args -r __ns:=/$ROBOT_NAME"
+
+tmux_make_layout "$SESSION" Behaviours "var(SPIN_TEST_CMD)"
+
+############
+# 3 Drivers 
 ############
 if [[ "$MODE" == "real" ]]; then
 
@@ -169,7 +178,7 @@ if [[ "$MODE" == "real" ]]; then
 fi
 
 ############
-# 3 Camera & Detection
+# 4 Camera & Detection
 ############
 
 if [[ "$YOLO_TEST" == "True" ]]; then
@@ -203,14 +212,9 @@ if [[ "$YOLO_TEST" == "True" ]]; then
 
 else
     YOLO_CMD="echo 'yolo flag not given, skipping standalone detection test'"
-    PROJECTION_CMD="echo 'yolo flag not given, skipping projection node'"
 fi
 
-tmux_make_layout "$SESSION" CamProc "
-row(
-    var(YOLO_CMD),
-    var(PROJECTION_CMD)
-)"
+tmux_make_layout "$SESSION" YOLO "var(YOLO_CMD)"
 
 ############
 

@@ -28,7 +28,7 @@ def generate_launch_description():
     )
 
     captain_node = Node(
-        package='active_hook',
+        package='active_hook_captain',
         executable='active_hook_captain',
         name='active_hook_captain',
         namespace='ActiveHook',
