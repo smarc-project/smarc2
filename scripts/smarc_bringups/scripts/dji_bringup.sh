@@ -1,6 +1,7 @@
 #! /bin/bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/tmux_layout.sh"
+source "$SCRIPT_DIR/get_ros_msg.sh"
 
 
 ROBOT_NAME=$1
@@ -54,10 +55,10 @@ done
 
 if [[ "$(whoami)" == *"alars"* ]]; then
     USE_SIM_TIME=False
-    CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
+    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
 else
     USE_SIM_TIME=True
-    CAM_CALIBRATION_FILE="z1_720p_cam_params.yaml"
+    CAM_CALIBRATION_FILE="sim_1080p_cam_params.yaml"
 fi
 
 
@@ -113,6 +114,12 @@ EKF_STALENESS_SECONDS=3.0 # how old do we consider the ekf estimate usable
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2 
 WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0 # Grace period before WASP BT drops stale action servers from available task list.
 
+
+# TOPICS
+ros_constants dji_topics dji_msgs Topics
+ros_constants smarc_topics smarc_msgs Topics
+
+
 # create a tmux session with a name
 tmux -2 new-session -d -x 220 -y 60 -s "$SESSION"
 
@@ -133,7 +140,8 @@ CAPTAIN_CMD="ros2 launch dji_captain alars_captain.launch \
     min_altitude_above_water:=$MIN_ALTITUDE_ABOVE_WATER \
     rope_length:=$HOOK_LINE_LENGTH"
     
-CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/status_str/captain_status std_msgs/msg/String --field data"
+
+CAPTAIN_STATUS_CMD="ros2 topic echo /$ROBOT_NAME/${dji_topics[CAPTAIN_STATUS_STR_TOPIC]} std_msgs/msg/String --field data"
 WRAPPER_CMD="ros2 launch psdk_wrapper wrapper.launch.py namespace:=/$ROBOT_NAME/wrapper"
 # DISCOVERY_SERVER_CMD="fast-discovery-server -i 0"
 DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"
@@ -264,21 +272,22 @@ ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 -p loaded_weight_kg:=$AUV_WEIGHT_KG \
 -p max_detection_age:=15.0"
 
-ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/status_str/alars_bt std_msgs/msg/String --field data"
+ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/${dji_topics[ALARS_BT_STATUS_STR_TOPIC]} std_msgs/msg/String --field data"
 
 ALARS_PING_SEARCH_CMD="ros2 run alars alars_ping_search_action_server --ros-args -r __ns:=/$ROBOT_NAME \
 -p robot_name:=$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME"
+
 
 SUCCOR_CMD="ros2 run serial_ping_pkg modem_ping_estimator_node --ros-args \
 -r __ns:=/$ROBOT_NAME \
 -p use_sim_time:=$USE_SIM_TIME \
 -p serial.port:=/dev/succorfish \
 -p serial.baudrate:=9600 \
--p topics.own_latlon_topic:=/${ROBOT_NAME}/smarc/latlon \
--p topics.own_depth_topic:=/${ROBOT_NAME}/sensor/hook_depth \
+-p topics.own_latlon_topic:=/${ROBOT_NAME}/${smarc_topics[POS_LATLON_TOPIC]} \
+-p topics.own_depth_topic:=/${ROBOT_NAME}/${dji_topics[HOOK_DEPTH_TOPIC]} \
 -p teensy.own_modem_id:=\\'222\\' \
--p topics.geopoint_topic:=/${ROBOT_NAME}/sensor/succorfish_geopoint \
+-p topics.geopoint_topic:=/${ROBOT_NAME}/${dji_topics[SUCCOR_ESTIMATE_TOPIC]} \
 -p topics.marker_topic:=/${ROBOT_NAME}/rviz/succorfish_marker \
 -p topics.map_frame:=${ROBOT_NAME}/map"
 # TODO these would better live in a py launchfile...
@@ -391,13 +400,6 @@ else
         robot_name:=\"$ROBOT_NAME\" \
         use_sim_time:=$USE_SIM_TIME"
 fi
-# GSCAM_CONFIG_FISH="v4l2src device=/dev/insta360x4 ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR"
-# FISH_VIDEO_CMD="ros2 run gscam gscam_node --ros-args \
-#     -p gscam_config:=\"$GSCAM_CONFIG_FISH\" \
-#     -p frame_id:=fisheye_optical_frame \
-#     -p image_encoding:=rgb8 \
-#     -p sync_sink:=false \
-#     -r __ns:=/$ROBOT_NAME/fisheye_camera"
 
 if [[ $USE_SIM_TIME = "False" ]]; then
     tmux_make_layout "$SESSION" Drivers "
