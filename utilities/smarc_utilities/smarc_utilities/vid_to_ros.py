@@ -18,7 +18,7 @@ class VideoImagePublisher(Node):
 
     def __init__(self):
         super().__init__(
-            'alars_video_publisher',
+            'vid_to_ros',
             allow_undeclared_parameters=True,
             automatically_declare_parameters_from_overrides=True
         )
