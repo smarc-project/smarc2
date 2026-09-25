@@ -324,7 +324,7 @@ else
     device:=$YOLO_DEVICE \
     threshold:=0.5 \
     enable:=True \
-    input_image_topic:=$ROBOT_NAME/${dji_topics[GIMBAL_CAMERA_RAW_TOPIC]} \
+    input_image_topic:=/$ROBOT_NAME/${dji_topics[GIMBAL_CAMERA_RAW_TOPIC]} \
     "
 
     PROJECTION_CMD="ros2 launch auv_state_estimation multi_ekf_launch.py \
