@@ -18,8 +18,6 @@ string BASE_LINK_IN_MAP_TOPIC = 'base_link_in_map' # PoseStamped with header.fra
 # cameras
 string GIMBAL_CAMERA_RAW_TOPIC = 'gimbal_camera/camera/image_raw' # Image
 string GIMBAL_CAMERA_INFO_TOPIC = 'gimbal_camera/camera/camera_info' #CameraInfo
-string FISHEYE_CAMERA_RAW_TOPIC = 'fisheye_camera/camera/image_raw' # Image
-string FISHEYE_CAMERA_INFO_TOPIC = 'fisheye_camera/camera/camera_info' #CameraInfo
 
 
 # sensors that are not coming from PSDK
