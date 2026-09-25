@@ -308,12 +308,9 @@ if [[ "$NO_CAM" == "True" ]]; then
     PROJECTION_CMD="echo 'Camera disabled, not launching projection node'"
 else
     YOLO_DEVICE="cuda:0"
-    YOLO_THRESHOLD=0.5
-    YOLO_ENABLE=True
 
     YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
-    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
-    MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
+    PROJECTION_EKF_CONFIG="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
     
     if [[ $USE_SIM_TIME = "True" ]]; then
         YOLO_DEVICE="cpu"
@@ -325,16 +322,17 @@ else
     model_subdir:=trained_models \
     model_file:=$YOLO_MODEL \
     device:=$YOLO_DEVICE \
-    threshold:=$YOLO_THRESHOLD \
-    enable:=$YOLO_ENABLE
+    threshold:=0.5 \
+    enable:=True \
+    input_image_topic:=$ROBOT_NAME/${dji_topics[GIMBAL_CAMERA_RAW_TOPIC]} \
     "
 
     PROJECTION_CMD="ros2 launch auv_state_estimation multi_ekf_launch.py \
     robot_name:=$ROBOT_NAME \
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
-    object_config_file:=$OBJECT_CONFIG_FILE \
-    visualization_enable:=$MARKERS_VISUALIZATION_ENABLE
+    object_config_file:=$PROJECTION_EKF_CONFIG \
+    visualization_enable:=True
     "
 fi
 
