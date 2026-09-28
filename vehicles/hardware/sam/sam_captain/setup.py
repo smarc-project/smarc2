@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'sam_captain = sam_captain.sam_captain:main'
         ],
     },
 )
