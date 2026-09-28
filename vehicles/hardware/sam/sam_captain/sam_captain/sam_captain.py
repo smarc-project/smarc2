@@ -5,12 +5,14 @@
 #       safety and authorization
 
 import rclpy
+from rclpy.node import Node
+from sam_captain.SMARCPublisher import SMARCPublisher
 
-
-class SAMCaptain:
+class SAMCaptain(Node):
     def __init__(self):
-        # TODO: init node
-        # TODO call SMARCPublisher
+        super().__init__('sam_captain')
+        self.get_logger().info('SAM Captain Node has been started.')
+        self._smarc_publisher = SMARCPublisher(self)
         pass
 
 
