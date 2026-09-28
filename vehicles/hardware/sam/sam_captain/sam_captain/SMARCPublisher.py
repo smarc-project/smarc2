@@ -11,12 +11,24 @@ class SMARCPublisher:
     def __init__(self, node: Node):
         self._node = node
         # TODO: read parameters
-        # TODO: create publishers
         # TODO: create subscribers
+        self._create_publishers()
         pass
 
     def _create_publishers(self):
-        pass
+        self.odom_pub = self._node.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
+        self.depth_pub = self._node.create_publisher(Float32, SmarcTopics.DEPTH_TOPIC, 10)
+        self.latlon_pub = self._node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10)
+        self.heading_pub = self._node.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, 10)
+        self.course_pub = self._node.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, 10)
+        self.speed_pub = self._node.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
+        self.altitude_pub = self._node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, 10)
+        # TODO: fix battery status in smarc_msgs
+        # self.battery_status_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_STATUS_TOPIC, 10)
+        self.battery_percent_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
+        self.vehicle_health_pub = self._node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
+        self.heartbeat_pub = self._node.create_publisher(Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10)
+        self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
     def _create_subscribers(self):
         pass
@@ -28,12 +40,13 @@ class SMARCPublisher:
         # TODO /dr/odom -> /smarc/altitude (ALTITUDE_TOPIC)
         # TODO /dr/odom -> /smarc/latlon (LATLON_TOPIC)
         # TODO /dr/odom -> /smarc/course (COURSE_TOPIC)
-        # TODO /dr/odom -> /smarc/speed (POS_LATLON_TOPIC)
+        # TODO /dr/odom -> /smarc/speed (SPEED_TOPIC)
         # TODO /dr/odom -> /smarc/heading (HEADING_TOPIC)
         pass
 
     ### status ###
     def _battery_callback(self, msg):
+        # TODO core/battery_status -> /smarc/battery_status (BATTERY_STATUS_TOPIC)
         # TODO core/battery_status -> /smarc/battery_percent (BATTERY_PERCENT_TOPIC)
         pass
 
