@@ -1,25 +1,37 @@
 # TODO: SMARCPublisher class that converts sam msgs to smarc msgs
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Empty, Int8, Float32, Float64, String
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Empty, Int8, Float32, String
 from nav_msgs.msg import Odometry
 from geographic_msgs.msg import GeoPoint
 from sensor_msgs.msg import BatteryState
 
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
+from tf2_geometry_msgs import do_transform_pose
+
 from smarc_msgs.msg import Topics as SmarcTopics
 from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
+from smarc_utilities.georef_utils import (
+    compute_course_from_two_poses,
+    compute_speed_from_two_poses,
+    convert_enu_pose_to_heading,
+    convert_utm_to_latlon,
+)
 
 class SMARCPublisher:
     def __init__(self, node: Node):
         self._node = node
+        self._node.get_logger().info('SMARCPublisher has been initialized.')
         # TODO: read parameters
-        # TODO: create subscribers
         self._create_publishers()
         self._create_subscribers()
-        pass
 
     def _create_publishers(self):
+        ### nav publishers ###
         self.odom_pub = self._node.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
         self.depth_pub = self._node.create_publisher(Float32, SmarcTopics.DEPTH_TOPIC, 10)
         self.latlon_pub = self._node.create_publisher(GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10)
@@ -27,16 +39,16 @@ class SMARCPublisher:
         self.course_pub = self._node.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, 10)
         self.speed_pub = self._node.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
         self.altitude_pub = self._node.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, 10)
-        # TODO: fix battery status in smarc_msgs
-        # self.battery_status_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_STATUS_TOPIC, 10)
+        ### status publishers ###
         self.battery_percent_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self.vehicle_health_pub = self._node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
         self.heartbeat_pub = self._node.create_publisher(Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10)
         self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
-        self._node.get_logger().info('SMARCPublisher publishers have been created.')
+        # self._node.get_logger().info('SMARCPublisher publishers have been created.')
 
     def _create_subscribers(self):
+        ### nav subscribers ###
         self.odom_sub = self._node.create_subscription(Odometry, DRTopics.DR_ODOM_TOPIC, self._odom_callback, 10)
         self.utm_sub = self._node.create_subscription(String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10)
         self.abort_sub = self._node.create_subscription(Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10)
@@ -44,10 +56,10 @@ class SMARCPublisher:
         self.vehicle_health_sub = self._node.create_subscription(Int8, SamTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10)
         self.battery_status_sub = self._node.create_subscription(BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10)
 
-        self._node.get_logger().info('SMARCPublisher subscribers have been created.')
+        # self._node.get_logger().info('SMARCPublisher subscribers have been created.')
 
     ### nav ###
-    def _odom_callback(self, msg):
+    def _odom_callback(self, msg: Odometry):
         # TODO /dr/odom -> /smarc/odom (ODOM_TOPIC)
         # TODO /dr/odom -> /smarc/depth (DEPTH_TOPIC)
         # TODO /dr/odom -> /smarc/altitude (ALTITUDE_TOPIC)
@@ -59,7 +71,6 @@ class SMARCPublisher:
 
     ### status ###
     def _battery_callback(self, msg):
-        # TODO core/battery_status -> /smarc/battery_status (BATTERY_STATUS_TOPIC)
         # TODO core/battery_status -> /smarc/battery_percent (BATTERY_PERCENT_TOPIC)
         pass
 
@@ -80,9 +91,33 @@ class SMARCPublisher:
         pass
 
     def _utm_callback(self, msg):
-        pass
+        if msg.data != self.utm_frame:
+            self.utm_frame = msg.data
+            # Course and speed must not span two different UTM frames.
+            self.prev_pose_utm = None
+            self.current_pose_utm = None
+            self._node.get_logger().info(
+                f'Using UTM frame: {self.utm_frame}')
     
-    def _odom_to_utm(self, msg):
-        # TODO if no utm return
-        # TODO convert odom to utm
-        pass
+    def _odom_to_utm(self, msg: Odometry):
+        """Transform an odometry pose into the active UTM frame."""
+        if not self.utm_frame:
+            self._node.get_logger().warn(
+                'UTM frame not set, cannot publish global navigation data.')
+            return None
+
+        try:
+            source_frame = msg.header.frame_id or self.odom_frame
+            utm_transform = self.tf_buffer.lookup_transform(
+                self.utm_frame, source_frame, msg.header.stamp)
+
+            pose_utm = PoseStamped()
+            pose_utm.header.frame_id = self.utm_frame
+            pose_utm.header.stamp = msg.header.stamp
+            pose_utm.pose = do_transform_pose(msg.pose.pose, utm_transform)
+            return pose_utm
+        except (LookupException, ConnectivityException,
+                ExtrapolationException) as error:
+            self._node.get_logger().error(
+                f'Failed to transform odometry to {self.utm_frame}: {error}')
+            return None
