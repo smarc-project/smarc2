@@ -26,7 +26,15 @@ class SMARCPublisher:
     def __init__(self, node: Node):
         self._node = node
         self._node.get_logger().info('SMARCPublisher has been initialized.')
-        # TODO: read parameters
+        self._node.declare_parameter('robot_name', 'sam')
+        self.robot_name = self._node.get_parameter(
+            'robot_name').get_parameter_value().string_value
+        self.odom_frame = f'{self.robot_name}/odom'
+        self.utm_frame = None
+        self.prev_pose_utm = None
+        self.current_pose_utm = None
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self._node)
         self._create_publishers()
         self._create_subscribers()
 
@@ -67,7 +75,33 @@ class SMARCPublisher:
         # TODO /dr/odom -> /smarc/course (COURSE_TOPIC)
         # TODO /dr/odom -> /smarc/speed (SPEED_TOPIC)
         # TODO /dr/odom -> /smarc/heading (HEADING_TOPIC)
-        pass
+        self.odom_pub.publish(msg)
+        self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
+
+        pose_utm = self._odom_to_utm(msg)
+        if pose_utm is None:
+            return
+
+        self.prev_pose_utm = self.current_pose_utm
+        self.current_pose_utm = pose_utm
+
+        heading_msg = convert_enu_pose_to_heading(pose_utm.pose)
+        self.heading_pub.publish(heading_msg)
+
+        latlon_msg = convert_utm_to_latlon(pose_utm)
+        latlon_msg.altitude = msg.pose.pose.position.z
+        self.latlon_pub.publish(latlon_msg)
+        self.altitude_pub.publish(Float32(data=latlon_msg.altitude))
+
+        if self.prev_pose_utm is None:
+            return
+
+        course_msg = compute_course_from_two_poses(
+            self.prev_pose_utm, self.current_pose_utm)
+        speed_msg = compute_speed_from_two_poses(
+            self.prev_pose_utm, self.current_pose_utm)
+        self.course_pub.publish(course_msg)
+        self.speed_pub.publish(speed_msg)
 
     ### status ###
     def _battery_callback(self, msg):
