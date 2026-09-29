@@ -68,13 +68,6 @@ class SMARCPublisher:
 
     ### nav ###
     def _odom_callback(self, msg: Odometry):
-        # TODO /dr/odom -> /smarc/odom (ODOM_TOPIC)
-        # TODO /dr/odom -> /smarc/depth (DEPTH_TOPIC)
-        # TODO /dr/odom -> /smarc/altitude (ALTITUDE_TOPIC)
-        # TODO /dr/odom -> /smarc/latlon (LATLON_TOPIC)
-        # TODO /dr/odom -> /smarc/course (COURSE_TOPIC)
-        # TODO /dr/odom -> /smarc/speed (SPEED_TOPIC)
-        # TODO /dr/odom -> /smarc/heading (HEADING_TOPIC)
         self.odom_pub.publish(msg)
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
 
@@ -105,8 +98,12 @@ class SMARCPublisher:
 
     ### status ###
     def _battery_callback(self, msg):
-        # TODO core/battery_status -> /smarc/battery_percent (BATTERY_PERCENT_TOPIC)
-        pass
+        if msg.percentage is None:
+            self._node.get_logger().warn('Battery percentage not available, not publishing.')
+            return
+        battery_percentage = msg.percentage * 100.0
+        battery_msg = Float32(data=battery_percentage)
+        self.battery_percent_pub.publish(battery_msg)
 
     def _abort_callback(self, msg):
         # TODO /core/abort -> waraps/abort (WASA_PS_ABORT_TOPIC)
