@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "spiral_search_action_server = active_hook.spiral_search:main",
+            "searching_sam_action_server = active_hook.searching_sam:main",
+            "approaching_sam_action_server = active_hook.approaching_sam:main",
         ],
     },
 )

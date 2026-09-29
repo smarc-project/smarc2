@@ -1,25 +1,5 @@
 #!/usr/bin/python
-"""
-Spiral search action server.
 
-Simplified design: the vehicle just spins in place (constant, full-send
-yaw command, no control loop -- same as before, nothing to wrap or blow
-up) while holding pitch and roll level with plain P control. There is no
-pitch sweep any more, so the roll/pitch/yaw coupling problem that came
-from sweeping pitch during a yaw spin is gone entirely.
-
-The search ends as soon as YOLO reports a confident, repeated sighting of
-the target class (default "sam") -- see the detection callback below. As
-a safety net in case nothing is ever found, the search also gives up
-after max_turns full rotations (measured from real, accumulated yaw) or
-after `timeout` seconds, whichever comes first.
-
-Detection safety margin: a single-frame detection is not trusted on its
-own (one bad frame could trigger a false stop). We require
-`detection_confirm_count` consecutive detection-array messages that each
-contain the target class above `detection_min_score` before treating the
-target as found.
-"""
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -31,33 +11,41 @@ from smarc_action_base.gentler_action_server import GentlerActionServer
 from active_hook_msgs.msg import Topics as ActiveHookTopics
 
 
-def wrap_to_180(angle_deg: float) -> float:
-    return ((angle_deg + 180.0) % 360.0) - 180.0
-
-
-class SpiralSearchAction():
+class SearchingSamAction():
     def __init__(self, node: Node):
         self._node = node
 
-        self._node.declare_parameter("yaw_rate", -1.0)   # constant, full-send yaw command; flip sign if it goes the wrong way
-        self._node.declare_parameter("level_pitch", 0.0)   # pitch target to hold while spinning, degrees
-        self._node.declare_parameter("pitch_kp", 1.0 / 15.0)
-        self._node.declare_parameter("roll_kp", 1.0 / 5.0)    # very strong -- saturates by ~5 deg error, roll target is fixed at 0 so aggressive is safe here
-        self._node.declare_parameter("max_turns", 2.0)     # give up (fail) after this many full rotations with no confirmed detection
-        self._node.declare_parameter("timeout", 120.0)   # safety cutoff, seconds
+        self._node.declare_parameter("pitch_start", -50.0)   # negative because of sim
+        self._node.declare_parameter("pitch_end", 50.0)      # positive because of sim
+        self._node.declare_parameter("pitch_settle_tolerance", 5.0)   # tolerance for pitch settling
+
+        self._node.declare_parameter("pitch_kp", 0.1)   
+        self._node.declare_parameter("roll_kp", 0.06)    
+        self._node.declare_parameter("max_pitch_cmd", 0.5)
+        self._node.declare_parameter("max_roll_cmd", 1.0)
+
+        self._node.declare_parameter("yaw_rate", 0.7)   # constant
+
+        self._node.declare_parameter("timeout", 120.0)   # total safety cutoff, seconds, counted from goal start (climb included)
 
         self._node.declare_parameter("detection_topic", "yolo/detections")
         self._node.declare_parameter("target_class", "sam")
         self._node.declare_parameter("detection_min_score", 0.5)
-        self._node.declare_parameter("detection_confirm_count", 3)   # consecutive qualifying frames required before we trust the detection
+        self._node.declare_parameter("detection_confirm_count", 3)   
 
         self._node.declare_parameter("loop_frequency", 20.0)
 
-        self._yaw_rate = self._node.get_parameter("yaw_rate").value
-        self._level_pitch = self._node.get_parameter("level_pitch").value
+        self._pitch_start = self._node.get_parameter("pitch_start").value
+        self._pitch_end = self._node.get_parameter("pitch_end").value
+        self._pitch_settle_tolerance = self._node.get_parameter("pitch_settle_tolerance").value
+
         self._pitch_kp = self._node.get_parameter("pitch_kp").value
         self._roll_kp = self._node.get_parameter("roll_kp").value
-        self._default_max_turns = self._node.get_parameter("max_turns").value
+        self._max_pitch_cmd = self._node.get_parameter("max_pitch_cmd").value
+        self._max_roll_cmd = self._node.get_parameter("max_roll_cmd").value
+
+        self._yaw_rate = self._node.get_parameter("yaw_rate").value
+
         self._timeout = self._node.get_parameter("timeout").value
 
         detection_topic = self._node.get_parameter("detection_topic").value
@@ -80,24 +68,28 @@ class SpiralSearchAction():
             Twist, ActiveHookTopics.AUTONOMY_CMD_VEL_TOPIC, 10
         )
 
-        # goal-scoped state
-        self._max_turns = self._default_max_turns
+        
         self._target_class = self._default_target_class
         self._start_time = None
+        self._climbed = False
+        self._spiral_start_time = None
 
+        # yaw travel is only tracked for feedback
         self._prev_raw_yaw: float | None = None
         self._yaw_accum: float = 0.0
 
         self._confirm_streak: int = 0
         self._target_confirmed: bool = False
 
-        # kept only for _give_feedback
-        self._last_e_pitch = 0.0
+        self._last_pitch_target = 0.0
 
         self._as = GentlerActionServer(
-            node, "spiral_search",
-            self._on_goal_received, self._on_cancel_received,
-            self._prepare_loop, self._loop_inner, self._give_feedback,
+            node, "searching_sam",
+            self._on_goal_received,
+            self._on_cancel_received,
+            self._prepare_loop,
+            self._loop_inner,
+            self._give_feedback,
             loop_frequency=loop_freq,
         )
 
@@ -105,7 +97,6 @@ class SpiralSearchAction():
         self._latest_attitude = msg
 
     def _detection_callback(self, msg: DetectionArray) -> None:
-        # Does this frame contain a confident sighting of the target class?
         seen_this_frame = any(
             det.class_name == self._target_class and det.score >= self._detection_min_score
             for det in msg.detections
@@ -124,7 +115,6 @@ class SpiralSearchAction():
             self._node.get_logger().error("No attitude data received yet, rejecting goal")
             return False
 
-        self._max_turns = float(goal_request.get('max_turns', self._default_max_turns))
         self._target_class = str(goal_request.get('target_class', self._default_target_class))
         return True
 
@@ -134,7 +124,9 @@ class SpiralSearchAction():
 
     def _prepare_loop(self) -> None:
         self._start_time = self._node.get_clock().now()
-        self._prev_raw_yaw = self._latest_attitude.z
+        self._climbed = False
+        self._spiral_start_time = None
+        self._prev_raw_yaw = None
         self._yaw_accum = 0.0
         self._confirm_streak = 0
         self._target_confirmed = False
@@ -146,13 +138,13 @@ class SpiralSearchAction():
         elapsed = (self._node.get_clock().now() - self._start_time).nanoseconds / 1e9
         if elapsed >= self._timeout:
             self._node.get_logger().error(
-                f"Spiral search timed out after {elapsed:.1f}s without a confirmed "
+                f"Search timed out after {elapsed:.1f}s without a confirmed "
                 f"'{self._target_class}' detection."
             )
             self._cmd_vel_pub.publish(Twist())
             return False
 
-        # --- did we get a confirmed sighting? stop immediately ---
+        # --- if the target is confirmed, stop immediately ---
         if self._target_confirmed:
             self._node.get_logger().info(
                 f"'{self._target_class}' confirmed ({self._detection_confirm_count} "
@@ -161,59 +153,73 @@ class SpiralSearchAction():
             self._cmd_vel_pub.publish(Twist())
             return True
 
-        # --- measure how far we've actually spun (unwrap the raw sensor
-        # reading, which only ever reports (-180, 180]) ---
-        current_yaw = self._latest_attitude.z
-        delta = current_yaw - self._prev_raw_yaw
-        if delta > 180.0:
-            delta -= 360.0
-        elif delta < -180.0:
-            delta += 360.0
-        self._yaw_accum += delta
-        self._prev_raw_yaw = current_yaw
-
-        # --- safety net: give up if we've spun all the way around max_turns
-        # times and still have nothing confirmed ---
-        if abs(self._yaw_accum) >= abs(self._max_turns) * 360.0:
-            self._node.get_logger().error(
-                f"Completed {self._max_turns:.1f} turn(s) without finding "
-                f"'{self._target_class}' -- giving up."
-            )
-            self._cmd_vel_pub.publish(Twist())
-            return False
-
-        # --- hold pitch/roll level while spinning ---
-        current_pitch = self._latest_attitude.y
         current_roll = self._latest_attitude.x
+        current_pitch = self._latest_attitude.y
+        current_yaw = self._latest_attitude.z   # sensor only ever reports (-180, 180]
 
-        e_pitch = wrap_to_180(self._level_pitch - current_pitch)
-        e_roll = wrap_to_180(0.0 - current_roll)
-        self._last_e_pitch = e_pitch
+        # roll target is always 0 (stay level), active in both phases.
+        roll_error = ((0.0 - current_roll + 180.0) % 360.0) - 180.0
+        roll_cmd = max(-self._max_roll_cmd, min(self._max_roll_cmd, -self._roll_kp * roll_error))
 
-        u_pitch = max(-1.0, min(1.0, self._pitch_kp * e_pitch))
-        u_roll = max(-1.0, min(1.0, self._roll_kp * e_roll))
+        if not self._climbed:
+            # --- phase 1: get pitch to pitch_start first, yaw stays put ---
+            pitch_error = self._pitch_start - current_pitch
+            pitch_cmd = max(-self._max_pitch_cmd, min(self._max_pitch_cmd, self._pitch_kp * pitch_error))
+            yaw_cmd = 0.0
+
+            self._last_pitch_target = self._pitch_start
+
+            if abs(current_pitch - self._pitch_start) < self._pitch_settle_tolerance:
+                self._climbed = True
+                self._spiral_start_time = self._node.get_clock().now()
+                self._prev_raw_yaw = current_yaw
+                self._yaw_accum = 0.0
+        else:
+            # --- phase 2: the actual spiral ---
+            spiral_elapsed = (self._node.get_clock().now() - self._spiral_start_time).nanoseconds / 1e9
+            progress = min(1.0, spiral_elapsed / self._timeout)
+            pitch_target = self._pitch_start + (self._pitch_end - self._pitch_start) * progress
+
+            self._last_pitch_target = pitch_target
+
+            pitch_error = pitch_target - current_pitch
+            pitch_cmd = max(-self._max_pitch_cmd, min(self._max_pitch_cmd, self._pitch_kp * pitch_error))
+
+            # yaw: constant, open-loop spin -- see docstring for why this
+            # is NOT closed-loop tracking a moving target
+            yaw_cmd = self._yaw_rate
+
+            # track how far we've actually spun, for feedback only 
+            delta = current_yaw - self._prev_raw_yaw
+            if delta > 180.0:
+                delta -= 360.0
+            elif delta < -180.0:
+                delta += 360.0
+            self._yaw_accum += delta
+            self._prev_raw_yaw = current_yaw
 
         twist = Twist()
-        twist.angular.x = u_roll
-        twist.angular.y = u_pitch
-        twist.angular.z = self._yaw_rate   # constant, full-send, no control loop at all
+        twist.angular.x = roll_cmd
+        twist.angular.y = pitch_cmd
+        twist.angular.z = yaw_cmd
         self._cmd_vel_pub.publish(twist)
 
         return None
 
     def _give_feedback(self) -> str:
-        total_yaw_needed = abs(self._max_turns) * 360.0
+        phase = "spiral" if self._climbed else "climbing to start"
         return (
-            f"spin {abs(self._yaw_accum):.1f}/{total_yaw_needed:.1f} deg | "
-            f"pitch error {self._last_e_pitch:.1f} | "
+            f"[{phase}] roll {self._latest_attitude.x:.0f} | "
+            f"pitch {self._latest_attitude.y:.0f}->{self._last_pitch_target:.0f} | "
+            f"yaw {self._latest_attitude.z:.0f} (spun {abs(self._yaw_accum):.0f} deg so far) | "
             f"detection streak {self._confirm_streak}/{self._detection_confirm_count}"
         )
 
 
 def main():
     rclpy.init()
-    node = Node("spiral_search_action_server")
-    SpiralSearchAction(node)
+    node = Node("searching_sam_action_server")
+    SearchingSamAction(node)
 
     executor = MultiThreadedExecutor()
     executor.add_node(node)
