@@ -142,9 +142,7 @@ class SMARCPublisher:
                 "Battery percentage not available, not publishing."
             )
             return
-        battery_percentage = msg.percentage * 100.0
-        battery_msg = Float32(data=battery_percentage)
-        self.battery_percent_pub.publish(battery_msg)
+        self.battery_percent_pub.publish(Float32(data=msg.percentage))
 
     def _abort_callback(self, msg):
         self.abort_pub.publish(msg)
