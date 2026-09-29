@@ -33,10 +33,14 @@ class SMARCPublisher:
         self.utm_frame = None
         self.prev_pose_utm = None
         self.current_pose_utm = None
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self._node)
+        self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
+
+    def _create_tf_listener(self):
+        self._node.get_logger().info(f'Using odom frame: {self.odom_frame}')
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self._node)
 
     def _create_publishers(self):
         ### nav publishers ###
@@ -106,20 +110,13 @@ class SMARCPublisher:
         self.battery_percent_pub.publish(battery_msg)
 
     def _abort_callback(self, msg):
-        # TODO /core/abort -> waraps/abort (WASA_PS_ABORT_TOPIC)
-        pass
+        self.abort_pub.publish(msg)
 
     def _heartbeat_callback(self, msg):
-        # TODO core/heartbeat -> waraps/action_server_heartbeat (WARA_PS_ACTION_SERVER_HB_TOPIC)
-        pass
+        self.heartbeat_pub.publish(msg)
 
     def _vehicle_health_callback(self, msg):
-        pass
-
-    ### tf ###
-    def _tf_callback(self, msg):
-        # TODO get tf from odom
-        pass
+        self.vehicle_health_pub.publish(msg)
 
     def _utm_callback(self, msg):
         if msg.data != self.utm_frame:
