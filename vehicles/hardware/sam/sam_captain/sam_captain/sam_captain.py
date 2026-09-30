@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from sam_captain.SAMNavPublisher import SAMNavPublisher
+from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 
 
 class SAMCaptain(Node):
@@ -8,6 +9,7 @@ class SAMCaptain(Node):
         super().__init__("sam_captain")
         self.get_logger().info("SAM Captain Node has been started.")
         self._nav_publisher = SAMNavPublisher(self)
+        self._status_publisher = SAMStatusPublisher(self)
         pass
 
 

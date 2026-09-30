@@ -69,17 +69,18 @@ class SAMNavPublisher:
         self.altitude_pub = self._node.create_publisher(
             Float32, SmarcTopics.ALTITUDE_TOPIC, 10
         )
-        ### status publishers ###
-        self.battery_percent_pub = self._node.create_publisher(
-            Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
-        )
-        self.vehicle_health_pub = self._node.create_publisher(
-            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
-        )
-        self.heartbeat_pub = self._node.create_publisher(
-            Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
-        )
-        self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
+        ### status publishers ###   
+        # TODO move to SAMStatusPublisher
+        # self.battery_percent_pub = self._node.create_publisher(
+        #     Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
+        # )
+        # self.vehicle_health_pub = self._node.create_publisher(
+        #     Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
+        # )
+        # self.heartbeat_pub = self._node.create_publisher(
+        #     Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
+        # )
+        # self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
         # self._node.get_logger().info('SAMNavPublisher publishers have been created.')
 
@@ -91,18 +92,19 @@ class SAMNavPublisher:
         self.utm_sub = self._node.create_subscription(
             String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
         )
-        self.abort_sub = self._node.create_subscription(
-            Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10
-        )
-        self.bt_heartbeat_sub = self._node.create_subscription(
-            Empty, SamTopics.HEARTBEAT_TOPIC, self._heartbeat_callback, 10
-        )
-        self.vehicle_health_sub = self._node.create_subscription(
-            Int8, SamTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10
-        )
-        self.battery_status_sub = self._node.create_subscription(
-            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
-        )
+        # TODO move to SAMStatusPublisher
+        # self.abort_sub = self._node.create_subscription(
+        #     Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10
+        # )
+        # self.bt_heartbeat_sub = self._node.create_subscription(
+        #     Empty, SamTopics.HEARTBEAT_TOPIC, self._heartbeat_callback, 10
+        # )
+        # self.vehicle_health_sub = self._node.create_subscription(
+        #     Int8, SamTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10
+        # )
+        # self.battery_status_sub = self._node.create_subscription(
+        #     BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
+        # )
 
         # self._node.get_logger().info('SAMNavPublisher subscribers have been created.')
 
@@ -139,22 +141,23 @@ class SAMNavPublisher:
         self.speed_pub.publish(speed_msg)
 
     ### status ###
-    def _battery_callback(self, msg):
-        if msg.percentage is None:
-            self._node.get_logger().warn(
-                "Battery percentage not available, not publishing."
-            )
-            return
-        self.battery_percent_pub.publish(Float32(data=msg.percentage))
+    # TODO move to SAMStatusPublisher
+    # def _battery_callback(self, msg):
+    #     if msg.percentage is None:
+    #         self._node.get_logger().warn(
+    #             "Battery percentage not available, not publishing."
+    #         )
+    #         return
+    #     self.battery_percent_pub.publish(Float32(data=msg.percentage))
 
-    def _abort_callback(self, msg):
-        self.abort_pub.publish(msg)
+    # def _abort_callback(self, msg):
+    #     self.abort_pub.publish(msg)
 
-    def _heartbeat_callback(self, msg):
-        self.heartbeat_pub.publish(msg)
+    # def _heartbeat_callback(self, msg):
+    #     self.heartbeat_pub.publish(msg)
 
-    def _vehicle_health_callback(self, msg):
-        self.vehicle_health_pub.publish(msg)
+    # def _vehicle_health_callback(self, msg):
+    #     self.vehicle_health_pub.publish(msg)
 
     def _utm_callback(self, msg):
         if msg.data != self.utm_frame:

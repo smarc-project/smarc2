@@ -18,7 +18,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "log_level",
-                default_value="warn",
+                default_value="info",
                 description="Logging level for the SAM Captain node.",
             ),
             Node(
@@ -30,6 +30,7 @@ def generate_launch_description():
                 parameters=[
                     {
                         "robot_name": robot_name,
+                        # "use_sim_time": use_sim_time,
                     }
                 ],
                 arguments=["--ros-args", "--log-level", log_level],
