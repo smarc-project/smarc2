@@ -22,10 +22,13 @@ from smarc_utilities.georef_utils import (
 )
 
 
-class SMARCPublisher:
+class SAMNavPublisher:
+    """
+    Handles publishing smarc topics from SAM.
+    """
     def __init__(self, node: Node):
         self._node = node
-        self._node.get_logger().info("SMARCPublisher has been initialized.")
+        self._node.get_logger().info("SAMNavPublisher has been initialized.")
         self._node.declare_parameter("robot_name", "sam")
         self.robot_name = (
             self._node.get_parameter("robot_name").get_parameter_value().string_value
@@ -78,7 +81,7 @@ class SMARCPublisher:
         )
         self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
-        # self._node.get_logger().info('SMARCPublisher publishers have been created.')
+        # self._node.get_logger().info('SAMNavPublisher publishers have been created.')
 
     def _create_subscribers(self):
         ### nav subscribers ###
@@ -101,7 +104,7 @@ class SMARCPublisher:
             BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
 
-        # self._node.get_logger().info('SMARCPublisher subscribers have been created.')
+        # self._node.get_logger().info('SAMNavPublisher subscribers have been created.')
 
     ### nav ###
     def _odom_callback(self, msg: Odometry):
