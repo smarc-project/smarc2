@@ -23,9 +23,7 @@ from smarc_utilities.georef_utils import (
 
 
 class SAMNavPublisher:
-    """
-    Handles publishing smarc topics from SAM.
-    """
+    """Derive navigation data from SAM and publish to smarc topics."""
     def __init__(self, node: Node):
         self._node = node
         self._node.get_logger().info("SAMNavPublisher has been initialized.")
@@ -42,12 +40,13 @@ class SAMNavPublisher:
         self._create_subscribers()
 
     def _create_tf_listener(self):
+        """Creates a TF listener to transform poses between different frames."""
         self._node.get_logger().info(f"Using odom frame: {self.odom_frame}")
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self._node)
 
     def _create_publishers(self):
-        ### nav publishers ###
+        """Create publishers for navigation topics."""
         self.odom_pub = self._node.create_publisher(
             Odometry, SmarcTopics.ODOM_TOPIC, 10
         )
@@ -69,47 +68,18 @@ class SAMNavPublisher:
         self.altitude_pub = self._node.create_publisher(
             Float32, SmarcTopics.ALTITUDE_TOPIC, 10
         )
-        ### status publishers ###   
-        # TODO move to SAMStatusPublisher
-        # self.battery_percent_pub = self._node.create_publisher(
-        #     Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
-        # )
-        # self.vehicle_health_pub = self._node.create_publisher(
-        #     Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
-        # )
-        # self.heartbeat_pub = self._node.create_publisher(
-        #     Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
-        # )
-        # self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
-
-        # self._node.get_logger().info('SAMNavPublisher publishers have been created.')
 
     def _create_subscribers(self):
-        ### nav subscribers ###
+        """Subscribe to DR and UTM updates."""
         self.odom_sub = self._node.create_subscription(
             Odometry, DRTopics.DR_ODOM_TOPIC, self._odom_callback, 10
         )
         self.utm_sub = self._node.create_subscription(
             String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
         )
-        # TODO move to SAMStatusPublisher
-        # self.abort_sub = self._node.create_subscription(
-        #     Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10
-        # )
-        # self.bt_heartbeat_sub = self._node.create_subscription(
-        #     Empty, SamTopics.HEARTBEAT_TOPIC, self._heartbeat_callback, 10
-        # )
-        # self.vehicle_health_sub = self._node.create_subscription(
-        #     Int8, SamTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10
-        # )
-        # self.battery_status_sub = self._node.create_subscription(
-        #     BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
-        # )
 
-        # self._node.get_logger().info('SAMNavPublisher subscribers have been created.')
-
-    ### nav ###
     def _odom_callback(self, msg: Odometry):
+        """Publish odom and derived navigation from each pose update."""
         self.odom_pub.publish(msg)
         self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
 
@@ -140,26 +110,8 @@ class SAMNavPublisher:
         self.course_pub.publish(course_msg)
         self.speed_pub.publish(speed_msg)
 
-    ### status ###
-    # TODO move to SAMStatusPublisher
-    # def _battery_callback(self, msg):
-    #     if msg.percentage is None:
-    #         self._node.get_logger().warn(
-    #             "Battery percentage not available, not publishing."
-    #         )
-    #         return
-    #     self.battery_percent_pub.publish(Float32(data=msg.percentage))
-
-    # def _abort_callback(self, msg):
-    #     self.abort_pub.publish(msg)
-
-    # def _heartbeat_callback(self, msg):
-    #     self.heartbeat_pub.publish(msg)
-
-    # def _vehicle_health_callback(self, msg):
-    #     self.vehicle_health_pub.publish(msg)
-
     def _utm_callback(self, msg):
+        """Update UTM frame and reset pose."""
         if msg.data != self.utm_frame:
             self.utm_frame = msg.data
             # Course and speed must not span two different UTM frames.
