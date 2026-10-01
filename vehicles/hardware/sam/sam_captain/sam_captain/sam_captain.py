@@ -10,7 +10,6 @@ class SAMCaptain(Node):
         self.get_logger().info("SAM Captain Node has been started.")
         self._nav_publisher = SAMNavPublisher(self)
         self._status_publisher = SAMStatusPublisher(self)
-        pass
 
 
 def main(args=None):

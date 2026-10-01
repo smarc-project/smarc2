@@ -21,6 +21,11 @@ def generate_launch_description():
                 default_value="info",
                 description="Logging level for the SAM Captain node.",
             ),
+            DeclareLaunchArgument(
+                "use_sim_time",
+                default_value="false",
+                description="Whether to use simulation time.",
+            ),
             Node(
                 package="sam_captain",
                 executable="sam_captain",
@@ -30,7 +35,7 @@ def generate_launch_description():
                 parameters=[
                     {
                         "robot_name": robot_name,
-                        # "use_sim_time": use_sim_time,
+                        "use_sim_time": use_sim_time,
                     }
                 ],
                 arguments=["--ros-args", "--log-level", log_level],
