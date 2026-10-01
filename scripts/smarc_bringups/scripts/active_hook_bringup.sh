@@ -110,12 +110,12 @@ fi
 ############
 # 2 Behaviours
 ############
-SPIN_TEST_CMD="ros2 run active_hook spin_test_action_server --ros-args -r __ns:=/$ROBOT_NAME"
+SPIRAL_SEARCH_CMD="ros2 run active_hook spiral_search_action_server --ros-args -r __ns:=/$ROBOT_NAME"
 
-tmux_make_layout "$SESSION" Behaviours "var(SPIN_TEST_CMD)"
+tmux_make_layout "$SESSION" Behaviours "var(SPIRAL_SEARCH_CMD)"
 
 ############
-# 3 Drivers 
+# 3 Drivers
 ############
 if [[ "$MODE" == "real" ]]; then
 
@@ -191,7 +191,7 @@ if [[ "$YOLO_TEST" == "True" ]]; then
     YOLO_ENABLE=True
 
     YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
-    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
+    OBJECT_CONFIG_FILE="object_estimation.yaml" # Config file to edit each object's parameters for the EKF
     MARKERS_VISUALIZATION_ENABLE=True # Only used for debugging, since we cannot visualize new custom array for the poses in RViz
     if [[ $USE_SIM_TIME = "True" ]]; then
         YOLO_DEVICE="cpu"

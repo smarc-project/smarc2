@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>active_hook</name>
+  <version>0.0.0</version>
+  <description>Behaviours (action servers) for the ActiveHook ROV</description>
+  <maintainer email="aliulvi4103@hotmail.com">Ali Ulvi Kaplan</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>active_hook_msgs</depend>
+  <depend>smarc_action_base</depend>
+  <depend>yolo_msgs</depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

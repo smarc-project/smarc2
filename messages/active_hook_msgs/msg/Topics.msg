@@ -13,3 +13,8 @@ string MAVROS_MANUAL_CONTROL_TOPIC='mavros/manual_control/send'   # mavros_msgs/
 string MAVROS_STATE_TOPIC='mavros/state'                          # mavros_msgs/msg/State
 string MAVROS_ARMING_SRV='mavros/cmd/arming'                      # mavros_msgs/srv/CommandBool
 string MAVROS_SET_MODE_SRV='mavros/set_mode'                      # mavros_msgs/srv/SetMode
+string MAVROS_IMU_TOPIC='mavros/imu/data'                         # sensor_msgs/msg/Imu
+
+# imu_to_odom output
+string ATTITUDE_TOPIC='attitude'                                  # geometry_msgs/msg/Vector3 - roll/pitch/yaw in degrees
+string ODOM_TOPIC='odom'                                          # nav_msgs/msg/Odometry - attitude-only odometry (no position source)
