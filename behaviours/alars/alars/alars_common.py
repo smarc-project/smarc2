@@ -15,9 +15,12 @@ from nav_msgs.msg import Odometry
 from tf2_geometry_msgs import PoseWithCovarianceStamped, do_transform_pose_stamped, do_transform_vector3
 from tf2_ros import Buffer, TransformListener, Vector3Stamped
 
+from yolo_msgs.msg import DetectionArray, Detection
+
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
+from dji_msgs.msg import ObjectPoseWithCovarianceArray
 from smarc_msgs.msg import Topics as SmarcTopics
 
 
@@ -35,6 +38,8 @@ class DroneState():
         
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
+        self._yolo_detections : None | DetectionArray = None
+        self._projected_detections : None | ObjectPoseWithCovarianceArray = None
 
         def _pose_in_map_cb(msg: PoseStamped):
             if msg.header.frame_id != self.MAP_FRAME:
@@ -47,6 +52,7 @@ class DroneState():
                                        _pose_in_map_cb,
                                        10)
 
+
         def _utm_frame_cb(msg: String):
             self._utm_frame = msg.data
 
@@ -54,6 +60,26 @@ class DroneState():
                                        DJITopics.LABELED_UTM_TOPIC,
                                        _utm_frame_cb,
                                        10)
+
+
+
+        def _yolo_detections_cb(msg: DetectionArray):
+            self._yolo_detections = msg
+
+        self._node.create_subscription(DetectionArray,
+                                       DJITopics.YOLO_DETECTIONS,
+                                       _yolo_detections_cb,
+                                       10)
+
+
+        def _projected_detections_cb(msg: ObjectPoseWithCovarianceArray):
+            self._projected_detections = msg
+
+        self._node.create_subscription(ObjectPoseWithCovarianceArray,
+                                       DJITopics.PROJECTED_DETECTIONS,
+                                       _projected_detections_cb,
+                                       10)
+
         
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)

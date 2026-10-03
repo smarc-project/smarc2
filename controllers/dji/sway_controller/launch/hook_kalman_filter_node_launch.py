@@ -17,42 +17,7 @@ def generate_launch_description():
         default_value='False',
         description='Use simulation clock instead of wall clock'
     )
-    
-    L_arg = DeclareLaunchArgument(
-        'L',
-        default_value='',
-        description='Lenght of the rope, negative value for not identified. NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    xi_arg = DeclareLaunchArgument(
-        'xi',
-        default_value='',
-        description='Damping factor, negative value for not identified NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    qc_arg = DeclareLaunchArgument(
-        'qc',
-        default_value='',
-        description='Process noise density, rescale with loop_freq by (dt_old/dt_new)^2 NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    loop_freq_arg = DeclareLaunchArgument(
-        'loop_freq',
-        default_value='',
-        description='Prediction rate in Hz NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    sigma_initial_arg = DeclareLaunchArgument(
-        'sigma_initial',
-        default_value='',
-        description='Initial estimate uncertainty NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    mahalanobis_thr_arg = DeclareLaunchArgument(
-        'mahalanobis_thr',
-        default_value='',
-        description='Threshold for outliers rejection NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
-    max_boresight_tilt_deg_arg = DeclareLaunchArgument(
-        'max_boresight_tilt_deg',
-        default_value='',
-        description='Max gimbal tilt from straight-down before detections are dropped NOT settable here, edit hook_kalman_filter_node_config.yaml'
-    )
+
    
     camera_calibration_file_arg = DeclareLaunchArgument(
         'camera_calibration_file',
@@ -87,12 +52,5 @@ def generate_launch_description():
         robot_name_arg,
         use_sim_time_arg,
         camera_calibration_file_arg,
-        L_arg,
-        xi_arg,
-        qc_arg,
-        loop_freq_arg,
-        sigma_initial_arg,
-        mahalanobis_thr_arg,
-        max_boresight_tilt_deg_arg,
         node
     ])
