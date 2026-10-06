@@ -1,0 +1,23 @@
+nodes:
+  - name: "alars_bt_node"
+  - name: "alars_search_action_server"
+  - name: "alars_follow_auv_action_server"
+  - name: "alars_recover_action_server"
+
+topics:
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_ACTION_SERVER_HB_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+    content:
+      field: "data"
+      values: 
+        - "/M350/alars_bt"
+        - "/M350/alars_search"
+        - "/M350/alars_follow_auv"
+        - "/M350/alars_recover"
+
+
+

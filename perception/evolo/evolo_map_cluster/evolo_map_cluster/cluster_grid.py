@@ -10,7 +10,6 @@ from rclpy.executors import MultiThreadedExecutor
 from nav_msgs.msg import Odometry, OccupancyGrid
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
-from tf_transformations import euler_from_quaternion
 
 from smarc_msgs.msg import Topics as smarcTopics
 from smarc_control_msgs.msg import Topics as ControlTopics

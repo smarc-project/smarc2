@@ -6,33 +6,16 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from geodesy import utm
-from geographic_msgs.msg import GeoPoint
-from tf2_geometry_msgs import do_transform_pose_stamped
 from transforms3d.euler import euler2quat
-from rclpy.time import Duration, Time
-from nav_msgs.srv import SetMap
-from nav_msgs.msg import OccupancyGrid
-from nav_msgs.msg import MapMetaData
-from nav_msgs.srv import GetPlan
-from nav_msgs.msg import Path
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, Twist
-from geometry_msgs.msg import PoseStamped, TwistStamped
-from std_msgs.msg import Float32, Empty
-from std_msgs.msg import String
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Float32
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as smarcTopics
-from smarc_control_msgs.msg import Topics as controlTopics
-from tf2_ros import Buffer, TransformException, TransformListener
 import math
 
-import numpy as np
-import time
 import math
 import json
-
-import tf_transformations
 
 from enum import Enum
 
@@ -60,12 +43,6 @@ class EvoloExternalControl():
         # Initialize any necessary state for your specific action
         # These have nothing to do with the action server itself
 
-        # Tf listener
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(
-            self._tf_buffer, self._node, spin_thread=True
-        )
-        
         # State variables. gets updated from topic callbacks
         self.robot_position = PoseStamped() #robot positon [geometry_msgs/msg/Pose]
         self.robot_position_time = None #robot position time to be compared with current time
@@ -77,18 +54,12 @@ class EvoloExternalControl():
         self.target_speed_time = None
         
         #Target frame
-        #self.frame_id = 'map_gt'
         self.frame_id = 'evolo/base_link'
 
         #Settings etc
         self.timeout = 1800.0
 
-        self._node.declare_parameter('max_turnrate_deg', 15.0)
-        max_turnrate_deg = float(self._node.get_parameter('max_turnrate_deg').value)
-        self.max_turnrate_output_rad = math.radians(max_turnrate_deg)
-
         self.max_speed = 8.0
-        
         
         #Time of action start to check for timeout
         self.action_started_time = None
@@ -102,8 +73,8 @@ class EvoloExternalControl():
         # Subscribers
         self.robot_sub = self._node.create_subscription(Odometry, smarcTopics.ODOM_TOPIC, self.robot_odom_callback,10, callback_group=self.subscriber_callback_group)
 
-        self.target_yaw_sub = self._node.create_subscription(Float32, "backseat/desiredyaw", self.robot_target_yaw_callback,10, callback_group=self.subscriber_callback_group)
-        self.target_speed_sub = self._node.create_subscription(Float32, "backseat/desiredspeed", self.robot_target_speed_callback,10, callback_group=self.subscriber_callback_group)
+        self.target_yaw_sub = self._node.create_subscription(Float32, evoloTopics.EVOLO_EXTERNAL_CONTROL_YAW_SETPOINT, self.robot_target_yaw_callback,10, callback_group=self.subscriber_callback_group)
+        self.target_speed_sub = self._node.create_subscription(Float32, evoloTopics.EVOLO_EXTERNAL_CONTROL_SPEED_SETPOINT, self.robot_target_speed_callback,10, callback_group=self.subscriber_callback_group)
 
         self._node.get_logger().info("Action server started")
 
@@ -189,38 +160,6 @@ class EvoloExternalControl():
         # This is run after each _loop_inner call
         return feedback
 
-    
-    def latlon_to_local_frame(self, point_list: list) -> PoseStamped:
-
-        geopoint = GeoPoint()
-        geopoint.latitude = point_list[0]
-        geopoint.longitude = point_list[1]
-        geopoint.altitude = 0.0
-        yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
-
-
-        point: utm.UTMPoint = utm.fromMsg(geopoint)
-        pose_stamp = PoseStamped()
-        pose_stamp.pose.position = point.toPoint()
-        zone, band = point.gridZone()
-        pose_stamp.header.frame_id = f"utm_{zone}_{band}"
-
-        self._node.get_logger().info(f"Utmpoint: {point}")
-
-        #Add yaw
-        quaternion_values = tf_transformations.quaternion_from_euler(0,0,yaw)
-        pose_stamp.pose.orientation.x = quaternion_values[0]
-        pose_stamp.pose.orientation.y = quaternion_values[1]
-        pose_stamp.pose.orientation.z = quaternion_values[2]
-        pose_stamp.pose.orientation.w = quaternion_values[3]
-
-        t = self._tf_buffer.lookup_transform(
-                target_frame=self.frame_id,
-                source_frame=pose_stamp.header.frame_id,
-                time=Time(seconds=0),
-                timeout=Duration(seconds=1),
-            )
-        return do_transform_pose_stamped(pose_stamp, t)
 
     #Subscriber callback functions
     def robot_odom_callback(self,msg : Odometry):

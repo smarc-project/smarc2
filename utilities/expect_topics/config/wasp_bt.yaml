@@ -1,0 +1,34 @@
+nodes:
+  - name: "wasp_bt"
+
+topics:
+  - topic: "smarc_msgs.msg::Topics.BT_HEARTBEAT_TOPIC"
+    type: "std_msgs/msg/Empty"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_SENSOR_INFO_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_TST_EXEC_INFO_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+
+

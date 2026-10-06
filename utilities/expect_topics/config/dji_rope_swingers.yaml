@@ -1,0 +1,23 @@
+nodes:
+  - name: "estimate_length_and_damping_node"
+  - name: "alars_move_to_damped_server"
+  - name: "hook_kalman_filter_node"
+
+
+topics:
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_ACTION_SERVER_HB_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+    content:
+      field: "data"
+      values: 
+        - "/M350/alars_estimate_rope_swing"
+        - "/M350/alars_move_to_damped"
+
+
+
+
+

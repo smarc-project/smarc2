@@ -10,6 +10,9 @@ string EVOLO_TWIST_PLANNED = "ctrl/twist_planned" #Type: TwistStamped
 string EVOLO_CONTROL_PLANNED = "ctrl/control_planned" #Type: Odometry
 string EVOLO_CURRENT_WP = "ctrl/target_wp" # type: PointStamped
 
+string EVOLO_EXTERNAL_CONTROL_SPEED_SETPOINT = "backseat/desiredspeed" #Float32 m/s
+string EVOLO_EXTERNAL_CONTROL_YAW_SETPOINT = "backseat/desiredyaw" #Float32 rad (ENU)
+
 # Prox-ops backend/action-server contract.
 string PROX_OPS_BACKEND_STATUS = "backend/status" #Type: evolo_msgs/ProxOpsBackendStatus
 string PROX_OPS_BACKEND_TARGET_STATE = "backend/target_state" #Type: nav_msgs/Odometry

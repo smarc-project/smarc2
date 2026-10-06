@@ -1,0 +1,82 @@
+nodes:
+  - name: "dji_captain"
+topics:
+  # dji specific
+  - topic: "dji_msgs.msg::Topics.CAPTAIN_STATUS_STR_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "dji_msgs.msg::Topics.LABELED_UTM_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "dji_msgs.msg::Topics.BASE_LINK_IN_MAP_TOPIC"
+    type: "geometry_msgs/msg/PoseStamped"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  # smarc
+  - topic: "smarc_msgs.msg::Topics.VEHICLE_HEALTH_TOPIC"
+    type: "std_msgs/msg/Int8"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.ODOM_TOPIC"
+    type: "nav_msgs/msg/Odometry"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.HEADING_TOPIC"
+    type: "std_msgs/msg/Float32"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  # disabled until psdk faker pubs some velocity that isnt 0 lol
+  # - topic: "smarc_msgs.msg::Topics.COURSE_TOPIC"
+  #   type: "std_msgs/msg/Float32"
+  #   qos:
+  #     reliability: reliable
+  #     durability: volatile
+  #     depth: 10
+
+  # - topic: "smarc_msgs.msg::Topics.SPEED_TOPIC"
+  #   type: "std_msgs/msg/Float32"
+  #   qos:
+  #     reliability: reliable
+  #     durability: volatile
+  #     depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.POS_LATLON_TOPIC"
+    type: "geographic_msgs/msg/GeoPoint"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.BATTERY_PERCENT_TOPIC"
+    type: "std_msgs/msg/Float32"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.ALTITUDE_TOPIC"
+    type: "std_msgs/msg/Float32"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10

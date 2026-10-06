@@ -1,0 +1,9 @@
+nodes:
+  - name: "active_hook_captain"
+topics:
+  - topic: "smarc_msgs.msg::Topics.VEHICLE_HEALTH_TOPIC"
+    type: "std_msgs/msg/Int8"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
