@@ -274,29 +274,35 @@ ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \
 
 ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/${dji_topics[ALARS_BT_STATUS_STR_TOPIC]} std_msgs/msg/String --field data"
 
-ALARS_PING_SEARCH_CMD="ros2 run alars alars_ping_search_action_server --ros-args -r __ns:=/$ROBOT_NAME \
--p robot_name:=$ROBOT_NAME \
--p use_sim_time:=$USE_SIM_TIME"
+# This was fun for a demo, but unlikely to be useful for a long while...
+# ALARS_PING_SEARCH_CMD="ros2 run alars alars_ping_search_action_server --ros-args -r __ns:=/$ROBOT_NAME \
+# -p robot_name:=$ROBOT_NAME \
+# -p use_sim_time:=$USE_SIM_TIME"
 
-
-SUCCOR_CMD="ros2 run serial_ping_pkg modem_ping_estimator_node --ros-args \
--r __ns:=/$ROBOT_NAME \
--p use_sim_time:=$USE_SIM_TIME \
--p serial.port:=/dev/succorfish \
--p serial.baudrate:=9600 \
--p topics.own_latlon_topic:=/${ROBOT_NAME}/${smarc_topics[POS_LATLON_TOPIC]} \
--p topics.own_depth_topic:=/${ROBOT_NAME}/${dji_topics[HOOK_DEPTH_TOPIC]} \
--p teensy.own_modem_id:=\\'222\\' \
--p topics.geopoint_topic:=/${ROBOT_NAME}/${dji_topics[SUCCOR_ESTIMATE_TOPIC]} \
--p topics.marker_topic:=/${ROBOT_NAME}/rviz/succorfish_marker \
--p topics.map_frame:=${ROBOT_NAME}/map"
+# SUCCOR_CMD="ros2 run serial_ping_pkg modem_ping_estimator_node --ros-args \
+# -r __ns:=/$ROBOT_NAME \
+# -p use_sim_time:=$USE_SIM_TIME \
+# -p serial.port:=/dev/succorfish \
+# -p serial.baudrate:=9600 \
+# -p topics.own_latlon_topic:=/${ROBOT_NAME}/${smarc_topics[POS_LATLON_TOPIC]} \
+# -p topics.own_depth_topic:=/${ROBOT_NAME}/${dji_topics[HOOK_DEPTH_TOPIC]} \
+# -p teensy.own_modem_id:=\\'222\\' \
+# -p topics.geopoint_topic:=/${ROBOT_NAME}/${dji_topics[SUCCOR_ESTIMATE_TOPIC]} \
+# -p topics.marker_topic:=/${ROBOT_NAME}/rviz/succorfish_marker \
+# -p topics.map_frame:=${ROBOT_NAME}/map"
 # TODO these would better live in a py launchfile...
+
+# tmux_make_layout "$SESSION" BTs "
+# row(
+#     var(WASP_BT_CMD), 
+#     col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD)), 
+#     col(3:var(ALARS_PING_SEARCH_CMD), 1:var(SUCCOR_CMD))
+# )"
 
 tmux_make_layout "$SESSION" BTs "
 row(
     var(WASP_BT_CMD), 
-    col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD)), 
-    col(3:var(ALARS_PING_SEARCH_CMD), 1:var(SUCCOR_CMD))
+    col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD))
 )"
 
 
