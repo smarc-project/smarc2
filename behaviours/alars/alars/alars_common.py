@@ -76,7 +76,7 @@ class DroneState():
             self._projected_detections = msg
 
         self._node.create_subscription(ObjectPoseWithCovarianceArray,
-                                       DJITopics.PROJECTED_DETECTIONS,
+                                       DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC,
                                        _projected_detections_cb,
                                        10)
 
