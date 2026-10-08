@@ -18,8 +18,6 @@ string BASE_LINK_IN_MAP_TOPIC = 'base_link_in_map' # PoseStamped with header.fra
 # cameras
 string GIMBAL_CAMERA_RAW_TOPIC = 'gimbal_camera/camera/image_raw' # Image
 string GIMBAL_CAMERA_INFO_TOPIC = 'gimbal_camera/camera/camera_info' #CameraInfo
-string FISHEYE_CAMERA_RAW_TOPIC = 'fisheye_camera/camera/image_raw' # Image
-string FISHEYE_CAMERA_INFO_TOPIC = 'fisheye_camera/camera/camera_info' #CameraInfo
 
 
 # sensors that are not coming from PSDK
@@ -40,36 +38,9 @@ string PROP_RPM_FL_BOTTOM = 'sensor/props/flb'
 string PROP_RPM_BL_BOTTOM = 'sensor/props/blb'
 string PROP_RPM_BR_BOTTOM = 'sensor/props/brb'
 
+# mirrors the hardcoded topics of yolo_ros
+string YOLO_DETECTIONS = 'yolo/detections' # yolo_msgs.msg::DetectionArray
 
-
-
-# object detectors in normalized image coordinates [-1,1]
-# (0,0) is the center of the image, +x is right, +y is up!
-# If this is not the case, FIX IT.
-string ESTIMATED_BUOY_TOPIC = 'alars_detection/buoy' # PointStamped, 
-string ESTIMATED_AUV_TOPIC = 'alars_detection/auv' # PointStamped
-string ESTIMATED_AUV_OBB_TOPIC = "alars_detection/auv_obb" # PolygonStamped
-string ESTIMATED_AUV_HEAD_TOPIC = "alars_detection/auv_head" # PolygonStamped
-string ESTIMATED_BUOY_OBB_TOPIC = "alars_detection/buoy_obb" # PolygonStamped
-# instead of captain subbing to image and so on
-# let the consumer of camera data tell it if the camera is good, detection can happen etc.
-string CAM_PROCESSOR_HAPPY_TOPIC = 'alars_detection/cam_processor_happy' # Bool
-
-# Topic for publishing detected objects (excluding SAM and buoy) as labeled OBBs.
-# Each message contains Polygon[] obbs and string[] ids (class names).
-string LABELED_OBBS_TOPIC="alars_detection/labeled_obbs"
-
-# projected points
-string PROJECTED_AUV_HEAD_TOPIC = 'alars_projection/auv_head' # PolygonStamped
-string PROJECTED_AUV_OBB_TOPIC = 'alars_projection/auv_obb' # PolygonStamped
-string PROJECTED_BUOY_OBB_TOPIC = 'alars_projection/buoy_obb' # PolygonStamped
-string PROJECTED_AUV_POSE_WITH_COV_TOPIC = 'alars_projection/auv_pose_with_cov' # PoseWithCovarianceStamped 
-string PROJECTED_BUOY_POSE_WITH_COV_TOPIC = 'alars_projection/buoy_pose_with_cov' # PoseWithCovarianceStamped
-
-
-# services
-string ENABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'enable_alars_detector' # Trigger
-string DISABLE_ALARS_DETECTOR_SERVICE_TOPIC = 'disable_alars_detector' # Trigger
 
 # Multi-object estimation outputs.
 string PROJECTED_OBJECT_POSES_ARRAY_TOPIC = 'alars_projection/object_poses_array' # dji_msgs/ObjectPoseWithCovarianceArray
@@ -77,13 +48,12 @@ string OBJECT_EKF_STATUS_ARRAY_TOPIC = 'alars_ekf/status_array' # dji_msgs/Objec
 string OBJECT_EKF_RESET_SERVICE = 'alars_ekf/reset' # dji_msgs/ResetObjectEkf
 
 # Only for visualization
-string OBJECT_EKF_MARKERS_TOPIC = 'alars_projection/object_pose_markers' # visualization_msgs/MarkerArray
+string OBJECT_EKF_MARKERS_TOPIC = 'rviz/alars_projection/object_pose_markers' # visualization_msgs/MarkerArray
 
 # Hook Kalman Filter Topics 
 string HOOK_STATE_CARTESIAN = "alars_hook_kf/hook_state" # nav_msgs.msg/Odometry                -- hook estimate in cartesian coordinates 
 string HOOK_STATE_ANGULAR = "alars_hook_kf/hook_swing_state" # nav_msgs.msg/Odometry            -- hook state estimate in angular coordinates, needed for LQG controller 
 string HOOK_RAW_MEASUREMENT = "alars_hook_kf/hook_raw_measurement" # sensor_msgs.msg/JointState -- takes the yolo measurement and compute the hook position, needed for diagnostic
-string YOLO_DETECTIONS = "yolo/detections" # yolo_msgs.msg/DetectionArray
 
 # Hook Parameters
 string HOOK_PENDULUM_PARAMETERS = "alars_pendulum/hook_pendulum_parameters" # std_msgs.msg/Float64MultiArray
