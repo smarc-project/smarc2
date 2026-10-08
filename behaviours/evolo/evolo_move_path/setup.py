@@ -21,16 +21,14 @@ setup(
     zip_safe=True,
     maintainer='niklas',
     maintainer_email='nrol@kth.se',
-    description='Evolo path following with potential fields and action server',
+    description='Evolo path following',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # Client
-            'move_path_client = evolo_move_path.client:main',
             # Classical algorithms
             'move_path_server_dubins_curves = evolo_move_path.evolo_move_path_server_dubins_curves:main',
-            'move_path_server_visibility = evolo_move_path.evolo_move_path_server_visibility:main',
+            'move_path_server_simple = evolo_move_path.evolo_move_path_simple:main',
         ],
     },
 )
