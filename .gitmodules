@@ -34,8 +34,8 @@
 	url = https://github.com/smarc-project/smarc_modelling.git
 [submodule "vehicles/hardware/dji/psdk_ros2"]
 	path = vehicles/hardware/dji/psdk_ros2
-	url = https://gitr.sys.kth.se/smarc-project/dji_psdk_wrapper.git
-	branch = smarc
+	url = https://github.com/KKalem/psdk_ros2.git
+	branch = humble
 [submodule "utilities/serial_ping_pkg"]
 	path = utilities/serial_ping_pkg
 	url = git@github.com:NinjaTuna007/serial_ping_pkg.git
@@ -49,7 +49,7 @@
 	branch = master
 [submodule "messages/psdk_interfaces"]
 	path = messages/psdk_interfaces
-	url = https://github.com/KKalem/psdk_interfaces.git
+	url = https://github.com/KKalem/psdk_ros2.git
 	branch = interfaces_only
 [submodule "drivers/nau7802_ros2_driver"]
 	path = drivers/nau7802_ros2_driver
@@ -95,3 +95,6 @@
 [submodule "vehicles/hardware/active_hook/ardupilot"]
 	path = vehicles/hardware/active_hook/ardupilot
 	url = git@github.com:smarc-project/ardupilot.git
+[submodule "vehicles/hardware/dji/Payload-SDK"]
+	path = vehicles/hardware/dji/Payload-SDK
+	url = git@github.com:KKalem/Payload-SDK.git
