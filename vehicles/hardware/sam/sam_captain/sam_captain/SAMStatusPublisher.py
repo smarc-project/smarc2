@@ -59,12 +59,12 @@ class SAMStatusPublisher:
 
     def status_str(self) -> str:
         """Create a status string for SAM status data."""
-        if self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_READY:
-            health = "READY"
-        elif self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_ERROR:
-            health = "ERROR"
-        else:
-            health = "WAITING"
+        # if self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_READY:
+        #     health = "READY"
+        # elif self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_ERROR:
+        #     health = "ERROR"
+        # else:
+        #     health = "WAITING"
 
         battery = (
             f"{self._battery_percent:.1f}%"
@@ -76,7 +76,7 @@ class SAMStatusPublisher:
 
         return (
             "Status:\n"
-            f">> Vehicle Health: {health}\n"
+            # f">> Vehicle Health: {health}\n"
             f">> Abort: {abort}\n"
             f">> Heartbeat: {heartbeat}\n"
             f"  Battery Percent: {battery}\n"

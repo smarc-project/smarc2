@@ -1,6 +1,6 @@
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Int8, Float32, String
+from std_msgs.msg import Float32, String
 from nav_msgs.msg import Odometry
 from geographic_msgs.msg import GeoPoint
 
@@ -73,9 +73,6 @@ class SAMNavPublisher:
         self.altitude_pub = self._node.create_publisher(
             Float32, SmarcTopics.ALTITUDE_TOPIC, 10
         )
-        self.vehicle_health_pub = self._node.create_publisher(
-            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
-        )
 
     def _create_subscribers(self):
         """Subscribe to DR and UTM updates."""
@@ -84,9 +81,6 @@ class SAMNavPublisher:
         )
         self.utm_sub = self._node.create_subscription(
             String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
-        )
-        self.vehicle_health_sub = self._node.create_subscription(
-            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10
         )
 
     def _odom_callback(self, msg: Odometry):
@@ -164,10 +158,6 @@ class SAMNavPublisher:
                 f"Failed to transform odometry to {self.utm_frame}: {error}"
             )
             return None
-
-    def _vehicle_health_callback(self, msg: Int8):
-        #  TODO: add geofence check to vehicle health
-        self.vehicle_health_pub.publish(msg)
 
     # TODO: add geofence check to vehicle health
     def _check_geofence(self):
