@@ -1,10 +1,8 @@
-import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Empty, Int8, Float32, String
+from std_msgs.msg import Int8, Float32, String
 from nav_msgs.msg import Odometry
 from geographic_msgs.msg import GeoPoint
-from sensor_msgs.msg import BatteryState
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -24,6 +22,7 @@ from smarc_utilities.georef_utils import (
 
 class SAMNavPublisher:
     """Derive navigation data from SAM and publish to smarc topics."""
+
     def __init__(self, node: Node):
         self._node = node
         self._node.get_logger().info("SAMNavPublisher has been initialized.")
@@ -35,6 +34,12 @@ class SAMNavPublisher:
         self.utm_frame = None
         self.prev_pose_utm = None
         self.current_pose_utm = None
+        self._latest_depth = None
+        self._latest_altitude = None
+        self._latest_latlon = None
+        self._latest_heading = None
+        self._latest_course = None
+        self._latest_speed = None
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
@@ -68,8 +73,9 @@ class SAMNavPublisher:
         self.altitude_pub = self._node.create_publisher(
             Float32, SmarcTopics.ALTITUDE_TOPIC, 10
         )
-        self.vehicle_health_pub = self._node.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
-
+        self.vehicle_health_pub = self._node.create_publisher(
+            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
+        )
 
     def _create_subscribers(self):
         """Subscribe to DR and UTM updates."""
@@ -79,13 +85,15 @@ class SAMNavPublisher:
         self.utm_sub = self._node.create_subscription(
             String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
         )
-        self.vehicle_health_sub = self._node.create_subscription(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10)
-
+        self.vehicle_health_sub = self._node.create_subscription(
+            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, self._vehicle_health_callback, 10
+        )
 
     def _odom_callback(self, msg: Odometry):
         """Publish odom and derived navigation from each pose update."""
         self.odom_pub.publish(msg)
-        self.depth_pub.publish(Float32(data=msg.pose.pose.position.z))
+        self._latest_depth = msg.pose.pose.position.z
+        self.depth_pub.publish(Float32(data=self._latest_depth))
 
         pose_utm = self._odom_to_utm(msg)
         if pose_utm is None:
@@ -95,12 +103,15 @@ class SAMNavPublisher:
         self.current_pose_utm = pose_utm
 
         heading_msg = convert_enu_pose_to_heading(pose_utm.pose)
+        self._latest_heading = heading_msg.data
         self.heading_pub.publish(heading_msg)
 
         latlon_msg = convert_utm_to_latlon(pose_utm)
         latlon_msg.altitude = msg.pose.pose.position.z
+        self._latest_latlon = latlon_msg
+        self._latest_altitude = latlon_msg.altitude
         self.latlon_pub.publish(latlon_msg)
-        self.altitude_pub.publish(Float32(data=latlon_msg.altitude))
+        self.altitude_pub.publish(Float32(data=self._latest_altitude))
 
         if self.prev_pose_utm is None:
             return
@@ -111,6 +122,8 @@ class SAMNavPublisher:
         speed_msg = compute_speed_from_two_poses(
             self.prev_pose_utm, self.current_pose_utm
         )
+        self._latest_course = course_msg.data
+        self._latest_speed = speed_msg.data
         self.course_pub.publish(course_msg)
         self.speed_pub.publish(speed_msg)
 
@@ -153,14 +166,40 @@ class SAMNavPublisher:
             return None
 
     def _vehicle_health_callback(self, msg: Int8):
-            #  TODO: add geofence check to vehicle health
-            self.vehicle_health_pub.publish(msg)
+        #  TODO: add geofence check to vehicle health
+        self.vehicle_health_pub.publish(msg)
 
     # TODO: add geofence check to vehicle health
     def _check_geofence(self):
         pass
 
-    # TODO: implement nav status string
-    def nav_status_str(self):
+    def nav_status_str(self) -> str:
         """Create a status string for navigation data."""
-        pass
+        position = "N/A"
+        if self._latest_latlon is not None:
+            position = (
+                f"{self._latest_latlon.latitude:.6f}, "
+                f"{self._latest_latlon.longitude:.6f}"
+            )
+
+        utm_frame = self.utm_frame or "N/A"
+        depth = self._value_or_na(self._latest_depth, "m")
+        altitude = self._value_or_na(self._latest_altitude, "m")
+        heading = self._value_or_na(self._latest_heading, "deg")
+        course = self._value_or_na(self._latest_course, "deg")
+        speed = self._value_or_na(self._latest_speed, "m/s")
+
+        return (
+            "Navigation:\n"
+            f"  UTM Frame: {utm_frame}\n"
+            f"  Position: {position}\n"
+            f"  Depth: {depth}\n"
+            f"  Altitude: {altitude}\n"
+            f"  Heading: {heading}\n"
+            f"  Course: {course}\n"
+            f"  Speed: {speed}\n"
+        )
+
+    def _value_or_na(self, value, unit):
+        """Return a formatted string for a value or 'N/A' if None."""
+        return f"{value:.2f} {unit}" if value is not None else "N/A"
