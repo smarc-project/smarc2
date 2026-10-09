@@ -3,14 +3,16 @@
 from rclpy.node import Node
 from std_msgs.msg import Float32, Int8, Empty, String
 from smarc_msgs.msg import Topics as SmarcTopics
-from sam_msgs.msg import Topics as SamTopics
+# from sam_msgs.msg import Topics as SamTopics
 
 class SAMStatusPublisher:
     def __init__(self, node: Node):
         self._node = node
         self._create_publishers()
         self._node.get_logger().info('SAMStatusPublisher publishers have been created.')
-
+        self._battery_percent = None
+        self._heartbeat_received = False
+        self._abort_latched = False
         self._create_publishers()
         self._create_subscribers()
 
@@ -18,7 +20,7 @@ class SAMStatusPublisher:
         self.battery_percent_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self.heartbeat_pub = self._node.create_publisher(Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10)
         self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
-        self.status_str_pub = self._node.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
+        # self.status_str_pub = self._node.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         
         self._node.get_logger().info('SAMStatusPublisher publishers have been created.')
 
@@ -30,17 +32,38 @@ class SAMStatusPublisher:
         self._node.get_logger().info('SAMStatusPublisher subscribers have been created.')
 
     def _abort_callback(self, msg: Empty):
+        self._abort_latched = True
         self.abort_pub.publish(msg)
 
     def _heartbeat_callback(self, msg: Empty):
+        self._heartbeat_received = True
         self.heartbeat_pub.publish(msg)
 
     def _battery_callback(self, msg: Float32):
-        self.battery_percent_pub.publish(msg)
+        self._battery_percent = msg.data
+        self.battery_percent_pub.publish(self._battery_percent)
 
-    # TODO: implement status string publisher
-    def status_str(self):
+    def status_str(self) -> str:
         """Create a status string for SAM status data."""
-        # TODO: implement publish status str
-        # TODO status_str.publish(something something)
-        pass
+        if self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_READY:
+            health = 'READY'
+        elif self._vehicle_health == SmarcTopics.VEHICLE_HEALTH_ERROR:
+            health = 'ERROR'
+        else:
+            health = 'WAITING'
+
+        battery = (
+            f'{self._battery_percent:.1f}%'
+            if self._battery_percent is not None
+            else 'N/A'
+        )
+        heartbeat = 'RECEIVED' if self._heartbeat_received else 'WAITING'
+        abort = 'ACTIVE' if self._abort_latched else 'NOT ACTIVE'
+
+        return (
+            'Status:\n'
+            f'>> Vehicle Health: {health}\n'
+            f'>> Abort: {abort}\n'
+            f'>> Heartbeat: {heartbeat}\n'
+            f'  Battery Percent: {battery}\n'
+        )
