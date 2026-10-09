@@ -155,3 +155,12 @@ class SAMNavPublisher:
     def _vehicle_health_callback(self, msg: Int8):
             #  TODO: add geofence check to vehicle health
             self.vehicle_health_pub.publish(msg)
+
+    # TODO: add geofence check to vehicle health
+    def _check_geofence(self):
+        pass
+
+    # TODO: implement nav status string
+    def nav_status_str(self):
+        """Create a status string for navigation data."""
+        pass

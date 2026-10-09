@@ -3,6 +3,7 @@
 from rclpy.node import Node
 from std_msgs.msg import Float32, Int8, Empty, String
 from smarc_msgs.msg import Topics as SmarcTopics
+from sam_msgs.msg import Topics as SamTopics
 
 class SAMStatusPublisher:
     def __init__(self, node: Node):
@@ -17,7 +18,7 @@ class SAMStatusPublisher:
         self.battery_percent_pub = self._node.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self.heartbeat_pub = self._node.create_publisher(Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10)
         self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
-        self.status_str_pub = self._node.create_publisher(String, "status_string", 10) # TODO: change this placeholder to smarc_topics
+        self.status_str_pub = self._node.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         
         self._node.get_logger().info('SAMStatusPublisher publishers have been created.')
 
@@ -36,3 +37,10 @@ class SAMStatusPublisher:
 
     def _battery_callback(self, msg: Float32):
         self.battery_percent_pub.publish(msg)
+
+    # TODO: implement status string publisher
+    def status_str(self):
+        """Create a status string for SAM status data."""
+        # TODO: implement publish status str
+        # TODO status_str.publish(something something)
+        pass

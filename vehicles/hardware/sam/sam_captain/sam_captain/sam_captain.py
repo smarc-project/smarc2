@@ -11,6 +11,12 @@ class SAMCaptain(Node):
         self._nav_publisher = SAMNavPublisher(self)
         self._status_publisher = SAMStatusPublisher(self)
 
+        # TODO: create status_string publisher and timer callback
+    # TODO: create sam_captain_status_str callback to publish status string
+        # TODO: call nav_status_str and status_str
+        # TODO: combine string
+        # TODO: publish combined string
+
 
 def main(args=None):
     rclpy.init(args=args)
