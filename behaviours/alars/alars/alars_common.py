@@ -15,9 +15,12 @@ from nav_msgs.msg import Odometry
 from tf2_geometry_msgs import PoseWithCovarianceStamped, do_transform_pose_stamped, do_transform_vector3
 from tf2_ros import Buffer, TransformListener, Vector3Stamped
 
+from yolo_msgs.msg import DetectionArray, Detection
+
 from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
+from dji_msgs.msg import ObjectPoseWithCovarianceArray
 from smarc_msgs.msg import Topics as SmarcTopics
 
 
@@ -35,6 +38,15 @@ class DroneState():
         
         self._utm_frame : str|None = None
         self._drone_in_map : None | PoseStamped = None
+        self._yolo_detections : None | DetectionArray = None
+        self._projected_detections : None | ObjectPoseWithCovarianceArray = None
+
+        # these are here for legacy reasons really.
+        # the cleaner way would be to do the filtering where it is needed...
+        self.auv_detection: None | PointStamped = None
+        self.auv_projection: None | PoseWithCovarianceStamped = None
+        self.buoy_detection: None | PointStamped = None
+        self.buoy_projection: None | PoseWithCovarianceStamped = None
 
         def _pose_in_map_cb(msg: PoseStamped):
             if msg.header.frame_id != self.MAP_FRAME:
@@ -47,6 +59,7 @@ class DroneState():
                                        _pose_in_map_cb,
                                        10)
 
+
         def _utm_frame_cb(msg: String):
             self._utm_frame = msg.data
 
@@ -54,6 +67,71 @@ class DroneState():
                                        DJITopics.LABELED_UTM_TOPIC,
                                        _utm_frame_cb,
                                        10)
+
+
+
+        def _yolo_detections_cb(msg: DetectionArray):
+            self._yolo_detections = msg
+            for detection in msg.detections:
+                if detection.class_name == "sam":
+                    if self.auv_detection is None:
+                        self.auv_detection = PointStamped()
+                    self.auv_detection.header = msg.header
+                    self.auv_detection.point.x = detection.bbox.center.position.x
+                    self.auv_detection.point.y = detection.bbox.center.position.y
+                    break
+                if detection.class_name == "buoy":
+                    if self.buoy_detection is None:
+                        self.buoy_detection = PointStamped()
+                    self.buoy_detection.header = msg.header
+                    self.buoy_detection.point.x = detection.bbox.center.position.x
+                    self.buoy_detection.point.y = detection.bbox.center.position.y
+                    break
+
+        self._node.create_subscription(DetectionArray,
+                                       DJITopics.YOLO_DETECTIONS,
+                                       _yolo_detections_cb,
+                                       10)
+
+
+        def _projected_detections_cb(msg: ObjectPoseWithCovarianceArray):
+            self._projected_detections = msg
+            for obj in msg.objects:
+                if obj.header.frame_id != self.MAP_FRAME:
+                    self._loginfo(f"Received {obj.class_name} projection in frame {obj.header.frame_id}, expected {self.MAP_FRAME}. Transforming...")
+                    try:
+                        if not self._tf_buffer.can_transform(self.MAP_FRAME, obj.header.frame_id, Time(seconds=0)):
+                            self._loginfo(f"Cannot transform pose in frame <{obj.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+                            return
+                        tf = self._tf_buffer.lookup_transform(
+                            target_frame = self.MAP_FRAME,
+                            source_frame = obj.header.frame_id,
+                            time = Time(seconds=0),
+                            timeout = Duration(seconds=1)
+                        )
+                        in_map = do_transform_pose_stamped(self.auv_projection, tf)
+                        self.auv_projection.pose = in_map.pose
+                        self.auv_projection.header.frame_id = self.MAP_FRAME
+                    except Exception as e:
+                        self._loginfo(f"Failed to transform {obj.class_name} projection into MAP frame: {e}")
+                if obj.class_name == "sam":
+                    if self.auv_projection is None:
+                        self.auv_projection = PoseWithCovarianceStamped()
+                    self.auv_projection.header = obj.header
+                    self.auv_projection.pose = obj.pose
+                    break
+                if obj.class_name == "buoy":
+                    if self.buoy_projection is None:
+                        self.buoy_projection = PoseWithCovarianceStamped()
+                    self.buoy_projection.header = obj.header
+                    self.buoy_projection.pose = obj.pose
+                    break
+
+        self._node.create_subscription(ObjectPoseWithCovarianceArray,
+                                       DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC,
+                                       _projected_detections_cb,
+                                       10)
+
         
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)

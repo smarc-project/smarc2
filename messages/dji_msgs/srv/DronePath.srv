@@ -1,5 +1,0 @@
-#request
-bool data
----
-#response
-geometry_msgs/PoseArray path

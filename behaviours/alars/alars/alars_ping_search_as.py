@@ -76,12 +76,6 @@ class AlarsPingSearch():
                                            lambda msg: setattr(self, "_auv_position_estimate_pings", msg),
                                            10)
 
-            self._auv_position_estimate_visual : PoseWithCovarianceStamped|None = None
-            self._node.create_subscription(PoseWithCovarianceStamped,
-                                           DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                           lambda msg: setattr(self, "_auv_position_estimate_visual", msg),
-                                           10)
-
             
             
 
@@ -117,13 +111,16 @@ class AlarsPingSearch():
                 "max-pings": None
             }
 
+    @property
+    def _auv_position_estimate_visual(self) -> PoseWithCovarianceStamped | None:
+        return self._drone_state.auv_projection
+
 
     def _reset_states(self) -> None:
         self.ping_index : int = 0
         self.ping_count : int = 0
         self.done : bool = False
         self._auv_position_estimate_pings = None
-        self._auv_position_estimate_visual = None
 
         for ac in self._action_clients:
             ac.terminate(Status.INVALID)

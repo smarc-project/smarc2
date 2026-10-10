@@ -43,23 +43,12 @@ class RecoverAction():
 
         self._reset()
 
-        self._auv_in_map : PoseStamped = PoseStamped()
-        self._buoy_in_map : PoseStamped = PoseStamped()
         
         self._setpoint_pub = self._node.create_publisher(
             msg_type = PoseStamped,
             topic = DJITopics.MOVE_TO_SETPOINT_TOPIC,
             qos_profile= 10)
-        
-        self._node.create_subscription(PoseWithCovarianceStamped,
-                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                       self._auv_projection_cb,
-                                       10)
-        
-        self._node.create_subscription(PoseWithCovarianceStamped,
-                                       DJITopics.PROJECTED_BUOY_POSE_WITH_COV_TOPIC,
-                                       self._buoy_projection_cb,
-                                       10)
+    
         
         self._as = GentlerActionServer(
             node,
@@ -73,40 +62,19 @@ class RecoverAction():
         )
 
 
+    @property
+    def _auv_in_map(self) -> PoseStamped | None:
+        return self._drone_state.auv_projection
+
+    @property
+    def _buoy_in_map(self) -> PoseStamped | None:
+        return self._drone_state.buoy_projection
 
             
     def _reset(self):
         self._wp_index = 0
         self._points : list[PoseStamped] = []
 
-
-    def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):
-        self._auv_in_map.pose.position.x = msg.pose.pose.position.x
-        self._auv_in_map.pose.position.y = msg.pose.pose.position.y
-        self._auv_in_map.pose.position.z = msg.pose.pose.position.z
-        self._auv_in_map.header = msg.header
-        if self._auv_in_map.header.frame_id != self._drone_state.MAP_FRAME:
-            try:
-                in_map = self._drone_state.pose_stamped_in_map(self._auv_in_map)
-                if in_map is not None:
-                    self._auv_in_map = in_map
-            except Exception as e:
-                self._loginfo(f"Could not transform object position into MAP frame: {e}")
-                traceback.print_exc()
-
-    def _buoy_projection_cb(self, msg: PoseWithCovarianceStamped):
-        self._buoy_in_map.pose.position.x = msg.pose.pose.position.x
-        self._buoy_in_map.pose.position.y = msg.pose.pose.position.y
-        self._buoy_in_map.pose.position.z = msg.pose.pose.position.z
-        self._buoy_in_map.header = msg.header
-        if self._buoy_in_map.header.frame_id != self._drone_state.MAP_FRAME:
-            try:
-                in_map = self._drone_state.pose_stamped_in_map(self._buoy_in_map)
-                if in_map is not None:
-                    self._buoy_in_map = in_map
-            except Exception as e:
-                self._loginfo(f"Could not transform buoy position into MAP frame: {e}")
-                traceback.print_exc()
 
 
     def compute_distance(self, pose1 : PoseStamped, pose2 : PoseStamped) -> float:
