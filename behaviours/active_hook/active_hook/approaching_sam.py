@@ -1,14 +1,22 @@
 #!/usr/bin/python
 
+import math
+from collections import namedtuple
+
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import CameraInfo
 from yolo_msgs.msg import DetectionArray
+from transforms3d.euler import quat2euler
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from active_hook_msgs.msg import Topics as ActiveHookTopics
+
+_Attitude = namedtuple("_Attitude", ["x", "y", "z"])   # roll, pitch, yaw in degrees
 
 
 class ApproachingSamAction():
@@ -19,26 +27,28 @@ class ApproachingSamAction():
         self._node.declare_parameter("target_class", "sam")
         self._node.declare_parameter("detection_min_score", 0.5)
 
-        self._node.declare_parameter("image_width", 640.0)
-        self._node.declare_parameter("image_height", 480.0)
-        self._node.declare_parameter("yaw_kp", 1.5)     # horizontal centering gain
-        self._node.declare_parameter("pitch_kp", 1.0)   # vertical centering gain
+        self._node.declare_parameter("camera_info_topic", "front_camera/camera/camera_info")
+        self._node.declare_parameter("image_width", 640.0)    # fallback until camera_info arrives
+        self._node.declare_parameter("image_height", 480.0)   # fallback until camera_info arrives
+        self._node.declare_parameter("yaw_kp", 1.5)
+        self._node.declare_parameter("pitch_kp", 1.0)
 
-        self._node.declare_parameter("roll_kp", 0.06)   
+        self._node.declare_parameter("roll_kp", 0.06)
         self._node.declare_parameter("max_roll_cmd", 1.0)
 
-        self._node.declare_parameter("forward_kp", 2.0)            
-        self._node.declare_parameter("max_forward_cmd", 0.85)      
-        self._node.declare_parameter("target_bbox_width", 550.0)   # stop once sam's bbox is at least this wide, in pixels
+        self._node.declare_parameter("forward_kp", 2.0)
+        self._node.declare_parameter("max_forward_cmd", 0.85)
+        self._node.declare_parameter("target_bbox_width", 550.0)
 
-        self._node.declare_parameter("lost_timeout", 3.0)   # give up if sam isn't seen for this long, seconds
-        self._node.declare_parameter("timeout", 120.0)      # overall safety cutoff (seconds)
+        self._node.declare_parameter("lost_timeout", 3.0)
+        self._node.declare_parameter("timeout", 120.0)
         self._node.declare_parameter("loop_frequency", 20.0)
 
-        detection_topic = self._node.get_parameter("detection_topic").value
+        self._default_detection_topic = self._node.get_parameter("detection_topic").value
         self._default_target_class = self._node.get_parameter("target_class").value
         self._detection_min_score = self._node.get_parameter("detection_min_score").value
 
+        camera_info_topic = self._node.get_parameter("camera_info_topic").value
         self._image_width = self._node.get_parameter("image_width").value
         self._image_height = self._node.get_parameter("image_height").value
         self._yaw_kp = self._node.get_parameter("yaw_kp").value
@@ -51,32 +61,53 @@ class ApproachingSamAction():
         self._max_forward_cmd = self._node.get_parameter("max_forward_cmd").value
         self._target_bbox_width = self._node.get_parameter("target_bbox_width").value
 
-        self._lost_timeout = self._node.get_parameter("lost_timeout").value
-        self._timeout = self._node.get_parameter("timeout").value
+        self._default_lost_timeout = self._node.get_parameter("lost_timeout").value
+        self._default_timeout = self._node.get_parameter("timeout").value
         loop_freq = self._node.get_parameter("loop_frequency").value
 
         self._node.create_subscription(
-            DetectionArray, detection_topic, self._detection_callback, 10
+            CameraInfo, camera_info_topic, self._camera_info_callback, 10
         )
         self._node.create_subscription(
-            Vector3, ActiveHookTopics.ATTITUDE_TOPIC, self._attitude_callback, 10
+            Odometry, ActiveHookTopics.ODOM_TOPIC, self._odom_callback, 10
         )
         self._cmd_vel_pub = self._node.create_publisher(
             Twist, ActiveHookTopics.AUTONOMY_CMD_VEL_TOPIC, 10
         )
 
+        # goal params (can be overridden per-goal, see _on_goal_received)
         self._target_class = self._default_target_class
+        self._lost_timeout = self._default_lost_timeout
+        self._timeout = self._default_timeout
+
         self._start_time = None
         self._latest_bbox = None
         self._last_seen_time = None
-        self._latest_attitude: Vector3 | None = None
+        self._latest_attitude: _Attitude | None = None
 
-        self._as = GentlerActionServer(
+        # detection_topic is a goal param now, so the subscription gets
+        # (re)made per goal instead of once up front
+        self._detection_sub = None
+        self._current_detection_topic = None
+
+        self._action_server = GentlerActionServer(
             node, "approaching_sam",
             self._on_goal_received, self._on_cancel_received,
             self._prepare_loop, self._loop_inner, self._give_feedback,
             loop_frequency=loop_freq,
         )
+
+    def _subscribe_detections(self, topic: str) -> None:
+        if topic == self._current_detection_topic:
+            return
+        if self._detection_sub is not None:
+            self._node.destroy_subscription(self._detection_sub)
+        self._detection_sub = self._node.create_subscription(
+            DetectionArray, topic, self._detection_callback, 10
+        )
+        self._current_detection_topic = topic
+        self._latest_bbox = None
+        self._last_seen_time = None
 
     def _detection_callback(self, msg: DetectionArray) -> None:
         candidates = [
@@ -90,11 +121,30 @@ class ApproachingSamAction():
         self._latest_bbox = best.bbox
         self._last_seen_time = self._node.get_clock().now()
 
-    def _attitude_callback(self, msg: Vector3) -> None:
-        self._latest_attitude = msg
+    def _odom_callback(self, msg: Odometry) -> None:
+        q = msg.pose.pose.orientation
+        roll, pitch, yaw = quat2euler([q.w, q.x, q.y, q.z], axes='sxyz')
+        self._latest_attitude = _Attitude(
+            x=math.degrees(roll), y=math.degrees(pitch), z=math.degrees(yaw)
+        )
+
+    def _camera_info_callback(self, msg: CameraInfo) -> None:
+        self._image_width = float(msg.width)
+        self._image_height = float(msg.height)
 
     def _on_goal_received(self, goal_request: dict) -> bool:
         self._target_class = str(goal_request.get('target_class', self._default_target_class))
+        self._lost_timeout = float(goal_request.get('lost_timeout', self._default_lost_timeout))
+        self._timeout = float(goal_request.get('timeout', self._default_timeout))
+
+        detection_topic = str(goal_request.get('detection_topic', self._default_detection_topic))
+        topic_changed = detection_topic != self._current_detection_topic
+        self._subscribe_detections(detection_topic)
+
+        if topic_changed:
+            # nothing can have arrived on a subscription we just made
+            self._last_seen_time = self._node.get_clock().now()
+            return True
 
         if self._latest_bbox is None:
             self._node.get_logger().error(
@@ -126,6 +176,11 @@ class ApproachingSamAction():
             self._cmd_vel_pub.publish(Twist())
             return False
 
+        if self._latest_bbox is None:
+            # still waiting on a freshly (re)subscribed detection_topic
+            self._cmd_vel_pub.publish(Twist())
+            return None
+
         bbox = self._latest_bbox
 
         if bbox.size.x >= self._target_bbox_width:
@@ -133,19 +188,16 @@ class ApproachingSamAction():
             self._cmd_vel_pub.publish(Twist())
             return True
 
-        # forward speed
         size_error = self._target_bbox_width - bbox.size.x
         normalized_size_error = max(0.0, min(1.0, size_error / self._target_bbox_width))
         forward_cmd = max(0.0, min(self._max_forward_cmd, self._forward_kp * normalized_size_error))
 
-        # center horizontally (yaw) and vertically (pitch): error and command
         error_x = bbox.center.position.x - self._image_width / 2.0
         error_y = bbox.center.position.y - self._image_height / 2.0
 
         yaw_cmd = self._yaw_kp * (error_x / (self._image_width / 2.0))
         pitch_cmd = self._pitch_kp * (error_y / (self._image_height / 2.0))
 
-        # roll-hold: cancels the roll drift that pitch+yaw induce together
         if self._latest_attitude is not None:
             current_roll = self._latest_attitude.x
             roll_error = ((0.0 - current_roll + 180.0) % 360.0) - 180.0

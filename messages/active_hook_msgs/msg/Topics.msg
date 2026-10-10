@@ -15,6 +15,5 @@ string MAVROS_ARMING_SRV='mavros/cmd/arming'                      # mavros_msgs/
 string MAVROS_SET_MODE_SRV='mavros/set_mode'                      # mavros_msgs/srv/SetMode
 string MAVROS_IMU_TOPIC='mavros/imu/data'                         # sensor_msgs/msg/Imu
 
-# imu_to_odom output
-string ATTITUDE_TOPIC='attitude'                                  # geometry_msgs/msg/Vector3 - roll/pitch/yaw in degrees
+# imu_to_odom output. attitude is in pose.pose.orientation, no separate attitude topic anymore.
 string ODOM_TOPIC='odom'                                          # nav_msgs/msg/Odometry - attitude-only odometry (no position source)

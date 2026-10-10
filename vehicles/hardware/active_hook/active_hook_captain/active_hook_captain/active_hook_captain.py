@@ -6,7 +6,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 
 from sensor_msgs.msg import Joy, Imu
-from geometry_msgs.msg import Twist, Vector3, TransformStamped
+from geometry_msgs.msg import Twist, TransformStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Int8
 from tf2_ros import TransformBroadcaster
@@ -41,25 +41,6 @@ PITCH_SCALE = 0.3
 ROLL_SCALE = 0.3
 
 
-def quaternion_to_euler(x: float, y: float, z: float, w: float) -> tuple[float, float, float]:
-    # standard quaternion -> roll/pitch/yaw (radians) conversion
-    sinr_cosp = 2.0 * (w * x + y * z)
-    cosr_cosp = 1.0 - 2.0 * (x * x + y * y)
-    roll = math.atan2(sinr_cosp, cosr_cosp)
-
-    sinp = 2.0 * (w * y - z * x)
-    if abs(sinp) >= 1.0:
-        pitch = math.copysign(math.pi / 2, sinp)  # gimbal lock: clamp to +-90 deg
-    else:
-        pitch = math.asin(sinp)
-
-    siny_cosp = 2.0 * (w * z + x * y)
-    cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
-    yaw = math.atan2(siny_cosp, cosy_cosp)
-
-    return roll, pitch, yaw
-
-
 class ActiveHookCaptain(Node):
 
     def __init__(self):
@@ -80,19 +61,18 @@ class ActiveHookCaptain(Node):
         # (previous_button_states, current_mode, current_armed)
         self.previous_button_states = {}
         self.current_mode = ''
-        self.current_armed = False      
+        self.current_armed = False
 
         # smarc pubs
         self._vehicle_health_pub = self.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, qos_profile=10)
         self._vehicle_health_timer = self.create_timer(1, self._publish_vehicle_health)
 
-        # --- IMU -> attitude / odom / TF conversion ---
+        # --- IMU -> odom / TF conversion ---
         self.declare_parameter('robot_name', 'ActiveHook')
         self._robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
         self._odom_frame = self._robot_name + '/odom'
         self._base_link_frame = self._robot_name + '/base_link'
 
-        self._attitude_publisher = self.create_publisher(Vector3, ActiveHookTopics.ATTITUDE_TOPIC, 10)
         self._odom_publisher = self.create_publisher(Odometry, ActiveHookTopics.ODOM_TOPIC, 10)
         self._tf_broadcaster = TransformBroadcaster(self)
 
@@ -105,7 +85,7 @@ class ActiveHookCaptain(Node):
 
 
 
-    # Joystick 
+    # Joystick
     def joy_callback(self, joy_message):
         if len(joy_message.axes) < 6:
             return
@@ -131,7 +111,7 @@ class ActiveHookCaptain(Node):
     def button_pressed_once(self, joy_message, button_index):
         if not (0 <= button_index < len(joy_message.buttons)):
             return False
-    
+
         current_state = int(joy_message.buttons[button_index])
         previous_state = self.previous_button_states.get(button_index, 0)
         self.previous_button_states[button_index] = current_state
@@ -149,7 +129,7 @@ class ActiveHookCaptain(Node):
             self.send_mode_command('STABILIZE')
         if self.button_pressed_once(joy_message, DEPTH_HOLD_MODE_BUTTON):
             self.send_mode_command('ALT_HOLD')
-            
+
 
     # velocity (Twist) to manual control conversion.
     # Any axis-convention flipping belongs in the message SOURCE (joy_callback),
@@ -165,29 +145,29 @@ class ActiveHookCaptain(Node):
         roll = self.shape_axis(twist_message.angular.x, ROLL_SCALE)
         pitch = self.shape_axis(twist_message.angular.y, PITCH_SCALE)
         yaw = self.shape_axis(twist_message.angular.z, YAW_SCALE)
- 
-        
+
+
         manual_message = ManualControl()
         manual_message.header.stamp = self.get_clock().now().to_msg()
- 
+
         manual_message.x = forward * 1000.0
         manual_message.y = 0.0
         manual_message.z = 500 + vertical * 500.0
         manual_message.r = yaw * 1000.0
         manual_message.s = pitch * 1000.0
         manual_message.t = roll * 1000.0
- 
+
         manual_message.buttons = 0
         manual_message.buttons2 = 0
         manual_message.enabled_extensions = 0b00000011
- 
+
         manual_message.aux1 = 0.0
         manual_message.aux2 = 0.0
         manual_message.aux3 = 0.0
         manual_message.aux4 = 0.0
         manual_message.aux5 = 0.0
         manual_message.aux6 = 0.0
- 
+
         self.manual_control_publisher.publish(manual_message)
 
 
@@ -197,9 +177,9 @@ class ActiveHookCaptain(Node):
         value = math.copysign(abs(value) ** EXPO, value)
         value *= scale
         return max(-1.0, min(1.0, value))
-    
 
-    # MAVROS State 
+
+    # MAVROS State
     def state_callback(self, state_message):
         if state_message.mode != self.current_mode:
             self.current_mode = state_message.mode
@@ -261,17 +241,9 @@ class ActiveHookCaptain(Node):
         future.add_done_callback(on_response)
 
 
-    # IMU -> attitude (deg) / odom / TF
+    # IMU -> odom / TF
     def imu_callback(self, msg: Imu) -> None:
         q = msg.orientation
-        roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
-
-        # human-readable angles, in degrees
-        angles = Vector3()
-        angles.x = math.degrees(roll)
-        angles.y = math.degrees(pitch)
-        angles.z = math.degrees(yaw)
-        self._attitude_publisher.publish(angles)
 
         # Odometry -- position stays zero, we only have attitude, no position source
         odom = Odometry()

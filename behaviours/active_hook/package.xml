@@ -9,9 +9,12 @@
 
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
   <depend>active_hook_msgs</depend>
   <depend>smarc_action_base</depend>
   <depend>yolo_msgs</depend>
+  <depend>python3-transforms3d</depend>
 
   <test_depend>python3-pytest</test_depend>
 
