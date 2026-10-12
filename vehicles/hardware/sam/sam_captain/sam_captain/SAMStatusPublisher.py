@@ -1,10 +1,10 @@
 # TODO: publish sam status to smarc data topics
 # status includes: battery, abort, heartbeat, vehicle health, abort
 from rclpy.node import Node
-from std_msgs.msg import Float32, Int8, Empty, String
+from sensor_msgs.msg import BatteryState
+from std_msgs.msg import Float32, Empty
 from smarc_msgs.msg import Topics as SmarcTopics
-
-# from sam_msgs.msg import Topics as SamTopics
+from sam_msgs.msg import Topics as SamTopics
 
 
 class SAMStatusPublisher:
@@ -25,20 +25,20 @@ class SAMStatusPublisher:
         self.heartbeat_pub = self._node.create_publisher(
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
         )
-        self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
+        self.abort_pub = self._node.create_publisher(Empty, SamTopics.ABORT_TOPIC, 10)
         # self.status_str_pub = self._node.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
 
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self):
         self.abort_sub = self._node.create_subscription(
-            Empty, SmarcTopics.ABORT_TOPIC, self._abort_callback, 10
+            Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10
         )
         self.bt_heartbeat_sub = self._node.create_subscription(
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
         )
         self.battery_status_sub = self._node.create_subscription(
-            Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, self._battery_callback, 10
+            BatteryState, SmarcTopics.BATTERY_PERCENT_TOPIC, self._battery_callback, 10
         )
 
         self._node.get_logger().info(
@@ -54,8 +54,13 @@ class SAMStatusPublisher:
         self.heartbeat_pub.publish(msg)
 
     def _battery_callback(self, msg: Float32):
+        if msg.percentage is None:
+            self._node.get_logger().warn(
+                "Battery percentage not available, not publishing."
+            )
+            return
         self._battery_percent = msg.data
-        self.battery_percent_pub.publish(self._battery_percent)
+        self.battery_percent_pub.publish(Float32(data=self._battery_percent))
 
     def status_str(self) -> str:
         """Create a status string for SAM status data."""
