@@ -22,11 +22,13 @@ fi
 if [[ "$(whoami)" == "orin" ]]; then
     USE_SIM_TIME=False
     REALSIM=real
+    GPS_TOPIC=core/can_gps
     MQTT_BROKER_IP=20.240.40.232
     MQTT_BROKER_PORT=1884
 else
     USE_SIM_TIME=True
     REALSIM=simulation
+    GPS_TOPIC=core/gps
 fi
 
 # Variables for wasp_bt.launch and wasp_mqtt_agent.launch
@@ -51,7 +53,7 @@ if [[ $USE_SIM_TIME == "False" ]]; then
 fi
 
 DESCRIPTION_CMD="ros2 launch sam_description sam_description.launch robot_name:=$ROBOT_NAME"
-DR_CMD="ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME  use_motion_model:=false inference_strategy:=FixedLagSmoothing kf_interval_hz:=10 use_sensor_covariance:=false init_from_ground_truth:=false"
+DR_CMD="ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME gps_topics:=$GPS_TOPIC use_motion_model:=false inference_strategy:=FixedLagSmoothing kf_interval_hz:=10 use_sensor_covariance:=false init_from_ground_truth:=false"
 
 tmux_make_layout "$SESSION" dr "
 col(
@@ -74,7 +76,8 @@ row(
     )
 )"
 
-SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
+# SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
+SMARC_PUB_CMD="ros2 launch sam_captain sam_captain.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 MQTT_BRIDGE_CMD="ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME domain:=subsurface context:=isee realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME"
 # HEALTH_CHECKER_CMD="ros2 launch sam_health_checker sam_rate_health_checker.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 # UTILS_CMD="ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME"
