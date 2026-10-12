@@ -38,7 +38,7 @@ class SAMStatusPublisher:
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
         )
         self.battery_status_sub = self._node.create_subscription(
-            BatteryState, SmarcTopics.BATTERY_PERCENT_TOPIC, self._battery_callback, 10
+            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
 
         self._node.get_logger().info(
@@ -55,11 +55,12 @@ class SAMStatusPublisher:
 
     def _battery_callback(self, msg: Float32):
         if msg.percentage is None:
-            self._node.get_logger().warn(
+            self._node.get_logger().info(
                 "Battery percentage not available, not publishing."
             )
             return
-        self._battery_percent = msg.data
+        self._battery_percent = msg.percentage
+        self._node.get_logger().info(f"Publishing battery percentage: {self._battery_percent:.2f}%")
         self.battery_percent_pub.publish(Float32(data=self._battery_percent))
 
     def status_str(self) -> str:
