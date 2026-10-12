@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import String
 from sam_captain.SAMNavPublisher import SAMNavPublisher
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 from sam_msgs.msg import Topics as SamTopics
@@ -12,6 +13,18 @@ class SAMCaptain(Node):
         self._nav_publisher = SAMNavPublisher(self)
         self._status_publisher = SAMStatusPublisher(self)
 
+        # TEST, will remove later
+        self.nav_str_pub = self.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
+        self._publish_nav()
+
+
+    def _publish_nav(self):
+        self.get_logger().info("Publishing nav status string.")
+        # msg = self._nav_publisher.nav_status_str()
+        msg = String()
+        msg.data = "TEST NAV STATUS STRING"
+        self.nav_str_pub.publish(msg)
+    
         # TODO: create status_string publisher and timer callback
 
     # TODO: create sam_health_checker to check if vehicle_health is ready, error or waiting
