@@ -15,17 +15,30 @@ class SAMCaptain(Node):
 
         # TEST, will remove later
         self.nav_str_pub = self.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
-        self._publish_nav()
+        # self._publish_nav()
+        self._status_str_timer = self.create_timer(1.0, self._publish_status_string)
 
 
-    def _publish_nav(self):
-        self.get_logger().info("Publishing nav status string.")
-        # msg = self._nav_publisher.nav_status_str()
-        msg = String()
-        msg.data = "TEST NAV STATUS STRING"
-        self.nav_str_pub.publish(msg)
+    # def _publish_nav(self):
+    #     self.get_logger().info("Publishing nav status string.")
+    #     # msg = self._nav_publisher.nav_status_str()
+    #     msg = String()
+    #     msg.data = "TEST NAV STATUS STRING"
+    #     self.nav_str_pub.publish(msg)
     
-        # TODO: create status_string publisher and timer callback
+    # TODO: create status_string publisher and timer callback
+    def _publish_status_string(self):
+        # self.get_logger().info("Publishing status string.")
+        nav_status = self._nav_publisher.nav_status_str()
+        sys_str = self._status_publisher.status_str()
+        # debug
+        # self.get_logger().info(f"Nav status: {nav_status}")
+        # self.get_logger().info(f"System status: {sys_str}")
+
+        msg = String()
+        msg.data = f"{nav_status}\n{sys_str}"
+        self.get_logger().info(f"Publishing status string: {msg.data}")
+        self.nav_str_pub.publish(msg)
 
     # TODO: create sam_health_checker to check if vehicle_health is ready, error or waiting
     def _health_check_callback(self):
