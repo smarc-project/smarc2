@@ -10,7 +10,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name, ['package.xml', 'README.md']),
         (os.path.join('share', package_name, 'config'),
             glob.glob('config/*')),
         (os.path.join('share', package_name, 'launch'), 
@@ -29,7 +29,6 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'projection = auv_state_estimation.projection:main',
             'multi_object_ekf_node = auv_state_estimation.multi_object_ekf_node:main',
         ],
     },

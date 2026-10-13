@@ -1,0 +1,118 @@
+#Parameters for the landing pipeline: landing_manager parameters might need adjustment depending on the situation.
+/**:
+  ros__parameters:
+    landing_relative_state:
+      map_frame: map
+      publish_rate_hz: 50.0
+      max_drone_age_s: 0.8
+      max_pad_age_s: 1.5
+      max_pad_position_cov_trace: 0.30 #0.3
+      max_pad_velocity_cov_trace: 0.60 #0.6
+      zero_covariance_is_valid: false
+      latency_compensation: true
+      max_prediction_horizon_s: 0.20
+      tf_fallback_to_latest: false
+      drone_twist_frame_mode: header #child
+      pad_twist_frame_mode: header
+
+    landing_manager:
+      controller_frame: M350/base_flat_link
+      update_rate_hz: 40.0
+      auto_start: false
+      enable_descent: false
+      acquire_duration_s: 2.0
+      minimum_align_height_m: 8.0 #10.0
+      capture_current_height_on_align: true
+      align_xy_tolerance_m: 0.35
+      align_speed_tolerance_mps: 0.20
+      align_dwell_s: 2.0
+      descent_rate_mps: 0.8 #0.15 #0.3
+      descent_pause_xy_m: 0.2
+      descent_pause_speed_mps: 0.6 #0.15
+      final_descent_height_m: 3.0 #2.5
+      final_descent_entry_margin_m: 0.08
+      final_descent_rate_mps: 0.35 # 0.3
+      # Heights refer to the landing-gear center selected by the stack launch.
+      # The target clearance and touchdown detection limit are separate settings.
+      touchdown_height_m: 0.2
+      touchdown_detection_height_m: 0.25
+      touchdown_xy_tolerance_m: 0.2
+      touchdown_vertical_speed_mps: 0.2
+      touchdown_dwell_s: 0.5
+      touchdown_hold_s: 1.0
+      estimate_loss_abort_s: 2.0 #0.8
+      abort_xy_error_m: 6.0 #change
+      abort_safe_height_m: 3.0
+      abort_climb_speed_mps: 0.30
+      abort_climb_duration_s: 5.0
+      abort_hold_duration_s: 1.5
+      turn_off_motors_on_landed: true
+
+    landing_lqr_controller:
+      controller_frame: M350/base_flat_link
+      model_kind: auto
+      model_sample_time_s: 0.0
+      max_state_age_s: 0.8
+      max_reference_age_s: 0.8
+      q_diagonal_xy: [2.0, 2.0, 8.0, 8.0]
+      r_diagonal_xy: [4.0, 4.0]
+      z_kp: 0.55
+      z_kd: 0.30
+      max_xy_speed_mps: 1.5 #0.6
+      max_xy_speed_final_mps: 1.5 #0.6
+      max_up_speed_mps: 0.45 #0.35
+      max_down_speed_mps: 0.35 #0.35
+      max_down_speed_final_mps: 0.35
+      command_cutoff_hz: 1.5
+      max_command_rate_mps2: [2.0, 2.0, 0.5] #[1.2, 1.2, 0.35]
+      start_filter_from_zero: true
+
+    landing_velocity_command_mux:
+      controller_frame: M350/base_flat_link
+      publish_rate_hz: 50.0
+      controller_timeout_s: 0.8
+      reference_timeout_s: 0.8
+      zero_flush_cycles: 10
+
+    landing_pad_odom_adapter:
+      enable_dropout_prediction: true
+
+      # Safer: normal ALIGN/DESCEND requires actual perception.
+      # Prediction is reserved for the committed terminal phase.
+      prediction_only_in_final_descent: true
+
+      prediction_start_after_s: 0.15 #
+      max_prediction_s: 10.0 #30.0
+      prediction_publish_rate_hz: 20.0
+
+      prediction_position_variance_rate: 0.003
+      prediction_velocity_variance_rate: 0.003
+
+      # Normal moving-pad velocity estimate.
+      prediction_velocity_window_s: 0.75
+      prediction_velocity_min_samples: 4
+
+      dropout_velocity_capture_window_s: 0.75
+
+      # Keep finite-difference velocity through short camera/EKF gaps.
+      max_dt_s: 1.50
+      velocity_filter_tau_s: 0.10
+
+      # Fallback if current regression temporarily collapses.
+      prediction_velocity_hold_s: 2.0
+      prediction_velocity_min_xy_speed_mps: 0.03
+
+      # History used to capture velocity at visual dropout in FINAL_DESCENT.
+      terminal_velocity_history_s: 0.75
+      terminal_velocity_min_samples: 4
+      terminal_velocity_min_span_s: 0.25
+
+      fresh_ekf_update_max_age_s: 0.10
+      reacquire_dwell_s: 0.30
+      #prediction_start_after_s: 0.15
+
+      terminal_velocity_collapse_ratio: 0.98
+      terminal_velocity_memory_s: 5.0
+      terminal_velocity_direction_min_speed_mps: 0.15
+
+      terminal_drone_velocity_history_s: 2.0

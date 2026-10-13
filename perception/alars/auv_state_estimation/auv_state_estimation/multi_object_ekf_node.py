@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
 from rclpy.duration import Duration
+from rclpy.executors import MultiThreadedExecutor
 
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
@@ -21,11 +22,11 @@ from visualization_msgs.msg import Marker, MarkerArray
 from .object_ekf import ObjectEKF
 
 class MultiObjectEKFNode(Node):
-    def __init__(self):
-        super().__init__("multi_object_ekf_node")
+    def __init__(self, **node_kwargs):
+        super().__init__("multi_object_ekf_node", **node_kwargs)
 
         # Input
-        self.declare_parameter("topics.input_detections", "yolo/detections")
+        self.declare_parameter("topics.input_detections", Topics.YOLO_DETECTIONS)
 
         # Outputs for all estimated objects.
         self.declare_parameter("topics.output_poses_array", Topics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
@@ -49,7 +50,8 @@ class MultiObjectEKFNode(Node):
 
         # Odom topic
         self.declare_parameter("topics.odom", SmarcTopics.ODOM_TOPIC)
-
+        self.declare_parameter("pad_projection_debug", False)
+        self.pad_projection_debug = bool(self.get_parameter("pad_projection_debug").value)
         self.robot_name = self.get_parameter("robot_name").get_parameter_value().string_value.strip("/")
 
         map_frame = self.get_parameter("frames.map").get_parameter_value().string_value
@@ -163,10 +165,113 @@ class MultiObjectEKFNode(Node):
             "D": np.array(calib["distortion_coefficients"]["data"]),
         }
 
+    @staticmethod
+    def project_point_numpy(p_map, cam_pos_map, R_map_cam, K, D):
+        """
+        Project a 3D map-frame point into the image using
+        the pinhole + plumb_bob distortion model.
+
+        No OpenCV.
+        """
+
+        p_map = np.asarray(p_map, dtype=float).reshape(3)
+        cam_pos_map = np.asarray(cam_pos_map, dtype=float).reshape(3)
+
+        # map -> optical camera
+        p_cam = R_map_cam.T @ (p_map - cam_pos_map)
+        X, Y, Z = p_cam
+
+        if Z <= 1e-6:
+            return None
+
+        # Normalized pinhole coordinates
+        x = X / Z
+        y = Y / Z
+
+        # Brown-Conrady / ROS plumb_bob distortion
+        # D = [k1, k2, p1, p2, k3]
+        coeffs = np.zeros(5)
+        D_flat = np.asarray(D, dtype=float).reshape(-1)
+        coeffs[:min(5, len(D_flat))] = D_flat[:5]
+        k1, k2, p1, p2, k3 = coeffs
+
+        r2 = x * x + y * y
+        r4 = r2 * r2
+        r6 = r4 * r2
+        radial = 1.0 + k1 * r2 + k2 * r4 + k3 * r6
+        x_dist = x * radial + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x)
+        y_dist = y * radial + p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y
+        pixel_h = K @ np.array([x_dist, y_dist, 1.0])
+
+        return pixel_h[:2]
+
+    @staticmethod
+    def min_area_rect_numpy(points):
+        """
+        NumPy-only minimum-area oriented rectangle for
+        an ordered convex polygon.
+
+        Returns:
+            center_uv
+            size_uv
+            angle_rad
+        """
+
+        pts = np.asarray(points, dtype=float)
+
+        if len(pts) < 2:
+            return None
+
+        best_area = np.inf
+        best_center = None
+        best_size = None
+        best_angle = None
+        n = len(pts)
+
+        for i in range(n):
+            p0 = pts[i]
+            p1 = pts[(i + 1) % n]
+            edge = p1 - p0
+
+            if np.linalg.norm(edge) < 1e-9:
+                continue
+
+            theta = np.arctan2(edge[1], edge[0])
+            c = np.cos(theta)
+            s = np.sin(theta)
+
+            # Rotate points so this edge aligns with x axis.
+            R2 = np.array([[c, s], [-s, c]])
+            pts_rot = (R2 @ pts.T).T
+            pmin = pts_rot.min(axis=0)
+            pmax = pts_rot.max(axis=0)
+            size = pmax - pmin
+            area = size[0] * size[1]
+
+            if area < best_area:
+                center_rot = 0.5 * (pmin + pmax)
+
+                # Rotate back.
+                center = R2.T @ center_rot
+                best_area = area
+                best_center = center
+                best_size = size
+                best_angle = theta
+
+        if best_center is None:
+            return None
+
+        return (best_center, best_size, best_angle)
+
     def detections_cb(self, msg: DetectionArray):
         # Shared detection callback.
         # Each configured ObjectEKF selects the best detection for its class.
-        transform = self.lookup_camera_transform()
+        stamp = msg.header.stamp
+
+        if stamp.sec == 0 and stamp.nanosec == 0:
+            stamp = self.get_clock().now().to_msg()
+
+        transform = self.lookup_camera_transform(stamp)
 
         if transform is None:
             return
@@ -175,6 +280,9 @@ class MultiObjectEKFNode(Node):
         self.current_R_map_cam = R_map_cam
 
         now = self.get_clock().now()
+        measurement_time = Time.from_msg(stamp)
+        detection_age_s = (now - measurement_time).nanoseconds * 1e-9
+        self.get_logger().info(f"Detection age: {detection_age_s:.3f} s", throttle_duration_sec=2.0)
 
         for track in self.tracks.values():
             best_det = self.find_best_detection(track, msg.detections)
@@ -186,18 +294,153 @@ class MultiObjectEKFNode(Node):
 
             track.z(
                 det=best_det,
-                stamp=msg.header.stamp,
+                stamp=stamp,
                 cam_pos_map=cam_pos_map,
                 R_map_cam=R_map_cam,
                 lin_vel_map=self.lin_vel_map,
                 ang_vel_map=self.ang_vel_map,
                 now=now,
             )
+            center_uv = np.array([
+                float(best_det.bbox.center.position.x),
+                float(best_det.bbox.center.position.y),
+            ])
+            if track.class_name == "land_pad" and self.pad_projection_debug:
+                center_uv = np.array([
+                    float(best_det.bbox.center.position.x),
+                    float(best_det.bbox.center.position.y),
+                ])
 
-        stamp = msg.header.stamp
+                ray = track.measurement_model.back_projection(center_uv, R_map_cam)
 
-        if stamp.sec == 0 and stamp.nanosec == 0:
-            stamp = self.get_clock().now().to_msg()
+                direct_point = track.initializer.point_on_line_at_z(
+                    cam_pos_map,
+                    ray,
+                    track.water_surface_height,
+                )
+
+                # Unity ground-truth landing-pad center, used only for diagnostics.
+                gt_point = None
+                gt_uv = None
+
+                try:
+                    gt_tf = self.tf_buffer.lookup_transform(
+                        self.map_frame,
+                        "Milou/landing_pad_link",
+                        Time.from_msg(stamp),
+                        timeout=Duration(seconds=0.05),
+                    )
+
+                    gt_t = gt_tf.transform.translation
+                    gt_point = np.array([gt_t.x, gt_t.y, gt_t.z])
+                    gt_uv = track.measurement_model.projection(gt_point, cam_pos_map, R_map_cam)
+
+                    # Project the true deck rectangle into the image.
+                    q_gt = gt_tf.transform.rotation
+                    R_map_pad = R.from_quat([q_gt.x, q_gt.y, q_gt.z, q_gt.w]).as_matrix()
+                    L = track.obb_length_m
+                    W = track.obb_width_m
+
+                    # Flat rectangle in landing-pad local coordinates.
+                    corners_pad = np.array([
+                        [+L / 2.0, +W / 2.0, 0.0],
+                        [+L / 2.0, -W / 2.0, 0.0],
+                        [-L / 2.0, -W / 2.0, 0.0],
+                        [-L / 2.0, +W / 2.0, 0.0],
+                    ])
+
+                    # Transform pad corners into the configured map frame.
+                    corners_map = (R_map_pad @ corners_pad.T).T + gt_point
+                    corners_uv = []
+
+                    for p_map in corners_map:
+                        uv = self.project_point_numpy(
+                            p_map=p_map,
+                            cam_pos_map=cam_pos_map,
+                            R_map_cam=R_map_cam,
+                            K=track.measurement_model.K,
+                            D=track.measurement_model.D,
+                        )
+
+                        if uv is not None:
+                            corners_uv.append(uv)
+                    if len(corners_uv) == 4:
+                        corners_uv = np.asarray(corners_uv)
+                        rect_result = self.min_area_rect_numpy(corners_uv)
+
+                        if rect_result is not None:
+                            (gt_obb_center, gt_obb_size, gt_obb_angle) = rect_result
+                            du = center_uv[0] - gt_obb_center[0]
+                            dv = center_uv[1] - gt_obb_center[1]
+                            pixel_error = np.hypot(du, dv)
+
+                            self.get_logger().info(
+                                "LAND_PAD FLAT GT: "
+                                f"det_uv=({center_uv[0]:.1f},{center_uv[1]:.1f}) "
+                                f"gt_obb_uv=({gt_obb_center[0]:.1f},{gt_obb_center[1]:.1f}) "
+                                f"det_size=({best_det.bbox.size.x:.1f},{best_det.bbox.size.y:.1f}) "
+                                f"gt_size=({gt_obb_size[0]:.1f},{gt_obb_size[1]:.1f}) "
+                                f"du={du:.1f}px "
+                                f"dv={dv:.1f}px "
+                                f"err={pixel_error:.1f}px",
+                                throttle_duration_sec=0.5,
+                            )
+
+                except Exception as e:
+                    self.get_logger().warn(f"Could not get landing-pad GT: {e}")
+
+                if direct_point is not None:
+                    msg_str = (
+                        "LAND_PAD DEBUG: "
+                        f"det_uv=({center_uv[0]:.1f},{center_uv[1]:.1f}) "
+                        f"direct_xyz=({direct_point[0]:.3f},"
+                        f"{direct_point[1]:.3f},"
+                        f"{direct_point[2]:.3f})"
+                    )
+
+                    if gt_point is not None:
+                        direct_error = np.linalg.norm(direct_point[:2] - gt_point[:2])
+
+                        msg_str += (
+                            f" gt_xyz=({gt_point[0]:.3f},"
+                            f"{gt_point[1]:.3f},"
+                            f"{gt_point[2]:.3f})"
+                            f" xy_err={direct_error:.3f}m"
+                        )
+
+                    if gt_uv is not None:
+                        du = center_uv[0] - gt_uv[0]
+                        dv = center_uv[1] - gt_uv[1]
+                        pixel_error = np.linalg.norm([du, dv])
+
+                        msg_str += (
+                            f" gt_uv=({gt_uv[0]:.1f},{gt_uv[1]:.1f})"
+                            f" du={du:.1f}px"
+                            f" dv={dv:.1f}px"
+                            f" pixel_err={pixel_error:.1f}px"
+                        )
+
+                    self.get_logger().info(msg_str, throttle_duration_sec=0.5)
+
+            ray = track.measurement_model.back_projection(center_uv, R_map_cam)
+
+            direct_point = track.initializer.point_on_line_at_z(
+                cam_pos_map,
+                ray,
+                track.water_surface_height,
+            )
+
+            if (
+                track.class_name == "land_pad"
+                and self.pad_projection_debug
+                and direct_point is not None
+            ):
+                self.get_logger().info(
+                    "LAND_PAD DIRECT: "
+                    f"x={direct_point[0]:.3f}, "
+                    f"y={direct_point[1]:.3f}, "
+                    f"z={direct_point[2]:.3f}"
+                )
 
         self.publish_pose_array(stamp)
 
@@ -223,18 +466,48 @@ class MultiObjectEKFNode(Node):
 
         return best_det
 
-    def lookup_camera_transform(self):
-        # Use latest available TF instead of exact measurement time.
-        # This avoids lookup-in-the-future problems when images arrive faster than TF.
-        check_time = Time(seconds=0)
-        check_duration = Duration(seconds=1)
+    def lookup_camera_transform(self, stamp):
+        # Use the exact image acquisition time. Latest TF is diagnostic only.
+        measurement_time = Time.from_msg(stamp)
         try:
-            return self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, check_time, check_duration)
-        except Exception as e:
-            self.get_logger().warn(
-                f"Cant transform from {self.cam_frame} to {self.map_frame}, dropping msg."
+            return self.tf_buffer.lookup_transform(
+                self.map_frame, self.cam_frame, measurement_time, Duration(seconds=0.25)
             )
-            self.get_logger().warn(f"Transform error: {e}")
+        except Exception as e:
+            now = self.get_clock().now()
+            requested_s = measurement_time.nanoseconds * 1e-9
+            now_s = now.nanoseconds * 1e-9
+            latest_s = float("nan")
+            tf_lag_s = float("nan")
+
+            try:
+                latest_tf = self.tf_buffer.lookup_transform(
+                    self.map_frame,
+                    self.cam_frame,
+                    Time(),
+                    timeout=Duration(seconds=0.0),
+                )
+
+                latest_time = Time.from_msg(latest_tf.header.stamp)
+                latest_s = latest_time.nanoseconds * 1e-9
+                tf_lag_s = (measurement_time - latest_time).nanoseconds * 1e-9
+
+            except Exception:
+                pass
+
+            detection_age_s = (now - measurement_time).nanoseconds * 1e-9
+
+            self.get_logger().warn(
+                "\n"
+                "TF lookup failed:\n"
+                f"  requested detection time = {requested_s:.6f}\n"
+                f"  latest TF time           = {latest_s:.6f}\n"
+                f"  ROS now                  = {now_s:.6f}\n"
+                f"  requested - latest TF    = {tf_lag_s:.3f} s\n"
+                f"  now - detection          = {detection_age_s:.3f} s\n"
+                f"  error: {e}"
+            )
+
             return None
 
     @staticmethod
@@ -269,7 +542,11 @@ class MultiObjectEKFNode(Node):
         marker_id = 0
 
         for track in self.tracks.values():
-            pose_msg = track.create_estimate_msg(stamp, self.map_frame)
+            track_stamp = (
+                Time(nanoseconds=track.state_stamp_ns).to_msg()
+                if track.state_stamp_ns is not None else stamp
+            )
+            pose_msg = track.create_estimate_msg(track_stamp, self.map_frame)
 
             if pose_msg is None:
                 continue
@@ -473,9 +750,18 @@ class MultiObjectEKFNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = MultiObjectEKFNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor(num_threads=4)
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

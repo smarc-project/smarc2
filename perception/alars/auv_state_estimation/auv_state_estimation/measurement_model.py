@@ -19,7 +19,8 @@ class MeasurementModel:
             obb_length_m, 
             obb_width_m, 
             motion_model_type, 
-            logger=None
+            logger=None,
+            geometry="capsule",
                  ):
         
         self.width = width
@@ -38,6 +39,7 @@ class MeasurementModel:
         self.obb_width_m = obb_width_m
         self.motion_model_type = motion_model_type
         self.logger = logger
+        self.geometry = geometry
 
     def get_logger(self, msg):
         if self.logger is not None:
@@ -143,7 +145,7 @@ class MeasurementModel:
             if z_plus_eps is None or z_minus_eps is None:
                 return None
 
-            dz = residual_z(z_plus_eps, z_minus_eps) / (2.0 * eps)
+            dz = self.residual(z_plus_eps, z_minus_eps) / (2.0 * eps)
             H[:, i] = dz.reshape(-1)
 
         return H
@@ -178,10 +180,16 @@ class MeasurementModel:
             z_minus = self.hx(x_ref, cam_pos_m, R_map_cam_m)
             if z_plus is None or z_minus is None:
                 return None
-            dz = residual_z(z_plus, z_minus) / (2.0 * eps)
+            dz = self.residual(z_plus, z_minus) / (2.0 * eps)
             J[:, i] = dz.reshape(-1)
         return J
     
+    def residual(self, measurement, prediction):
+        if self.geometry == "flat_rectangle":
+            # Pad measurements are [u, v, long_side, short_side], all pixels.
+            return np.asarray(measurement) - np.asarray(prediction)
+        return residual_z(measurement, prediction)
+
     def hx(self, x, cam_pos_map, R_map_cam, min_valid_points=10):
 
         # given a state x, compute the expected measurement by projecting the corresponding 3D point to pixel coordinates
@@ -206,6 +214,24 @@ class MeasurementModel:
         else:
             raise ValueError(f"Unknown motion model type: {self.motion_model_type}")
         center = np.array([px, py, pz])
+        if self.geometry == "flat_rectangle":
+            # A flat deck has no capsule thickness. Square-pad yaw is ambiguous,
+            # so compare sorted OBB side lengths and omit the angle measurement.
+            local = np.array([
+                [-self.obb_length_m / 2, -self.obb_width_m / 2, 0.0],
+                [self.obb_length_m / 2, -self.obb_width_m / 2, 0.0],
+                [self.obb_length_m / 2, self.obb_width_m / 2, 0.0],
+                [-self.obb_length_m / 2, self.obb_width_m / 2, 0.0],
+            ])
+            rotation = R.from_euler("z", yaw).as_matrix()
+            points = (rotation @ local.T).T + center
+            pixels = [self.projection(p, cam_pos_map, R_map_cam) for p in points]
+            if any(p is None for p in pixels):
+                return None
+            rectangle = cv2.minAreaRect(np.asarray(pixels, dtype=np.float32))
+            u, v = rectangle[0]
+            long_side, short_side = sorted(rectangle[1], reverse=True)
+            return np.array([[u], [v], [long_side], [short_side]])
         pts_map = self.sample_capsule_points(center=center, yaw=yaw, pitch=pitch, length_m=self.obb_length_m, 
                                              radius_m=0.5 * self.obb_width_m, n_len=5, n_ang=16)
         pts_img = []

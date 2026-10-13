@@ -16,6 +16,8 @@
           water_surface_height: 0.0
 
         parameters:
+          gating:
+            position_only_fallback: false
           motion:
             sigma_a_xy: 0.03
           measurement_noise:
@@ -35,8 +37,40 @@
           water_surface_height: 0.0
 
         parameters:
+          gating:
+            position_only_fallback: false
           motion:
             sigma_a_xy: 0.01
           measurement_noise:
             R_len: 80.0
             R_wid: 40.0
+
+      land_pad:
+        enabled: true
+        confidence_threshold: 0.5
+
+        length_m: 1.2
+        width_m: 1.2
+        # Switch between depth (estimate Z/vZ) and surface (fixed deck Z).
+        # Both use flat_rectangle; restart the multi-object EKF after changing.
+        motion_model_type: "depth"
+        stale_state_age: 3.0
+
+        environment:
+          water_surface_height: 1.88 # Map deck Z: equilibrium in depth, fixed in surface.
+
+        parameters:
+          measurement:
+            geometry: flat_rectangle
+          depth:
+            # Used only by the depth model.
+            sigma_z_process: 1.0
+            k_z: 0.4
+            d_z: 0.1
+          gating:
+            position_only_fallback: true
+          motion:
+            sigma_a_xy: 0.1
+          measurement_noise:
+            R_len: 30.0
+            R_wid: 30.0

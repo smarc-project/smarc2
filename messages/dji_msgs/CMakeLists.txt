@@ -27,6 +27,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   
   "srv/ResetObjectEkf.srv"                 # service to reset EKF filters
 
+  "msg/LandingRelativeState.msg"
+  "msg/LandingReference.msg"
+  "msg/LandingStatus.msg"
+  "msg/LandingControllerDebug.msg"
+
   DEPENDENCIES geometry_msgs sensor_msgs std_msgs geographic_msgs
 )
 
