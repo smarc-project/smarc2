@@ -1,5 +1,3 @@
-import os
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -62,11 +60,11 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "camera_calibration_file",
-                default_value="cam_params.yaml",
+                default_value="sim_1080p_cam_params.yaml",
             ),
             DeclareLaunchArgument(
                 "yolo_detections_topic",
-                default_value="yolo/detections",
+                default_value=Topics.YOLO_DETECTIONS,
             ),
 
             LogInfo(msg=["[multi_ekf_launch] base params file = ", base_params_file]),
@@ -83,7 +81,6 @@ def generate_launch_description():
                     {
                         "robot_name": robot_name,
                         "use_sim_time": use_sim_time,
-
                         "base_params_file": base_params_file,
                         "object_config_file": object_config_file,
                         "camera_info": camera_calibration_file,
