@@ -7,6 +7,11 @@
   <maintainer email="ozero@kth.se">Ozer Ozkahraman</maintainer>
   <license>MIT</license>
 
+  <depend>rclpy</depend>
+  <depend>dji_msgs</depend>
+  <depend>smarc_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>smarc_action_base</depend>
 
   <test_depend>python3-pytest</test_depend>
 
