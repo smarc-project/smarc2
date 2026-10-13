@@ -1,8 +1,7 @@
 # ALARS landing controller
 
 Tracks a moving pad through alignment, descent and touchdown.
-`alars_stack_landing.launch.py` starts the five landing nodes; camera, YOLO,
-the multi-object EKF and DJI captain run separately through `dji_bringup.sh`.
+`alars_stack_landing.launch.py` starts the five landing nodes.
 
 ## Pipeline
 
@@ -16,7 +15,7 @@ Camera → YOLO OBB → multi-object EKF (pose + status arrays)
 ```
 
 `robot_name` selects the namespace. For M350, positions use `M350/map` and
-commands use `M350/base_flat_link`. **Relative height is clearance from
+commands use `M350/base_flat_link`.As well, **relative height is clearance from
 `M350/landing_gear_center_link` to the estimated pad**; zero means estimated deck
 contact. Missing gear TF invalidates the state.
 
@@ -26,17 +25,16 @@ From the ROS workspace root:
 
 ```bash
 source /opt/ros/humble/setup.bash
-colcon build --symlink-install --packages-up-to landing_controller alars
+colcon build --symlink-install --packages-up-to landing_controller dji_captain alars dji_msgs
 source install/setup.bash
 ```
 
-Start camera, perception and captain first. Run these commands in separate
-sourced terminals. Examples use Unity; use `use_sim_time:=false` in both
+Examples use Unity; use `use_sim_time:=false` in both
 commands for hardware.
 
 ```bash
 ros2 launch landing_controller alars_stack_landing.launch.py \
-  robot_name:=M350 use_sim_time:=true auto_start:=false enable_descent:=true
+  robot_name:=M350 model_kind:=discrete use_sim_time:=true auto_start:=false enable_descent:=true
 ```
 
 ```bash
@@ -51,18 +49,12 @@ Check that the moving-pad action has exactly one server,
 ros2 action info /M350/alars_land_on_pad
 ```
 
-The existing `alars_land` action calls DJI's PSDK land service. Use
-`alars_land_on_pad` for the moving-pad pipeline.
-
 Send a goal once the manager publishes fresh landing status:
 
 ```bash
 ros2 action send_goal /M350/alars_land_on_pad smarc_msgs/action/BaseAction \
   '{"goal": {"data": "{\"timeout\": 120.0}"}}' --feedback
 ```
-
-Action handling and pending BT integration are described in the
-[ALARS README](../../../behaviours/alars/README.md#alars-land).
 
 Useful commands, run individually:
 
@@ -79,10 +71,8 @@ ros2 service call /M350/landing/abort std_srvs/srv/Trigger '{}'
 
 ## Main parameters
 
-[config/landing_params.yaml](config/landing_params.yaml) uses one
-`/** → ros__parameters` root with a section per node. The launch selects each
-section; use `config_file:=/path/to/file.yaml` for another file. Launch arguments
-override matching YAML values. Restart the stack after editing.
+The parameters can be found in [config/landing_params.yaml](config/landing_params.yaml). Launch arguments
+override matching YAML values, might need to restart the stack after editing.
 
 ### Landing manager
 
@@ -100,7 +90,7 @@ override matching YAML values. Restart the stack after editing.
 | `touchdown_hold_s`, `turn_off_motors_on_landed` | Hold **1 s**, enter LANDED, request motor-off when enabled (**true** here). |
 | `estimate_loss_abort_s`, `abort_xy_error_m` | Abort tracking after **2 s** of invalid estimates or XY error above **6 m**. |
 
-Touchdown uses the estimated relative state. No physical-contact input is connected.
+Touchdown uses the estimated relative state. No physical-contact input is connected for now.
 
 ### Estimation and controller
 
