@@ -18,6 +18,7 @@ from smarc_utilities.georef_utils import (
     convert_enu_pose_to_heading,
     convert_utm_to_latlon,
 )
+# TODO: import geofence class
 
 
 class SAMNavPublisher:
@@ -43,6 +44,8 @@ class SAMNavPublisher:
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
+
+        # TODO: call geofence checker class
 
     def _create_tf_listener(self):
         """Creates a TF listener to transform poses between different frames."""
@@ -159,8 +162,10 @@ class SAMNavPublisher:
             )
             return None
 
-    # TODO: add geofence check to vehicle health
     def _check_geofence(self):
+        """Check if the current position is inside the geofence."""
+        # TODO: if latlon is None, reture
+        # TODO: use function from geofence to check
         pass
 
     def nav_status_str(self) -> str:
