@@ -18,8 +18,6 @@ from smarc_utilities.georef_utils import (
     convert_enu_pose_to_heading,
     convert_utm_to_latlon,
 )
-# TODO: import geofence class
-
 
 class SAMNavPublisher:
     """Derive navigation data from SAM and publish to smarc topics."""
@@ -41,11 +39,11 @@ class SAMNavPublisher:
         self._latest_heading = None
         self._latest_course = None
         self._latest_speed = None
+        self._last_global_navigation_time = None
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
 
-        # TODO: call geofence checker class
 
     def _create_tf_listener(self):
         """Creates a TF listener to transform poses between different frames."""
@@ -107,6 +105,7 @@ class SAMNavPublisher:
         latlon_msg.altitude = msg.pose.pose.position.z
         self._latest_latlon = latlon_msg
         self._latest_altitude = latlon_msg.altitude
+        self._last_global_navigation_time = self._node.get_clock().now()
         self.latlon_pub.publish(latlon_msg)
         self.altitude_pub.publish(Float32(data=self._latest_altitude))
 
@@ -162,11 +161,13 @@ class SAMNavPublisher:
             )
             return None
 
-    def _check_geofence(self):
-        """Check if the current position is inside the geofence."""
-        # TODO: if latlon is None, reture
-        # TODO: use function from geofence to check
-        pass
+    def global_navigation_is_fresh(self, max_age_seconds: float) -> bool:
+        """Return whether a recent UTM-derived latitude/longitude is available."""
+        if self._latest_latlon is None or self._last_global_navigation_time is None:
+            return False
+        return (
+            self._node.get_clock().now() - self._last_global_navigation_time
+        ).nanoseconds <= max_age_seconds * 1e9
 
     def nav_status_str(self) -> str:
         """Create a status string for navigation data."""
