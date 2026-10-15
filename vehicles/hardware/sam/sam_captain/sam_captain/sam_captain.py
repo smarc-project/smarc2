@@ -34,20 +34,50 @@ class SAMCaptain(Node):
         )
 
         # health check related
-        self._health_check_timer = self.create_timer(1.0, self._health_check_callback)
+        self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
 
-    # TODO: create sam_health_checker to check if vehicle_health is ready, error or waiting
-    def _health_check_callback(self):
+    # TODO: publish vehicle health (health state from sam and smarc)
+    def _pub_vehicle_health(self):
+        # self.get_logger().info(">>>>>>>>>>>>>>>>>> Mock vehicle health check <<<<<<<<<<<<<<<<")
+        # TODO: update health state
+        # TODO publish vehicle health
+        # TODO: compare current and previous health state
+        # if current != previous, log: not the same!
         pass
+    
+    def _health_str(self, health_state: int) -> str:
+        """Return a readable name for a SMARC vehicle-health state."""
+        health_names = {
+            SmarcTopics.VEHICLE_HEALTH_READY: "READY",
+            SmarcTopics.VEHICLE_HEALTH_WAITING: "WAITING",
+            SmarcTopics.VEHICLE_HEALTH_ERROR: "ERROR",
+        }
+        return health_names.get(health_state, f"UNKNOWN({health_state})")
 
     # TODO: return safety and reasons
     # WARNING -> some states are missing
     # ERROR -> faulty state
     def _evaluate_vehicle_health(self):
+        # TODO: 1. check abort
+        is_abort = self._status_publisher._abort_latched
+        # if is_abort, reutrn error
+        # TODO: 2. check heartbeat
+        is_heartbeat = self._status_publisher._heartbeat_received
+        # if not is_heartbeat, return waiting
+        # TODO: 3. check battery
+        battery_percent = self._status_publisher._battery_percent
+        # if battery not fresh or None, return waiting
+        # if battery_percent is less than threshold, return error
+        # TODO: 4. check geofence
+        # if geofence is None, return waiting
+        # TODO: 5. & 6. check nav and status publishers
+        # if nav or status publishers not fresh, return waiting
+        # TODO: if all checks are ok, return safety and reasons
+        # return ready
         pass
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
-        self.get_logger().info(f"Received geofence status: {msg.status}")
+        # self.get_logger().info(f"Received geofence status: {msg.status}")
         self._geofence_status = msg
 
     def _status_str_callback(self):
