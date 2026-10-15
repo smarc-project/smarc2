@@ -4,7 +4,7 @@ from std_msgs.msg import String
 from sam_captain.SAMNavPublisher import SAMNavPublisher
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import (GeofenceStatusStamped, Topics as SmarcTopics)
+from smarc_msgs.msg import GeofenceStatusStamped, Topics as SmarcTopics
 
 
 class SAMCaptain(Node):
@@ -19,12 +19,19 @@ class SAMCaptain(Node):
         self._status_publisher = SAMStatusPublisher(self)
 
         # status string
-        self.nav_str_pub = self.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
+        self.nav_str_pub = self.create_publisher(
+            String, SamTopics.STATUS_STRING_TOPIC, 10
+        )
         self._status_str_timer = self.create_timer(1.0, self._status_str_callback)
 
         # geofence related
         self._geofence_status = None
-        self._geofence_status_sub = self.create_subscription(GeofenceStatusStamped, SmarcTopics.GEOFENCE_STATUS_TOPIC, self._geofence_status_callback, 10)
+        self._geofence_status_sub = self.create_subscription(
+            GeofenceStatusStamped,
+            SmarcTopics.GEOFENCE_STATUS_TOPIC,
+            self._geofence_status_callback,
+            10,
+        )
 
         # health check related
         self._health_check_timer = self.create_timer(1.0, self._health_check_callback)
@@ -34,8 +41,8 @@ class SAMCaptain(Node):
         pass
 
     # TODO: return safety and reasons
-        # WARNING -> some states are missing
-        # ERROR -> faulty state
+    # WARNING -> some states are missing
+    # ERROR -> faulty state
     def _evaluate_vehicle_health(self):
         pass
 

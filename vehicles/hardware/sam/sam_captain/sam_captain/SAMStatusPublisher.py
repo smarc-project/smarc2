@@ -25,9 +25,7 @@ class SAMStatusPublisher:
         self.heartbeat_pub = self._node.create_publisher(
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
         )
-        self.abort_pub = self._node.create_publisher(
-            Empty, SmarcTopics.ABORT_TOPIC, 10
-        )
+        self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
@@ -63,9 +61,9 @@ class SAMStatusPublisher:
             return
         self._battery_percent = msg.percentage
         self._last_battery_time = self._node.get_clock().now()
-        self._node.get_logger().info(
-            f"Publishing battery percentage: {self._battery_percent:.2f}%"
-        )
+        # self._node.get_logger().info(
+        #     f"Publishing battery percentage: {self._battery_percent:.2f}%"
+        # )
         self.battery_percent_pub.publish(Float32(data=self._battery_percent))
 
     def battery_is_fresh(self, max_age_seconds: float) -> bool:

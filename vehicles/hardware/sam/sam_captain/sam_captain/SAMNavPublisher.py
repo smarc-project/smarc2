@@ -19,6 +19,7 @@ from smarc_utilities.georef_utils import (
     convert_utm_to_latlon,
 )
 
+
 class SAMNavPublisher:
     """Derive navigation data from SAM and publish to smarc topics."""
 
@@ -43,7 +44,6 @@ class SAMNavPublisher:
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
-
 
     def _create_tf_listener(self):
         """Creates a TF listener to transform poses between different frames."""
