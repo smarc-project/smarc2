@@ -11,16 +11,32 @@ class SAMCaptain(Node):
     def __init__(self):
         super().__init__("sam_captain")
         self.get_logger().info("SAM Captain Node has been started.")
+
+        # TODO parameters
+
+        # call publisher classes
         self._nav_publisher = SAMNavPublisher(self)
         self._status_publisher = SAMStatusPublisher(self)
 
+        # status string
         self.nav_str_pub = self.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         self._status_str_timer = self.create_timer(1.0, self._status_str_callback)
 
+        # geofence related
         self._geofence_status = None
         self._geofence_status_sub = self.create_subscription(GeofenceStatusStamped, SmarcTopics.GEOFENCE_STATUS_TOPIC, self._geofence_status_callback, 10)
+
+        # health check related
+        self._health_check_timer = self.create_timer(1.0, self._health_check_callback)
+
     # TODO: create sam_health_checker to check if vehicle_health is ready, error or waiting
     def _health_check_callback(self):
+        pass
+
+    # TODO: return safety and reasons
+        # WARNING -> some states are missing
+        # ERROR -> faulty state
+    def _evaluate_vehicle_health(self):
         pass
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
