@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import String, Int8
 from sam_captain.SAMNavPublisher import SAMNavPublisher
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 from sam_msgs.msg import Topics as SamTopics
@@ -34,16 +34,25 @@ class SAMCaptain(Node):
         )
 
         # health check related
+        self._max_battery_age = 10.0  # TODO: set max battery age in seconds
+        self._max_nav_age = 10.0  # TODO: set max nav age in seconds
+        self._vehicle_health = Int8() # TODO: set initial vehicle health state
+        self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING # TODO: set initial vehicle health state
+        self._vehicle_health_reason = "Initial state" # TODO: set initial vehicle health reason
+
+        self._vehicle_health_pub = self.create_publisher(Int8, SamTopics.VEHICLE_HEALTH_TOPIC, 10)
+
         self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
 
-    # TODO: publish vehicle health (health state from sam and smarc)
     def _pub_vehicle_health(self):
         # self.get_logger().info(">>>>>>>>>>>>>>>>>> Mock vehicle health check <<<<<<<<<<<<<<<<")
-        # TODO: update health state
-        # TODO publish vehicle health
+        prev_health = self._vehicle_health
+        prev_reason = self._vehicle_health_reason
+        self._vehicle_health.data, self._vehicle_health_reason = self._evaluate_vehicle_health()
+        self.get_logger().info(f"Publishing vehicle health: {self._vehicle_health}, reason: {self._vehicle_health_reason}")
+        self._vehicle_health_pub.publish(self._vehicle_health)
         # TODO: compare current and previous health state
         # if current != previous, log: not the same!
-        pass
     
     def _health_str(self, health_state: int) -> str:
         """Return a readable name for a SMARC vehicle-health state."""
@@ -54,30 +63,34 @@ class SAMCaptain(Node):
         }
         return health_names.get(health_state, f"UNKNOWN({health_state})")
 
-    # TODO: return safety and reasons
-    # WARNING -> some states are missing
-    # ERROR -> faulty state
     def _evaluate_vehicle_health(self):
-        # TODO: 1. check abort
         is_abort = self._status_publisher._abort_latched
-        # if is_abort, reutrn error
-        # TODO: 2. check heartbeat
+        if is_abort:
+            return SmarcTopics.VEHICLE_HEALTH_ERROR, "!!!!!!!!!!! Abort latched !!!!!!!!!!!"
+        
         is_heartbeat = self._status_publisher._heartbeat_received
-        # if not is_heartbeat, return waiting
-        # TODO: 3. check battery
+        if not is_heartbeat:
+            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No heartbeat received <<<<<<<<"
+        
         battery_percent = self._status_publisher._battery_percent
-        # if battery not fresh or None, return waiting
-        # if battery_percent is less than threshold, return error
-        # TODO: 4. check geofence
-        # if geofence is None, return waiting
-        # TODO: 5. & 6. check nav and status publishers
-        # if nav or status publishers not fresh, return waiting
-        # TODO: if all checks are ok, return safety and reasons
-        # return ready
-        pass
+        is_fresh_battery = self._status_publisher.battery_is_fresh(self._max_battery_age)
+        if battery_percent is None or not is_fresh_battery:
+            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> Battery not fresh or None <<<<<<<<"
+        
+        if battery_percent < self.battery_threshold:
+            return SmarcTopics.VEHICLE_HEALTH_ERROR, ">>>>>>>> Battery below threshold <<<<<<<<"
+        
+        if self._geofence_status is None:
+            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No geofence status received <<<<<<<<"
+        
+        is_nav_fresh = self._nav_publisher.is_nav_fresh(self._max_nav_age)
+        if not is_nav_fresh:
+            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> Nav publisher not fresh <<<<<<<<"
+        
+        return SmarcTopics.VEHICLE_HEALTH_READY, "=========== All checks passed ==========="
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
-        # self.get_logger().info(f"Received geofence status: {msg.status}")
+        self.get_logger().info(f"Received geofence status: {msg.status}")
         self._geofence_status = msg
 
     def _status_str_callback(self):
