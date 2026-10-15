@@ -36,6 +36,7 @@ class SAMCaptain(Node):
         # health check related
         self._max_battery_age = 10.0  # TODO: set max battery age in seconds
         self._max_nav_age = 10.0  # TODO: set max nav age in seconds
+        self._battery_threshold = 0.3
         self._vehicle_health = Int8() # TODO: set initial vehicle health state
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING # TODO: set initial vehicle health state
         self._vehicle_health_reason = "Initial state" # TODO: set initial vehicle health reason
@@ -77,13 +78,15 @@ class SAMCaptain(Node):
         if battery_percent is None or not is_fresh_battery:
             return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> Battery not fresh or None <<<<<<<<"
         
-        if battery_percent < self.battery_threshold:
+        if battery_percent < self._battery_threshold:
             return SmarcTopics.VEHICLE_HEALTH_ERROR, ">>>>>>>> Battery below threshold <<<<<<<<"
         
         if self._geofence_status is None:
             return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No geofence status received <<<<<<<<"
         
-        is_nav_fresh = self._nav_publisher.is_nav_fresh(self._max_nav_age)
+        is_nav_fresh = self._nav_publisher.global_navigation_is_fresh(
+            self._max_nav_age
+        )
         if not is_nav_fresh:
             return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> Nav publisher not fresh <<<<<<<<"
         
