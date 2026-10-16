@@ -26,6 +26,8 @@ class SAMCaptain(Node):
 
         # geofence related
         self._geofence_status = None
+        self._last_geofence_status_time = None
+        self._max_geofence_status_age = 3.0
         self._geofence_status_sub = self.create_subscription(
             GeofenceStatusStamped,
             SmarcTopics.GEOFENCE_STATUS_TOPIC,
@@ -86,9 +88,13 @@ class SAMCaptain(Node):
         if battery_percent < self._battery_threshold:
             return SmarcTopics.VEHICLE_HEALTH_ERROR, ">>>>>>>> Battery below threshold <<<<<<<<"
         
-        if self._geofence_status is None:
-            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No geofence status received <<<<<<<<"
-        
+        # if self._geofence_status is None:
+        #     return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No geofence status received <<<<<<<<"
+        if not self._geofence_status_is_fresh():
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
+                ">>>>>>>> Geofence status missing or stale <<<<<<<<",
+            )
         is_nav_fresh = self._nav_publisher.global_navigation_is_fresh(
             self._max_nav_age
         )
@@ -100,6 +106,13 @@ class SAMCaptain(Node):
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
         # self.get_logger().info(f"Received geofence status: {msg.status}")
         self._geofence_status = msg
+        self._last_geofence_status_time = self.get_clock().now()
+
+    def _geofence_status_is_fresh(self) -> bool:
+        if self._last_geofence_status_time is None:
+            return False
+        age_ns = (self.get_clock().now() - self._last_geofence_status_time).nanoseconds
+        return age_ns <= self._max_geofence_status_age * 1e9
 
     def _status_str_callback(self):
         nav_status = self._nav_publisher.nav_status_str()
