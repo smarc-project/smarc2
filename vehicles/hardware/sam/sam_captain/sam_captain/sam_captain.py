@@ -34,8 +34,9 @@ class SAMCaptain(Node):
         )
 
         # health check related
-        self._max_battery_age = 10.0  # TODO: set max battery age in seconds
-        self._max_nav_age = 10.0  # TODO: set max nav age in seconds
+        self._max_battery_age = 1.0  # TODO: set max battery age in seconds
+        self._max_nav_age = 1.0  # TODO: set max nav age in seconds
+        self._max_heartbeat_age = 1.0  # TODO: set max heartbeat age in seconds
         self._battery_threshold = 0.3
         self._vehicle_health = Int8() # TODO: set initial vehicle health state
         self._vehicle_health.data = SmarcTopics.VEHICLE_HEALTH_WAITING # TODO: set initial vehicle health state
@@ -52,9 +53,11 @@ class SAMCaptain(Node):
         self._vehicle_health.data, self._vehicle_health_reason = self._evaluate_vehicle_health()
         self.get_logger().info(f"Publishing vehicle health: {self._vehicle_health}, reason: {self._vehicle_health_reason}")
         self._vehicle_health_pub.publish(self._vehicle_health)
-        # TODO: compare current and previous health state
-        # if current != previous, log: not the same!
-    
+
+        if self._vehicle_health.data != prev_health.data:
+            self.get_logger().warn(f"Vehicle health state changed from {self._health_str(prev_health.data)} to {self._health_str(self._vehicle_health.data)}")
+            self.get_logger().warn(f"Vehicle health reason changed from '{prev_reason}' to '{self._vehicle_health_reason}'")
+
     def _health_str(self, health_state: int) -> str:
         """Return a readable name for a SMARC vehicle-health state."""
         health_names = {
@@ -69,10 +72,12 @@ class SAMCaptain(Node):
         if is_abort:
             return SmarcTopics.VEHICLE_HEALTH_ERROR, "!!!!!!!!!!! Abort latched !!!!!!!!!!!"
         
-        is_heartbeat = self._status_publisher._heartbeat_received
-        if not is_heartbeat:
-            return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No heartbeat received <<<<<<<<"
-        
+        # is_heartbeat = self._status_publisher._heartbeat_received
+        # if not is_heartbeat:
+        #     return SmarcTopics.VEHICLE_HEALTH_WAITING, ">>>>>>>> No heartbeat received <<<<<<<<"
+        if not self._status_publisher.heartbeat_is_fresh(self._max_heartbeat_age):
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,">>>>>>>> Heartbeat missing or stale <<<<<<<<",)
         battery_percent = self._status_publisher._battery_percent
         is_fresh_battery = self._status_publisher.battery_is_fresh(self._max_battery_age)
         if battery_percent is None or not is_fresh_battery:
@@ -93,7 +98,7 @@ class SAMCaptain(Node):
         return SmarcTopics.VEHICLE_HEALTH_READY, "=========== All checks passed ==========="
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
-        self.get_logger().info(f"Received geofence status: {msg.status}")
+        # self.get_logger().info(f"Received geofence status: {msg.status}")
         self._geofence_status = msg
 
     def _status_str_callback(self):
