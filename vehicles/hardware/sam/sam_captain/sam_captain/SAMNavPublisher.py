@@ -1,4 +1,5 @@
 from rclpy.node import Node
+from rclpy.time import Time
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32, String
 from nav_msgs.msg import Odometry
@@ -143,7 +144,7 @@ class SAMNavPublisher:
         try:
             source_frame = msg.header.frame_id or self.odom_frame
             utm_transform = self.tf_buffer.lookup_transform(
-                self.utm_frame, source_frame, msg.header.stamp
+                self.utm_frame, source_frame, Time()
             )
 
             pose_utm = PoseStamped()
