@@ -3,9 +3,9 @@
 <package format="3">
   <name>sam_captain</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Interface to SAM for status, nav, and control</description>
   <maintainer email="akira.techap@gmail.com">aki</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
   <depend>rclpy</depend>
   <depend>dead_reckoning_msgs</depend>
   <depend>geographic_msgs</depend>
