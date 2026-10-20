@@ -22,19 +22,15 @@ class SAMStatusPublisher:
         self.battery_percent_pub = self._node.create_publisher(
             Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
         )
-        self.heartbeat_pub = self._node.create_publisher(
-            Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, 10
-        )
-        self.abort_pub = self._node.create_publisher(Empty, SmarcTopics.ABORT_TOPIC, 10)
 
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self):
         self.abort_sub = self._node.create_subscription(
-            Empty, SamTopics.ABORT_TOPIC, self._abort_callback, 10
+            Empty, SmarcTopics.ABORT_TOPIC, self._abort_callback, 10
         )
         self.bt_heartbeat_sub = self._node.create_subscription(
-            Empty, SamTopics.HEARTBEAT_TOPIC, self._heartbeat_callback, 10
+            Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
         )
         self.battery_status_sub = self._node.create_subscription(
             BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
@@ -46,12 +42,10 @@ class SAMStatusPublisher:
 
     def _abort_callback(self, msg: Empty):
         self._abort_latched = True
-        self.abort_pub.publish(msg)
 
     def _heartbeat_callback(self, msg: Empty):
         self._heartbeat_received = True
         self._last_heartbeat_time = self._node.get_clock().now()
-        self.heartbeat_pub.publish(msg)
 
     def _battery_callback(self, msg: BatteryState):
         if msg.percentage is None:
@@ -61,9 +55,6 @@ class SAMStatusPublisher:
             return
         self._battery_percent = msg.percentage
         self._last_battery_time = self._node.get_clock().now()
-        # self._node.get_logger().info(
-        #     f"Publishing battery percentage: {self._battery_percent:.2f}%"
-        # )
         self.battery_percent_pub.publish(Float32(data=self._battery_percent))
 
     def battery_is_fresh(self, max_age_seconds: float) -> bool:
@@ -93,7 +84,6 @@ class SAMStatusPublisher:
 
         return (
             "Status:\n"
-            # f">> Vehicle Health: {health}\n"
             f">> Abort: {abort}\n"
             f">> Heartbeat: {heartbeat}\n"
             f"  Battery Percent: {battery}\n"
