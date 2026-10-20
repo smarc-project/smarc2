@@ -97,7 +97,7 @@ class SAMNavPublisher:
     def _odom_callback(self, msg: Odometry):
         """Publish odom and derived navigation from each pose update."""
         self.odom_pub.publish(msg)
-        self._latest_depth = msg.pose.pose.position.z
+        self._latest_depth = -msg.pose.pose.position.z # Odom is ENU, so depth is negative of z position
         self.depth_pub.publish(Float32(data=self._latest_depth))
 
         pose_utm = self._odom_to_utm(msg)
