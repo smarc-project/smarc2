@@ -4,6 +4,7 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32, String
 from nav_msgs.msg import Odometry
 from geographic_msgs.msg import GeoPoint
+from smarc_msgs.msg import DVL
 
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -84,6 +85,14 @@ class SAMNavPublisher:
         self.utm_sub = self._node.create_subscription(
             String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
         )
+        self.dvl_sub = self._node.create_subscription(
+            DVL, SamTopics.DVL_TOPIC, self._dvl_callback, 10
+        )
+
+    def _dvl_callback(self, msg: DVL):
+        """Publish DVL-derived altitude."""
+        self._latest_altitude = msg.altitude
+        self.altitude_pub.publish(Float32(data=self._latest_altitude))
 
     def _odom_callback(self, msg: Odometry):
         """Publish odom and derived navigation from each pose update."""
@@ -105,10 +114,8 @@ class SAMNavPublisher:
         latlon_msg = convert_utm_to_latlon(pose_utm)
         latlon_msg.altitude = msg.pose.pose.position.z
         self._latest_latlon = latlon_msg
-        self._latest_altitude = latlon_msg.altitude
         self._last_global_navigation_time = self._node.get_clock().now()
         self.latlon_pub.publish(latlon_msg)
-        self.altitude_pub.publish(Float32(data=self._latest_altitude))
 
         if self.prev_pose_utm is None:
             return
