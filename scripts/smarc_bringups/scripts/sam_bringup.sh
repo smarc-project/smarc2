@@ -69,7 +69,6 @@ row(
     var(BT_CMD),
     col(
         2:var(CONTROLLER_CMD),
-        1:var(HEALTH_FAKER_CMD),
         1:var(DISCOVERY_SERVER_CMD)
     )
 )"
