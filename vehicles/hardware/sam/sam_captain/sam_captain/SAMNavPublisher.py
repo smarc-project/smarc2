@@ -1,3 +1,5 @@
+import math
+
 from rclpy.node import Node
 from rclpy.time import Time
 from geometry_msgs.msg import PoseStamped
@@ -16,7 +18,6 @@ from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
 from smarc_utilities.georef_utils import (
     compute_course_from_two_poses,
-    compute_speed_from_two_poses,
     convert_enu_pose_to_heading,
     convert_utm_to_latlon,
 )
@@ -100,6 +101,14 @@ class SAMNavPublisher:
         self._latest_depth = -msg.pose.pose.position.z # Odom is ENU, so depth is negative of z position
         self.depth_pub.publish(Float32(data=self._latest_depth))
 
+        linear_velocity = msg.twist.twist.linear
+        self._latest_speed = math.sqrt(
+            linear_velocity.x**2
+            + linear_velocity.y**2
+            + linear_velocity.z**2
+        )
+        self.speed_pub.publish(Float32(data=self._latest_speed))
+
         pose_utm = self._odom_to_utm(msg)
         if pose_utm is None:
             return
@@ -123,19 +132,14 @@ class SAMNavPublisher:
         course_msg = compute_course_from_two_poses(
             self.prev_pose_utm, self.current_pose_utm
         )
-        speed_msg = compute_speed_from_two_poses(
-            self.prev_pose_utm, self.current_pose_utm
-        )
         self._latest_course = course_msg.data
-        self._latest_speed = speed_msg.data
         self.course_pub.publish(course_msg)
-        self.speed_pub.publish(speed_msg)
 
     def _utm_callback(self, msg):
         """Update UTM frame and reset pose."""
         if msg.data != self.utm_frame:
             self.utm_frame = msg.data
-            # Course and speed must not span two different UTM frames.
+            # Course must not span two different UTM frames.
             self.prev_pose_utm = None
             self.current_pose_utm = None
             self._node.get_logger().info(f"Using UTM frame: {self.utm_frame}")
