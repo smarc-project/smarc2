@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 from std_msgs.msg import String, Int8
 from sam_captain.SAMNavPublisher import SAMNavPublisher
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
@@ -8,7 +9,7 @@ from smarc_msgs.msg import GeofenceStatusStamped, Topics as SmarcTopics
 
 
 class SAMCaptain(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("sam_captain")
         self.get_logger().info("SAM Captain Node has been started.")
 
@@ -25,9 +26,9 @@ class SAMCaptain(Node):
         self._status_str_timer = self.create_timer(1.0, self._status_str_callback)
 
         # geofence related
-        self._geofence_status = None
-        self._last_geofence_status_time = None
-        self._max_geofence_status_age = 3.0
+        self._geofence_status: GeofenceStatusStamped | None = None
+        self._last_geofence_status_time: Time | None = None
+        self._max_geofence_status_age: float = 3.0
         self._geofence_status_sub = self.create_subscription(
             GeofenceStatusStamped,
             SmarcTopics.GEOFENCE_STATUS_TOPIC,
@@ -36,15 +37,15 @@ class SAMCaptain(Node):
         )
 
         # health check related
-        self._max_battery_age = 1.0  # TODO: set max battery age in seconds
-        self._max_nav_age = 1.0  # TODO: set max nav age in seconds
-        self._max_heartbeat_age = 1.0  # TODO: set max heartbeat age in seconds
-        self._battery_threshold = 0.3
-        self._vehicle_health = Int8()  # TODO: set initial vehicle health state
+        self._max_battery_age: float = 1.0  # TODO: set max battery age in seconds
+        self._max_nav_age: float = 1.0  # TODO: set max nav age in seconds
+        self._max_heartbeat_age: float = 1.0  # TODO: set max heartbeat age in seconds
+        self._battery_threshold: float = 0.3
+        self._vehicle_health: Int8 = Int8()  # TODO: set initial vehicle health state
         self._vehicle_health.data = (
             SmarcTopics.VEHICLE_HEALTH_WAITING
         )  # TODO: set initial vehicle health state
-        self._vehicle_health_reason = (
+        self._vehicle_health_reason: str = (
             "Initial state"  # TODO: set initial vehicle health reason
         )
 
@@ -54,7 +55,7 @@ class SAMCaptain(Node):
 
         self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
 
-    def _pub_vehicle_health(self):
+    def _pub_vehicle_health(self) -> None:
         """Evaluate and publish the vehicle health state."""
         prev_health = self._vehicle_health
         prev_reason = self._vehicle_health_reason
@@ -83,7 +84,7 @@ class SAMCaptain(Node):
         }
         return health_names.get(health_state, f"UNKNOWN({health_state})")
 
-    def _evaluate_vehicle_health(self):
+    def _evaluate_vehicle_health(self) -> tuple[int, str]:
         """Evaluate the health of the vehicle based on various inputs."""
         if not self._status_publisher.heartbeat_is_fresh(self._max_heartbeat_age):
             return (
@@ -125,7 +126,7 @@ class SAMCaptain(Node):
             "=========== Vehicle health ready ===========",
         )
 
-    def _geofence_status_callback(self, msg: GeofenceStatusStamped):
+    def _geofence_status_callback(self, msg: GeofenceStatusStamped) -> None:
         """Callback for geofence status messages."""
         self._geofence_status = msg
         self._last_geofence_status_time = self.get_clock().now()
@@ -137,7 +138,7 @@ class SAMCaptain(Node):
         age_ns = (self.get_clock().now() - self._last_geofence_status_time).nanoseconds
         return age_ns <= self._max_geofence_status_age * 1e9
 
-    def _status_str_callback(self):
+    def _status_str_callback(self) -> None:
         """Publish a status string containing the latest nav and system status information."""
         nav_status = self._nav_publisher.nav_status_str()
         sys_str = self._status_publisher.status_str()

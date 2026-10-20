@@ -1,4 +1,5 @@
 from rclpy.node import Node
+from rclpy.time import Time
 from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Float32, Empty
 from smarc_msgs.msg import Topics as SmarcTopics
@@ -8,23 +9,23 @@ from sam_msgs.msg import Topics as SamTopics
 class SAMStatusPublisher:
     """Bridge SAM status inputs and retain the latest safety-relevant state."""
 
-    def __init__(self, node: Node):
+    def __init__(self, node: Node) -> None:
         self._node = node
-        self._battery_percent = None
-        self._last_battery_time = None
-        self._heartbeat_received = False
-        self._last_heartbeat_time = None
+        self._battery_percent: float | None = None
+        self._last_battery_time: Time | None = None
+        self._heartbeat_received: bool = False
+        self._last_heartbeat_time: Time | None = None
         self._create_publishers()
         self._create_subscribers()
 
-    def _create_publishers(self):
+    def _create_publishers(self) -> None:
         self.battery_percent_pub = self._node.create_publisher(
             Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
         )
 
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
-    def _create_subscribers(self):
+    def _create_subscribers(self) -> None:
         self.bt_heartbeat_sub = self._node.create_subscription(
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
         )
@@ -36,11 +37,11 @@ class SAMStatusPublisher:
             "SAMStatusPublisher subscribers have been created."
         )
 
-    def _heartbeat_callback(self, msg: Empty):
+    def _heartbeat_callback(self, msg: Empty) -> None:
         self._heartbeat_received = True
         self._last_heartbeat_time = self._node.get_clock().now()
 
-    def _battery_callback(self, msg: BatteryState):
+    def _battery_callback(self, msg: BatteryState) -> None:
         if msg.percentage is None:
             self._node.get_logger().warn(
                 "Battery percentage not available, not publishing."
@@ -58,7 +59,7 @@ class SAMStatusPublisher:
         """Return whether a SAM heartbeat was received recently."""
         return self._is_fresh(self._last_heartbeat_time, max_age_seconds)
 
-    def _is_fresh(self, received_at, max_age_seconds: float) -> bool:
+    def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
         if received_at is None:
             return False
         return (self._node.get_clock().now() - received_at).nanoseconds <= (

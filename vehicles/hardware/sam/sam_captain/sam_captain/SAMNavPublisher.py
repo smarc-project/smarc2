@@ -26,7 +26,7 @@ from smarc_utilities.georef_utils import (
 class SAMNavPublisher:
     """Derive navigation data from SAM and publish to smarc topics."""
 
-    def __init__(self, node: Node):
+    def __init__(self, node: Node) -> None:
         self._node = node
         self._node.get_logger().info("SAMNavPublisher has been initialized.")
         self._node.declare_parameter("robot_name", "sam")
@@ -34,27 +34,27 @@ class SAMNavPublisher:
             self._node.get_parameter("robot_name").get_parameter_value().string_value
         )
         self.odom_frame = f"{self.robot_name}/odom"
-        self.utm_frame = None
-        self.prev_pose_utm = None
-        self.current_pose_utm = None
-        self._latest_depth = None
-        self._latest_altitude = None
-        self._latest_latlon = None
-        self._latest_heading = None
-        self._latest_course = None
-        self._latest_speed = None
-        self._last_global_navigation_time = None
+        self.utm_frame: str | None = None
+        self.prev_pose_utm: PoseStamped | None = None
+        self.current_pose_utm: PoseStamped | None = None
+        self._latest_depth: float | None = None
+        self._latest_altitude: float | None = None
+        self._latest_latlon: GeoPoint | None = None
+        self._latest_heading: float | None = None
+        self._latest_course: float | None = None
+        self._latest_speed: float | None = None
+        self._last_global_navigation_time: Time | None = None
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
 
-    def _create_tf_listener(self):
+    def _create_tf_listener(self) -> None:
         """Creates a TF listener to transform poses between different frames."""
         self._node.get_logger().info(f"Using odom frame: {self.odom_frame}")
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self._node)
 
-    def _create_publishers(self):
+    def _create_publishers(self) -> None:
         """Create publishers for navigation topics."""
         self.odom_pub = self._node.create_publisher(
             Odometry, SmarcTopics.ODOM_TOPIC, 10
@@ -78,7 +78,7 @@ class SAMNavPublisher:
             Float32, SmarcTopics.ALTITUDE_TOPIC, 10
         )
 
-    def _create_subscribers(self):
+    def _create_subscribers(self) -> None:
         """Subscribe to DR and UTM updates."""
         self.odom_sub = self._node.create_subscription(
             Odometry, DRTopics.DR_ODOM_TOPIC, self._odom_callback, 10
@@ -90,12 +90,12 @@ class SAMNavPublisher:
             DVL, SamTopics.DVL_TOPIC, self._dvl_callback, 10
         )
 
-    def _dvl_callback(self, msg: DVL):
+    def _dvl_callback(self, msg: DVL) -> None:
         """Publish DVL-derived altitude."""
         self._latest_altitude = msg.altitude
         self.altitude_pub.publish(Float32(data=self._latest_altitude))
 
-    def _odom_callback(self, msg: Odometry):
+    def _odom_callback(self, msg: Odometry) -> None:
         """Publish odom and derived navigation from each pose update."""
         self.odom_pub.publish(msg)
         self._latest_depth = -msg.pose.pose.position.z # Odom is ENU, so depth is negative of z position
@@ -135,7 +135,7 @@ class SAMNavPublisher:
         self._latest_course = course_msg.data
         self.course_pub.publish(course_msg)
 
-    def _utm_callback(self, msg):
+    def _utm_callback(self, msg: String) -> None:
         """Update UTM frame and reset pose."""
         if msg.data != self.utm_frame:
             self.utm_frame = msg.data
@@ -144,7 +144,7 @@ class SAMNavPublisher:
             self.current_pose_utm = None
             self._node.get_logger().info(f"Using UTM frame: {self.utm_frame}")
 
-    def _odom_to_utm(self, msg: Odometry):
+    def _odom_to_utm(self, msg: Odometry) -> PoseStamped | None:
         """Transform an odometry pose into the active UTM frame."""
         if not self.utm_frame:
             self._node.get_logger().warn(
@@ -208,6 +208,6 @@ class SAMNavPublisher:
             f"  Speed: {speed}\n"
         )
 
-    def _value_or_na(self, value, unit):
+    def _value_or_na(self, value: float | None, unit: str) -> str:
         """Return a formatted string for a value or 'N/A' if None."""
         return f"{value:.2f} {unit}" if value is not None else "N/A"
