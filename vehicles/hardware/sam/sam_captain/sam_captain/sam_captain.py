@@ -108,8 +108,9 @@ class SAMCaptain(Node):
         is_geo_fresh = self._geofence_status_is_fresh()
         if not is_geo_fresh:
             return (
-                SmarcTopics.VEHICLE_HEALTH_WAITING,
-                ">>>>>>>> Geofence status missing or stale <<<<<<<<",
+                SmarcTopics.VEHICLE_HEALTH_READY,
+                ">>>>>>>> Geofence status missing or stale <<<<<<<<\n"
+                "=========== Vehicle health ready ===========",
             )
         is_nav_fresh = self._nav_publisher.global_navigation_is_fresh(self._max_nav_age)
         if not is_nav_fresh:
@@ -120,7 +121,8 @@ class SAMCaptain(Node):
 
         return (
             SmarcTopics.VEHICLE_HEALTH_READY,
-            "=========== All checks passed ===========",
+            "=========== All checks passed ===========\n"
+            "=========== Vehicle health ready ===========",
         )
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
