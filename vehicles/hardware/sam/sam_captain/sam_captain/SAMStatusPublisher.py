@@ -14,7 +14,6 @@ class SAMStatusPublisher:
         self._last_battery_time = None
         self._heartbeat_received = False
         self._last_heartbeat_time = None
-        self._abort_latched = False
         self._create_publishers()
         self._create_subscribers()
 
@@ -26,9 +25,6 @@ class SAMStatusPublisher:
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self):
-        self.abort_sub = self._node.create_subscription(
-            Empty, SmarcTopics.ABORT_TOPIC, self._abort_callback, 10
-        )
         self.bt_heartbeat_sub = self._node.create_subscription(
             Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
         )
@@ -39,9 +35,6 @@ class SAMStatusPublisher:
         self._node.get_logger().info(
             "SAMStatusPublisher subscribers have been created."
         )
-
-    def _abort_callback(self, msg: Empty):
-        self._abort_latched = True
 
     def _heartbeat_callback(self, msg: Empty):
         self._heartbeat_received = True
@@ -80,11 +73,9 @@ class SAMStatusPublisher:
             else "N/A"
         )
         heartbeat = "RECEIVED" if self._heartbeat_received else "WAITING"
-        abort = "ACTIVE" if self._abort_latched else "NOT ACTIVE"
 
         return (
             "Status:\n"
-            f">> Abort: {abort}\n"
             f">> Heartbeat: {heartbeat}\n"
             f"  Battery Percent: {battery}\n"
         )

@@ -49,7 +49,7 @@ class SAMCaptain(Node):
         )
 
         self._vehicle_health_pub = self.create_publisher(
-            Int8, SamTopics.VEHICLE_HEALTH_TOPIC, 10
+            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
         )
 
         self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
@@ -85,14 +85,6 @@ class SAMCaptain(Node):
 
     def _evaluate_vehicle_health(self):
         """Evaluate the health of the vehicle based on various inputs."""
-        is_abort = self._status_publisher._abort_latched
-        if is_abort:
-            # TODO: add a reset service here. If abort is cleared, then the health check can continue to evaluate other conditions.
-            return (
-                SmarcTopics.VEHICLE_HEALTH_ERROR,
-                "!!!!!!!!!!! Abort latched !!!!!!!!!!!",
-            )
-
         if not self._status_publisher.heartbeat_is_fresh(self._max_heartbeat_age):
             return (
                 SmarcTopics.VEHICLE_HEALTH_WAITING,
@@ -113,8 +105,8 @@ class SAMCaptain(Node):
                 SmarcTopics.VEHICLE_HEALTH_ERROR,
                 ">>>>>>>> Battery below threshold <<<<<<<<",
             )
-
-        if not self._geofence_status_is_fresh():
+        is_geo_fresh = self._geofence_status_is_fresh()
+        if not is_geo_fresh:
             return (
                 SmarcTopics.VEHICLE_HEALTH_WAITING,
                 ">>>>>>>> Geofence status missing or stale <<<<<<<<",
