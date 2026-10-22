@@ -119,3 +119,22 @@ def test_status_callback_combines_navigation_and_system_status():
 
     status_message = captain.nav_str_pub.publish.call_args.args[0]
     assert status_message.data == 'Navigation status\nSystem status'
+
+
+def test_captain_creates_and_wires_all_status_interfaces():
+    captain = SAMCaptain.__new__(SAMCaptain)
+    captain._status_publisher = MagicMock()
+    publishers = [MagicMock() for _ in range(8)]
+    subscriptions = [MagicMock() for _ in range(5)]
+    captain.create_publisher = MagicMock(side_effect=publishers)
+    captain.create_subscription = MagicMock(side_effect=subscriptions)
+
+    captain._create_status_publishers()
+    captain._create_status_subscribers()
+
+    assert captain.create_publisher.call_count == 8
+    assert captain._status_publisher.battery_percent_pub is publishers[0]
+    assert captain._status_publisher.altitude_pub is publishers[-1]
+    assert captain.create_subscription.call_count == 5
+    assert captain._battery_status_sub is subscriptions[0]
+    assert captain._geofence_status_sub is subscriptions[-1]
