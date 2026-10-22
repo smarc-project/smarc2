@@ -15,7 +15,7 @@ from tf2_geometry_msgs import do_transform_pose
 
 from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import DVL, Topics as SmarcTopics
+from smarc_msgs.msg import DVL, GeofenceStatusStamped, Topics as SmarcTopics
 
 from smarc_utilities.georef_utils import (
     compute_course_from_two_poses,
@@ -45,6 +45,9 @@ class SAMStatusPublisher:
         self._last_global_navigation_time: Time | None = None
         self._battery_percent: float | None = None
         self._last_battery_time: Time | None = None
+        self._geofence_status: GeofenceStatusStamped | None = None
+        self._last_geofence_status_time: Time | None = None
+        self._max_geofence_status_age: float = 3.0
         self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
@@ -90,7 +93,7 @@ class SAMStatusPublisher:
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self) -> None:
-        """Subscribe to SAM battery, DVL, UTM, and dead-reckoning updates."""
+        """Subscribe to SAM status, navigation, and geofence updates."""
         self.battery_status_sub = self._node.create_subscription(
             BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
@@ -103,6 +106,12 @@ class SAMStatusPublisher:
         self.dvl_sub = self._node.create_subscription(
             DVL, SamTopics.DVL_TOPIC, self._dvl_callback, 10
         )
+        self._geofence_status_sub = self._node.create_subscription(
+            GeofenceStatusStamped,
+            SmarcTopics.GEOFENCE_STATUS_TOPIC,
+            self._geofence_status_callback,
+            10,
+        )
 
         self._node.get_logger().info(
             "SAMStatusPublisher subscribers have been created."
@@ -112,6 +121,11 @@ class SAMStatusPublisher:
         """Publish DVL-derived altitude."""
         self._latest_altitude = msg.altitude
         self.altitude_pub.publish(Float32(data=self._latest_altitude))
+
+    def _geofence_status_callback(self, msg: GeofenceStatusStamped) -> None:
+        """Cache the latest geofence status and its local receipt time."""
+        self._geofence_status = msg
+        self._last_geofence_status_time = self._node.get_clock().now()
 
     def _odom_callback(self, msg: Odometry) -> None:
         """Publish odom and derived navigation from each pose update."""
@@ -169,6 +183,16 @@ class SAMStatusPublisher:
             self._last_global_navigation_time = None
             self._node.get_logger().info(f"Using UTM frame: {self.utm_frame}")
 
+    def _battery_callback(self, msg: BatteryState) -> None:
+        if msg.percentage is None or not math.isfinite(msg.percentage):
+            self._node.get_logger().warn(
+                "Battery percentage not available, not publishing."
+            )
+            return
+        self._battery_percent = msg.percentage
+        self._last_battery_time = self._node.get_clock().now()
+        self.battery_percent_pub.publish(Float32(data=self._battery_percent))
+
     def _odom_to_utm(self, msg: Odometry) -> PoseStamped | None:
         """Transform an odometry pose into the active UTM frame."""
         if not self.utm_frame:
@@ -204,6 +228,47 @@ class SAMStatusPublisher:
             self._last_global_navigation_time, max_age_seconds
         )
 
+    def battery_is_fresh(self, max_age_seconds: float) -> bool:
+        """Return whether a valid battery reading was received recently."""
+        return self._is_fresh(self._last_battery_time, max_age_seconds)
+
+    def geofence_is_fresh(self) -> bool:
+        """Return whether a geofence status was received within its allowed age."""
+        return self._is_fresh(
+            self._last_geofence_status_time, self._max_geofence_status_age
+        )
+
+    def geofence_is_outside(self) -> bool:
+        """Return whether the current, fresh geofence status reports outside."""
+        return (
+            self.geofence_is_fresh()
+            and self._geofence_status is not None
+            and self._geofence_status.status == GeofenceStatusStamped.STATUS_OUTSIDE
+        )
+
+    def _value_or_na(self, value: float | None, unit: str) -> str:
+        """Return a formatted string for a value or 'N/A' if None."""
+        return f"{value:.2f} {unit}" if value is not None else "N/A"
+
+    def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
+        if received_at is None or max_age_seconds < 0:
+            return False
+        return (self._node.get_clock().now() - received_at).nanoseconds <= (
+            max_age_seconds * 1e9
+        )
+
+    def status_str(self) -> str:
+        """Create a status string for SAM status data."""
+        battery = (
+            f"{self._battery_percent * 100:.1f}%"
+            if self._battery_percent is not None
+            else "N/A"
+        )
+        return (
+            "Status:\n"
+            f"  Battery Percent: {battery}\n"
+        )
+
     def nav_status_str(self) -> str:
         """Create a status string for navigation data."""
         position = "N/A"
@@ -229,41 +294,4 @@ class SAMStatusPublisher:
             f"  Heading: {heading}\n"
             f"  Course: {course}\n"
             f"  Speed: {speed}\n"
-        )
-
-    def _value_or_na(self, value: float | None, unit: str) -> str:
-        """Return a formatted string for a value or 'N/A' if None."""
-        return f"{value:.2f} {unit}" if value is not None else "N/A"
-
-    def _battery_callback(self, msg: BatteryState) -> None:
-        if msg.percentage is None or not math.isfinite(msg.percentage):
-            self._node.get_logger().warn(
-                "Battery percentage not available, not publishing."
-            )
-            return
-        self._battery_percent = msg.percentage
-        self._last_battery_time = self._node.get_clock().now()
-        self.battery_percent_pub.publish(Float32(data=self._battery_percent))
-
-    def battery_is_fresh(self, max_age_seconds: float) -> bool:
-        """Return whether a valid battery reading was received recently."""
-        return self._is_fresh(self._last_battery_time, max_age_seconds)
-
-    def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
-        if received_at is None or max_age_seconds < 0:
-            return False
-        return (self._node.get_clock().now() - received_at).nanoseconds <= (
-            max_age_seconds * 1e9
-        )
-
-    def status_str(self) -> str:
-        """Create a status string for SAM status data."""
-        battery = (
-            f"{self._battery_percent * 100:.1f}%"
-            if self._battery_percent is not None
-            else "N/A"
-        )
-        return (
-            "Status:\n"
-            f"  Battery Percent: {battery}\n"
         )

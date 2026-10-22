@@ -1,10 +1,9 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.time import Time
 from std_msgs.msg import String, Int8
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import GeofenceStatusStamped, Topics as SmarcTopics
+from smarc_msgs.msg import Topics as SmarcTopics
 
 
 class SAMCaptain(Node):
@@ -23,17 +22,6 @@ class SAMCaptain(Node):
         )
         self._status_str_timer = self.create_timer(1.0, self._status_str_callback)
 
-        # TODO: move geofence to StatusPublisher and remove it from here
-        # geofence related
-        self._geofence_status: GeofenceStatusStamped | None = None
-        self._last_geofence_status_time: Time | None = None
-        self._max_geofence_status_age: float = 3.0
-        self._geofence_status_sub = self.create_subscription(
-            GeofenceStatusStamped,
-            SmarcTopics.GEOFENCE_STATUS_TOPIC,
-            self._geofence_status_callback,
-            10,
-        )
         # health check related
         self._max_battery_age: float = 1.0  # TODO: set max battery age in seconds
         self._max_nav_age: float = 1.0  # TODO: set max nav age in seconds
@@ -106,9 +94,7 @@ class SAMCaptain(Node):
                 SmarcTopics.VEHICLE_HEALTH_WAITING,
                 ">>>>>>>> Nav publisher not fresh <<<<<<<<",
             )
-        is_geo_fresh = self._geofence_status_is_fresh()
-        outside = GeofenceStatusStamped.STATUS_OUTSIDE
-        if (is_geo_fresh and self._geofence_status == outside):
+        if self._status_publisher.geofence_is_outside():
             return (
                 SmarcTopics.VEHICLE_HEALTH_READY,
                 ">>>>>>>> Geofence outside <<<<<<<<<<"
@@ -119,18 +105,6 @@ class SAMCaptain(Node):
             "=========== All checks passed ===========\n"
             "=========== Vehicle health ready ===========",
         )
-
-    def _geofence_status_callback(self, msg: GeofenceStatusStamped) -> None:
-        """Callback for geofence status messages."""
-        self._geofence_status = msg
-        self._last_geofence_status_time = self.get_clock().now()
-
-    def _geofence_status_is_fresh(self) -> bool:
-        """Return whether a valid geofence status message was received recently."""
-        if self._last_geofence_status_time is None:
-            return False
-        age_ns = (self.get_clock().now() - self._last_geofence_status_time).nanoseconds
-        return age_ns <= self._max_geofence_status_age * 1e9
 
     def _status_str_callback(self) -> None:
         """Publish a status string containing the latest nav and system status information."""
