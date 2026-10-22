@@ -39,7 +39,6 @@ class SAMCaptain(Node):
         # health check related
         self._max_battery_age: float = 1.0  # TODO: set max battery age in seconds
         self._max_nav_age: float = 1.0  # TODO: set max nav age in seconds
-        self._max_heartbeat_age: float = 1.0  # TODO: set max heartbeat age in seconds
         self._battery_threshold: float = 0.3
         self._vehicle_health: Int8 = Int8()  # TODO: set initial vehicle health state
         self._vehicle_health.data = (
@@ -86,11 +85,6 @@ class SAMCaptain(Node):
 
     def _evaluate_vehicle_health(self) -> tuple[int, str]:
         """Evaluate the health of the vehicle based on various inputs."""
-        if not self._status_publisher.heartbeat_is_fresh(self._max_heartbeat_age):
-            return (
-                SmarcTopics.VEHICLE_HEALTH_WAITING,
-                ">>>>>>>> Heartbeat missing or stale <<<<<<<<",
-            )
         battery_percent = self._status_publisher._battery_percent
         is_fresh_battery = self._status_publisher.battery_is_fresh(
             self._max_battery_age
@@ -106,18 +100,18 @@ class SAMCaptain(Node):
                 SmarcTopics.VEHICLE_HEALTH_ERROR,
                 ">>>>>>>> Battery below threshold <<<<<<<<",
             )
+        is_nav_fresh = self._nav_publisher.global_navigation_is_fresh(self._max_nav_age)
+        if not is_nav_fresh:
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
+                ">>>>>>>> Nav publisher not fresh <<<<<<<<",
+            )
         is_geo_fresh = self._geofence_status_is_fresh()
         if not is_geo_fresh:
             return (
                 SmarcTopics.VEHICLE_HEALTH_READY,
                 ">>>>>>>> Geofence status missing or stale <<<<<<<<\n"
                 "=========== Vehicle health ready ===========",
-            )
-        is_nav_fresh = self._nav_publisher.global_navigation_is_fresh(self._max_nav_age)
-        if not is_nav_fresh:
-            return (
-                SmarcTopics.VEHICLE_HEALTH_WAITING,
-                ">>>>>>>> Nav publisher not fresh <<<<<<<<",
             )
 
         return (

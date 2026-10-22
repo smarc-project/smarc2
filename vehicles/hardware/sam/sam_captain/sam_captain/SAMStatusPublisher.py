@@ -13,8 +13,6 @@ class SAMStatusPublisher:
         self._node = node
         self._battery_percent: float | None = None
         self._last_battery_time: Time | None = None
-        self._heartbeat_received: bool = False
-        self._last_heartbeat_time: Time | None = None
         self._create_publishers()
         self._create_subscribers()
 
@@ -26,9 +24,6 @@ class SAMStatusPublisher:
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self) -> None:
-        self.bt_heartbeat_sub = self._node.create_subscription(
-            Empty, SmarcTopics.BT_HEARTBEAT_TOPIC, self._heartbeat_callback, 10
-        )
         self.battery_status_sub = self._node.create_subscription(
             BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
@@ -36,10 +31,6 @@ class SAMStatusPublisher:
         self._node.get_logger().info(
             "SAMStatusPublisher subscribers have been created."
         )
-
-    def _heartbeat_callback(self, msg: Empty) -> None:
-        self._heartbeat_received = True
-        self._last_heartbeat_time = self._node.get_clock().now()
 
     def _battery_callback(self, msg: BatteryState) -> None:
         if msg.percentage is None:
@@ -55,10 +46,6 @@ class SAMStatusPublisher:
         """Return whether a valid battery reading was received recently."""
         return self._is_fresh(self._last_battery_time, max_age_seconds)
 
-    def heartbeat_is_fresh(self, max_age_seconds: float) -> bool:
-        """Return whether a SAM heartbeat was received recently."""
-        return self._is_fresh(self._last_heartbeat_time, max_age_seconds)
-
     def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
         if received_at is None:
             return False
@@ -73,10 +60,7 @@ class SAMStatusPublisher:
             if self._battery_percent is not None
             else "N/A"
         )
-        heartbeat = "RECEIVED" if self._heartbeat_received else "WAITING"
-
         return (
             "Status:\n"
-            f">> Heartbeat: {heartbeat}\n"
             f"  Battery Percent: {battery}\n"
         )
