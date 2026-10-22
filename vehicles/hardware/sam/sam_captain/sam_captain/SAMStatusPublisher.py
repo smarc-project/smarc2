@@ -10,12 +10,9 @@ from std_msgs.msg import Float32, String
 
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
 from tf2_geometry_msgs import do_transform_pose
 
-from dead_reckoning_msgs.msg import Topics as DRTopics
-from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import DVL, GeofenceStatusStamped, Topics as SmarcTopics
+from smarc_msgs.msg import DVL, GeofenceStatusStamped
 
 from smarc_utilities.georef_utils import (
     compute_course_from_two_poses,
@@ -26,8 +23,9 @@ from smarc_utilities.georef_utils import (
 class SAMStatusPublisher:
     """Bridge SAM status inputs into SMaRC status and navigation topics."""
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, tf_buffer: Buffer) -> None:
         self._node = node
+        self._tf_buffer = tf_buffer
         self._node.declare_parameter("robot_name", "sam")
         self.robot_name = (
             self._node.get_parameter("robot_name").get_parameter_value().string_value
@@ -48,74 +46,11 @@ class SAMStatusPublisher:
         self._geofence_status: GeofenceStatusStamped | None = None
         self._last_geofence_status_time: Time | None = None
         self._max_geofence_status_age: float = 3.0
-        self._create_tf_listener()
-        self._create_publishers()
-        self._create_subscribers()
 
     @property
     def battery_percent(self) -> float | None:
         """Return the most recently received battery charge fraction."""
         return self._battery_percent
-
-    def _create_tf_listener(self) -> None:
-        """Create the TF listener used to transform odometry into UTM."""
-        self._node.get_logger().info(f"Using odom frame: {self.odom_frame}")
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node)
-
-    def _create_publishers(self) -> None:
-        """Create publishers for the battery and derived navigation topics."""
-        self.battery_percent_pub = self._node.create_publisher(
-            Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
-        )
-        self.odom_pub = self._node.create_publisher(
-            Odometry, SmarcTopics.ODOM_TOPIC, 10
-        )
-        self.depth_pub = self._node.create_publisher(
-            Float32, SmarcTopics.DEPTH_TOPIC, 10
-        )
-        self.latlon_pub = self._node.create_publisher(
-            GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10
-        )
-        self.heading_pub = self._node.create_publisher(
-            Float32, SmarcTopics.HEADING_TOPIC, 10
-        )
-        self.course_pub = self._node.create_publisher(
-            Float32, SmarcTopics.COURSE_TOPIC, 10
-        )
-        self.speed_pub = self._node.create_publisher(
-            Float32, SmarcTopics.SPEED_TOPIC, 10
-        )
-        self.altitude_pub = self._node.create_publisher(
-            Float32, SmarcTopics.ALTITUDE_TOPIC, 10
-        )
-
-        self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
-
-    def _create_subscribers(self) -> None:
-        """Subscribe to SAM status, navigation, and geofence updates."""
-        self.battery_status_sub = self._node.create_subscription(
-            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
-        )
-        self.odom_sub = self._node.create_subscription(
-            Odometry, DRTopics.DR_ODOM_TOPIC, self._odom_callback, 10
-        )
-        self.utm_sub = self._node.create_subscription(
-            String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
-        )
-        self.dvl_sub = self._node.create_subscription(
-            DVL, SamTopics.DVL_TOPIC, self._dvl_callback, 10
-        )
-        self._geofence_status_sub = self._node.create_subscription(
-            GeofenceStatusStamped,
-            SmarcTopics.GEOFENCE_STATUS_TOPIC,
-            self._geofence_status_callback,
-            10,
-        )
-
-        self._node.get_logger().info(
-            "SAMStatusPublisher subscribers have been created."
-        )
 
     def _dvl_callback(self, msg: DVL) -> None:
         """Publish DVL-derived altitude."""

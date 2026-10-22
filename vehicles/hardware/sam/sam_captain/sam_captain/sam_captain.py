@@ -1,9 +1,16 @@
 import rclpy
+from geographic_msgs.msg import GeoPoint
+from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from std_msgs.msg import String, Int8
+from sensor_msgs.msg import BatteryState
+from std_msgs.msg import Float32, Int8, String
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
+from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import Topics as SmarcTopics
+from smarc_msgs.msg import DVL, GeofenceStatusStamped, Topics as SmarcTopics
 
 
 class SAMCaptain(Node):
@@ -13,8 +20,10 @@ class SAMCaptain(Node):
 
         # TODO parameters
 
-        # SAMStatusPublisher owns both the status and derived navigation interfaces.
-        self._status_publisher = SAMStatusPublisher(self)
+        self._create_tf_listener()
+        self._status_publisher = SAMStatusPublisher(self, self._tf_buffer)
+        self._create_status_publishers()
+        self._create_status_subscribers()
 
         # status string
         self.nav_str_pub = self.create_publisher(
@@ -39,6 +48,59 @@ class SAMCaptain(Node):
         )
 
         self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
+
+    def _create_tf_listener(self) -> None:
+        """Create the TF listener used for dead-reckoning-to-UTM transforms."""
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self)
+
+    def _create_status_publishers(self) -> None:
+        """Create publishers used by the status and navigation callbacks."""
+        status = self._status_publisher
+        status.battery_percent_pub = self.create_publisher(
+            Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
+        )
+        status.odom_pub = self.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
+        status.depth_pub = self.create_publisher(
+            Float32, SmarcTopics.DEPTH_TOPIC, 10
+        )
+        status.latlon_pub = self.create_publisher(
+            GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10
+        )
+        status.heading_pub = self.create_publisher(
+            Float32, SmarcTopics.HEADING_TOPIC, 10
+        )
+        status.course_pub = self.create_publisher(
+            Float32, SmarcTopics.COURSE_TOPIC, 10
+        )
+        status.speed_pub = self.create_publisher(
+            Float32, SmarcTopics.SPEED_TOPIC, 10
+        )
+        status.altitude_pub = self.create_publisher(
+            Float32, SmarcTopics.ALTITUDE_TOPIC, 10
+        )
+
+    def _create_status_subscribers(self) -> None:
+        """Create subscriptions that feed the status and navigation callbacks."""
+        status = self._status_publisher
+        self._battery_status_sub = self.create_subscription(
+            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, status._battery_callback, 10
+        )
+        self._odom_sub = self.create_subscription(
+            Odometry, DRTopics.DR_ODOM_TOPIC, status._odom_callback, 10
+        )
+        self._utm_sub = self.create_subscription(
+            String, SamTopics.UTM_ZONE_BAND, status._utm_callback, 10
+        )
+        self._dvl_sub = self.create_subscription(
+            DVL, SamTopics.DVL_TOPIC, status._dvl_callback, 10
+        )
+        self._geofence_status_sub = self.create_subscription(
+            GeofenceStatusStamped,
+            SmarcTopics.GEOFENCE_STATUS_TOPIC,
+            status._geofence_status_callback,
+            10,
+        )
 
     def _pub_vehicle_health(self) -> None:
         """Evaluate and publish the vehicle health state."""
