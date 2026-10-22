@@ -107,11 +107,11 @@ class SAMCaptain(Node):
                 ">>>>>>>> Nav publisher not fresh <<<<<<<<",
             )
         is_geo_fresh = self._geofence_status_is_fresh()
-        if not is_geo_fresh:
+        outside = GeofenceStatusStamped.STATUS_OUTSIDE
+        if (is_geo_fresh and self._geofence_status == outside):
             return (
                 SmarcTopics.VEHICLE_HEALTH_READY,
-                ">>>>>>>> Geofence status missing or stale <<<<<<<<\n"
-                "=========== Vehicle health ready ===========",
+                ">>>>>>>> Geofence outside <<<<<<<<<<"
             )
 
         return (
