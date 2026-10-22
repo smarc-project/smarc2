@@ -1,20 +1,21 @@
 import math
-from rclpy.node import Node
-from rclpy.time import Time
-from sensor_msgs.msg import BatteryState
-from std_msgs.msg import Float32, String, Int8
+
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseStamped
+from rclpy.node import Node
+from rclpy.time import Time
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import BatteryState
+from std_msgs.msg import Float32, String
 
+from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from tf2_geometry_msgs import do_transform_pose
 
-from smarc_msgs.msg import DVL, GeofenceStatusStamped, Topics as SmarcTopics
-from sam_msgs.msg import Topics as SamTopics
 from dead_reckoning_msgs.msg import Topics as DRTopics
+from sam_msgs.msg import Topics as SamTopics
+from smarc_msgs.msg import DVL, Topics as SmarcTopics
 
 from smarc_utilities.georef_utils import (
     compute_course_from_two_poses,
@@ -22,10 +23,8 @@ from smarc_utilities.georef_utils import (
     convert_utm_to_latlon,
 )
 
-# TODO: move functions from NAVPublisher to here and delete that file
-
 class SAMStatusPublisher:
-    """Bridge SAM status inputs and retain the latest safety-relevant state."""
+    """Bridge SAM status inputs into SMaRC status and navigation topics."""
 
     def __init__(self, node: Node) -> None:
         self._node = node
@@ -46,10 +45,23 @@ class SAMStatusPublisher:
         self._last_global_navigation_time: Time | None = None
         self._battery_percent: float | None = None
         self._last_battery_time: Time | None = None
+        self._create_tf_listener()
         self._create_publishers()
         self._create_subscribers()
 
+    @property
+    def battery_percent(self) -> float | None:
+        """Return the most recently received battery charge fraction."""
+        return self._battery_percent
+
+    def _create_tf_listener(self) -> None:
+        """Create the TF listener used to transform odometry into UTM."""
+        self._node.get_logger().info(f"Using odom frame: {self.odom_frame}")
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self._node)
+
     def _create_publishers(self) -> None:
+        """Create publishers for the battery and derived navigation topics."""
         self.battery_percent_pub = self._node.create_publisher(
             Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
         )
@@ -78,6 +90,7 @@ class SAMStatusPublisher:
         self._node.get_logger().info("SAMStatusPublisher publishers have been created.")
 
     def _create_subscribers(self) -> None:
+        """Subscribe to SAM battery, DVL, UTM, and dead-reckoning updates."""
         self.battery_status_sub = self._node.create_subscription(
             BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
@@ -94,6 +107,7 @@ class SAMStatusPublisher:
         self._node.get_logger().info(
             "SAMStatusPublisher subscribers have been created."
         )
+
     def _dvl_callback(self, msg: DVL) -> None:
         """Publish DVL-derived altitude."""
         self._latest_altitude = msg.altitude
@@ -102,7 +116,8 @@ class SAMStatusPublisher:
     def _odom_callback(self, msg: Odometry) -> None:
         """Publish odom and derived navigation from each pose update."""
         self.odom_pub.publish(msg)
-        self._latest_depth = -msg.pose.pose.position.z # Odom is ENU, so depth is negative of z position
+        # Dead reckoning is ENU, whereas the SMaRC depth convention is positive down.
+        self._latest_depth = -msg.pose.pose.position.z
         self.depth_pub.publish(Float32(data=self._latest_depth))
 
         linear_velocity = msg.twist.twist.linear
@@ -136,6 +151,8 @@ class SAMStatusPublisher:
         course_msg = compute_course_from_two_poses(
             self.prev_pose_utm, self.current_pose_utm
         )
+        if course_msg is None:
+            return
         self._latest_course = course_msg.data
         self.course_pub.publish(course_msg)
 
@@ -143,9 +160,13 @@ class SAMStatusPublisher:
         """Update UTM frame and reset pose."""
         if msg.data != self.utm_frame:
             self.utm_frame = msg.data
-            # Course must not span two different UTM frames.
+            # Global values and course must not span two different UTM frames.
             self.prev_pose_utm = None
             self.current_pose_utm = None
+            self._latest_latlon = None
+            self._latest_heading = None
+            self._latest_course = None
+            self._last_global_navigation_time = None
             self._node.get_logger().info(f"Using UTM frame: {self.utm_frame}")
 
     def _odom_to_utm(self, msg: Odometry) -> PoseStamped | None:
@@ -158,8 +179,8 @@ class SAMStatusPublisher:
 
         try:
             source_frame = msg.header.frame_id or self.odom_frame
-            utm_transform = self.tf_buffer.lookup_transform(
-                self.utm_frame, source_frame, Time()
+            utm_transform = self._tf_buffer.lookup_transform(
+                self.utm_frame, source_frame, Time.from_msg(msg.header.stamp)
             )
 
             pose_utm = PoseStamped()
@@ -179,11 +200,9 @@ class SAMStatusPublisher:
 
     def global_navigation_is_fresh(self, max_age_seconds: float) -> bool:
         """Return whether a recent UTM-derived latitude/longitude is available."""
-        if self._latest_latlon is None or self._last_global_navigation_time is None:
-            return False
-        return (
-            self._node.get_clock().now() - self._last_global_navigation_time
-        ).nanoseconds <= max_age_seconds * 1e9
+        return self._latest_latlon is not None and self._is_fresh(
+            self._last_global_navigation_time, max_age_seconds
+        )
 
     def nav_status_str(self) -> str:
         """Create a status string for navigation data."""
@@ -217,7 +236,7 @@ class SAMStatusPublisher:
         return f"{value:.2f} {unit}" if value is not None else "N/A"
 
     def _battery_callback(self, msg: BatteryState) -> None:
-        if msg.percentage is None:
+        if msg.percentage is None or not math.isfinite(msg.percentage):
             self._node.get_logger().warn(
                 "Battery percentage not available, not publishing."
             )
@@ -231,7 +250,7 @@ class SAMStatusPublisher:
         return self._is_fresh(self._last_battery_time, max_age_seconds)
 
     def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
-        if received_at is None:
+        if received_at is None or max_age_seconds < 0:
             return False
         return (self._node.get_clock().now() - received_at).nanoseconds <= (
             max_age_seconds * 1e9
@@ -240,7 +259,7 @@ class SAMStatusPublisher:
     def status_str(self) -> str:
         """Create a status string for SAM status data."""
         battery = (
-            f"{self._battery_percent:.1f}%"
+            f"{self._battery_percent * 100:.1f}%"
             if self._battery_percent is not None
             else "N/A"
         )
