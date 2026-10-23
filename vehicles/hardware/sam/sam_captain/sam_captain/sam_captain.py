@@ -20,85 +20,33 @@ class SAMCaptain(Node):
 
         # TODO parameters
 
-        self._create_tf_listener()
-        self._status_publisher = SAMStatusPublisher(self, self._tf_buffer)
-        self._create_status_publishers()
-        self._create_status_subscribers()
+        # TODO: call status publisher
 
-        # status string
-        self.nav_str_pub = self.create_publisher(
-            String, SamTopics.STATUS_STRING_TOPIC, 10
-        )
-        self._status_str_timer = self.create_timer(1.0, self._status_str_callback)
 
-        # health check related
-        self._max_battery_age: float = 1.0  # TODO: set max battery age in seconds
-        self._max_nav_age: float = 1.0  # TODO: set max nav age in seconds
-        self._battery_threshold: float = 0.3
-        self._vehicle_health: Int8 = Int8()  # TODO: set initial vehicle health state
-        self._vehicle_health.data = (
-            SmarcTopics.VEHICLE_HEALTH_WAITING
-        )  # TODO: set initial vehicle health state
-        self._vehicle_health_reason: str = (
-            "Initial state"  # TODO: set initial vehicle health reason
-        )
-
-        self._vehicle_health_pub = self.create_publisher(
-            Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10
-        )
-
-        self._health_check_timer = self.create_timer(1.0, self._pub_vehicle_health)
 
     def _create_tf_listener(self) -> None:
         """Create the TF listener used for dead-reckoning-to-UTM transforms."""
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
-    def _create_status_publishers(self) -> None:
-        """Create publishers used by the status and navigation callbacks."""
-        status = self._status_publisher
-        status.battery_percent_pub = self.create_publisher(
-            Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10
-        )
-        status.odom_pub = self.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
-        status.depth_pub = self.create_publisher(
-            Float32, SmarcTopics.DEPTH_TOPIC, 10
-        )
-        status.latlon_pub = self.create_publisher(
-            GeoPoint, SmarcTopics.POS_LATLON_TOPIC, 10
-        )
-        status.heading_pub = self.create_publisher(
-            Float32, SmarcTopics.HEADING_TOPIC, 10
-        )
-        status.course_pub = self.create_publisher(
-            Float32, SmarcTopics.COURSE_TOPIC, 10
-        )
-        status.speed_pub = self.create_publisher(
-            Float32, SmarcTopics.SPEED_TOPIC, 10
-        )
-        status.altitude_pub = self.create_publisher(
-            Float32, SmarcTopics.ALTITUDE_TOPIC, 10
-        )
-
     def _create_status_subscribers(self) -> None:
         """Create subscriptions that feed the status and navigation callbacks."""
-        status = self._status_publisher
         self._battery_status_sub = self.create_subscription(
-            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, status._battery_callback, 10
+            BatteryState, SamTopics.BATTERY_STATUS_TOPIC, self._battery_callback, 10
         )
         self._odom_sub = self.create_subscription(
-            Odometry, DRTopics.DR_ODOM_TOPIC, status._odom_callback, 10
+            Odometry, DRTopics.DR_ODOM_TOPIC, self._odom_callback, 10
         )
         self._utm_sub = self.create_subscription(
-            String, SamTopics.UTM_ZONE_BAND, status._utm_callback, 10
+            String, SamTopics.UTM_ZONE_BAND, self._utm_callback, 10
         )
         self._dvl_sub = self.create_subscription(
-            DVL, SamTopics.DVL_TOPIC, status._dvl_callback, 10
+            DVL, SamTopics.DVL_TOPIC, self._dvl_callback, 10
         )
         self._geofence_status_sub = self.create_subscription(
             GeofenceStatusStamped,
             SmarcTopics.GEOFENCE_STATUS_TOPIC,
-            status._geofence_status_callback,
+            self._geofence_status_callback,
             10,
         )
 
@@ -177,6 +125,7 @@ class SAMCaptain(Node):
         self.get_logger().info(f"Publishing status string: {msg.data}")
         self.nav_str_pub.publish(msg)
 
+    # TODO: add othher callbacks (battery, dvl, geofence, odom, utm)
 
 def main(args=None):
     rclpy.init(args=args)
