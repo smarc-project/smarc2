@@ -1,3 +1,4 @@
+import math
 import rclpy
 from rclpy.time import Time
 from geographic_msgs.msg import GeoPoint
@@ -63,7 +64,6 @@ class SAMCaptain(Node):
         self.get_logger().info("SAMStatusPublisher has been created.")
 
 
-
     def _create_tf_listener(self) -> None:
         """Create the TF listener used for dead-reckoning-to-UTM transforms."""
         self._tf_buffer = Buffer()
@@ -90,8 +90,6 @@ class SAMCaptain(Node):
             10,
         )
 
-
-    # TODO: add othher callbacks (battery, dvl, geofence, odom, utm)
     def _battery_callback(self, msg: BatteryState) -> None:
         if msg.percentage is None:
             self.get_logger().warn('Battery percentage not available.')
@@ -100,7 +98,33 @@ class SAMCaptain(Node):
         self._last_battery_time = self.get_clock().now()
 
     def _odom_callback(self, msg: Odometry) -> None:
-        pass
+        self.latest_odom = msg
+        self.latest_depth = -msg.pose.pose.position.z
+        velocity = msg.twist.twist.linear
+        self.latest_speed = math.sqrt(
+            velocity.x**2 + velocity.y**2 + velocity.z**2
+        )
+
+        pose_utm = self._odom_to_utm(msg)
+        if pose_utm is None:
+            return
+
+        self._previous_pose_utm = self._current_pose_utm
+        self._current_pose_utm = pose_utm
+        self.latest_heading = convert_enu_pose_to_heading(pose_utm.pose).data
+
+        latlon = convert_utm_to_latlon(pose_utm)
+        latlon.altitude = msg.pose.pose.position.z
+        self.latest_latlon = latlon
+        self._last_global_navigation_time = self.get_clock().now()
+
+        if self._previous_pose_utm is None:
+            return
+        course = compute_course_from_two_poses(
+            self._previous_pose_utm, self._current_pose_utm
+        )
+        if course is not None:
+            self.latest_course = course.data
 
     def _utm_callback(self, msg: String) -> None:
         if msg.data == self.utm_frame:
