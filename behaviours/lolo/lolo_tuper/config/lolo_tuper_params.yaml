@@ -18,10 +18,15 @@
     # Estimator topics (remappable).
     pose_topic: "/follower/ukf/pose"
     setpoint_topic: "/follower/ukf/setpoint"
-    # Measured estimate-vs-truth divergence (std_msgs/Float32). The follow loop
-    # fails the task when this exceeds the goal's max_delta_pos, regardless of
-    # the filter's self-reported covariance.
+    # UKF estimate vs the INS fix (std_msgs/Float32). Published from
+    # /lolo/standard/navsatfix, including underwater. Above max_delta_pos the
+    # follow loop holds the last healthy course at the RPM floor and resumes
+    # when it drops back. It fails only after delta_hold_fail_s of continuous
+    # excess. 45 s rides the short walk-offs from 2026-10-19 and ends a
+    # wrong-side estimate that stays out for a minute.
     delta_pos_topic: "/follower/ukf/delta_pos"
+    max_delta_pos: 10.0           # m; hold above this. Goal JSON may override.
+    delta_hold_fail_s: 45.0       # s; fail if the hold lasts this long.
 
     # BT output topics (relative -> resolved in the robot namespace).
     status_topic: "lolo_tuper/status"
@@ -54,7 +59,7 @@
     # Follow-phase deadband is a fixed radius = arrival_tolerance (set per-goal):
     # within it we ease to the RPM floor (min_rpm) to avoid chasing estimator
     # jitter. It is deliberately NOT widened by delta_pos -- that is the
-    # estimate's measured error and only drives the max_delta_pos failure gate.
+    # estimate's measured error and only drives the estimate-hold gate.
 
     # Window (s) for least-squares leader (setpoint) velocity estimation.
     leader_speed_window: 5.0
