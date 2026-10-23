@@ -158,7 +158,7 @@ class SAMCaptain(Node):
             )
         if self._status_publisher.geofence_is_outside():
             return (
-                SmarcTopics.VEHICLE_HEALTH_READY,
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
                 ">>>>>>>> Geofence outside <<<<<<<<<<"
             )
 
