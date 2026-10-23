@@ -18,33 +18,33 @@ class SAMCaptain(Node):
         super().__init__("sam_captain")
         self.get_logger().info("SAM Captain Node has been started.")
         # TODO parameters
-        # self.declare_parameter('robot_name', 'sam')
-        # self.robot_name = (
-        #     self.get_parameter('robot_name').get_parameter_value().string_value
-        # )
-        # self.odom_frame = f'{self.robot_name}/odom'
+        self.declare_parameter('robot_name', 'sam')
+        self.robot_name = (
+            self.get_parameter('robot_name').get_parameter_value().string_value
+        )
+        self.odom_frame = f'{self.robot_name}/odom'
 
-        # self.latest_battery_percent: float | None = None
-        # self.latest_odom: Odometry | None = None
-        # self.latest_depth: float | None = None
-        # self.latest_altitude: float | None = None
-        # self.latest_latlon: GeoPoint | None = None
-        # self.latest_heading: float | None = None
-        # self.latest_course: float | None = None
-        # self.latest_speed: float | None = None
-        # self.latest_geofence_status: GeofenceStatusStamped | None = None
+        self.latest_battery_percent: float | None = None
+        self.latest_odom: Odometry | None = None
+        self.latest_depth: float | None = None
+        self.latest_altitude: float | None = None
+        self.latest_latlon: GeoPoint | None = None
+        self.latest_heading: float | None = None
+        self.latest_course: float | None = None
+        self.latest_speed: float | None = None
+        self.latest_geofence_status: GeofenceStatusStamped | None = None
 
-        # self.utm_frame: str | None = None
-        # self.previous_pose_utm: PoseStamped | None = None
-        # self.current_pose_utm: PoseStamped | None = None
-        # self.last_battery_time: Time | None = None
-        # self.last_global_navigation_time: Time | None = None
-        # self.last_geofence_status_time: Time | None = None
+        self.utm_frame: str | None = None
+        self.previous_pose_utm: PoseStamped | None = None
+        self.current_pose_utm: PoseStamped | None = None
+        self.last_battery_time: Time | None = None
+        self.last_global_navigation_time: Time | None = None
+        self.last_geofence_status_time: Time | None = None
 
-        # self.max_battery_age = 1.0
-        # self.max_nav_age = 1.0
-        # self.max_geofence_status_age = 3.0
-        # self.battery_threshold = 0.3
+        self.max_battery_age = 1.0
+        self.max_nav_age = 1.0
+        self.max_geofence_status_age = 3.0
+        self.battery_threshold = 0.3
 
         # TODO: call status publisher
         self.status_publisher = SAMStatusPublisher(self)

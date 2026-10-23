@@ -19,11 +19,10 @@ class SAMStatusPublisher:
         self._heading_pub = self.cap.create_publisher(Float32, SmarcTopics.HEADING_TOPIC, 10)
         self._course_pub = self.cap.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, 10)
         self._speed_pub = self.cap.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
-
+        self._battery_percent_pub = self.cap.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
-        # TODO: timer callback to pub string
-        self._publish_timer = cap.create_timer(0.1, self._publish_status)
-        self.cap.get_logger().info("create timer for publishing status")
+
+        self._publish_timer = cap.create_timer(1.0, self._publish_status)
 
     def _value_or_na(self, value: float | None, unit: str) -> str:
         """Return a formatted string for a value or 'N/A' if None."""
@@ -32,8 +31,8 @@ class SAMStatusPublisher:
     def status_str(self) -> str:
         """Create a status string for SAM status and nav data."""
         battery = (
-            f"{self.cap.battery_percent * 100:.1f}%"
-            if self.cap.battery_percent is not None
+            f"{self.cap.latest_battery_percent * 100:.1f}%"
+            if self.cap.latest_battery_percent is not None
             else "N/A"
         )
         position = "N/A"
@@ -65,14 +64,26 @@ class SAMStatusPublisher:
 
     def _publish_status(self) -> None:
         """Publish the latest available captain state on SMaRC status topics."""
-        # TODO pub battery
-        # TODO pub odom
-        # TODO pub depth
-        # TODO pub altitude
-        # TODO pub latlon
-        # TODO pub heading
-        # TODO pub course
-        # TODO pub speed
-        # TODO pub status string
-        pass
+        self.cap.get_logger().info("Publishing SAM status and navigation data.")
+        if self.cap.latest_battery_percent is not None:
+            self._battery_percent_pub.publish(Float32(data=self.cap.latest_battery_percent))
+        if self.cap.latest_odom is not None:
+            self._odom_pub.publish(self.cap.latest_odom)
+        if self.cap.latest_depth is not None:
+            self._depth_pub.publish(Float32(data=self.cap.latest_depth))
+        if self.cap.latest_altitude is not None:
+            self._altitude_pub.publish(Float32(data=self.cap.latest_altitude))
+        if self.cap.latest_latlon is not None:
+            self._latlon_pub.publish(self.cap.latest_latlon)
+        if self.cap.latest_heading is not None:
+            self._heading_pub.publish(Float32(data=self.cap.latest_heading))
+        if self.cap.latest_course is not None:
+            self._course_pub.publish(Float32(data=self.cap.latest_course))
+        if self.cap.latest_speed is not None:
+            self._speed_pub.publish(Float32(data=self.cap.latest_speed))
+        
+        self._status_string_pub.publish(String(data=self.status_str()))
 
+        self.cap.get_logger().info("Published SAM status and navigation data.")
+
+    # TODO: add health evaluation function
