@@ -1,5 +1,5 @@
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float32, String
+from std_msgs.msg import Float32, String, Int8
 from geographic_msgs.msg import GeoPoint
 
 from sam_msgs.msg import Topics as SamTopics
@@ -10,6 +10,16 @@ class SAMStatusPublisher:
     def __init__(self, cap) -> None:
         self.cap = cap
 
+        # TODO: add this to parameters
+        self.max_battery_age = 1.0
+        self.max_nav_age = 1.0
+        self.max_geofence_status_age = 3.0
+        self.battery_threshold = 0.3
+
+        # health
+        self._vehicle_health = Int8(data=SmarcTopics.VEHICLE_HEALTH_WAITING)
+        self._vehicle_health_reason = 'Initial state'
+
         self._odom_pub = self.cap.create_publisher(Odometry, SmarcTopics.ODOM_TOPIC, 10)
         self._depth_pub = self.cap.create_publisher(Float32, SmarcTopics.DEPTH_TOPIC, 10)
         self._altitude_pub = self.cap.create_publisher(Float32, SmarcTopics.ALTITUDE_TOPIC, 10)
@@ -18,6 +28,7 @@ class SAMStatusPublisher:
         self._course_pub = self.cap.create_publisher(Float32, SmarcTopics.COURSE_TOPIC, 10)
         self._speed_pub = self.cap.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
         self._battery_percent_pub = self.cap.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
+        self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
 
         self._publish_timer = cap.create_timer(10.0, self._publish_status)
@@ -84,69 +95,66 @@ class SAMStatusPublisher:
 
         self.cap.get_logger().info("Published SAM status and navigation data.")
 
-    # TODO: add health evaluation function
-    # def _pub_vehicle_health(self) -> None:
-    #     """Evaluate and publish the vehicle health state."""
-    #     prev_health = self._vehicle_health
-    #     prev_reason = self._vehicle_health_reason
-    #     self._vehicle_health.data, self._vehicle_health_reason = (
-    #         self._evaluate_vehicle_health()
-    #     )
-    #     self.get_logger().info(
-    #         f"Publishing vehicle health: {self._vehicle_health}, reason: {self._vehicle_health_reason}"
-    #     )
-    #     self._vehicle_health_pub.publish(self._vehicle_health)
+    # -------- Health evaluation --------
+    def _pub_vehicle_health(self) -> None:
+        """Evaluate and publish the vehicle health state."""
+        prev_health = self._vehicle_health.data
+        prev_reason = self._vehicle_health_reason
+        health, reason = self._evaluate_vehicle_health()
+        self._vehicle_health = Int8(data=health)
+        self._vehicle_health_reason = reason
 
-    #     if self._vehicle_health.data != prev_health.data:
-    #         self.get_logger().warn(
-    #             f"Vehicle health state changed from {self._health_str(prev_health.data)} to {self._health_str(self._vehicle_health.data)}"
-    #         )
-    #         self.get_logger().warn(
-    #             f"Vehicle health reason changed from '{prev_reason}' to '{self._vehicle_health_reason}'"
-    #         )
+        self.cap.get_logger().info(
+            f"Publishing vehicle health: {health}, reason: {reason}"
+        )
+        self._vehicle_health_pub.publish(self._vehicle_health)
 
-    # def _health_str(self, health_state: int) -> str:
-    #     """Return a readable name for a SMARC vehicle-health state."""
-    #     health_names = {
-    #         SmarcTopics.VEHICLE_HEALTH_READY: "READY",
-    #         SmarcTopics.VEHICLE_HEALTH_WAITING: "WAITING",
-    #         SmarcTopics.VEHICLE_HEALTH_ERROR: "ERROR",
-    #     }
-    #     return health_names.get(health_state, f"UNKNOWN({health_state})")
+        if health != prev_health.data:
+            self.cap.get_logger().warn(
+                f"Vehicle health state changed from {self._health_str(prev_health.data)} to {self._health_str(health)}"
+            )
+            self.cap.get_logger().warn(
+                f"Vehicle health reason changed from '{prev_reason}' to '{reason}'"
+            )
 
-    # def _evaluate_vehicle_health(self) -> tuple[int, str]:
-    #     """Evaluate the health of the vehicle based on various inputs."""
-    #     battery_percent = self._status_publisher.battery_percent
-    #     is_fresh_battery = self._status_publisher.battery_is_fresh(
-    #         self._max_battery_age
-    #     )
-    #     if battery_percent is None or not is_fresh_battery:
-    #         return (
-    #             SmarcTopics.VEHICLE_HEALTH_WAITING,
-    #             ">>>>>>>> Battery not fresh or None <<<<<<<<",
-    #         )
+    def _health_str(self, health_state: int) -> str:
+        """Return a readable name for a SMARC vehicle-health state."""
+        health_names = {
+            SmarcTopics.VEHICLE_HEALTH_READY: "READY",
+            SmarcTopics.VEHICLE_HEALTH_WAITING: "WAITING",
+            SmarcTopics.VEHICLE_HEALTH_ERROR: "ERROR",
+        }
+        return health_names.get(health_state, f"UNKNOWN({health_state})")
 
-    #     if battery_percent < self._battery_threshold:
-    #         return (
-    #             SmarcTopics.VEHICLE_HEALTH_ERROR,
-    #             ">>>>>>>> Battery below threshold <<<<<<<<",
-    #         )
-    #     is_nav_fresh = self._status_publisher.global_navigation_is_fresh(
-    #         self._max_nav_age
-    #     )
-    #     if not is_nav_fresh:
-    #         return (
-    #             SmarcTopics.VEHICLE_HEALTH_WAITING,
-    #             ">>>>>>>> Nav publisher not fresh <<<<<<<<",
-    #         )
-    #     if self._status_publisher.geofence_is_outside():
-    #         return (
-    #             SmarcTopics.VEHICLE_HEALTH_WAITING,
-    #             ">>>>>>>> Geofence outside <<<<<<<<<<"
-    #         )
+    def _evaluate_vehicle_health(self) -> tuple[int, str]:
+        """Evaluate the health of the vehicle based on various inputs."""
+        battery_percent = self.cap.latest_battery_percent
+        is_fresh_battery = self.cap.battery_is_fresh(self.max_battery_age)
+        if battery_percent is None or not is_fresh_battery:
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
+                ">>>>>>>> Battery not fresh or None <<<<<<<<",
+            )
 
-    #     return (
-    #         SmarcTopics.VEHICLE_HEALTH_READY,
-    #         "=========== All checks passed ===========\n"
-    #         "=========== Vehicle health ready ===========",
-    #     )
+        if battery_percent < self._battery_threshold:
+            return (
+                SmarcTopics.VEHICLE_HEALTH_ERROR,
+                ">>>>>>>> Battery below threshold <<<<<<<<",
+            )
+        is_nav_fresh = self.cap.global_navigation_is_fresh(self.max_nav_age)
+        if not is_nav_fresh:
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
+                ">>>>>>>> Nav publisher not fresh <<<<<<<<",
+            )
+        if self.cap.geofence_is_outside():
+            return (
+                SmarcTopics.VEHICLE_HEALTH_WAITING,
+                ">>>>>>>> Geofence outside <<<<<<<<<<"
+            )
+
+        return (
+            SmarcTopics.VEHICLE_HEALTH_READY,
+            "=========== All checks passed ===========\n"
+            "=========== Vehicle health ready ===========",
+        )

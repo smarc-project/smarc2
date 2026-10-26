@@ -50,11 +50,6 @@ class SAMCaptain(Node):
         self.last_global_navigation_time: Time | None = None
         self.last_geofence_status_time: Time | None = None
 
-        self.max_battery_age = 1.0
-        self.max_nav_age = 1.0
-        self.max_geofence_status_age = 3.0
-        self.battery_threshold = 0.3
-
         # tf and sub
         self._create_tf_listener()
         self._create_status_subscribers()
