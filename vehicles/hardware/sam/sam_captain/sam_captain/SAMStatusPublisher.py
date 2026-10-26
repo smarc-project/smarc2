@@ -11,10 +11,9 @@ class SAMStatusPublisher:
         self.cap = cap
 
         # TODO: add this to parameters
-        self.max_battery_age = 1.0
-        self.max_nav_age = 1.0
-        self.max_geofence_status_age = 3.0
-        self.battery_threshold = 0.3
+        self._max_battery_age = 1.0
+        self._max_nav_age = 1.0
+        self._battery_threshold = 0.3
 
         # health
         self._vehicle_health = Int8(data=SmarcTopics.VEHICLE_HEALTH_WAITING)
@@ -29,7 +28,7 @@ class SAMStatusPublisher:
         self._speed_pub = self.cap.create_publisher(Float32, SmarcTopics.SPEED_TOPIC, 10)
         self._battery_percent_pub = self.cap.create_publisher(Float32, SmarcTopics.BATTERY_PERCENT_TOPIC, 10)
         self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
-        self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
+        self._vehicle_health_pub = cap.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
 
         self._publish_timer = cap.create_timer(10.0, self._publish_status)
 
@@ -92,13 +91,14 @@ class SAMStatusPublisher:
             self._speed_pub.publish(Float32(data=self.cap.latest_speed))
         
         self._status_string_pub.publish(String(data=self.status_str()))
+        self._pub_vehicle_health()
 
         self.cap.get_logger().info("Published SAM status and navigation data.")
 
     # -------- Health evaluation --------
     def _pub_vehicle_health(self) -> None:
         """Evaluate and publish the vehicle health state."""
-        prev_health = self._vehicle_health.data
+        prev_health = self._vehicle_health
         prev_reason = self._vehicle_health_reason
         health, reason = self._evaluate_vehicle_health()
         self._vehicle_health = Int8(data=health)
@@ -129,7 +129,7 @@ class SAMStatusPublisher:
     def _evaluate_vehicle_health(self) -> tuple[int, str]:
         """Evaluate the health of the vehicle based on various inputs."""
         battery_percent = self.cap.latest_battery_percent
-        is_fresh_battery = self.cap.battery_is_fresh(self.max_battery_age)
+        is_fresh_battery = self.cap.battery_is_fresh(self._max_battery_age)
         if battery_percent is None or not is_fresh_battery:
             return (
                 SmarcTopics.VEHICLE_HEALTH_WAITING,
@@ -141,7 +141,7 @@ class SAMStatusPublisher:
                 SmarcTopics.VEHICLE_HEALTH_ERROR,
                 ">>>>>>>> Battery below threshold <<<<<<<<",
             )
-        is_nav_fresh = self.cap.global_navigation_is_fresh(self.max_nav_age)
+        is_nav_fresh = self.cap.global_navigation_is_fresh(self._max_nav_age)
         if not is_nav_fresh:
             return (
                 SmarcTopics.VEHICLE_HEALTH_WAITING,
