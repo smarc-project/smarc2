@@ -187,7 +187,15 @@ class SAMCaptain(Node):
     def geofence_is_fresh(self) -> bool:
         """Return whether a geofence status was received within its allowed age."""
         return self._is_fresh(
-            self._last_geofence_status_time, self._max_geofence_status_age
+            self._last_geofence_status_time, self.max_geofence_status_age
+        )
+
+    def geofence_is_outside(self) -> bool:
+        """Return whether the current, fresh geofence status reports outside."""
+        return (
+            self.geofence_is_fresh()
+            and self.latest_geofence_status is not None
+            and self.latest_geofence_status.status == GeofenceStatusStamped.STATUS_OUTSIDE
         )
     
 def main(args=None):
