@@ -51,7 +51,7 @@ if [[ $USE_SIM_TIME == "False" ]]; then
 fi
 
 DESCRIPTION_CMD="ros2 launch sam_description sam_description.launch robot_name:=$ROBOT_NAME"
-DR_CMD="ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME  use_motion_model:=false inference_strategy:=FixedLagSmoothing kf_interval_hz:=10 use_sensor_covariance:=false init_from_ground_truth:=false"
+DR_CMD="ros2 launch hydrobatic_localization state_estimator.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME use_motion_model:=false inference_strategy:=FixedLagSmoothing kf_interval_hz:=10 use_sensor_covariance:=false init_from_ground_truth:=false"
 
 tmux_make_layout "$SESSION" dr "
 col(
@@ -62,26 +62,26 @@ col(
 BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
 CONTROLLER_CMD="ros2 launch sam_diving_controller pid_wp_following.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 # EMERGENCY_ACTION_CMD="ros2 launch sam_emergency_action sam_emergency_action.launch robot_name:=$ROBOT_NAME"
-HEALTH_FAKER_CMD="ros2 topic pub /sam/smarc/vehicle_health std_msgs/msg/Int8 data:\ 0\ "
+# HEALTH_FAKER_CMD="ros2 topic pub /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 data:\ 0\ "
 DISCOVERY_SERVER_CMD="export ZENOH_CONFIG_OVERRIDE='listen/endpoints=[\"tcp/0.0.0.0:7447\"]' && ros2 run rmw_zenoh_cpp rmw_zenohd"
 tmux_make_layout "$SESSION" bt+cont "
 row(
     var(BT_CMD),
     col(
         2:var(CONTROLLER_CMD),
-        1:var(HEALTH_FAKER_CMD),
         1:var(DISCOVERY_SERVER_CMD)
     )
 )"
 
-SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
+# SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
+SAM_CAP_CMD="ros2 launch sam_captain sam_captain.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 MQTT_BRIDGE_CMD="ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME domain:=subsurface context:=isee realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME"
 # HEALTH_CHECKER_CMD="ros2 launch sam_health_checker sam_rate_health_checker.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 # UTILS_CMD="ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME"
 tmux_make_layout "$SESSION" utils "
 row(
     var(MQTT_BRIDGE_CMD),
-    var(SMARC_PUB_CMD)
+    var(SAM_CAP_CMD)
 )"
 
 
