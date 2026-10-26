@@ -60,7 +60,7 @@ class SAMCaptain(Node):
         self._create_status_subscribers()
 
         # status publisher
-        self.status_publisher = SAMStatusPublisher(self)
+        self._status_publisher = SAMStatusPublisher(self)
         self.get_logger().info("SAMStatusPublisher has been created.")
 
 
@@ -167,6 +167,29 @@ class SAMCaptain(Node):
             )
             return None
 
+    def _is_fresh(self, received_at: Time | None, max_age_seconds: float) -> bool:
+        if received_at is None or max_age_seconds < 0:
+            return False
+        return (self.get_clock().now() - received_at).nanoseconds <= (
+            max_age_seconds * 1e9
+        )
+    
+    def global_navigation_is_fresh(self, max_age_seconds: float) -> bool:
+        """Return whether a recent UTM-derived latitude/longitude is available."""
+        return self.latest_latlon is not None and self._is_fresh(
+            self._last_global_navigation_time, max_age_seconds
+        )
+
+    def battery_is_fresh(self, max_age_seconds: float) -> bool:
+        """Return whether a valid battery reading was received recently."""
+        return self._is_fresh(self._last_battery_time, max_age_seconds)
+
+    def geofence_is_fresh(self) -> bool:
+        """Return whether a geofence status was received within its allowed age."""
+        return self._is_fresh(
+            self._last_geofence_status_time, self._max_geofence_status_age
+        )
+    
 def main(args=None):
     rclpy.init(args=args)
 
