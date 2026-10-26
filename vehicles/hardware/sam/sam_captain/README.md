@@ -34,8 +34,7 @@ Note that the default launch arguments are:
 To launch this along with other nodes for sam:
 
 ```bash
-cd ~/smarc_ws/src/smarc2/scripts/smarc_bringups/scripts
-./sam_bringup.sh 
+ros2 run smarc_bringups sam_bringup.sh
 ```
 
 ## TODO
