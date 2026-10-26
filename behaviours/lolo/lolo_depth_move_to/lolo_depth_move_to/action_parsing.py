@@ -55,8 +55,8 @@ class DepthMoveToActionParsing:
             fmt_dict["waypoint"] = {}
             fmt_dict["waypoint"]["latitude"] = val.geopoint.latitude
             fmt_dict["waypoint"]["longitude"] = val.geopoint.longitude
-            fmt_dict["waypoint"]["target_depth"] = val.target_depth
-            fmt_dict["waypoint"]["min_altitude"] = val.min_altitude
+            fmt_dict["waypoint"]["target-depth"] = val.target_depth
+            fmt_dict["waypoint"]["min-altitude"] = val.min_altitude
             fmt_dict["waypoint"]["rpm"] = val.rpm
             fmt_dict["waypoint"]["timeout"] = val.timeout
             fmt_dict["waypoint"]["tolerance"] = val.tolerance
