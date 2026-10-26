@@ -30,7 +30,7 @@ class SAMStatusPublisher:
         self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         self._vehicle_health_pub = cap.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
 
-        self._publish_timer = cap.create_timer(10.0, self._publish_status)
+        self._publish_timer = cap.create_timer(0.1, self._publish_status)
 
     def _value_or_na(self, value: float | None, unit: str) -> str:
         """Return a formatted string for a value or 'N/A' if None."""
@@ -39,7 +39,7 @@ class SAMStatusPublisher:
     def status_str(self) -> str:
         """Create a status string for SAM status and nav data."""
         battery = (
-            f"{self.cap.latest_battery_percent * 100:.1f}%"
+            f"{self.cap.latest_battery_percent:.1f}%"
             if self.cap.latest_battery_percent is not None
             else "N/A"
         )
@@ -72,7 +72,7 @@ class SAMStatusPublisher:
 
     def _publish_status(self) -> None:
         """Publish the latest available captain state on SMaRC status topics."""
-        self.cap.get_logger().info("Publishing SAM status and navigation data.")
+        # self.cap.get_logger().info("Publishing SAM status and navigation data.")
         if self.cap.latest_battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self.cap.latest_battery_percent))
         if self.cap.latest_odom is not None:
@@ -90,10 +90,14 @@ class SAMStatusPublisher:
         if self.cap.latest_speed is not None:
             self._speed_pub.publish(Float32(data=self.cap.latest_speed))
         
-        self._status_string_pub.publish(String(data=self.status_str()))
+        # status string
+        status = self.status_str()
+        self._status_string_pub.publish(String(data=status))
+        self.cap.get_logger().info(f"Published status string:\n{status}")
+
         self._pub_vehicle_health()
 
-        self.cap.get_logger().info("Published SAM status and navigation data.")
+        # self.cap.get_logger().info("Published SAM status and navigation data.")
 
     # -------- Health evaluation --------
     def _pub_vehicle_health(self) -> None:
