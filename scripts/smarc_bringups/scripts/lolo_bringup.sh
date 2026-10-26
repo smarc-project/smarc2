@@ -43,7 +43,7 @@ tmux send-keys "Remember to start the logging!"
 
 # Controllers
 CONTROLLER_CMD="sleep 2; ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
-DESCRIPTION_CMD="sleep 2; ros2 launch lolo_description lolo_description.launch"
+DESCRIPTION_CMD="sleep 2; ros2 launch lolo_description lolo_description.launch robot_name:=$ROBOT_NAME"
 tmux_make_layout "$SESSION" Controllers "
 col(
     var(CONTROLLER_CMD),
