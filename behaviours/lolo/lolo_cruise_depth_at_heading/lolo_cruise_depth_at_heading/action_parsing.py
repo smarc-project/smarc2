@@ -34,8 +34,8 @@ class CruiseDepthHeadingActionParsing:
         if component is ActionSubMsg.GOAL:
             goal = CruiseDepthHeadingGoal()
             goal.heading = float(fmt_dict["target_heading"])
-            goal.target_depth = float(fmt_dict["target_depth"])
-            goal.min_altitude = float(fmt_dict["min_altitude"])
+            goal.target_depth = float(fmt_dict["target-depth"])
+            goal.min_altitude = float(fmt_dict["min-altitude"])
             goal.rpm = float(fmt_dict["rpm"])
             goal.timeout = float(fmt_dict["timeout"])
             return goal
@@ -49,13 +49,13 @@ class CruiseDepthHeadingActionParsing:
         """Encodes action message into string."""
         str_msg = String()
         fmt_dict = {}
-        fmt_dict["target_heading"] = {}
-        fmt_dict["target_depth"] = {}
-        fmt_dict["min_altitude"] = {}
+        fmt_dict["target-heading"] = {}
+        fmt_dict["target-depth"] = {}
+        fmt_dict["min-altitude"] = {}
         if isinstance(val, (CruiseDepthHeadingGoal,)):
             fmt_dict["target_heading"]["heading"] = val.heading
-            fmt_dict["target_depth"]["depth"] = val.target_depth
-            fmt_dict["min_altitude"]["altitude"] = val.min_altitude
+            fmt_dict["target-depth"]["depth"] = val.target_depth
+            fmt_dict["min-altitude"]["altitude"] = val.min_altitude
             fmt_dict["rpm"] = val.rpm
             fmt_dict["timeout"] = val.timeout
         elif isinstance(val, (float,)):
