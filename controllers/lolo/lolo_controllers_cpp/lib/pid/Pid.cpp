@@ -64,14 +64,14 @@ double PID::update_error(double error, double time_s)
     // Prevent integral windup
     integral_ = std::clamp(integral_, -max_integral_, max_integral_);
 
-    const double output = proportional + integral_ + derivative;
+    double output = proportional + integral_ + derivative;
 
     last_proportional_ = proportional;
     last_derivative_ = derivative;
     last_update_ = time_s;
     last_error_ = error;
-
-    return std::clamp(output, -max_output_, max_output_);
+    last_output_ = std::clamp(output, -max_output_, max_output_);
+    return last_output_;
 }
 
 

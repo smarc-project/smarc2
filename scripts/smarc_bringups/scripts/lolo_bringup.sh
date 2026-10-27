@@ -16,7 +16,7 @@ fi
 # New variables for wasp_bt.launch and wasp_mqtt_agent.launch
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
-CONTEXT=tuper # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
+CONTEXT=lolo # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
 
 BT_LOG_MODE=compact # can be 'compact' or 'verbose'
 
@@ -42,7 +42,8 @@ tmux select-window -t $SESSION:0
 tmux send-keys "Remember to start the logging!" 
 
 # Controllers
-CONTROLLER_CMD="sleep 2; ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+#CONTROLLER_CMD="sleep 2; ros2 launch lolo_controllers lolo_controllers_launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+CONTROLLER_CMD="sleep 2; ros2 launch lolo_controllers_cpp control_launch.py  robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 DESCRIPTION_CMD="sleep 2; ros2 launch lolo_description lolo_description.launch robot_name:=$ROBOT_NAME"
 tmux_make_layout "$SESSION" Controllers "
 col(

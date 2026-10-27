@@ -557,32 +557,32 @@ private:
     // Key/value pairs
 
     //Yaw pid
-    stat.add("pid_yaw_output", pid_yaw.get_p_component() + pid_yaw.get_i_component() + pid_yaw.get_d_component());
+    stat.add("pid_yaw_output", pid_yaw.get_last_output());
     stat.add("pid_yaw_proportional_output", pid_yaw.get_p_component());
     stat.add("pid_yaw_integral_output", pid_yaw.get_i_component());
     stat.add("pid_yaw_derivative_output", pid_yaw.get_d_component());
     //Yaw rate pid
-    stat.add("pid_yaw_rate_output", pid_yaw_rate.get_p_component() + pid_yaw_rate.get_i_component() + pid_yaw_rate.get_d_component());
+    stat.add("pid_yaw_rate_output", pid_yaw_rate.get_last_output());
     stat.add("pid_yaw_rate_proportional_output", pid_yaw_rate.get_p_component());
     stat.add("pid_yaw_rate_integral_output", pid_yaw_rate.get_i_component());
     stat.add("pid_yaw_rate_derivative_output", pid_yaw_rate.get_d_component());
     //Roll pid
-    stat.add("pid_roll_output", pid_roll.get_p_component() + pid_roll.get_i_component() + pid_roll.get_d_component());
+    stat.add("pid_roll_output", pid_roll.get_last_output());
     stat.add("pid_roll_proportional_output", pid_roll.get_p_component());
     stat.add("pid_roll_integral_output", pid_roll.get_i_component());
     stat.add("pid_roll_derivative_output", pid_roll.get_d_component());
     //depth pid
-    stat.add("pid_depth_output", pid_depth.get_p_component() + pid_depth.get_i_component() + pid_depth.get_d_component());
+    stat.add("pid_depth_output", pid_depth.get_last_output());
     stat.add("pid_depth_proportional_output", pid_depth.get_p_component());
     stat.add("pid_depth_integral_output", pid_depth.get_i_component());
     stat.add("pid_depth_derivative_output", pid_depth.get_d_component());
     //Pitch pid
-    stat.add("pid_pitch_output", pid_pitch.get_p_component() + pid_pitch.get_i_component() + pid_pitch.get_d_component());
+    stat.add("pid_pitch_output", pid_pitch.get_last_output());
     stat.add("pid_pitch_proportional_output", pid_pitch.get_p_component());
     stat.add("pid_pitch_integral_output", pid_pitch.get_i_component());
     stat.add("pid_pitch_derivative_output", pid_pitch.get_d_component());
     //Speed pid
-    stat.add("pid_speed_output", pid_speed.get_p_component() + pid_speed.get_i_component() + pid_speed.get_d_component());
+    stat.add("pid_speed_output", pid_speed.get_last_output());
     stat.add("pid_speed_proportional_output", pid_speed.get_p_component());
     stat.add("pid_speed_integral_output", pid_speed.get_i_component());
     stat.add("pid_speed_derivative_output", pid_speed.get_d_component());

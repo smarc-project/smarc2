@@ -39,25 +39,25 @@ def generate_launch_description():
             'pid_yaw_rate_i_limit': 0.7,
 
             # Roll PID
-            'pid_roll_p': 2.0,
-            'pid_roll_i': 0.0,
+            'pid_roll_p': 0.5,
+            'pid_roll_i': 0.01,
             'pid_roll_d': 0.0,
             'pid_roll_limit': 0.35,
-            'pid_roll_i_limit': 0.35,
+            'pid_roll_i_limit': 0.2,
 
             # Depth PID
             'pid_depth_p': 0.1,
             'pid_depth_i': 0.05,
             'pid_depth_d': 0.0,
-            'pid_depth_limit': 0.6,
-            'pid_depth_i_limit': 0.2,
+            'pid_depth_limit': 0.52,
+            'pid_depth_i_limit': 0.1,
 
             # Pitch PID
             'pid_pitch_p': 4.0,
-            'pid_pitch_i': 0.5,
+            'pid_pitch_i': 0.1,
             'pid_pitch_d': 0.0,
             'pid_pitch_limit': 0.7,
-            'pid_pitch_i_limit': 0.25,
+            'pid_pitch_i_limit': 0.5,
 
             # Speed PID
             'pid_speed_p': 1.0,
