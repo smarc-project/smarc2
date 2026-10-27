@@ -49,6 +49,10 @@ json_obj = ast.literal_eval(msg.data)
 > **Eval?!?!** Relax. `ast.literal_eval` only evaluates primitive objects, lists and dicts. It won't _run_ anything.
 
 
+## Sensor topics
+
+`std_msgs/String` publishers whose topic is under `waraps/sensor/` and inside this node's namespace are forwarded to MQTT as they appear. The node is launched in `<robot_name>/waraps`, so a topic `/<robot_name>/waraps/sensor/acoustic` is bridged as `sensor/acoustic`. Heartbeat, `sensor_info`, exec, and tst stay on the `mqtt.to_mqtt` list. A sensor topic that is already on that list is subscribed once.
+
 ## Footguns
 - Be careful of quotation marks. Terminals, ROS, JSON, MQTT all have their own quirks with them...
 - This bridge CAN consume it's own output. If you put the same topic in both `ros_to_mqtt` and `mqtt_to_ros` fields, the first message in either direction will create an epic spammer.

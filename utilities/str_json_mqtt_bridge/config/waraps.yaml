@@ -31,6 +31,9 @@
             namespace: "waraps/unit/subsurface/simulation/sam_test"
             # ros namespacing should be done in the launch file
             # each string here will be a topic on both sides, under their respective namespaces
+            # String topics under waraps/sensor/ in this node's namespace are
+            # bridged as they appear. Listing one here as well does not subscribe twice.
+            # Heartbeat, sensor_info, exec, and tst stay on this list.
             to_mqtt:
               [
                 #lv1

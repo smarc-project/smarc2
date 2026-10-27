@@ -1,11 +1,56 @@
 #!/usr/bin/python3
 
+import threading
 import typing
 import rclpy, rclpy.node
 from std_msgs.msg import String
+from smarc_msgs.msg import Topics
 import paho.mqtt.client as mqtt
 import json
 import ast
+
+# Keep identical to string_topics_under_sensor in wasp_bt.waraps.waraps_vehicle.
+_STRING_MSG = 'std_msgs/msg/String'
+
+
+def string_topics_under_sensor(topics, namespace, position_topic, is_string_publisher):
+    """String publishers under the WARA-PS sensor prefix, inside ``namespace``.
+
+    ``position_topic`` is Topics.WARA_PS_SENSOR_POSITION_TOPIC. The prefix is
+    that name with the last segment removed. Relative names may contain
+    slashes. Returns (relative_name, sensor_name) sorted by relative name.
+    """
+    head, sep, tail = position_topic.rpartition('/')
+    if not sep or not head or not tail:
+        return []
+    needle = '/' + head + '/'
+
+    ns = namespace.rstrip('/')
+    found = []
+    for absolute, types in topics:
+        if _STRING_MSG not in types:
+            continue
+        if not isinstance(absolute, str) or not absolute.startswith('/'):
+            continue
+        if ns in ('', '/'):
+            relative = absolute[1:]
+        elif absolute.startswith(ns + '/'):
+            relative = absolute[len(ns) + 1:]
+        else:
+            continue
+        if not relative:
+            continue
+        idx = absolute.find(needle)
+        if idx < 0:
+            continue
+        sensor_name = absolute[idx + len(needle):]
+        if not sensor_name:
+            continue
+        if not is_string_publisher(absolute):
+            continue
+        found.append((relative, sensor_name))
+    found.sort(key=lambda item: item[0])
+    return found
 
 
 # lifted from the mqtt_bridge package
@@ -69,6 +114,8 @@ class RosToMqtt:
         self._mqttclient = mqttclient
         self._ros_topic = topic
         self._mqtt_topic = f"{mqtt_namespace}/{topic}"
+        self._subscription = None
+        self._lock = threading.Lock()
         # self._rosnode.create_subscription(String, topic, self._ros_cb, 10)
         # self._rosnode.get_logger().info(f"ROS->MQTT: {self._ros_topic}->{self._mqtt_topic}")
 
@@ -98,15 +145,20 @@ class RosToMqtt:
         self._mqttclient.publish(self._mqtt_topic, json_str)
 
     def on_reconnect(self):
-        """ Re-subscribes to the ROS topic after a reconnect """
-        self._rosnode.get_logger().info(f"Re-subscribing to {self._ros_topic} after reconnect")
-        # no need to unsubscribe, ros topics are persistent and will not be removed
-        self._rosnode.create_subscription(String, self._ros_topic, self._ros_cb, 10)
+        """ Subscribes to the ROS topic once. A second call does not add another subscription. """
+        with self._lock:
+            if self._subscription is not None:
+                return
+            self._rosnode.get_logger().info(f"Re-subscribing to {self._ros_topic} after reconnect")
+            self._subscription = self._rosnode.create_subscription(String, self._ros_topic, self._ros_cb, 10)
 
     def on_disconnect(self):
         self._rosnode.get_logger().info(f"Unsubscribing from {self._ros_topic} on disconnect")
-        # no need to unsubscribe, ros topics are persistent and will not be removed
-        self._rosnode.destroy_subscription(self._ros_topic)
+        with self._lock:
+            subscription = self._subscription
+            self._subscription = None
+        if subscription is not None:
+            self._rosnode.destroy_subscription(subscription)
 
 
 class MqttToRos:
@@ -140,6 +192,9 @@ class MqttToRos:
 class WaraMQTTNode:
     def __init__(self, node: rclpy.node.Node):
         self.node = node
+        self._bridges_lock = threading.Lock()
+        self.ros_to_mqtt_bridges = []
+        self.mqtt_to_ros_bridges = []
 
         # construct the bridge the same way as in app.py of the mqtt_bridge package
         mqtt_client_params = {
@@ -187,11 +242,45 @@ class WaraMQTTNode:
 
         self.ros_to_mqtt_bridges = [RosToMqtt(node, self._mqtt_client, topic, self._mqtt_namespace) for topic in ros_to_mqtt_topics]
         self.mqtt_to_ros_bridges = [MqttToRos(node, self._mqtt_client, topic, self._mqtt_namespace) for topic in mqtt_to_ros_topics]
+        self._sensor_discover_timer = node.create_timer(1.0, self._discover_sensor_topics)
+        self._discover_sensor_topics()
 
 
 
     def _log(self, msg:str):
         self.node.get_logger().info(f'[WaraMQTTNode] {msg}')
+
+    def _is_string_publisher(self, topic: str) -> bool:
+        for info in self.node.get_publishers_info_by_topic(topic):
+            if info.topic_type == _STRING_MSG:
+                return True
+        return False
+
+    def _discover_sensor_topics(self):
+        """Open one RosToMqtt for each new String topic under the sensor prefix.
+
+        Heartbeat, exec, and tst stay on the yaml list. A topic that yaml
+        already lists is not subscribed a second time.
+        """
+        found = string_topics_under_sensor(
+            self.node.get_topic_names_and_types(),
+            self.node.get_namespace(),
+            Topics.WARA_PS_SENSOR_POSITION_TOPIC,
+            self._is_string_publisher,
+        )
+        for relative, _sensor_name in found:
+            self._open_ros_to_mqtt(relative)
+
+    def _open_ros_to_mqtt(self, relative: str):
+        with self._bridges_lock:
+            for bridge in self.ros_to_mqtt_bridges:
+                if bridge._ros_topic == relative:
+                    return
+            bridge = RosToMqtt(self.node, self._mqtt_client, relative, self._mqtt_namespace)
+            self.ros_to_mqtt_bridges.append(bridge)
+        self._log(f"ROS to MQTT sensor topic: {relative}")
+        if self._mqtt_client.is_connected():
+            bridge.on_reconnect()
 
     def run(self):
         # start MQTT loop
@@ -211,17 +300,23 @@ class WaraMQTTNode:
     def _on_connect(self, client, userdata, flags, response_code):
         self.node.get_logger().info('MQTT connected')
         # re-subscribe to MQTT topics
-        for bridge in self.mqtt_to_ros_bridges:
+        with self._bridges_lock:
+            ros_to_mqtt = list(self.ros_to_mqtt_bridges)
+            mqtt_to_ros = list(self.mqtt_to_ros_bridges)
+        for bridge in mqtt_to_ros:
             bridge.on_reconnect()
-        for bridge in self.ros_to_mqtt_bridges:
+        for bridge in ros_to_mqtt:
             bridge.on_reconnect()
 
     def _on_disconnect(self, client, userdata, response_code):
         self.node.get_logger().info('MQTT disconnected')
         # unsubscribe from MQTT topics
-        for bridge in self.mqtt_to_ros_bridges:
+        with self._bridges_lock:
+            ros_to_mqtt = list(self.ros_to_mqtt_bridges)
+            mqtt_to_ros = list(self.mqtt_to_ros_bridges)
+        for bridge in mqtt_to_ros:
             bridge.on_disconnect()
-        for bridge in self.ros_to_mqtt_bridges:
+        for bridge in ros_to_mqtt:
             bridge.on_disconnect()
 
 

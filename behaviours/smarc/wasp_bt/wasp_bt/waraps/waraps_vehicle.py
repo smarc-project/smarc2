@@ -7,6 +7,49 @@ from smarc_msgs.msg import Topics
 from wasp_bt.vehicles.sensor import Sensor, SensorNames
 from wasp_bt.vehicles.vehicle import IVehicleState
 
+# Keep identical to string_topics_under_sensor in str_json_mqtt_bridge.bridge.
+_STRING_MSG = 'std_msgs/msg/String'
+
+
+def string_topics_under_sensor(topics, namespace, position_topic, is_string_publisher):
+    """String publishers under the WARA-PS sensor prefix, inside ``namespace``.
+
+    ``position_topic`` is Topics.WARA_PS_SENSOR_POSITION_TOPIC. The prefix is
+    that name with the last segment removed. Relative names may contain
+    slashes. Returns (relative_name, sensor_name) sorted by relative name.
+    """
+    head, sep, tail = position_topic.rpartition('/')
+    if not sep or not head or not tail:
+        return []
+    needle = '/' + head + '/'
+
+    ns = namespace.rstrip('/')
+    found = []
+    for absolute, types in topics:
+        if _STRING_MSG not in types:
+            continue
+        if not isinstance(absolute, str) or not absolute.startswith('/'):
+            continue
+        if ns in ('', '/'):
+            relative = absolute[1:]
+        elif absolute.startswith(ns + '/'):
+            relative = absolute[len(ns) + 1:]
+        else:
+            continue
+        if not relative:
+            continue
+        idx = absolute.find(needle)
+        if idx < 0:
+            continue
+        sensor_name = absolute[idx + len(needle):]
+        if not sensor_name:
+            continue
+        if not is_string_publisher(absolute):
+            continue
+        found.append((relative, sensor_name))
+    found.sort(key=lambda item: item[0])
+    return found
+
 
 class WaraPSVehicle():
 
@@ -67,19 +110,10 @@ class WaraPSVehicle():
         self._sensor_info_data = {
             "name": self._wara_ps_dict["name"],
             "rate": self._wara_ps_dict["pulse_rate"],
-            # TODO: this is VERY bad, ideally we should listen to topics under a "sensor" namespace and just replicate the structure
-            "sensor-data-provided": [
-                "position",
-                "heading",
-                "course",
-                "speed",
-                "roll",
-                "pitch",    
-                "depth",
-            ],
-
-        "stamp": "",
-        "type": "SensorInfo"
+            # Filled each pulse from String publishers under the sensor prefix.
+            "sensor-data-provided": [],
+            "stamp": "",
+            "type": "SensorInfo"
         }
 
     @property
@@ -137,17 +171,6 @@ class WaraPSVehicle():
                 self._wara_ps_dict["levels"].remove("tst_execution")
                 self._logger.info("Removed 'task_execution' from WaraPS levels due to inactivity.")
 
-        # include "executing_tasks","bt_head" in self._sensor_info_data["sensor-data-provided"] if levels include "direct_execution" or "tst_execution"
-        if "direct_execution" in self._wara_ps_dict["levels"] and "tst_execution" in self._wara_ps_dict["levels"]:
-            if "executing_tasks" not in self._sensor_info_data["sensor-data-provided"]:
-                self._sensor_info_data["sensor-data-provided"].extend(["executing_tasks", "bt_head"])
-        else: # remove them if they are not in the levels
-            if "executing_tasks" in self._sensor_info_data["sensor-data-provided"]:
-                self._sensor_info_data["sensor-data-provided"].remove("executing_tasks")
-            if "bt_head" in self._sensor_info_data["sensor-data-provided"]:
-                self._sensor_info_data["sensor-data-provided"].remove("bt_head")
-
-        
         # update the heartbeat data
         self._heartbeat_data["stamp"] = now_time
         self._heartbeat_data["levels"] = self._wara_ps_dict["levels"]
@@ -161,9 +184,29 @@ class WaraPSVehicle():
         return True
     
 
+    def _is_string_publisher(self, topic: str) -> bool:
+        for info in self._node.get_publishers_info_by_topic(topic):
+            if info.topic_type == _STRING_MSG:
+                return True
+        return False
+
+    def _refresh_sensor_data_provided(self):
+        """Advertise String publishers under the sensor prefix. Do not republish them."""
+        found = string_topics_under_sensor(
+            self._node.get_topic_names_and_types(),
+            self._node.get_namespace(),
+            Topics.WARA_PS_SENSOR_POSITION_TOPIC,
+            self._is_string_publisher,
+        )
+        names = sorted({sensor_name for _relative, sensor_name in found})
+        if names != self._sensor_info_data["sensor-data-provided"]:
+            self._logger.info(f"sensor-data-provided: {names}")
+            self._sensor_info_data["sensor-data-provided"] = names
+
     def wara_ps_lvl1(self, now_time):
         
         # 1. publish sensor info data
+        self._refresh_sensor_data_provided()
 
         self._sensor_info_data["stamp"] = now_time
 
