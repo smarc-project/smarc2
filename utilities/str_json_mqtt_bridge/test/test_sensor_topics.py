@@ -4,8 +4,12 @@ from types import SimpleNamespace
 
 from smarc_msgs.msg import Topics
 from str_json_mqtt_bridge.bridge import (
+    MqttAgentsToRos,
     RosToMqtt,
     WaraMQTTNode,
+    endpoint_belongs_to_node,
+    listen_filters,
+    parse_listened_sensor,
     string_topics_under_sensor as bridge_topics,
 )
 from wasp_bt.waraps.waraps_vehicle import (
@@ -216,3 +220,117 @@ def test_live_graph_advertises_without_subscribing():
             if node is not None:
                 node.destroy_node()
         rclpy.shutdown()
+
+
+_UNIT = 'waraps/unit/subsurface/simulation/sam_test'
+
+
+def test_listen_filters_cover_named_agents_or_everyone_else():
+    named, skip = listen_filters(_UNIT, ['kkalem_sam', 'other_sam'], POSITION)
+    assert named == [
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/#',
+        'waraps/unit/subsurface/simulation/other_sam/sensor/#',
+    ]
+    assert skip == set()
+
+    comma, _skip = listen_filters(_UNIT, 'kkalem_sam, other_sam', POSITION)
+    assert comma == named
+
+    everyone, skipped = listen_filters(_UNIT, '#', POSITION)
+    assert everyone == ['waraps/unit/subsurface/simulation/+/sensor/#']
+    assert skipped == {'sam_test'}
+
+
+def test_parse_broker_sensor_into_absolute_ros_topic():
+    acoustic = parse_listened_sensor(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/acoustic',
+        _UNIT,
+        POSITION,
+    )
+    assert acoustic == ('kkalem_sam', '/kkalem_sam/waraps/sensor/acoustic')
+
+    nested = parse_listened_sensor(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/foo/bar',
+        _UNIT,
+        POSITION,
+    )
+    assert nested == ('kkalem_sam', '/kkalem_sam/waraps/sensor/foo/bar')
+
+    assert parse_listened_sensor(
+        'waraps/unit/subsurface/simulation/kkalem_sam/heartbeat',
+        _UNIT,
+        POSITION,
+    ) is None
+    assert parse_listened_sensor(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor_info',
+        _UNIT,
+        POSITION,
+    ) is None
+
+
+def test_mirror_publishes_other_agents_and_skips_our_namespace():
+    class _Pub:
+        def __init__(self):
+            self.sent = []
+
+        def publish(self, message):
+            self.sent.append(message.data)
+
+    class _Node:
+        def __init__(self, namespace):
+            self.namespace = namespace
+            self.created = []
+            self.pubs = {}
+
+        def get_namespace(self):
+            return self.namespace
+
+        def get_logger(self):
+            return SimpleNamespace(info=lambda *_args, **_kwargs: None)
+
+        def create_publisher(self, _msg_type, ros_topic, _qos):
+            pub = _Pub()
+            self.created.append(ros_topic)
+            self.pubs[ros_topic] = pub
+            return pub
+
+    node = _Node('/lolo/waraps')
+    ingress = MqttAgentsToRos(node, SimpleNamespace(), _UNIT, ['kkalem_sam', 'sam_test'])
+    assert ingress.handle(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/acoustic',
+        '{"n": 1}',
+    ) == '/kkalem_sam/waraps/sensor/acoustic'
+    ingress.handle(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/acoustic',
+        '{"n": 2}',
+    )
+    assert node.created == ['/kkalem_sam/waraps/sensor/acoustic']
+    assert node.pubs[node.created[0]].sent == ['{"n": 1}', '{"n": 2}']
+
+    # An explicit listing of our own broker id is mirrored. '#' is not.
+    assert ingress.handle(
+        'waraps/unit/subsurface/simulation/sam_test/sensor/position',
+        '1',
+    ) == '/sam_test/waraps/sensor/position'
+
+    everyone = MqttAgentsToRos(node, SimpleNamespace(), _UNIT, '#')
+    assert everyone.handle(
+        'waraps/unit/subsurface/simulation/sam_test/sensor/position',
+        '1',
+    ) is None
+
+    # Do not write another agent's data onto this node's own sensor topics.
+    home = _Node('/kkalem_sam/waraps')
+    blocked = MqttAgentsToRos(home, SimpleNamespace(), _UNIT, ['kkalem_sam'])
+    assert blocked.handle(
+        'waraps/unit/subsurface/simulation/kkalem_sam/sensor/acoustic',
+        '{}',
+    ) is None
+    assert home.created == []
+
+
+def test_own_publishers_are_not_foreign():
+    assert endpoint_belongs_to_node(
+        'mqtt_bridge_cloud', '/lolo/waraps', 'mqtt_bridge_cloud', '/lolo/waraps')
+    assert not endpoint_belongs_to_node(
+        'waraps_vehicle', '/lolo', 'mqtt_bridge_cloud', '/lolo/waraps')

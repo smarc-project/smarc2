@@ -34,6 +34,10 @@
             # String topics under waraps/sensor/ in this node's namespace are
             # bridged as they appear. Listing one here as well does not subscribe twice.
             # Heartbeat, sensor_info, exec, and tst stay on this list.
+            # to_ros_agents: broker ids (the last segment of mqtt.namespace),
+            # e.g. kkalem_sam. "#" is every other agent in that unit.
+            # Their sensor strings are published on /<agent>/waraps/sensor/...
+            to_ros_agents: []
             to_mqtt:
               [
                 #lv1
