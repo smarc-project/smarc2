@@ -1,0 +1,19 @@
+/**/rope_estimation_node:
+  ros__parameters:
+    topics:
+      load_cell_1: "sensor/load_cell_1"
+      load_cell_2: "sensor/load_cell_2"
+      load_cell_3: "sensor/load_cell_3"
+
+    frames:
+      load_cell_1: "LoadCell1"
+      load_cell_2: "LoadCell2"
+      load_cell_3: "LoadCell3"
+      plate: "Plate"
+      output: "predicted_rope_link"
+
+    plate_width: 0.05
+    publish_rate: 10.0
+
+    logger_info:
+      enable: true
