@@ -15,11 +15,11 @@
   <link name="dvl_link"/>
   <link name="compass_link"/>
   <link name="fls_link"/>
+  <link name="oculus_link"/>
   <link name="imu_link"/>
   <link name="pressure_link"/>
   <link name="gps_link"/>
   <link name="mbes_link"/>
-  <link name="enu/mbes_link"/>
   <link name="usbl_link"/>
   <link name="modem_link"/>
   <link name="elevator">
@@ -151,9 +151,14 @@
     <child link="compass_link"/>
   </joint>
   <joint name="fls_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <origin rpy="1.5708 0.2443 0" xyz="2.263 -0.003 0.17"/>
     <parent link="base_link"/>
     <child link="fls_link"/>
+  </joint>
+  <joint name="oculus_joint" type="fixed">
+    <origin rpy="0 0.2618 0" xyz="2.2928 0.0118 0.0102"/>
+    <parent link="base_link"/>
+    <child link="oculus_link"/>
   </joint>
   <joint name="imu_joint" type="fixed">
     <origin rpy="3.14159 0 0" xyz="0 0 0"/>
@@ -174,11 +179,6 @@
     <origin rpy="0 0 0" xyz="-.751 -0.0155 0.084"/>
     <parent link="base_link"/>
     <child link="mbes_link"/>
-  </joint>
-  <joint name="enu/mbes_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="2.523 0.0155 -0.302"/>
-    <parent link="base_link"/>
-    <child link="enu/mbes_link"/>
   </joint>
   <joint name="usbl_joint" type="fixed">
     <origin rpy="0 0 0" xyz="1.6103 0.0966 0.4802"/>
