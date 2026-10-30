@@ -11,6 +11,7 @@ from dji_msgs.msg import (
     PsdkTopics,
     Topics as DJITopics,
 )
+from geometry_msgs.msg import TwistStamped, Vector3Stamped
 from rclpy.node import Node
 from rclpy.time import Time
 from std_srvs.srv import Trigger
@@ -37,7 +38,11 @@ TRACKING_STATES = {LandingState.ALIGN, LandingState.DESCEND, LandingState.FINAL_
 
 
 class LandingManagerNode(Node):
-    """Manage landing phases and publish height references and abort overrides."""
+    """Manage landing phases, height references and final velocity output.
+
+    The FSM and command output have separate timers. Controller commands pass
+    through freshness checks; abort and touchdown overrides take priority.
+    """
 
     def __init__(self, **node_kwargs) -> None:
         super().__init__("landing_manager", **node_kwargs)
@@ -52,6 +57,15 @@ class LandingManagerNode(Node):
         self.declare_parameter("update_rate_hz", 20.0)
         self.declare_parameter("auto_start", False)
         self.declare_parameter("enable_descent", True)
+
+        # Command output and watchdogs, previously owned by the velocity mux.
+        self.declare_parameter("controller_command_topic", DJITopics.CONTROLLER_CMD_TOPIC)
+        self.declare_parameter("output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
+        self.declare_parameter("mirror_vector_topic", "")
+        self.declare_parameter("publish_rate_hz", 50.0)
+        self.declare_parameter("controller_timeout_s", 0.15)
+        self.declare_parameter("reference_timeout_s", 0.25)
+        self.declare_parameter("zero_flush_cycles", 8)
 
         self.declare_parameter("acquire_duration_s", 1.0)
         self.declare_parameter("minimum_align_height_m", 2.0)
@@ -105,10 +119,21 @@ class LandingManagerNode(Node):
         self._last_descent_allowed = False
         self._last_vertical_reference_velocity = 0.0
 
+        self._latest_command: Optional[TwistStamped] = None
+        self._latest_reference: Optional[LandingReference] = None
+        self._was_enabled = False
+        self._flush_remaining = 0
+
         self.create_subscription(
             LandingRelativeState,
             str(self.get_parameter("relative_state_topic").value),
             self._relative_state_callback,
+            20,
+        )
+        self.create_subscription(
+            TwistStamped,
+            str(self.get_parameter("controller_command_topic").value),
+            self._command_callback,
             20,
         )
 
@@ -123,6 +148,19 @@ class LandingManagerNode(Node):
             20,
         )
 
+        output_topic = str(self.get_parameter("output_topic").value)
+        self._velocity_publisher = self.create_publisher(TwistStamped, output_topic, 20)
+        self.get_logger().info(f"Landing velocity output: {output_topic} [TwistStamped]")
+
+        mirror_topic = str(self.get_parameter("mirror_vector_topic").value)
+        self._mirror_publisher = None
+        if mirror_topic:
+            self._mirror_publisher = self.create_publisher(Vector3Stamped, mirror_topic, 20)
+            self.get_logger().info(
+                "Mirroring final landing velocity command as "
+                f"Vector3Stamped on {mirror_topic}"
+            )
+
         self.create_service(
             Trigger, str(self.get_parameter("start_service").value), self._start_service
         )
@@ -136,11 +174,18 @@ class LandingManagerNode(Node):
         update_rate = float(self.get_parameter("update_rate_hz").value)
         if update_rate <= 0.0:
             raise ValueError("update_rate_hz must be positive")
+        publish_rate = float(self.get_parameter("publish_rate_hz").value)
+        if publish_rate <= 0.0:
+            raise ValueError("publish_rate_hz must be positive")
 
         self.create_timer(1.0 / update_rate, self._update)
+        self.create_timer(1.0 / publish_rate, self._publish_command)
 
     def _relative_state_callback(self, message: LandingRelativeState) -> None:
         self._latest_state = message
+
+    def _command_callback(self, message: TwistStamped) -> None:
+        self._latest_command = message
 
     def _start_service(
         self,
@@ -476,6 +521,7 @@ class LandingManagerNode(Node):
         elif self._state == LandingState.LANDED:
             message.control_enabled = False
 
+        self._latest_reference = message
         self._reference_publisher.publish(message)
 
     def _publish_status(
@@ -507,6 +553,109 @@ class LandingManagerNode(Node):
         message.height_reference = float(self._height_reference)
         message.state_elapsed = self._state_elapsed(now)
         self._status_publisher.publish(message)
+
+    @staticmethod
+    def _age(now: Time, stamp) -> float:
+        return max(0.0, (now - Time.from_msg(stamp)).nanoseconds * 1e-09)
+
+    def _zero_message(self, now: Time, frame_id: Optional[str] = None) -> TwistStamped:
+        message = TwistStamped()
+        message.header.stamp = now.to_msg()
+        message.header.frame_id = frame_id if frame_id else self._controller_frame
+        return message
+
+    def _publish_output(self, message: TwistStamped) -> None:
+        self._velocity_publisher.publish(message)
+        if self._mirror_publisher is None:
+            return
+
+        mirror = Vector3Stamped()
+        mirror.header = message.header
+        mirror.vector = message.twist.linear
+        self._mirror_publisher.publish(mirror)
+
+    def _publish_command(self) -> None:
+        """Select the FSM override or a fresh controller command at the output rate."""
+        now = self.get_clock().now()
+
+        if self._latest_reference is None:
+            self.get_logger().info(
+                "Landing output inactive: no landing reference",
+                throttle_duration_sec=2.0,
+            )
+            self._handle_disabled(now)
+            return
+
+        reference_age = self._age(now, self._latest_reference.header.stamp)
+        reference_timeout = float(self.get_parameter("reference_timeout_s").value)
+        if reference_age > reference_timeout:
+            self.get_logger().warning(
+                "Landing output inactive: landing reference stale "
+                f"({reference_age:.3f}s > {reference_timeout:.3f}s)",
+                throttle_duration_sec=2.0,
+            )
+            self._handle_disabled(now)
+            return
+
+        if not self._latest_reference.control_enabled:
+            self.get_logger().info(
+                "Landing output inactive: control disabled by landing manager",
+                throttle_duration_sec=2.0,
+            )
+            self._handle_disabled(now)
+            return
+
+        if self._latest_reference.override_active:
+            output = self._zero_message(now)
+            output.twist.linear.x = float(self._latest_reference.override_velocity.x)
+            output.twist.linear.y = float(self._latest_reference.override_velocity.y)
+            output.twist.linear.z = float(self._latest_reference.override_velocity.z)
+            self._publish_output(output)
+            self._was_enabled = True
+            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
+            return
+
+        if self._latest_command is None:
+            self.get_logger().warning(
+                "Landing output enabled but no controller command has been received",
+                throttle_duration_sec=2.0,
+            )
+            self._publish_output(self._zero_message(now))
+            return
+
+        controller_age = self._age(now, self._latest_command.header.stamp)
+        controller_timeout = float(self.get_parameter("controller_timeout_s").value)
+        if controller_age > controller_timeout:
+            self.get_logger().warning(
+                "Landing output enabled but controller command stale "
+                f"({controller_age:.3f}s > {controller_timeout:.3f}s)",
+                throttle_duration_sec=2.0,
+            )
+            self._publish_output(self._zero_message(now))
+            self._was_enabled = True
+            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
+            return
+
+        output = self._zero_message(now, self._latest_command.header.frame_id)
+        output.twist.linear.x = float(self._latest_command.twist.linear.x)
+        output.twist.linear.y = float(self._latest_command.twist.linear.y)
+        output.twist.linear.z = float(self._latest_command.twist.linear.z)
+        output.twist.angular.x = float(self._latest_command.twist.angular.x)
+        output.twist.angular.y = float(self._latest_command.twist.angular.y)
+        output.twist.angular.z = float(self._latest_command.twist.angular.z)
+        self._publish_output(output)
+        self._was_enabled = True
+        self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
+
+    def _handle_disabled(self, now: Time) -> None:
+        if self._was_enabled:
+            self._was_enabled = False
+            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
+        if self._flush_remaining <= 0:
+            return
+
+        self._publish_output(self._zero_message(now))
+        self._flush_remaining -= 1
 
 
 def main(args=None) -> None:
