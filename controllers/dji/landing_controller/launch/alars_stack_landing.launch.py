@@ -50,7 +50,6 @@ def generate_launch_description() -> LaunchDescription:
             raise ValueError(f"{path}: expected /** -> ros__parameters -> node sections") from error
         for name in (
             "landing_pad_odom_adapter", "landing_relative_state", "landing_manager",
-            "landing_lqr_controller", "landing_velocity_command_mux",
         ):
             if not isinstance(settings, dict) or not isinstance(settings.get(name), dict):
                 raise ValueError(f"{path}: missing or invalid parameter section '{name}'")
@@ -116,6 +115,13 @@ def generate_launch_description() -> LaunchDescription:
                         "reference_topic": DjiTopics.REFERENCE_TOPIC,
                         "status_topic": DjiTopics.STATUS_TOPIC,
                         "controller_frame": controller_frame,
+                        "controller_command_topic": DjiTopics.CONTROLLER_CMD_TOPIC,
+                        "output_topic": DjiTopics.VELOCITY_SETPOINT_TOPIC,
+                        "mirror_vector_topic": command_mirror_topic,
+                        "model_path": model_path,
+                        "model_kind": model_kind,
+                        "model_sample_time_s": ParameterValue(model_sample_time, value_type=float),
+                        "debug_topic": DjiTopics.CONTROLLER_DEBUG_TOPIC,
                         "auto_start": ParameterValue(auto_start, value_type=bool),
                         "enable_descent": ParameterValue(enable_descent, value_type=bool),
                         "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
@@ -123,48 +129,6 @@ def generate_launch_description() -> LaunchDescription:
                 ],
             ),
 
-            Node(
-                package="landing_controller",
-                executable="lqr_controller",
-                name="landing_lqr_controller",
-                namespace=robot_name,
-                output="screen",
-                parameters=[
-                    settings["landing_lqr_controller"],
-                    {
-                        "robot_name": robot_name,
-                        "model_path": model_path,
-                        "model_kind": model_kind,
-                        "model_sample_time_s": ParameterValue(model_sample_time, value_type=float),
-                        "relative_state_topic": DjiTopics.RELATIVE_STATE_TOPIC,
-                        "reference_topic": DjiTopics.REFERENCE_TOPIC,
-                        "controller_command_topic": DjiTopics.CONTROLLER_CMD_TOPIC,
-                        "debug_topic": DjiTopics.CONTROLLER_DEBUG_TOPIC,
-                        "controller_frame": controller_frame,
-                        "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
-                    },
-                ],
-            ),
-
-            Node(
-                package="landing_controller",
-                executable="velocity_command_mux",
-                name="landing_velocity_command_mux",
-                namespace=robot_name,
-                output="screen",
-                parameters=[
-                    settings["landing_velocity_command_mux"],
-                    {
-                        "robot_name": robot_name,
-                        "controller_command_topic": DjiTopics.CONTROLLER_CMD_TOPIC,
-                        "reference_topic": DjiTopics.REFERENCE_TOPIC,
-                        "output_topic": DjiTopics.VELOCITY_SETPOINT_TOPIC,
-                        "mirror_vector_topic": command_mirror_topic,
-                        "controller_frame": controller_frame,
-                        "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
-                    },
-                ],
-            ),
         ]
 
     return LaunchDescription([

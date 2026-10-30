@@ -1,9 +1,12 @@
 from enum import IntEnum
+from pathlib import Path
 from typing import Optional
 
+from ament_index_python.packages import get_package_share_directory
 import numpy as np
 import rclpy
 from dji_msgs.msg import (
+    LandingControllerDebug,
     LandingReference,
     LandingRelativeState,
     LandingStatus,
@@ -12,11 +15,15 @@ from dji_msgs.msg import (
     Topics as DJITopics,
 )
 from geometry_msgs.msg import TwistStamped, Vector3Stamped
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
 from std_srvs.srv import Trigger
+from tf2_ros import Buffer, TransformException, TransformListener
 
-from .math_utils import vector3_to_numpy
+from .landing_control import ControlParameters, LandingControl
+from .math_utils import numpy_to_vector3, transform_vector, vector3_to_numpy
+from .model_loader import DiscreteVelocityModel, load_velocity_model
 
 
 class LandingState(IntEnum):
@@ -38,10 +45,11 @@ TRACKING_STATES = {LandingState.ALIGN, LandingState.DESCEND, LandingState.FINAL_
 
 
 class LandingManagerNode(Node):
-    """Manage landing phases, height references and final velocity output.
+    """Manage landing phases, XY LQR/Z PD control and final velocity output.
 
-    The FSM and command output have separate timers. Controller commands pass
-    through freshness checks; abort and touchdown overrides take priority.
+    The FSM, model-based control and command output have separate timers.
+    References and commands are shared directly; ROS publications expose them
+    for monitoring. Abort and touchdown overrides take priority over control.
     """
 
     def __init__(self, **node_kwargs) -> None:
@@ -66,6 +74,28 @@ class LandingManagerNode(Node):
         self.declare_parameter("controller_timeout_s", 0.15)
         self.declare_parameter("reference_timeout_s", 0.25)
         self.declare_parameter("zero_flush_cycles", 8)
+
+        # Model and control tuning; the calculations remain in landing_control.py.
+        self.declare_parameter("model_path", "")
+        self.declare_parameter("model_kind", "auto")
+        self.declare_parameter("model_sample_time_s", 0.0)
+        self.declare_parameter("debug_topic", DJITopics.CONTROLLER_DEBUG_TOPIC)
+        self.declare_parameter("tf_timeout_s", 0.04)
+        self.declare_parameter("tf_fallback_to_latest", True)
+        self.declare_parameter("max_state_age_s", 0.20)
+        self.declare_parameter("max_reference_age_s", 0.20)
+        self.declare_parameter("q_diagonal_xy", [12.0, 12.0, 4.0, 4.0])
+        self.declare_parameter("r_diagonal_xy", [1.0, 1.0])
+        self.declare_parameter("z_kp", 0.75)
+        self.declare_parameter("z_kd", 0.30)
+        self.declare_parameter("max_xy_speed_mps", 1.0)
+        self.declare_parameter("max_xy_speed_final_mps", 0.35)
+        self.declare_parameter("max_up_speed_mps", 0.45)
+        self.declare_parameter("max_down_speed_mps", 0.25)
+        self.declare_parameter("max_down_speed_final_mps", 0.10)
+        self.declare_parameter("command_cutoff_hz", 0.8)
+        self.declare_parameter("max_command_rate_mps2", [0.8, 0.8, 0.5])
+        self.declare_parameter("start_filter_from_zero", True)
 
         self.declare_parameter("acquire_duration_s", 1.0)
         self.declare_parameter("minimum_align_height_m", 2.0)
@@ -102,6 +132,32 @@ class LandingManagerNode(Node):
         self.declare_parameter("controller_frame", f"{self._robot_name}/{DJILinks.BASE_FLAT}")
         self._controller_frame = str(self.get_parameter("controller_frame").value)
 
+        model_path = str(self.get_parameter("model_path").value)
+        if not model_path:
+            model_path = str(
+                Path(get_package_share_directory("dji_captain"))
+                / "models/M350/discrete_model/discrete_models.yaml"
+            )
+        sample_time = float(self.get_parameter("model_sample_time_s").value)
+        self._model: DiscreteVelocityModel = load_velocity_model(
+            model_path,
+            model_kind=str(self.get_parameter("model_kind").value),
+            sample_time=sample_time if sample_time > 0.0 else None,
+        )
+        self._control = LandingControl(
+            self._model,
+            self.get_parameter("q_diagonal_xy").value,
+            self.get_parameter("r_diagonal_xy").value,
+        )
+        self.get_logger().info(
+            f"Loaded M350 model from {self._model.source}; "
+            f"dt={self._model.dt:.4f}s, gains={self._model.dc_gain_vector}"
+        )
+        self.get_logger().info(f"Discrete XY LQR gain:\n{self._control.gain}")
+        self._buffer = Buffer()
+        self._listener = TransformListener(self._buffer, self)
+        self._was_active = False
+
         motor_service = str(self.get_parameter("turn_off_motors_service").value)
         self._turn_off_motors_client = self.create_client(Trigger, motor_service)
         self._motor_off_requested = False
@@ -130,12 +186,6 @@ class LandingManagerNode(Node):
             self._relative_state_callback,
             20,
         )
-        self.create_subscription(
-            TwistStamped,
-            str(self.get_parameter("controller_command_topic").value),
-            self._command_callback,
-            20,
-        )
 
         self._reference_publisher = self.create_publisher(
             LandingReference,
@@ -145,6 +195,16 @@ class LandingManagerNode(Node):
         self._status_publisher = self.create_publisher(
             LandingStatus,
             str(self.get_parameter("status_topic").value),
+            20,
+        )
+        self._command_publisher = self.create_publisher(
+            TwistStamped,
+            str(self.get_parameter("controller_command_topic").value),
+            20,
+        )
+        self._debug_publisher = self.create_publisher(
+            LandingControllerDebug,
+            str(self.get_parameter("debug_topic").value),
             20,
         )
 
@@ -179,13 +239,11 @@ class LandingManagerNode(Node):
             raise ValueError("publish_rate_hz must be positive")
 
         self.create_timer(1.0 / update_rate, self._update)
+        self.create_timer(self._model.dt, self._control_loop)
         self.create_timer(1.0 / publish_rate, self._publish_command)
 
     def _relative_state_callback(self, message: LandingRelativeState) -> None:
         self._latest_state = message
-
-    def _command_callback(self, message: TwistStamped) -> None:
-        self._latest_command = message
 
     def _start_service(
         self,
@@ -553,6 +611,131 @@ class LandingManagerNode(Node):
         message.height_reference = float(self._height_reference)
         message.state_elapsed = self._state_elapsed(now)
         self._status_publisher.publish(message)
+
+    def _lookup_transform(self, target: str, source: str, stamp: Time):
+        if target == source:
+            return None
+        timeout = float(self.get_parameter("tf_timeout_s").value)
+        try:
+            return self._buffer.lookup_transform(
+                target,
+                source,
+                stamp,
+                timeout=Duration(seconds=timeout),
+            )
+        except TransformException:
+            if not bool(self.get_parameter("tf_fallback_to_latest").value):
+                raise
+            return self._buffer.lookup_transform(
+                target,
+                source,
+                Time(),
+                timeout=Duration(seconds=timeout),
+            )
+
+    def _active_and_fresh(self, now: Time) -> tuple[bool, str]:
+        if self._latest_state is None:
+            return False, "no relative state"
+        if self._latest_reference is None:
+            return False, "no landing reference"
+        if not self._latest_reference.control_enabled:
+            return False, "control disabled"
+        if self._latest_reference.override_active:
+            return False, "manager override active"
+        if not self._latest_state.valid:
+            return False, f"invalid state: {self._latest_state.invalid_reason}"
+        state_age = max(
+            0.0,
+            (now - Time.from_msg(self._latest_state.header.stamp)).nanoseconds * 1e-9,
+        )
+        reference_age = max(
+            0.0,
+            (now - Time.from_msg(self._latest_reference.header.stamp)).nanoseconds * 1e-9,
+        )
+        if state_age > float(self.get_parameter("max_state_age_s").value):
+            return False, f"state stale ({state_age:.3f}s)"
+        if reference_age > float(self.get_parameter("max_reference_age_s").value):
+            return False, f"reference stale ({reference_age:.3f}s)"
+        return True, "active"
+
+    def _control_loop(self) -> None:
+        now = self.get_clock().now()
+        active, detail = self._active_and_fresh(now)
+        if not active:
+            if self._was_active:
+                self.get_logger().info(f"LQR controller inactive: {detail}")
+            self._was_active = False
+            if bool(self.get_parameter("start_filter_from_zero").value):
+                self._control.reset()
+            return
+
+        assert self._latest_state is not None
+        assert self._latest_reference is not None
+        state = self._latest_state
+        reference = self._latest_reference
+        source_frame = state.header.frame_id
+        try:
+            transform = self._lookup_transform(
+                self._controller_frame,
+                source_frame,
+                Time(),
+            )
+        except TransformException as error:
+            self.get_logger().warning(f"Controller TF unavailable: {error}")
+            return
+
+        relative_position = vector3_to_numpy(state.relative_position)
+        relative_velocity = vector3_to_numpy(state.relative_velocity)
+        pad_velocity = vector3_to_numpy(state.pad_velocity)
+        if transform is not None:
+            relative_position = transform_vector(relative_position, transform)
+            relative_velocity = transform_vector(relative_velocity, transform)
+            pad_velocity = transform_vector(pad_velocity, transform)
+
+        final_descent = reference.state_name == "FINAL_DESCENT"
+        parameters = ControlParameters(
+            z_kp=float(self.get_parameter("z_kp").value),
+            z_kd=float(self.get_parameter("z_kd").value),
+            max_xy_speed_mps=float(self.get_parameter(
+                "max_xy_speed_final_mps" if final_descent else "max_xy_speed_mps"
+            ).value),
+            max_up_speed_mps=float(self.get_parameter("max_up_speed_mps").value),
+            max_down_speed_mps=float(self.get_parameter(
+                "max_down_speed_final_mps" if final_descent else "max_down_speed_mps"
+            ).value),
+            command_cutoff_hz=float(self.get_parameter("command_cutoff_hz").value),
+            max_command_rate_mps2=self.get_parameter("max_command_rate_mps2").value,
+        )
+        result = self._control.compute(
+            relative_position,
+            relative_velocity,
+            pad_velocity,
+            height_above_pad=float(reference.height_above_pad),
+            vertical_reference_velocity=float(reference.vertical_reference_velocity),
+            parameters=parameters,
+        )
+        self._was_active = True
+
+        command_message = TwistStamped()
+        command_message.header.stamp = now.to_msg()
+        command_message.header.frame_id = self._controller_frame
+        command_message.twist.linear = numpy_to_vector3(result.command_filtered)
+        command_message.twist.angular.z = 0.0
+        self._latest_command = command_message
+        self._command_publisher.publish(command_message)
+
+        debug = LandingControllerDebug()
+        debug.header = command_message.header
+        debug.lqr_state_xy = [float(value) for value in result.lqr_state_xy]
+        debug.pad_velocity_controller_frame = numpy_to_vector3(pad_velocity)
+        debug.command_feedforward = numpy_to_vector3(result.command_feedforward)
+        debug.command_feedback = numpy_to_vector3(result.command_feedback)
+        debug.command_raw = numpy_to_vector3(result.command_raw)
+        debug.command_filtered = numpy_to_vector3(result.command_filtered)
+        debug.saturated = result.saturated
+        debug.rate_limited = result.rate_limited
+        debug.detail = detail
+        self._debug_publisher.publish(debug)
 
     @staticmethod
     def _age(now: Time, stamp) -> float:
