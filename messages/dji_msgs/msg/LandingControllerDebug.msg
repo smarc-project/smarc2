@@ -1,0 +1,12 @@
+std_msgs/Header header
+
+float64[4] lqr_state_xy
+geometry_msgs/Vector3 pad_velocity_controller_frame
+geometry_msgs/Vector3 command_feedforward
+geometry_msgs/Vector3 command_feedback
+geometry_msgs/Vector3 command_raw
+geometry_msgs/Vector3 command_filtered
+
+bool saturated
+bool rate_limited
+string detail

@@ -319,7 +319,7 @@ else
     PROJECTION_EKF_CONFIG="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
     
     if [[ $USE_SIM_TIME = "True" ]]; then
-        YOLO_DEVICE="cpu"
+        YOLO_DEVICE="cpu" # In case you have GPU, might be better to use "cuda:0" for the landing on pad.
     fi
 
     YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
@@ -348,6 +348,33 @@ row(
     var(PROJECTION_CMD)
     
 )"
+
+############
+# AUTONOMOUS_LANDING - TO ASSIGN
+############
+
+# DRONE_MODEL="discrete"
+# AUTO_START_LANDING=False # False waits for an action goal or start service.
+# ENABLE_DESCENT=True #In case we need a condition to allow the descent.
+
+# LANDING_CMD="ros2 launch landing_controller alars_stack_landing.launch.py \
+# robot_name:=$ROBOT_NAME \
+# model_kind:=$DRONE_MODEL   \
+# use_sim_time:=$USE_SIM_TIME  \
+# require_pad_status:=True   \
+# auto_start:=$AUTO_START_LANDING \
+# enable_descent:=$ENABLE_DESCENT
+# "
+
+# Actions server for landing, to be used by the BT.
+# LANDING_ACTION_CMD="ros2 run alars alars_land_action_server --ros-args -r __ns:=/$ROBOT_NAME \
+# -p use_sim_time:=$USE_SIM_TIME
+# "
+
+# # Action send goal to the landing action server, to be used by the BT.
+# LANDING_ACTION_GOAL='{"goal": {"data": "{\"timeout\": 120.0}"}}'
+# LANDING_ACTION_CLIENT_CMD="ros2 action send_goal /$ROBOT_NAME/alars_land_on_pad smarc_msgs/action/BaseAction \
+# '$LANDING_ACTION_GOAL' --feedback"
 
 
 ############

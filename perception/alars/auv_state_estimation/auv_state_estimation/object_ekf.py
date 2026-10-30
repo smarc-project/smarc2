@@ -32,8 +32,16 @@ class ObjectEKF:
         self.eps = self.motion_model.eps
 
         self.state_dim = self.motion_model.state_dim
-        self.meas_dim = 3 if self.state_dim == 5 else 5
+        if self.measurement_geometry == "flat_rectangle":
+            if self.motion_model_type not in ("depth", "surface"):
+                raise ValueError("Flat landing-pad measurements require the depth or surface model")
+            # Both models observe [u, v, long_side, short_side]. Surface fixes
+            # the deck Z; depth adds Z/vZ states to the same pad geometry.
+            self.meas_dim = 4
+        else:
+            self.meas_dim = 3 if self.state_dim == 5 else 5
         self.outlier_threshold = chi2.ppf(self.gating_prob, df=self.meas_dim)
+        self.position_outlier_threshold = chi2.ppf(self.gating_prob, df=2)
 
         # In case of AUV estimation, we can optionally use a head topic.
         # For generic multi-object estimation this is disabled for now.
@@ -46,8 +54,10 @@ class ObjectEKF:
         self.ang_vel_map = np.zeros(3)
 
         self.last_processed_measurement_time = None
+        self.last_successful_update_time = None
         self.last_innovation_norm = -1.0
         self.nr_of_consecutive_invalid_measurements = 0
+        self.state_stamp_ns = None
 
         self.initialize_components()
 
@@ -81,8 +91,6 @@ class ObjectEKF:
     def z(self, det, stamp, cam_pos_map, R_map_cam, lin_vel_map, ang_vel_map, now):
         # main callback for processing incoming measurements, performing EKF prediction and update, and preparing the estimated pose.
         # stamp = msg.header.stamp
-        t: float = stamp.sec + stamp.nanosec * 1e-9
-
         self.current_cam_pos_map = cam_pos_map
         self.current_R_map_cam = R_map_cam
         self.lin_vel_map = lin_vel_map
@@ -120,11 +128,16 @@ class ObjectEKF:
             X0, P0, t0 = init_result
             self.ekf.set_state(X0, P0, t0)
             self.ekf.initialized = True
+            self.state_stamp_ns = stamp.sec * 1_000_000_000 + stamp.nanosec
             self.last_processed_measurement_time = now
+            self.last_successful_update_time = now
             self.log_info(f"{self.class_name}: Initialization complete")
             return
 
-        if self.state_dim == 5:
+        if self.measurement_geometry == "flat_rectangle":
+            long_side, short_side = sorted([z_len_px, z_wid_px], reverse=True)
+            z = np.array([[z_center_img[0]], [z_center_img[1]], [long_side], [short_side]])
+        elif self.state_dim == 5:
             z = np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img]])
         else:
             z = np.array([[z_center_img[0]], [z_center_img[1]], [z_alpha_img], [z_len_px], [z_wid_px]])
@@ -133,36 +146,76 @@ class ObjectEKF:
             self.log_info(f"{self.class_name}: EKF not initialized with time, skipping measurement")
             return
 
+        # Apply each YOLO observation directly at its source timestamp.
+        stamp_ns = stamp.sec * 1_000_000_000 + stamp.nanosec
+        t = stamp_ns * 1e-9
+
         dt: float = t - self.ekf.last_t
 
-        if dt < 0:  # due to mismatch between stamp and arrival time, we may receive measurements from the past.
+        if dt < -1e-6:
             self.log_info(f"{self.class_name}: Measurement from the past received (dt={dt:.3f}s), skipping")
-            return
+            return {"status": "past_image"}
 
-        X = self.predict_to_measurement_time(dt)
+        X = self.predict_to_measurement_time(max(0.0, dt))
+        self.ekf.last_t = t
+        self.state_stamp_ns = stamp_ns
 
         h = self.measurement_model.hx(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
         if h is None:
             self.nr_of_consecutive_invalid_measurements += 1
             self.log_info(f"{self.class_name}: Measurement function returned None, skipping update")
-            return
+            return {"status": "invalid"}
 
         H = self.measurement_model.numerical_H(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
         J_pose = self.measurement_model.numerical_J_pose(X, cam_pos_map=self.current_cam_pos_map, R_map_cam=self.current_R_map_cam)
-        R_meas = self.noise_models.build_image_measurement_covariance(z_center_img, self.lin_vel_map) + self.noise_models.project_pose_covariance_to_measurement(J_pose, self.lin_vel_map, self.ang_vel_map)
+        R_meas = self.noise_models.build_image_measurement_covariance(z[:2, 0], self.lin_vel_map) + self.noise_models.project_pose_covariance_to_measurement(J_pose, self.lin_vel_map, self.ang_vel_map)
 
-        innov = residual_z(z, h).reshape(z.shape[0], 1)
+        innov = self.measurement_model.residual(z, h).reshape(z.shape[0], 1)
         self.last_innovation_norm = np.linalg.norm(innov)
 
-        X, P, status = self.ekf.update(z, h, H, R_meas)
+        X, P, status = self.ekf.update(z, h, H, R_meas, use_residual_z=False)
 
-        if status == "outlier" or status == "invalid":
-            self.nr_of_consecutive_invalid_measurements += 1
-        elif status == "updated":
+        if (status == "outlier" and self.position_only_fallback) :
+            z_uv = np.asarray(z[:2,:]).reshape(2, 1)
+            h_uv = np.asarray(h[:2,:]).reshape(2, 1)
+            H_uv = H[:2,:]
+            R_meas_uv = R_meas[:2,:2]
+            uv_innov = z_uv - h_uv
+
+            self.log_info(
+                f"{self.class_name}: "
+                "full measurement rejected; "
+                "trying position-only [u,v] update. "
+                f"uv_innovation="
+                f"{uv_innov.ravel()}"
+            )
+
+            X_uv, P_uv, uv_status = self.ekf.update(z_uv, h_uv, H_uv, R_meas_uv, outlier_threshold=self.position_outlier_threshold, use_residual_z=False)
+
+            if uv_status == "updated":
+                X = X_uv
+                P = P_uv
+                status = "updated_position_only"
+
+                self.last_innovation_norm = float(np.linalg.norm(uv_innov))
+                self.log_info(
+                    f"{self.class_name}: "
+                    "position-only fallback accepted"
+                )
+            else:
+                self.log_info(
+                    f"{self.class_name}: "
+                    "position-only fallback rejected"
+                )
+
+        if status in ("updated", "updated_position_only"):
             self.nr_of_consecutive_invalid_measurements = 0
-
+            self.last_successful_update_time = now
+        else:
+            self.nr_of_consecutive_invalid_measurements += 1
         self.last_processed_measurement_time = now
         self.log_info(f"{self.class_name}: update {status}, state={X.flatten()[:3]}")
+        return {"status": status}
 
     def predict_to_measurement_time(self, dt_total):
         # performs multiple prediction steps between measurements.
@@ -220,16 +273,21 @@ class ObjectEKF:
         # nr of consecutive outliers is probably a good indication of the status.
         now_sec = now.nanoseconds * 1e-9
 
-        if self.ekf.initialized:
-            time_since_last_update = now_sec - self.ekf.time_last_update
+        if self.ekf.initialized and self.last_successful_update_time is not None:
+            time_since_last_update = (now - self.last_successful_update_time).nanoseconds * 1e-9
 
             if time_since_last_update > self.stale_state_age:
                 self.log_info(
-                    f"{self.class_name}: time since last update is "
-                    f"{time_since_last_update:.3f}s, exceeding stale state age "
-                    f"{self.stale_state_age}s. Resetting filter."
+                    f"{self.class_name}: "
+                    "no successful EKF update for "
+                    f"{time_since_last_update:.3f}s, "
+                    "exceeding stale state age "
+                    f"{self.stale_state_age:.3f}s. "
+                    "Resetting filter."
                 )
+
                 self.reset_filter()
+                time_since_last_update = 0.0
         else:
             time_since_last_update = 0.0
 
@@ -268,10 +326,13 @@ class ObjectEKF:
         self.lin_vel_map = np.zeros(3)
         self.ang_vel_map = np.zeros(3)
         self.last_processed_measurement_time = None
+        self.last_successful_update_time = None
         self.nr_of_consecutive_invalid_measurements = 0
         self.last_innovation_norm = -1.0
+        self.state_stamp_ns = None
+        self.initializer.init_buffer.clear()
 
-        self.logger.info(f"{self.class_name}: EKF internal state reset.")
+        self.log_info(f"{self.class_name}: EKF internal state reset.")
 
     def get_motion_model(self, model_type):
         if model_type == "surface":
@@ -285,6 +346,9 @@ class ObjectEKF:
                 sigma_a=self.sigma_a_xy,
                 sigma_z=self.depth_sigma_z_process,
                 sigma_yaw=self.sigma_yaw,
+                k_z=self.depth_k_z,
+                d_z=self.depth_d_z,
+                z_equilibrium=self.water_surface_height,
             )
 
         elif model_type == "pitch":
@@ -331,6 +395,9 @@ class ObjectEKF:
             R_alpha=self.R_alpha,
             motion_model_type=self.motion_model_type,
             logger=self.logger,
+            # A square pad's 90-degree OBB flips describe the same deck geometry.
+            yaw_period=(np.pi / 2 if self.measurement_geometry == "flat_rectangle"
+                        and np.isclose(self.obb_length_m, self.obb_width_m) else np.pi),
         )
         self.measurement_model = MeasurementModel(
             meas_dim=self.meas_dim,
@@ -347,6 +414,7 @@ class ObjectEKF:
             obb_width_m=self.obb_width_m,
             motion_model_type=self.motion_model_type,
             logger=self.logger,
+            geometry=self.measurement_geometry,
         )
         self.noise_models = NoiseModels(
             width=self.width,
@@ -404,6 +472,7 @@ class ObjectEKF:
             ("depth.sigma_z_process", 1.0),
             ("depth.k_z", 0.4),
             ("depth.d_z", 0.1),
+            ("measurement.geometry", "capsule"),
 
             ("pitch.sigma_pitch_process", 15.0),
 
@@ -457,6 +526,7 @@ class ObjectEKF:
             ("initialization.max_yaw_spread", 0.7),
 
             ("gating.prob", 0.99),
+            ("gating.position_only_fallback", 0.99),
 
             # jacobian epsilons for numerical differentiation
             ("jacobian.eps_state_pos", 1e-3),
@@ -517,6 +587,9 @@ class ObjectEKF:
         self.sigma_yaw: float = np.deg2rad(float(params["motion.sigma_yaw"]))
 
         self.motion_model_type: str = str(params["motion.model_type"])
+        self.measurement_geometry = str(params["measurement.geometry"])
+        if self.measurement_geometry not in ("capsule", "flat_rectangle"):
+            raise ValueError(f"Unknown measurement geometry: {self.measurement_geometry}")
 
         self.depth_sigma_z_process: float = float(params["depth.sigma_z_process"])
         self.depth_k_z: float = float(params["depth.k_z"])
@@ -567,6 +640,7 @@ class ObjectEKF:
         self.init_yaw_max_spread: float = np.deg2rad(float(params["initialization.max_yaw_spread"]))
 
         self.gating_prob: float = float(params["gating.prob"])
+        self.position_only_fallback: float = float(params["gating.position_only_fallback"])
 
         self.eps_state_pos: float = float(params["jacobian.eps_state_pos"])
         self.eps_state_yaw: float = float(params["jacobian.eps_state_yaw"])

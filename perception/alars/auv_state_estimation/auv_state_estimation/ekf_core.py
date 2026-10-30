@@ -32,14 +32,14 @@ class EKFCore:
         self.time_last_update = t0
 
 
-    def update(self, z, h, H, R):
-
-        # EKF update step.
-        # performs gating based on mahalanobis distance.
+    def update(self, z, h, H, R, outlier_threshold=None, use_residual_z=False):
 
         if h is None or H is None:
             return self.X, self.P, "invalid"
-        innov = residual_z(z, h).reshape(z.shape[0], 1)
+        if use_residual_z:
+            innov = residual_z(z, h).reshape(z.shape[0], 1)
+        else:
+            innov = (np.asarray(z)-np.asarray(h)).reshape(z.shape[0], 1)
         S = H @ self.P @ H.T + R
         try:
             S_inv = np.linalg.inv(S)
@@ -48,17 +48,64 @@ class EKFCore:
                 self.logger.info("Gating failed: S singular")
             return self.X, self.P, "invalid"
         d2 = float(innov.T @ S_inv @ innov)
-        if d2 > self.outlier_threshold:
+        threshold = (self.outlier_threshold if outlier_threshold is None else float(outlier_threshold))
+        # ------------------------------------------------------
+        # DEBUG
+        # ------------------------------------------------------
+
+        sigma = np.sqrt(
+            np.maximum(
+                np.diag(S),
+                1e-12,
+            )
+        ).reshape(-1, 1)
+
+        normalized_innov = innov / sigma
+
+        if self.logger:
+            self.logger.debug(
+                "EKF GATING DEBUG:"
+                f"\n  innovation = {innov.ravel()}"
+                f"\n  S_diag     = {np.diag(S)}"
+                f"\n  sigma      = {sigma.ravel()}"
+                f"\n  norm_innov = {normalized_innov.ravel()}"
+                f"\n  d2         = {d2:.3f}"
+                f"\n  threshold  = {threshold:.3f}"
+                f"\n  P_diag     = {np.diag(self.P)}"
+                f"\n  R_diag     = {np.diag(R)}"
+            )
+
+        # ------------------------------------------------------
+        # GATE
+        # ------------------------------------------------------
+
+        if (
+            threshold > 0.0
+            and d2 > threshold
+        ):
             self.nr_of_consecutive_outliers += 1
+
             if self.logger:
-                self.logger.info(f"Outlier detected with mahalanobis distance squared: {d2:.3f}")
+                self.logger.info(
+                    "Outlier detected with Mahalanobis "
+                    f"distance squared: {d2:.3f}"
+                )
+
             return self.X, self.P, "outlier"
+
+        # ------------------------------------------------------
+        # UPDATE
+        # ------------------------------------------------------
+
         K = self.P @ H.T @ S_inv
         self.X = self.X + K @ innov
         yaw_idx = 2 if self.state_dim == 5 else 3
         self.X[yaw_idx, 0] = wrap(self.X[yaw_idx, 0])
         I = np.eye(self.state_dim)
-        self.P = (I - K @ H) @ self.P 
+        # Joseph form preserves positive covariance through delayed-update replay.
+        correction = I - K @ H
+        self.P = correction @ self.P @ correction.T + K @ R @ K.T
+        self.P = 0.5 * (self.P + self.P.T)
         self.nr_of_consecutive_outliers = 0
         self.time_last_update = self.last_t
         return self.X, self.P, "updated"
