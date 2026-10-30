@@ -57,7 +57,6 @@ class LandingManagerNode(Node):
 
         self.declare_parameter("robot_name", "M350")
         self.declare_parameter("relative_state_topic", DJITopics.RELATIVE_STATE_TOPIC)
-        self.declare_parameter("reference_topic", DJITopics.REFERENCE_TOPIC)
         self.declare_parameter("status_topic", DJITopics.STATUS_TOPIC)
         self.declare_parameter("start_service", DJITopics.LANDING_START_SERVICE)
         self.declare_parameter("abort_service", DJITopics.LANDING_ABORT_SERVICE)
@@ -67,9 +66,7 @@ class LandingManagerNode(Node):
         self.declare_parameter("enable_descent", True)
 
         # Command output and watchdogs, previously owned by the velocity mux.
-        self.declare_parameter("controller_command_topic", DJITopics.CONTROLLER_CMD_TOPIC)
         self.declare_parameter("output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
-        self.declare_parameter("mirror_vector_topic", "")
         self.declare_parameter("publish_rate_hz", 50.0)
         self.declare_parameter("controller_timeout_s", 0.15)
         self.declare_parameter("reference_timeout_s", 0.25)
@@ -187,19 +184,9 @@ class LandingManagerNode(Node):
             20,
         )
 
-        self._reference_publisher = self.create_publisher(
-            LandingReference,
-            str(self.get_parameter("reference_topic").value),
-            20,
-        )
         self._status_publisher = self.create_publisher(
             LandingStatus,
             str(self.get_parameter("status_topic").value),
-            20,
-        )
-        self._command_publisher = self.create_publisher(
-            TwistStamped,
-            str(self.get_parameter("controller_command_topic").value),
             20,
         )
         self._debug_publisher = self.create_publisher(
@@ -211,15 +198,6 @@ class LandingManagerNode(Node):
         output_topic = str(self.get_parameter("output_topic").value)
         self._velocity_publisher = self.create_publisher(TwistStamped, output_topic, 20)
         self.get_logger().info(f"Landing velocity output: {output_topic} [TwistStamped]")
-
-        mirror_topic = str(self.get_parameter("mirror_vector_topic").value)
-        self._mirror_publisher = None
-        if mirror_topic:
-            self._mirror_publisher = self.create_publisher(Vector3Stamped, mirror_topic, 20)
-            self.get_logger().info(
-                "Mirroring final landing velocity command as "
-                f"Vector3Stamped on {mirror_topic}"
-            )
 
         self.create_service(
             Trigger, str(self.get_parameter("start_service").value), self._start_service
@@ -463,7 +441,7 @@ class LandingManagerNode(Node):
             if self._state_elapsed(now) >= float(self.get_parameter("abort_hold_duration_s").value):
                 self._transition(LandingState.IDLE, "abort complete")
 
-        self._publish_reference(now)
+        self._update_reference(now)
         self._publish_status(now, xy_error, xy_speed, relative_height, vertical_speed)
 
     def _update_acquire(self, now: Time) -> None:
@@ -548,7 +526,7 @@ class LandingManagerNode(Node):
         if self._height_reference < previous_height - 1e-09:
             self._last_vertical_reference_velocity = -rate
 
-    def _publish_reference(self, now: Time) -> None:
+    def _update_reference(self, now: Time) -> None:
         message = LandingReference()
         message.header.stamp = now.to_msg()
         message.header.frame_id = (
@@ -580,7 +558,6 @@ class LandingManagerNode(Node):
             message.control_enabled = False
 
         self._latest_reference = message
-        self._reference_publisher.publish(message)
 
     def _publish_status(
         self,
@@ -722,7 +699,6 @@ class LandingManagerNode(Node):
         command_message.twist.linear = numpy_to_vector3(result.command_filtered)
         command_message.twist.angular.z = 0.0
         self._latest_command = command_message
-        self._command_publisher.publish(command_message)
 
         debug = LandingControllerDebug()
         debug.header = command_message.header
@@ -746,16 +722,6 @@ class LandingManagerNode(Node):
         message.header.stamp = now.to_msg()
         message.header.frame_id = frame_id if frame_id else self._controller_frame
         return message
-
-    def _publish_output(self, message: TwistStamped) -> None:
-        self._velocity_publisher.publish(message)
-        if self._mirror_publisher is None:
-            return
-
-        mirror = Vector3Stamped()
-        mirror.header = message.header
-        mirror.vector = message.twist.linear
-        self._mirror_publisher.publish(mirror)
 
     def _publish_command(self) -> None:
         """Select the FSM override or a fresh controller command at the output rate."""
@@ -793,7 +759,7 @@ class LandingManagerNode(Node):
             output.twist.linear.x = float(self._latest_reference.override_velocity.x)
             output.twist.linear.y = float(self._latest_reference.override_velocity.y)
             output.twist.linear.z = float(self._latest_reference.override_velocity.z)
-            self._publish_output(output)
+            self._velocity_publisher.publish(output)
             self._was_enabled = True
             self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
             return
@@ -803,7 +769,7 @@ class LandingManagerNode(Node):
                 "Landing output enabled but no controller command has been received",
                 throttle_duration_sec=2.0,
             )
-            self._publish_output(self._zero_message(now))
+            self._velocity_publisher.publish(self._zero_message(now))
             return
 
         controller_age = self._age(now, self._latest_command.header.stamp)
@@ -814,7 +780,7 @@ class LandingManagerNode(Node):
                 f"({controller_age:.3f}s > {controller_timeout:.3f}s)",
                 throttle_duration_sec=2.0,
             )
-            self._publish_output(self._zero_message(now))
+            self._velocity_publisher.publish(self._zero_message(now))
             self._was_enabled = True
             self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
             return
@@ -826,7 +792,7 @@ class LandingManagerNode(Node):
         output.twist.angular.x = float(self._latest_command.twist.angular.x)
         output.twist.angular.y = float(self._latest_command.twist.angular.y)
         output.twist.angular.z = float(self._latest_command.twist.angular.z)
-        self._publish_output(output)
+        self._velocity_publisher.publish(output)
         self._was_enabled = True
         self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
 
@@ -837,7 +803,7 @@ class LandingManagerNode(Node):
         if self._flush_remaining <= 0:
             return
 
-        self._publish_output(self._zero_message(now))
+        self._velocity_publisher.publish(self._zero_message(now))
         self._flush_remaining -= 1
 
 
