@@ -73,7 +73,14 @@ class RopeEstimationNode(Node):
         force_vector[0] = -b[2] / self.plate_width
         self.log_info(f"Estimated rope force: {force_vector}")
         # TODO: publish force vector as a TF
-
+        transform = tf2_ros.TransformStamped()
+        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.frame_id = self.frame_rope
+        transform.child_frame_id = self.frame_output
+        transform.transform.translation.x = force_vector[0]
+        transform.transform.translation.y = force_vector[1]
+        transform.transform.translation.z = force_vector[2]
+        self.tf_broadcaster.sendTransform(transform)
 
 
     def cell_1_cb(self, msg):
