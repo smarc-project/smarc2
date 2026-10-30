@@ -9,7 +9,7 @@
       load_cell_1: "LoadCell1"
       load_cell_2: "LoadCell2"
       load_cell_3: "LoadCell3"
-      plate: "Plate"
+      rope_link: "rope_base_link"
       output: "predicted_rope_link"
 
     plate_width: 0.05
