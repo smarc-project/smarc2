@@ -286,21 +286,26 @@ class LandingManagerNode(Node):
 
         return self._elapsed_since(now, self._condition_since) >= dwell_s
 
-    def _handle_estimate_validity(self, now: Time) -> bool:
-        valid = self._latest_state is not None and bool(self._latest_state.valid)
+    def _tracking_state_usable(self, now: Time) -> bool:
+        """Pause tracking on estimate loss and abort when a limit is reached."""
+        if not self._estimate_valid():
+            if self._invalid_since is None:
+                self._invalid_since = now
 
-        if valid:
-            self._invalid_since = None
-            return True
+            timeout = float(self.get_parameter("estimate_loss_abort_s").value)
+            if self._elapsed_since(now, self._invalid_since) >= timeout:
+                self._transition(LandingState.ABORT_CLIMB, "landing estimate lost")
+            return False
 
-        if self._invalid_since is None:
-            self._invalid_since = now
-
-        timeout = float(self.get_parameter("estimate_loss_abort_s").value)
-        if self._elapsed_since(now, self._invalid_since) >= timeout:
-            self._transition(LandingState.ABORT_CLIMB, "landing estimate lost")
-
-        return False
+        self._invalid_since = None
+        xy_error, _, _, _ = self._metrics()
+        if xy_error > float(self.get_parameter("abort_xy_error_m").value):
+            self._transition(
+                LandingState.ABORT_CLIMB,
+                "horizontal error exceeded abort limit",
+            )
+            return False
+        return True
 
     def _update(self) -> None:
         now = self.get_clock().now()
@@ -323,112 +328,19 @@ class LandingManagerNode(Node):
         estimate_valid = self._latest_state is not None and bool(self._latest_state.valid)
 
         if self._state == LandingState.ACQUIRE:
-            if estimate_valid:
-                if self._valid_since is None:
-                    self._valid_since = now
-
-                if self._elapsed_since(now, self._valid_since) >= float(
-                    self.get_parameter("acquire_duration_s").value
-                ):
-                    self._transition(LandingState.ALIGN, "estimate stable")
-            else:
-                self._valid_since = None
+            self._update_acquire(now)
 
         elif self._state == LandingState.ALIGN:
-            if self._handle_estimate_validity(now):
-                if xy_error > float(self.get_parameter("abort_xy_error_m").value):
-                    self._transition(
-                        LandingState.ABORT_CLIMB,
-                        "horizontal error exceeded abort limit",
-                    )
-                else:
-                    aligned = (
-                        xy_error <= float(self.get_parameter("align_xy_tolerance_m").value)
-                        and xy_speed <= float(self.get_parameter("align_speed_tolerance_mps").value)
-                    )
-
-                    if self._condition_dwell(aligned, now, float(self.get_parameter("align_dwell_s").value)):
-                        if bool(self.get_parameter("enable_descent").value):
-                            self._transition(LandingState.DESCEND, "horizontal alignment stable")
-                        else:
-                            self._detail = "tracking-only: alignment stable"
+            if self._tracking_state_usable(now):
+                self._update_align(now)
 
         elif self._state == LandingState.DESCEND:
-            if self._handle_estimate_validity(now):
-                if xy_error > float(self.get_parameter("abort_xy_error_m").value):
-                    self._transition(
-                        LandingState.ABORT_CLIMB,
-                        "horizontal error exceeded abort limit",
-                    )
-                else:
-                    allowed = (
-                        xy_error <= float(self.get_parameter("descent_pause_xy_m").value)
-                        and xy_speed <= float(self.get_parameter("descent_pause_speed_mps").value)
-                    )
-                    self._last_descent_allowed = allowed
-
-                    if allowed:
-                        rate = float(self.get_parameter("descent_rate_mps").value)
-                        final_height = float(self.get_parameter("final_descent_height_m").value)
-                        previous_height = self._height_reference
-                        self._height_reference = max(
-                            final_height,
-                            self._height_reference - rate * dt,
-                        )
-
-                        if self._height_reference < previous_height - 1e-09:
-                            self._last_vertical_reference_velocity = -rate
-
-                    final_height = float(self.get_parameter("final_descent_height_m").value)
-                    entry_margin = float(self.get_parameter("final_descent_entry_margin_m").value)
-
-                    if (
-                        self._height_reference <= final_height + 1e-06
-                        and relative_height <= final_height + entry_margin
-                    ):
-                        self._transition(LandingState.FINAL_DESCENT, "entered final descent region")
+            if self._tracking_state_usable(now):
+                self._update_descend(dt)
 
         elif self._state == LandingState.FINAL_DESCENT:
-            if self._handle_estimate_validity(now):
-                if xy_error > float(self.get_parameter("abort_xy_error_m").value):
-                    self._transition(
-                        LandingState.ABORT_CLIMB,
-                        "horizontal error exceeded abort limit",
-                    )
-                else:
-                    allowed = (
-                        xy_error <= float(self.get_parameter("descent_pause_xy_m").value)
-                        and xy_speed <= float(self.get_parameter("descent_pause_speed_mps").value)
-                    )
-                    self._last_descent_allowed = allowed
-
-                    if allowed:
-                        rate = float(self.get_parameter("final_descent_rate_mps").value)
-                        touchdown_height = float(self.get_parameter("touchdown_height_m").value)
-                        previous_height = self._height_reference
-                        self._height_reference = max(
-                            touchdown_height,
-                            self._height_reference - rate * dt,
-                        )
-
-                        if self._height_reference < previous_height - 1e-09:
-                            self._last_vertical_reference_velocity = -rate
-
-                    # Require low gear clearance, XY alignment and relative
-                    # vertical speed together for the configured dwell.
-                    touchdown_condition = (
-                        relative_height <= float(self.get_parameter("touchdown_detection_height_m").value)
-                        and xy_error <= float(self.get_parameter("touchdown_xy_tolerance_m").value)
-                        and abs(vertical_speed)
-                        <= float(self.get_parameter("touchdown_vertical_speed_mps").value)
-                    )
-
-                    if self._condition_dwell(
-                        touchdown_condition,
-                        now,
-                        float(self.get_parameter("touchdown_dwell_s").value),
-                    ):
-                        self._transition(LandingState.TOUCHDOWN, "touchdown conditions stable")
+            if self._tracking_state_usable(now):
+                self._update_final_descent(now, dt)
 
         elif self._state == LandingState.TOUCHDOWN:
             if self._state_elapsed(now) >= float(self.get_parameter("touchdown_hold_s").value):
@@ -450,6 +362,88 @@ class LandingManagerNode(Node):
 
         self._publish_reference(now)
         self._publish_status(now, xy_error, xy_speed, relative_height, vertical_speed)
+
+    def _update_acquire(self, now: Time) -> None:
+        if self._estimate_valid():
+            if self._valid_since is None:
+                self._valid_since = now
+
+            if self._elapsed_since(now, self._valid_since) >= float(
+                self.get_parameter("acquire_duration_s").value
+            ):
+                self._transition(LandingState.ALIGN, "estimate stable")
+        else:
+            self._valid_since = None
+
+    def _update_align(self, now: Time) -> None:
+        xy_error, xy_speed, _, _ = self._metrics()
+        aligned = (
+            xy_error <= float(self.get_parameter("align_xy_tolerance_m").value)
+            and xy_speed <= float(self.get_parameter("align_speed_tolerance_mps").value)
+        )
+
+        if self._condition_dwell(
+            aligned, now, float(self.get_parameter("align_dwell_s").value)
+        ):
+            if bool(self.get_parameter("enable_descent").value):
+                self._transition(LandingState.DESCEND, "horizontal alignment stable")
+            else:
+                self._detail = "tracking-only: alignment stable"
+
+    def _update_descend(self, dt: float) -> None:
+        final_height = float(self.get_parameter("final_descent_height_m").value)
+        self._last_descent_allowed = self._descent_is_allowed()
+        if self._last_descent_allowed:
+            rate = float(self.get_parameter("descent_rate_mps").value)
+            self._lower_height_reference(dt, rate, final_height)
+
+        entry_margin = float(self.get_parameter("final_descent_entry_margin_m").value)
+        if (
+            self._height_reference <= final_height + 1e-06
+            and self._relative_height() <= final_height + entry_margin
+        ):
+            self._transition(LandingState.FINAL_DESCENT, "entered final descent region")
+
+    def _update_final_descent(self, now: Time, dt: float) -> None:
+        self._last_descent_allowed = self._descent_is_allowed()
+        if self._last_descent_allowed:
+            rate = float(self.get_parameter("final_descent_rate_mps").value)
+            touchdown_height = float(self.get_parameter("touchdown_height_m").value)
+            self._lower_height_reference(dt, rate, touchdown_height)
+
+        xy_error, _, relative_height, vertical_speed = self._metrics()
+        # Require low gear clearance, XY alignment and relative
+        # vertical speed together for the configured dwell.
+        touchdown_condition = (
+            relative_height <= float(self.get_parameter("touchdown_detection_height_m").value)
+            and xy_error <= float(self.get_parameter("touchdown_xy_tolerance_m").value)
+            and abs(vertical_speed)
+            <= float(self.get_parameter("touchdown_vertical_speed_mps").value)
+        )
+
+        if self._condition_dwell(
+            touchdown_condition,
+            now,
+            float(self.get_parameter("touchdown_dwell_s").value),
+        ):
+            self._transition(LandingState.TOUCHDOWN, "touchdown conditions stable")
+
+    def _estimate_valid(self) -> bool:
+        return self._latest_state is not None and bool(self._latest_state.valid)
+
+    def _descent_is_allowed(self) -> bool:
+        xy_error, xy_speed, _, _ = self._metrics()
+        return (
+            xy_error <= float(self.get_parameter("descent_pause_xy_m").value)
+            and xy_speed <= float(self.get_parameter("descent_pause_speed_mps").value)
+        )
+
+    def _lower_height_reference(self, dt: float, rate: float, floor: float) -> None:
+        previous_height = self._height_reference
+        self._height_reference = max(floor, self._height_reference - rate * dt)
+
+        if self._height_reference < previous_height - 1e-09:
+            self._last_vertical_reference_velocity = -rate
 
     def _publish_reference(self, now: Time) -> None:
         message = LandingReference()
