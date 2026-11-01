@@ -4,6 +4,7 @@
       load_cell_1: "sensor/load_cell_1"
       load_cell_2: "sensor/load_cell_2"
       load_cell_3: "sensor/load_cell_3"
+      sub_timeout: 0.5
 
     frames:
       load_cell_1: "LoadCell1"
@@ -14,7 +15,6 @@
 
     plate_width: 0.05
     publish_rate: 10.0
-    timeout: 0.5
 
     logger_info:
       enable: true
