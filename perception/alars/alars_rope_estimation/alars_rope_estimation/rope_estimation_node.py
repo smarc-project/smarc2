@@ -25,6 +25,8 @@ class RopeEstimationNode(Node):
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         self.lc_readings = np.zeros(3) # load cell readings in kg
+        self.readings_timestamps = np.zeros(3) # timestamps of the load cell readings
+        
         # subscribers
         self.sub_cell_1 = self.create_subscription(Float32, self.topic_cell_1, self.cell_1_cb, 10)
         self.sub_cell_2 = self.create_subscription(Float32, self.topic_cell_2, self.cell_2_cb, 10)
@@ -65,32 +67,45 @@ class RopeEstimationNode(Node):
             self.equation_matrix = self.build_equation_matrix()
             if self.equation_matrix is None:
                 return
+        # Check if the readings are recent enough
+        current_time = self.get_clock().now().nanoseconds / 1e9
+        if np.any(current_time - self.readings_timestamps > self.sub_timeout):
+            self.log_info("Load cell readings are too old, skipping estimation.")
+            self.publish_transform(np.zeros(3))  # Publish zero transform
+            return
         # right hand side of the equation:
         force_vector = np.zeros(3)
         b = self.equation_matrix @ self.lc_readings*9.81
         force_vector[2] = -b[0]
         force_vector[1] = -b[1] / self.plate_width
         force_vector[0] = -b[2] / self.plate_width
+        self.publish_transform(force_vector)
         self.log_info(f"Estimated rope force: {force_vector}")
-        # TODO: publish force vector as a TF
+        
+
+    def publish_transform(self, translation):
+        """
+        Publishes the estimated rope force as a TF transform.
+        """
         transform = tf2_ros.TransformStamped()
         transform.header.stamp = self.get_clock().now().to_msg()
         transform.header.frame_id = self.frame_rope
         transform.child_frame_id = self.frame_output
-        transform.transform.translation.x = force_vector[0]
-        transform.transform.translation.y = force_vector[1]
-        transform.transform.translation.z = force_vector[2]
+        transform.transform.translation.x = translation[0]
+        transform.transform.translation.y = translation[1]
+        transform.transform.translation.z = translation[2]
         self.tf_broadcaster.sendTransform(transform)
-
 
     def cell_1_cb(self, msg):
         self.lc_readings[0] = msg.data
-
+        self.readings_timestamps[0] = self.get_clock().now().nanoseconds / 1e9
     def cell_2_cb(self, msg):
         self.lc_readings[1] = msg.data
+        self.readings_timestamps[1] = self.get_clock().now().nanoseconds / 1e9
 
     def cell_3_cb(self, msg):
         self.lc_readings[2] = msg.data
+        self.readings_timestamps[2] = self.get_clock().now().nanoseconds / 1e9
 
     def log_info(self, msg):
         if self.logger_info_enable:
@@ -112,7 +127,7 @@ class RopeEstimationNode(Node):
             ("plate_width", 0.1),
 
             ("publish_rate", 10.0),
-
+            ("timeout", 0.5),
             ("logger_info.enable", True)
         ]
         self.declare_parameters(namespace = "", parameters = PARAMS)
@@ -135,6 +150,7 @@ class RopeEstimationNode(Node):
         self.frame_output = f"{robot_name}/{frame_output}"
         self.frame_rope = f"{robot_name}/{frame_rope}"
         self.publish_rate = self.get_parameter("publish_rate").value
+        self.sub_timeout = self.get_parameter("timeout").value
 
         self.logger_info_enable = self.get_parameter("logger_info.enable").value
 

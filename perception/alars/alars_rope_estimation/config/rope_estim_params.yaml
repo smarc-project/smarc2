@@ -14,6 +14,7 @@
 
     plate_width: 0.05
     publish_rate: 10.0
+    timeout: 0.5
 
     logger_info:
       enable: true
