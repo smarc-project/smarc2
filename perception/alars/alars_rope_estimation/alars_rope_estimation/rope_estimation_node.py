@@ -138,7 +138,6 @@ class RopeEstimationNode(Node):
         frame_cell_1 = self.get_parameter("frames.load_cell_1").value
         frame_cell_2 = self.get_parameter("frames.load_cell_2").value
         frame_cell_3 = self.get_parameter("frames.load_cell_3").value
-        frame_output = self.get_parameter("frames.output").value
         frame_rope = self.get_parameter("frames.rope_link").value
 
         self.frame_cell_1 = f"{robot_name}/{frame_cell_1}"
