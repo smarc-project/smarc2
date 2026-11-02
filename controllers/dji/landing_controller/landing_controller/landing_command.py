@@ -34,6 +34,12 @@ class LandingCommand:
         self._was_enabled = False
         self._flush_remaining = 0
 
+    def reset(self) -> None:
+        """Clear controller history while preserving any remaining zero flush."""
+        self._control.reset()
+        self._latest_command = None
+        self._was_active = False
+
     def update_control(
         self, now: Time, state: Optional[LandingRelativeState],
         reference: Optional[LandingReference], parameters: Mapping[str, Any],

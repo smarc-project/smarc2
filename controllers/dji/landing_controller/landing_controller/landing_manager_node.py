@@ -1,5 +1,6 @@
 from enum import IntEnum
 from pathlib import Path
+from threading import RLock
 from typing import Optional
 
 from ament_index_python.packages import get_package_share_directory
@@ -15,11 +16,13 @@ from dji_msgs.msg import (
     Topics as DJITopics,
 )
 from geometry_msgs.msg import TwistStamped
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.time import Time
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener
 
+from .landing_action_server import LandingActionServer
 from .landing_command import LandingCommand
 from .landing_control import LandingControl
 from .math_utils import vector3_to_numpy
@@ -48,11 +51,13 @@ class LandingManagerNode(Node):
     """Manage landing phases, XY LQR/Z PD control and final velocity output.
 
     LandingCommand handles controller updates and command selection, while this
-    node manages landing transitions, services and the separate update timers.
+    node manages landing transitions and ROS interfaces (LandingActionServer and services).
     """
 
     def __init__(self, **node_kwargs) -> None:
         super().__init__("landing_manager", **node_kwargs)
+        # Default callbacks stay serialized; action callbacks share this lock.
+        self._state_lock = RLock()
 
         self.declare_parameter("robot_name", "M350")
         self.declare_parameter("relative_state_topic", DJITopics.RELATIVE_STATE_TOPIC)
@@ -63,6 +68,8 @@ class LandingManagerNode(Node):
         self.declare_parameter("update_rate_hz", 20.0)
         self.declare_parameter("auto_start", False)
         self.declare_parameter("enable_descent", True)
+        self.declare_parameter("action_name", "alars_land_on_pad")
+        self.declare_parameter("default_timeout", 120.0)
 
         # Command output and watchdogs, previously owned by the velocity mux.
         self.declare_parameter("output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
@@ -205,6 +212,16 @@ class LandingManagerNode(Node):
             Trigger, str(self.get_parameter("reset_service").value), self._reset_service
         )
 
+        self._action_server = LandingActionServer(
+            self,
+            self._accept_landing_goal,
+            self._start_landing,
+            self._abort_landing,
+            self._finish_landing,
+            self._landing_feedback,
+            state_lock=self._state_lock,
+        )
+
         update_rate = float(self.get_parameter("update_rate_hz").value)
         if update_rate <= 0.0:
             raise ValueError("update_rate_hz must be positive")
@@ -217,51 +234,96 @@ class LandingManagerNode(Node):
         self.create_timer(1.0 / publish_rate, self._publish_command)
 
     def _relative_state_callback(self, message: LandingRelativeState) -> None:
-        self._latest_state = message
+        with self._state_lock:
+            self._latest_state = message
 
     def _start_service(
         self,
         _request: Trigger.Request,
         response: Trigger.Response,
     ) -> Trigger.Response:
-        if self._state not in {LandingState.IDLE, LandingState.LANDED}:
-            response.success = False
-            response.message = f"Landing already active in {self._state.name}"
+        with self._state_lock:
+            if self._action_server.pending or self._state not in {LandingState.IDLE, LandingState.LANDED}:
+                response.success = False
+                response.message = f"Landing already active in {self._state.name}"
+                return response
+
+            self._start_landing("landing requested")
+
+            response.success = True
+            response.message = "Started landing in ACQUIRE"
             return response
-
-        self._motor_off_requested = False
-        self._transition(LandingState.ACQUIRE, "landing requested")
-
-        response.success = True
-        response.message = "Started landing in ACQUIRE"
-        return response
 
     def _abort_service(
         self,
         _request: Trigger.Request,
         response: Trigger.Response,
     ) -> Trigger.Response:
-        if self._state in {LandingState.IDLE, LandingState.LANDED}:
-            response.success = False
-            response.message = f"Cannot abort from {self._state.name}"
+        with self._state_lock:
+            response.success = self._abort_landing("operator abort")
+            response.message = ("Abort climb started" if response.success
+                                else f"Cannot abort from {self._state.name}")
             return response
-
-        self._transition(LandingState.ABORT_CLIMB, "operator abort")
-        response.success = True
-        response.message = "Abort climb started"
-        return response
 
     def _reset_service(
         self,
         _request: Trigger.Request,
         response: Trigger.Response,
     ) -> Trigger.Response:
-        self._motor_off_requested = False
-        self._transition(LandingState.IDLE, "reset")
+        with self._state_lock:
+            self._action_server.set_result(False)
+            self._reset_states()
+            self._transition(LandingState.IDLE, "reset")
+            self._update_reference(self.get_clock().now())
 
-        response.success = True
-        response.message = "Landing manager reset"
-        return response
+            response.success = True
+            response.message = "Landing manager reset"
+            return response
+
+    def _reset_states(self) -> None:
+        """Clear this attempt without clearing perception or rearming auto-start."""
+        now = self.get_clock().now()
+        self._state_entered = self._last_update = now
+        self._valid_since = self._condition_since = self._invalid_since = None
+        self._height_reference = 0.0
+        self._last_descent_allowed = False
+        self._last_vertical_reference_velocity = 0.0
+        self._latest_reference = None
+        self._motor_off_requested = False
+        self._command.reset()
+
+    def _accept_landing_goal(self) -> bool:
+        if self._state != LandingState.IDLE:
+            return False
+        self._auto_start_consumed = True
+        return True
+
+    def _start_landing(self, detail: str) -> None:
+        self._reset_states()
+        self._auto_start_consumed = True
+        self._transition(LandingState.ACQUIRE, detail)
+        self._update_reference(self.get_clock().now())
+
+    def _abort_landing(self, detail: str) -> bool:
+        if self._state in {LandingState.IDLE, LandingState.LANDED}:
+            return False
+        if self._state not in {LandingState.ABORT_CLIMB, LandingState.ABORT_HOLD}:
+            self._transition(LandingState.ABORT_CLIMB, detail)
+            self._update_reference(self.get_clock().now())
+        return True
+
+    def _finish_landing(self, detail: str) -> None:
+        if self._state == LandingState.LANDED:
+            self._reset_states()
+            self._transition(LandingState.IDLE, detail)
+            self._update_reference(self.get_clock().now())
+
+    def _landing_feedback(self) -> str:
+        xy_error, xy_speed, height, _ = self._metrics()
+        return (
+            f"{self._state.name} | xy={xy_error:.2f}m | h={height:.2f}m | "
+            f"vxy={xy_speed:.2f}m/s | estimate={'valid' if self._estimate_valid() else 'invalid'}"
+        )
 
     def _transition(self, new_state: LandingState, detail: str) -> None:
         if new_state == self._state:
@@ -333,18 +395,19 @@ class LandingManagerNode(Node):
         future.add_done_callback(self._motor_off_response)
 
     def _motor_off_response(self, future) -> None:
-        try:
-            response = future.result()
-        except Exception as exc:
-            self.get_logger().error(f"Turn-off-motors service failed: {exc}")
-            self._motor_off_requested = False
-            return
+        with self._state_lock:
+            try:
+                response = future.result()
+            except Exception as exc:
+                self.get_logger().error(f"Turn-off-motors service failed: {exc}")
+                self._motor_off_requested = False
+                return
 
-        if response.success:
-            self.get_logger().info(f"Motors turned off after landing: {response.message}")
-        else:
-            self.get_logger().error(f"Failed to turn off motors: {response.message}")
-            self._motor_off_requested = False
+            if response.success:
+                self.get_logger().info(f"Motors turned off after landing: {response.message}")
+            else:
+                self.get_logger().error(f"Failed to turn off motors: {response.message}")
+                self._motor_off_requested = False
 
     def _state_elapsed(self, now: Time) -> float:
         return max(0.0, (now - self._state_entered).nanoseconds * 1e-9)
@@ -385,60 +448,80 @@ class LandingManagerNode(Node):
         return True
 
     def _update(self) -> None:
-        now = self.get_clock().now()
-        dt = max(0.0, min((now - self._last_update).nanoseconds * 1e-9, 0.2))
-        self._last_update = now
-        self._last_descent_allowed = False
-        self._last_vertical_reference_velocity = 0.0
-
-        if (
-            bool(self.get_parameter("auto_start").value)
-            and not self._auto_start_consumed
-            and self._latest_state is not None
-            and self._latest_state.valid
-            and self._state == LandingState.IDLE
-        ):
-            self._auto_start_consumed = True
-            self._transition(LandingState.ACQUIRE, "auto-start")
-
-        xy_error, xy_speed, relative_height, vertical_speed = self._metrics()
-        estimate_valid = self._latest_state is not None and bool(self._latest_state.valid)
-
-        if self._state == LandingState.ACQUIRE:
-            self._update_acquire(now)
-
-        elif self._state == LandingState.ALIGN:
-            if self._tracking_state_usable(now):
-                self._update_align(now)
-
-        elif self._state == LandingState.DESCEND:
-            if self._tracking_state_usable(now):
-                self._update_descend(dt)
-
-        elif self._state == LandingState.FINAL_DESCENT:
-            if self._tracking_state_usable(now):
-                self._update_final_descent(now, dt)
-
-        elif self._state == LandingState.TOUCHDOWN:
-            if self._state_elapsed(now) >= float(self.get_parameter("touchdown_hold_s").value):
-                self._transition(LandingState.LANDED, "touchdown hold complete")
-
-        elif self._state == LandingState.ABORT_CLIMB:
-            safe_height = float(self.get_parameter("abort_safe_height_m").value)
-            duration = float(self.get_parameter("abort_climb_duration_s").value)
+        with self._state_lock:
+            now = self.get_clock().now()
+            dt = max(0.0, min((now - self._last_update).nanoseconds * 1e-9, 0.2))
+            self._last_update = now
+            self._last_descent_allowed = False
+            self._last_vertical_reference_velocity = 0.0
 
             if (
-                (estimate_valid and relative_height >= safe_height)
-                or self._state_elapsed(now) >= duration
+                bool(self.get_parameter("auto_start").value)
+                and not self._auto_start_consumed
+                and not self._action_server.pending
+                and self._latest_state is not None
+                and self._latest_state.valid
+                and self._state == LandingState.IDLE
             ):
-                self._transition(LandingState.ABORT_HOLD, "abort climb complete")
+                self._reset_states()
+                self._auto_start_consumed = True
+                self._transition(LandingState.ACQUIRE, "auto-start")
 
-        elif self._state == LandingState.ABORT_HOLD:
-            if self._state_elapsed(now) >= float(self.get_parameter("abort_hold_duration_s").value):
-                self._transition(LandingState.IDLE, "abort complete")
+            if (
+                self._action_server.timed_out(now)
+                and self._state not in {
+                    LandingState.IDLE, LandingState.LANDED,
+                    LandingState.ABORT_CLIMB, LandingState.ABORT_HOLD,
+                }
+            ):
+                self._abort_landing("landing action timed out")
 
-        self._update_reference(now)
-        self._publish_status(now, xy_error, xy_speed, relative_height, vertical_speed)
+            xy_error, xy_speed, relative_height, vertical_speed = self._metrics()
+            estimate_valid = self._latest_state is not None and bool(self._latest_state.valid)
+
+            if self._state == LandingState.ACQUIRE:
+                self._update_acquire(now)
+
+            elif self._state == LandingState.ALIGN:
+                if self._tracking_state_usable(now):
+                    self._update_align(now)
+
+            elif self._state == LandingState.DESCEND:
+                if self._tracking_state_usable(now):
+                    self._update_descend(dt)
+
+            elif self._state == LandingState.FINAL_DESCENT:
+                if self._tracking_state_usable(now):
+                    self._update_final_descent(now, dt)
+
+            elif self._state == LandingState.TOUCHDOWN:
+                if self._state_elapsed(now) >= float(self.get_parameter("touchdown_hold_s").value):
+                    self._transition(LandingState.LANDED, "touchdown hold complete")
+
+            elif self._state == LandingState.ABORT_CLIMB:
+                safe_height = float(self.get_parameter("abort_safe_height_m").value)
+                duration = float(self.get_parameter("abort_climb_duration_s").value)
+
+                if (
+                    (estimate_valid and relative_height >= safe_height)
+                    or self._state_elapsed(now) >= duration
+                ):
+                    self._transition(LandingState.ABORT_HOLD, "abort climb complete")
+
+            elif self._state == LandingState.ABORT_HOLD:
+                if self._state_elapsed(now) >= float(self.get_parameter("abort_hold_duration_s").value):
+                    self._reset_states()
+                    self._transition(LandingState.IDLE, "abort complete")
+                    self._action_server.set_result(False)
+
+            elif self._state == LandingState.LANDED and not self._action_server.pending:
+                self._finish_landing("landing complete")
+
+            if self._state == LandingState.LANDED:
+                self._action_server.set_result(True)
+
+            self._update_reference(now)
+            self._publish_status(now, xy_error, xy_speed, relative_height, vertical_speed)
 
     def _update_acquire(self, now: Time) -> None:
         if self._estimate_valid():
@@ -586,49 +669,60 @@ class LandingManagerNode(Node):
         self._status_publisher.publish(message)
 
     def _control_loop(self) -> None:
-        now = self.get_clock().now()
-        parameters = {
-            "tf_timeout_s": self.get_parameter("tf_timeout_s").value,
-            "tf_fallback_to_latest": self.get_parameter("tf_fallback_to_latest").value,
-            "max_state_age_s": self.get_parameter("max_state_age_s").value,
-            "max_reference_age_s": self.get_parameter("max_reference_age_s").value,
-            "start_filter_from_zero": self.get_parameter("start_filter_from_zero").value,
-            "z_kp": self.get_parameter("z_kp").value,
-            "z_kd": self.get_parameter("z_kd").value,
-            "max_xy_speed_mps": self.get_parameter("max_xy_speed_mps").value,
-            "max_xy_speed_final_mps": self.get_parameter("max_xy_speed_final_mps").value,
-            "max_up_speed_mps": self.get_parameter("max_up_speed_mps").value,
-            "max_down_speed_mps": self.get_parameter("max_down_speed_mps").value,
-            "max_down_speed_final_mps": self.get_parameter("max_down_speed_final_mps").value,
-            "command_cutoff_hz": self.get_parameter("command_cutoff_hz").value,
-            "max_command_rate_mps2": self.get_parameter("max_command_rate_mps2").value,
-        }
-        debug = self._command.update_control(
-            now, self._latest_state, self._latest_reference, parameters,
-        )
-        if debug is not None:
-            self._debug_publisher.publish(debug)
+        with self._state_lock:
+            now = self.get_clock().now()
+            parameters = {
+                "tf_timeout_s": self.get_parameter("tf_timeout_s").value,
+                "tf_fallback_to_latest": self.get_parameter("tf_fallback_to_latest").value,
+                "max_state_age_s": self.get_parameter("max_state_age_s").value,
+                "max_reference_age_s": self.get_parameter("max_reference_age_s").value,
+                "start_filter_from_zero": self.get_parameter("start_filter_from_zero").value,
+                "z_kp": self.get_parameter("z_kp").value,
+                "z_kd": self.get_parameter("z_kd").value,
+                "max_xy_speed_mps": self.get_parameter("max_xy_speed_mps").value,
+                "max_xy_speed_final_mps": self.get_parameter("max_xy_speed_final_mps").value,
+                "max_up_speed_mps": self.get_parameter("max_up_speed_mps").value,
+                "max_down_speed_mps": self.get_parameter("max_down_speed_mps").value,
+                "max_down_speed_final_mps": self.get_parameter("max_down_speed_final_mps").value,
+                "command_cutoff_hz": self.get_parameter("command_cutoff_hz").value,
+                "max_command_rate_mps2": self.get_parameter("max_command_rate_mps2").value,
+            }
+            debug = self._command.update_control(
+                now, self._latest_state, self._latest_reference, parameters,
+            )
+            if debug is not None:
+                self._debug_publisher.publish(debug)
 
     def _publish_command(self) -> None:
-        output = self._command.select_output(
-            self.get_clock().now(), self._latest_reference,
-            controller_timeout_s=float(self.get_parameter("controller_timeout_s").value),
-            reference_timeout_s=float(self.get_parameter("reference_timeout_s").value),
-            zero_flush_cycles=int(self.get_parameter("zero_flush_cycles").value),
-        )
-        if output is not None:
-            self._velocity_publisher.publish(output)
+        with self._state_lock:
+            output = self._command.select_output(
+                self.get_clock().now(), self._latest_reference,
+                controller_timeout_s=float(self.get_parameter("controller_timeout_s").value),
+                reference_timeout_s=float(self.get_parameter("reference_timeout_s").value),
+                zero_flush_cycles=int(self.get_parameter("zero_flush_cycles").value),
+            )
+            if output is not None:
+                self._velocity_publisher.publish(output)
+
+    # Override destroy_node to finish the action server
+    def destroy_node(self):
+        self._action_server.destroy()
+        return super().destroy_node()
 
 
 def main(args=None) -> None:
     rclpy.init(args=args)
     node = LandingManagerNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
 
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
+        node._action_server.set_result(False)
+        executor.shutdown()
         node.destroy_node()
         # ROS may already have shut the context down while handling SIGINT.
         if rclpy.ok():
