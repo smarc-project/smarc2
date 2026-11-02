@@ -14,15 +14,15 @@ from dji_msgs.msg import (
     PsdkTopics,
     Topics as DJITopics,
 )
-from geometry_msgs.msg import TwistStamped, Vector3Stamped
-from rclpy.duration import Duration
+from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
 from rclpy.time import Time
 from std_srvs.srv import Trigger
-from tf2_ros import Buffer, TransformException, TransformListener
+from tf2_ros import Buffer, TransformListener
 
-from .landing_control import ControlParameters, LandingControl
-from .math_utils import numpy_to_vector3, transform_vector, vector3_to_numpy
+from .landing_command import LandingCommand
+from .landing_control import LandingControl
+from .math_utils import vector3_to_numpy
 from .model_loader import DiscreteVelocityModel, load_velocity_model
 
 
@@ -47,9 +47,8 @@ TRACKING_STATES = {LandingState.ALIGN, LandingState.DESCEND, LandingState.FINAL_
 class LandingManagerNode(Node):
     """Manage landing phases, XY LQR/Z PD control and final velocity output.
 
-    The FSM, model-based control and command output have separate timers.
-    References and commands are shared directly; ROS publications expose them
-    for monitoring. Abort and touchdown overrides take priority over control.
+    LandingCommand handles controller updates and command selection, while this
+    node manages landing transitions, services and the separate update timers.
     """
 
     def __init__(self, **node_kwargs) -> None:
@@ -141,7 +140,7 @@ class LandingManagerNode(Node):
             model_kind=str(self.get_parameter("model_kind").value),
             sample_time=sample_time if sample_time > 0.0 else None,
         )
-        self._control = LandingControl(
+        control = LandingControl(
             self._model,
             self.get_parameter("q_diagonal_xy").value,
             self.get_parameter("r_diagonal_xy").value,
@@ -150,10 +149,10 @@ class LandingManagerNode(Node):
             f"Loaded M350 model from {self._model.source}; "
             f"dt={self._model.dt:.4f}s, gains={self._model.dc_gain_vector}"
         )
-        self.get_logger().info(f"Discrete XY LQR gain:\n{self._control.gain}")
-        self._buffer = Buffer()
-        self._listener = TransformListener(self._buffer, self)
-        self._was_active = False
+        self.get_logger().info(f"Discrete XY LQR gain:\n{control.gain}")
+        buffer = Buffer()
+        self._listener = TransformListener(buffer, self)
+        self._command = LandingCommand(control, self._controller_frame, buffer, self.get_logger())
 
         motor_service = str(self.get_parameter("turn_off_motors_service").value)
         self._turn_off_motors_client = self.create_client(Trigger, motor_service)
@@ -172,10 +171,7 @@ class LandingManagerNode(Node):
         self._last_descent_allowed = False
         self._last_vertical_reference_velocity = 0.0
 
-        self._latest_command: Optional[TwistStamped] = None
         self._latest_reference: Optional[LandingReference] = None
-        self._was_enabled = False
-        self._flush_remaining = 0
 
         self.create_subscription(
             LandingRelativeState,
@@ -589,222 +585,39 @@ class LandingManagerNode(Node):
         message.state_elapsed = self._state_elapsed(now)
         self._status_publisher.publish(message)
 
-    def _lookup_transform(self, target: str, source: str, stamp: Time):
-        if target == source:
-            return None
-        timeout = float(self.get_parameter("tf_timeout_s").value)
-        try:
-            return self._buffer.lookup_transform(
-                target,
-                source,
-                stamp,
-                timeout=Duration(seconds=timeout),
-            )
-        except TransformException:
-            if not bool(self.get_parameter("tf_fallback_to_latest").value):
-                raise
-            return self._buffer.lookup_transform(
-                target,
-                source,
-                Time(),
-                timeout=Duration(seconds=timeout),
-            )
-
-    def _active_and_fresh(self, now: Time) -> tuple[bool, str]:
-        if self._latest_state is None:
-            return False, "no relative state"
-        if self._latest_reference is None:
-            return False, "no landing reference"
-        if not self._latest_reference.control_enabled:
-            return False, "control disabled"
-        if self._latest_reference.override_active:
-            return False, "manager override active"
-        if not self._latest_state.valid:
-            return False, f"invalid state: {self._latest_state.invalid_reason}"
-        state_age = max(
-            0.0,
-            (now - Time.from_msg(self._latest_state.header.stamp)).nanoseconds * 1e-9,
-        )
-        reference_age = max(
-            0.0,
-            (now - Time.from_msg(self._latest_reference.header.stamp)).nanoseconds * 1e-9,
-        )
-        if state_age > float(self.get_parameter("max_state_age_s").value):
-            return False, f"state stale ({state_age:.3f}s)"
-        if reference_age > float(self.get_parameter("max_reference_age_s").value):
-            return False, f"reference stale ({reference_age:.3f}s)"
-        return True, "active"
-
     def _control_loop(self) -> None:
         now = self.get_clock().now()
-        active, detail = self._active_and_fresh(now)
-        if not active:
-            if self._was_active:
-                self.get_logger().info(f"LQR controller inactive: {detail}")
-            self._was_active = False
-            if bool(self.get_parameter("start_filter_from_zero").value):
-                self._control.reset()
-            return
-
-        assert self._latest_state is not None
-        assert self._latest_reference is not None
-        state = self._latest_state
-        reference = self._latest_reference
-        source_frame = state.header.frame_id
-        try:
-            transform = self._lookup_transform(
-                self._controller_frame,
-                source_frame,
-                Time(),
-            )
-        except TransformException as error:
-            self.get_logger().warning(f"Controller TF unavailable: {error}")
-            return
-
-        relative_position = vector3_to_numpy(state.relative_position)
-        relative_velocity = vector3_to_numpy(state.relative_velocity)
-        pad_velocity = vector3_to_numpy(state.pad_velocity)
-        if transform is not None:
-            relative_position = transform_vector(relative_position, transform)
-            relative_velocity = transform_vector(relative_velocity, transform)
-            pad_velocity = transform_vector(pad_velocity, transform)
-
-        final_descent = reference.state_name == "FINAL_DESCENT"
-        parameters = ControlParameters(
-            z_kp=float(self.get_parameter("z_kp").value),
-            z_kd=float(self.get_parameter("z_kd").value),
-            max_xy_speed_mps=float(self.get_parameter(
-                "max_xy_speed_final_mps" if final_descent else "max_xy_speed_mps"
-            ).value),
-            max_up_speed_mps=float(self.get_parameter("max_up_speed_mps").value),
-            max_down_speed_mps=float(self.get_parameter(
-                "max_down_speed_final_mps" if final_descent else "max_down_speed_mps"
-            ).value),
-            command_cutoff_hz=float(self.get_parameter("command_cutoff_hz").value),
-            max_command_rate_mps2=self.get_parameter("max_command_rate_mps2").value,
+        parameters = {
+            "tf_timeout_s": self.get_parameter("tf_timeout_s").value,
+            "tf_fallback_to_latest": self.get_parameter("tf_fallback_to_latest").value,
+            "max_state_age_s": self.get_parameter("max_state_age_s").value,
+            "max_reference_age_s": self.get_parameter("max_reference_age_s").value,
+            "start_filter_from_zero": self.get_parameter("start_filter_from_zero").value,
+            "z_kp": self.get_parameter("z_kp").value,
+            "z_kd": self.get_parameter("z_kd").value,
+            "max_xy_speed_mps": self.get_parameter("max_xy_speed_mps").value,
+            "max_xy_speed_final_mps": self.get_parameter("max_xy_speed_final_mps").value,
+            "max_up_speed_mps": self.get_parameter("max_up_speed_mps").value,
+            "max_down_speed_mps": self.get_parameter("max_down_speed_mps").value,
+            "max_down_speed_final_mps": self.get_parameter("max_down_speed_final_mps").value,
+            "command_cutoff_hz": self.get_parameter("command_cutoff_hz").value,
+            "max_command_rate_mps2": self.get_parameter("max_command_rate_mps2").value,
+        }
+        debug = self._command.update_control(
+            now, self._latest_state, self._latest_reference, parameters,
         )
-        result = self._control.compute(
-            relative_position,
-            relative_velocity,
-            pad_velocity,
-            height_above_pad=float(reference.height_above_pad),
-            vertical_reference_velocity=float(reference.vertical_reference_velocity),
-            parameters=parameters,
-        )
-        self._was_active = True
-
-        command_message = TwistStamped()
-        command_message.header.stamp = now.to_msg()
-        command_message.header.frame_id = self._controller_frame
-        command_message.twist.linear = numpy_to_vector3(result.command_filtered)
-        command_message.twist.angular.z = 0.0
-        self._latest_command = command_message
-
-        debug = LandingControllerDebug()
-        debug.header = command_message.header
-        debug.lqr_state_xy = [float(value) for value in result.lqr_state_xy]
-        debug.pad_velocity_controller_frame = numpy_to_vector3(pad_velocity)
-        debug.command_feedforward = numpy_to_vector3(result.command_feedforward)
-        debug.command_feedback = numpy_to_vector3(result.command_feedback)
-        debug.command_raw = numpy_to_vector3(result.command_raw)
-        debug.command_filtered = numpy_to_vector3(result.command_filtered)
-        debug.saturated = result.saturated
-        debug.rate_limited = result.rate_limited
-        debug.detail = detail
-        self._debug_publisher.publish(debug)
-
-    @staticmethod
-    def _age(now: Time, stamp) -> float:
-        return max(0.0, (now - Time.from_msg(stamp)).nanoseconds * 1e-09)
-
-    def _zero_message(self, now: Time, frame_id: Optional[str] = None) -> TwistStamped:
-        message = TwistStamped()
-        message.header.stamp = now.to_msg()
-        message.header.frame_id = frame_id if frame_id else self._controller_frame
-        return message
+        if debug is not None:
+            self._debug_publisher.publish(debug)
 
     def _publish_command(self) -> None:
-        """Select the FSM override or a fresh controller command at the output rate."""
-        now = self.get_clock().now()
-
-        if self._latest_reference is None:
-            self.get_logger().info(
-                "Landing output inactive: no landing reference",
-                throttle_duration_sec=2.0,
-            )
-            self._handle_disabled(now)
-            return
-
-        reference_age = self._age(now, self._latest_reference.header.stamp)
-        reference_timeout = float(self.get_parameter("reference_timeout_s").value)
-        if reference_age > reference_timeout:
-            self.get_logger().warning(
-                "Landing output inactive: landing reference stale "
-                f"({reference_age:.3f}s > {reference_timeout:.3f}s)",
-                throttle_duration_sec=2.0,
-            )
-            self._handle_disabled(now)
-            return
-
-        if not self._latest_reference.control_enabled:
-            self.get_logger().info(
-                "Landing output inactive: control disabled by landing manager",
-                throttle_duration_sec=2.0,
-            )
-            self._handle_disabled(now)
-            return
-
-        if self._latest_reference.override_active:
-            output = self._zero_message(now)
-            output.twist.linear.x = float(self._latest_reference.override_velocity.x)
-            output.twist.linear.y = float(self._latest_reference.override_velocity.y)
-            output.twist.linear.z = float(self._latest_reference.override_velocity.z)
+        output = self._command.select_output(
+            self.get_clock().now(), self._latest_reference,
+            controller_timeout_s=float(self.get_parameter("controller_timeout_s").value),
+            reference_timeout_s=float(self.get_parameter("reference_timeout_s").value),
+            zero_flush_cycles=int(self.get_parameter("zero_flush_cycles").value),
+        )
+        if output is not None:
             self._velocity_publisher.publish(output)
-            self._was_enabled = True
-            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
-            return
-
-        if self._latest_command is None:
-            self.get_logger().warning(
-                "Landing output enabled but no controller command has been received",
-                throttle_duration_sec=2.0,
-            )
-            self._velocity_publisher.publish(self._zero_message(now))
-            return
-
-        controller_age = self._age(now, self._latest_command.header.stamp)
-        controller_timeout = float(self.get_parameter("controller_timeout_s").value)
-        if controller_age > controller_timeout:
-            self.get_logger().warning(
-                "Landing output enabled but controller command stale "
-                f"({controller_age:.3f}s > {controller_timeout:.3f}s)",
-                throttle_duration_sec=2.0,
-            )
-            self._velocity_publisher.publish(self._zero_message(now))
-            self._was_enabled = True
-            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
-            return
-
-        output = self._zero_message(now, self._latest_command.header.frame_id)
-        output.twist.linear.x = float(self._latest_command.twist.linear.x)
-        output.twist.linear.y = float(self._latest_command.twist.linear.y)
-        output.twist.linear.z = float(self._latest_command.twist.linear.z)
-        output.twist.angular.x = float(self._latest_command.twist.angular.x)
-        output.twist.angular.y = float(self._latest_command.twist.angular.y)
-        output.twist.angular.z = float(self._latest_command.twist.angular.z)
-        self._velocity_publisher.publish(output)
-        self._was_enabled = True
-        self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
-
-    def _handle_disabled(self, now: Time) -> None:
-        if self._was_enabled:
-            self._was_enabled = False
-            self._flush_remaining = int(self.get_parameter("zero_flush_cycles").value)
-        if self._flush_remaining <= 0:
-            return
-
-        self._velocity_publisher.publish(self._zero_message(now))
-        self._flush_remaining -= 1
 
 
 def main(args=None) -> None:
