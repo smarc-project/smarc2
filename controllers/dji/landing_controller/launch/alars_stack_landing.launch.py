@@ -25,7 +25,6 @@ def generate_launch_description() -> LaunchDescription:
     model_kind = LaunchConfiguration("model_kind")
     model_sample_time = LaunchConfiguration("model_sample_time_s")
     config_file = LaunchConfiguration("config_file")
-    command_mirror_topic = LaunchConfiguration("command_mirror_topic")
     pad_class_name = LaunchConfiguration("pad_class_name")
     auto_start = LaunchConfiguration("auto_start")
     enable_descent = LaunchConfiguration("enable_descent")
@@ -112,12 +111,9 @@ def generate_launch_description() -> LaunchDescription:
                     {
                         "robot_name": robot_name,
                         "relative_state_topic": DjiTopics.RELATIVE_STATE_TOPIC,
-                        "reference_topic": DjiTopics.REFERENCE_TOPIC,
                         "status_topic": DjiTopics.STATUS_TOPIC,
                         "controller_frame": controller_frame,
-                        "controller_command_topic": DjiTopics.CONTROLLER_CMD_TOPIC,
                         "output_topic": DjiTopics.VELOCITY_SETPOINT_TOPIC,
-                        "mirror_vector_topic": command_mirror_topic,
                         "model_path": model_path,
                         "model_kind": model_kind,
                         "model_sample_time_s": ParameterValue(model_sample_time, value_type=float),
@@ -142,7 +138,6 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument("model_kind", default_value="auto"),
         DeclareLaunchArgument("model_sample_time_s", default_value="0.0"),
         DeclareLaunchArgument("config_file", default_value=default_config),
-        DeclareLaunchArgument("command_mirror_topic", default_value=""),
         DeclareLaunchArgument("pad_class_name", default_value="land_pad"),
         DeclareLaunchArgument("auto_start", default_value="false"),
         DeclareLaunchArgument("enable_descent", default_value="false", description="Remain in ALIGN at fixed height when false."),

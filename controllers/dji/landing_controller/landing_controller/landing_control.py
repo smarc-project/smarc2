@@ -123,7 +123,7 @@ class LandingControl:
         saturated_command = clamp(raw_command, lower, upper)
         saturated = not np.allclose(raw_command, saturated_command, rtol=0.0, atol=1e-12)
 
-        # Preserve the existing order: speed limit, low-pass, slew, speed limit.
+        # Order: speed limit, low-pass, slew, speed limit.
         filtered = first_order_lowpass(
             self._last_command,
             saturated_command,
