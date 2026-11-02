@@ -4,6 +4,7 @@
       load_cell_1: "sensor/load_cell_1"
       load_cell_2: "sensor/load_cell_2"
       load_cell_3: "sensor/load_cell_3"
+      output: "rope_force"
       sub_timeout: 0.5
 
     frames:
@@ -11,7 +12,6 @@
       load_cell_2: "LoadCell2"
       load_cell_3: "LoadCell3"
       rope_link: "rope_base_link"
-      output: "predicted_rope_link"
 
     plate_width: 0.05
     publish_rate: 10.0
