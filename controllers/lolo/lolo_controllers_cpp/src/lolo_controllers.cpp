@@ -120,6 +120,7 @@ public:
 
 
     //Setpoints
+    subscription_cmd_wp = this->create_subscription<geometry_msgs::msg::PointStamped>(lolo_msgs::msg::Topics::WP_SETPOINT, 10, std::bind(&Lolocontrol::waypoint_cmd_cb, this, std::placeholders::_1));
     subscription_cmd_yaw = this->create_subscription<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::YAW_SETPOINT, 10, std::bind(&Lolocontrol::yaw_cmd_cb, this, std::placeholders::_1));
     subscription_cmd_yawrate = this->create_subscription<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::YAW_RATE_SETPOINT, 10, std::bind(&Lolocontrol::yaw_rate_cmd_cb, this, std::placeholders::_1));
     subscription_cmd_roll = this->create_subscription<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::ROLL_SETPOINT, 10, std::bind(&Lolocontrol::roll_cmd_cb, this, std::placeholders::_1));
@@ -351,7 +352,7 @@ private:
     //***********************Steering*********************
     //high level = WP -> gives yaw
     if ((this->now() - wp_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tWP_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tWP_CONTROL");
       double dx = wp_goal_cmd.point.x - robot_position.pose.pose.position.x;
       double dy = wp_goal_cmd.point.y - robot_position.pose.pose.position.y;
       yaw_setpoint = atan2(dy,dx);
@@ -361,7 +362,7 @@ private:
     }
     //Yaw
     if ((this->now() - yaw_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tYAW_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tYAW_CONTROL");
       yaw_setpoint = yaw_cmd;
       steering_set = true;
     }
@@ -372,7 +373,7 @@ private:
         yaw_rate_setpoint = pid_yaw.update_error(error, time_now_seconds);
     }
     if ((this->now() - yaw_rate_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tYAWRATE_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tYAWRATE_CONTROL");
       yaw_rate_setpoint = yaw_rate_cmd;
       steering_set = true;
     }
@@ -383,7 +384,7 @@ private:
 
     //*************************depth**********************
     if ((this->now() - depth_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tDEPTH_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tDEPTH_CONTROL");
       depth_setpoint = depth_cmd;
       depth_set = true;
 
@@ -407,7 +408,7 @@ private:
     }
 
     if ((this->now() - pitch_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tPITCH_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tPITCH_CONTROL");
       pitch_setpoint = pitch_cmd;
       depth_set = true;
     }
@@ -419,7 +420,7 @@ private:
 
     //**************************roll***********************
     if ((this->now() - roll_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tROLL_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tROLL_CONTROL");
       roll_setpoint = roll_cmd;
       roll_set = true;
     }
@@ -435,7 +436,7 @@ private:
 
     //**************************Speed**********************
     if ((this->now() - speed_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tSPEED_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tSPEED_CONTROL");
       speed_setpoint = speed_cmd;
       speed_set = true;
     }
@@ -444,7 +445,7 @@ private:
       thruster_actuation = pid_speed.update_error(error, time_now_seconds);
     }
     if ((this->now() - rpm_cmd_received_time) < rclcpp::Duration::from_seconds(1.0)) {
-      RCLCPP_WARN(this->get_logger(), "\tRPM_CONTROL");
+      RCLCPP_INFO(this->get_logger(), "\tRPM_CONTROL");
       thruster_actuation = rpm_cmd;
       speed_set = true;
     }
@@ -461,7 +462,7 @@ private:
     std_msgs::msg::Float32 vertical_thruster_back_port;
     std_msgs::msg::Float32 vertical_thruster_back_strb;
 
-    bool diving = robot_position.pose.pose.position.z >= -0.5;
+    bool diving = robot_position.pose.pose.position.z <= -0.8;
 
     //dive help (Vertical thrusters)
     /*
@@ -475,10 +476,11 @@ private:
     */
 
     //Yaw error bucket
-    if(diving) yaw_error_bucket = 0; // At the surface
-    else yaw_error_bucket += std::abs(yaw_rate_error);
+    yaw_error_bucket += std::abs(yaw_rate_error);
     yaw_error_bucket = std::max(0.0, yaw_error_bucket-yaw_error_bucket_leak);
     yaw_error_bucket = std::min(yaw_error_bucket, yaw_error_bucket_max);
+
+    RCLCPP_INFO(this->get_logger(), "Yaw error bucket: %f", yaw_error_bucket);
 
     //Steering
     if(steering_set) {
@@ -498,9 +500,13 @@ private:
       if(speed_set && (!diving || yaw_error_bucket > yaw_error_bucket_limit) ) {
         thruster_port.data = -1 * differential_thrust_gain*yaw_actuation_filtered;
         thruster_strb.data = differential_thrust_gain*yaw_actuation_filtered;
-        if(diving) {
-          thruster_port.data = std::clamp(thruster_port.data, -150.f, 150.f);
-          thruster_strb.data = std::clamp(thruster_strb.data, -150.f, 150.f);
+        if(diving) { //Clamp differential thrust when diving
+          thruster_port.data = std::clamp(thruster_port.data, -dive_diff_thrust_limit, dive_diff_thrust_limit);
+          thruster_strb.data = std::clamp(thruster_strb.data, -dive_diff_thrust_limit, dive_diff_thrust_limit);
+        } else { //reduce forward speed if steering error is big on the surface
+          double scaling_factor = std::max(0.0, 1.0 - 1.5*(std::abs(yaw_actuation_filtered)));
+          thruster_actuation *= scaling_factor;
+          RCLCPP_INFO(this->get_logger(), "RPM scaled by: %f", scaling_factor);
         }
       }
     }
@@ -586,6 +592,8 @@ private:
     stat.add("pid_speed_proportional_output", pid_speed.get_p_component());
     stat.add("pid_speed_integral_output", pid_speed.get_i_component());
     stat.add("pid_speed_derivative_output", pid_speed.get_d_component());
+    //Yaw error bucket
+    stat.add("yaw_error_bucket", yaw_error_bucket);
   }
 
   // ============ local variables =============
@@ -631,7 +639,7 @@ private:
   double yaw_error_bucket_limit = 15;
   double yaw_error_bucket_max = 20;
   //diferential thrust limits
-  double dive_diff_thrust_limit = 150;
+  float dive_diff_thrust_limit = 300;
   float max_rpm = 1000;
   int thruster_counter = 0;
   int thruster_publish_interval = 5;
