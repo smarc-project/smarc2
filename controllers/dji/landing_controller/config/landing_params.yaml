@@ -16,8 +16,12 @@
       pad_twist_frame_mode: header
 
     landing_manager:
-      controller_frame: M350/base_flat_link
       update_rate_hz: 40.0
+      # Final command output runs independently of the FSM timer.
+      publish_rate_hz: 50.0
+      controller_timeout_s: 0.8
+      reference_timeout_s: 0.8
+      zero_flush_cycles: 10
       auto_start: false
       enable_descent: false
       acquire_duration_s: 2.0
@@ -66,13 +70,6 @@
       command_cutoff_hz: 1.5
       max_command_rate_mps2: [2.0, 2.0, 0.5] #[1.2, 1.2, 0.35]
       start_filter_from_zero: true
-
-    landing_velocity_command_mux:
-      controller_frame: M350/base_flat_link
-      publish_rate_hz: 50.0
-      controller_timeout_s: 0.8
-      reference_timeout_s: 0.8
-      zero_flush_cycles: 10
 
     landing_pad_odom_adapter:
       enable_dropout_prediction: true
