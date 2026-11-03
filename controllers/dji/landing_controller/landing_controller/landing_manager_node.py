@@ -60,97 +60,97 @@ class LandingManagerNode(Node):
         self._state_lock = RLock()
 
         self.declare_parameter("robot_name", "M350")
-        self.declare_parameter("relative_state_topic", DJITopics.RELATIVE_STATE_TOPIC)
-        self.declare_parameter("status_topic", DJITopics.STATUS_TOPIC)
-        self.declare_parameter("start_service", DJITopics.LANDING_START_SERVICE)
-        self.declare_parameter("abort_service", DJITopics.LANDING_ABORT_SERVICE)
-        self.declare_parameter("reset_service", DJITopics.LANDING_RESET_SERVICE)
-        self.declare_parameter("update_rate_hz", 20.0)
-        self.declare_parameter("auto_start", False)
-        self.declare_parameter("enable_descent", True)
-        self.declare_parameter("action_name", "alars_land_on_pad")
-        self.declare_parameter("default_timeout", 120.0)
+        self.declare_parameter("landing_manager.relative_state_topic", DJITopics.RELATIVE_STATE_TOPIC)
+        self.declare_parameter("landing_manager.status_topic", DJITopics.STATUS_TOPIC)
+        self.declare_parameter("landing_manager.start_service", DJITopics.LANDING_START_SERVICE)
+        self.declare_parameter("landing_manager.abort_service", DJITopics.LANDING_ABORT_SERVICE)
+        self.declare_parameter("landing_manager.reset_service", DJITopics.LANDING_RESET_SERVICE)
+        self.declare_parameter("landing_manager.update_rate_hz", 20.0)
+        self.declare_parameter("landing_manager.auto_start", False)
+        self.declare_parameter("landing_manager.enable_descent", True)
+        self.declare_parameter("landing_manager.action_name", "alars_land_on_pad")
+        self.declare_parameter("landing_manager.default_timeout", 120.0)
 
         # Command output and watchdogs, previously owned by the velocity mux.
-        self.declare_parameter("output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
-        self.declare_parameter("publish_rate_hz", 50.0)
-        self.declare_parameter("controller_timeout_s", 0.15)
-        self.declare_parameter("reference_timeout_s", 0.25)
-        self.declare_parameter("zero_flush_cycles", 8)
+        self.declare_parameter("landing_manager.output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
+        self.declare_parameter("landing_manager.publish_rate_hz", 50.0)
+        self.declare_parameter("landing_manager.controller_timeout_s", 0.15)
+        self.declare_parameter("landing_manager.reference_timeout_s", 0.25)
+        self.declare_parameter("landing_manager.zero_flush_cycles", 8)
 
         # Model and control tuning; the calculations remain in landing_control.py.
-        self.declare_parameter("model_path", "")
-        self.declare_parameter("model_kind", "auto")
-        self.declare_parameter("model_sample_time_s", 0.0)
-        self.declare_parameter("debug_topic", DJITopics.CONTROLLER_DEBUG_TOPIC)
-        self.declare_parameter("tf_timeout_s", 0.04)
-        self.declare_parameter("tf_fallback_to_latest", True)
-        self.declare_parameter("max_state_age_s", 0.20)
-        self.declare_parameter("max_reference_age_s", 0.20)
-        self.declare_parameter("q_diagonal_xy", [12.0, 12.0, 4.0, 4.0])
-        self.declare_parameter("r_diagonal_xy", [1.0, 1.0])
-        self.declare_parameter("z_kp", 0.75)
-        self.declare_parameter("z_kd", 0.30)
-        self.declare_parameter("max_xy_speed_mps", 1.0)
-        self.declare_parameter("max_xy_speed_final_mps", 0.35)
-        self.declare_parameter("max_up_speed_mps", 0.45)
-        self.declare_parameter("max_down_speed_mps", 0.25)
-        self.declare_parameter("max_down_speed_final_mps", 0.10)
-        self.declare_parameter("command_cutoff_hz", 0.8)
-        self.declare_parameter("max_command_rate_mps2", [0.8, 0.8, 0.5])
-        self.declare_parameter("start_filter_from_zero", True)
+        self.declare_parameter("landing_lqr_controller.model_path", "")
+        self.declare_parameter("landing_lqr_controller.model_kind", "auto")
+        self.declare_parameter("landing_lqr_controller.model_sample_time_s", 0.0)
+        self.declare_parameter("landing_lqr_controller.debug_topic", DJITopics.CONTROLLER_DEBUG_TOPIC)
+        self.declare_parameter("landing_lqr_controller.tf_timeout_s", 0.04)
+        self.declare_parameter("landing_lqr_controller.tf_fallback_to_latest", True)
+        self.declare_parameter("landing_lqr_controller.max_state_age_s", 0.20)
+        self.declare_parameter("landing_lqr_controller.max_reference_age_s", 0.20)
+        self.declare_parameter("landing_lqr_controller.q_diagonal_xy", [12.0, 12.0, 4.0, 4.0])
+        self.declare_parameter("landing_lqr_controller.r_diagonal_xy", [1.0, 1.0])
+        self.declare_parameter("landing_lqr_controller.z_kp", 0.75)
+        self.declare_parameter("landing_lqr_controller.z_kd", 0.30)
+        self.declare_parameter("landing_lqr_controller.max_xy_speed_mps", 1.0)
+        self.declare_parameter("landing_lqr_controller.max_xy_speed_final_mps", 0.35)
+        self.declare_parameter("landing_lqr_controller.max_up_speed_mps", 0.45)
+        self.declare_parameter("landing_lqr_controller.max_down_speed_mps", 0.25)
+        self.declare_parameter("landing_lqr_controller.max_down_speed_final_mps", 0.10)
+        self.declare_parameter("landing_lqr_controller.command_cutoff_hz", 0.8)
+        self.declare_parameter("landing_lqr_controller.max_command_rate_mps2", [0.8, 0.8, 0.5])
+        self.declare_parameter("landing_lqr_controller.start_filter_from_zero", True)
 
-        self.declare_parameter("acquire_duration_s", 1.0)
-        self.declare_parameter("minimum_align_height_m", 2.0)
-        self.declare_parameter("capture_current_height_on_align", True)
-        self.declare_parameter("align_xy_tolerance_m", 0.40)
-        self.declare_parameter("align_speed_tolerance_mps", 0.25)
-        self.declare_parameter("align_dwell_s", 1.5)
+        self.declare_parameter("landing_manager.acquire_duration_s", 1.0)
+        self.declare_parameter("landing_manager.minimum_align_height_m", 2.0)
+        self.declare_parameter("landing_manager.capture_current_height_on_align", True)
+        self.declare_parameter("landing_manager.align_xy_tolerance_m", 0.40)
+        self.declare_parameter("landing_manager.align_speed_tolerance_mps", 0.25)
+        self.declare_parameter("landing_manager.align_dwell_s", 1.5)
 
-        self.declare_parameter("descent_rate_mps", 0.20)
-        self.declare_parameter("descent_pause_xy_m", 0.55)
-        self.declare_parameter("descent_pause_speed_mps", 0.35)
-        self.declare_parameter("final_descent_height_m", 0.50)
-        self.declare_parameter("final_descent_entry_margin_m", 0.20)
-        self.declare_parameter("final_descent_rate_mps", 0.08)
+        self.declare_parameter("landing_manager.descent_rate_mps", 0.20)
+        self.declare_parameter("landing_manager.descent_pause_xy_m", 0.55)
+        self.declare_parameter("landing_manager.descent_pause_speed_mps", 0.35)
+        self.declare_parameter("landing_manager.final_descent_height_m", 0.50)
+        self.declare_parameter("landing_manager.final_descent_entry_margin_m", 0.20)
+        self.declare_parameter("landing_manager.final_descent_rate_mps", 0.08)
 
-        self.declare_parameter("touchdown_height_m", 0.08)
-        self.declare_parameter("touchdown_detection_height_m", 0.12)
-        self.declare_parameter("touchdown_xy_tolerance_m", 0.25)
-        self.declare_parameter("touchdown_vertical_speed_mps", 0.15)
-        self.declare_parameter("touchdown_dwell_s", 0.6)
-        self.declare_parameter("touchdown_hold_s", 1.0)
+        self.declare_parameter("landing_manager.touchdown_height_m", 0.08)
+        self.declare_parameter("landing_manager.touchdown_detection_height_m", 0.12)
+        self.declare_parameter("landing_manager.touchdown_xy_tolerance_m", 0.25)
+        self.declare_parameter("landing_manager.touchdown_vertical_speed_mps", 0.15)
+        self.declare_parameter("landing_manager.touchdown_dwell_s", 0.6)
+        self.declare_parameter("landing_manager.touchdown_hold_s", 1.0)
 
-        self.declare_parameter("estimate_loss_abort_s", 1.0)
-        self.declare_parameter("abort_xy_error_m", 2.0)
-        self.declare_parameter("abort_safe_height_m", 2.5)
-        self.declare_parameter("abort_climb_speed_mps", 0.35)
-        self.declare_parameter("abort_climb_duration_s", 4.0)
-        self.declare_parameter("abort_hold_duration_s", 1.0)
+        self.declare_parameter("landing_manager.estimate_loss_abort_s", 1.0)
+        self.declare_parameter("landing_manager.abort_xy_error_m", 2.0)
+        self.declare_parameter("landing_manager.abort_safe_height_m", 2.5)
+        self.declare_parameter("landing_manager.abort_climb_speed_mps", 0.35)
+        self.declare_parameter("landing_manager.abort_climb_duration_s", 4.0)
+        self.declare_parameter("landing_manager.abort_hold_duration_s", 1.0)
 
-        self.declare_parameter("turn_off_motors_on_landed", False)
-        self.declare_parameter("turn_off_motors_service", PsdkTopics.PROPS_OFF_SRV)
+        self.declare_parameter("landing_manager.turn_off_motors_on_landed", False)
+        self.declare_parameter("landing_manager.turn_off_motors_service", PsdkTopics.PROPS_OFF_SRV)
 
         self._robot_name = str(self.get_parameter("robot_name").value)
-        self.declare_parameter("controller_frame", f"{self._robot_name}/{DJILinks.BASE_FLAT}")
-        self._controller_frame = str(self.get_parameter("controller_frame").value)
+        self.declare_parameter("landing_lqr_controller.controller_frame", f"{self._robot_name}/{DJILinks.BASE_FLAT}")
+        self._controller_frame = str(self.get_parameter("landing_lqr_controller.controller_frame").value)
 
-        model_path = str(self.get_parameter("model_path").value)
+        model_path = str(self.get_parameter("landing_lqr_controller.model_path").value)
         if not model_path:
             model_path = str(
                 Path(get_package_share_directory("dji_captain"))
                 / "models/M350/discrete_model/discrete_models.yaml"
             )
-        sample_time = float(self.get_parameter("model_sample_time_s").value)
+        sample_time = float(self.get_parameter("landing_lqr_controller.model_sample_time_s").value)
         self._model: DiscreteVelocityModel = load_velocity_model(
             model_path,
-            model_kind=str(self.get_parameter("model_kind").value),
+            model_kind=str(self.get_parameter("landing_lqr_controller.model_kind").value),
             sample_time=sample_time if sample_time > 0.0 else None,
         )
         control = LandingControl(
             self._model,
-            self.get_parameter("q_diagonal_xy").value,
-            self.get_parameter("r_diagonal_xy").value,
+            self.get_parameter("landing_lqr_controller.q_diagonal_xy").value,
+            self.get_parameter("landing_lqr_controller.r_diagonal_xy").value,
         )
         self.get_logger().info(
             f"Loaded M350 model from {self._model.source}; "
@@ -161,7 +161,7 @@ class LandingManagerNode(Node):
         self._listener = TransformListener(buffer, self)
         self._command = LandingCommand(control, self._controller_frame, buffer, self.get_logger())
 
-        motor_service = str(self.get_parameter("turn_off_motors_service").value)
+        motor_service = str(self.get_parameter("landing_manager.turn_off_motors_service").value)
         self._turn_off_motors_client = self.create_client(Trigger, motor_service)
         self._motor_off_requested = False
 
@@ -182,34 +182,34 @@ class LandingManagerNode(Node):
 
         self.create_subscription(
             LandingRelativeState,
-            str(self.get_parameter("relative_state_topic").value),
+            str(self.get_parameter("landing_manager.relative_state_topic").value),
             self._relative_state_callback,
             20,
         )
 
         self._status_publisher = self.create_publisher(
             LandingStatus,
-            str(self.get_parameter("status_topic").value),
+            str(self.get_parameter("landing_manager.status_topic").value),
             20,
         )
         self._debug_publisher = self.create_publisher(
             LandingControllerDebug,
-            str(self.get_parameter("debug_topic").value),
+            str(self.get_parameter("landing_lqr_controller.debug_topic").value),
             20,
         )
 
-        output_topic = str(self.get_parameter("output_topic").value)
+        output_topic = str(self.get_parameter("landing_manager.output_topic").value)
         self._velocity_publisher = self.create_publisher(TwistStamped, output_topic, 20)
         self.get_logger().info(f"Landing velocity output: {output_topic} [TwistStamped]")
 
         self.create_service(
-            Trigger, str(self.get_parameter("start_service").value), self._start_service
+            Trigger, str(self.get_parameter("landing_manager.start_service").value), self._start_service
         )
         self.create_service(
-            Trigger, str(self.get_parameter("abort_service").value), self._abort_service
+            Trigger, str(self.get_parameter("landing_manager.abort_service").value), self._abort_service
         )
         self.create_service(
-            Trigger, str(self.get_parameter("reset_service").value), self._reset_service
+            Trigger, str(self.get_parameter("landing_manager.reset_service").value), self._reset_service
         )
 
         self._action_server = LandingActionServer(
@@ -222,10 +222,10 @@ class LandingManagerNode(Node):
             state_lock=self._state_lock,
         )
 
-        update_rate = float(self.get_parameter("update_rate_hz").value)
+        update_rate = float(self.get_parameter("landing_manager.update_rate_hz").value)
         if update_rate <= 0.0:
             raise ValueError("update_rate_hz must be positive")
-        publish_rate = float(self.get_parameter("publish_rate_hz").value)
+        publish_rate = float(self.get_parameter("landing_manager.publish_rate_hz").value)
         if publish_rate <= 0.0:
             raise ValueError("publish_rate_hz must be positive")
 
@@ -339,18 +339,18 @@ class LandingManagerNode(Node):
         self.get_logger().info(f"Landing state {old_state.name} -> {new_state.name}: {detail}")
 
         if new_state == LandingState.ALIGN:
-            minimum = float(self.get_parameter("minimum_align_height_m").value)
+            minimum = float(self.get_parameter("landing_manager.minimum_align_height_m").value)
             relative_height = self._relative_height()
             self._height_reference = (
                 max(relative_height, minimum)
-                if bool(self.get_parameter("capture_current_height_on_align").value)
+                if bool(self.get_parameter("landing_manager.capture_current_height_on_align").value)
                 else minimum
             )
 
         elif new_state == LandingState.ACQUIRE and self._latest_state is not None:
             self._height_reference = max(
                 self._relative_height(),
-                float(self.get_parameter("minimum_align_height_m").value),
+                float(self.get_parameter("landing_manager.minimum_align_height_m").value),
             )
 
         elif new_state == LandingState.LANDED:
@@ -379,7 +379,7 @@ class LandingManagerNode(Node):
     def _request_motor_off(self) -> None:
         if (
             self._motor_off_requested
-            or not bool(self.get_parameter("turn_off_motors_on_landed").value)
+            or not bool(self.get_parameter("landing_manager.turn_off_motors_on_landed").value)
         ):
             return
         if self._state != LandingState.LANDED:
@@ -432,14 +432,14 @@ class LandingManagerNode(Node):
             if self._invalid_since is None:
                 self._invalid_since = now
 
-            timeout = float(self.get_parameter("estimate_loss_abort_s").value)
+            timeout = float(self.get_parameter("landing_manager.estimate_loss_abort_s").value)
             if self._elapsed_since(now, self._invalid_since) >= timeout:
                 self._transition(LandingState.ABORT_CLIMB, "landing estimate lost")
             return False
 
         self._invalid_since = None
         xy_error, _, _, _ = self._metrics()
-        if xy_error > float(self.get_parameter("abort_xy_error_m").value):
+        if xy_error > float(self.get_parameter("landing_manager.abort_xy_error_m").value):
             self._transition(
                 LandingState.ABORT_CLIMB,
                 "horizontal error exceeded abort limit",
@@ -456,7 +456,7 @@ class LandingManagerNode(Node):
             self._last_vertical_reference_velocity = 0.0
 
             if (
-                bool(self.get_parameter("auto_start").value)
+                bool(self.get_parameter("landing_manager.auto_start").value)
                 and not self._auto_start_consumed
                 and not self._action_server.pending
                 and self._latest_state is not None
@@ -495,12 +495,12 @@ class LandingManagerNode(Node):
                     self._update_final_descent(now, dt)
 
             elif self._state == LandingState.TOUCHDOWN:
-                if self._state_elapsed(now) >= float(self.get_parameter("touchdown_hold_s").value):
+                if self._state_elapsed(now) >= float(self.get_parameter("landing_manager.touchdown_hold_s").value):
                     self._transition(LandingState.LANDED, "touchdown hold complete")
 
             elif self._state == LandingState.ABORT_CLIMB:
-                safe_height = float(self.get_parameter("abort_safe_height_m").value)
-                duration = float(self.get_parameter("abort_climb_duration_s").value)
+                safe_height = float(self.get_parameter("landing_manager.abort_safe_height_m").value)
+                duration = float(self.get_parameter("landing_manager.abort_climb_duration_s").value)
 
                 if (
                     (estimate_valid and relative_height >= safe_height)
@@ -509,7 +509,7 @@ class LandingManagerNode(Node):
                     self._transition(LandingState.ABORT_HOLD, "abort climb complete")
 
             elif self._state == LandingState.ABORT_HOLD:
-                if self._state_elapsed(now) >= float(self.get_parameter("abort_hold_duration_s").value):
+                if self._state_elapsed(now) >= float(self.get_parameter("landing_manager.abort_hold_duration_s").value):
                     self._reset_states()
                     self._transition(LandingState.IDLE, "abort complete")
                     self._action_server.set_result(False)
@@ -529,7 +529,7 @@ class LandingManagerNode(Node):
                 self._valid_since = now
 
             if self._elapsed_since(now, self._valid_since) >= float(
-                self.get_parameter("acquire_duration_s").value
+                self.get_parameter("landing_manager.acquire_duration_s").value
             ):
                 self._transition(LandingState.ALIGN, "estimate stable")
         else:
@@ -538,26 +538,26 @@ class LandingManagerNode(Node):
     def _update_align(self, now: Time) -> None:
         xy_error, xy_speed, _, _ = self._metrics()
         aligned = (
-            xy_error <= float(self.get_parameter("align_xy_tolerance_m").value)
-            and xy_speed <= float(self.get_parameter("align_speed_tolerance_mps").value)
+            xy_error <= float(self.get_parameter("landing_manager.align_xy_tolerance_m").value)
+            and xy_speed <= float(self.get_parameter("landing_manager.align_speed_tolerance_mps").value)
         )
 
         if self._condition_dwell(
-            aligned, now, float(self.get_parameter("align_dwell_s").value)
+            aligned, now, float(self.get_parameter("landing_manager.align_dwell_s").value)
         ):
-            if bool(self.get_parameter("enable_descent").value):
+            if bool(self.get_parameter("landing_manager.enable_descent").value):
                 self._transition(LandingState.DESCEND, "horizontal alignment stable")
             else:
                 self._detail = "tracking-only: alignment stable"
 
     def _update_descend(self, dt: float) -> None:
-        final_height = float(self.get_parameter("final_descent_height_m").value)
+        final_height = float(self.get_parameter("landing_manager.final_descent_height_m").value)
         self._last_descent_allowed = self._descent_is_allowed()
         if self._last_descent_allowed:
-            rate = float(self.get_parameter("descent_rate_mps").value)
+            rate = float(self.get_parameter("landing_manager.descent_rate_mps").value)
             self._lower_height_reference(dt, rate, final_height)
 
-        entry_margin = float(self.get_parameter("final_descent_entry_margin_m").value)
+        entry_margin = float(self.get_parameter("landing_manager.final_descent_entry_margin_m").value)
         if (
             self._height_reference <= final_height + 1e-06
             and self._relative_height() <= final_height + entry_margin
@@ -567,24 +567,24 @@ class LandingManagerNode(Node):
     def _update_final_descent(self, now: Time, dt: float) -> None:
         self._last_descent_allowed = self._descent_is_allowed()
         if self._last_descent_allowed:
-            rate = float(self.get_parameter("final_descent_rate_mps").value)
-            touchdown_height = float(self.get_parameter("touchdown_height_m").value)
+            rate = float(self.get_parameter("landing_manager.final_descent_rate_mps").value)
+            touchdown_height = float(self.get_parameter("landing_manager.touchdown_height_m").value)
             self._lower_height_reference(dt, rate, touchdown_height)
 
         xy_error, _, relative_height, vertical_speed = self._metrics()
         # Require low gear clearance, XY alignment and relative
         # vertical speed together for the configured dwell.
         touchdown_condition = (
-            relative_height <= float(self.get_parameter("touchdown_detection_height_m").value)
-            and xy_error <= float(self.get_parameter("touchdown_xy_tolerance_m").value)
+            relative_height <= float(self.get_parameter("landing_manager.touchdown_detection_height_m").value)
+            and xy_error <= float(self.get_parameter("landing_manager.touchdown_xy_tolerance_m").value)
             and abs(vertical_speed)
-            <= float(self.get_parameter("touchdown_vertical_speed_mps").value)
+            <= float(self.get_parameter("landing_manager.touchdown_vertical_speed_mps").value)
         )
 
         if self._condition_dwell(
             touchdown_condition,
             now,
-            float(self.get_parameter("touchdown_dwell_s").value),
+            float(self.get_parameter("landing_manager.touchdown_dwell_s").value),
         ):
             self._transition(LandingState.TOUCHDOWN, "touchdown conditions stable")
 
@@ -594,8 +594,8 @@ class LandingManagerNode(Node):
     def _descent_is_allowed(self) -> bool:
         xy_error, xy_speed, _, _ = self._metrics()
         return (
-            xy_error <= float(self.get_parameter("descent_pause_xy_m").value)
-            and xy_speed <= float(self.get_parameter("descent_pause_speed_mps").value)
+            xy_error <= float(self.get_parameter("landing_manager.descent_pause_xy_m").value)
+            and xy_speed <= float(self.get_parameter("landing_manager.descent_pause_speed_mps").value)
         )
 
     def _lower_height_reference(self, dt: float, rate: float, floor: float) -> None:
@@ -627,7 +627,7 @@ class LandingManagerNode(Node):
         if self._state == LandingState.ABORT_CLIMB:
             message.control_enabled = True
             message.override_active = True
-            message.override_velocity.z = float(self.get_parameter("abort_climb_speed_mps").value)
+            message.override_velocity.z = float(self.get_parameter("landing_manager.abort_climb_speed_mps").value)
 
         elif self._state in {LandingState.ABORT_HOLD, LandingState.TOUCHDOWN}:
             message.control_enabled = True
@@ -672,20 +672,20 @@ class LandingManagerNode(Node):
         with self._state_lock:
             now = self.get_clock().now()
             parameters = {
-                "tf_timeout_s": self.get_parameter("tf_timeout_s").value,
-                "tf_fallback_to_latest": self.get_parameter("tf_fallback_to_latest").value,
-                "max_state_age_s": self.get_parameter("max_state_age_s").value,
-                "max_reference_age_s": self.get_parameter("max_reference_age_s").value,
-                "start_filter_from_zero": self.get_parameter("start_filter_from_zero").value,
-                "z_kp": self.get_parameter("z_kp").value,
-                "z_kd": self.get_parameter("z_kd").value,
-                "max_xy_speed_mps": self.get_parameter("max_xy_speed_mps").value,
-                "max_xy_speed_final_mps": self.get_parameter("max_xy_speed_final_mps").value,
-                "max_up_speed_mps": self.get_parameter("max_up_speed_mps").value,
-                "max_down_speed_mps": self.get_parameter("max_down_speed_mps").value,
-                "max_down_speed_final_mps": self.get_parameter("max_down_speed_final_mps").value,
-                "command_cutoff_hz": self.get_parameter("command_cutoff_hz").value,
-                "max_command_rate_mps2": self.get_parameter("max_command_rate_mps2").value,
+                "tf_timeout_s": self.get_parameter("landing_lqr_controller.tf_timeout_s").value,
+                "tf_fallback_to_latest": self.get_parameter("landing_lqr_controller.tf_fallback_to_latest").value,
+                "max_state_age_s": self.get_parameter("landing_lqr_controller.max_state_age_s").value,
+                "max_reference_age_s": self.get_parameter("landing_lqr_controller.max_reference_age_s").value,
+                "start_filter_from_zero": self.get_parameter("landing_lqr_controller.start_filter_from_zero").value,
+                "z_kp": self.get_parameter("landing_lqr_controller.z_kp").value,
+                "z_kd": self.get_parameter("landing_lqr_controller.z_kd").value,
+                "max_xy_speed_mps": self.get_parameter("landing_lqr_controller.max_xy_speed_mps").value,
+                "max_xy_speed_final_mps": self.get_parameter("landing_lqr_controller.max_xy_speed_final_mps").value,
+                "max_up_speed_mps": self.get_parameter("landing_lqr_controller.max_up_speed_mps").value,
+                "max_down_speed_mps": self.get_parameter("landing_lqr_controller.max_down_speed_mps").value,
+                "max_down_speed_final_mps": self.get_parameter("landing_lqr_controller.max_down_speed_final_mps").value,
+                "command_cutoff_hz": self.get_parameter("landing_lqr_controller.command_cutoff_hz").value,
+                "max_command_rate_mps2": self.get_parameter("landing_lqr_controller.max_command_rate_mps2").value,
             }
             debug = self._command.update_control(
                 now, self._latest_state, self._latest_reference, parameters,
@@ -697,9 +697,9 @@ class LandingManagerNode(Node):
         with self._state_lock:
             output = self._command.select_output(
                 self.get_clock().now(), self._latest_reference,
-                controller_timeout_s=float(self.get_parameter("controller_timeout_s").value),
-                reference_timeout_s=float(self.get_parameter("reference_timeout_s").value),
-                zero_flush_cycles=int(self.get_parameter("zero_flush_cycles").value),
+                controller_timeout_s=float(self.get_parameter("landing_manager.controller_timeout_s").value),
+                reference_timeout_s=float(self.get_parameter("landing_manager.reference_timeout_s").value),
+                zero_flush_cycles=int(self.get_parameter("landing_manager.zero_flush_cycles").value),
             )
             if output is not None:
                 self._velocity_publisher.publish(output)

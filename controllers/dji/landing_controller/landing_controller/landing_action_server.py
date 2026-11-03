@@ -44,11 +44,11 @@ class LandingActionServer:
         self._result: Optional[bool] = None
         self._cancel_requested = False
         self._goal_started_at: Optional[Time] = None
-        self._goal_timeout = float(node.get_parameter("default_timeout").value)
+        self._goal_timeout = float(node.get_parameter("landing_manager.default_timeout").value)
         if not math.isfinite(self._goal_timeout) or self._goal_timeout <= 0.0:
             raise ValueError("default_timeout must be finite and positive")
 
-        action_name = node.get_parameter("action_name").value
+        action_name = node.get_parameter("landing_manager.action_name").value
         self._server = ActionServer(
             node, BaseAction, action_name, self._execute_landing,
             goal_callback=self._on_goal_received,
@@ -90,7 +90,7 @@ class LandingActionServer:
             goal = json.loads(request.goal.data)
             if not isinstance(goal, dict):
                 raise ValueError("expected a JSON object")
-            timeout = float(goal.get("timeout", self._node.get_parameter("default_timeout").value))
+            timeout = float(goal.get("timeout", self._node.get_parameter("landing_manager.default_timeout").value))
             if not math.isfinite(timeout) or timeout <= 0.0:
                 raise ValueError("timeout must be finite and positive")
         except (TypeError, ValueError, OverflowError) as error:

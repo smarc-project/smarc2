@@ -36,63 +36,63 @@ class ObjectArrayToOdometryNode(Node):
         super().__init__("object_array_to_odometry", **node_kwargs)
 
         # Input/output.
-        self.declare_parameter("pose_array_topic", DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
-        self.declare_parameter("status_array_topic", DJITopics.OBJECT_EKF_STATUS_ARRAY_TOPIC)
-        self.declare_parameter("landing_status_topic", DJITopics.STATUS_TOPIC)
-        self.declare_parameter("output_topic", DJITopics.PAD_ODOM_TOPIC)
-        self.declare_parameter("class_name", "landing_pad")
-        self.declare_parameter("child_frame_id", "landing_pad")
+        self.declare_parameter("landing_pad_odom_adapter.pose_array_topic", DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.status_array_topic", DJITopics.OBJECT_EKF_STATUS_ARRAY_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.landing_status_topic", DJITopics.STATUS_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.output_topic", DJITopics.PAD_ODOM_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.class_name", "landing_pad")
+        self.declare_parameter("landing_pad_odom_adapter.child_frame_id", "landing_pad")
 
         # EKF validity.
-        self.declare_parameter("require_status", True)
-        self.declare_parameter("max_status_message_age_s", 1.0)
-        self.declare_parameter("max_time_since_update_s", 0.35)
-        self.declare_parameter("max_time_since_measurement_s", 0.50)
-        self.declare_parameter("max_covariance_trace", -1.0)
-        self.declare_parameter("max_consecutive_outliers", 5)
-        self.declare_parameter("max_consecutive_invalid_measurements", 5)
+        self.declare_parameter("landing_pad_odom_adapter.require_status", True)
+        self.declare_parameter("landing_pad_odom_adapter.max_status_message_age_s", 1.0)
+        self.declare_parameter("landing_pad_odom_adapter.max_time_since_update_s", 0.35)
+        self.declare_parameter("landing_pad_odom_adapter.max_time_since_measurement_s", 0.50)
+        self.declare_parameter("landing_pad_odom_adapter.max_covariance_trace", -1.0)
+        self.declare_parameter("landing_pad_odom_adapter.max_consecutive_outliers", 5)
+        self.declare_parameter("landing_pad_odom_adapter.max_consecutive_invalid_measurements", 5)
 
         # Normal velocity estimator.
-        self.declare_parameter("velocity_filter_tau_s", 0.25)
-        self.declare_parameter("min_dt_s", 0.01)
-        self.declare_parameter("max_dt_s", 0.50)
-        self.declare_parameter("velocity_variance", 0.10)
+        self.declare_parameter("landing_pad_odom_adapter.velocity_filter_tau_s", 0.25)
+        self.declare_parameter("landing_pad_odom_adapter.min_dt_s", 0.01)
+        self.declare_parameter("landing_pad_odom_adapter.max_dt_s", 0.50)
+        self.declare_parameter("landing_pad_odom_adapter.velocity_variance", 0.10)
 
         # Timestamp handling.
-        self.declare_parameter("replace_zero_stamp_with_now", True)
-        self.declare_parameter("use_array_header_if_object_header_empty", True)
+        self.declare_parameter("landing_pad_odom_adapter.replace_zero_stamp_with_now", True)
+        self.declare_parameter("landing_pad_odom_adapter.use_array_header_if_object_header_empty", True)
 
         # Dropout prediction.
-        self.declare_parameter("enable_dropout_prediction", False)
-        self.declare_parameter("prediction_only_in_final_descent", True)
-        self.declare_parameter("prediction_start_after_s", 0.30)
-        self.declare_parameter("max_prediction_s", 12.0)
-        self.declare_parameter("prediction_publish_rate_hz", 20.0)
-        self.declare_parameter("prediction_position_variance_rate", 0.01)
-        self.declare_parameter("prediction_velocity_variance_rate", 0.01)
+        self.declare_parameter("landing_pad_odom_adapter.enable_dropout_prediction", False)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_only_in_final_descent", True)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_start_after_s", 0.30)
+        self.declare_parameter("landing_pad_odom_adapter.max_prediction_s", 12.0)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_publish_rate_hz", 20.0)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_position_variance_rate", 0.01)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_velocity_variance_rate", 0.01)
 
         # Velocity regression used for prediction.
-        self.declare_parameter("prediction_velocity_window_s", 1.5)
-        self.declare_parameter("prediction_velocity_min_samples", 4)
-        self.declare_parameter("prediction_velocity_hold_s", 5.0)
-        self.declare_parameter("prediction_velocity_min_xy_speed_mps", 0.03)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_velocity_window_s", 1.5)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_velocity_min_samples", 4)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_velocity_hold_s", 5.0)
+        self.declare_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps", 0.03)
 
         # Terminal velocity snapshot.
-        self.declare_parameter("terminal_velocity_history_s", 6.0)
-        self.declare_parameter("terminal_velocity_min_samples", 8)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_history_s", 6.0)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_min_samples", 8)
 
-        self.declare_parameter("drone_odom_topic", SmarcTopics.ODOM_TOPIC)
-        self.declare_parameter("terminal_drone_velocity_history_s", 2.0)
+        self.declare_parameter("landing_pad_odom_adapter.drone_odom_topic", SmarcTopics.ODOM_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_drone_velocity_history_s", 2.0)
 
-        self.declare_parameter("dropout_velocity_capture_window_s", 0.75)
+        self.declare_parameter("landing_pad_odom_adapter.dropout_velocity_capture_window_s", 0.75)
 
-        self.declare_parameter("fresh_ekf_update_max_age_s", 0.10)
-        self.declare_parameter("reacquire_dwell_s", 0.30)
-        self.declare_parameter("terminal_velocity_min_span_s", 0.25)
+        self.declare_parameter("landing_pad_odom_adapter.fresh_ekf_update_max_age_s", 0.10)
+        self.declare_parameter("landing_pad_odom_adapter.reacquire_dwell_s", 0.30)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_min_span_s", 0.25)
 
-        self.declare_parameter("terminal_velocity_collapse_ratio", 0.55)
-        self.declare_parameter("terminal_velocity_memory_s", 2.0)
-        self.declare_parameter("terminal_velocity_direction_min_speed_mps", 0.15)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_collapse_ratio", 0.55)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_memory_s", 2.0)
+        self.declare_parameter("landing_pad_odom_adapter.terminal_velocity_direction_min_speed_mps", 0.15)
 
         self._reacquire_since: Optional[Time] = None
 
@@ -128,39 +128,39 @@ class ObjectArrayToOdometryNode(Node):
 
         self._publisher = self.create_publisher(
             Odometry,
-            str(self.get_parameter("output_topic").value),
+            str(self.get_parameter("landing_pad_odom_adapter.output_topic").value),
             20,
         )
 
         self.create_subscription(
             ObjectPoseWithCovarianceArray,
-            str(self.get_parameter("pose_array_topic").value),
+            str(self.get_parameter("landing_pad_odom_adapter.pose_array_topic").value),
             self._pose_array_callback,
             qos_profile_sensor_data,
         )
 
         self.create_subscription(
             ObjectEkfStatusArray,
-            str(self.get_parameter("status_array_topic").value),
+            str(self.get_parameter("landing_pad_odom_adapter.status_array_topic").value),
             self._status_array_callback,
             qos_profile_sensor_data,
         )
 
         self.create_subscription(
             LandingStatus,
-            str(self.get_parameter("landing_status_topic").value),
+            str(self.get_parameter("landing_pad_odom_adapter.landing_status_topic").value),
             self._landing_status_callback,
             20,
         )
 
         self.create_subscription(
             Odometry,
-            str(self.get_parameter("drone_odom_topic").value),
+            str(self.get_parameter("landing_pad_odom_adapter.drone_odom_topic").value),
             self._drone_odom_callback,
             20,
         )
 
-        prediction_rate = float(self.get_parameter("prediction_publish_rate_hz").value)
+        prediction_rate = float(self.get_parameter("landing_pad_odom_adapter.prediction_publish_rate_hz").value)
         if prediction_rate <= 0.0:
             raise ValueError("prediction_publish_rate_hz must be positive")
 
@@ -172,13 +172,13 @@ class ObjectArrayToOdometryNode(Node):
         self.get_logger().info(
             "Selecting class '%s' from %s"
             % (
-                str(self.get_parameter("class_name").value),
-                str(self.get_parameter("pose_array_topic").value),
+                str(self.get_parameter("landing_pad_odom_adapter.class_name").value),
+                str(self.get_parameter("landing_pad_odom_adapter.pose_array_topic").value),
             )
         )
 
     def _select_by_class(self, values):
-        target = str(self.get_parameter("class_name").value)
+        target = str(self.get_parameter("landing_pad_odom_adapter.class_name").value)
 
         if not target and values:
             return values[0]
@@ -193,16 +193,16 @@ class ObjectArrayToOdometryNode(Node):
         """Reject sudden speed collapses using the recent terminal velocity."""
         now = self.get_clock().now()
         speed = float(np.linalg.norm(velocity[:2]))
-        min_speed = float(self.get_parameter("prediction_velocity_min_xy_speed_mps").value)
+        min_speed = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps").value)
 
         if (
             self._last_good_terminal_velocity is not None
             and self._last_good_terminal_velocity_stamp is not None
         ):
             age = (now - self._last_good_terminal_velocity_stamp).nanoseconds * 1e-9
-            memory_s = float(self.get_parameter("terminal_velocity_memory_s").value)
+            memory_s = float(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_memory_s").value)
             baseline_speed = float(np.linalg.norm(self._last_good_terminal_velocity[:2]))
-            collapse_ratio = float(self.get_parameter("terminal_velocity_collapse_ratio").value)
+            collapse_ratio = float(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_collapse_ratio").value)
 
             if (
                 0.0 <= age <= memory_s
@@ -210,7 +210,7 @@ class ObjectArrayToOdometryNode(Node):
                 and speed < collapse_ratio * baseline_speed
             ):
                 direction_min_speed = float(
-                    self.get_parameter("terminal_velocity_direction_min_speed_mps").value,
+                    self.get_parameter("landing_pad_odom_adapter.terminal_velocity_direction_min_speed_mps").value,
                 )
 
                 if speed >= direction_min_speed:
@@ -251,7 +251,7 @@ class ObjectArrayToOdometryNode(Node):
 
         self._drone_velocity_history.append((t, velocity))
 
-        history_s = float(self.get_parameter("terminal_drone_velocity_history_s").value)
+        history_s = float(self.get_parameter("landing_pad_odom_adapter.terminal_drone_velocity_history_s").value)
         while self._drone_velocity_history and t - self._drone_velocity_history[0][0] > history_s:
             self._drone_velocity_history.popleft()
 
@@ -295,11 +295,11 @@ class ObjectArrayToOdometryNode(Node):
 
     def _capture_dropout_velocity(self) -> Optional[np.ndarray]:
         """Prefer recent visual pad motion; use drone odometry as a fallback."""
-        history_s = float(self.get_parameter("terminal_velocity_history_s").value)
-        min_samples = int(self.get_parameter("terminal_velocity_min_samples").value)
-        min_span_s = float(self.get_parameter("terminal_velocity_min_span_s").value)
-        min_xy_speed = float(self.get_parameter("prediction_velocity_min_xy_speed_mps").value)
-        hold_s = float(self.get_parameter("prediction_velocity_hold_s").value)
+        history_s = float(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_history_s").value)
+        min_samples = int(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_min_samples").value)
+        min_span_s = float(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_min_span_s").value)
+        min_xy_speed = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps").value)
+        hold_s = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_hold_s").value)
         now = self.get_clock().now()
 
         visual_velocity = self._fit_velocity_from_history(history_s, min_samples, min_span_s)
@@ -350,7 +350,7 @@ class ObjectArrayToOdometryNode(Node):
         if not self._drone_velocity_history:
             return None
 
-        window_s = float(self.get_parameter("dropout_velocity_capture_window_s").value)
+        window_s = float(self.get_parameter("landing_pad_odom_adapter.dropout_velocity_capture_window_s").value)
         reference_t = (
             self._last_valid_received_at.nanoseconds * 1e-09
             if self._last_valid_received_at is not None
@@ -370,7 +370,7 @@ class ObjectArrayToOdometryNode(Node):
         return self._guard_terminal_velocity(velocity, "drone_odom_fallback")
 
     def _status_is_valid(self) -> tuple[bool, str]:
-        if not bool(self.get_parameter("require_status").value):
+        if not bool(self.get_parameter("landing_pad_odom_adapter.require_status").value):
             return True, ""
 
         if self._latest_status is None or self._status_received_at is None:
@@ -379,7 +379,7 @@ class ObjectArrayToOdometryNode(Node):
         now = self.get_clock().now()
         message_age = (now - self._status_received_at).nanoseconds * 1e-9
 
-        if message_age > float(self.get_parameter("max_status_message_age_s").value):
+        if message_age > float(self.get_parameter("landing_pad_odom_adapter.max_status_message_age_s").value):
             return False, f"status stale ({message_age:.2f}s)"
 
         status = self._latest_status
@@ -388,27 +388,27 @@ class ObjectArrayToOdometryNode(Node):
             return False, "EKF not initialized"
 
         if float(status.time_since_last_update) > float(
-            self.get_parameter("max_time_since_update_s").value
+            self.get_parameter("landing_pad_odom_adapter.max_time_since_update_s").value
         ):
             return False, "EKF update stale"
 
         if float(status.time_since_last_processed_measurement) > float(
-            self.get_parameter("max_time_since_measurement_s").value
+            self.get_parameter("landing_pad_odom_adapter.max_time_since_measurement_s").value
         ):
             return False, "measurement stale"
 
-        max_covariance = float(self.get_parameter("max_covariance_trace").value)
+        max_covariance = float(self.get_parameter("landing_pad_odom_adapter.max_covariance_trace").value)
 
         if max_covariance >= 0.0 and float(status.covariance_trace) > max_covariance:
             return False, "EKF covariance too high"
 
         if int(status.consecutive_outliers) > int(
-            self.get_parameter("max_consecutive_outliers").value
+            self.get_parameter("landing_pad_odom_adapter.max_consecutive_outliers").value
         ):
             return False, "too many EKF outliers"
 
         if int(status.consecutive_invalid_measurements) > int(
-            self.get_parameter("max_consecutive_invalid_measurements").value
+            self.get_parameter("landing_pad_odom_adapter.max_consecutive_invalid_measurements").value
         ):
             return False, "too many invalid measurements"
 
@@ -423,11 +423,11 @@ class ObjectArrayToOdometryNode(Node):
 
         if (
             stamp.nanoseconds == 0
-            and bool(self.get_parameter("use_array_header_if_object_header_empty").value)
+            and bool(self.get_parameter("landing_pad_odom_adapter.use_array_header_if_object_header_empty").value)
         ):
             stamp = Time.from_msg(array_message.header.stamp)
 
-        if stamp.nanoseconds == 0 and bool(self.get_parameter("replace_zero_stamp_with_now").value):
+        if stamp.nanoseconds == 0 and bool(self.get_parameter("landing_pad_odom_adapter.replace_zero_stamp_with_now").value):
             stamp = self.get_clock().now()
 
         return stamp
@@ -440,8 +440,8 @@ class ObjectArrayToOdometryNode(Node):
 
         dt = (stamp - self._previous_stamp).nanoseconds * 1e-9
 
-        min_dt = float(self.get_parameter("min_dt_s").value)
-        max_dt = float(self.get_parameter("max_dt_s").value)
+        min_dt = float(self.get_parameter("landing_pad_odom_adapter.min_dt_s").value)
+        max_dt = float(self.get_parameter("landing_pad_odom_adapter.max_dt_s").value)
 
         if dt <= 0.0 or dt < min_dt:
             return self._filtered_velocity.copy()
@@ -458,14 +458,14 @@ class ObjectArrayToOdometryNode(Node):
         raw_time = stamp.nanoseconds * 1e-9
         self._raw_pad_velocity_history.append((raw_time, raw_velocity.copy()))
 
-        raw_history_s = float(self.get_parameter("dropout_velocity_capture_window_s").value)
+        raw_history_s = float(self.get_parameter("landing_pad_odom_adapter.dropout_velocity_capture_window_s").value)
         while (
             self._raw_pad_velocity_history
             and raw_time - self._raw_pad_velocity_history[0][0] > raw_history_s
         ):
             self._raw_pad_velocity_history.popleft()
 
-        tau = float(self.get_parameter("velocity_filter_tau_s").value)
+        tau = float(self.get_parameter("landing_pad_odom_adapter.velocity_filter_tau_s").value)
         alpha = 1.0 if tau <= 0.0 else dt / (tau + dt)
 
         self._filtered_velocity += (
@@ -480,7 +480,7 @@ class ObjectArrayToOdometryNode(Node):
     def _has_fresh_ekf_update(self) -> bool:
         if self._latest_status is None:
             return False
-        max_age = float(self.get_parameter("fresh_ekf_update_max_age_s").value)
+        max_age = float(self.get_parameter("landing_pad_odom_adapter.fresh_ekf_update_max_age_s").value)
         return float(self._latest_status.time_since_last_update) <= max_age
 
     def _pose_array_callback(self, message: ObjectPoseWithCovarianceArray) -> None:
@@ -510,7 +510,7 @@ class ObjectArrayToOdometryNode(Node):
                     return
 
                 reacquire_elapsed = (now - self._reacquire_since).nanoseconds * 1e-9
-                reacquire_dwell = float(self.get_parameter("reacquire_dwell_s").value)
+                reacquire_dwell = float(self.get_parameter("landing_pad_odom_adapter.reacquire_dwell_s").value)
 
                 if reacquire_elapsed < reacquire_dwell:
                     return
@@ -539,19 +539,19 @@ class ObjectArrayToOdometryNode(Node):
             output.header.frame_id = message.header.frame_id
 
         output.header.stamp = stamp.to_msg()
-        output.child_frame_id = str(self.get_parameter("child_frame_id").value)
+        output.child_frame_id = str(self.get_parameter("landing_pad_odom_adapter.child_frame_id").value)
         output.pose = object_message.pose
 
         output.twist.twist.linear.x = float(velocity[0])
         output.twist.twist.linear.y = float(velocity[1])
         output.twist.twist.linear.z = float(velocity[2])
 
-        velocity_variance = float(self.get_parameter("velocity_variance").value)
+        velocity_variance = float(self.get_parameter("landing_pad_odom_adapter.velocity_variance").value)
         output.twist.covariance[0] = velocity_variance
         output.twist.covariance[7] = velocity_variance
         output.twist.covariance[14] = velocity_variance
 
-        min_xy_speed = float(self.get_parameter("prediction_velocity_min_xy_speed_mps").value)
+        min_xy_speed = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps").value)
         if np.linalg.norm(velocity[:2]) >= min_xy_speed:
             self._last_reliable_pad_velocity = velocity.copy()
             self._last_reliable_pad_velocity_stamp = stamp
@@ -574,16 +574,16 @@ class ObjectArrayToOdometryNode(Node):
 
         if self._prediction_position_history:
             last_t = self._prediction_position_history[-1][0]
-            min_dt = float(self.get_parameter("min_dt_s").value)
+            min_dt = float(self.get_parameter("landing_pad_odom_adapter.min_dt_s").value)
 
             if t <= last_t or t - last_t < min_dt:
                 return
 
         self._prediction_position_history.append((t, position.copy()))
 
-        prediction_window = float(self.get_parameter("prediction_velocity_window_s").value)
+        prediction_window = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_window_s").value)
 
-        terminal_window = float(self.get_parameter("terminal_velocity_history_s").value)
+        terminal_window = float(self.get_parameter("landing_pad_odom_adapter.terminal_velocity_history_s").value)
 
         history_to_keep = max(prediction_window, terminal_window)
 
@@ -594,7 +594,7 @@ class ObjectArrayToOdometryNode(Node):
         ):
             self._prediction_position_history.popleft()
 
-        min_samples = int(self.get_parameter("prediction_velocity_min_samples").value)
+        min_samples = int(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_samples").value)
 
         candidate_velocity = self._fit_velocity_from_history(prediction_window, min_samples)
 
@@ -603,7 +603,7 @@ class ObjectArrayToOdometryNode(Node):
 
         self._prediction_velocity = candidate_velocity
 
-        min_xy_speed = float(self.get_parameter("prediction_velocity_min_xy_speed_mps").value)
+        min_xy_speed = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps").value)
 
         if np.linalg.norm(candidate_velocity[:2]) >= min_xy_speed:
             self._last_reliable_prediction_velocity = candidate_velocity.copy()
@@ -652,10 +652,10 @@ class ObjectArrayToOdometryNode(Node):
         return velocity
 
     def _prediction_timer_callback(self) -> None:
-        if not bool(self.get_parameter("enable_dropout_prediction").value):
+        if not bool(self.get_parameter("landing_pad_odom_adapter.enable_dropout_prediction").value):
             return
 
-        prediction_only_final = bool(self.get_parameter("prediction_only_in_final_descent").value)
+        prediction_only_final = bool(self.get_parameter("landing_pad_odom_adapter.prediction_only_in_final_descent").value)
 
         if prediction_only_final and self._landing_state_name != "FINAL_DESCENT":
             return
@@ -666,8 +666,8 @@ class ObjectArrayToOdometryNode(Node):
         now = self.get_clock().now()
         dropout_age = (now - self._last_valid_received_at).nanoseconds * 1e-9
 
-        start_after = float(self.get_parameter("prediction_start_after_s").value)
-        max_prediction = float(self.get_parameter("max_prediction_s").value)
+        start_after = float(self.get_parameter("landing_pad_odom_adapter.prediction_start_after_s").value)
+        max_prediction = float(self.get_parameter("landing_pad_odom_adapter.max_prediction_s").value)
 
         if dropout_age < start_after:
             return
@@ -724,8 +724,8 @@ class ObjectArrayToOdometryNode(Node):
             prediction_velocity = self._prediction_velocity.copy()
             velocity_source = "current"
 
-            min_xy_speed = float(self.get_parameter("prediction_velocity_min_xy_speed_mps").value)
-            hold_s = float(self.get_parameter("prediction_velocity_hold_s").value)
+            min_xy_speed = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_min_xy_speed_mps").value)
+            hold_s = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_hold_s").value)
 
             if (
                 np.linalg.norm(prediction_velocity[:2]) < min_xy_speed
@@ -760,8 +760,8 @@ class ObjectArrayToOdometryNode(Node):
         output.header.stamp = now.to_msg()
 
         # Grow uncertainty as the blind interval increases.
-        pose_var_rate = float(self.get_parameter("prediction_position_variance_rate").value)
-        vel_var_rate = float(self.get_parameter("prediction_velocity_variance_rate").value)
+        pose_var_rate = float(self.get_parameter("landing_pad_odom_adapter.prediction_position_variance_rate").value)
+        vel_var_rate = float(self.get_parameter("landing_pad_odom_adapter.prediction_velocity_variance_rate").value)
 
         output.pose.covariance[0] += pose_var_rate * dropout_age
         output.pose.covariance[7] += pose_var_rate * dropout_age

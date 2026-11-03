@@ -34,32 +34,32 @@ class RelativeStateNode(Node):
     def __init__(self, **node_kwargs) -> None:
         super().__init__("landing_relative_state", **node_kwargs)
 
-        self.declare_parameter("drone_odom_topic", SmarcTopics.ODOM_TOPIC)
-        self.declare_parameter("pad_odom_topic", DJITopics.PAD_ODOM_TOPIC)
-        self.declare_parameter("output_topic", DJITopics.RELATIVE_STATE_TOPIC)
-        self.declare_parameter("map_frame", DJILinks.MAP)
+        self.declare_parameter("landing_relative_state.drone_odom_topic", SmarcTopics.ODOM_TOPIC)
+        self.declare_parameter("landing_relative_state.pad_odom_topic", DJITopics.PAD_ODOM_TOPIC)
+        self.declare_parameter("landing_relative_state.output_topic", DJITopics.RELATIVE_STATE_TOPIC)
+        self.declare_parameter("landing_relative_state.map_frame", DJILinks.MAP)
         # A frame rigidly attached to the odometry child. Empty keeps the
         # original odometry reference point; the stack selects the landing gear.
-        self.declare_parameter("drone_reference_frame", "")
-        self.declare_parameter("publish_rate_hz", 50.0)
-        self.declare_parameter("max_drone_age_s", 0.20)
-        self.declare_parameter("max_pad_age_s", 0.25)
-        self.declare_parameter("max_pad_position_cov_trace", 1.0)
-        self.declare_parameter("max_pad_velocity_cov_trace", 2.0)
-        self.declare_parameter("zero_covariance_is_valid", True)
-        self.declare_parameter("latency_compensation", True)
-        self.declare_parameter("max_prediction_horizon_s", 0.30)
-        self.declare_parameter("tf_timeout_s", 0.05)
-        self.declare_parameter("tf_fallback_to_latest", True)
-        self.declare_parameter("replace_zero_stamp_with_now", True)
-        self.declare_parameter("drone_twist_frame_mode", "child")
-        self.declare_parameter("pad_twist_frame_mode", "header")
-        self.declare_parameter("drone_twist_frame", "")
-        self.declare_parameter("pad_twist_frame", "")
+        self.declare_parameter("landing_relative_state.drone_reference_frame", "")
+        self.declare_parameter("landing_relative_state.publish_rate_hz", 50.0)
+        self.declare_parameter("landing_relative_state.max_drone_age_s", 0.20)
+        self.declare_parameter("landing_relative_state.max_pad_age_s", 0.25)
+        self.declare_parameter("landing_relative_state.max_pad_position_cov_trace", 1.0)
+        self.declare_parameter("landing_relative_state.max_pad_velocity_cov_trace", 2.0)
+        self.declare_parameter("landing_relative_state.zero_covariance_is_valid", True)
+        self.declare_parameter("landing_relative_state.latency_compensation", True)
+        self.declare_parameter("landing_relative_state.max_prediction_horizon_s", 0.30)
+        self.declare_parameter("landing_relative_state.tf_timeout_s", 0.05)
+        self.declare_parameter("landing_relative_state.tf_fallback_to_latest", True)
+        self.declare_parameter("landing_relative_state.replace_zero_stamp_with_now", True)
+        self.declare_parameter("landing_relative_state.drone_twist_frame_mode", "child")
+        self.declare_parameter("landing_relative_state.pad_twist_frame_mode", "header")
+        self.declare_parameter("landing_relative_state.drone_twist_frame", "")
+        self.declare_parameter("landing_relative_state.pad_twist_frame", "")
 
-        self._map_frame = self.get_parameter("map_frame").value
-        self._tf_timeout = float(self.get_parameter("tf_timeout_s").value)
-        self._tf_fallback = bool(self.get_parameter("tf_fallback_to_latest").value)
+        self._map_frame = self.get_parameter("landing_relative_state.map_frame").value
+        self._tf_timeout = float(self.get_parameter("landing_relative_state.tf_timeout_s").value)
+        self._tf_fallback = bool(self.get_parameter("landing_relative_state.tf_fallback_to_latest").value)
         self._buffer = Buffer(node=self)
         self._listener = TransformListener(self._buffer, self)
 
@@ -68,25 +68,25 @@ class RelativeStateNode(Node):
 
         self.create_subscription(
             Odometry,
-            str(self.get_parameter("drone_odom_topic").value),
+            str(self.get_parameter("landing_relative_state.drone_odom_topic").value),
             self._drone_callback,
             qos_profile_sensor_data,
         )
         self.create_subscription(
             Odometry,
-            str(self.get_parameter("pad_odom_topic").value),
+            str(self.get_parameter("landing_relative_state.pad_odom_topic").value),
             self._pad_callback,
             qos_profile_sensor_data,
         )
         self._publisher = self.create_publisher(
             LandingRelativeState,
-            str(self.get_parameter("output_topic").value),
+            str(self.get_parameter("landing_relative_state.output_topic").value),
             20,
         )
 
-        rate = float(self.get_parameter("publish_rate_hz").value)
+        rate = float(self.get_parameter("landing_relative_state.publish_rate_hz").value)
         if rate <= 0.0:
-            raise ValueError("publish_rate_hz must be positive")
+            raise ValueError("landing_relative_state.publish_rate_hz must be positive")
         self.create_timer(1.0 / rate, self._timer_callback)
 
     def _drone_callback(self, message: Odometry) -> None:
@@ -122,10 +122,10 @@ class RelativeStateNode(Node):
             )
 
     def _twist_frame(self, message: Odometry, prefix: str) -> str:
-        explicit = str(self.get_parameter(f"{prefix}_twist_frame").value)
+        explicit = str(self.get_parameter(f"landing_relative_state.{prefix}_twist_frame").value)
         if explicit:
             return explicit
-        mode = str(self.get_parameter(f"{prefix}_twist_frame_mode").value).lower()
+        mode = str(self.get_parameter(f"landing_relative_state.{prefix}_twist_frame_mode").value).lower()
         if mode == "header":
             return message.header.frame_id
         if mode == "child":
@@ -136,7 +136,7 @@ class RelativeStateNode(Node):
         pose_frame = message.header.frame_id or self._map_frame
         stamp = Time.from_msg(message.header.stamp)
         if stamp.nanoseconds == 0 and bool(
-            self.get_parameter("replace_zero_stamp_with_now").value
+            self.get_parameter("landing_relative_state.replace_zero_stamp_with_now").value
         ):
             stamp = self.get_clock().now()
         position = point_to_numpy(message.pose.pose.position)
@@ -155,7 +155,7 @@ class RelativeStateNode(Node):
                 velocity = transform_vector(velocity, velocity_tf)
 
         if prefix == "drone":
-            reference_frame = str(self.get_parameter("drone_reference_frame").value)
+            reference_frame = str(self.get_parameter("landing_relative_state.drone_reference_frame").value)
             if reference_frame and reference_frame != message.child_frame_id:
                 if not message.child_frame_id:
                     raise ValueError(
@@ -229,16 +229,16 @@ class RelativeStateNode(Node):
         output.pad_position_covariance_trace = pad.pose_cov_trace
         output.pad_velocity_covariance_trace = pad.twist_cov_trace
 
-        max_drone_age = float(self.get_parameter("max_drone_age_s").value)
-        max_pad_age = float(self.get_parameter("max_pad_age_s").value)
+        max_drone_age = float(self.get_parameter("landing_relative_state.max_drone_age_s").value)
+        max_pad_age = float(self.get_parameter("landing_relative_state.max_pad_age_s").value)
         if drone_age > max_drone_age:
             reasons.append(f"drone state stale ({drone_age:.3f}s)")
         if pad_age > max_pad_age:
             reasons.append(f"pad state stale ({pad_age:.3f}s)")
 
-        zero_cov_valid = bool(self.get_parameter("zero_covariance_is_valid").value)
-        position_limit = float(self.get_parameter("max_pad_position_cov_trace").value)
-        velocity_limit = float(self.get_parameter("max_pad_velocity_cov_trace").value)
+        zero_cov_valid = bool(self.get_parameter("landing_relative_state.zero_covariance_is_valid").value)
+        position_limit = float(self.get_parameter("landing_relative_state.max_pad_position_cov_trace").value)
+        velocity_limit = float(self.get_parameter("landing_relative_state.max_pad_velocity_cov_trace").value)
         if not (zero_cov_valid and abs(pad.pose_cov_trace) < 1e-12):
             if position_limit >= 0.0 and pad.pose_cov_trace > position_limit:
                 reasons.append(
@@ -250,8 +250,8 @@ class RelativeStateNode(Node):
                     f"pad velocity covariance trace too high ({pad.twist_cov_trace:.3g})"
                 )
 
-        if bool(self.get_parameter("latency_compensation").value):
-            horizon = float(self.get_parameter("max_prediction_horizon_s").value)
+        if bool(self.get_parameter("landing_relative_state.latency_compensation").value):
+            horizon = float(self.get_parameter("landing_relative_state.max_prediction_horizon_s").value)
             drone_prediction = min(drone_age, horizon)
             pad_prediction = min(pad_age, horizon)
             drone.position = drone.position + drone.velocity * drone_prediction
