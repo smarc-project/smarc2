@@ -95,6 +95,15 @@ class MultiObjectEKFNode(Node):
             if not cfg.get("enabled", True):
                 continue
 
+            defaults = {**base_params, **ObjectEKF.flatten_params(cfg.get("parameters", {}))}
+            environment = cfg.setdefault("environment", {})
+            height = self.declare_parameter(
+                f"classes.{class_name}.environment.water_surface_height",
+                float(environment.get("water_surface_height", defaults.get("environment.water_surface_height", 0.0)))).value
+            if not math.isfinite(height):
+                raise ValueError(f"{class_name}: height must be finite")
+            environment["water_surface_height"] = height
+
             self.tracks[class_name] = ObjectEKF(
                 class_name=class_name,
                 cfg=cfg,
