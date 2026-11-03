@@ -24,7 +24,6 @@ def generate_launch_description() -> LaunchDescription:
     model_sample_time = LaunchConfiguration("model_sample_time_s")
     config_file = LaunchConfiguration("config_file")
     pad_class_name = LaunchConfiguration("pad_class_name")
-    enable_descent = LaunchConfiguration("enable_descent")
     require_pad_status = LaunchConfiguration("require_pad_status")
     pad_velocity_filter_tau = LaunchConfiguration("pad_velocity_filter_tau_s")
     pad_status_max_covariance = LaunchConfiguration("pad_status_max_covariance_trace")
@@ -47,7 +46,6 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument("model_sample_time_s", default_value="0.0"),
         DeclareLaunchArgument("config_file", default_value=default_config),
         DeclareLaunchArgument("pad_class_name", default_value="land_pad"),
-        DeclareLaunchArgument("enable_descent", default_value="false", description="Remain in ALIGN at fixed height when false."),
         DeclareLaunchArgument("require_pad_status", default_value="true"),
         DeclareLaunchArgument("pad_velocity_filter_tau_s", default_value="0.25"),
         DeclareLaunchArgument("pad_status_max_covariance_trace", default_value="-1.0", description="Optional full-state EKF covariance-trace gate. Negative disables it."),
@@ -117,7 +115,6 @@ def generate_launch_description() -> LaunchDescription:
                     "landing_lqr_controller.model_kind": model_kind,
                     "landing_lqr_controller.model_sample_time_s": ParameterValue(model_sample_time, value_type=float),
                     "landing_lqr_controller.debug_topic": DjiTopics.CONTROLLER_DEBUG_TOPIC,
-                    "landing_manager.enable_descent": ParameterValue(enable_descent, value_type=bool),
                     "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
                 },
             ],

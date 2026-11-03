@@ -66,7 +66,6 @@ class LandingManagerNode(Node):
         self.declare_parameter("landing_manager.abort_service", DJITopics.LANDING_ABORT_SERVICE)
         self.declare_parameter("landing_manager.reset_service", DJITopics.LANDING_RESET_SERVICE)
         self.declare_parameter("landing_manager.update_rate_hz", 20.0)
-        self.declare_parameter("landing_manager.enable_descent", True)
         self.declare_parameter("landing_manager.action_name", "alars_land_on_pad")
         self.declare_parameter("landing_manager.default_timeout", 120.0)
 
@@ -165,6 +164,7 @@ class LandingManagerNode(Node):
         self._motor_off_requested = False
 
         self._state = LandingState.IDLE
+        self._enable_descent = False
         self._state_entered = self.get_clock().now()
         self._latest_state: Optional[LandingRelativeState] = None
         self._height_reference = 0.0
@@ -285,6 +285,7 @@ class LandingManagerNode(Node):
         self._valid_since = self._condition_since = self._invalid_since = None
         self._height_reference = 0.0
         self._last_descent_allowed = False
+        self._enable_descent = False
         self._last_vertical_reference_velocity = 0.0
         self._latest_reference = None
         self._motor_off_requested = False
@@ -293,8 +294,9 @@ class LandingManagerNode(Node):
     def _accept_landing_goal(self) -> bool:
         return self._state == LandingState.IDLE
 
-    def _start_landing(self, detail: str) -> None:
+    def _start_landing(self, detail: str, enable_descent: bool = False) -> None:
         self._reset_states()
+        self._enable_descent = enable_descent
         self._transition(LandingState.ACQUIRE, detail)
         self._update_reference(self.get_clock().now())
 
@@ -527,7 +529,7 @@ class LandingManagerNode(Node):
         if self._condition_dwell(
             aligned, now, float(self.get_parameter("landing_manager.align_dwell_s").value)
         ):
-            if bool(self.get_parameter("landing_manager.enable_descent").value):
+            if self._enable_descent:
                 self._transition(LandingState.DESCEND, "horizontal alignment stable")
             else:
                 self._detail = "tracking-only: alignment stable"

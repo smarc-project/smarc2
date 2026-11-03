@@ -24,7 +24,7 @@ class LandingActionServer:
         self,
         node: Node,
         accept_landing: Callable[[], bool],
-        start_landing: Callable[[str], None],
+        start_landing: Callable[[str, bool], None],
         abort_landing: Callable[[str], bool],
         finish_landing: Callable[[str], None],
         get_feedback: Callable[[], str],
@@ -44,6 +44,7 @@ class LandingActionServer:
         self._result: Optional[bool] = None
         self._cancel_requested = False
         self._goal_started_at: Optional[Time] = None
+        self._goal_enable_descent = False
         self._goal_timeout = float(node.get_parameter("landing_manager.default_timeout").value)
         if not math.isfinite(self._goal_timeout) or self._goal_timeout <= 0.0:
             raise ValueError("default_timeout must be finite and positive")
@@ -93,6 +94,9 @@ class LandingActionServer:
             timeout = float(goal.get("timeout", self._node.get_parameter("landing_manager.default_timeout").value))
             if not math.isfinite(timeout) or timeout <= 0.0:
                 raise ValueError("timeout must be finite and positive")
+            enable_descent = goal.get("enable_descent", False)
+            if not isinstance(enable_descent, bool):
+                raise ValueError("enable_descent must be a boolean")
         except (TypeError, ValueError, OverflowError) as error:
             self._node.get_logger().info(f"Rejecting landing goal: {error}")
             return GoalResponse.REJECT
@@ -109,13 +113,14 @@ class LandingActionServer:
             self._cancel_requested = False
             self._wake_event.clear()
             self._goal_timeout = timeout
+            self._goal_enable_descent = enable_descent
             return GoalResponse.ACCEPT
 
     def _prepare_loop(self, goal_handle: ServerGoalHandle) -> None:
         with self._state_lock:
             self._goal_handle = goal_handle
             if not self._cancel_requested and not goal_handle.is_cancel_requested and self._result is None:
-                self._start_landing("landing action requested")
+                self._start_landing("landing action requested", self._goal_enable_descent)
                 self._goal_started_at = self._node.get_clock().now()
 
     def _loop_inner(self) -> Optional[bool]:
@@ -151,6 +156,7 @@ class LandingActionServer:
                 self._pending = False
                 self._result = None
                 self._goal_started_at = None
+                self._goal_enable_descent = False
                 self._cancel_requested = False
                 self._finish_landing("landing action complete")
 

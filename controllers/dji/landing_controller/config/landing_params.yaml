@@ -22,7 +22,6 @@
       controller_timeout_s: 0.8
       reference_timeout_s: 0.8
       zero_flush_cycles: 10
-      enable_descent: false
       acquire_duration_s: 2.0
       minimum_align_height_m: 8.0 #10.0
       capture_current_height_on_align: true
