@@ -102,7 +102,7 @@ class LandingActionServer:
                 self._node.get_logger().info("Rejecting landing goal: landing is busy")
                 return GoalResponse.REJECT
 
-            # Reserve the attempt before execution starts, including against auto-start.
+            # Reserve the attempt before execution starts.
             self._pending = True
             self._goal_request = request
             self._result = None
@@ -133,7 +133,6 @@ class LandingActionServer:
                         goal_handle.canceled()
                         return BaseAction.Result(success=False)
                     outcome = self._loop_inner()
-                    # ROS marks the goal CANCELING after the cancel callback returns.
                     # Wait for that transition before reporting it as CANCELED.
                     if outcome is not None and not self._cancel_requested:
                         if outcome:
@@ -142,8 +141,7 @@ class LandingActionServer:
                             goal_handle.abort()
                         return BaseAction.Result(success=outcome)
 
-                # Wake immediately on a result; poll at 10 Hz otherwise. Wall time
-                # keeps cancellation responsive when the simulation clock is paused.
+                # Wake immediately on a result
                 self._wake_event.wait(timeout=0.1)
             return BaseAction.Result(success=False)
         finally:
@@ -158,15 +156,14 @@ class LandingActionServer:
 
     def _on_cancel_received(self, goal_handle: ServerGoalHandle) -> CancelResponse:
         with self._state_lock:
-            # A delayed cancellation for an older goal must not affect a new one,
-            # including the interval before the new execution callback starts.
+            # A delayed cancellation for an older goal must not affect a new one
             if (not self._pending or self._result is not None
                     or goal_handle.request is not self._goal_request):
                 return CancelResponse.REJECT
             if self._goal_started_at is not None:
                 if not self._abort_landing("landing action cancelled"):
                     return CancelResponse.REJECT
-            # The action can finish now; independent timers complete climb and hold.
+            # The action can finish now, independent timers complete climb and hold.
             self._cancel_requested = True
             self.set_result(False)
             return CancelResponse.ACCEPT

@@ -24,7 +24,6 @@ def generate_launch_description() -> LaunchDescription:
     model_sample_time = LaunchConfiguration("model_sample_time_s")
     config_file = LaunchConfiguration("config_file")
     pad_class_name = LaunchConfiguration("pad_class_name")
-    auto_start = LaunchConfiguration("auto_start")
     enable_descent = LaunchConfiguration("enable_descent")
     require_pad_status = LaunchConfiguration("require_pad_status")
     pad_velocity_filter_tau = LaunchConfiguration("pad_velocity_filter_tau_s")
@@ -48,7 +47,6 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument("model_sample_time_s", default_value="0.0"),
         DeclareLaunchArgument("config_file", default_value=default_config),
         DeclareLaunchArgument("pad_class_name", default_value="land_pad"),
-        DeclareLaunchArgument("auto_start", default_value="false"),
         DeclareLaunchArgument("enable_descent", default_value="false", description="Remain in ALIGN at fixed height when false."),
         DeclareLaunchArgument("require_pad_status", default_value="true"),
         DeclareLaunchArgument("pad_velocity_filter_tau_s", default_value="0.25"),
@@ -119,7 +117,6 @@ def generate_launch_description() -> LaunchDescription:
                     "landing_lqr_controller.model_kind": model_kind,
                     "landing_lqr_controller.model_sample_time_s": ParameterValue(model_sample_time, value_type=float),
                     "landing_lqr_controller.debug_topic": DjiTopics.CONTROLLER_DEBUG_TOPIC,
-                    "landing_manager.auto_start": ParameterValue(auto_start, value_type=bool),
                     "landing_manager.enable_descent": ParameterValue(enable_descent, value_type=bool),
                     "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
                 },

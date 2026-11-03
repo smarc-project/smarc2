@@ -66,19 +66,18 @@ class LandingManagerNode(Node):
         self.declare_parameter("landing_manager.abort_service", DJITopics.LANDING_ABORT_SERVICE)
         self.declare_parameter("landing_manager.reset_service", DJITopics.LANDING_RESET_SERVICE)
         self.declare_parameter("landing_manager.update_rate_hz", 20.0)
-        self.declare_parameter("landing_manager.auto_start", False)
         self.declare_parameter("landing_manager.enable_descent", True)
         self.declare_parameter("landing_manager.action_name", "alars_land_on_pad")
         self.declare_parameter("landing_manager.default_timeout", 120.0)
 
-        # Command output and watchdogs, previously owned by the velocity mux.
+        # Command output and watchdogs.
         self.declare_parameter("landing_manager.output_topic", DJITopics.VELOCITY_SETPOINT_TOPIC)
         self.declare_parameter("landing_manager.publish_rate_hz", 50.0)
         self.declare_parameter("landing_manager.controller_timeout_s", 0.15)
         self.declare_parameter("landing_manager.reference_timeout_s", 0.25)
         self.declare_parameter("landing_manager.zero_flush_cycles", 8)
 
-        # Model and control tuning; the calculations remain in landing_control.py.
+        # Model and control tuning, calculations remain in landing_control.
         self.declare_parameter("landing_lqr_controller.model_path", "")
         self.declare_parameter("landing_lqr_controller.model_kind", "auto")
         self.declare_parameter("landing_lqr_controller.model_sample_time_s", 0.0)
@@ -173,7 +172,6 @@ class LandingManagerNode(Node):
         self._valid_since: Optional[Time] = None
         self._condition_since: Optional[Time] = None
         self._invalid_since: Optional[Time] = None
-        self._auto_start_consumed = False
         self._detail = "idle"
         self._last_descent_allowed = False
         self._last_vertical_reference_velocity = 0.0
@@ -281,7 +279,7 @@ class LandingManagerNode(Node):
             return response
 
     def _reset_states(self) -> None:
-        """Clear this attempt without clearing perception or rearming auto-start."""
+        """Clear this attempt without clearing perception."""
         now = self.get_clock().now()
         self._state_entered = self._last_update = now
         self._valid_since = self._condition_since = self._invalid_since = None
@@ -293,14 +291,10 @@ class LandingManagerNode(Node):
         self._command.reset()
 
     def _accept_landing_goal(self) -> bool:
-        if self._state != LandingState.IDLE:
-            return False
-        self._auto_start_consumed = True
-        return True
+        return self._state == LandingState.IDLE
 
     def _start_landing(self, detail: str) -> None:
         self._reset_states()
-        self._auto_start_consumed = True
         self._transition(LandingState.ACQUIRE, detail)
         self._update_reference(self.get_clock().now())
 
@@ -454,18 +448,6 @@ class LandingManagerNode(Node):
             self._last_update = now
             self._last_descent_allowed = False
             self._last_vertical_reference_velocity = 0.0
-
-            if (
-                bool(self.get_parameter("landing_manager.auto_start").value)
-                and not self._auto_start_consumed
-                and not self._action_server.pending
-                and self._latest_state is not None
-                and self._latest_state.valid
-                and self._state == LandingState.IDLE
-            ):
-                self._reset_states()
-                self._auto_start_consumed = True
-                self._transition(LandingState.ACQUIRE, "auto-start")
 
             if (
                 self._action_server.timed_out(now)
@@ -704,7 +686,7 @@ class LandingManagerNode(Node):
             if output is not None:
                 self._velocity_publisher.publish(output)
 
-    # Override destroy_node to finish the action server
+    # Override destroy_node to finish the action server too
     def destroy_node(self):
         self._action_server.destroy()
         return super().destroy_node()
