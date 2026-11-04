@@ -11,12 +11,12 @@ from rclpy.qos import qos_profile_sensor_data
 from rclpy.time import Time
 from smarc_msgs.msg import Topics as SmarcTopics
 from tf2_ros import Buffer, TransformException, TransformListener
+from transforms3d.quaternions import quat2mat
 
 from .math_utils import (
     numpy_to_point,
     numpy_to_vector3,
     point_to_numpy,
-    quaternion_to_rotation_matrix,
     transform_point,
     transform_vector,
     vector3_to_numpy,
@@ -167,11 +167,11 @@ class RelativeStateNode(Node):
                 reference_tf = self._lookup_transform(
                     message.child_frame_id, reference_frame, stamp
                 )
-                rotation = quaternion_to_rotation_matrix(message.pose.pose.orientation)
+                q = message.pose.pose.orientation
+                rotation = quat2mat([q.w, q.x, q.y, q.z])
                 if pose_tf is not None:
-                    rotation = (
-                        quaternion_to_rotation_matrix(pose_tf.transform.rotation) @ rotation
-                    )
+                    q = pose_tf.transform.rotation
+                    rotation = quat2mat([q.w, q.x, q.y, q.z]) @ rotation
                 offset = rotation @ vector3_to_numpy(reference_tf.transform.translation)
                 position = position + offset
 

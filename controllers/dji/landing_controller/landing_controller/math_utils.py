@@ -3,6 +3,8 @@ from typing import Iterable
 
 import numpy as np
 from geometry_msgs.msg import Point, Quaternion, TransformStamped, Vector3
+from transforms3d.euler import euler2quat
+from transforms3d.quaternions import quat2mat
 
 
 def vector3_to_numpy(value: Vector3) -> np.ndarray:
@@ -23,29 +25,14 @@ def numpy_to_point(value: Iterable[float]) -> Point:
     return Point(x=float(array[0]), y=float(array[1]), z=float(array[2]))
 
 
-def quaternion_to_rotation_matrix(quaternion: Quaternion) -> np.ndarray:
-    x, y, z, w = quaternion.x, quaternion.y, quaternion.z, quaternion.w
-    norm = math.sqrt(x * x + y * y + z * z + w * w)
-    if norm < 1e-12:
-        return np.eye(3)
-    x, y, z, w = x / norm, y / norm, z / norm, w / norm
-    return np.array(
-        [
-            [1.0 - 2.0 * (y * y + z * z), 2.0 * (x * y - z * w), 2.0 * (x * z + y * w)],
-            [2.0 * (x * y + z * w), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - x * w)],
-            [2.0 * (x * z - y * w), 2.0 * (y * z + x * w), 1.0 - 2.0 * (x * x + y * y)],
-        ],
-        dtype=float,
-    )
-
-
 def yaw_to_quaternion(yaw: float) -> Quaternion:
-    half = 0.5 * yaw
-    return Quaternion(x=0.0, y=0.0, z=math.sin(half), w=math.cos(half))
+    w, x, y, z = euler2quat(0.0, 0.0, yaw)
+    return Quaternion(w=float(w), x=float(x), y=float(y), z=float(z))
 
 
 def transform_point(point: np.ndarray, transform: TransformStamped) -> np.ndarray:
-    rotation = quaternion_to_rotation_matrix(transform.transform.rotation)
+    q = transform.transform.rotation
+    rotation = quat2mat([q.w, q.x, q.y, q.z])
     translation = np.array(
         [
             transform.transform.translation.x,
@@ -58,12 +45,9 @@ def transform_point(point: np.ndarray, transform: TransformStamped) -> np.ndarra
 
 
 def transform_vector(vector: np.ndarray, transform: TransformStamped) -> np.ndarray:
-    rotation = quaternion_to_rotation_matrix(transform.transform.rotation)
+    q = transform.transform.rotation
+    rotation = quat2mat([q.w, q.x, q.y, q.z])
     return rotation @ np.asarray(vector, dtype=float).reshape(3)
-
-
-def clamp(value: np.ndarray, lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
-    return np.minimum(np.maximum(value, lower), upper)
 
 
 def first_order_lowpass(previous: np.ndarray, target: np.ndarray, cutoff_hz: float, dt: float) -> np.ndarray:

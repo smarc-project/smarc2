@@ -6,7 +6,7 @@ from typing import Sequence
 import numpy as np
 from scipy.linalg import solve_discrete_are
 
-from .math_utils import clamp, first_order_lowpass, slew_limit
+from .math_utils import first_order_lowpass, slew_limit
 from .model_loader import DiscreteVelocityModel
 
 
@@ -120,7 +120,7 @@ class LandingControl:
              parameters.max_up_speed_mps],
             dtype=float,
         )
-        saturated_command = clamp(raw_command, lower, upper)
+        saturated_command = np.clip(raw_command, lower, upper)
         saturated = not np.allclose(raw_command, saturated_command, rtol=0.0, atol=1e-12)
 
         # Order: speed limit, low-pass, slew, speed limit.
@@ -136,7 +136,7 @@ class LandingControl:
         filtered, rate_limited = slew_limit(
             self._last_command, filtered, rate_values, self._model.dt,
         )
-        filtered = clamp(filtered, lower, upper)
+        filtered = np.clip(filtered, lower, upper)
         self._last_command = filtered.copy()
 
         return ControlResult(

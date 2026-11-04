@@ -4,7 +4,7 @@ from typing import Any, Mapping
 
 import numpy as np
 import yaml
-from scipy.linalg import expm
+from scipy.signal import cont2discrete
 
 
 AXES = ("x", "y", "z")
@@ -272,11 +272,10 @@ def _load_yaml(
 def _discretize_state_space(ac: np.ndarray, bc: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
     n = ac.shape[0]
     m = bc.shape[1]
-    augmented = np.zeros((n + m, n + m), dtype=float)
-    augmented[:n, :n] = ac
-    augmented[:n, n:] = bc
-    transition = expm(augmented * dt)
-    return transition[:n, :n], transition[:n, n:]
+    ad, bd, _, _, _ = cont2discrete(
+        (ac, bc, np.eye(n), np.zeros((n, m))), dt, method="zoh"
+    )
+    return ad, bd
 
 
 def _axis_models_from_ab(a_matrix: np.ndarray, b_matrix: np.ndarray) -> dict[str, AxisModel]:
