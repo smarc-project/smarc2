@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>smarc_georef_examples</name>
+  <version>0.0.0</version>
+  <description>Example C++ and Python nodes using smarc_georef_cpp to convert between lat lon and tf frames and look up transforms.</description>
+  <maintainer email="nrol@kth.se">Niklas</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>smarc_georef_cpp</depend>
+  <depend>rclcpp</depend>
+  <depend>geographic_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <!-- Python example applies a transform from the library with tf2_geometry_msgs -->
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
