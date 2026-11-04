@@ -35,8 +35,8 @@ class RelativeStateNode(Node):
         super().__init__("landing_relative_state", **node_kwargs)
 
         self.declare_parameter("landing_relative_state.drone_odom_topic", SmarcTopics.ODOM_TOPIC)
-        self.declare_parameter("landing_relative_state.pad_odom_topic", DJITopics.PAD_ODOM_TOPIC)
-        self.declare_parameter("landing_relative_state.output_topic", DJITopics.RELATIVE_STATE_TOPIC)
+        self.declare_parameter("landing_relative_state.pad_odom_topic", DJITopics.PAD_LANDING_ODOM_TOPIC)
+        self.declare_parameter("landing_relative_state.output_topic", DJITopics.PAD_LANDING_RELATIVE_STATE_TOPIC)
         self.declare_parameter("landing_relative_state.map_frame", DJILinks.MAP)
         # A frame rigidly attached to the odometry child. Empty keeps the
         # original odometry reference point; the stack selects the landing gear.

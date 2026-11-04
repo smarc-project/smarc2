@@ -64,14 +64,12 @@ string HOOK_PENDULUM_PARAMETERS_IDENTIFIED = "alars_pendulum/hook_pendulum_param
 string CMD_VELOCITY_DRONE_FRAME = "alars_move_to_damped/cmd_vel_drone_frame" # geometry_msgs.msg/Vector3Stamped
 
 # Landing Topics
-string PAD_ODOM_TOPIC = "landing/pad_odom"
-string RELATIVE_STATE_TOPIC = "landing/relative_state"
-string REFERENCE_TOPIC = "landing/reference"
-string STATUS_TOPIC = "landing/status"
-string CONTROLLER_DEBUG_TOPIC = "landing/controller_debug"
-string CONTROLLER_CMD_TOPIC = "landing/controller_cmd"
+string PAD_LANDING_ODOM_TOPIC = "pad_landing/pad_odom"
+string PAD_LANDING_RELATIVE_STATE_TOPIC = "pad_landing/relative_state"
+string PAD_LANDING_STATUS_TOPIC = "pad_landing/status"
+string PAD_LANDING_CONTROLLER_DEBUG_TOPIC = "pad_landing/controller_debug"
 
 # Landing services (std_srvs/Trigger), relative to the robot namespace.
-string LANDING_START_SERVICE = "landing/start"
-string LANDING_ABORT_SERVICE = "landing/abort"
-string LANDING_RESET_SERVICE = "landing/reset"
+string PAD_LANDING_START_SERVICE = "pad_landing/start"
+string PAD_LANDING_ABORT_SERVICE = "pad_landing/abort"
+string PAD_LANDING_RESET_SERVICE = "pad_landing/reset"

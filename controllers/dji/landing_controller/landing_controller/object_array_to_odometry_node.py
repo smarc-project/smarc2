@@ -38,10 +38,9 @@ class ObjectArrayToOdometryNode(Node):
         # Input/output.
         self.declare_parameter("landing_pad_odom_adapter.pose_array_topic", DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
         self.declare_parameter("landing_pad_odom_adapter.status_array_topic", DJITopics.OBJECT_EKF_STATUS_ARRAY_TOPIC)
-        self.declare_parameter("landing_pad_odom_adapter.landing_status_topic", DJITopics.STATUS_TOPIC)
-        self.declare_parameter("landing_pad_odom_adapter.output_topic", DJITopics.PAD_ODOM_TOPIC)
-        self.declare_parameter("landing_pad_odom_adapter.class_name", "landing_pad")
-        self.declare_parameter("landing_pad_odom_adapter.child_frame_id", "landing_pad")
+        self.declare_parameter("landing_pad_odom_adapter.landing_status_topic", DJITopics.PAD_LANDING_STATUS_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.output_topic", DJITopics.PAD_LANDING_ODOM_TOPIC)
+        self.declare_parameter("landing_pad_odom_adapter.class_name", "land_pad")
 
         # EKF validity.
         self.declare_parameter("landing_pad_odom_adapter.require_status", True)
@@ -539,7 +538,7 @@ class ObjectArrayToOdometryNode(Node):
             output.header.frame_id = message.header.frame_id
 
         output.header.stamp = stamp.to_msg()
-        output.child_frame_id = str(self.get_parameter("landing_pad_odom_adapter.child_frame_id").value)
+        output.child_frame_id = object_message.class_name
         output.pose = object_message.pose
 
         output.twist.twist.linear.x = float(velocity[0])

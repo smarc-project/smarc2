@@ -70,6 +70,9 @@
       start_filter_from_zero: true
 
     landing_pad_odom_adapter:
+      class_name: land_pad
+      require_status: true
+      max_covariance_trace: -1.0 # Negative disables the full-state EKF covariance gate.
       enable_dropout_prediction: true
 
       # Safer: normal ALIGN/DESCEND requires actual perception.
@@ -91,7 +94,7 @@
 
       # Keep finite-difference velocity through short camera/EKF gaps.
       max_dt_s: 1.50
-      velocity_filter_tau_s: 0.10
+      velocity_filter_tau_s: 0.25
 
       # Fallback if current regression temporarily collapses.
       prediction_velocity_hold_s: 2.0
