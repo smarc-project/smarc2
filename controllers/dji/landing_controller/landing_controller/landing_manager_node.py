@@ -74,7 +74,6 @@ class LandingManagerNode(Node):
         self.declare_parameter("landing_manager.publish_rate_hz", 50.0)
         self.declare_parameter("landing_manager.controller_timeout_s", 0.15)
         self.declare_parameter("landing_manager.reference_timeout_s", 0.25)
-        self.declare_parameter("landing_manager.zero_flush_cycles", 8)
 
         # Model and control tuning, calculations remain in landing_control.
         self.declare_parameter("landing_lqr_controller.model_path", "")
@@ -683,7 +682,6 @@ class LandingManagerNode(Node):
                 self.get_clock().now(), self._latest_reference,
                 controller_timeout_s=float(self.get_parameter("landing_manager.controller_timeout_s").value),
                 reference_timeout_s=float(self.get_parameter("landing_manager.reference_timeout_s").value),
-                zero_flush_cycles=int(self.get_parameter("landing_manager.zero_flush_cycles").value),
             )
             if output is not None:
                 self._velocity_publisher.publish(output)

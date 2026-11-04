@@ -3,7 +3,7 @@
 from typing import Any, Mapping, Optional
 
 from dji_msgs.msg import LandingControllerDebug, LandingReference, LandingRelativeState
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import Twist, TwistStamped
 from rclpy.duration import Duration
 from rclpy.impl.rcutils_logger import RcutilsLogger
 from rclpy.time import Time
@@ -32,10 +32,10 @@ class LandingCommand:
         self._latest_command: Optional[TwistStamped] = None
         self._was_active = False
         self._was_enabled = False
-        self._flush_remaining = 0
+        self._stop_logged = False
 
     def reset(self) -> None:
-        """Clear controller history while preserving any remaining zero flush."""
+        """Clear controller history while preserving the output stop state."""
         self._control.reset()
         self._latest_command = None
         self._was_active = False
@@ -118,58 +118,40 @@ class LandingCommand:
 
     def select_output(
         self, now: Time, reference: Optional[LandingReference], *,
-        controller_timeout_s: float, reference_timeout_s: float, zero_flush_cycles: int,
+        controller_timeout_s: float, reference_timeout_s: float,
     ) -> Optional[TwistStamped]:
-        """Choose an override, fresh controller command or zero; None means no output."""
+        """Choose an override, fresh controller command, send one zero when output stops."""
         if reference is None:
-            self._logger.info(
-                "Landing output inactive: no landing reference",
-                throttle_duration_sec=2.0,
-            )
-            return self._handle_disabled(now, zero_flush_cycles)
+            return self._handle_disabled(now, "no landing reference")
 
         reference_age = self._age(now, reference.header.stamp)
         if reference_age > reference_timeout_s:
-            self._logger.warning(
-                "Landing output inactive: landing reference stale "
-                f"({reference_age:.3f}s > {reference_timeout_s:.3f}s)",
-                throttle_duration_sec=2.0,
+            return self._handle_disabled(
+                now, f"landing reference stale ({reference_age:.3f}s > {reference_timeout_s:.3f}s)",
             )
-            return self._handle_disabled(now, zero_flush_cycles)
 
         if not reference.control_enabled:
-            self._logger.info(
-                "Landing output inactive: control disabled by landing manager",
-                throttle_duration_sec=2.0,
-            )
-            return self._handle_disabled(now, zero_flush_cycles)
+            return self._handle_disabled(now, "control disabled by landing manager")
 
         if reference.override_active:
             output = self._zero_message(now)
             output.twist.linear.x = float(reference.override_velocity.x)
             output.twist.linear.y = float(reference.override_velocity.y)
             output.twist.linear.z = float(reference.override_velocity.z)
+            if output.twist == Twist():
+                return self._handle_disabled(now, "zero velocity requested")
             self._was_enabled = True
-            self._flush_remaining = zero_flush_cycles
+            self._stop_logged = False
             return output
 
         if self._latest_command is None:
-            self._logger.warning(
-                "Landing output enabled but no controller command has been received",
-                throttle_duration_sec=2.0,
-            )
-            return self._zero_message(now)
+            return self._handle_disabled(now, "no controller command")
 
         controller_age = self._age(now, self._latest_command.header.stamp)
         if controller_age > controller_timeout_s:
-            self._logger.warning(
-                "Landing output enabled but controller command stale "
-                f"({controller_age:.3f}s > {controller_timeout_s:.3f}s)",
-                throttle_duration_sec=2.0,
+            return self._handle_disabled(
+                now, f"controller command stale ({controller_age:.3f}s > {controller_timeout_s:.3f}s)",
             )
-            self._was_enabled = True
-            self._flush_remaining = zero_flush_cycles
-            return self._zero_message(now)
 
         output = self._zero_message(now, self._latest_command.header.frame_id)
         output.twist.linear.x = float(self._latest_command.twist.linear.x)
@@ -178,8 +160,10 @@ class LandingCommand:
         output.twist.angular.x = float(self._latest_command.twist.angular.x)
         output.twist.angular.y = float(self._latest_command.twist.angular.y)
         output.twist.angular.z = float(self._latest_command.twist.angular.z)
+        if output.twist == Twist():
+            return self._handle_disabled(now, "zero velocity requested")
         self._was_enabled = True
-        self._flush_remaining = zero_flush_cycles
+        self._stop_logged = False
         return output
 
     def _lookup_transform(
@@ -238,12 +222,16 @@ class LandingCommand:
         message.header.frame_id = frame_id if frame_id else self._controller_frame
         return message
 
-    def _handle_disabled(self, now: Time, zero_flush_cycles: int) -> Optional[TwistStamped]:
-        if self._was_enabled:
-            self._was_enabled = False
-            self._flush_remaining = zero_flush_cycles
-        if self._flush_remaining <= 0:
+    def _handle_disabled(self, now: Time, reason: str) -> Optional[TwistStamped]:
+        if self._stop_logged:
             return None
 
-        self._flush_remaining -= 1
+        self._stop_logged = True
+        if not self._was_enabled:
+            self._logger.info(f"Landing output waiting: {reason}; no movement command has been sent.")
+            return None
+
+        self._was_enabled = False
+        message = f"Landing output stopped: {reason}; sending one zero command."
+        self._logger.info(message)
         return self._zero_message(now)

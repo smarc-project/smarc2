@@ -23,12 +23,14 @@
 
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-transforms3d</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>ros2launch</exec_depend>
 
   <test_depend>ament_pytest</test_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>python3-pytest</test_depend>
+  <test_depend>action_msgs</test_depend>
 
   <export>
     <build_type>ament_python</build_type>

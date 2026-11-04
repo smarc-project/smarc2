@@ -16,7 +16,7 @@ setup(
             'config/landing_params.yaml',
         ]),
     ],
-    install_requires=['setuptools', 'numpy', 'PyYAML', 'scipy'],
+    install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Cristhian Mallqui',
     maintainer_email='ckmc@kth.se',
@@ -27,8 +27,6 @@ setup(
         'console_scripts': [
             'relative_state = landing_controller.relative_state_node:main',
             'landing_manager = landing_controller.landing_manager_node:main',
-            'lqr_controller = landing_controller.lqr_controller_node:main',
-            'velocity_command_mux = landing_controller.velocity_command_mux_node:main',
             'object_array_to_odometry = landing_controller.object_array_to_odometry_node:main',
         ],
     },
