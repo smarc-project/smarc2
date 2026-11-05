@@ -52,7 +52,7 @@
         length_m: 1.2
         width_m: 1.2
         # Switch between depth (estimate Z/vZ) and surface (fixed deck Z).
-        # Both use flat_rectangle; restart the multi-object EKF after changing.
+        # Both use circle; restart the multi-object EKF after changing.
         motion_model_type: "depth"
         stale_state_age: 3.0
 
@@ -61,7 +61,7 @@
 
         parameters:
           measurement:
-            geometry: flat_rectangle
+            geometry: circle
           depth:
             # Used only by the depth model.
             sigma_z_process: 1.0

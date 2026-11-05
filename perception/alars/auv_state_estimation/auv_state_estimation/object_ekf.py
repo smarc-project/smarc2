@@ -32,9 +32,9 @@ class ObjectEKF:
         self.eps = self.motion_model.eps
 
         self.state_dim = self.motion_model.state_dim
-        if self.measurement_geometry == "flat_rectangle":
+        if self.measurement_geometry == "circle":
             if self.motion_model_type not in ("depth", "surface"):
-                raise ValueError("Flat landing-pad measurements require the depth or surface model")
+                raise ValueError("Circle measurements require the depth or surface model")
             # Both models observe [u, v, long_side, short_side]. Surface fixes
             # the deck Z; depth adds Z/vZ states to the same pad geometry.
             self.meas_dim = 4
@@ -134,7 +134,7 @@ class ObjectEKF:
             self.log_info(f"{self.class_name}: Initialization complete")
             return
 
-        if self.measurement_geometry == "flat_rectangle":
+        if self.measurement_geometry == "circle":
             long_side, short_side = sorted([z_len_px, z_wid_px], reverse=True)
             z = np.array([[z_center_img[0]], [z_center_img[1]], [long_side], [short_side]])
         elif self.state_dim == 5:
@@ -395,8 +395,8 @@ class ObjectEKF:
             R_alpha=self.R_alpha,
             motion_model_type=self.motion_model_type,
             logger=self.logger,
-            # A square pad's 90-degree OBB flips describe the same deck geometry.
-            yaw_period=(np.pi / 2 if self.measurement_geometry == "flat_rectangle"
+            # A square bounding box is equivalent after a 90-degree OBB flip.
+            yaw_period=(np.pi / 2 if self.measurement_geometry == "circle"
                         and np.isclose(self.obb_length_m, self.obb_width_m) else np.pi),
         )
         self.measurement_model = MeasurementModel(
@@ -588,7 +588,7 @@ class ObjectEKF:
 
         self.motion_model_type: str = str(params["motion.model_type"])
         self.measurement_geometry = str(params["measurement.geometry"])
-        if self.measurement_geometry not in ("capsule", "flat_rectangle"):
+        if self.measurement_geometry not in ("capsule", "circle"):
             raise ValueError(f"Unknown measurement geometry: {self.measurement_geometry}")
 
         self.depth_sigma_z_process: float = float(params["depth.sigma_z_process"])

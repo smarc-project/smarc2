@@ -102,7 +102,7 @@ class EKFCore:
         yaw_idx = 2 if self.state_dim == 5 else 3
         self.X[yaw_idx, 0] = wrap(self.X[yaw_idx, 0])
         I = np.eye(self.state_dim)
-        # Joseph form preserves positive covariance through delayed-update replay.
+        # Form preserves positive covariance through delayed-update replay.
         correction = I - K @ H
         self.P = correction @ self.P @ correction.T + K @ R @ K.T
         self.P = 0.5 * (self.P + self.P.T)

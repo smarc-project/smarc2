@@ -185,7 +185,7 @@ class MeasurementModel:
         return J
     
     def residual(self, measurement, prediction):
-        if self.geometry == "flat_rectangle":
+        if self.geometry == "circle":
             # Pad measurements are [u, v, long_side, short_side], all pixels.
             return np.asarray(measurement) - np.asarray(prediction)
         return residual_z(measurement, prediction)
@@ -214,9 +214,9 @@ class MeasurementModel:
         else:
             raise ValueError(f"Unknown motion model type: {self.motion_model_type}")
         center = np.array([px, py, pz])
-        if self.geometry == "flat_rectangle":
-            # A flat deck has no capsule thickness. Square-pad yaw is ambiguous,
-            # so compare sorted OBB side lengths and omit the angle measurement.
+        if self.geometry == "circle":
+            # Approximate the circular target with a flat bounding box.
+            # Compare sorted OBB side lengths and omit the angle measurement.
             local = np.array([
                 [-self.obb_length_m / 2, -self.obb_width_m / 2, 0.0],
                 [self.obb_length_m / 2, -self.obb_width_m / 2, 0.0],
