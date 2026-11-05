@@ -32,20 +32,11 @@ class FollowAUVAction():
         self.DETECTION_FRESHNESS_THRESHOLD : float = self._node.get_parameter('detection_freshness_threshold').get_parameter_value().double_value
 
         self._reset()
-
-        self._auv_projection : PoseStamped = PoseStamped()
-        self._auv_projection.header.frame_id = self._drone_state.MAP_FRAME
         
         self._setpoint_pub = self._node.create_publisher(
             msg_type = PoseStamped,
             topic = DJITopics.MOVE_TO_SETPOINT_TOPIC,
             qos_profile= 10)
-        
-        
-        self._node.create_subscription(PoseWithCovarianceStamped,
-                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                       self._auv_projection_cb,
-                                       10)
         
 
         self._loop_frequency = 10.0
@@ -70,38 +61,13 @@ class FollowAUVAction():
         self._vulture_speed_deg : float = 10.0 
         self._vulture_pos_rad : float = np.random.uniform(0, 2*np.pi)
 
+    @property
+    def _auv_projection(self) -> PoseWithCovarianceStamped | None:
+        return self._drone_state.auv_projection
+
 
     def _loginfo(self, msg: str):
         self._node.get_logger().info(msg)
-
-
-    def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):        
-        if msg.header.stamp is None:
-            self._loginfo("Received AUV projection message with no timestamp, ignoring.")
-            return
-        
-        if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
-            self._loginfo("Received AUV projection message with zero timestamp, ignoring.")
-            return
-        
-        if msg.header.frame_id == self._auv_projection.header.frame_id:
-            self._auv_projection.pose = msg.pose.pose
-        else:
-            self._loginfo(f"Received AUV projection in frame {msg.header.frame_id}, expected {self._auv_projection.header.frame_id}. Transforming...")
-            try:
-                tf = self._drone_state._tf_buffer.lookup_transform(
-                    target_frame = self._auv_projection.header.frame_id,
-                    source_frame = msg.header.frame_id,
-                    time = Time(seconds=0),
-                    timeout = Duration(seconds=1)
-                )
-                self._auv_projection = do_transform_pose_stamped(PoseStamped(header=msg.header, pose=msg.pose.pose), tf)
-            except Exception as e:
-                self._loginfo(f"Error transforming AUV projection to map frame: {e}")
-            
-        self._auv_projection.header.stamp= msg.header.stamp
-    
-
 
 
     def _on_goal_received(self, goal_request: dict) -> bool:

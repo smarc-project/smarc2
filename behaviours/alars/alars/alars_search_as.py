@@ -49,18 +49,6 @@ class SearchAction():
             topic = DJITopics.MOVE_TO_SETPOINT_TOPIC,
             qos_profile= 10)
         
-        
-        self._node.create_subscription(PointStamped, 
-                                       DJITopics.ESTIMATED_AUV_TOPIC,
-                                       self._auv_detection_cb,
-                                       10)
-        
-        self._node.create_subscription(PoseWithCovarianceStamped,
-                                       DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                       self._auv_projection_cb,
-                                       10)
-        
-
       
         self._as = GentlerActionServer(
             node,
@@ -74,25 +62,25 @@ class SearchAction():
         )
             
     def _reset(self):
-        self._auv_detection : PointStamped = PointStamped()
-        self._auv_projection : PoseWithCovarianceStamped = PoseWithCovarianceStamped()
         self._spiral_progress : float = 0.0
         self._search_center_map : PoseStamped = PoseStamped()
         self._search_radius : float = 0.0
         self._radius_progress : float = -1.0
         self._current_setpoint : PoseStamped | None = None
+
+
+    @property
+    def _auv_detection(self) -> PointStamped | None:
+        return self._drone_state.auv_detection
+
+    @property
+    def _auv_projection(self) -> PoseWithCovarianceStamped | None:
+        return self._drone_state.auv_projection
+
     
 
     def _loginfo(self, msg: str):
         self._node.get_logger().info(msg)
-
-
-    def _auv_detection_cb(self, msg: PointStamped):
-        self._auv_detection = msg
-
-
-    def _auv_projection_cb(self, msg: PoseWithCovarianceStamped):
-        self._auv_projection = msg
 
 
 

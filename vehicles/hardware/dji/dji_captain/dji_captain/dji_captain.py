@@ -126,7 +126,6 @@ class DjiCaptain():
 
         self._got_control : bool = False
         self._flying : bool = False
-        self._cam_processor_happy : bool = False
         self._geofence_status : GeofenceStatusStamped | None = None
         self._cleared_water_level_once : bool = False
         
@@ -243,12 +242,6 @@ class DjiCaptain():
             self._load_cell_callback,
             qos_profile=qos_best_effort10)
 
-        node.create_subscription(
-            Bool,
-            DjiTopics.CAM_PROCESSOR_HAPPY_TOPIC,
-            self._cam_processor_happy_callback,
-            qos_profile=qos_best_effort10
-        )
 
         node.create_subscription(
             GeofenceStatusStamped,
@@ -338,8 +331,7 @@ class DjiCaptain():
             s += f"  Battery Percent: {self._battery_percent:.2f} (ready:{self.READY_BATTERY_PERCENTAGE}, error:{self.ERROR_BATTERY_PERCENTAGE})\n"
         else:
             s += f"  Battery Percent: N/A\n"
-        
-        s += f"  Cam Proc Happy: {self._cam_processor_happy}\n"
+
 
         if self._load_cell_weight is not None:
             s += f"  Load Cell Weight: {self._load_cell_weight:+.2f} kg (max: {self._MAX_LOAD_KG} kg)\n"
@@ -425,9 +417,6 @@ class DjiCaptain():
     ############
     def _load_cell_callback(self, msg: Float32):
         self._load_cell_weight = msg.data
-
-    def _cam_processor_happy_callback(self, msg: Bool):
-        self._cam_processor_happy = msg.data
 
     def _geofence_status_callback(self, msg: GeofenceStatusStamped):
         self._geofence_status = msg

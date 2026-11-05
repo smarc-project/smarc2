@@ -81,23 +81,10 @@ class AlarsBT():
             
             self._node.declare_parameter('auv_esitmate_max_age', 5.0)
             self.AUV_ESTIMATE_MAX_AGE : float = self._node.get_parameter('auv_esitmate_max_age').get_parameter_value().double_value
-            self._auv_position_estimate : PoseWithCovarianceStamped | None = None
-            def auv_position_estimate_cb(msg: PoseWithCovarianceStamped):
-                self._auv_position_estimate = msg
-            self._node.create_subscription(PoseWithCovarianceStamped,
-                                           DJITopics.PROJECTED_AUV_POSE_WITH_COV_TOPIC,
-                                           auv_position_estimate_cb,
-                                           10)
             
             self._node.declare_parameter('buoy_esitmate_max_age', 5.0)
             self.BUOY_ESTIMATE_MAX_AGE : float = self._node.get_parameter('buoy_esitmate_max_age').get_parameter_value().double_value
-            self._buoy_position_estimate : PoseWithCovarianceStamped | None = None
-            def buoy_position_estimate_cb(msg: PoseWithCovarianceStamped):
-                self._buoy_position_estimate = msg
-            self._node.create_subscription(PoseWithCovarianceStamped,
-                                           DJITopics.PROJECTED_BUOY_POSE_WITH_COV_TOPIC,
-                                           buoy_position_estimate_cb,
-                                           10)
+
 
             self._reset_states()
 
@@ -146,6 +133,13 @@ class AlarsBT():
                 "num-retries": None
             }
 
+    @property
+    def _buoy_position_estimate(self) -> PoseWithCovarianceStamped | None:
+        return self._drone_state.buoy_projection
+
+    @property
+    def _auv_position_estimate(self) -> PoseWithCovarianceStamped | None:
+        return self._drone_state.auv_projection
 
     @property
     def _is_auv_hanging(self) -> bool:

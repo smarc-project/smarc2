@@ -16,8 +16,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='tko',
-    maintainer_email='kogucki@kth.se',
+    maintainer='Ozer',
+    maintainer_email='ozero@kth.se',
     description='SMARC Utilities for various items',
     license='MIT',
     #tests_require=['pytest'],
@@ -26,6 +26,7 @@ setup(
             'simple_tts = smarc_utilities.tts:main',
             'beckholmen_vis = smarc_utilities.beckholmen_vis:main',
             'internet_checker = smarc_utilities.internet_checker:main',
+            'vid_to_ros = smarc_utilities.vid_to_ros:main',
         ],
     },
 )

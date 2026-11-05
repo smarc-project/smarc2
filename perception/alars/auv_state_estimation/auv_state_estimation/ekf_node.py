@@ -439,8 +439,6 @@ class EKFNode(Node):
 
     def get_params(self):
         PARAMS = [
-            ("topics.input_polygon", Topics.ESTIMATED_AUV_OBB_TOPIC),
-            ("topics.input_auv_head", Topics.ESTIMATED_AUV_HEAD_TOPIC),
             ("topics.output_topic", "rviz/estimated_pose"),
             ("topics.odom", SmarcTopics.ODOM_TOPIC),
             ("topics.ekf_status", "alars_auv_ekf/status"),
@@ -603,8 +601,6 @@ class EKFNode(Node):
         self.eps_pose_pos :float = self.get_parameter("jacobian.eps_pose_pos").get_parameter_value().double_value
         self.eps_pose_ang :float = self.get_parameter("jacobian.eps_pose_ang").get_parameter_value().double_value
 
-        self.topic_in_poly : str = self.get_parameter("topics.input_polygon").get_parameter_value().string_value
-        self.topic_input_auv_head : str = self.get_parameter("topics.input_auv_head").get_parameter_value().string_value
         self.topic_estimated_pose : str = self.get_parameter("topics.output_topic").get_parameter_value().string_value
         self.topic_odom : str = self.get_parameter("topics.odom").get_parameter_value().string_value
         self.topic_ekf_status : str = self.get_parameter("topics.ekf_status").get_parameter_value().string_value

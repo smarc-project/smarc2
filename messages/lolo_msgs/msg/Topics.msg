@@ -4,7 +4,8 @@
 # Lolo Abort
 string LOLO_ABORT = 'abort'
 
-# PID controllers setpoints. All Float32s.
+# PID controllers setpoints. All Float32s. except wp setpoint which is as PointStamped
+string WP_SETPOINT = "ctrl/wp_setpoint"
 string YAW_SETPOINT = "ctrl/yaw_setpoint"
 string YAW_RATE_SETPOINT = "ctrl/yawrate_setpoint"
 string YAW_ACTUATION = "ctrl/yaw_actuation"
@@ -16,6 +17,8 @@ string PITCH_RATE_SETPOINT = "ctrl/pitchrate_setpoint"
 string PITCH_ACTUATION = "ctrl/pitch_actuation"
 # This value is also under smarc_control_msgs, leave it here for convenience?
 string DEPTH_SETPOINT = "ctrl/depth_setpoint"
+string ALTITUDE_SETPOINT = "ctrl/altitude_setpoint"
+string SPEED_SETPOINT = "ctrl/speed_setpoint"
 string RPM_SETPOINT = "ctrl/rpm_setpoint"
 
 #Contorl surfaces setpoint. All Float32s.
