@@ -16,7 +16,7 @@
       pad_twist_frame_mode: header
 
     landing_manager:
-      update_rate_hz: 40.0
+      update_rate_hz: 50.0 #40.0 before
       # Final command output runs independently of the FSM timer.
       publish_rate_hz: 50.0
       controller_timeout_s: 0.8

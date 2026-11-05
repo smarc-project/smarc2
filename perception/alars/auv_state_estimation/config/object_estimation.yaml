@@ -64,9 +64,9 @@
             geometry: circle
           depth:
             # Used only by the depth model.
-            sigma_z_process: 1.0
+            sigma_z_process: 0.5
             k_z: 0.4
-            d_z: 0.1
+            d_z: 0.5
           gating:
             position_only_fallback: true
           motion:

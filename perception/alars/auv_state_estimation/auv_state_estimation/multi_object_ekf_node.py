@@ -519,7 +519,7 @@ class MultiObjectEKFNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = MultiObjectEKFNode()
-    executor = MultiThreadedExecutor(num_threads=4)
+    executor = MultiThreadedExecutor()
     executor.add_node(node)
 
     try:

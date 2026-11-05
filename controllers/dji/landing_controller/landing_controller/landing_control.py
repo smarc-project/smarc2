@@ -78,8 +78,10 @@ class LandingControl:
         height_above_pad: float,
         vertical_reference_velocity: float,
         parameters: ControlParameters,
+        dt: float | None = None,
     ) -> ControlResult:
-        """Compute and filter a command using the identified model's sample time."""
+        """Compute a command; filter with elapsed time or the model's sample time."""
+        dt = self._model.dt if dt is None else dt
         lqr_state = np.array(
             [
                 relative_position[0],
@@ -128,13 +130,13 @@ class LandingControl:
             self._last_command,
             saturated_command,
             parameters.command_cutoff_hz,
-            self._model.dt,
+            dt,
         )
         rate_values = np.asarray(parameters.max_command_rate_mps2, dtype=float)
         if rate_values.shape != (3,):
             raise ValueError("max_command_rate_mps2 must contain three values")
         filtered, rate_limited = slew_limit(
-            self._last_command, filtered, rate_values, self._model.dt,
+            self._last_command, filtered, rate_values, dt,
         )
         filtered = np.clip(filtered, lower, upper)
         self._last_command = filtered.copy()

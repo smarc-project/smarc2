@@ -30,6 +30,7 @@ class LandingCommand:
         self._buffer = buffer
         self._logger = logger
         self._latest_command: Optional[TwistStamped] = None
+        self._last_control_time: Optional[Time] = None
         self._was_active = False
         self._was_enabled = False
         self._stop_logged = False
@@ -38,6 +39,7 @@ class LandingCommand:
         """Clear controller history while preserving the output stop state."""
         self._control.reset()
         self._latest_command = None
+        self._last_control_time = None
         self._was_active = False
 
     def update_control(
@@ -50,6 +52,7 @@ class LandingCommand:
             if self._was_active:
                 self._logger.info(f"LQR controller inactive: {detail}")
             self._was_active = False
+            self._last_control_time = None
             if bool(parameters["start_filter_from_zero"]):
                 self._control.reset()
             return None
@@ -88,6 +91,11 @@ class LandingCommand:
             command_cutoff_hz=float(parameters["command_cutoff_hz"]),
             max_command_rate_mps2=parameters["max_command_rate_mps2"],
         )
+        # Keep the LQR model period, but filter using elapsed ROS time.
+        dt = None
+        if self._last_control_time is not None:
+            dt = max(0.0, (now - self._last_control_time).nanoseconds * 1e-9)
+
         result = self._control.compute(
             relative_position,
             relative_velocity,
@@ -95,7 +103,9 @@ class LandingCommand:
             height_above_pad=float(reference.height_above_pad),
             vertical_reference_velocity=float(reference.vertical_reference_velocity),
             parameters=tuning,
+            dt=dt,
         )
+        self._last_control_time = now
         self._was_active = True
 
         command_message = self._zero_message(now)
