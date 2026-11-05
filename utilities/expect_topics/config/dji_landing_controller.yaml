@@ -1,0 +1,31 @@
+nodes:
+  - name: "landing_pad_odom_adapter"
+  - name: "landing_relative_state"
+  - name: "landing_manager"
+
+topics:
+  # Published while idle, only topics that don't require camera input.
+  - topic: "dji_msgs.msg::Topics.PAD_LANDING_RELATIVE_STATE_TOPIC"
+    type: "dji_msgs/msg/LandingRelativeState"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "dji_msgs.msg::Topics.PAD_LANDING_STATUS_TOPIC"
+    type: "dji_msgs/msg/LandingStatus"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_ACTION_SERVER_HB_TOPIC"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: volatile
+      depth: 10
+    content:
+      field: "data"
+      values:
+        - "/M350/alars_land_on_pad"
