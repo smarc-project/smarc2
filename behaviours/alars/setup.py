@@ -31,7 +31,6 @@ setup(
             "alars_ping_search_action_server = alars.alars_ping_search_as:main",
             "alars_move_to_damped_action_server = alars.alars_move_to_damped_as:main",
             "alars_estimate_length_and_damping_action_server = alars.alars_estimate_rope_swing_as:main",
-            "alars_land_action_server = alars.alars_land_as:main"
         ],
     },
 )

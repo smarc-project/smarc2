@@ -27,14 +27,21 @@ the camera. Alternatively, `dji_bringup.sh` starts the EKF within the DJI stack.
 ## Landing pad
 
 Under `classes.land_pad`, set the physical dimensions and
-`parameters.measurement.geometry: flat_rectangle`. Since square-pad yaw is
-ambiguous, measurements use the OBB center and sorted side lengths, assuming
-a horizontal deck.
+`parameters.measurement.geometry: circle`. The circular target is approximated
+by a flat bounding box, so measurements use the OBB center and sorted side
+lengths, assuming a horizontal deck.
 
 The `depth` motion model estimates Z and vertical velocity from YOLO, while
 `surface` fixes Z. Accordingly, `environment.water_surface_height` sets nominal
 map deck Z for `depth` and fixed Z for `surface`. To switch, change
 `motion_model_type`, retain the geometry/dimensions and restart the EKF.
+
+Override only the pad height at startup with `landing_pad_height`:
+
+```bash
+ros2 launch auv_state_estimation multi_ekf_launch.py \
+  robot_name:=M350 landing_pad_height:=1.88
+```
 
 The [landing controller](../../../controllers/dji/landing_controller/README.md)
 then selects the pad estimate and publishes `landing/pad_odom` through its adapter.
