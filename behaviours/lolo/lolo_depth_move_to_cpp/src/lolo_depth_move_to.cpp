@@ -20,6 +20,7 @@
 #include "smarc_action_base_cpp/graceful_shutdown.hpp"
 #include <geographic_msgs/msg/geo_point.hpp>
 #include <geodesy/utm.h>
+#include "smarc_georef_cpp/georef_utils.hpp"
 
 namespace auv_depth_move_to {
 
@@ -35,7 +36,8 @@ class AUVDepthMoveTo {
             std::bind(&AUVDepthMoveTo::prepare_loop, this),
             std::bind(&AUVDepthMoveTo::loop_inner, this),
             std::bind(&AUVDepthMoveTo::feedback, this),
-            smarc_action_base_cpp::GentlerActionServer::Config(2.0)) 
+            smarc_action_base_cpp::GentlerActionServer::Config(2.0)),
+            georef_(node.get()) 
   {
     //Limits for checking if goal is valid
     node_->declare_parameter("max_waypoint_dist", 1000.0);
@@ -76,10 +78,6 @@ class AUVDepthMoveTo {
     //initialize timers in the past to get the correct time source
     action_start_time_  = node_->get_clock()->now() - rclcpp::Duration::from_seconds(limits_max_timeout_secs + 1000);
     feedback_odom_received_time_  = node_->get_clock()->now() - rclcpp::Duration::from_seconds(100);
-
-    //TF
-    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
   }
 
   void request_shutdown() { action_server_.request_shutdown(); }
@@ -143,28 +141,17 @@ class AUVDepthMoveTo {
         goal_rpm_.data = limits_max_thruster_rpm;
       }
 
-    
-      geodesy::UTMPoint point;
-      geodesy::fromMsg(geopoint, point);
-
-      
-      std::string frame_id =
-          "utm_" + std::to_string(static_cast<int>(point.zone)) + "_" + std::string(1, point.band);
-
-      RCLCPP_INFO_STREAM(node_->get_logger(), "Converted WP to utm point: " << point);
-      
-      geometry_msgs::msg::PointStamped point_in;
-      point_in.header.frame_id = frame_id;
-      point_in.header.stamp = rclcpp::Time(0);
-      point_in.point.x = point.easting;
-      point_in.point.y = point.northing;
-      point_in.point.z = point.altitude;
-
-      goal_ = tf_buffer_->transform(point_in, target_frame_, tf2::durationFromSec(1.0));
-
-    } catch (const tf2::TransformException& ex) {
+      //Convert geopoint to local coordinates
+      try {
+        goal_ = georef_.geopoint_to_point_stamped(geopoint, target_frame_);
+      } catch (const tf2::TransformException & ex) {
         RCLCPP_WARN(node_->get_logger(), "Could not transform to %s: %s",
-          target_frame_.c_str(), ex.what());
+            target_frame_.c_str(), ex.what());
+          return false;
+      }
+
+    } catch (const std::runtime_error& ex) {
+        RCLCPP_WARN(node_->get_logger(), "Error in on_goal_received ");
         return false;
     }
 
@@ -248,6 +235,7 @@ class AUVDepthMoveTo {
   rclcpp::Node::SharedPtr node_;
   GentlerActionServer action_server_;
   std::mutex mutex_; //Only one thread is allowed to access variables at a time
+  GeorefUtils georef_;
 
   rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr setpoint_wp_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr setpoint_depth_pub_;
@@ -273,8 +261,6 @@ class AUVDepthMoveTo {
   double limits_min_altitude;
   double limits_max_timeout_secs;
 
-  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::string goal_json_;
   std::string feedback_ = "IDLE";
 };

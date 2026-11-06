@@ -15,6 +15,7 @@ find_package(lolo_msgs REQUIRED)
 find_package(smarc_msgs REQUIRED)
 find_package(smarc_geofence_utils REQUIRED)
 find_package(smarc_action_base_cpp REQUIRED)
+find_package(smarc_georef_cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -35,6 +36,7 @@ ament_target_dependencies(lolo_depth_move_to
   tf2_geometry_msgs
   geodesy
   geographic_msgs
+  smarc_georef_cpp
 )
 
 install(
