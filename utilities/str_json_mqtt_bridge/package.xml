@@ -8,6 +8,7 @@
   <license>MIT</license>
 
   <exec_depend>python3-paho-mqtt</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

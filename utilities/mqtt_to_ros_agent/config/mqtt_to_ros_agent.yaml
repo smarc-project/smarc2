@@ -36,15 +36,9 @@
                 # FIXME: the str_json_mqtt_bridge doesn't support empy to_mqtt fields.
                 "none",
               ]
-            to_ros:
-              [
-                "sensor/position",
-                "sensor/heading",
-                "sensor/course",
-                "sensor/speed",
-                "sensor/roll",
-                "sensor/pitch",
-              ]
+            # Launch sets this to <user>_<robot>. "#" would be every other agent.
+            to_ros_agents: []
+            to_ros: []
 
 mqtt_to_ros_agent_publisher:
     ros__parameters:

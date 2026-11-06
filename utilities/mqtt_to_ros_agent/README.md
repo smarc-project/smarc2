@@ -1,7 +1,9 @@
 # WARA-PS MQTT-agent to ROS-agent.
-Small utility node that uses the [`str_json_mqtt_bridge`]() package to listen
-to a given WARA-PS agent broadcasting its state over MQTT, and republishes it
-in ROS. The topics republished by the node are:
+Small utility node that turns one WARA-PS agent's sensor strings into ROS
+odometry. The launch starts [`str_json_mqtt_bridge`]() with
+`mqtt.to_ros_agents` set to `<user>_<robot>` (the last segment of the broker
+path). The bridge publishes `/<user>_<robot>/waraps/sensor/...`. This node
+reads those strings and republishes:
   - `MQTT_AGENT_NAME/odom`: an `Odometry` message whose covariance is given
   by the user to roughly approximate its shape.
   - `MQTT_AGENT_NAME/latlon`: a `GeoPoint` message with its coordinates in lat/lon.
