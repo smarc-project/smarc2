@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>floatsam_topic_bridge</name>
+  <version>0.0.1</version>
+  <description>Topic bridge to convert Floatsam simulator/hardware topics to standard SMaRC topics</description>
+  <maintainer email="lmanno@kth.se">Lorenzo</maintainer>
+  <maintainer email="fidf@kth.se">Filippo</maintainer>
+  <maintainer email="alebas@kth.se">Alessandro</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>floatsam_msgs</depend>
+  <depend>smarc_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>python3-yaml</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
