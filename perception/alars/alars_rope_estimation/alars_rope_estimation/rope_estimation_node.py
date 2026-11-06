@@ -9,10 +9,10 @@ from rclpy.executors import ExternalShutdownException
 
 class RopeEstimationNode(Node):
     """
-    ROS2 Node for estimating rope direction and force from 3 load cells.
+    ROS2 Node for estimating rope direction and force from N load cells.
 
-    This node subscribes to the 3 load cell topics, infers their geometry from TF,
-    and publishes the estimated rope force/direction as a TF transform.
+    This node subscribes to load cell topics, infers their geometry from TF,
+    and publishes the estimated rope force/direction.
     """
     def __init__(self):
         super().__init__('rope_estimation_node')
@@ -25,7 +25,7 @@ class RopeEstimationNode(Node):
 
         if self.num_load_cells < 3:
             self.get_logger().error("[RopeEstimationNode] The number of load cells must be >= 3!")
-            return ValueError("The number of load cells must be >= 3")
+            raise ValueError("The number of load cells must be >= 3")
 
         self.lc_readings = np.zeros(self.num_load_cells) # load cell readings in kg
         self.readings_timestamps = np.zeros(self.num_load_cells) # timestamps of the load cell readings
@@ -66,6 +66,10 @@ class RopeEstimationNode(Node):
         for i in range(self.num_load_cells):
             equation_matrix[1,i] = transforms[i].transform.translation.y
             equation_matrix[2,i] = transforms[i].transform.translation.x
+        # check if the matrix is full rank
+        if (np.linalg.matrix_rank(equation_matrix) < 3):
+            self.get_logger().error("[RopeEstimationNode] The load cells are collinear!")
+            return None
         return equation_matrix
 
     def publish_rope_estimation(self):
@@ -138,12 +142,21 @@ class RopeEstimationNode(Node):
         self.frame_cell_template = self.get_parameter("frames.load_cell_template").value
         frame_rope = self.get_parameter("frames.rope_link").value
 
+        # check the templates:
+        if "{}" not in self.topic_cell_template:
+            raise ValueError("Topic template must contain {}")
+        if "{}" not in self.frame_cell_template:
+            raise ValueError("Frame template must contain {}")
+
         self.frame_lcs = [f"{robot_name}/{self.frame_cell_template.format(i+1)}" for i in range(self.num_load_cells)]
         self.frame_rope = f"{robot_name}/{frame_rope}"
         self.publish_rate = self.get_parameter("publish_rate").value
 
         self.logger_info_enable = self.get_parameter("logger_info.enable").value
 
+        
+
+        
 def main():
     rclpy.init()
     node = RopeEstimationNode()
