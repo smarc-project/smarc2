@@ -72,6 +72,8 @@ class NoiseModels:
             return np.diag([sigma_u ** 2, sigma_v ** 2, sigma_alpha ** 2])
         sigma_len = self.R_len + self.R_dyn_center_gain_len * center_dist_norm + self.R_dyn_speed_gain_len * speed
         sigma_wid = self.R_wid + self.R_dyn_center_gain_wid * center_dist_norm + self.R_dyn_speed_gain_wid * speed
+        if self.meas_dim == 4:
+            return np.diag([sigma_u ** 2, sigma_v ** 2, sigma_len ** 2, sigma_wid ** 2])
         return np.diag([sigma_u ** 2, sigma_v ** 2, sigma_alpha ** 2, sigma_len ** 2, sigma_wid ** 2])
 
     def build_pose_covariance(self, lin_vel_map, ang_vel_map):
@@ -103,6 +105,8 @@ class NoiseModels:
         if J_pose is None:
             if self.meas_dim == 3:
                 return np.diag([self.R_u**2, self.R_v**2, self.R_alpha**2])
+            if self.meas_dim == 4:
+                return np.diag([self.R_u**2, self.R_v**2, self.R_len**2, self.R_wid**2])
             return np.diag([self.R_u**2, self.R_v**2, self.R_alpha**2, self.R_len**2, self.R_wid**2])
         R_pose = J_pose @ Sigma_pose @ J_pose.T
         R_pose = 0.5 * (R_pose + R_pose.T)

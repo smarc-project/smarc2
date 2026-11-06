@@ -45,13 +45,22 @@ class SurfaceModel:
     
 class DepthModel:
     # may work better than oscillator in very stochastic environments, but less stable in calm water.
-    def __init__(self, sigma_a, sigma_z, sigma_yaw):
+    def __init__(self, sigma_a, sigma_z, sigma_yaw, k_z=0.4, d_z=0.1,
+                 z_equilibrium=0.0):
         self.name = "depth"
 
         self.sigma_a = sigma_a
         self.sigma_z = sigma_z
         self.sigma_yaw = sigma_yaw
         self.state_dim = 7
+        # z is absolute map height; restoring acceleration acts on displacement
+        # from the nominal water/deck height, not from map zero.
+        self.k_z = float(k_z)
+        self.d_z = float(d_z)
+        self.z_equilibrium = float(z_equilibrium)
+        if (not np.isfinite([self.k_z, self.d_z, self.z_equilibrium]).all()
+                or self.k_z < 0 or self.d_z < 0):
+            raise ValueError("Depth stiffness/damping must be finite and nonnegative")
 
         self.eps = [1e-2] * 7 # for numerical jacobian
         self.eps[2] = 5e-2
@@ -69,14 +78,14 @@ class DepthModel:
         F[0, 4], F[1, 5], F[2, 6] = dt, dt, dt
         px, py, z, yaw, vx, vy, vz = X.reshape(-1)
 
-        k_z = 0.4
-        d_z = 0.1
+        k_z = self.k_z
+        d_z = self.d_z
 
         F[6, 2] = -k_z * dt
         F[6, 6] = 1.0 - d_z * dt
 
         z_new = z + vz * dt
-        vz_new = vz + (-k_z * z - d_z * vz) * dt
+        vz_new = vz + (-k_z * (z - self.z_equilibrium) - d_z * vz) * dt
 
         X_pred = np.array([
             [px + vx * dt],

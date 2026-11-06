@@ -224,6 +224,12 @@ jobs:
           source install/setup.bash
           ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_rope_swingers.yaml -r __ns:=/M350
 
+      - name: dji landing controller live
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=dji_landing_controller.yaml -r __ns:=/M350
 
 
       - name: Print tmux pane output and kill tmux server
