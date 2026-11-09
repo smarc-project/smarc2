@@ -271,6 +271,7 @@
 -  BT_STATUS_TOPIC :  'smarc/bt_status' 
 -  WARA_PS_HEARTBEAT_TOPIC :  'waraps/heartbeat'
 -  WARA_PS_SENSOR_INFO_TOPIC :  'waraps/sensor_info'
+-  WARA_PS_SENSOR_PREFIX :  'waraps/sensor'
 -  WARA_PS_SENSOR_POSITION_TOPIC :  'waraps/sensor/position'
 -  WARA_PS_SENSOR_HEADING_TOPIC :  'waraps/sensor/heading'
 -  WARA_PS_SENSOR_COURSE_TOPIC :  'waraps/sensor/course'

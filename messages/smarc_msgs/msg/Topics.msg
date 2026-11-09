@@ -30,6 +30,7 @@ string GEOFENCE_POLYGONS_TOPIC = 'smarc/geofence_polygons' #smarc_msgs/msg/Geofe
 ## Level 1
 string WARA_PS_HEARTBEAT_TOPIC = 'waraps/heartbeat'
 string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'
+string WARA_PS_SENSOR_PREFIX = 'waraps/sensor'
 string WARA_PS_SENSOR_POSITION_TOPIC = 'waraps/sensor/position'
 string WARA_PS_SENSOR_HEADING_TOPIC = 'waraps/sensor/heading'
 string WARA_PS_SENSOR_COURSE_TOPIC = 'waraps/sensor/course'
