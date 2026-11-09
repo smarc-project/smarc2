@@ -17,6 +17,7 @@ from smarc_utilities.georef_utils import (
     convert_enu_pose_to_heading,
     convert_utm_to_latlon,
 )
+from smarc_georef_cpp import GeorefUtils, TransformException
 from tf2_geometry_msgs import do_transform_pose
 from tf2_ros import ConnectivityException, ExtrapolationException, LookupException
 from tf2_ros.buffer import Buffer
@@ -51,19 +52,15 @@ class SAMCaptain(Node):
         self._last_geofence_status_time: Time | None = None
         self.max_geofence_status_age = 3.0
 
-        # tf and sub
-        self._create_tf_listener()
+        # sub
         self._create_status_subscribers()
+
+        # georef utils
+        self.georef = GeorefUtils(self)
 
         # status publisher
         self._status_publisher = SAMStatusPublisher(self)
         self.get_logger().info("SAMStatusPublisher has been created.")
-
-
-    def _create_tf_listener(self) -> None:
-        """Create the TF listener used for dead-reckoning-to-UTM transforms."""
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self)
 
     def _create_status_subscribers(self) -> None:
         """Create subscriptions that feed the status and navigation callbacks."""
@@ -149,9 +146,7 @@ class SAMCaptain(Node):
             return None
         try:
             source_frame = msg.header.frame_id or self.odom_frame
-            transform = self._tf_buffer.lookup_transform(
-                self.utm_frame, source_frame, Time.from_msg(msg.header.stamp)
-            )
+            transform = self.georef.lookup_transform(self.utm_frame, source_frame)
             pose_utm = PoseStamped()
             pose_utm.header.frame_id = self.utm_frame
             pose_utm.header.stamp = msg.header.stamp
