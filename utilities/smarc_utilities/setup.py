@@ -20,7 +20,7 @@ setup(
     maintainer_email='ozero@kth.se',
     description='SMARC Utilities for various items',
     license='MIT',
-    #tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'simple_tts = smarc_utilities.tts:main',
