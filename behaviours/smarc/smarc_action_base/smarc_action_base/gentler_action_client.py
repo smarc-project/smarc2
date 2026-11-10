@@ -19,13 +19,7 @@ from action_msgs.msg import GoalStatus
 from rclpy.node import Node
 from smarc_msgs.action import BaseAction
 
-from smarc_action_base.smarc_action_base import (
-    FAILURE_STATES,
-    RUNNING_STATES,
-    ActionClientState,
-    ActionType,
-    SMARCActionClient,
-)
+from smarc_action_base.smarc_action_base import ActionClientState, ActionType, SMARCActionClient
 
 
 @dataclass(frozen=True)
@@ -38,12 +32,12 @@ class ClientReport:
 
     @property
     def running(self) -> bool:
-        return self.state in RUNNING_STATES
+        return self.state in SMARCActionClient.RUNNING_STATES
 
     @property
     def finished(self) -> bool:
         """Nothing more will happen to this goal, for better or worse."""
-        return self.state is ActionClientState.DONE or self.state in FAILURE_STATES
+        return self.state is ActionClientState.DONE or self.state in SMARCActionClient.FAILURE_STATES
 
     @property
     def succeeded(self) -> bool:
@@ -93,7 +87,7 @@ class GentlerActionClient(SMARCActionClient):
         (no goal handle yet; the first feedback can beat that answer) is kept
         and sent as soon as the goal is accepted.
         """
-        if self.state not in RUNNING_STATES or self.state is ActionClientState.CANCELLING:
+        if self.state not in self.RUNNING_STATES or self.state is ActionClientState.CANCELLING:
             return
         if self._goal_handle is None:
             self._cancel_pending = True
@@ -104,7 +98,7 @@ class GentlerActionClient(SMARCActionClient):
         """Current state and feedback. Cancels the goal if the timeout has passed."""
         elapsed = 0.0 if self._sent_at is None else time.monotonic() - self._sent_at
         if (self._timeout_s is not None and elapsed > self._timeout_s
-                and self.state in RUNNING_STATES and not self._timed_out):
+                and self.state in self.RUNNING_STATES and not self._timed_out):
             self._logerr(f'No result after {elapsed:.1f} s, cancelling.')
             self._timed_out = True
             self.cancel()

@@ -2,7 +2,7 @@ from py_trees.common import Status
 from py_trees.behaviour import Behaviour
 from rclpy.node import Node
 
-from smarc_action_base.smarc_action_base import ActionClientState, FAILURE_STATES, RUNNING_STATES
+from smarc_action_base.smarc_action_base import ActionClientState
 from smarc_action_base.gentler_action_client import GentlerActionClient
 
 from typing import Callable
@@ -72,7 +72,7 @@ class A_ActionClient(Behaviour):
             return
         
         # if previously running, get the client ready for a new run
-        if self._ac.state in RUNNING_STATES:
+        if self._ac.state in GentlerActionClient.RUNNING_STATES:
             self.feedback_message = "Clearing previous goal and getting ready for a new run..."
             self._ac.cancel()
 
@@ -82,7 +82,7 @@ class A_ActionClient(Behaviour):
     def terminate(self, new_status: Status) -> None:
         if new_status == Status.INVALID:
             # Only try to cancel if the goal is still active
-            if self._ac.state in RUNNING_STATES:
+            if self._ac.state in GentlerActionClient.RUNNING_STATES:
                 self.feedback_message = "Preempted by higher priority in tree, cancelling goal"
                 self._ac.cancel()
             else:
@@ -123,11 +123,11 @@ class A_ActionClient(Behaviour):
             self.feedback_message = f"Goal sent to action client:\n{self._goal_str}"
             return Status.RUNNING
         
-        if s in RUNNING_STATES:
+        if s in GentlerActionClient.RUNNING_STATES:
             self.feedback_message = self._ac.feedback_message
             return Status.RUNNING
 
-        if s in FAILURE_STATES:
+        if s in GentlerActionClient.FAILURE_STATES:
             self.feedback_message = f"Action client in failure state: {s}. Check logs for more info."
             return Status.FAILURE
         

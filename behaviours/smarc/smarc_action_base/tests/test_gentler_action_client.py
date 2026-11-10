@@ -212,6 +212,19 @@ def test_get_ready_allows_a_second_goal(ros_graph):
     assert server.goals == [{'n': 1}, {'n': 2}]
 
 
+def test_one_import_gives_states_and_sets():
+    """A user of the client needs no second import for the state enum or sets."""
+    assert GentlerActionClient.States is ActionClientState
+    assert GentlerActionClient.RUNNING_STATES == {
+        ActionClientState.SENT, ActionClientState.ACCEPTED,
+        ActionClientState.RUNNING, ActionClientState.CANCELLING}
+    assert GentlerActionClient.FAILURE_STATES == {
+        ActionClientState.DISCONNECTED, ActionClientState.ERROR,
+        ActionClientState.REJECTED, ActionClientState.CANCELLED}
+    assert not GentlerActionClient.RUNNING_STATES & GentlerActionClient.FAILURE_STATES
+    assert ActionClientState.DONE not in GentlerActionClient.RUNNING_STATES | GentlerActionClient.FAILURE_STATES
+
+
 @pytest.mark.parametrize('state, running, done', [
     (ActionClientState.READY, False, False),
     (ActionClientState.SENT, True, False),

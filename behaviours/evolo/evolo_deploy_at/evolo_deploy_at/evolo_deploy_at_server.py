@@ -4,7 +4,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from smarc_action_base.gentler_action_server import GentlerActionServer
 from smarc_action_base.gentler_action_client import GentlerActionClient
-from smarc_action_base.smarc_action_base import ActionClientState, FAILURE_STATES
 from std_msgs.msg import String
 from evolo_msgs.msg import Topics as evoloTopics
 from geographic_msgs.msg import GeoPoint
@@ -130,17 +129,17 @@ class EvoloDeployAt():
         action_client : GentlerActionClient = self.action_clients[self.current_action]
         self._node.get_logger().info(f"Action client state: {action_client.state.name}.")
 
-        if(action_client.state == ActionClientState.READY): #Action client is ready. Send goal
+        if(action_client.state == GentlerActionClient.States.READY): #Action client is ready. Send goal
             #Send goal
             action_client.send(self.action_goals[self.current_action])
             self._node.get_logger().info("Goal sent")
 
         # Action has failed
-        if (action_client.state in FAILURE_STATES):
+        if (action_client.state in GentlerActionClient.FAILURE_STATES):
               return False
 
         #Previous action client is done. Mone on to the next
-        if(action_client.state == ActionClientState.DONE):
+        if(action_client.state == GentlerActionClient.States.DONE):
             self.current_action += 1
         
         return None

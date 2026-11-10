@@ -31,7 +31,7 @@ client.get_ready()                # forget this goal, allow the next send()
 - `send()` only works from `READY` and returns `False` otherwise.
 - `cancel()` asks the server to stop. A cancel sent before the server has answered the goal request is kept and sent once the goal is accepted.
 - `poll()` returns a `ClientReport` (`state`, `feedback`, `elapsed_s`, `timed_out`). With `timeout_s` set, `poll()` cancels the goal client-side when the server takes longer than that.
-- `RUNNING_STATES` and `FAILURE_STATES` in `smarc_action_base.smarc_action_base` are the two sets of `ActionClientState` a loop cares about; `DONE` is the only success.
+- `GentlerActionClient.RUNNING_STATES` and `GentlerActionClient.FAILURE_STATES` are the two sets of states a loop cares about; `GentlerActionClient.States.DONE` is the only success. One import covers all of it.
 
 `A_ActionClient` in `bt_action_client_action.py` wraps this client as a py_trees behaviour for the trees that still use one.
 
