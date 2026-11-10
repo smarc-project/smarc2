@@ -3,6 +3,40 @@
 
 That question is better answered by `behaviours/go_to_geopoint` than in this README. Unless you intend to make additions to the abstract base classes it is recommended to review the implementation shown there to understand how to use `smarc_action_base`.
 
+## GentlerActionServer and GentlerActionClient
+
+Both sides of `smarc_msgs/action/BaseAction` (goal: JSON string, feedback: string, result: bool) without subclassing anything.
+
+`GentlerActionServer` takes your callbacks (`on_goal_received`, `on_cancel_received`, `prepare_loop`, `loop_inner`, `give_feedback`) and runs the goal loop for you. See `behaviours/evolo/evolo_deploy_at` for a server.
+
+`GentlerActionClient` is the client you poll from your own loop:
+
+```python
+from smarc_action_base.gentler_action_client import GentlerActionClient
+
+client = GentlerActionClient(node, 'move_to', timeout_s=120.0)
+
+if client.server_alive() and client.send(json.dumps({'lat': 59.3, 'lon': 18.1})):
+    report = client.poll()
+    while report.running:
+        node.get_logger().info(report.feedback)
+        ...                       # spin, sleep, whatever your loop does
+        report = client.poll()
+    print(report.succeeded, report.state, report.elapsed_s, report.timed_out)
+
+client.get_ready()                # forget this goal, allow the next send()
+```
+
+- `server_alive()` waits once for the server and moves the client to `READY` or `DISCONNECTED`.
+- `send()` only works from `READY` and returns `False` otherwise.
+- `cancel()` asks the server to stop. A cancel sent before the server has answered the goal request is kept and sent once the goal is accepted.
+- `poll()` returns a `ClientReport` (`state`, `feedback`, `elapsed_s`, `timed_out`). With `timeout_s` set, `poll()` cancels the goal client-side when the server takes longer than that.
+- `GentlerActionClient.RUNNING_STATES` and `GentlerActionClient.FAILURE_STATES` are the two sets of states a loop cares about; `GentlerActionClient.States.DONE` is the only success. One import covers all of it.
+
+`A_ActionClient` in `bt_action_client_action.py` wraps this client as a py_trees behaviour for the trees that still use one.
+
+Tests live in `tests/` and run against a real server on a private `ROS_DOMAIN_ID`: `python3 -m pytest` from this directory, or `colcon test --packages-select smarc_action_base`.
+
 # Library that enforces ROS2 action-client interfaces be implemented using Python Abstract Base Class.
 The library intends to abstract and simplify the registering of callbacks and hide some of the async complexity from the user. 
 

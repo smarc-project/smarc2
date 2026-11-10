@@ -322,7 +322,26 @@ class SMARCActionClient(abc.ABC):
     Attributes:
         action_type: Action type for retrieving empty Goal, Feedback, and Result messages
         _goal_handle: internal handle to goal to help register callbacks as user needs them
+        States: the ActionClientState enum, so a user of a subclass needs one import
+        RUNNING_STATES: a goal is in flight
+        FAILURE_STATES: no goal will finish from here; callers treat these as failure
     """
+
+    States = ActionClientState
+
+    RUNNING_STATES = frozenset({
+        ActionClientState.SENT,
+        ActionClientState.ACCEPTED,
+        ActionClientState.RUNNING,
+        ActionClientState.CANCELLING,
+    })
+
+    FAILURE_STATES = frozenset({
+        ActionClientState.DISCONNECTED,
+        ActionClientState.ERROR,
+        ActionClientState.REJECTED,
+        ActionClientState.CANCELLED,
+    })
 
     def __init__(self, node: Node, action_name: str, action_type: ActionType, num_iters: int = 10, **kwargs):
         self._node: Node = node
@@ -372,12 +391,7 @@ class SMARCActionClient(abc.ABC):
     def _setup(self, num_iters: int = 3, timeout: float = 1.0) -> bool:
         server_status = False
         iters = 0
-        preserve_state = self._state in (
-            ActionClientState.SENT,
-            ActionClientState.ACCEPTED,
-            ActionClientState.RUNNING,
-            ActionClientState.CANCELLING,
-        )
+        preserve_state = self._state in self.RUNNING_STATES
         while not server_status and iters < num_iters:
             iters += 1
             self._loginfo("Waiting for server to start.")
