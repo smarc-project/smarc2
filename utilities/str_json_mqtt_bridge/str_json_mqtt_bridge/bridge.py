@@ -7,8 +7,8 @@ from std_msgs.msg import String
 from smarc_msgs.msg import Topics
 from smarc_utilities.topic_utils import node_string_topics_under
 import paho.mqtt.client as mqtt
-import json
-import ast
+
+from str_json_mqtt_bridge.payload import to_json_payload
 
 from str_json_mqtt_bridge.names import ALL_AGENTS, mirror_target, mqtt_sensor_folder, unit_and_agent
 
@@ -77,26 +77,10 @@ class RosToMqtt:
         self._subscription = None
 
     def _ros_cb(self, msg: String):
-        # We do this clownshow because ros strings can not contain valid json string inside
-        # since ros uses single quotes for strings and json requires double quotes
-        # so if the first character is a single quote, we assume the publisher of this string put their json string inside a ros string
-        # before sending it
-        # otherwise, the string is likely coming from json.dumps put into a ros string, where double quotes become single quotes
-        # so we convert the ros string to a python dict, then convert that to a json string
-        # self._rosnode.get_logger().info(f"{self._ros_topic}-->{self._mqtt_topic}: {msg.data}")
-        if(msg.data[0] == "'" or msg.data[0] == '"'):
-            json_str = msg.data[1:-1] # remove the single quotes so the inner string is a valid json string
-        else:
-            try:
-                json_obj = ast.literal_eval(msg.data)
-            except (SyntaxError, ValueError) as e:
-                self._rosnode.get_logger().error(f"Error converting to python dict: {msg.data}")
-                return
-            try:
-                json_str = json.dumps(json_obj) 
-            except TypeError as e:
-                self._rosnode.get_logger().error(f"Error converting to json: {e}, non-json type: {type(json_obj)}")
-                return
+        json_str = to_json_payload(msg.data)
+        if json_str is None:
+            self._rosnode.get_logger().error(f"Not JSON, not forwarding: {msg.data}")
+            return
 
         # self._rosnode.get_logger().info(f"{self.ros_topic}-->{self.mqtt_topic}: {json_str}")
         self._mqttclient.publish(self.mqtt_topic, json_str)
