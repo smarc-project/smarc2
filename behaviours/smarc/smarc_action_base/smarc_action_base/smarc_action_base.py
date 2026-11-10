@@ -38,6 +38,23 @@ class ActionClientState(enum.Enum):
         return self.name
 
 
+# A goal is in flight.
+RUNNING_STATES = frozenset({
+    ActionClientState.SENT,
+    ActionClientState.ACCEPTED,
+    ActionClientState.RUNNING,
+    ActionClientState.CANCELLING,
+})
+
+# No goal will finish from here; the caller treats these as failure.
+FAILURE_STATES = frozenset({
+    ActionClientState.DISCONNECTED,
+    ActionClientState.ERROR,
+    ActionClientState.REJECTED,
+    ActionClientState.CANCELLED,
+})
+
+
 def _validate_state(input_state: Any) -> ActionClientState:
     """Validates if provided state is correct
 
@@ -372,12 +389,7 @@ class SMARCActionClient(abc.ABC):
     def _setup(self, num_iters: int = 3, timeout: float = 1.0) -> bool:
         server_status = False
         iters = 0
-        preserve_state = self._state in (
-            ActionClientState.SENT,
-            ActionClientState.ACCEPTED,
-            ActionClientState.RUNNING,
-            ActionClientState.CANCELLING,
-        )
+        preserve_state = self._state in RUNNING_STATES
         while not server_status and iters < num_iters:
             iters += 1
             self._loginfo("Waiting for server to start.")

@@ -2,9 +2,8 @@ from py_trees.common import Status
 from py_trees.behaviour import Behaviour
 from rclpy.node import Node
 
-from smarc_action_base.smarc_action_base import ActionClientState, ActionType
-from smarc_msgs.action import BaseAction
-from wasp_bt.bt.client import BTActionClient
+from smarc_action_base.smarc_action_base import ActionClientState, FAILURE_STATES, RUNNING_STATES
+from smarc_action_base.gentler_action_client import GentlerActionClient
 
 from typing import Callable
 
@@ -45,35 +44,7 @@ class A_ActionClient(Behaviour):
             
         super().__init__(f"A_ActionClient({bt_action_name})")
         
-        self._ac = BTActionClient(
-            node=node,
-            action_name=action_client_name,
-            action_type=ActionType(BaseAction)
-        )
-
-        self._cancel_response = None
-        self._feedback_message = None
-        self._goal_response = None
-        self._result = None
-
-        self._failure_states = [
-            ActionClientState.DISCONNECTED,
-            ActionClientState.ERROR,
-            ActionClientState.REJECTED,
-            ActionClientState.CANCELLED
-        ]
-
-        self._success_states = [
-            ActionClientState.DONE
-        ]
-
-        self._running_states = [
-            ActionClientState.SENT,
-            ActionClientState.ACCEPTED,
-            ActionClientState.RUNNING,
-            ActionClientState.CANCELLING
-        ]
-
+        self._ac = GentlerActionClient(node, action_client_name)
         self._goal_str: str | None = None
 
     @property
@@ -86,7 +57,7 @@ class A_ActionClient(Behaviour):
     
 
     def setup(self, **kwargs) -> None:
-        self._ac._setup(**kwargs)
+        self._ac.server_alive(timeout_s=3.0)
 
 
     def set_goal(self, msg_str: str) -> None:
@@ -101,9 +72,9 @@ class A_ActionClient(Behaviour):
             return
         
         # if previously running, get the client ready for a new run
-        if self._ac.state in self._running_states:
+        if self._ac.state in RUNNING_STATES:
             self.feedback_message = "Clearing previous goal and getting ready for a new run..."
-            self._ac.cancel_goal(self._ac.cancel_callback)
+            self._ac.cancel()
 
         self.feedback_message = None
         
@@ -111,9 +82,9 @@ class A_ActionClient(Behaviour):
     def terminate(self, new_status: Status) -> None:
         if new_status == Status.INVALID:
             # Only try to cancel if the goal is still active
-            if self._ac.state in self._running_states:
+            if self._ac.state in RUNNING_STATES:
                 self.feedback_message = "Preempted by higher priority in tree, cancelling goal"
-                self._ac.cancel_goal(self._ac.cancel_callback)
+                self._ac.cancel()
             else:
                 self.feedback_message = f"Preempted with Action Client state: {self._ac.state}"
    
@@ -145,24 +116,22 @@ class A_ActionClient(Behaviour):
             return Status.RUNNING
 
         if s == ActionClientState.READY:
-            goal = BaseAction.Goal()
             if self._goal_str is None:
                 self.feedback_message = "No goal string set! Use set_goal() to set a goal before ticking this Action."
                 return Status.FAILURE
-            goal.goal.data = self._goal_str 
-            self._ac.send_goal(goal)
+            self._ac.send(self._goal_str)
             self.feedback_message = f"Goal sent to action client:\n{self._goal_str}"
             return Status.RUNNING
         
-        if s in self._running_states:
+        if s in RUNNING_STATES:
             self.feedback_message = self._ac.feedback_message
             return Status.RUNNING
 
-        if s in self._failure_states:
+        if s in FAILURE_STATES:
             self.feedback_message = f"Action client in failure state: {s}. Check logs for more info."
             return Status.FAILURE
         
-        if s in self._success_states:
+        if s == ActionClientState.DONE:
             self.feedback_message = "Action client succeeded."
             return Status.SUCCESS
     
