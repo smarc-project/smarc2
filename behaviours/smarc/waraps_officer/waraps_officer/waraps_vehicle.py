@@ -54,7 +54,6 @@ class WarapsVehicle:
         self._stale_after_s = gp('stale_after_s', 10.0).value
 
         self._latlon: LatLon | None = None
-        self._altitude: Reading | None = None
         # Scalars keyed by the WARA-PS topic they go out on.
         self._readings: dict[str, Reading] = {}
         # Heartbeat and sensor_info always exist; a sensor topic is created
@@ -66,13 +65,13 @@ class WarapsVehicle:
         }
 
         node.create_subscription(GeoPoint, Topics.POS_LATLON_TOPIC, self._latlon_cb, 10)
-        node.create_subscription(Float32, Topics.ALTITUDE_TOPIC, self._altitude_cb, 10)
         node.create_subscription(Odometry, Topics.ODOM_TOPIC, self._odom_cb, 10)
         for vehicle_topic, waraps_topic in (
             (Topics.HEADING_TOPIC, Topics.WARA_PS_SENSOR_HEADING_TOPIC),
             (Topics.COURSE_TOPIC, Topics.WARA_PS_SENSOR_COURSE_TOPIC),
             (Topics.SPEED_TOPIC, Topics.WARA_PS_SENSOR_SPEED_TOPIC),
             (Topics.DEPTH_TOPIC, Topics.WARA_PS_SENSOR_DEPTH_TOPIC),
+            (Topics.ALTITUDE_TOPIC, Topics.WARA_PS_SENSOR_ALTITUDE_TOPIC),
         ):
             node.create_subscription(Float32, vehicle_topic, self._scalar_cb(waraps_topic), 10)
 
@@ -85,10 +84,7 @@ class WarapsVehicle:
         return self._node.get_clock().now().nanoseconds * 1e-9
 
     def _latlon_cb(self, msg: GeoPoint):
-        self._latlon = LatLon(msg.latitude, msg.longitude, self._now_s())
-
-    def _altitude_cb(self, msg: Float32):
-        self._altitude = Reading(msg.data, self._now_s())
+        self._latlon = LatLon(msg.latitude, msg.longitude, msg.altitude, self._now_s())
 
     def _odom_cb(self, msg: Odometry):
         q = msg.pose.pose.orientation
@@ -126,10 +122,10 @@ class WarapsVehicle:
         now = self._now_s()
         self._publish(Topics.WARA_PS_HEARTBEAT_TOPIC, heartbeat_json(self._agent, self.current_levels(), now))
 
-        if self._fresh(self._latlon, now) and finite(self._latlon.latitude, self._latlon.longitude):
-            altitude = self._altitude.value if self._fresh(self._altitude, now) and finite(self._altitude.value) else 0.0
+        if (self._fresh(self._latlon, now)
+                and finite(self._latlon.latitude, self._latlon.longitude, self._latlon.altitude)):
             self._publish(Topics.WARA_PS_SENSOR_POSITION_TOPIC,
-                          position_json(self._latlon.latitude, self._latlon.longitude, altitude))
+                          position_json(self._latlon.latitude, self._latlon.longitude, self._latlon.altitude))
 
         for topic, reading in self._readings.items():
             if self._fresh(reading, now) and finite(reading.value):

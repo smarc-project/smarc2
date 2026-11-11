@@ -32,8 +32,10 @@ class Reading:
 
 @dataclass(frozen=True)
 class LatLon:
+    """A GeoPoint. ``altitude`` is relative to the water level, not the ground below."""
     latitude: float
     longitude: float
+    altitude: float
     stamp_s: float
 
 

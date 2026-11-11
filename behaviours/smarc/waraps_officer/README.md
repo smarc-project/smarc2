@@ -18,8 +18,8 @@ All relative to the robot namespace, all from `smarc_msgs/msg/Topics`.
 
 | Constant | Type | Becomes |
 |---|---|---|
-| `POS_LATLON_TOPIC` | `geographic_msgs/GeoPoint` | `sensor/position` (`{"latitude", "longitude", "altitude", "type": "GeoPoint"}`) |
-| `ALTITUDE_TOPIC` | `std_msgs/Float32` | the `altitude` field of position; `0.0` when missing, stale or NaN |
+| `POS_LATLON_TOPIC` | `geographic_msgs/GeoPoint` | `sensor/position`. `altitude` is the GeoPoint's own field, relative to the water level. |
+| `ALTITUDE_TOPIC` | `std_msgs/Float32` | `sensor/altitude`, height above the ground below, a JSON number |
 | `HEADING_TOPIC`, `COURSE_TOPIC`, `SPEED_TOPIC`, `DEPTH_TOPIC` | `std_msgs/Float32` | `sensor/heading`, `sensor/course`, `sensor/speed`, `sensor/depth`, each a JSON number |
 | `ODOM_TOPIC` | `nav_msgs/Odometry` | `sensor/roll`, `sensor/pitch` (radians, from the orientation quaternion) |
 
