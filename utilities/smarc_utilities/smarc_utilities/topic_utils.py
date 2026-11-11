@@ -60,25 +60,25 @@ def string_topics_under(topics, root, prefix):
     return found
 
 
-def _published_as_string(node, absolute, include_own):
-    for info in node.get_publishers_info_by_topic(absolute):
-        if info.topic_type != STRING_MSG:
-            continue
-        if not include_own and info.node_name == node.get_name() and info.node_namespace == node.get_namespace():
-            continue
-        return True
-    return False
+def _under(namespace, root):
+    return _segments(namespace)[:len(_segments(root))] == _segments(root)
 
 
-def node_string_topics_under(node, root, prefix, include_own):
+def _published_as_string_under(node, absolute, root):
+    return any(info.topic_type == STRING_MSG and _under(info.node_namespace, root)
+               for info in node.get_publishers_info_by_topic(absolute))
+
+
+def node_string_topics_under(node, root, prefix):
     """``string_topics_under`` on a live node's graph, keeping only topics
-    some node publishes as a String.
+    that a node living under ``root`` publishes as a String.
 
-    A topic that is in the graph only because of a subscriber is dropped.
-    With ``include_own=False`` the node's own publishers do not count: a
-    bridge that mirrors MQTT agents into ROS must not pick its own mirrors
-    back up and forward them out again. A vehicle node that advertises what
-    it publishes wants ``include_own=True``.
+    A topic that is in the graph only because of a subscriber is dropped. So
+    is one that only a node from another namespace publishes: a robot's
+    sensors come from the robot's own nodes. In simulation several robots
+    share one graph, and another robot's bridge publishes its mirrors of our
+    sensors from its own namespace; those are not ours to advertise or
+    forward.
     """
     found = string_topics_under(node.get_topic_names_and_types(), root, prefix)
-    return [t for t in found if _published_as_string(node, t.absolute, include_own)]
+    return [t for t in found if _published_as_string_under(node, t.absolute, root)]

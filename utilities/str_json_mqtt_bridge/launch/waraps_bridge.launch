@@ -12,6 +12,7 @@
 
   <node name="mqtt_bridge_cloud" pkg="str_json_mqtt_bridge" exec="waraps_bridge" output="screen" namespace="$(var robot_name)/waraps">
     <param from="$(var mqtt_params_file)"/>
+    <param name="robot_name" value="$(var robot_name)"/>
     <param name="mqtt.connection.port" value="$(var broker_port)"/>
     <param name="mqtt.connection.host" value="$(var broker_addr)"/>
     <param name="mqtt.namespace" value="$(var context)/unit/$(var domain)/$(var realsim)/$(env USER nouser)_$(var robot_name)"/>
