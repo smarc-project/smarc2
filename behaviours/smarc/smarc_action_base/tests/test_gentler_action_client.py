@@ -242,3 +242,51 @@ def test_report_classifies_states(state, running, done):
     assert report.running is running
     assert report.finished is done
     assert report.succeeded is (state is ActionClientState.DONE)
+
+
+def test_behaviour_leaf_ticks_to_success(ros_graph):
+    """The behaviour trees tick A_ActionClient. That tick goes through poll()."""
+    from py_trees.common import Status
+    from py_trees.trees import BehaviourTree
+    from smarc_action_base.bt_action_client_action import A_ActionClient
+
+    server = ScriptedServer(ros_graph('server'), ticks_to_finish=3, outcome=True)
+    leaf = A_ActionClient(ros_graph('leaf'), ACTION)
+    assert leaf.setup() is None
+    assert leaf.state is ActionClientState.READY
+    assert isinstance(leaf._ac, GentlerActionClient)
+    leaf.set_goal(json.dumps({'n': 1}))
+    tree = BehaviourTree(leaf)
+    running_feedback = []
+
+    def succeeded():
+        tree.tick()
+        if leaf.status == Status.RUNNING and str(leaf.feedback_message).startswith('tick '):
+            running_feedback.append(leaf.feedback_message)
+        return leaf.status == Status.SUCCESS
+
+    assert wait_for(succeeded)
+    assert running_feedback
+    assert leaf.status == Status.SUCCESS
+    assert leaf.feedback_message == 'Action finished. Ready for next run.'
+    assert server.goals == [{'n': 1}]
+
+
+def test_behaviour_leaf_ticks_to_failure(ros_graph):
+    from py_trees.common import Status
+    from py_trees.trees import BehaviourTree
+    from smarc_action_base.bt_action_client_action import A_ActionClient
+
+    ScriptedServer(ros_graph('server'), ticks_to_finish=2, outcome=False)
+    leaf = A_ActionClient(ros_graph('leaf'), ACTION)
+    assert leaf.setup() is None
+    leaf.set_goal('{}')
+    tree = BehaviourTree(leaf)
+
+    def failed():
+        tree.tick()
+        return leaf.status == Status.FAILURE
+
+    assert wait_for(failed)
+    assert leaf.status == Status.FAILURE
+    assert leaf.feedback_message == 'Action failed. Action Client state: ERROR'

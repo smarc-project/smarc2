@@ -106,13 +106,14 @@ class A_ActionClient(Behaviour):
 
 
     def update(self) -> Status:
-        s = self._ac.state
+        report = self._ac.poll()
+        s = report.state
 
         # if it was cancelled, get the client ready for a new run for later
         if s == ActionClientState.CANCELLED:
             # change state to ready
             self.feedback_message = "Action cancelled. Ready for next run."
-            self._ac.get_ready()    
+            self._ac.get_ready()
             return Status.RUNNING
 
         if s == ActionClientState.READY:
@@ -122,9 +123,9 @@ class A_ActionClient(Behaviour):
             self._ac.send(self._goal_str)
             self.feedback_message = f"Goal sent to action client:\n{self._goal_str}"
             return Status.RUNNING
-        
+
         if s in GentlerActionClient.RUNNING_STATES:
-            self.feedback_message = self._ac.feedback_message
+            self.feedback_message = report.feedback
             return Status.RUNNING
 
         if s in GentlerActionClient.FAILURE_STATES:
