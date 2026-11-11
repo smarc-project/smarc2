@@ -39,14 +39,16 @@ ros2 topic echo /sam0/waraps/exec/command
 
 You should see `data: '{"hi": 5,"hello": "123"}'` 
 
-In your application, to recover the JSON object from this string, you should do:
+The string is JSON. In your application:
 
 ```python
-import ast
-json_obj = ast.literal_eval(msg.data)
+import json
+json_obj = json.loads(msg.data)
 ```
 
-> **Eval?!?!** Relax. `ast.literal_eval` only evaluates primitive objects, lists and dicts. It won't _run_ anything.
+Going the other way, put `json.dumps(obj)` in the String. The bridge forwards JSON as is; a `str(dict)` (single quotes, `None`, `True`) or a JSON document wrapped in one extra pair of quotes is still accepted and converted. Anything else is dropped with an error in the log.
+
+> **Eval?!?!** Relax. The `str(dict)` fallback uses `ast.literal_eval`, which only evaluates primitive objects, lists and dicts. It won't _run_ anything.
 
 ## Sensor topics
 
