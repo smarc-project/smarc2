@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>waraps_officer</name>
+  <version>0.0.0</version>
+  <description>WARA-PS level 1 for one vehicle: heartbeat, sensors, sensor_info.</description>
+  <maintainer email="shekharu@kth.se">Shekhar Devm Upadhyay</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geographic_msgs</exec_depend>
+  <exec_depend>smarc_msgs</exec_depend>
+  <exec_depend>smarc_utilities</exec_depend>
+  <exec_depend>python3-transforms3d</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-transforms3d</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
