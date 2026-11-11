@@ -13,7 +13,8 @@ class Initializer:
                  R_wid, 
                  R_alpha, 
                  motion_model_type,
-                 logger=None):
+                 logger=None,
+                 yaw_period=np.pi):
         self.z_water = z_water
         self.state_dim = state_dim
         self.init_z_needed = init_z_needed
@@ -25,6 +26,7 @@ class Initializer:
         self.R_alpha = R_alpha
         self.motion_model_type = motion_model_type
         self.logger = logger
+        self.yaw_period = yaw_period
         self.init_buffer = []
 
     def log_info(self, msg):
@@ -133,10 +135,11 @@ class Initializer:
             self.log_info(f"pos: {pos}, diff: {diff}")
             raise
 
-        c2 = np.mean(np.cos(2.0 * yaws))
-        s2 = np.mean(np.sin(2.0 * yaws))
-        yaw_mean = wrap(0.5 * np.arctan2(s2, c2))
-        yaws_diff = np.array([min(abs(wrap(y - yaw_mean)), abs(wrap((y + np.pi) - yaw_mean))) for y in yaws])
+        phase = 2.0 * np.pi / self.yaw_period
+        c2 = np.mean(np.cos(phase * yaws))
+        s2 = np.mean(np.sin(phase * yaws))
+        yaw_mean = wrap(np.arctan2(s2, c2) / phase)
+        yaws_diff = (yaws - yaw_mean + self.yaw_period / 2) % self.yaw_period - self.yaw_period / 2
         yaw_spread = np.max(np.abs(yaws_diff))
 
         if (pos_spread_xy > self.init_pos_max_spread or
@@ -156,6 +159,10 @@ class Initializer:
             P0[4, 4] = 1.0
         elif self.motion_model_type == "depth" or self.motion_model_type == "wave" or self.motion_model_type == "oscillator":
             X0 = np.array([[pos_mean[0]], [pos_mean[1]], [0], [yaw_mean], [0.0], [0.0], [0.0]])
+            if self.motion_model_type == "depth":
+                # Preserve the map height used when intersecting image rays.
+                # Otherwise a deck initialized at 1.88 m is silently moved to 0.
+                X0[2, 0] = float(np.mean(Z[:, 2]))
             P0[2, 2] = 1.0
             P0[3, 3] = 0.5
             P0[4, 4] = 1.0
@@ -193,4 +200,3 @@ class Initializer:
         self.log_info(f"Initialization successful, initial state: {X0.flatten()}")
         self.init_buffer.clear()
         return X0, P0, t0
-    

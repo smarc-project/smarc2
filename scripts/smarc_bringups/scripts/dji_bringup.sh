@@ -241,6 +241,16 @@ robot_name:=$ROBOT_NAME \
 use_sim_time:=$USE_SIM_TIME \
 enable_lqg:=$ENABLE_LQG"
 
+PAD_LANDING_CMD="ros2 launch landing_controller alars_stack_landing.launch.py \
+robot_name:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME
+"
+
+# Action send goal to the landing action server:
+# PAD_LANDING_ACTION_GOAL='{"goal": {"data": "{\"timeout\": 120.0, \"enable_descent\": true}"}}'
+# PAD_LANDING_ACTION_CLIENT_CMD="ros2 action send_goal /$ROBOT_NAME/alars_land_on_pad smarc_msgs/action/BaseAction \
+# '$PAD_LANDING_ACTION_GOAL' --feedback"
+
 tmux_make_layout "$SESSION" MoveTo "
 col(
     row(
@@ -249,7 +259,8 @@ col(
     ),
     row(
         var(ESTIMATE_LENGTH_AND_DAMPING_CMD),
-        var(HOOK_KF_CMD)
+        var(HOOK_KF_CMD),
+        var(PAD_LANDING_CMD)
     )
 )"
 
@@ -316,10 +327,11 @@ else
     YOLO_DEVICE="cuda:0"
 
     YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
-    PROJECTION_EKF_CONFIG="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
+    PROJECTION_EKF_CONFIG="object_estimation.yaml" # Config file to edit each object's parameters for the EKF
+    LANDING_PAD_HEIGHT=${LANDING_PAD_HEIGHT:-1.88} # Nominal pad Z in the map frame [m].
     
     if [[ $USE_SIM_TIME = "True" ]]; then
-        YOLO_DEVICE="cpu"
+        YOLO_DEVICE="cpu" # In case you have GPU, might be better to use "cuda:0" for the landing on pad.
     fi
 
     YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
@@ -338,6 +350,7 @@ else
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
     object_config_file:=$PROJECTION_EKF_CONFIG \
+    landing_pad_height:=$LANDING_PAD_HEIGHT \
     visualization_enable:=True
     "
 fi
@@ -348,7 +361,6 @@ row(
     var(PROJECTION_CMD)
     
 )"
-
 
 ############
 # 5 Basic actions

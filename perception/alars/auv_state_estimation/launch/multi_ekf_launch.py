@@ -1,5 +1,3 @@
-import os
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -28,6 +26,7 @@ def generate_launch_description():
     camera_calibration_file = PathJoinSubstitution([config_dir, LaunchConfiguration("camera_calibration_file")])
 
     yolo_detections_topic = LaunchConfiguration("yolo_detections_topic")
+    landing_pad_height = ParameterValue(LaunchConfiguration("landing_pad_height"), value_type=float)
 
     return LaunchDescription(
         [
@@ -61,12 +60,17 @@ def generate_launch_description():
                 default_value="object_estimation.yaml",
             ),
             DeclareLaunchArgument(
+                "landing_pad_height",
+                default_value="1.88",
+                description="Nominal landing-pad Z in the map frame [m]; overrides the object config value.",
+            ),
+            DeclareLaunchArgument(
                 "camera_calibration_file",
-                default_value="cam_params.yaml",
+                default_value="sim_1080p_cam_params.yaml",
             ),
             DeclareLaunchArgument(
                 "yolo_detections_topic",
-                default_value="yolo/detections",
+                default_value=Topics.YOLO_DETECTIONS,
             ),
 
             LogInfo(msg=["[multi_ekf_launch] base params file = ", base_params_file]),
@@ -83,10 +87,10 @@ def generate_launch_description():
                     {
                         "robot_name": robot_name,
                         "use_sim_time": use_sim_time,
-
                         "base_params_file": base_params_file,
                         "object_config_file": object_config_file,
                         "camera_info": camera_calibration_file,
+                        "classes.land_pad.environment.water_surface_height": landing_pad_height,
 
                         "topics.input_detections": yolo_detections_topic,
                         "topics.odom": SmarcTopics.ODOM_TOPIC,
