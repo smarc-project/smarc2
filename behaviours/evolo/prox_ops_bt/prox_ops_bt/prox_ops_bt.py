@@ -12,13 +12,14 @@ from py_trees.composites import Selector as Fallback
 from py_trees.composites import Sequence
 from py_trees.trees import BehaviourTree
 from evolo_msgs.msg import ProxOpsBackendStatus
+from evolo_msgs.msg import Topics as EvoloTopics
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import String
 
 from smarc_action_base.bt_action_client_action import A_ActionClient, FuncToStatus
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from smarc_action_base.smarc_action_base import ActionClientState
+from smarc_action_base.smarc_action_base import ActionClientState, SMARCActionClient
 
 
 class ProxOpsBT:
@@ -58,11 +59,12 @@ class ProxOpsBT:
         self._patrol_timeout_stop_reset_sent = False
         self._last_backend_status: ProxOpsBackendStatus | None = None
 
-        self._status_pub = self._node.create_publisher(String,
-                                                       "prox_ops_bt/status",
-                                                       10)
+        self._node.declare_parameter("status_topic", "prox_ops_bt/status")
+        status_topic = (self._node.get_parameter("status_topic")
+                        .get_parameter_value().string_value)
+        self._status_pub = self._node.create_publisher(String, status_topic, 10)
         self._backend_command_pub = self._node.create_publisher(
-            String, "backend/command", 10)
+            String, EvoloTopics.PROX_OPS_BACKEND_COMMAND, 10)
 
         self._node.declare_parameter("backend_status_max_age_s", 2.0)
         self._backend_status_max_age_s = (self._node.get_parameter(
@@ -70,7 +72,7 @@ class ProxOpsBT:
 
         self._node.create_subscription(
             ProxOpsBackendStatus,
-            "backend/status",
+            EvoloTopics.PROX_OPS_BACKEND_STATUS,
             self._backend_status_cb,
             10,
         )
@@ -262,13 +264,7 @@ class ProxOpsBT:
         return None
 
     def _action_ready(self, action_client: A_ActionClient) -> bool:
-        running_states = {
-            ActionClientState.SENT,
-            ActionClientState.ACCEPTED,
-            ActionClientState.RUNNING,
-            ActionClientState.CANCELLING,
-        }
-        if action_client.state in running_states | {ActionClientState.READY}:
+        if action_client.state in SMARCActionClient.RUNNING_STATES | {ActionClientState.READY}:
             return True
 
         action_client.setup()
