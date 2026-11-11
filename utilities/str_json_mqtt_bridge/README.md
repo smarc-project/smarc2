@@ -48,6 +48,11 @@ json_obj = ast.literal_eval(msg.data)
 
 > **Eval?!?!** Relax. `ast.literal_eval` only evaluates primitive objects, lists and dicts. It won't _run_ anything.
 
+## Sensor topics
+
+Sensors are not listed in the yaml. Every `std_msgs/String` topic under `/<robot_name>/waraps/sensor/` (`Topics.WARA_PS_SENSOR_PREFIX`) is found on the graph once a second and bridged as it appears. `/sam0/waraps/sensor/acoustic` lands on the broker as `<context>/unit/<domain>/<real-sim>/<user>_sam0/sensor/acoustic`. Names may contain slashes. The launch file passes `robot_name` for this; without it nothing is discovered. Heartbeat, `sensor_info`, exec and tst stay on `mqtt.to_mqtt`.
+
+The other direction is `mqtt.to_ros_agents`: a list of broker agent ids (the last segment of their mqtt namespace, e.g. `kkalem_sam`), or `"#"` for every agent in this unit. Their `sensor/<name>` strings are republished on `/<agent>/waraps/sensor/<name>`. Our own agent is never mirrored back, and mirrored topics are never forwarded out again.
 
 ## Footguns
 - Be careful of quotation marks. Terminals, ROS, JSON, MQTT all have their own quirks with them...
