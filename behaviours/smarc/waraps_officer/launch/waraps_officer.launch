@@ -1,0 +1,20 @@
+<launch>
+    <arg name="robot_name" default="sam0"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="pulse_rate" default="1.0"/>
+    <arg name="tick_rate" default="10.0"/>
+    <arg name="task_liveliness_timeout" default="10.0"/>
+    <arg name="health_timeout_s" default="10.0"/>
+
+    <group>
+        <push-ros-namespace namespace="$(var robot_name)"/>
+        <node name="waraps_officer" pkg="waraps_officer" exec="waraps_officer" output="screen">
+            <param name="use_sim_time" value="$(var use_sim_time)"/>
+            <param name="robot_name" value="$(var robot_name)"/>
+            <param name="pulse_rate" value="$(var pulse_rate)"/>
+            <param name="tick_rate" value="$(var tick_rate)"/>
+            <param name="task_liveliness_timeout" value="$(var task_liveliness_timeout)"/>
+            <param name="health_timeout_s" value="$(var health_timeout_s)"/>
+        </node>
+    </group>
+</launch>
