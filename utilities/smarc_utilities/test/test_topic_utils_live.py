@@ -2,24 +2,14 @@
 
 import time
 
-import rclpy
 from smarc_msgs.msg import Topics
 from std_msgs.msg import Float32, String
 
+from smarc_utilities.testing import wait_for
 from smarc_utilities.topic_utils import node_string_topics_under
 
 PREFIX = Topics.WARA_PS_SENSOR_PREFIX
 ROOT = '/sam0'
-
-
-def spin_until(node, predicate, timeout_s=5.0):
-    deadline = time.monotonic() + timeout_s
-    while time.monotonic() < deadline:
-        rclpy.spin_once(node, timeout_sec=0.1)
-        result = predicate()
-        if result:
-            return result
-    return predicate()
 
 
 def test_only_string_topics_published_from_under_the_root(ros_graph):
@@ -35,13 +25,12 @@ def test_only_string_topics_published_from_under_the_root(ros_graph):
     other_bridge.create_publisher(String, f'{ROOT}/{Topics.WARA_PS_SENSOR_POSITION_TOPIC}', 10)   # another robot's mirror of us
     vehicle.create_subscription(String, f'{PREFIX}/subscribed_only', lambda m: None, 10)
 
-    found = spin_until(bridge, lambda: node_string_topics_under(bridge, ROOT, PREFIX) or None)
+    found = wait_for(lambda: node_string_topics_under(bridge, ROOT, PREFIX) or None)
     assert [t.absolute for t in found] == [f'{ROOT}/{PREFIX}/acoustic']
     assert found[0].name == 'acoustic'
 
     # Still only the one once the graph has settled.
     time.sleep(0.5)
-    rclpy.spin_once(bridge, timeout_sec=0.1)
     assert [t.name for t in node_string_topics_under(bridge, ROOT, PREFIX)] == ['acoustic']
 
 
@@ -55,5 +44,5 @@ def test_vehicle_lists_its_own_sensors_and_the_sticks(ros_graph):
         found = node_string_topics_under(vehicle, vehicle.get_namespace(), PREFIX)
         return found if len(found) == 2 else None
 
-    found = spin_until(vehicle, both_seen)
+    found = wait_for(both_seen)
     assert [t.name for t in found] == ['acoustic/stick_1', 'position']
