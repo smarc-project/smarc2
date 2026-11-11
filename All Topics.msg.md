@@ -277,6 +277,7 @@
 -  WARA_PS_SENSOR_COURSE_TOPIC :  'waraps/sensor/course'
 -  WARA_PS_SENSOR_SPEED_TOPIC :  'waraps/sensor/speed'
 -  WARA_PS_SENSOR_DEPTH_TOPIC :  'waraps/sensor/depth'
+-  WARA_PS_SENSOR_ALTITUDE_TOPIC :  'waraps/sensor/altitude'
 -  WARA_PS_SENSOR_ROLL_TOPIC :  'waraps/sensor/roll'
 -  WARA_PS_SENSOR_PITCH_TOPIC :  'waraps/sensor/pitch'
 -  WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC :  'waraps/sensor/executing_tasks'
