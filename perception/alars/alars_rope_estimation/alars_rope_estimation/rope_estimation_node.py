@@ -1,11 +1,12 @@
 
+from geometry_msgs.msg import WrenchStamped
+import numpy as np
 import rclpy
 from rclpy.node import Node
-import tf2_ros
-import numpy as np
-from std_msgs.msg import Float32
-from geometry_msgs.msg import WrenchStamped
 from rclpy.executors import ExternalShutdownException
+from std_msgs.msg import Float32
+
+from smarc_georef_cpp import GeorefUtils, TransformException
 
 class RopeEstimationNode(Node):
     """
@@ -20,8 +21,7 @@ class RopeEstimationNode(Node):
         self.get_params()
 
         # tf
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.georef = GeorefUtils(node=self)
 
         if self.num_load_cells < 3:
             self.get_logger().error("[RopeEstimationNode] The number of load cells must be >= 3!")
@@ -52,8 +52,8 @@ class RopeEstimationNode(Node):
         transforms = []
         try:
             for i in range(self.num_load_cells):
-                transforms.append(self.tf_buffer.lookup_transform(self.frame_rope, self.frame_lcs[i],rclpy.time.Time()))
-        except tf2_ros.TransformException as e:
+                transforms.append(self.georef.lookup_transform(self.frame_rope, self.frame_lcs[i],rclpy.time.Time()))
+        except TransformException as e:
             self.log_info(f"Error looking up transforms: {e}")
             return None
 
