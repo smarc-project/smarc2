@@ -1,8 +1,6 @@
 /**/rope_estimation_node:
   ros__parameters:
     topics:
-      load_cell_template: "sensor/load_cell_{}"
-      output: "rope_force"
       sub_timeout: 0.5
     frames:
       load_cell_template: "LoadCell{}"

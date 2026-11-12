@@ -6,6 +6,8 @@ from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from std_msgs.msg import Float32
 
+from dji_msgs.msg import Topics as DJITopics
+from dji_msgs.msg import Links  as DJILinks
 from smarc_georef_cpp import GeorefUtils, TransformException
 
 class RopeEstimationNode(Node):
@@ -23,20 +25,21 @@ class RopeEstimationNode(Node):
         # tf
         self.georef = GeorefUtils(node=self)
 
-        if self.num_load_cells < 3:
-            self.get_logger().error("[RopeEstimationNode] The number of load cells must be >= 3!")
+        if self.num_load_cells < 3 and self.num_load_cells > 4:
+            self.get_logger().error("[RopeEstimationNode] The number of load cells must be either 3 or 4!")
             raise ValueError("The number of load cells must be >= 3")
 
         self.lc_readings = np.zeros(self.num_load_cells) # load cell readings in kg
         self.readings_timestamps = np.zeros(self.num_load_cells) # timestamps of the load cell readings
 
         # subscribers
+        load_cell_topics = [DJITopics.LOAD_CELL_1, DJITopics.LOAD_CELL_2, DJITopics.LOAD_CELL_3, DJITopics.LOAD_CELL_4,]
         self.lc_subs = [
-            self.create_subscription(Float32, self.topic_cell_template.format(i+1), lambda msg, idx=i: self.load_cell_cb(msg, idx), 10)
+            self.create_subscription(Float32, load_cell_topics[i], lambda msg, idx=i: self.load_cell_cb(msg, idx), 10)
             for i in range(self.num_load_cells)
         ]
         # publishers
-        self.force_pub = self.create_publisher(WrenchStamped, self.topic_output, 10)
+        self.force_pub = self.create_publisher(WrenchStamped, DJITopics.ROPE_ESTIMATION_OUTPUT, 10)
 
         self.equation_matrix = None
 
@@ -52,7 +55,7 @@ class RopeEstimationNode(Node):
         transforms = []
         try:
             for i in range(self.num_load_cells):
-                transforms.append(self.georef.lookup_transform(self.frame_rope, self.frame_lcs[i],rclpy.time.Time()))
+                transforms.append(self.georef.lookup_transform(self.frame_rope, self.frame_lcs[i]))
         except TransformException as e:
             self.log_info(f"Error looking up transforms: {e}")
             return None
@@ -114,11 +117,8 @@ class RopeEstimationNode(Node):
 
     def get_params(self):
         PARAMS = [
-            ("topics.load_cell_template", "sensor/load_cell_{}"),
             ("topics.sub_timeout", 0.5),
-            ("topics.output", "rope_force"),
 
-            
             ("frames.load_cell_template", "LoadCell{}"),
             ("frames.rope_link", "rope_base_link"),
 
@@ -134,8 +134,6 @@ class RopeEstimationNode(Node):
         self.num_load_cells = self.get_parameter("num_load_cells").value
 
         self.plate_width = self.get_parameter("plate_width").value
-        self.topic_cell_template = self.get_parameter("topics.load_cell_template").value
-        self.topic_output = self.get_parameter("topics.output").value
         self.sub_timeout = self.get_parameter("topics.sub_timeout").value
 
         robot_name = self.get_parameter("robot_name").value
@@ -143,8 +141,6 @@ class RopeEstimationNode(Node):
         frame_rope = self.get_parameter("frames.rope_link").value
 
         # check the templates:
-        if "{}" not in self.topic_cell_template:
-            raise ValueError("Topic template must contain {}")
         if "{}" not in self.frame_cell_template:
             raise ValueError("Frame template must contain {}")
 
