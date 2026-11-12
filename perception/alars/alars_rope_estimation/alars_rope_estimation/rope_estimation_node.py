@@ -23,6 +23,11 @@ class RopeEstimationNode(Node):
         self.get_params()
 
         # tf
+        ns = self.get_namespace().strip("/")
+        lc_links = [DJILinks.LOAD_CELL_1, DJILinks.LOAD_CELL_2, DJILinks.LOAD_CELL_3, DJILinks.LOAD_CELL_4]
+        self.frame_lcs = [f"{ns}/{lc_links[i]}" for i in range(self.num_load_cells)]
+        self.frame_rope = f"{ns}/{DJILinks.ROPE_BASE_LINK}"
+
         self.georef = GeorefUtils(node=self)
 
         if self.num_load_cells < 3 and self.num_load_cells > 4:
@@ -119,10 +124,6 @@ class RopeEstimationNode(Node):
         PARAMS = [
             ("topics.sub_timeout", 0.5),
 
-            ("frames.load_cell_template", "LoadCell{}"),
-            ("frames.rope_link", "rope_base_link"),
-
-            ("robot_name", "sim_M350"), # basically just for sim (because it differs from namespace)
             ("plate_width", 0.05),
             ("num_load_cells", 4),
 
@@ -136,16 +137,6 @@ class RopeEstimationNode(Node):
         self.plate_width = self.get_parameter("plate_width").value
         self.sub_timeout = self.get_parameter("topics.sub_timeout").value
 
-        robot_name = self.get_parameter("robot_name").value
-        self.frame_cell_template = self.get_parameter("frames.load_cell_template").value
-        frame_rope = self.get_parameter("frames.rope_link").value
-
-        # check the templates:
-        if "{}" not in self.frame_cell_template:
-            raise ValueError("Frame template must contain {}")
-
-        self.frame_lcs = [f"{robot_name}/{self.frame_cell_template.format(i+1)}" for i in range(self.num_load_cells)]
-        self.frame_rope = f"{robot_name}/{frame_rope}"
         self.publish_rate = self.get_parameter("publish_rate").value
 
         self.logger_info_enable = self.get_parameter("logger_info.enable").value

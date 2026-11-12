@@ -22,8 +22,6 @@ def generate_launch_description():
         "rope_estim_params.yaml"
     ])
 
-    robot_frame_name = "sim_M350" #TODO: resolve with if else based on use sim time
-
     rope_estim_node = Node(
         package="alars_rope_estimation",
         executable="rope_estimation_node",
@@ -33,7 +31,6 @@ def generate_launch_description():
         parameters=[
             params_file,
             {
-                "robot_name": robot_frame_name,
                 "use_sim_time": use_sim_time,
             }
         ]
