@@ -2,12 +2,7 @@
   ros__parameters:
     topics:
       sub_timeout: 0.5
-    frames:
-      load_cell_template: "LoadCell{}"
-      rope_link: "rope_base_link"
-    num_load_cells: 3
-    plate_width: 0.05
-    publish_rate: 10.0
+      publish_rate: 10.0
 
     logger_info:
       enable: true
