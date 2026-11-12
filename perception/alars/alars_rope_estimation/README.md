@@ -1,6 +1,6 @@
 # ALARS rope estimation
 ## Overview
-This package contains a node that estimates the force a rope exerts on a robot based on readings from load cells. 
+This package contains a node that estimates the force a rope exerts on a robot based on readings from 3/4 load cells. 
 At a fixed rate, the node gathers the latest load cell readings from topics, calculates the exerted force based on the geometry (TF) of the load cells, and publishes the force as `WrenchStamped`.
 
 ## Dependencies
@@ -8,9 +8,8 @@ At a fixed rate, the node gathers the latest load cell readings from topics, cal
 - numpy
 
 ## Interface
-The node works with a variable number of load cells, set by the `num_load_cells`>=3 parameter.
-For all load cell interfaces, we assume the naming convention to follow this rule: both the topics and TFs are given as `topics.load_cell_template` and `frames.load_cell_template`, where `{}` is replaced by i = 1, ..., `num_load_cells`.
-We assume that topic and TF with the same index i come from the same load cell.
+The node works with either 3 or 4 load cells.
+The topics and frames of individual load cells are contained in the `dji_msgs.Topics` and `dji_msgs.Links`, respectively (located in `messages.dji_msgs`).
 
 ### Topics
 All topics are relative to the node namespace (`robot_name`).
@@ -32,6 +31,6 @@ ros2 launch alars_rope_estimation rope_estim.launch.py
 ```bash
 ros2 launch alars_rope_estimation rope_estim.launch.py use_sim_time:=true robot_name:=M350
 ```
-### Configuration
+### Parameters
 The node is configured by a single file located in `config/rope_estim_params.yaml`.
-This file contains load cell topic and frame templates, output topic, timeout for subscribers (stops publishing output if any reading is older than `sub_timeout`), `plate_width`, `publish_rate` and `logger_info.enable`.
+This file contains timeout for subscribers (stops publishing output if any reading is older than `topics.sub_timeout`), publishing rate of the estimated force (`topics.publish_rate`) and `logger_info.enable`.

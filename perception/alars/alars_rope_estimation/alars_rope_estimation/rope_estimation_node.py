@@ -40,7 +40,7 @@ class RopeEstimationNode(Node):
         ns = self.get_namespace().strip("/")
         lc_links = [DJILinks.LOAD_CELL_1, DJILinks.LOAD_CELL_2, DJILinks.LOAD_CELL_3, DJILinks.LOAD_CELL_4]
         self.frame_lcs = [f"{ns}/{lc_links[i]}" for i in range(NUM_LOAD_CELLS)]
-        self.frame_rope = f"{ns}/{DJILinks.ROPE_BASE_LINK}"
+        self.frame_rope = f"{ns}/{DJILinks.ROPE_BASE_LINK}" # the rope pivot
 
         self.georef = GeorefUtils(node=self)
 
@@ -130,12 +130,8 @@ class RopeEstimationNode(Node):
     def log_info(self, msg: str) -> None:
         if self.logger_info_enable:
             self.get_logger().info(msg)
-
         
 
-        
-
-        
 def main():
     rclpy.init()
     node = RopeEstimationNode()
