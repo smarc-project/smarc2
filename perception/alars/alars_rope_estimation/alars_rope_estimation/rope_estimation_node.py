@@ -12,18 +12,18 @@ from dji_msgs.msg import Links  as DJILinks
 from smarc_georef_cpp import GeorefUtils, TransformException
 
 NUM_LOAD_CELLS: int = 3
-PLATE_WIDTH: float = 0.05
+ROPE_LEVER_ARM: float = 0.05
 
 assert NUM_LOAD_CELLS in (3,4)
 
 class RopeEstimationNode(Node):
     """
-    ROS2 Node for estimating rope direction and force from N load cells.
+    ROS2 Node for estimating rope direction and force from 3/4 load cells.
 
     This node subscribes to load cell topics, infers their geometry from TF,
     and publishes the estimated rope force/direction.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('rope_estimation_node')
 
         # PARAMETERS
@@ -31,7 +31,7 @@ class RopeEstimationNode(Node):
         self.sub_timeout : float = self.get_parameter("topics.sub_timeout").get_parameter_value().double_value
 
         self.declare_parameter("topics.publish_rate", 10.0)
-        self.publish_rate : float = self.get_parameter("publish_rate").get_parameter_value().double_value
+        self.publish_rate : float = self.get_parameter("topics.publish_rate").get_parameter_value().double_value
 
         self.declare_parameter("logger_info.enable", True)
         self.logger_info_enable : bool = self.get_parameter("logger_info.enable").get_parameter_value().bool_value
@@ -80,8 +80,8 @@ class RopeEstimationNode(Node):
         # TODO: check that z part is 0 (i.e., all load cells are in the same plane)
         equation_matrix = np.ones((3,NUM_LOAD_CELLS)) # 3 equations:
         # force balance: sum(F_i) = -F_z
-        # torque balance 1: sum(y_i * F_i) = - plate_width * F_y
-        # torque balance 2: sum(x_i * F_i) = - plate_width * F_x
+        # torque balance 1: sum(y_i * F_i) = - ROPE_LEVER_ARM * F_y
+        # torque balance 2: sum(x_i * F_i) = - ROPE_LEVER_ARM * F_x
         for i in range(NUM_LOAD_CELLS):
             equation_matrix[1,i] = transforms[i].transform.translation.y
             equation_matrix[2,i] = transforms[i].transform.translation.x
@@ -91,7 +91,7 @@ class RopeEstimationNode(Node):
             return None
         return equation_matrix
 
-    def publish_rope_estimation(self):
+    def publish_rope_estimation(self) -> None:
         if self.equation_matrix is None:
             self.equation_matrix = self.build_equation_matrix()
             if self.equation_matrix is None:
@@ -105,13 +105,13 @@ class RopeEstimationNode(Node):
         force_vector = np.zeros(3)
         b = self.equation_matrix @ self.lc_readings*9.81
         force_vector[2] = -b[0]
-        force_vector[1] = -b[1] / PLATE_WIDTH
-        force_vector[0] = -b[2] / PLATE_WIDTH
-        self.publish_transform(force_vector)
+        force_vector[1] = -b[1] / ROPE_LEVER_ARM
+        force_vector[0] = -b[2] / ROPE_LEVER_ARM
+        self.publish_force(force_vector)
         self.log_info(f"Estimated rope force: {force_vector}")
         
 
-    def publish_transform(self, translation: NDArray[np.float64]):
+    def publish_force(self, translation: NDArray[np.float64]) -> None:
         """
         Publishes the estimated rope force as a WrenchStamped message.
         """
@@ -123,11 +123,11 @@ class RopeEstimationNode(Node):
         msg.wrench.force.z = translation[2]
         self.force_pub.publish(msg)
 
-    def load_cell_cb(self, msg: Float32, idx: int):
+    def load_cell_cb(self, msg: Float32, idx: int) -> None:
         self.lc_readings[idx] = msg.data
         self.readings_timestamps[idx] = self.get_clock().now().nanoseconds / 1e9
 
-    def log_info(self, msg: str):
+    def log_info(self, msg: str) -> None:
         if self.logger_info_enable:
             self.get_logger().info(msg)
 
