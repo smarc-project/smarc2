@@ -62,3 +62,10 @@ string HOOK_PENDULUM_PARAMETERS_IDENTIFIED = "alars_pendulum/hook_pendulum_param
 
 # Move_to_damped Topics 
 string CMD_VELOCITY_DRONE_FRAME = "alars_move_to_damped/cmd_vel_drone_frame" # geometry_msgs.msg/Vector3Stamped
+
+# Rope Estimation node topics
+string LOAD_CELL_1 = "sensor/load_cell_1"
+string LOAD_CELL_2 = "sensor/load_cell_2"
+string LOAD_CELL_3 = "sensor/load_cell_3"
+string LOAD_CELL_4 = "sensor/load_cell_4"
+string ROPE_ESTIMATION_OUTPUT = "rope_force"

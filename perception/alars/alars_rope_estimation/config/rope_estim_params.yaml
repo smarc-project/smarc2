@@ -1,0 +1,8 @@
+/**/rope_estimation_node:
+  ros__parameters:
+    topics:
+      sub_timeout: 0.5
+      publish_rate: 10.0
+
+    logger_info:
+      enable: true

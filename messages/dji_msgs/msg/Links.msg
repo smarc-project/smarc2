@@ -41,3 +41,9 @@ string FISHEYE_OPTICAL_FRAME = 'fisheye_optical_frame'
 # Used by projection/filter
 string ESTIMATED_AUV = 'estimated_auv'
 string ESTIMATED_BUOY = 'estimated_buoy'
+
+# used by perception/alars/alars_rope_estimation
+string LOAD_CELL_1 = 'LoadCell1'
+string LOAD_CELL_2 = 'LoadCell2'
+string LOAD_CELL_3 = 'LoadCell3'
+string LOAD_CELL_4 = 'LoadCell4'
