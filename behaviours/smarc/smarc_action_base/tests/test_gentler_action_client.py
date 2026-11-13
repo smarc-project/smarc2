@@ -179,6 +179,46 @@ def test_timeout_cancels_from_the_client_side(ros_graph):
     assert server.cancels == 1
 
 
+def test_timeout_follows_the_ros_clock(ros_graph):
+    """Wall time passing does not expire a goal while the sim clock is held."""
+    from rclpy.parameter import Parameter
+    from rclpy.qos import QoSProfile, ReliabilityPolicy
+    from rclpy.time_source import CLOCK_TOPIC
+    from rosgraph_msgs.msg import Clock
+
+    client_node = ros_graph(
+        'client',
+        parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)],
+    )
+    clock_pub = ros_graph('clock').create_publisher(
+        Clock, CLOCK_TOPIC, QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
+
+    def clock_reached(seconds):
+        msg = Clock()
+        msg.clock.sec = int(seconds)
+        msg.clock.nanosec = int(round((seconds - int(seconds)) * 1e9))
+        clock_pub.publish(msg)
+        return client_node.get_clock().now().nanoseconds * 1e-9 >= seconds - 0.01
+
+    server = ScriptedServer(ros_graph('server'), outcome=None)
+    assert wait_for(lambda: clock_reached(100.0), timeout_s=2.0)
+    client = GentlerActionClient(client_node, ACTION, timeout_s=10.0)
+    assert client.server_alive()
+    assert client.send('{}')
+    time.sleep(0.4)
+    report = client.poll()
+    assert report.timed_out is False
+    assert report.elapsed_s < 1.0
+
+    assert wait_for(lambda: clock_reached(111.0), timeout_s=2.0)
+    assert wait_for(
+        lambda: client.poll().timed_out and client.poll().state is ActionClientState.CANCELLED,
+        timeout_s=2.0,
+    )
+    assert client.poll().elapsed_s >= 10.0
+    assert wait_for(lambda: server.cancels == 1, timeout_s=2.0)
+
+
 def test_send_is_refused_unless_ready(ros_graph):
     ScriptedServer(ros_graph('server'), outcome=None)
     client = GentlerActionClient(ros_graph('client'), ACTION)

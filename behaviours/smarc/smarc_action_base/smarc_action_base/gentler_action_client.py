@@ -12,11 +12,11 @@ cancels the goal from the client side when the server takes too long.
     client.get_ready()
 """
 
-import time
 from dataclasses import dataclass
 
 from action_msgs.msg import GoalStatus
 from rclpy.node import Node
+from rclpy.time import Time
 from smarc_msgs.action import BaseAction
 
 from smarc_action_base.smarc_action_base import ActionClientState, ActionType, SMARCActionClient
@@ -49,12 +49,15 @@ class GentlerActionClient(SMARCActionClient):
         super().__init__(node, action_name, ActionType(BaseAction))
         self._timeout_s = timeout_s
         self.feedback_message = ''
-        self._sent_at: float | None = None
+        self._sent_at: Time | None = None
         self._timed_out = False
         self._cancel_pending = False
 
     def server_alive(self, timeout_s: float = 1.0) -> bool:
-        """One wait for the server. Moves an idle client to READY or DISCONNECTED."""
+        """One wait for the server. Moves an idle client to READY or DISCONNECTED.
+
+        Wall time. This is looking for a process, and a paused sim clock would never expire it.
+        """
         return self._setup(num_iters=1, timeout=timeout_s)
 
     def get_ready(self) -> None:
@@ -76,7 +79,7 @@ class GentlerActionClient(SMARCActionClient):
         self._timed_out = False
         self._cancel_pending = False
         self._goal_handle = None        # the previous goal's handle must not be cancelled by mistake
-        self._sent_at = time.monotonic()
+        self._sent_at = self._node.get_clock().now()
         self.send_goal(goal)
         return True
 
@@ -96,13 +99,16 @@ class GentlerActionClient(SMARCActionClient):
 
     def poll(self) -> ClientReport:
         """Current state and feedback. Cancels the goal if the timeout has passed."""
-        elapsed = 0.0 if self._sent_at is None else time.monotonic() - self._sent_at
+        elapsed = 0.0 if self._sent_at is None else self._elapsed_s()
         if (self._timeout_s is not None and elapsed > self._timeout_s
                 and self.state in self.RUNNING_STATES and not self._timed_out):
             self._logerr(f'No result after {elapsed:.1f} s, cancelling.')
             self._timed_out = True
             self.cancel()
         return ClientReport(self.state, self.feedback_message, elapsed, self._timed_out)
+
+    def _elapsed_s(self) -> float:
+        return (self._node.get_clock().now() - self._sent_at).nanoseconds * 1e-9
 
     # SMARCActionClient callbacks. Users of this class do not see these.
 
