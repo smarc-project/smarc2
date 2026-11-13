@@ -2,6 +2,7 @@
 
 import json
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -22,10 +23,11 @@ class ScriptedServer:
     """
 
     def __init__(self, node, ticks_to_finish=3, outcome=True, accept_goals=True,
-                 accept_delay_s=0.0):
+                 accept_cancels=True, accept_delay_s=0.0):
         self.ticks_to_finish = ticks_to_finish
         self.outcome = outcome
         self.accept_goals = accept_goals
+        self.accept_cancels = accept_cancels
         self.accept_delay_s = accept_delay_s
         self.goals = []
         self.cancels = 0
@@ -42,7 +44,7 @@ class ScriptedServer:
 
     def on_cancel(self):
         self.cancels += 1
-        return True
+        return self.accept_cancels
 
     def prepare(self):
         self.ticks = 0
@@ -122,8 +124,105 @@ def test_cancel_mid_run(ros_graph):
 
     client.cancel()
     assert wait_for(lambda: finished(client))
-    assert client.poll().state is ActionClientState.CANCELLED
+    report = client.poll()
+    assert report.state is ActionClientState.CANCELLED
+    assert report.cancel_refused is False
     assert server.cancels == 1
+
+
+def test_refused_cancel_leaves_the_goal_running(ros_graph):
+    server = ScriptedServer(ros_graph('server'), outcome=None, accept_cancels=False)
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    assert client.server_alive()
+    assert client.send('{}')
+    assert wait_for(lambda: client.poll().state is ActionClientState.RUNNING)
+
+    client.cancel()
+    assert wait_for(lambda: client.poll().cancel_refused)
+    report = client.poll()
+    assert report.state is ActionClientState.RUNNING
+    assert report.running is True
+    assert report.finished is False
+    assert server.cancels == 1
+
+
+def test_a_late_cancel_response_is_not_this_goal(ros_graph):
+    from action_msgs.srv import CancelGoal
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    refused = SimpleNamespace(goals_canceling=[], return_code=CancelGoal.Response.ERROR_NONE)
+    ended = SimpleNamespace(goals_canceling=[], return_code=CancelGoal.Response.ERROR_GOAL_TERMINATED)
+
+    client.state = ActionClientState.RUNNING
+    client._on_cancel_response(refused)
+    assert client.poll().cancel_refused is False
+
+    client._cancel_open = True
+    client.state = ActionClientState.RUNNING
+    client._on_cancel_response(refused)
+    report = client.poll()
+    assert report.cancel_refused is True
+    assert report.state is ActionClientState.RUNNING
+
+    client.get_ready()
+    client._on_cancel_response(refused)
+    assert client.poll().cancel_refused is False
+
+    client._cancel_open = True
+    client.state = ActionClientState.CANCELLING
+    client._on_cancel_response(ended)
+    report = client.poll()
+    assert report.cancel_refused is False
+    assert report.state is ActionClientState.CANCELLING
+
+
+def test_an_open_cancel_is_not_sent_again(ros_graph):
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    client._cancel_open = True
+    client.state = ActionClientState.RUNNING
+    client._goal_handle = object()
+    client.cancel()
+    assert client._cancel_open is True
+    assert client.state is ActionClientState.RUNNING
+    assert client._cancel_pending is False
+
+
+def test_an_accepted_cancel_waits_for_the_result(ros_graph):
+    from action_msgs.srv import CancelGoal
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    accepted = SimpleNamespace(goals_canceling=[object()], return_code=CancelGoal.Response.ERROR_NONE)
+
+    client._cancel_open = True
+    client._result_seen = False
+    client.state = ActionClientState.CANCELLED
+    client._on_cancel_response(accepted)
+    assert client.state is ActionClientState.CANCELLING
+    assert client._cancel_open is True
+    assert client.poll().cancel_refused is False
+
+    client._result_seen = True
+    client.state = ActionClientState.CANCELLED
+    client._on_cancel_response(accepted)
+    assert client.state is ActionClientState.CANCELLED
+
+
+def test_cancel_is_asked_once_and_the_next_goal_sends(ros_graph):
+    server = ScriptedServer(ros_graph('server'), outcome=None)
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    assert client.server_alive()
+    assert client.send('{}')
+    assert wait_for(lambda: client.poll().state is ActionClientState.RUNNING)
+
+    client.cancel()
+    for _ in range(10):
+        client.cancel()
+        time.sleep(0.02)
+    assert wait_for(lambda: finished(client))
+    assert server.cancels == 1
+    assert client.poll().cancel_refused is False
+
+    client.get_ready()
+    assert client.send(json.dumps({'n': 2})) is True
+    assert wait_for(lambda: client.poll().state is ActionClientState.RUNNING)
 
 
 def test_cancel_right_after_send_still_cancels(ros_graph):

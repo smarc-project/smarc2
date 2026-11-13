@@ -71,15 +71,15 @@ The node lives in the robot namespace, next to `waraps_vehicle`. It reads `agent
 | `WARA_PS_ACTION_SERVER_HB_TOPIC` | `std_msgs/String` | the ROS action name. The task name is its last segment, `_` written as `-`. A server that goes quiet for `task_liveliness_timeout` is dropped. |
 | `WARA_PS_EXEC_COMMAND_TOPIC` | `std_msgs/String` | JSON: `ping`, `start-task`, `signal-task`, `query-task`, `signal-unit` |
 | `WARA_PS_TST_COMMAND_TOPIC` | `std_msgs/String` | JSON: `start-tst`, `signal-unit` |
-| `WARA_PS_ABORT_TOPIC` | `std_msgs/String` | cancel every task and publish `ABORT_TOPIC` |
+| `WARA_PS_ABORT_TOPIC` | `std_msgs/String` | ask every task to cancel, and publish `ABORT_TOPIC` |
 | `WARA_PS_HEARTBEAT_TOPIC` | `std_msgs/String` | one `agent-uuid`, then unsubscribed |
 | `VEHICLE_HEALTH_TOPIC` | `std_msgs/Int8` | last value and its stamp |
 
 `start-task` and `start-tst` are refused with `rejected: vehicle health status is not ok` unless the last health is `VEHICLE_HEALTH_READY` and younger than `health_timeout_s`. They are refused with `task not available` when that server is not heartbeating, and with `task already executing on <name>` while a task is running. A `custom-task` uses `params.action-name` as the task name.
 
-While health is `WAITING`, `ERROR`, or silent past `health_timeout_s`, every running task is cancelled and reported as `cancelled: vehicle health <STATE>`.
+While health is `WAITING`, `ERROR`, or silent past `health_timeout_s`, every running task is asked to cancel. The task stays in the executing list until the server accepts (`cancelled: vehicle health <STATE>`), refuses (`cancel refused: action still running`, and the task keeps running), or the client errors (that task is reported as `error`). A refused cancel is not a vehicle emergency.
 
-`signal-unit` `$abort` and `WARA_PS_ABORT_TOPIC` also publish `smarc/abort` (`Empty`). The captain decides what that does to the actuators. `$abort` and `$enough` on one task cancel that task and do not publish `smarc/abort`. `$cancel_abort` is rejected: there is no emergency flag here.
+`signal-unit` `$abort` and `WARA_PS_ABORT_TOPIC` also publish `smarc/abort` (`Empty`). The captain decides what that does to the actuators. `$abort` and `$enough` on one task ask that task to cancel and do not publish `smarc/abort`. The task stays until the server answers. A goal that has been sent, and a cancel that has not been answered, both count as executing: a new start is rejected. `$cancel_abort` is rejected: there is no emergency flag here.
 
 ### Publishes
 

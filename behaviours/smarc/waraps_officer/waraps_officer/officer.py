@@ -102,7 +102,7 @@ class Officer:
         return self._dispatch(parse_tst(_load(text)), now_s, tst=True)
 
     def on_waraps_abort(self, now_s):
-        return self._stop_all(WaraPSTaskStates.ABORTED, unit=True)
+        return self._stop_all(WaraPSTaskStates.ABORTED, unit=True, retry=True)
 
     # ---- time ---------------------------------------------------------------
 
@@ -123,8 +123,7 @@ class Officer:
         out = []
         if not self._health_ready(now_s) and self.executing:
             word = health_word(self._health_value, fresh(self._health_stamp_s, now_s, self._health_timeout_s))
-            out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False,
-                                      text=f'cancelled: vehicle health {word}'))
+            out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text=f'vehicle health {word}'))
         if self._mission_expired(now_s):
             out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded'))
         for task in list(self.executing):
@@ -202,9 +201,13 @@ class Officer:
         if signal.signal == WaraPSCommandSignals.PAUSE:
             task.status = WaraPSTaskStates.PAUSED
         elif signal.signal == WaraPSCommandSignals.CONTINUE and task.status == WaraPSTaskStates.PAUSED:
-            task.status = WaraPSTaskStates.RESUMED
+            task.status = _continued(task)
         elif signal.signal in _STOP_STATUS:
+            task.cancel_refused = False
             task.status = _STOP_STATUS[signal.signal]
+            task.stop_reason = None
+            self._mission = None
+            _cancel(task)
         return [('exec_response', exec_response(self.agent_uuid, signal.com_uuid, 'ok'))]
 
     def _signal_unit(self, signal: SignalUnit, channel):
@@ -214,20 +217,33 @@ class Officer:
         elif signal.signal == WaraPSCommandSignals.CONTINUE:
             for task in self.executing:
                 if task.status == WaraPSTaskStates.PAUSED:
-                    task.status = WaraPSTaskStates.RESUMED
+                    task.status = _continued(task)
         elif signal.signal in _STOP:
             return [(channel, exec_response(self.agent_uuid, signal.com_uuid, 'ok'))] + \
-                self._stop_all(_STOP_STATUS[signal.signal], unit=signal.signal == WaraPSCommandSignals.ABORT)
+                self._stop_all(_STOP_STATUS[signal.signal], unit=signal.signal == WaraPSCommandSignals.ABORT,
+                               retry=True)
         return [(channel, exec_response(self.agent_uuid, signal.com_uuid, 'ok'))]
 
-    def _stop_all(self, status, unit, text=None):
+    def _stop_all(self, status, unit, text=None, retry=False):
+        """Ask every executing task to stop. The task stays until the server answers."""
         out = [('abort', None)] if unit else []
         for task in list(self.executing):
+            if task.cancel_refused and not retry:
+                if task.stop_reason == text:
+                    continue
+                task.cancel_refused = False
+            if retry:
+                task.cancel_refused = False
+            if task.status in (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH):
+                if not retry and task.client.poll().cancel_refused:
+                    continue
+                _cancel(task)
+                continue
             task.status = status
+            task.stop_reason = text
             _cancel(task)
             if text is not None:
-                out.append(self._feedback(task, text))
-            self.executing.remove(task)
+                out.append(self._feedback(task, f'cancelling: {text}'))
         self._mission = None
         return out
 
@@ -236,16 +252,23 @@ class Officer:
     def _advance(self, task: ExecutingTask, now_s):
         report = task.client.poll()
         state = report.state
+        if report.cancel_refused and not task.cancel_refused:
+            if task.status != WaraPSTaskStates.PAUSED:
+                task.status = WaraPSTaskStates.RUNNING
+            task.cancel_refused = True
+            return [self._feedback(task, 'cancel refused: action still running')]
         if task.status in (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH):
-            _cancel(task)
-            self._retire(task)
-            return []
+            return self._advance_stop(task, report)
         if task.status == WaraPSTaskStates.PAUSED:
             if state in SMARCActionClient.RUNNING_STATES:
-                task.client.cancel()
-            elif state is not SMARCActionClient.States.READY:
+                if not task.cancel_refused:
+                    task.client.cancel()
+                return []
+            if state is SMARCActionClient.States.CANCELLED:
                 task.client.get_ready()
-            return []
+                return []
+            if state is SMARCActionClient.States.READY:
+                return []
         if task.status in (WaraPSTaskStates.STARTED, WaraPSTaskStates.RESUMED):
             if state is SMARCActionClient.States.DISCONNECTED:
                 task.client.server_alive(timeout_s=0.0)
@@ -253,7 +276,9 @@ class Officer:
                 if task.client.send(json.dumps(task.params), task.timeout_s):
                     task.status = WaraPSTaskStates.RUNNING
             return []
-        if getattr(report, 'timed_out', False) or state in SMARCActionClient.FAILURE_STATES or state is SMARCActionClient.States.DONE:
+        if report.timed_out and state in SMARCActionClient.RUNNING_STATES:
+            return []
+        if report.timed_out or state in SMARCActionClient.FAILURE_STATES or state is SMARCActionClient.States.DONE:
             task.status = WaraPSTaskStates.FINISHED if state is SMARCActionClient.States.DONE else WaraPSTaskStates.ERROR
             text = report.feedback or f'Action client in failure state: {state}.'
             if state is SMARCActionClient.States.DONE:
@@ -263,6 +288,28 @@ class Officer:
             out.extend(self._next_leaf(now_s, task.status))
             return out
         return []
+
+    def _advance_stop(self, task: ExecutingTask, report):
+        """A cancel is a request. The task leaves when the server answers it."""
+        state = report.state
+        if state in SMARCActionClient.RUNNING_STATES:
+            _cancel(task)
+            return []
+        if state is SMARCActionClient.States.CANCELLED or state is SMARCActionClient.States.READY:
+            text = f'cancelled: {task.stop_reason}' if task.stop_reason else 'cancelled'
+            out = [self._feedback(task, text)]
+            self._retire(task)
+            return out
+        if state is SMARCActionClient.States.DONE:
+            task.status = WaraPSTaskStates.FINISHED
+            out = [self._feedback(task, report.feedback)]
+            self._retire(task)
+            return out
+        task.status = WaraPSTaskStates.ERROR
+        text = report.feedback or f'Action client in failure state: {state}.'
+        out = [self._feedback(task, text)]
+        self._retire(task)
+        return out
 
     def _next_leaf(self, now_s, status):
         mission = self._mission
@@ -287,6 +334,7 @@ class Officer:
     def _retire(self, task):
         if task in self.executing:
             self.executing.remove(task)
+        task.client.get_ready()
 
     def _feedback(self, task, text):
         kind = 'tst_feedback' if task.tst_uuid else 'exec_feedback'
@@ -334,9 +382,19 @@ def _leaf_as_start(com_uuid, leaf):
     return StartTask(com_uuid, leaf.task_uuid, leaf.name, leaf.params, leaf.description, leaf.timeout_s)
 
 
+def _continued(task):
+    """A refused pause left the goal running. Continue means that, not a new send.
+
+    Read ``state`` directly. ``poll()`` cancels a goal that has timed out.
+    """
+    if task.client.state is SMARCActionClient.States.RUNNING:
+        return WaraPSTaskStates.RUNNING
+    return WaraPSTaskStates.RESUMED
+
+
 def _cancel(task):
     report = task.client.poll()
-    if report.state in SMARCActionClient.RUNNING_STATES:
+    if report.state in SMARCActionClient.RUNNING_STATES and report.state is not SMARCActionClient.States.CANCELLING:
         task.client.cancel()
 
 
@@ -348,6 +406,10 @@ def gentler_client(node, ros_name):
 
         def __init__(self):
             self._client = GentlerActionClient(node, ros_name, timeout_s=None)
+
+        @property
+        def state(self):
+            return self._client.state
 
         def poll(self):
             return self._client.poll()

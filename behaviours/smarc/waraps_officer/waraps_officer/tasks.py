@@ -57,3 +57,5 @@ class ExecutingTask:
     com_uuid: str
     tst_uuid: str | None
     timeout_s: float | None
+    stop_reason: str | None = None
+    cancel_refused: bool = False
