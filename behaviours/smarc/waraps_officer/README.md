@@ -79,6 +79,8 @@ The node lives in the robot namespace, next to `waraps_vehicle`. It reads `agent
 
 While health is `WAITING`, `ERROR`, or silent past `health_timeout_s`, every running task is asked to cancel. The task stays in the executing list until the server accepts (`cancelled: vehicle health <STATE>`), refuses (`cancel refused: action still running`, and the task keeps running), or the client errors (that task is reported as `error`). A refused cancel is not a vehicle emergency.
 
+`OFFICER_HEALTH_TOPIC` is an `Int8` with the same values as vehicle health. `VEHICLE_HEALTH_READY` when no cancel is open. `VEHICLE_HEALTH_WAITING` while a cancel has been asked and not answered. `VEHICLE_HEALTH_ERROR` when a server refuses and the action is still running. It does not say which server.
+
 `signal-unit` `$abort` and `WARA_PS_ABORT_TOPIC` also publish `smarc/abort` (`Empty`). The captain decides what that does to the actuators. `$abort` and `$enough` on one task ask that task to cancel and do not publish `smarc/abort`. The task stays until the server answers. A goal that has been sent, and a cancel that has not been answered, both count as executing: a new start is rejected. `$cancel_abort` is rejected: there is no emergency flag here.
 
 ### Publishes
@@ -91,6 +93,7 @@ While health is `WAITING`, `ERROR`, or silent past `health_timeout_s`, every run
 | `WARA_PS_EXEC_FEEDBACK_TOPIC`, `WARA_PS_TST_FEEDBACK_TOPIC` | every pulse, per running task, carrying the action server's feedback |
 | `WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC` | every pulse. `[{task-uuid, task-name, status, description}]` |
 | `ABORT_TOPIC` | unit abort only |
+| `OFFICER_HEALTH_TOPIC` | every step and every pulse. `VEHICLE_HEALTH_READY`, `WAITING`, or `ERROR` |
 
 A goal sent to an action server is `json.dumps` of the task's `params`. `params.timeout` (seconds) cancels the goal from the client; a TST leaf without one has no client timeout, and a mission without `params.timeout` runs for 1800 s.
 
