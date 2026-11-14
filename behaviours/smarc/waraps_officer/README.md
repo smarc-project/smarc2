@@ -1,6 +1,6 @@
 # waraps_officer
 
-WARA-PS agent nodes for a SMaRC vehicle. `waraps_vehicle` is level 1. `waraps_officer` is levels 2 and 3: it runs one task at a time on the vehicle's action servers.
+WARA-PS agent nodes for a SMaRC vehicle. `waraps_vehicle` is level 1. `waraps_officer` is levels 2 and 3: it runs one task at a time on the vehicle's action servers. `waraps_agents_to_ros` republishes other agents' sensors as `latlon` and `odom`.
 
 Everything is plain `std_msgs/String` carrying JSON, for `str_json_mqtt_bridge` to put on the broker.
 
@@ -110,3 +110,32 @@ A goal sent to an action server is `json.dumps` of the task's `params`. `params.
 | `use_sim_time` | | stamps follow the ROS clock |
 
 `commands.py` has no rclpy; the health numbers it compares are `Topics.VEHICLE_HEALTH_*`. `Officer.step` is run against a fake client. The live tests run on a private ROS domain: one rejects a start while health is `ERROR`, one drives a `GentlerActionServer` through `start-task` until `tasks-executing` is empty.
+
+## waraps_agents_to_ros
+
+Replaces `mqtt_to_ros_agent`. The bridge mirrors another agent's sensors onto `<agent>/waraps/sensor/*`. This node reads those strings and publishes `<agent>/latlon` (`GeoPoint`) and `<agent>/odom` (`Odometry`) in the frame `<robot_name>/odom`.
+
+The node stays at `/`. The agent name is already the topic namespace, and our own robot is skipped. UTM comes from `smarc_utilities.georef_utils.convert_latlon_to_utm`. The transform from that UTM frame into `<robot_name>/odom` is cached. Heading is preferred over course. A heading of 0 (north) is ENU yaw pi/2. The covariance diagonal is the ellipse squared.
+
+```bash
+ros2 launch waraps_officer waraps_agents_to_ros.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=evolo mqtt_agent_name:=aldo_evolo domain:=surface ellipse_x_m:=1.0 ellipse_y_m:=0.5
+```
+
+`mqtt_agent_name` is the agent the bridge mirrors. The node picks up every mirrored agent on the graph.
+
+| Name | Default | |
+|---|---|---|
+| `robot_name` | `evolo` | odom frame is `<robot_name>/odom` |
+| `use_sim_time` | `false` | the launch passes it through; set it when `/clock` is the sim |
+| `latlon_name` | `latlon` | topic under the agent |
+| `odom_name` | `odom` | topic under the agent |
+| `odom_link` | `odom` | TF frame under `robot_name` |
+| `base_link` | `base_link` | child frame under the agent |
+| `publish_rate_hz` | `1.0` | |
+| `transform_timeout_s` | `10.0` | how long to wait for the UTM to odom transform |
+| `prefer_heading` | `true` | use heading, and course when heading has not arrived |
+| `angle_unit` | `deg` | `rad`, `radian`, or `radians` pass through |
+| `position_covariance.ellipse_x_m` | `5.0` | squared onto the covariance diagonal |
+| `position_covariance.ellipse_y_m` | `5.0` | |
+| `position_covariance.ellipse_z_m` | `0.0` | |
+| `utm_frame_override` | empty | use this frame instead of `utm_<zone>_<band>` |
