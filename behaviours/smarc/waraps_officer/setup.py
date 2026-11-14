@@ -18,12 +18,13 @@ setup(
     zip_safe=True,
     maintainer='Shekhar Devm Upadhyay',
     maintainer_email='shekharu@kth.se',
-    description='WARA-PS level 1 for one vehicle: heartbeat, sensors, sensor_info.',
+    description='WARA-PS agent nodes: waraps_vehicle publishes level 1, waraps_officer runs one task at a time.',
     license='MIT',
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'waraps_vehicle = waraps_officer.waraps_vehicle:main',
+            'waraps_officer = waraps_officer.officer:main',
         ],
     },
 )

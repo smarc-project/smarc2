@@ -3,7 +3,7 @@
 <package format="3">
   <name>waraps_officer</name>
   <version>0.0.0</version>
-  <description>WARA-PS level 1 for one vehicle: heartbeat, sensors, sensor_info.</description>
+  <description>WARA-PS agent nodes: waraps_vehicle publishes level 1, waraps_officer runs one task at a time.</description>
   <maintainer email="shekharu@kth.se">Shekhar Devm Upadhyay</maintainer>
   <license>MIT</license>
 
@@ -13,6 +13,7 @@
   <exec_depend>geographic_msgs</exec_depend>
   <exec_depend>smarc_msgs</exec_depend>
   <exec_depend>smarc_utilities</exec_depend>
+  <exec_depend>smarc_action_base</exec_depend>
   <exec_depend>python3-transforms3d</exec_depend>
 
   <test_depend>python3-pytest</test_depend>

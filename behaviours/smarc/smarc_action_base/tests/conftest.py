@@ -22,8 +22,8 @@ def ros_graph():
     executor = MultiThreadedExecutor(num_threads=4)
     nodes = []
 
-    def make_node(name, namespace='/'):
-        node = Node(name, namespace=namespace)
+    def make_node(name, namespace='/', **kwargs):
+        node = Node(name, namespace=namespace, **kwargs)
         nodes.append(node)
         executor.add_node(node)
         return node
