@@ -82,6 +82,23 @@ def health_is_ready(value, stamp_s, now_s, timeout_s) -> bool:
     return value == Topics.VEHICLE_HEALTH_READY and fresh(stamp_s, now_s, timeout_s)
 
 
+def officer_health(tasks, running_states, cancelling) -> int:
+    """The officer's own health, using the vehicle health values.
+
+    ERROR: a server refused a cancel and the action is still running.
+    WAITING: a cancel was asked and has not been answered.
+    READY: neither. A task that is simply running is READY.
+    """
+    if any(task.cancel_refused for task in tasks):
+        return Topics.VEHICLE_HEALTH_ERROR
+    stopping = (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH, WaraPSTaskStates.PAUSED)
+    for task in tasks:
+        state = task.client.state
+        if state is cancelling or (task.status in stopping and state in running_states):
+            return Topics.VEHICLE_HEALTH_WAITING
+    return Topics.VEHICLE_HEALTH_READY
+
+
 def health_word(value, is_fresh: bool) -> str:
     if not is_fresh:
         return 'silent'

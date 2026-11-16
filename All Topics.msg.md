@@ -260,6 +260,7 @@
 -  ABORT_TOPIC :  'smarc/abort' 
 -  BT_HEARTBEAT_TOPIC :  'smarc/heartbeat' 
 -  VEHICLE_HEALTH_TOPIC :  'smarc/vehicle_health' 
+-  OFFICER_HEALTH_TOPIC :  'smarc/officer_health' 
 -  ODOM_TOPIC :  'smarc/odom'  
 -  HEADING_TOPIC :  'smarc/heading' 
 -  COURSE_TOPIC :  'smarc/course' 

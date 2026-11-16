@@ -5,6 +5,7 @@ int8 VEHICLE_HEALTH_READY = 0
 int8 VEHICLE_HEALTH_WAITING = 1
 int8 VEHICLE_HEALTH_ERROR = 2
 string VEHICLE_HEALTH_TOPIC = 'smarc/vehicle_health' #int
+string OFFICER_HEALTH_TOPIC = 'smarc/officer_health' #int8, VEHICLE_HEALTH_READY / WAITING / ERROR
 
 string ODOM_TOPIC = 'smarc/odom'  #odom
 string HEADING_TOPIC = 'smarc/heading' #float32
