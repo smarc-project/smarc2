@@ -111,13 +111,15 @@ class PadLandingAS:
 
         # TODO: Publisher for cmd_vel and landing_status (might be useful for FSM and control).
         
-        # Refresh predictions and detect stale inputs even when callbacks stop.
+        # Refresh predictions and detect stale inputs.
         node.create_timer(0.05, self._update_relative_state)
 
     @property
     def now(self) -> Time:
         """Read the current time from the node's ros clock."""
         return self._node.get_clock().now()
+    
+    ### Auxiliary methods
     
     def _pose_to_map(self, pose: PoseWithCovariance, frame: str):
         """Transform pose/covariance to map and return the source-to-map rotation."""
@@ -151,11 +153,71 @@ class PadLandingAS:
         odometry.twist.twist.linear = numpy_to_vector3(orientation.T @ velocity)
         return odometry
 
+    def _is_ekf_status_valid(self, now) -> bool:
+        """Check the latest ekf report and log failures."""
+        logger = self._node.get_logger()
+        status = self._status
+        if status is None or not status.initialized:
+            if not self._pad_tracker.prediction_active:
+                logger.info('landing-pad EKF is not initialized', throttle_duration_sec=1.0)
+            return False
+        age = (now - self._status_stamp).nanoseconds * 1e-9
+        
+        if (self._status_stamp.nanoseconds == 0 or age < -0.05
+                or age > self.MAX_STATUS_AGE_S):
+            logger.info(f'EKF status timestamp stale or in the future ({age:.3f}s)', throttle_duration_sec=1.0)
+            return False
+        
+        if not 0 <= status.time_since_last_update <= self.MAX_EKF_UPDATE_AGE_S:
+            logger.info('EKF update is stale or invalid', throttle_duration_sec=1.0)
+            return False
+        if status.consecutive_outliers > 0 or status.consecutive_invalid_measurements > 0:
+            logger.info('latest EKF measurement was rejected', throttle_duration_sec=1.0)
+            return False
+        return True
+
+    def _are_relative_inputs_valid(self, now) -> bool:
+        """Check the prepared odometries and log failures before relative calculations."""
+        logger = self._node.get_logger()
+        predicting = self._pad_tracker.prediction_active
+        if not predicting and not self._is_ekf_status_valid(now):
+            return False
+        if self._drone_odom is None or self._pad_odom is None:
+            logger.info('waiting for drone and pad data', throttle_duration_sec=1.0)
+            return False
+        if not predicting and not self._pad_input_valid:
+            logger.info('latest pad input is invalid', throttle_duration_sec=1.0)
+            return False
+        
+        drone_stamp = Time.from_msg(self._drone_odom.header.stamp)
+        pad_stamp = Time.from_msg(self._pad_odom.header.stamp)
+        for name, stamp, max_age in [
+            ('drone', drone_stamp, self._max_drone_age_s),
+            ('pad', pad_stamp, self._max_pad_age_s),
+        ]:
+            age = (now - stamp).nanoseconds * 1e-9
+            if stamp.nanoseconds == 0 or age < -0.05 or age > max_age:
+                logger.info(f'{name} timestamp stale or in the future ({age:.3f}s)', throttle_duration_sec=1.0)
+                return False
+        if not predicting and not self._pad_tracker.velocity_ready:
+            logger.info('waiting for a second pad pose to estimate velocity', throttle_duration_sec=1.0)
+            return False
+        
+        covariance = np.asarray(self._pad_odom.pose.covariance).reshape(6, 6)
+        trace = np.trace(covariance[:3, :3])
+        max_trace = self.MAX_PAD_POSITION_COV_TRACE
+        if not np.isfinite(trace) or (max_trace >= 0 and trace > max_trace):
+            logger.info('pad position covariance is too large', throttle_duration_sec=1.0)
+            return False
+        return True
+
+    ### Callbacks
+
     def _drone_odom_callback(self, message: Odometry):
         try:
             position, orientation, pose_cov, pose_rotation = self._pose_to_map(message.pose, message.header.frame_id)
 
-            # DJI captain supplies velocities in the odometry header frame.
+            # Rotate velocity from the odometry header frame into map.
             velocity = pose_rotation @ vector3_to_numpy(message.twist.twist.linear)
             angular = pose_rotation @ vector3_to_numpy(message.twist.twist.angular)
             twist_cov = rotate_covariance(message.twist.covariance, pose_rotation)
@@ -238,64 +300,8 @@ class PadLandingAS:
         if not self._is_ekf_status_valid(now):
             self._pad_tracker.reject_observation()
 
-    def _is_ekf_status_valid(self, now) -> bool:
-        """Check the latest ekf report and log failures."""
-        logger = self._node.get_logger()
-        status = self._status
-        if status is None or not status.initialized:
-            if not self._pad_tracker.prediction_active:
-                logger.info('landing-pad EKF is not initialized', throttle_duration_sec=1.0)
-            return False
-        age = (now - self._status_stamp).nanoseconds * 1e-9
-        
-        if (self._status_stamp.nanoseconds == 0 or age < -0.05
-                or age > self.MAX_STATUS_AGE_S):
-            logger.info(f'EKF status timestamp stale or in the future ({age:.3f}s)', throttle_duration_sec=1.0)
-            return False
-        
-        if not 0 <= status.time_since_last_update <= self.MAX_EKF_UPDATE_AGE_S:
-            logger.info('EKF update is stale or invalid', throttle_duration_sec=1.0)
-            return False
-        if status.consecutive_outliers > 0 or status.consecutive_invalid_measurements > 0:
-            logger.info('latest EKF measurement was rejected', throttle_duration_sec=1.0)
-            return False
-        return True
+    ### Relative state update (only a logger for now, might need a proper topic later with FSM)
 
-    def _are_relative_inputs_valid(self, now) -> bool:
-        """Check the prepared odometries and log failures before relative calculations."""
-        logger = self._node.get_logger()
-        predicting = self._pad_tracker.prediction_active
-        if not predicting and not self._is_ekf_status_valid(now):
-            return False
-        if self._drone_odom is None or self._pad_odom is None:
-            logger.info('waiting for drone and pad data', throttle_duration_sec=1.0)
-            return False
-        if not predicting and not self._pad_input_valid:
-            logger.info('latest pad input is invalid', throttle_duration_sec=1.0)
-            return False
-        
-        drone_stamp = Time.from_msg(self._drone_odom.header.stamp)
-        pad_stamp = Time.from_msg(self._pad_odom.header.stamp)
-        for name, stamp, max_age in [
-            ('drone', drone_stamp, self._max_drone_age_s),
-            ('pad', pad_stamp, self._max_pad_age_s),
-        ]:
-            age = (now - stamp).nanoseconds * 1e-9
-            if stamp.nanoseconds == 0 or age < -0.05 or age > max_age:
-                logger.info(f'{name} timestamp stale or in the future ({age:.3f}s)', throttle_duration_sec=1.0)
-                return False
-        if not predicting and not self._pad_tracker.velocity_ready:
-            logger.info('waiting for a second pad pose to estimate velocity', throttle_duration_sec=1.0)
-            return False
-        
-        covariance = np.asarray(self._pad_odom.pose.covariance).reshape(6, 6)
-        trace = np.trace(covariance[:3, :3])
-        max_trace = self.MAX_PAD_POSITION_COV_TRACE
-        if not np.isfinite(trace) or (max_trace >= 0 and trace > max_trace):
-            logger.info('pad position covariance is too large', throttle_duration_sec=1.0)
-            return False
-        return True
-    
     def _update_relative_state(self):
         """Update the relative position and velocity of the drone with respect to the pad."""
         now = self.now

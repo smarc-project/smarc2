@@ -312,7 +312,7 @@ class ObjectEKF:
         self.state_stamp_ns = None
         self.initializer.init_buffer.clear()
 
-        self.log_info(f"{self.class_name}: EKF internal state reset.")
+        self.logger.info(f"{self.class_name}: EKF internal state reset.")
 
     def get_motion_model(self, model_type):
         if model_type == "surface":

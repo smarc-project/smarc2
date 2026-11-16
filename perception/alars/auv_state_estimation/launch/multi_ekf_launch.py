@@ -62,11 +62,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "landing_pad_height",
                 default_value="1.88",
-                description="Nominal landing-pad Z in the map frame [m]; overrides the object config value.",
+                description="Nominal landing-pad Z in the map frame [m].",
             ),
             DeclareLaunchArgument(
                 "camera_calibration_file",
-                default_value="sim_1080p_cam_params.yaml",
+                default_value="cam_params.yaml",
             ),
             DeclareLaunchArgument(
                 "yolo_detections_topic",

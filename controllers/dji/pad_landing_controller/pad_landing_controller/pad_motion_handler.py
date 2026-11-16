@@ -31,14 +31,14 @@ class PadMotionHandler:
     PREDICTION_VELOCITY_VARIANCE_RATE = 0.003
 
     def __init__(
-            self, max_prediction_s=10.0, max_observation_age_s=1.5,
-            allow_drone_velocity_fallback=False):
+            self, max_prediction_s: float = 10.0, max_observation_age_s: float = 1.5,
+            allow_drone_velocity_fallback: bool = False) -> None:
         self.max_prediction_s = max_prediction_s
         self.max_observation_age_s = max_observation_age_s
         self.allow_drone_velocity_fallback = allow_drone_velocity_fallback
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         """Clear one attempt, including real observations and prediction history."""
         self.velocity_ready = False
         self.prediction_active = False
@@ -54,7 +54,7 @@ class PadMotionHandler:
         self._frozen_velocity = None
         self._reacquire_since = None
 
-    def stop_prediction(self):
+    def stop_prediction(self) -> None:
         """Leave terminal prediction while keeping recent visual history."""
         self.prediction_active = False
         self.prediction_velocity_source = ''
@@ -62,27 +62,27 @@ class PadMotionHandler:
         self._reacquire_since = None
 
     @property
-    def last_observation(self):
+    def last_observation(self) -> Odometry | None:
         """Return real odometry separately from any current prediction."""
         return deepcopy(self._last_observation)
 
-    def reject_observation(self):
+    def reject_observation(self) -> None:
         """Interrupt reacquisition without discarding the trusted prediction anchor."""
         self._reacquire_since = None
 
-    def observation_age(self, now: Time):
+    def observation_age(self, now: Time) -> float:
         """Age of the last accepted real measurement, independent of forecasts."""
         if self.last_observation_stamp is None:
             return float('inf')
         return (now.nanoseconds - self.last_observation_stamp.nanoseconds) * 1e-9
 
-    def update_gap(self, now: Time):
+    def update_gap(self, now: Time) -> float:
         """Time since receipt of a new valid pad pose, separate from source age."""
         if self._last_input_received_at is None:
             return float('inf')
         return (now - self._last_input_received_at).nanoseconds * 1e-9
 
-    def observe(self, odometry: Odometry, now: Time, *, fresh=True):
+    def observe(self, odometry: Odometry, now: Time, *, fresh: bool = True) -> Odometry | None:
         """Update pad history and velocity. If fresh=False, then rejects the observation.
 
         Return odometry when accepted, or None during rejection or reacquisition.
@@ -136,7 +136,7 @@ class PadMotionHandler:
         return output
 
     # TODO: Integrate later with the FSM using the align flag
-    def add_drone_odometry(self, odometry: Odometry):
+    def add_drone_odometry(self, odometry: Odometry) -> None:
         """Record an optional fallback, the caller must establish matching XY motion."""
         stamp = Time.from_msg(odometry.header.stamp)
         velocity = rotation(odometry.pose.pose.orientation) @ vector3_to_numpy(
@@ -149,7 +149,7 @@ class PadMotionHandler:
         self._drone_velocity_history.append((t, velocity))
         self._trim_history(self._drone_velocity_history, t)
 
-    def predict(self, now: Time, *, enabled=False):
+    def predict(self, now: Time, *, enabled: bool = False) -> Odometry | None:
         """Predict XY, hold Z and grow uncertainty when enabled by the landing phase.
 
         Use observation_age() and prediction_active for validity; forecast timestamps
@@ -191,7 +191,7 @@ class PadMotionHandler:
         output.header.stamp = now.to_msg()
         return output
 
-    def _estimate_velocity(self, position, stamp):
+    def _estimate_velocity(self, position: np.ndarray, stamp: Time) -> None:
         """Reuse filtered position differences without refreshing duplicate stamps."""
         if self._previous_stamp is None:
             self._previous_position, self._previous_stamp = position.copy(), stamp
@@ -210,11 +210,11 @@ class PadMotionHandler:
             self.velocity_ready = True
         self._previous_position, self._previous_stamp = position.copy(), stamp
 
-    def _trim_history(self, history, latest_time):
+    def _trim_history(self, history: deque[tuple[float, np.ndarray]], latest_time: float) -> None:
         while history and latest_time - history[0][0] > self.HISTORY_WINDOW_S:
             history.popleft()
 
-    def _fit_velocity_from_history(self):
+    def _fit_velocity_from_history(self) -> np.ndarray | None:
         """Reuse the original least-squares fit over a recent position window."""
         if len(self._position_history) < self.HISTORY_MIN_SAMPLES:
             return None
@@ -228,8 +228,8 @@ class PadMotionHandler:
             return None
         return (times[:, None] * (positions - positions.mean(axis=0))).sum(axis=0) / denominator
 
-    def _capture_dropout_velocity(self):
-        """Use position regression, an opted-in drone snapshot, or filtered velocity."""
+    def _capture_dropout_velocity(self) -> np.ndarray:
+        """Use position regression, a saved drone snapshot, or filtered velocity."""
         velocity = self._fit_velocity_from_history()
         if velocity is not None:
             self.prediction_velocity_source = 'visual_regression'
