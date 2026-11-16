@@ -1,9 +1,9 @@
-"""WARA-PS levels 2 and 3: one task at a time, over GentlerActionClient.
+"""WARA-PS levels 2 and 3 over GentlerActionClient.
 
 ``Officer`` holds the tasks and decides. ``WarapsOfficer`` is the node: it
 subscribes, publishes, and calls ``Officer`` on a timer. A second task is
-rejected while one is running; a TST ``seq`` starts its next leaf when the
-current one finishes.
+rejected while its action server is busy. A TST ``seq`` starts its next leaf
+when the current one finishes. A ``conc`` starts its children together.
 """
 
 import json
@@ -22,14 +22,17 @@ from waraps_officer.commands import (
     SignalTask,
     SignalUnit,
     StartTask,
+    after_leaf,
     direct_execution_info,
     dumps,
+    each_leaf,
     exec_response,
     executing_tasks,
     feedback,
     health_is_ready,
     health_word,
     officer_health,
+    open_run,
     parse_exec_command,
     parse_tst,
     start_response,
@@ -62,7 +65,8 @@ class Officer:
         self.available: dict[str, AvailableTask] = {}
         self.clients: dict[str, object] = {}
         self.executing: list[ExecutingTask] = []
-        self._mission: Mission | None = None
+        self._mission = None
+        self._run = None
         self._mission_started_s: float | None = None
         self._health_value = None
         self._health_stamp_s = None
@@ -175,33 +179,52 @@ class Officer:
             return [(channel, exec_response(self.agent_uuid, task.com_uuid, 'accepted'))]
         return [('exec_response', start_response(self.agent_uuid, task.com_uuid, task))]
 
-    def _start_mission(self, mission: Mission, now_s):
-        if self.executing or self._mission is not None:
-            name = self.executing[0].name if self.executing else 'a mission'
-            return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, f'task already executing on {name}'))]
-        for leaf in mission.leaves:
-            if self._find(leaf.name) is None:
+    def _start_mission(self, mission, now_s):
+        if self._mission is not None:
+            return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'task already executing on a mission'))]
+        for leaf in each_leaf(mission.root):
+            available = self._find(leaf.name)
+            if available is None:
                 return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'task not available'))]
+            busy = self._busy(available.ros_name)
+            if busy is not None:
+                return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, f'task already executing on {busy.name}'))]
         if not self._health_ready(now_s):
             return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'rejected: vehicle health status is not ok'))]
+        run, follow = open_run(mission.root)
+        seen = set()
+        for leaf in follow.start:
+            ros_name = self._find(leaf.name).ros_name
+            if ros_name in seen:
+                return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, f'rejected: {leaf.name} would run twice at once'))]
+            seen.add(ros_name)
         self._mission = mission
         self._mission_started_s = now_s
-        if not mission.leaves:
+        self._run = run
+        accepted = [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'accepted'))]
+        if follow.done:
             self._mission = None
-            return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'accepted'))]
-        first, rest = mission.leaves[0], mission.leaves[1:]
-        self._mission = Mission(mission.com_uuid, mission.tst_uuid, mission.timeout_s, rest)
-        started = self._start_one(_leaf_as_start(mission.com_uuid, first), now_s, mission.tst_uuid)
-        # _start_one would also refuse health; health was checked above.
-        return started
+            self._run = None
+            return accepted
+        for leaf in follow.start:
+            accepted.extend(self._begin(leaf, now_s))
+        return accepted
 
     def _refuse(self, name, now_s):
         if not self._health_ready(now_s):
             return 'rejected: vehicle health status is not ok'
-        if self._find(name) is None:
+        available = self._find(name)
+        if available is None:
             return 'task not available'
-        if self.executing:
-            return f'task already executing on {self.executing[0].name}'
+        busy = self._busy(available.ros_name)
+        if busy is not None:
+            return f'task already executing on {busy.name}'
+        return None
+
+    def _busy(self, ros_name):
+        for task in self.executing:
+            if task.ros_name == ros_name:
+                return task
         return None
 
     def _signal_task(self, signal: SignalTask):
@@ -217,6 +240,7 @@ class Officer:
             task.status = _STOP_STATUS[signal.signal]
             task.stop_reason = None
             self._mission = None
+            self._run = None
             _cancel(task)
         return [('exec_response', exec_response(self.agent_uuid, signal.com_uuid, 'ok'))]
 
@@ -255,6 +279,7 @@ class Officer:
             if text is not None:
                 out.append(self._feedback(task, f'cancelling: {text}'))
         self._mission = None
+        self._run = None
         return out
 
     # ---- one executing task -------------------------------------------------
@@ -268,7 +293,7 @@ class Officer:
             task.cancel_refused = True
             return [self._feedback(task, 'cancel refused: action still running')]
         if task.status in (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH):
-            return self._advance_stop(task, report)
+            return self._advance_stop(task, report, now_s)
         if task.status == WaraPSTaskStates.PAUSED:
             if state in SMARCActionClient.RUNNING_STATES:
                 if not task.cancel_refused:
@@ -295,11 +320,11 @@ class Officer:
                 text = report.feedback
             out = [self._feedback(task, text)]
             self._retire(task)
-            out.extend(self._next_leaf(now_s, task.status))
+            out.extend(self._joined(task, now_s))
             return out
         return []
 
-    def _advance_stop(self, task: ExecutingTask, report):
+    def _advance_stop(self, task: ExecutingTask, report, now_s):
         """A cancel is a request. The task leaves when the server answers it."""
         state = report.state
         if state in SMARCActionClient.RUNNING_STATES:
@@ -309,31 +334,62 @@ class Officer:
             text = f'cancelled: {task.stop_reason}' if task.stop_reason else 'cancelled'
             out = [self._feedback(task, text)]
             self._retire(task)
+            out.extend(self._joined(task, now_s))
             return out
         if state is SMARCActionClient.States.DONE:
             task.status = WaraPSTaskStates.FINISHED
             out = [self._feedback(task, report.feedback)]
             self._retire(task)
+            out.extend(self._joined(task, now_s))
             return out
         task.status = WaraPSTaskStates.ERROR
         text = report.feedback or f'Action client in failure state: {state}.'
         out = [self._feedback(task, text)]
         self._retire(task)
+        out.extend(self._joined(task, now_s))
         return out
 
-    def _next_leaf(self, now_s, status):
+    def _joined(self, task, now_s):
+        if self._run is None or task.uuid not in self._run.by_uuid:
+            return []
+        return self._follow(after_leaf(self._run, task.uuid, task.status), now_s)
+
+    def _follow(self, step, now_s):
+        out = self._stop_these(step.cancel)
+        for leaf in step.start:
+            out.extend(self._begin(leaf, now_s))
+        if step.done:
+            self._mission = None
+            self._run = None
+        return out
+
+    def _stop_these(self, uuids):
+        """Ask those tasks to cancel, and wait. Same path as any other cancel."""
+        if not uuids:
+            return []
+        wanted = set(uuids)
+        out = []
+        for task in list(self.executing):
+            if task.uuid not in wanted:
+                continue
+            task.cancel_refused = False
+            task.status = WaraPSTaskStates.ENOUGH
+            task.stop_reason = 'stop-on-first'
+            _cancel(task)
+            out.append(self._feedback(task, 'cancelling: stop-on-first'))
+        return out
+
+    def _begin(self, leaf, now_s):
         mission = self._mission
-        if mission is None:
-            return []
-        if status != WaraPSTaskStates.FINISHED or not mission.leaves:
-            self._mission = None
-            return []
-        leaf, rest = mission.leaves[0], mission.leaves[1:]
-        available = self._find(leaf.name)
-        if available is None:
-            self._mission = None
-            return [('tst_feedback', feedback(self.agent_uuid, leaf.task_uuid, 'task not available', WaraPSTaskStates.ERROR, mission.tst_uuid))]
-        self._mission = Mission(mission.com_uuid, mission.tst_uuid, mission.timeout_s, rest)
+        available = self._find(leaf.name) if mission is not None else None
+        busy = None if available is None else self._busy(available.ros_name)
+        if available is None or busy is not None:
+            reason = 'task not available' if busy is None else f'task already executing on {busy.name}'
+            tst = None if mission is None else mission.tst_uuid
+            out = [('tst_feedback', feedback(self.agent_uuid, leaf.task_uuid, reason, WaraPSTaskStates.ERROR, tst))]
+            if self._run is not None and leaf.task_uuid in self._run.by_uuid:
+                out.extend(self._follow(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s))
+            return out
         self.executing.append(ExecutingTask(
             uuid=leaf.task_uuid, name=leaf.name, ros_name=available.ros_name, params=leaf.params,
             description=leaf.description, status=WaraPSTaskStates.STARTED, client=self.clients[available.ros_name],
@@ -386,10 +442,6 @@ def _load(text):
     except (json.JSONDecodeError, TypeError):
         return {}
     return payload if isinstance(payload, dict) else {}
-
-
-def _leaf_as_start(com_uuid, leaf):
-    return StartTask(com_uuid, leaf.task_uuid, leaf.name, leaf.params, leaf.description, leaf.timeout_s)
 
 
 def _continued(task):

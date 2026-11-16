@@ -5,20 +5,23 @@ import json
 from smarc_msgs.msg import Topics
 
 from waraps_officer.commands import (
-    FLAT_SEQ_ONLY,
+    Conc,
     Mission,
     Ping,
     QueryTask,
     Rejection,
+    Seq,
     SignalTask,
     SignalUnit,
     StartTask,
+    after_leaf,
     dumps,
     exec_response,
     feedback,
     health_is_ready,
     health_word,
     officer_health,
+    open_run,
     parse_exec_command,
     parse_tst,
     start_response,
@@ -68,15 +71,20 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
         },
     })
     assert isinstance(mission, Mission)
+    assert isinstance(mission.root, Seq)
     assert mission.timeout_s == 1800.0
-    assert mission.leaves[0].name == 'move-to'
-    assert mission.leaves[0].params['rpm'] == 100          # the leaf wins over common-params
-    assert mission.leaves[1].params == {'rpm': 300}
-    assert mission.leaves[1].timeout_s is None
+    assert mission.root.children[0].name == 'move-to'
+    assert mission.root.children[0].params['rpm'] == 100   # the leaf wins over common-params
+    assert mission.root.children[1].params == {'rpm': 300}
+    assert mission.root.children[1].timeout_s is None
 
-    assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}}).reason == FLAT_SEQ_ONLY
+    empty = parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}})
+    assert isinstance(empty, Mission)
+    assert isinstance(empty.root, Conc)
+    assert empty.root.stop_on_first is False
     nested = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{'name': 'seq', 'task-uuid': 'a', 'children': []}]}}
-    assert parse_tst(nested).reason == FLAT_SEQ_ONLY
+    parsed = parse_tst(nested)
+    assert isinstance(parsed.root.children[0], Seq)
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c'}).reason == 'task not found'
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{}]}}).reason == 'Rejected: malformed task in mission'
     bad_timeout = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'params': {'timeout': 'soon'}, 'children': []}}
@@ -115,3 +123,31 @@ def test_payloads_and_health():
     assert officer_health([], {'running'}, 'cancelling') == Topics.VEHICLE_HEALTH_READY
     assert isinstance(parse_exec_command({'command': 'ping'}), Ping)
     assert isinstance(parse_tst({'command': 'start-tst'}), Rejection)
+
+
+def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
+    mission = parse_tst({
+        'command': 'start-tst', 'com-uuid': 'c',
+        'tst': {
+            'name': 'conc', 'params': {'stop-on-first': True}, 'children': [
+                {'name': 'seq', 'children': [
+                    {'name': 'move-to', 'task-uuid': 'a'},
+                    {'name': 'move-to', 'task-uuid': 'b'},
+                ]},
+                {'name': 'wait', 'task-uuid': 'c'},
+            ],
+        },
+    })
+    run, follow = open_run(mission.root)
+    assert [leaf.task_uuid for leaf in follow.start] == ['a', 'c']
+    nxt = after_leaf(run, 'a', 'finished')
+    assert [leaf.task_uuid for leaf in nxt.start] == ['b']
+    assert nxt.cancel == ()
+    assert nxt.done is False
+    stopped = after_leaf(run, 'b', 'finished')
+    assert stopped.start == ()
+    assert stopped.cancel == ('c',)
+    assert stopped.done is False
+    ended = after_leaf(run, 'c', 'enough')
+    assert ended.done is True
+    assert ended.cancel == ()

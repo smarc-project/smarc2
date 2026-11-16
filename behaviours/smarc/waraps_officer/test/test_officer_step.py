@@ -65,9 +65,18 @@ def officer_with(state=ActionClientState.READY):
     return officer, client
 
 
-def start(officer, now=1.0, task_uuid='t1'):
+def officer_with_clients(ros_names):
+    clients = {ros_name: FakeClient() for ros_name in ros_names}
+    officer = Officer(lambda ros_name: clients[ros_name], 'sam0', 1.0, 10.0, 10.0)
+    officer.on_health(Topics.VEHICLE_HEALTH_READY, 0.0)
+    for ros_name in ros_names:
+        officer.on_action_heartbeat(ros_name, 0.0)
+    return officer, clients
+
+
+def start(officer, now=1.0, task_uuid='t1', name=NAME):
     text = json.dumps({'command': 'start-task', 'com-uuid': 'c', 'task-uuid': task_uuid,
-                        'task': {'name': NAME, 'params': {'rpm': 300, 'timeout': 8}}})
+                        'task': {'name': name, 'params': {'rpm': 300, 'timeout': 8}}})
     return officer.on_exec(text, now)
 
 
@@ -303,6 +312,79 @@ def test_timeout_waits_for_the_cancel_then_is_an_error():
     out = officer.step(1.1)
     assert out[0][1].status == 'error'
     assert officer.executing == []
+
+
+def test_a_second_server_runs_beside_the_first_and_both_can_finish():
+    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
+    start(officer)
+    other = start(officer, now=1.1, task_uuid='t2', name='wait')
+    assert other[0][1].status == 'started'
+    assert [task.uuid for task in officer.executing] == ['t1', 't2']
+    officer.step(1.2)
+    assert len(clients[ROS].sent) == 1
+    assert len(clients['/sam0/wait'].sent) == 1
+    clients[ROS].state = ActionClientState.DONE
+    clients['/sam0/wait'].state = ActionClientState.DONE
+    out = officer.step(1.3)
+    assert officer.executing == []
+    assert [item[1].status for item in out if item[0] == 'exec_feedback'] == ['finished', 'finished']
+
+
+def test_a_third_start_on_a_busy_server_is_rejected():
+    officer, _clients = officer_with_clients([ROS, '/sam0/wait'])
+    start(officer)
+    refused = start(officer, now=1.1, task_uuid='t2')
+    assert refused[0][1].response == 'task already executing on move-to'
+    other = start(officer, now=1.2, task_uuid='t3', name='wait')
+    assert other[0][1].status == 'started'
+    assert [task.uuid for task in officer.executing] == ['t1', 't3']
+
+
+def test_stop_on_first_cancels_the_slower_task_and_waits():
+    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
+    text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
+        'name': 'conc', 'tst-uuid': 'm', 'params': {'stop-on-first': True}, 'children': [
+            {'name': NAME, 'task-uuid': 'a', 'params': {}},
+            {'name': 'wait', 'task-uuid': 'b', 'params': {}},
+        ]}})
+    out = officer.on_tst(text, 1.0)
+    assert out[0][1].response == 'accepted'
+    assert [task.uuid for task in officer.executing] == ['a', 'b']
+    officer.step(1.1)
+    clients[ROS].state = ActionClientState.DONE
+    out = officer.step(1.2)
+    assert [task.uuid for task in officer.executing] == ['b']
+    assert clients['/sam0/wait'].cancels == 1
+    assert clients['/sam0/wait'].state is ActionClientState.CANCELLING
+    assert officer.health() == Topics.VEHICLE_HEALTH_WAITING
+    assert any(item[1].feedback == 'cancelling: stop-on-first' for item in out)
+    clients['/sam0/wait'].state = ActionClientState.CANCELLED
+    out = officer.step(1.3)
+    assert officer.executing == []
+    assert out[0][1].feedback == 'cancelled: stop-on-first'
+    assert officer.health() == Topics.VEHICLE_HEALTH_READY
+
+
+def test_a_seq_inside_a_conc_runs_in_order():
+    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
+    text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
+        'name': 'conc', 'tst-uuid': 'm', 'children': [
+            {'name': 'seq', 'children': [
+                {'name': NAME, 'task-uuid': 'a', 'params': {'n': 1}},
+                {'name': NAME, 'task-uuid': 'b', 'params': {'n': 2}},
+            ]},
+            {'name': 'wait', 'task-uuid': 'c', 'params': {}},
+        ]}})
+    officer.on_tst(text, 1.0)
+    assert [task.uuid for task in officer.executing] == ['a', 'c']
+    officer.step(1.1)
+    clients[ROS].state = ActionClientState.DONE
+    officer.step(1.2)
+    assert [task.uuid for task in officer.executing] == ['c', 'b']
+    assert clients['/sam0/wait'].cancels == 0
+    officer.step(1.3)
+    assert len(clients[ROS].sent) == 2
+    assert [task.status for task in officer.executing if task.uuid == 'b'] == [WaraPSTaskStates.RUNNING]
 
 
 def test_seq_starts_the_next_leaf_when_the_current_one_finishes():
