@@ -16,12 +16,12 @@ from .math_utils import numpy_to_vector3, rotation, vector3_to_numpy
 
 
 class PadMotionHandler:
-    """Keep visual history and bridge a bounded, explicitly enabled vision gap."""
-
+    """Estimate pad velocity from recent poses and predict position during detection loss."""
+    
     VELOCITY_FILTER_TAU_S = 0.25
     MIN_VELOCITY_DT_S = 0.01
     MAX_VELOCITY_GAP_S = 1.5
-    PREDICTION_START_AFTER_S = 0.15
+    PREDICTION_START_AFTER_S = 0.4
     REACQUIRE_DWELL_S = 0.3
     HISTORY_WINDOW_S = 0.75
     HISTORY_MIN_SAMPLES = 4
@@ -46,6 +46,7 @@ class PadMotionHandler:
         self.last_observation_stamp = None
         self._last_observation = None
         self._last_input_stamp = None
+        self._last_input_received_at = None
         self._previous_position = self._previous_stamp = None
         self._filtered_velocity = np.zeros(3)
         self._position_history = deque()
@@ -75,6 +76,12 @@ class PadMotionHandler:
             return float('inf')
         return (now.nanoseconds - self.last_observation_stamp.nanoseconds) * 1e-9
 
+    def update_gap(self, now: Time):
+        """Time since receipt of a new valid pad pose, separate from source age."""
+        if self._last_input_received_at is None:
+            return float('inf')
+        return (now - self._last_input_received_at).nanoseconds * 1e-9
+
     def observe(self, odometry: Odometry, now: Time, *, fresh=True):
         """Update pad history and velocity. If fresh=False, then rejects the observation.
 
@@ -100,9 +107,7 @@ class PadMotionHandler:
             raise ValueError('Invalid pad position or pose covariance')
 
         if self.prediction_active:
-            if (self._last_input_stamp is not None
-                    and (stamp - self._last_input_stamp).nanoseconds * 1e-9
-                    > self.max_observation_age_s):
+            if self.update_gap(now) >= self.PREDICTION_START_AFTER_S:
                 self._reacquire_since = None
             if self._reacquire_since is None:
                 self._reacquire_since = stamp
@@ -116,6 +121,7 @@ class PadMotionHandler:
         self._position_history.append((t, position.copy()))
         self._trim_history(self._position_history, t)
         self._last_input_stamp = stamp
+        self._last_input_received_at = now
         if self.prediction_active:
             dwell = (stamp - self._reacquire_since).nanoseconds * 1e-9
             if dwell < self.REACQUIRE_DWELL_S:
@@ -156,9 +162,12 @@ class PadMotionHandler:
         if age < 0 or age > self.max_prediction_s:
             self.stop_prediction()
             return None
-        if self._last_observation is None or age < self.PREDICTION_START_AFTER_S:
+        if self._last_observation is None:
             return None
         if not self.prediction_active:
+            # Processing delay must not trigger dropout prediction.
+            if self.update_gap(now) < self.PREDICTION_START_AFTER_S:
+                return None
             if not self.velocity_ready:
                 return None
             self._frozen_velocity = self._capture_dropout_velocity()
