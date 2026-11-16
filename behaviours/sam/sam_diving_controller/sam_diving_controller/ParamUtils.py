@@ -51,6 +51,26 @@ class DivingModelParam():
 
         self._node.declare_parameter('max_dive_pitch', 0.349)
 
+        # Opt-in Unity static allocation experiment. Zero slew rate disables
+        # command slew limiting; these are not identified actuator dynamics.
+        self._allocation_defaults = {
+            'allocation_test_enabled': False,
+            'allocation_front_gain': 0.005,
+            'allocation_back_gain': 0.005,
+            'allocation_reverse_multiplier': 0.6,
+            'allocation_vbs_gain': 997.0 * 9.81 * 0.00025 / 100.0,
+            'allocation_lcg_gain': -2.7 * 9.81 * 0.00057,
+            'allocation_vbs_trim': 50.0,
+            'allocation_lcg_trim': 50.0,
+            'allocation_heave_offset': 0.0,
+            'allocation_pitch_offset': 0.0,
+            'allocation_rpm_rate': 0.0,
+            'allocation_vbs_rate': 0.0,
+            'allocation_lcg_rate': 0.0,
+        }
+        for name, value in self._allocation_defaults.items():
+            self._node.declare_parameter(name, value)
+
     def get_param(self):
 
         param = {}
@@ -96,5 +116,8 @@ class DivingModelParam():
         param['rpm_u_emergency'] = self._node.get_parameter('rpm_u_emergency').get_parameter_value().integer_value
 
         param['max_dive_pitch'] = self._node.get_parameter('max_dive_pitch').get_parameter_value().double_value
+
+        for name in self._allocation_defaults:
+            param[name] = self._node.get_parameter(name).value
 
         return param

@@ -60,6 +60,14 @@ class PIDControl:
 
         self._anti_windup += self._Kaw * (u_lim - u) * dt
 
+    def track_applied(self, applied, limited_request, dt):
+        """Track extra downstream limits in the PID's native actuator units.
+
+        Internal saturation already tracks raw -> limited_request; this adds
+        only limited_request -> applied, avoiding double-counting saturation.
+        """
+        self._compute_anti_windup(limited_request, applied, dt)
+
     def reset(self):
         self._error = 0.0
         self._integral = 0.0

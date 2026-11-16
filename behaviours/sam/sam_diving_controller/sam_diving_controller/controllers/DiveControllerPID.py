@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from tkinter import W
+import math
 from sam_diving_controller.controllers.PIDControl import PIDControl
 from sam_diving_controller.IDivePub import MissionStates, ActuatorStates
 from sam_diving_controller.controllers.DiveControllerInterface import DiveControllerInterface
@@ -73,6 +73,61 @@ class DiveControllerPID(DiveControllerInterface):
 
         self._loginfo("Dive Controller created")
 
+        self._allocation = None
+        self._allocation_result = None
+        if self.param.get('allocation_test_enabled', False):
+            self._configure_allocation_test()
+
+    def _configure_allocation_test(self):
+        """Use the existing PID tuning through an actuator-to-effort bridge."""
+        from sam_captain.SAMControlAlloc import (
+            ActuatorLimits, AllocationConfig, ControlAllocation,
+        )
+
+        def limits(prefix, rate_name):
+            rate = self.param[rate_name]
+            return ActuatorLimits(self.param[f'{prefix}_u_min'],
+                                  self.param[f'{prefix}_u_max'],
+                                  None if rate == 0.0 else rate)
+
+        p = self.param
+        if not math.isfinite(self._dt) or self._dt <= 0:
+            raise ValueError('Allocation test requires a positive controller period')
+        if p['rpm_u_neutral'] != 0 or p['tv_u_neutral'] != 0:
+            raise ValueError('Static allocation test requires zero neutral RPM/vectoring')
+        self._allocation = ControlAllocation(AllocationConfig(
+            front_gain=p['allocation_front_gain'],
+            back_gain=p['allocation_back_gain'],
+            reverse_multiplier=p['allocation_reverse_multiplier'],
+            vbs_gain=p['allocation_vbs_gain'],
+            lcg_gain=p['allocation_lcg_gain'],
+            vbs_trim=p['allocation_vbs_trim'],
+            lcg_trim=p['allocation_lcg_trim'],
+            front_limits=limits('rpm', 'allocation_rpm_rate'),
+            back_limits=limits('rpm', 'allocation_rpm_rate'),
+            vbs_limits=limits('vbs', 'allocation_vbs_rate'),
+            lcg_limits=limits('lcg', 'allocation_lcg_rate'),
+            heave_offset=p['allocation_heave_offset'],
+            pitch_offset=p['allocation_pitch_offset']))
+        self._reset_allocation_test()
+        self._logwarn('Static allocation test enabled: RPM and vectoring stay zero; '
+                      'horizontal waypoint following is disabled.')
+
+    def _reset_allocation_test(self):
+        if self._allocation is None:
+            return
+        from sam_captain.control_type import ActuatorCmd
+        self._allocation.reset(ActuatorCmd(
+            0, 0, 0.0, self.param['vbs_u_neutral'], self.param['lcg_u_neutral']))
+        self._allocation_result = None
+        for pid in (self._depth_vbs_pid, self._pitch_lcg_pid,
+                    self._surge_rpm_pid, self._pitch_tv_pid, self._yaw_pid):
+            pid.reset()
+
+    def get_allocation_result(self):
+        """Return the last requested/predicted effort and limiting diagnostics."""
+        return self._allocation_result
+
     def update(self):
         """
         This is where all the magic happens.
@@ -80,6 +135,17 @@ class DiveControllerPID(DiveControllerInterface):
         mission_state = self._dive_sub.get_mission_state()
 
         self._loginfo_once(f"DC: {mission_state}")
+
+        # The experiment must not resume control on paused/rejected/emergency
+        # states. Leave the legacy lifecycle unchanged when it is disabled.
+        if self._allocation is not None and mission_state != MissionStates.RUNNING:
+            self._reset_allocation_test()
+            if mission_state == MissionStates.EMERGENCY:
+                self._set_actuators_emergency()
+                self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, 'DC')
+            else:
+                self._set_actuators_neutral()
+            return
 
         if mission_state == MissionStates.RECEIVED:
             self._loginfo_once("Mission Received")
@@ -96,8 +162,11 @@ class DiveControllerPID(DiveControllerInterface):
             self._set_actuators_neutral()
             return
 
-        # Engage actuators in case they were off before.
-        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+        # Check inputs before engaging actuators or evaluating state getters.
+        if not self._dive_sub.has_waypoint() or self._dive_sub.get_states() is None:
+            self._set_actuators_neutral()
+            self._reset_allocation_test()
+            return
         
 
         # Get setpoints
@@ -117,13 +186,30 @@ class DiveControllerPID(DiveControllerInterface):
         current_heading = self._dive_sub.get_heading()
         current_distance = self._dive_sub.get_distance()
 
-        if not self._dive_sub.has_waypoint():
-            self._loginfo("No waypoint yet")
-            return
-
         if depth_setpoint is None:
             self._loginfo("No depth setpoint yet")
+            self._set_actuators_neutral()
+            self._reset_allocation_test()
             return
+
+        values = (depth_setpoint, pitch_setpoint, dive_pitch_setpoint,
+                  heading_setpoint, current_depth, current_pitch,
+                  current_heading, current_distance)
+        if (waypoint_odom is None or waypoint_global is None
+                or any(v is None or not math.isfinite(v) for v in values)
+                or current_distance < 0
+                or not math.isfinite(self._current_state.twist.twist.linear.x)):
+            self._set_actuators_neutral()
+            self._reset_allocation_test()
+            return
+
+        self._dive_pub.set_actuator_states(ActuatorStates.ENGAGED, "DP")
+
+        if self._allocation is not None:
+            # DiveSub supplies signed ENU z, not positive-down depth. Avoid abs:
+            # it folds above-surface and underwater positions onto each other.
+            current_depth = -current_depth
+            depth_setpoint = -depth_setpoint
 
         # Sketchy minus signs...
         #depth_setpoint *= -1
@@ -142,11 +228,11 @@ class DiveControllerPID(DiveControllerInterface):
 
         # Choose active vs. static diving based on depth error, needed when
         # doing look ahead diving with fixed look ahead distance
-        if current_depth is not None and depth_setpoint is not None:
+        if self._allocation is None:
             current_depth = np.abs(current_depth)
             depth_setpoint = np.abs(depth_setpoint)
             
-        if np.abs(depth_error) <= 0.5:
+        if self._allocation is None and np.abs(depth_error) <= 0.5:
             print("Active diving")
             self._dive_mode = "Active Diving"
             pitch_setpoint = -1.0 * dive_pitch_setpoint
@@ -177,6 +263,21 @@ class DiveControllerPID(DiveControllerInterface):
 
             yaw_error = heading_setpoint - current_heading
             surge_error = current_surge - surge_ref
+
+        if self._allocation is not None:
+            from sam_captain.control_type import ActuatorCmd
+            # The old PIDs remain in percentage units for this experiment.
+            # Forward + inverse checks the integration but does not validate
+            # the physical model: the coefficients cancel in a round trip.
+            requested = self._allocation.forward(ActuatorCmd(0, 0, 0.0, u_vbs, u_lcg))
+            self._allocation_result = self._allocation.allocate(requested, self._dt)
+            cmd = self._allocation_result.command
+            self._depth_vbs_pid.track_applied(cmd.vbs, u_vbs, self._dt)
+            self._pitch_lcg_pid.track_applied(cmd.lcg, u_lcg, self._dt)
+            u_vbs, u_lcg = cmd.vbs, cmd.lcg
+            u_rpm = u_rpm_raw = 0
+            u_tv_rudder = u_tv_stern = 0.0
+            self._dive_mode = 'Static Allocation Test'
 
         # Sketchy minus sign for the stern steering because we need a positive
         # steering angle when compensating for a negative pitch
@@ -254,6 +355,11 @@ class DiveControllerPID(DiveControllerInterface):
         s += f'depth error: {depth_error:.3f} depth setpoint: {depth_setpoint:.3f}\n'
         s += f'pitch error: {pitch_error:.3f} pitch setpoint: {pitch_setpoint:.3f}\n'
         s += f'yaw error: {yaw_error:.3f}\n'
+        if self._allocation_result is not None:
+            result = self._allocation_result
+            s += f'allocation requested FRD [N,N,Nm]: {result.requested}\n'
+            s += f'allocation predicted FRD [N,N,Nm]: {result.predicted}\n'
+            s += f'allocation residual: {result.residual}; limited: {result.limited}\n'
 
         self._loginfo(s)
 
