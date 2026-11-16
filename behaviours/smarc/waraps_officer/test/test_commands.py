@@ -18,6 +18,7 @@ from waraps_officer.commands import (
     feedback,
     health_is_ready,
     health_word,
+    officer_health,
     parse_exec_command,
     parse_tst,
     start_response,
@@ -82,6 +83,24 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert parse_tst(bad_timeout).reason == 'Rejected: Mission timeout value should be a float representing seconds'
 
 
+class _Fix:
+    def __init__(self, status, state, refused=False):
+        self.status = status
+        self.cancel_refused = refused
+        self.client = type('Client', (), {'state': state})()
+
+
+def test_officer_health_uses_the_vehicle_values():
+    running = {'running', 'cancelling'}
+    cancelling = 'cancelling'
+    assert officer_health([_Fix('running', 'running')], running, cancelling) == Topics.VEHICLE_HEALTH_READY
+    assert officer_health([_Fix('aborted', 'cancelling')], running, cancelling) == Topics.VEHICLE_HEALTH_WAITING
+    assert officer_health([_Fix('paused', 'ready')], running, cancelling) == Topics.VEHICLE_HEALTH_READY
+    refused = _Fix('running', 'running', refused=True)
+    waiting = _Fix('aborted', 'cancelling')
+    assert officer_health([waiting, refused], running, cancelling) == Topics.VEHICLE_HEALTH_ERROR
+
+
 def test_payloads_and_health():
     task = StartTask('c', 't', 'wait', {}, '', None)
     assert start_response('agent', 'c', task).status == 'started'
@@ -93,5 +112,6 @@ def test_payloads_and_health():
     assert not health_is_ready(Topics.VEHICLE_HEALTH_ERROR, 1.0, 2.0, 10.0)
     assert health_word(Topics.VEHICLE_HEALTH_WAITING, True) == 'WAITING'
     assert health_word(Topics.VEHICLE_HEALTH_READY, False) == 'silent'
+    assert officer_health([], {'running'}, 'cancelling') == Topics.VEHICLE_HEALTH_READY
     assert isinstance(parse_exec_command({'command': 'ping'}), Ping)
     assert isinstance(parse_tst({'command': 'start-tst'}), Rejection)

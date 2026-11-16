@@ -29,6 +29,7 @@ from waraps_officer.commands import (
     feedback,
     health_is_ready,
     health_word,
+    officer_health,
     parse_exec_command,
     parse_tst,
     start_response,
@@ -117,7 +118,15 @@ class Officer:
         for task in self.executing:
             text = getattr(task.client.poll(), 'feedback', '')
             out.append(self._feedback(task, text))
+        out.append(self._health_msg())
         return out
+
+    def health(self) -> int:
+        return officer_health(
+            self.executing, SMARCActionClient.RUNNING_STATES, SMARCActionClient.States.CANCELLING)
+
+    def _health_msg(self):
+        return ('officer_health', self.health())
 
     def step(self, now_s):
         out = []
@@ -128,6 +137,7 @@ class Officer:
             out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded'))
         for task in list(self.executing):
             out.extend(self._advance(task, now_s))
+        out.append(self._health_msg())
         return out
 
     # ---- commands -----------------------------------------------------------
@@ -454,6 +464,7 @@ class WarapsOfficer:
             'tst_feedback': node.create_publisher(String, Topics.WARA_PS_TST_FEEDBACK_TOPIC, 10),
             'executing': node.create_publisher(String, Topics.WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC, 10),
             'abort': node.create_publisher(Empty, Topics.ABORT_TOPIC, 10),
+            'officer_health': node.create_publisher(Int8, Topics.OFFICER_HEALTH_TOPIC, 10),
         }
         node.create_subscription(String, Topics.WARA_PS_EXEC_COMMAND_TOPIC, self._exec_cb, 10)
         node.create_subscription(String, Topics.WARA_PS_TST_COMMAND_TOPIC, self._tst_cb, 10)
@@ -472,6 +483,8 @@ class WarapsOfficer:
         for kind, payload in outgoing:
             if kind == 'abort':
                 self._publishers['abort'].publish(Empty())
+            elif kind == 'officer_health':
+                self._publishers['officer_health'].publish(Int8(data=payload))
             else:
                 self._publishers[kind].publish(String(data=dumps(payload)))
 

@@ -132,6 +132,30 @@ def test_abort_waits_until_the_server_accepts_and_blocks_a_new_start():
     assert officer.executing == []
 
 
+def test_officer_health_is_waiting_then_error_then_ready():
+    officer, client = officer_with(ActionClientState.RUNNING)
+    start(officer)
+    assert officer.health() == Topics.VEHICLE_HEALTH_READY
+
+    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    out = officer.step(1.1)
+    assert officer.health() == Topics.VEHICLE_HEALTH_WAITING
+    assert out[-1] == ('officer_health', Topics.VEHICLE_HEALTH_WAITING)
+    assert all(kind != 'abort' for kind, _ in out)
+
+    client.refuse_cancel = True
+    client.state = ActionClientState.RUNNING
+    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.2)
+    officer.step(1.3)
+    assert officer.health() == Topics.VEHICLE_HEALTH_ERROR
+
+    client.refuse_cancel = False
+    client.state = ActionClientState.CANCELLED
+    officer.step(1.4)
+    assert officer.executing == []
+    assert officer.health() == Topics.VEHICLE_HEALTH_READY
+
+
 def test_a_refused_cancel_stays_running_and_is_reported():
     officer, client = officer_with(ActionClientState.RUNNING)
     start(officer)
