@@ -9,6 +9,7 @@ from waraps_officer.waraps_agents_encoding import (
     absolute,
     agent_roots,
     child_frame,
+    body_velocity,
     chosen_heading,
     covariance_diagonal,
     enu_yaw,
@@ -60,6 +61,16 @@ def test_north_is_enu_yaw_pi_over_2_and_east_is_zero():
     assert enu_yaw(math.pi / 2, 'rad') == 0.0
     assert to_radians(180.0, 'degrees') == math.pi
     assert to_radians(math.pi, 'radians') == math.pi
+
+
+def test_speed_along_the_course_is_sideways_when_the_nose_points_north():
+    facing = enu_yaw(0.0, 'deg')
+    course = enu_yaw(90.0, 'deg')
+    forward, left = body_velocity(1.25, facing, course)
+    assert abs(forward) < 1e-9
+    assert abs(left - -1.25) < 1e-9
+    assert body_velocity(1.25, facing, None) == (1.25, 0.0)
+    assert body_velocity(1.25, facing, facing) == (1.25, 0.0)
 
 
 def test_heading_wins_unless_the_flag_says_course():

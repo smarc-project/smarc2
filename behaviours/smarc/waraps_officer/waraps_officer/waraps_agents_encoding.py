@@ -112,6 +112,18 @@ def chosen_heading(heading, course, prefer_heading):
     return course if course is not None else heading
 
 
+def body_velocity(speed, facing_yaw, course_yaw):
+    """WARA-PS speed is along the course. The twist is in the body frame.
+
+    ``facing_yaw`` is the body x axis, ENU yaw in radians. A missing course
+    means the speed is along that axis. Returns ``linear.x``, ``linear.y``.
+    """
+    if course_yaw is None:
+        return speed, 0.0
+    delta = course_yaw - facing_yaw
+    return speed * math.cos(delta), speed * math.sin(delta)
+
+
 def pose_altitude(altitude):
     """Non-finite UTM altitude is pose z 0. The GeoPoint keeps the raw value."""
     if math.isfinite(altitude):

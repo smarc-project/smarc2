@@ -16,6 +16,7 @@
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>smarc_msgs</exec_depend>
   <exec_depend>smarc_utilities</exec_depend>
+  <exec_depend>smarc_georef_cpp</exec_depend>
   <exec_depend>smarc_action_base</exec_depend>
   <exec_depend>str_json_mqtt_bridge</exec_depend>
   <exec_depend>python3-transforms3d</exec_depend>

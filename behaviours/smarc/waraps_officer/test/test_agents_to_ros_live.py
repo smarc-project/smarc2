@@ -14,7 +14,7 @@ from std_msgs.msg import String
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from transforms3d.euler import quat2euler
 
-from waraps_officer.waraps_agents_encoding import absolute
+from waraps_officer.waraps_agents_encoding import absolute, body_velocity, enu_yaw
 from waraps_officer.waraps_agents_to_ros import AgentsToRos
 
 ROBOT = 'evolo'
@@ -105,7 +105,9 @@ def test_a_mirrored_agent_becomes_latlon_and_odom(ros_graph):
         odom.pose.pose.orientation.z,
     ], axes='sxyz')
     assert abs(yaw - math.pi / 2) < 1e-6
-    assert abs(odom.twist.twist.linear.x - SPEED) < 1e-9
+    vx, vy = body_velocity(SPEED, enu_yaw(0.0, 'deg'), enu_yaw(90.0, 'deg'))
+    assert abs(odom.twist.twist.linear.x - vx) < 1e-6
+    assert abs(odom.twist.twist.linear.y - vy) < 1e-6
     assert odom.pose.covariance[0] == 1.0
     assert odom.pose.covariance[7] == 0.25
     assert odom.pose.covariance[14] == 0.0

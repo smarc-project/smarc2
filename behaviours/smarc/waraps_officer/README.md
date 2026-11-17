@@ -115,7 +115,7 @@ A goal sent to an action server is `json.dumps` of the task's `params`. `params.
 
 Replaces `mqtt_to_ros_agent`. The bridge mirrors another agent's sensors onto `<agent>/waraps/sensor/*`. This node reads those strings and publishes `<agent>/latlon` (`GeoPoint`) and `<agent>/odom` (`Odometry`) in the frame `<robot_name>/odom`.
 
-The node stays at `/`. The agent name is already the topic namespace, and our own robot is skipped. UTM comes from `smarc_utilities.georef_utils.convert_latlon_to_utm`. The transform from that UTM frame into `<robot_name>/odom` is cached. Heading is preferred over course. A heading of 0 (north) is ENU yaw pi/2. The covariance diagonal is the ellipse squared.
+The node stays at `/`. The agent name is already the topic namespace, and our own robot is skipped. Latlon becomes a pose in `<robot_name>/odom` through `smarc_georef_cpp`, and that transform is cached. Heading is preferred over course. A heading of 0 (north) is ENU yaw pi/2. Speed is along the course, written into the body frame: when the course and the heading differ it has a `linear.y`. The covariance diagonal is the ellipse squared.
 
 ```bash
 ros2 launch waraps_officer waraps_agents_to_ros.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=evolo mqtt_agent_name:=aldo_evolo domain:=surface ellipse_x_m:=1.0 ellipse_y_m:=0.5

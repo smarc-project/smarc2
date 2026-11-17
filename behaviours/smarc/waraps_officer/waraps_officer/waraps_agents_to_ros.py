@@ -13,17 +13,16 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
-from rclpy.time import Time
+from smarc_georef_cpp import GeorefUtils, TransformException
 from smarc_msgs.msg import Topics
-from smarc_utilities.georef_utils import convert_latlon_to_utm
 from smarc_utilities.topic_utils import STRING_MSG
 from std_msgs.msg import String
 from tf2_geometry_msgs import do_transform_pose_stamped
-from tf2_ros import Buffer, TransformException, TransformListener
 
 from waraps_officer.waraps_agents_encoding import (
     absolute,
     agent_roots,
+    body_velocity,
     child_frame,
     chosen_heading,
     covariance_diagonal,
@@ -92,8 +91,7 @@ class AgentsToRos:
         self._agents = {}
         self._cache = {}
         self._warned = {}
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, node)
+        self._georef = GeorefUtils(node=node)
         period = 1.0 / max(self._rate, _MIN_PUBLISH_HZ)
         self._timer = node.create_timer(period, self._tick)
 
@@ -199,8 +197,8 @@ class AgentsToRos:
         agent.latlon.publish(point)
 
         try:
-            utm = convert_latlon_to_utm(point)
-        except ValueError as error:
+            utm = self._georef.geopoint_to_point_stamped(point)
+        except TransformException as error:
             self._warn(root, f'Ignoring position that is not a UTM point: {error}')
             return
         frame = self._utm_override or utm.header.frame_id
@@ -233,19 +231,23 @@ class AgentsToRos:
         odom.pose.covariance[7] = self._cov[1]
         odom.pose.covariance[14] = self._cov[2]
         if agent.speed is not None:
-            odom.twist.twist.linear.x = agent.speed
+            facing = chosen_heading(agent.heading, agent.course, self._prefer_heading)
+            facing_yaw = enu_yaw(facing, self._angle_unit) if facing is not None else 0.0
+            course_yaw = enu_yaw(agent.course, self._angle_unit) if agent.course is not None else None
+            odom.twist.twist.linear.x, odom.twist.twist.linear.y = body_velocity(
+                agent.speed, facing_yaw, course_yaw)
         agent.odom.publish(odom)
+
+    def close(self):
+        self._georef.shutdown()
 
     def _transform(self, utm_frame):
         cached = self._cache.get(utm_frame)
         if cached is not None:
             return cached
         try:
-            found = self._tf_buffer.lookup_transform(
-                self.odom_frame,
-                utm_frame,
-                Time(),
-                timeout=Duration(seconds=self._timeout))
+            found = self._georef.lookup_transform(
+                self.odom_frame, utm_frame, self._timeout)
         except TransformException as error:
             self._warn(
                 utm_frame,
@@ -268,12 +270,13 @@ class AgentsToRos:
 def main(args=None):
     rclpy.init(args=args)
     node = Node('waraps_agents_to_ros')
-    AgentsToRos(node)
+    agents = AgentsToRos(node)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
+        agents.close()
         node.destroy_node()
         rclpy.shutdown()
 
