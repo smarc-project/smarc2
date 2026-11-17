@@ -83,3 +83,10 @@ jobs:
         run: |
           source /opt/ros/jazzy/setup.bash
           ros2 wtf
+
+      - name: Get base submodules
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            git submodule update --init external_packages/mqtt_bridge/
+            git submodule update --init external_packages/ROS-TCP-Endpoint/
