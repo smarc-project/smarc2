@@ -90,3 +90,9 @@ jobs:
         run: |
             git submodule update --init external_packages/mqtt_bridge/
             git submodule update --init external_packages/ROS-TCP-Endpoint/
+
+      - name: Ignore unrelated packages
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            bash .github/workflows/create_colcon_ignores.sh lolo alars brov evolo proxops tank
