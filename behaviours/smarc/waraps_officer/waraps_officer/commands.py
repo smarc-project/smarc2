@@ -1,13 +1,15 @@
 """WARA-PS exec and TST commands, and the records the officer publishes.
 
-No rclpy. A TST is a tree: ``seq`` and ``conc`` have children, a leaf has params.
-This module accepts a root ``seq`` of leaves and rejects anything else; the
-officer runs that seq one leaf at a time. The records are dataclasses.
-``dumps`` is the JSON document, called at the publisher.
+No rclpy. A TST is a tree of ``seq`` and ``conc``. ``open_run`` names the
+leaves that start together; ``after_leaf`` names the next leaves and, when
+``stop-on-first`` is set, the siblings to cancel. The officer sends and
+cancels. The records are dataclasses. ``dumps`` is the JSON document,
+called at the publisher.
 """
 
 import json
 from dataclasses import dataclass, field
+from enum import Enum
 
 from smarc_msgs.msg import Topics
 
@@ -18,7 +20,6 @@ from waraps_officer.tasks import (
 )
 
 DEFAULT_MISSION_TIMEOUT_S = 1800.0
-FLAT_SEQ_ONLY = 'rejected: only a flat seq is supported'
 
 
 @dataclass(frozen=True)
@@ -71,11 +72,22 @@ class Leaf:
 
 
 @dataclass(frozen=True)
+class Seq:
+    children: tuple
+
+
+@dataclass(frozen=True)
+class Conc:
+    children: tuple
+    stop_on_first: bool
+
+
+@dataclass(frozen=True)
 class Mission:
     com_uuid: str
     tst_uuid: str
     timeout_s: float
-    leaves: list = field(default_factory=list)
+    root: object
 
 
 def health_is_ready(value, stamp_s, now_s, timeout_s) -> bool:
@@ -182,8 +194,8 @@ def parse_tst(command: dict):
     tst = command.get('tst')
     if not isinstance(tst, dict):
         return Rejection(com_uuid, 'task not found')
-    if tst.get('name') != 'seq' or _nested(tst):
-        return Rejection(com_uuid, FLAT_SEQ_ONLY)
+    if tst.get('name') not in ('seq', 'conc'):
+        return Rejection(com_uuid, 'rejected: tst root must be seq or conc')
 
     timeout = tst.get('params', {}).get('timeout', DEFAULT_MISSION_TIMEOUT_S) if isinstance(tst.get('params'), dict) else DEFAULT_MISSION_TIMEOUT_S
     try:
@@ -191,30 +203,214 @@ def parse_tst(command: dict):
     except (TypeError, ValueError):
         return Rejection(com_uuid, 'Rejected: Mission timeout value should be a float representing seconds')
 
-    children = tst.get('children')
-    if not isinstance(children, list):
-        return Rejection(com_uuid, 'task not found')
-    common = tst['common-params'] if isinstance(tst.get('common-params'), dict) else {}
-    leaves = []
-    for child in children:
-        if not isinstance(child, dict) or 'name' not in child or 'task-uuid' not in child:
-            return Rejection(com_uuid, 'Rejected: malformed task in mission')
-        name = _resolve_name(child)
-        if isinstance(name, Rejection):
-            return Rejection(com_uuid, name.reason)
-        params = dict(common)
-        if isinstance(child.get('params'), dict):
-            params.update(child['params'])
-        leaves.append(Leaf(child['task-uuid'], name, params, child.get('description', ''), _timeout(params)))
-    return Mission(com_uuid, tst.get('tst-uuid', ''), timeout, leaves)
+    root = _node(tst, {})
+    if isinstance(root, Rejection):
+        return Rejection(com_uuid, root.reason)
+    return Mission(com_uuid, tst.get('tst-uuid', ''), timeout, root)
 
 
-def _nested(tst: dict) -> bool:
-    """A child that is itself a container, even an empty one."""
-    for child in tst.get('children') or []:
-        if isinstance(child, dict) and (child.get('name') in ('seq', 'conc') or 'children' in child):
-            return True
+def _node(task, inherited):
+    """A seq, a conc, or a leaf. common-params flow down; a leaf's own params win."""
+    if not isinstance(task, dict) or 'name' not in task:
+        return Rejection('', 'Rejected: malformed task in mission')
+    name = task['name']
+    if name in ('seq', 'conc') or 'children' in task:
+        if name not in ('seq', 'conc'):
+            return Rejection('', 'Rejected: malformed task in mission')
+        children = task.get('children')
+        if not isinstance(children, list):
+            return Rejection('', 'task not found')
+        merged = dict(inherited)
+        if isinstance(task.get('common-params'), dict):
+            merged.update(task['common-params'])
+        built = []
+        for child in children:
+            parsed = _node(child, merged)
+            if isinstance(parsed, Rejection):
+                return parsed
+            built.append(parsed)
+        if name == 'conc':
+            params = task.get('params') if isinstance(task.get('params'), dict) else {}
+            return Conc(tuple(built), params.get('stop-on-first') is True)
+        return Seq(tuple(built))
+    if 'task-uuid' not in task:
+        return Rejection('', 'Rejected: malformed task in mission')
+    resolved = _resolve_name(task)
+    if isinstance(resolved, Rejection):
+        return Rejection('', resolved.reason)
+    params = dict(inherited)
+    if isinstance(task.get('params'), dict):
+        params.update(task['params'])
+    return Leaf(task['task-uuid'], resolved, params, task.get('description', ''), _timeout(params))
+
+
+def each_leaf(node):
+    if isinstance(node, Leaf):
+        yield node
+        return
+    for child in node.children:
+        yield from each_leaf(child)
+
+
+class Phase(Enum):
+    IDLE = 'idle'
+    LIVE = 'live'
+    STOPPING = 'stopping'
+    DONE = 'done'
+    FAILED = 'failed'
+
+
+@dataclass
+class Slot:
+    """One node of a running TST."""
+
+    node: object
+    parent: object = None
+    children: list = field(default_factory=list)
+    index: int = 0
+    phase: Phase = Phase.IDLE
+    fail: str | None = None
+
+
+@dataclass(frozen=True)
+class Follow:
+    """Leaves to start, task uuids to cancel, and whether the TST is over."""
+
+    start: tuple = ()
+    cancel: tuple = ()
+    done: bool = False
+
+
+class Run:
+    def __init__(self, root: Slot):
+        self.root = root
+        self.by_uuid = {}
+        self._index(root)
+
+    def _index(self, slot):
+        if isinstance(slot.node, Leaf):
+            self.by_uuid[slot.node.task_uuid] = slot
+        for child in slot.children:
+            self._index(child)
+
+
+def open_run(root) -> tuple:
+    """The leaves that start now. An empty tree is already done."""
+    run = Run(_slot(root, None))
+    start = []
+    _arm(run.root, start)
+    done = not start
+    if done:
+        run.root.phase = Phase.DONE
+    return run, Follow(tuple(start), (), done)
+
+
+def after_leaf(run: Run, uuid: str, status: str) -> Follow:
+    """What to do once a leaf has left the executing list."""
+    slot = run.by_uuid[uuid]
+    slot.phase = Phase.DONE if status == WaraPSTaskStates.FINISHED else Phase.FAILED
+    start, cancel = [], []
+    done = _heard(slot.parent, slot, status, start, cancel)
+    return Follow(tuple(start), tuple(cancel), done)
+
+
+def _slot(node, parent):
+    slot = Slot(node, parent)
+    if not isinstance(node, Leaf):
+        slot.children = [_slot(child, slot) for child in node.children]
+    return slot
+
+
+def _arm(slot, start):
+    """Mark the leaves that can start without waiting for a sibling."""
+    if slot.phase in (Phase.DONE, Phase.FAILED, Phase.STOPPING):
+        return
+    if isinstance(slot.node, Leaf):
+        if slot.phase is Phase.IDLE:
+            slot.phase = Phase.LIVE
+            start.append(slot.node)
+        return
+    slot.phase = Phase.LIVE
+    if isinstance(slot.node, Seq):
+        if slot.index < len(slot.children):
+            _arm(slot.children[slot.index], start)
+        return
+    for child in slot.children:
+        _arm(child, start)
+
+
+def _heard(parent, child, status, start, cancel) -> bool:
+    if parent is None:
+        return True
+    if isinstance(parent.node, Seq):
+        return _seq(parent, status, start, cancel)
+    return _conc(parent, child, status, start, cancel)
+
+
+def _seq(parent, status, start, cancel) -> bool:
+    if parent.phase is Phase.STOPPING:
+        return _quiet(parent, start, cancel)
+    if status != WaraPSTaskStates.FINISHED:
+        parent.phase = Phase.FAILED
+        parent.fail = status
+        return _heard(parent.parent, parent, status, start, cancel)
+    parent.index += 1
+    if parent.index < len(parent.children):
+        _arm(parent.children[parent.index], start)
+        return False
+    parent.phase = Phase.DONE
+    return _heard(parent.parent, parent, WaraPSTaskStates.FINISHED, start, cancel)
+
+
+def _conc(parent, child, status, start, cancel) -> bool:
+    if parent.phase is Phase.STOPPING:
+        return _quiet(parent, start, cancel)
+    if parent.node.stop_on_first or status != WaraPSTaskStates.FINISHED:
+        parent.phase = Phase.STOPPING
+        if status != WaraPSTaskStates.FINISHED:
+            parent.fail = status
+        _hold(parent, cancel, keep=child)
+        return _quiet(parent, start, cancel)
+    if all(item.phase is Phase.DONE for item in parent.children):
+        parent.phase = Phase.DONE
+        return _heard(parent.parent, parent, WaraPSTaskStates.FINISHED, start, cancel)
     return False
+
+
+def _quiet(parent, start, cancel) -> bool:
+    """The container is already stopping. It ends when no leaf is still out."""
+    if _pending(parent):
+        return False
+    status = parent.fail or WaraPSTaskStates.FINISHED
+    parent.phase = Phase.DONE if parent.fail is None else Phase.FAILED
+    return _heard(parent.parent, parent, status, start, cancel)
+
+
+def _hold(slot, cancel, keep):
+    for child in slot.children:
+        if child is keep:
+            continue
+        _freeze(child, cancel)
+
+
+def _freeze(slot, cancel):
+    if isinstance(slot.node, Leaf):
+        if slot.phase is Phase.LIVE:
+            slot.phase = Phase.STOPPING
+            cancel.append(slot.node.task_uuid)
+        elif slot.phase is Phase.IDLE:
+            slot.phase = Phase.DONE
+        return
+    if slot.phase not in (Phase.DONE, Phase.FAILED):
+        slot.phase = Phase.STOPPING
+    for child in slot.children:
+        _freeze(child, cancel)
+
+
+def _pending(slot) -> bool:
+    if isinstance(slot.node, Leaf):
+        return slot.phase in (Phase.LIVE, Phase.STOPPING)
+    return any(_pending(child) for child in slot.children)
 
 
 @dataclass(frozen=True)
