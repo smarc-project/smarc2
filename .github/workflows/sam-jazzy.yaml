@@ -22,6 +22,7 @@ on:
     - '**/*.action'
     - '**/*.idl'
     - '.github/workflows/sam-jazzy.yaml'
+    - '.gitmodules'
   pull_request:
     branches: [jazzy, ci/sam-gh-workflow-testing]
     paths:
@@ -41,6 +42,7 @@ on:
     - '**/*.action'
     - '**/*.idl'
     - '.github/workflows/sam-jazzy.yaml'
+    - '.gitmodules'
 
 jobs:
   sam-jazzy:
