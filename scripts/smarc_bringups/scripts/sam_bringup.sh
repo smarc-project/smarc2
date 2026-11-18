@@ -29,7 +29,7 @@ else
     REALSIM=simulation
 fi
 
-# Variables for wasp_bt.launch and wasp_mqtt_agent.launch
+# waraps_vehicle and waraps_officer
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
 
@@ -59,7 +59,7 @@ col(
     1:var(DESCRIPTION_CMD)
 )"
 
-BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
+BT_CMD="ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME & ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
 CONTROLLER_CMD="ros2 launch sam_diving_controller pid_wp_following.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
 # EMERGENCY_ACTION_CMD="ros2 launch sam_emergency_action sam_emergency_action.launch robot_name:=$ROBOT_NAME"
 HEALTH_FAKER_CMD="ros2 topic pub /sam/smarc/vehicle_health std_msgs/msg/Int8 data:\ 0\ "

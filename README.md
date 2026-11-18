@@ -10,7 +10,7 @@ Each of the following directories also include more detailed readmes within.
 
 ## [Making a new Action for a robot? Check this example out](/examples/SuperSimpleActionServer.py)
 [This example](/examples/SuperSimpleActionServer.py) implements an action server that hides ALL of the ROS from your beautiful control implementations. 
-It works with [the bt](./behaviours/wasp_bt/launch/wasp_bt.launch) out of the box.
+It works with [the officer](./behaviours/smarc/waraps_officer/launch/waraps_officer.launch) out of the box.
 
 
 ## [The general architecture of smarc2](/documentation/Smarchitecture.md)
