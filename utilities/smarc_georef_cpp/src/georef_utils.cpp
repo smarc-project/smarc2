@@ -240,3 +240,44 @@ double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose)
   }
   return heading;
 }
+
+namespace
+{
+
+double stamp_seconds(const builtin_interfaces::msg::Time & stamp)
+{
+  return static_cast<double>(stamp.sec) + static_cast<double>(stamp.nanosec) * 1e-9;
+}
+
+double wrap_degrees(double degrees)
+{
+  double wrapped = std::fmod(degrees, 360.0);
+  if (wrapped < 0.0) {
+    wrapped += 360.0;
+  }
+  return wrapped;
+}
+
+}  // namespace
+
+double compute_course_from_two_poses(
+  const geometry_msgs::msg::PoseStamped & prev_pose,
+  const geometry_msgs::msg::PoseStamped & current_pose)
+{
+  const double dx = current_pose.pose.position.x - prev_pose.pose.position.x;
+  const double dy = current_pose.pose.position.y - prev_pose.pose.position.y;
+  return wrap_degrees(std::atan2(dy, dx) * (180.0 / std::acos(-1.0)));
+}
+
+double compute_speed_from_two_poses(
+  const geometry_msgs::msg::PoseStamped & prev_pose,
+  const geometry_msgs::msg::PoseStamped & current_pose)
+{
+  const double dx = current_pose.pose.position.x - prev_pose.pose.position.x;
+  const double dy = current_pose.pose.position.y - prev_pose.pose.position.y;
+  const double dt = stamp_seconds(current_pose.header.stamp) - stamp_seconds(prev_pose.header.stamp);
+  if (dt <= 0.0) {
+    return 0.0;
+  }
+  return std::sqrt(dx * dx + dy * dy) / dt;
+}

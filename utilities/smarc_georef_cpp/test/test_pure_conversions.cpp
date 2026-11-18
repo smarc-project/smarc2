@@ -5,6 +5,7 @@
 
 #include "geographic_msgs/msg/geo_point.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "smarc_georef_cpp/georef_utils.hpp"
 
 namespace
@@ -33,6 +34,16 @@ void expect_utm(
   EXPECT_NEAR(back.latitude, latitude, 1e-8);
   EXPECT_NEAR(back.longitude, longitude, 1e-8);
   EXPECT_DOUBLE_EQ(back.altitude, altitude);
+}
+
+geometry_msgs::msg::PoseStamped pose_at(double x, double y, int sec, unsigned int nanosec)
+{
+  geometry_msgs::msg::PoseStamped pose;
+  pose.pose.position.x = x;
+  pose.pose.position.y = y;
+  pose.header.stamp.sec = sec;
+  pose.header.stamp.nanosec = nanosec;
+  return pose;
 }
 
 geometry_msgs::msg::Pose pose_with_quat(double w, double x, double y, double z)
@@ -79,4 +90,15 @@ TEST(PureConversions, EnuYawToCompassHeading)
   EXPECT_NEAR(
     convert_enu_pose_to_heading(pose_with_quat(0.923879532511287, 0, 0, 0.382683432365090)),
     45.0, 1e-6);
+}
+
+TEST(PureConversions, CourseAndSpeedFromTwoPoses)
+{
+  const auto origin = pose_at(0.0, 0.0, 10, 0);
+  EXPECT_NEAR(compute_course_from_two_poses(origin, pose_at(10.0, 0.0, 11, 0)), 0.0, 1e-9);
+  EXPECT_NEAR(compute_course_from_two_poses(origin, pose_at(0.0, 10.0, 11, 0)), 90.0, 1e-9);
+  EXPECT_NEAR(compute_course_from_two_poses(origin, pose_at(-10.0, 0.0, 11, 0)), 180.0, 1e-9);
+  EXPECT_NEAR(compute_course_from_two_poses(origin, pose_at(0.0, -10.0, 11, 0)), 270.0, 1e-9);
+  EXPECT_NEAR(compute_speed_from_two_poses(origin, pose_at(3.0, 4.0, 11, 0)), 5.0, 1e-9);
+  EXPECT_DOUBLE_EQ(compute_speed_from_two_poses(origin, pose_at(3.0, 4.0, 10, 0)), 0.0);
 }

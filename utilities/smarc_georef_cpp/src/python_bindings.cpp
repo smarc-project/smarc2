@@ -194,4 +194,16 @@ PYBIND11_MODULE(_georef_cpp, m)
       auto msg = deserialize<geometry_msgs::msg::Pose>(pose);
       return ::convert_enu_pose_to_heading(msg);
     }, py::arg("enu_pose"));
+  m.def(
+    "compute_course_from_two_poses", [](const std::string & prev, const std::string & current) {
+      auto prev_pose = deserialize<geometry_msgs::msg::PoseStamped>(prev);
+      auto current_pose = deserialize<geometry_msgs::msg::PoseStamped>(current);
+      return ::compute_course_from_two_poses(prev_pose, current_pose);
+    }, py::arg("prev_pose"), py::arg("current_pose"));
+  m.def(
+    "compute_speed_from_two_poses", [](const std::string & prev, const std::string & current) {
+      auto prev_pose = deserialize<geometry_msgs::msg::PoseStamped>(prev);
+      auto current_pose = deserialize<geometry_msgs::msg::PoseStamped>(current);
+      return ::compute_speed_from_two_poses(prev_pose, current_pose);
+    }, py::arg("prev_pose"), py::arg("current_pose"));
 }

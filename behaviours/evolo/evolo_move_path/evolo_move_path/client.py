@@ -13,8 +13,8 @@ from geographic_msgs.msg import GeoPoint
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_pose_stamped, do_transform_point
 from geometry_msgs.msg import PointStamped
-from smarc_utilities import georef_utils
-import tf_transformations
+from smarc_georef_cpp import convert_latlon_to_utm
+from transforms3d.euler import euler2quat
 
 from smarc_msgs.msg import GeofencePolygonsStamped
 from sensor_msgs.msg import NavSatFix
@@ -35,13 +35,10 @@ class EvoloMovePathClient(Node):
         self.target_list = []
 
         # ── Publishers ────────────────────────────────────────────────────────
-        # Topic principal pour la visualisation des waypoints de mission
-        self.viz_pub         = self.create_publisher(MarkerArray, 'mission_visualisation',    10)
-        
-        # Autres topics de visualisation
-        self.path_pub        = self.create_publisher(Path,        'visual_path',      10)
-        self.dubins_path_pub = self.create_publisher(Path,        'dubins_path',      10)
-        self.attractor_pub   = self.create_publisher(Marker,      'attractor_marker', 10)
+        self.viz_pub         = self.create_publisher(MarkerArray, 'rviz/mission_visualisation', 10)
+        self.path_pub        = self.create_publisher(Path,        'rviz/visual_path',      10)
+        self.dubins_path_pub = self.create_publisher(Path,        'rviz/dubins_path',      10)
+        self.attractor_pub   = self.create_publisher(Marker,      'rviz/attractor_marker', 10)
         self.geofence_inside_pub  = self.create_publisher(MarkerArray, 'rviz/geofence_inside',  10)
         self.geofence_outside_pub = self.create_publisher(MarkerArray, 'rviz/geofence_outside', 10)
         self.allowed_soft_pub = self.create_publisher(MarkerArray, 'rviz/allowed_buffer_soft', 10)
@@ -59,13 +56,16 @@ class EvoloMovePathClient(Node):
             MarkerArray, 'rviz/island_buffer_hard', 10)
 
         # ── Subscribers ───────────────────────────────────────────────────────
+        self.declare_parameter('lidar_gps', 'Lidar/gps')
         self.gps_sub      = self.create_subscription(
-            NavSatFix, '/evolo/Lidar/gps', self._gps_callback, 10)
+            NavSatFix,
+            self.get_parameter('lidar_gps').get_parameter_value().string_value,
+            self._gps_callback, 10)
         self.polygons_sub = self.create_subscription(
-            GeofencePolygonsStamped, '/smarc/geofence_polygons',
+            GeofencePolygonsStamped, SmarcTopics.GEOFENCE_POLYGONS_TOPIC,
             self._geofence_polygons_callback, 10)
         self.odom_sub     = self.create_subscription(
-            Odometry, 'evolo/smarc/odom', self._odom_callback, 10)
+            Odometry, SmarcTopics.ODOM_TOPIC, self._odom_callback, 10)
 
         self._geofence_start_client = RosActionClient(
             self, BaseAction, 'smarc_start_geofence')
@@ -81,13 +81,13 @@ class EvoloMovePathClient(Node):
         geopoint.latitude  = point_list[0]
         geopoint.longitude = point_list[1]
         geopoint.altitude  = 0.0
-        utm_pt = georef_utils.convert_latlon_to_utm(geopoint)
+        utm_pt = convert_latlon_to_utm(geopoint)
         ps = PoseStamped()
         ps.header        = utm_pt.header
         ps.pose.position = utm_pt.point
         yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
-        q   = tf_transformations.quaternion_from_euler(0, 0, yaw)
-        ps.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+        q = euler2quat(0, 0, yaw, axes='sxyz')
+        ps.pose.orientation = Quaternion(x=q[1], y=q[2], z=q[3], w=q[0])
         try:
             t = self._tf_buffer.lookup_transform(
                 target_frame=self.frame_id,
@@ -383,7 +383,7 @@ class EvoloMovePathClient(Node):
         # avant la boucle d'attente
         probe = GeoPoint()
         probe.latitude, probe.longitude, probe.altitude = 58.8389422670, 17.6534623045, 0.0
-        zone_frame = georef_utils.convert_latlon_to_utm(probe).header.frame_id  # ex: "utm_33_V"
+        zone_frame = convert_latlon_to_utm(probe).header.frame_id  # ex: "utm_33_V"
 
         self.get_logger().info(f'Waiting for TF frame: {zone_frame}')
         while not self._tf_buffer.can_transform(

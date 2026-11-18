@@ -26,6 +26,8 @@ from std_msgs.msg import Float32
 from smarc_georef_cpp._georef_cpp import (
     GeorefUtilsCpp,
     TransformException,
+    compute_course_from_two_poses as _compute_course_from_two_poses,
+    compute_speed_from_two_poses as _compute_speed_from_two_poses,
     convert_enu_pose_to_heading as _convert_enu_pose_to_heading,
     convert_latlon_to_utm as _convert_latlon_to_utm,
     convert_utm_to_latlon as _convert_utm_to_latlon,
@@ -35,6 +37,8 @@ from smarc_georef_cpp._georef_cpp import (
 __all__ = [
     'GeorefUtils',
     'TransformException',
+    'compute_course_from_two_poses',
+    'compute_speed_from_two_poses',
     'convert_enu_pose_to_heading',
     'convert_latlon_to_utm',
     'convert_utm_to_latlon',
@@ -151,6 +155,26 @@ def convert_utm_to_latlon(utm: PointStamped | PoseStamped) -> GeoPoint:
         raise TypeError('Input must be a PointStamped or PoseStamped.')
     data = _convert_utm_to_latlon(serialize_message(point))
     return deserialize_message(data, GeoPoint)
+
+
+def compute_course_from_two_poses(prev_pose: PoseStamped, current_pose: PoseStamped) -> Float32:
+    """Course in degrees from the two positions. 0 is +x and 90 is +y."""
+    if prev_pose is None or current_pose is None:
+        return None
+    course = Float32()
+    course.data = _compute_course_from_two_poses(
+        serialize_message(prev_pose), serialize_message(current_pose))
+    return course
+
+
+def compute_speed_from_two_poses(prev_pose: PoseStamped, current_pose: PoseStamped) -> Float32:
+    """Speed in metres per second from the two positions and their header stamps."""
+    if prev_pose is None or current_pose is None:
+        return None
+    speed = Float32()
+    speed.data = _compute_speed_from_two_poses(
+        serialize_message(prev_pose), serialize_message(current_pose))
+    return speed
 
 
 def convert_enu_pose_to_heading(enu_pose: Pose) -> Float32:

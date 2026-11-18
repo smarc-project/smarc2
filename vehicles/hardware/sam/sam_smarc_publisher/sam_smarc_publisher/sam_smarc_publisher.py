@@ -17,8 +17,8 @@ from sensor_msgs.msg import BatteryState
 from tf2_geometry_msgs import do_transform_pose
 
 from smarc_georef_cpp import (
-    GeorefUtils, TransformException, convert_enu_pose_to_heading, convert_utm_to_latlon)
-from smarc_utilities.georef_utils import compute_course_from_two_poses, compute_speed_from_two_poses
+    GeorefUtils, TransformException, compute_course_from_two_poses,
+    compute_speed_from_two_poses, convert_enu_pose_to_heading, convert_utm_to_latlon)
 
 class SAMSMARCPublisher(Node):
     def __init__(self):

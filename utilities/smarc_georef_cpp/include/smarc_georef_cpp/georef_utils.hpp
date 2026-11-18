@@ -10,6 +10,7 @@
 #include "geographic_msgs/msg/geo_point.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -91,5 +92,16 @@ geographic_msgs::msg::GeoPoint convert_utm_to_latlon(
 // Compass heading in degrees, 0 north, 90 east, from an ENU pose. The yaw is the ENU
 // yaw of the orientation.
 double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose);
+
+// Course in degrees from the two positions. 0 is +x, 90 is +y.
+double compute_course_from_two_poses(
+  const geometry_msgs::msg::PoseStamped & prev_pose,
+  const geometry_msgs::msg::PoseStamped & current_pose);
+
+// Speed in metres per second from the two positions and their header stamps.
+// A stamp that does not move forward gives 0.
+double compute_speed_from_two_poses(
+  const geometry_msgs::msg::PoseStamped & prev_pose,
+  const geometry_msgs::msg::PoseStamped & current_pose);
 
 #endif  // SMARC_GEOREF_CPP__GEOREF_UTILS_HPP_
