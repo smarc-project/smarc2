@@ -57,7 +57,7 @@ class LoloJointStateConverter(Node):
         super().__init__('joint_state_converter')
         self.joint_state_pub = self.create_publisher(JointState, "command_states", 10)
 
-        self.create_subscription(FloatStamped, "core/elevon_strb_fb", self.elevon_stbd_callback, 10)
+        self.create_subscription(FloatStamped, "core/elevon_stbd_fb", self.elevon_stbd_callback, 10)
         self.create_subscription(FloatStamped, "core/elevon_port_fb", self.elevon_port_callback, 10)
         self.create_subscription(FloatStamped, "core/elevator_fb", self.elevator_callback, 10)
         self.create_subscription(FloatStamped, "core/rudder_fb", self.rudder_callback, 10)

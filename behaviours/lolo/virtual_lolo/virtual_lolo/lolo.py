@@ -327,13 +327,13 @@ class Lolo():
     def port_rpm(self):
         return self.thruster_rpms[0]
     @property
-    def strb_rpm(self):
+    def stbd_rpm(self):
         return self.thruster_rpms[1]
     @property
     def port_elevon_angle(self):
         return self.elevon_angles[0]
     @property
-    def strb_elevon_angle(self):
+    def stbd_elevon_angle(self):
         return self.elevon_angles[1]
     @property
     def position_error(self):

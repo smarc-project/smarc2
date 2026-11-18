@@ -31,10 +31,10 @@ class control_mixer(Node):
         self.yaw_actuation_msg = Float32()
         self.elevator_actuation_msg = Float32()
         self.elevon_port_actuation_msg = Float32()
-        self.elevon_strb_actuation_msg = Float32()
+        self.elevon_stbd_actuation_msg = Float32()
 
         self.thruster_port_actuation_msg = Float32()
-        self.thruster_strb_actuation_msg = Float32()
+        self.thruster_stbd_actuation_msg = Float32()
         #Hack to not send thruster setpoints all the time
         self.thruster_setpoint_couter = 0
         self.thruster_setpoint_interval = 40 # Only send every 40th value -> 1 setpoint every 2s
@@ -96,12 +96,12 @@ class control_mixer(Node):
                                                 f"{LoloTopics.RUDDER_CMD}", 1)
         self.elevon_port_pub = self.create_publisher(Float32,
                                                      f"{LoloTopics.ELEVON_PORT_CMD}", 1)
-        self.elevon_strb_pub = self.create_publisher(Float32,
-                                                     f"{LoloTopics.ELEVON_STRB_CMD}", 1)
+        self.elevon_stbd_pub = self.create_publisher(Float32,
+                                                     f"{LoloTopics.ELEVON_STBD_CMD}", 1)
         self.thruster_port_pub = self.create_publisher(Float32,
                                                        f"{LoloTopics.THRUSTER_PORT_CMD}", 1)
-        self.thruster_strb_pub = self.create_publisher(Float32,
-                                                       f"{LoloTopics.THRUSTER_STRB_CMD}", 1)
+        self.thruster_stbd_pub = self.create_publisher(Float32,
+                                                       f"{LoloTopics.THRUSTER_STBD_CMD}", 1)
         self.elevator_pub = self.create_publisher(Float32,
                                                   f"{LoloTopics.ELEVATOR_CMD}", 1)
 
@@ -110,12 +110,12 @@ class control_mixer(Node):
 
         self.vertical_thruster_back_port_pub = self.create_publisher(Float32,
                                                 f"{LoloTopics.VERTICAL_THRUSTER_BACK_PORT_CMD}",1)
-        self.vertical_thruster_back_strb_pub = self.create_publisher(Float32,
-                                                f"{LoloTopics.VERTICAL_THRUSTER_BACK_STRB_CMD}",1)
+        self.vertical_thruster_back_stbd_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_BACK_STBD_CMD}",1)
         self.vertical_thruster_front_port_pub = self.create_publisher(Float32,
                                                 f"{LoloTopics.VERTICAL_THRUSTER_FRONT_PORT_CMD}",1)
-        self.vertical_thruster_front_strb_pub = self.create_publisher(Float32,
-                                                f"{LoloTopics.VERTICAL_THRUSTER_FRONT_STRB_CMD}",1)
+        self.vertical_thruster_front_stbd_pub = self.create_publisher(Float32,
+                                                f"{LoloTopics.VERTICAL_THRUSTER_FRONT_STBD_CMD}",1)
 
 
     def time_now(self):
@@ -153,11 +153,11 @@ class control_mixer(Node):
 
         #elevons
         elevon_port = None
-        elevon_strb = None
+        elevon_stbd = None
 
         #Thrusters
         thruster_port = None
-        thruster_strb = None
+        thruster_stbd = None
 
         #Depth (Vertical thrusters)
         if now - self.lastdepth_setpoint_time < 1 and now-self.lastdepth_time < 1:
@@ -168,9 +168,9 @@ class control_mixer(Node):
                     vertical_thruster_msg.data = -2000.0
                     
                     #self.vertical_thruster_back_port_pub.publish(vertical_thruster_msg)
-                    #self.vertical_thruster_back_strb_pub.publish(vertical_thruster_msg)
+                    #self.vertical_thruster_back_stbd_pub.publish(vertical_thruster_msg)
                     self.vertical_thruster_front_port_pub.publish(vertical_thruster_msg)
-                    self.vertical_thruster_front_strb_pub.publish(vertical_thruster_msg)
+                    self.vertical_thruster_front_stbd_pub.publish(vertical_thruster_msg)
 
         #yaw
         self.yaw_error_bucket = max(0, self.yaw_error_bucket-self.yaw_error_bucket_leak)
@@ -188,7 +188,7 @@ class control_mixer(Node):
 
             self.yaw_actuation_filtered = (1.0-self.yaw_actuation_filter_setting)*self.yaw_actuation_filtered + self.yaw_actuation_filter_setting*yaw_actuation
             thruster_port = -self.yaw_gain*self.yaw_actuation_filtered
-            thruster_strb = self.yaw_gain*self.yaw_actuation_filtered
+            thruster_stbd = self.yaw_gain*self.yaw_actuation_filtered
             self.yaw_error_bucket += abs(self.yaw_actuation_filtered)
             self.logger.info("Yaw error bucket: "  + str(self.yaw_error_bucket), throttle_duration_sec=1)
 
@@ -199,20 +199,20 @@ class control_mixer(Node):
             self.elevator_actuation_msg.data = elevator_actuation + math.radians(-10)
             self.elevator_pub.publish(self.elevator_actuation_msg)
             elevon_port = self.pitch_gain*elevator_actuation
-            elevon_strb = self.pitch_gain*elevator_actuation
+            elevon_stbd = self.pitch_gain*elevator_actuation
 
         #roll
         if self.lastroll_time is not None and now-self.lastroll_time < 1:
             if(elevon_port is not None): elevon_port -= self.roll_actuation
             else: elevon_port=-self.roll_actuation
-            if(elevon_strb is not None): elevon_strb += self.roll_actuation
-            else: elevon_strb=self.roll_actuation
+            if(elevon_stbd is not None): elevon_stbd += self.roll_actuation
+            else: elevon_stbd=self.roll_actuation
         if(elevon_port is not None):
             self.elevon_port_actuation_msg.data = elevon_port
             self.elevon_port_pub.publish(self.elevon_port_actuation_msg) #TODO add limits
-        if(elevon_strb is not None):
-            self.elevon_strb_actuation_msg.data = elevon_strb
-            self.elevon_strb_pub.publish(self.elevon_strb_actuation_msg)
+        if(elevon_stbd is not None):
+            self.elevon_stbd_actuation_msg.data = elevon_stbd
+            self.elevon_stbd_pub.publish(self.elevon_stbd_actuation_msg)
 
         '''
         #Thrusters 1: scale the values added by the yaw controller based on vehicle speed
@@ -225,8 +225,8 @@ class control_mixer(Node):
             #rospy.loginfo_throttle(1,"fadeout scaling applied: " + str(fadeout_scaling))
             if thruster_port is not None:
                 thruster_port *= fadeout_scaling
-            if thruster_strb is not None:
-                thruster_strb *= fadeout_scaling
+            if thruster_stbd is not None:
+                thruster_stbd *= fadeout_scaling
         '''
 
         if(self.depth < 0.5): #At the surface
@@ -234,10 +234,10 @@ class control_mixer(Node):
         else: #diving
             if(self.yaw_error_bucket > self.yaw_error_bucket_limit): #Do thrust vectoring under water
                 if thruster_port != None: thruster_port = max(-self.dive_diff_thrust_limit, min(self.dive_diff_thrust_limit, thruster_port))
-                if thruster_strb != None: thruster_strb = max(-self.dive_diff_thrust_limit, min(self.dive_diff_thrust_limit, thruster_strb))
+                if thruster_stbd != None: thruster_stbd = max(-self.dive_diff_thrust_limit, min(self.dive_diff_thrust_limit, thruster_stbd))
             else: #No need for thrust vectoring
                 thruster_port = None
-                thruster_strb = None
+                thruster_stbd = None
 
 
         #Thrusters 2: Add the desired RPM from the rpm setpoint
@@ -250,8 +250,8 @@ class control_mixer(Node):
             self.logger.info("rpm reduction: " + str(rpm_reduction), throttle_duration_sec=1)
             if thruster_port is not None: thruster_port += self.rpm_actuation*rpm_reduction
             else: thruster_port = self.rpm_actuation*rpm_reduction
-            if thruster_strb is not None: thruster_strb += self.rpm_actuation*rpm_reduction
-            else: thruster_strb = self.rpm_actuation*rpm_reduction
+            if thruster_stbd is not None: thruster_stbd += self.rpm_actuation*rpm_reduction
+            else: thruster_stbd = self.rpm_actuation*rpm_reduction
 
         #Publish thruster setpoints
         self.thruster_setpoint_couter += 1
@@ -265,13 +265,13 @@ class control_mixer(Node):
                 self.thruster_port_actuation_msg.data = float(rpm)
             self.thruster_port_pub.publish(self.thruster_port_actuation_msg)
 
-        if thruster_strb is not None:
-            rpm = max(-self.thruster_limit, min(self.thruster_limit, thruster_strb))
+        if thruster_stbd is not None:
+            rpm = max(-self.thruster_limit, min(self.thruster_limit, thruster_stbd))
             if(abs(rpm) < self.rpm_deadband):
                 rpm = self.rpm_deadband if rpm > 0 else -self.rpm_deadband
             if self.thruster_setpoint_couter == 0:
-                self.thruster_strb_actuation_msg.data = float(rpm)
-            self.thruster_strb_pub.publish(self.thruster_strb_actuation_msg)
+                self.thruster_stbd_actuation_msg.data = float(rpm)
+            self.thruster_stbd_pub.publish(self.thruster_stbd_actuation_msg)
 
 
 def main(args=None, namespace=None):

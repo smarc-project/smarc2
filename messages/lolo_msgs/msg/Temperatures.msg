@@ -11,11 +11,11 @@ float32 rudder_motor
 float32 rudder_pcb
 float32 elevon_port_motor
 float32 elevon_port_pcb
-float32 elevon_strb_motor
-float32 elevon_strb_pcb
+float32 elevon_stbd_motor
+float32 elevon_stbd_pcb
 float32 thruster_isb
 float32 port_esc
-float32 strb_esc
+float32 stbd_esc
 float32 vertical_thruster_isb
 float32 vertical_thruster_1_esc
 float32 vertical_thruster_2_esc
