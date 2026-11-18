@@ -3,7 +3,7 @@ ROBOT_NAME=acoustic_relay
 SESSION=${ROBOT_NAME}_bringup
 USE_SIM_TIME=False
 
-# New variables for wasp_bt.launch and wasp_mqtt_agent.launch
+# waraps_vehicle. The relay does not run the officer.
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
 
@@ -26,7 +26,7 @@ tmux select-window -t $SESSION:1
 tmux split-window -h -t $SESSION:1.0
 tmux select-pane -t $SESSION:1.0
 # spin the waraps agent
-tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=relay_sam agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=relay_sam agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 # spin the waraps bridge
 tmux select-pane -t $SESSION:1.1
 tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=relay_sam domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
@@ -37,7 +37,7 @@ tmux select-window -t $SESSION:2
 tmux split-window -h -t $SESSION:2.0
 tmux select-pane -t $SESSION:2.0
 # spin the waraps agent
-tmux send-keys "ros2 launch wasp_bt wasp_mqtt_agent.launch robot_name:=relay_lolo agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=relay_lolo agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 tmux select-pane -t $SESSION:2.1
 # spin the waraps bridge
 tmux send-keys "ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=20.240.40.232 broker_port:=1884 robot_name:=relay_lolo domain:=$AGENT_TYPE realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME" C-m
