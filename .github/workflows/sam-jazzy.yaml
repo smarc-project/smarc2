@@ -91,8 +91,32 @@ jobs:
             git submodule update --init external_packages/mqtt_bridge/
             git submodule update --init external_packages/ROS-TCP-Endpoint/
 
+      - name: Get SAM submodules
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            git submodule update --init navigation/dead_reckoning/hydrobatic_localization
+
       - name: Ignore unrelated packages
         shell: bash
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
-            bash .github/workflows/create_colcon_ignores.sh lolo alars brov evolo proxops tank
+            bash .github/workflows/create_colcon_ignores.sh lolo alars brov evolo proxops tank \
+            sbg_ros2_driver smarc_acomms smarc_acomms_client
+      
+      - name: Rosdep
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          sudo apt install -y python3-rosdep
+          sudo rosdep init
+          rosdep update
+          source /opt/ros/jazzy/setup.bash
+          rosdep install --from-paths src --ignore-src -r -y
+
+      - name: Build workspace
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --continue-on-error --symlink-install
