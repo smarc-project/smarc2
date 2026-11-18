@@ -8,6 +8,8 @@
   <license>MIT</license>
 
 
+  <exec_depend>smarc_georef_cpp</exec_depend>
+
   <test_depend>python3-pytest</test_depend>
 
   <export>

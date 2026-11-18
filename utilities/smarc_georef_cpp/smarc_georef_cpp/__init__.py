@@ -19,12 +19,27 @@ on its own background thread, so nothing needs to be added to an rclpy executor.
 """
 
 from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import PointStamped, TransformStamped
+from geometry_msgs.msg import PointStamped, Pose, PoseStamped, TransformStamped
 from rclpy.serialization import deserialize_message, serialize_message
+from std_msgs.msg import Float32
 
-from smarc_georef_cpp._georef_cpp import GeorefUtilsCpp, TransformException, shutdown_context
+from smarc_georef_cpp._georef_cpp import (
+    GeorefUtilsCpp,
+    TransformException,
+    convert_enu_pose_to_heading as _convert_enu_pose_to_heading,
+    convert_latlon_to_utm as _convert_latlon_to_utm,
+    convert_utm_to_latlon as _convert_utm_to_latlon,
+    shutdown_context,
+)
 
-__all__ = ['GeorefUtils', 'TransformException', 'shutdown_context']
+__all__ = [
+    'GeorefUtils',
+    'TransformException',
+    'convert_enu_pose_to_heading',
+    'convert_latlon_to_utm',
+    'convert_utm_to_latlon',
+    'shutdown_context',
+]
 
 # Parameters copied from the rclpy node (the node argument) to the internal C++ node
 _COPIED_PARAMETERS = ['use_sim_time']
@@ -110,6 +125,39 @@ class GeorefUtils:
 
     def __exit__(self, *exc):
         self.shutdown()
+
+
+def convert_latlon_to_utm(geopoint: GeoPoint) -> PointStamped:
+    """GeoPoint to UTM. The zone and band come from the point, not the tf tree.
+
+    frame_id is ``utm_{zone}_{band}``. Southern northing is negative.
+    """
+    data = _convert_latlon_to_utm(serialize_message(geopoint))
+    return deserialize_message(data, PointStamped)
+
+
+def convert_utm_to_latlon(utm: PointStamped | PoseStamped) -> GeoPoint:
+    """UTM PointStamped or PoseStamped to a GeoPoint.
+
+    ``header.frame_id`` must be ``utm_<zone>_<band>``. z is copied to altitude.
+    """
+    if isinstance(utm, PoseStamped):
+        point = PointStamped()
+        point.header = utm.header
+        point.point = utm.pose.position
+    elif isinstance(utm, PointStamped):
+        point = utm
+    else:
+        raise TypeError('Input must be a PointStamped or PoseStamped.')
+    data = _convert_utm_to_latlon(serialize_message(point))
+    return deserialize_message(data, GeoPoint)
+
+
+def convert_enu_pose_to_heading(enu_pose: Pose) -> Float32:
+    """Compass heading in degrees, 0 north and 90 east, from an ENU pose."""
+    heading = Float32()
+    heading.data = _convert_enu_pose_to_heading(serialize_message(enu_pose))
+    return heading
 
 
 def _to_ros_arg(value):

@@ -19,7 +19,6 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from smarc_utilities.georef_utils import convert_latlon_to_utm
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
 from smarc_msgs.msg import Topics as SmarcTopics

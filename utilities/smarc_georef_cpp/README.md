@@ -71,6 +71,17 @@ utm frame or more than one, or a transform is not available. Right after startup
 until the frames have been received over tf. The conversions don't wait; call `can_transform` with
 a timeout first to wait for a frame.
 
+These three do not use the tf tree. The zone and band come from the point, and a southern
+northing is negative, matching `geodesy.utm`. A caller that already has a utm frame in the
+tree should use `GeorefUtils` instead.
+
+- `convert_latlon_to_utm(geopoint)`: lat lon to a `PointStamped` whose `frame_id` is
+  `utm_{zone}_{band}`. Altitude is copied to z.
+- `convert_utm_to_latlon(utm)`: a `PointStamped` or `PoseStamped` in that frame back to a
+  `GeoPoint`. z is copied to altitude.
+- `convert_enu_pose_to_heading(enu_pose)`: compass heading in degrees, 0 north and 90 east,
+  from the ENU yaw of the pose. Returns a `Float32`.
+
 ## tf in Python without a tf listener
 Get transforms with `lookup_transform` and apply them in Python with `tf2_geometry_msgs`
 (`do_transform_point`, `do_transform_pose_stamped`, ...). This needs

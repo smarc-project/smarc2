@@ -8,7 +8,7 @@ from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.parameter import Parameter
 from smarc_msgs.msg import Topics
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import convert_latlon_to_utm
 from smarc_utilities.testing import wait_for
 from std_msgs.msg import String
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster

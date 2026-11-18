@@ -1,12 +1,60 @@
 #include "smarc_georef_cpp/georef_utils.hpp"
 
+#include <cmath>
 #include <regex>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "GeographicLib/UTMUPS.hpp"
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Quaternion.h"
 #include "tf2/exceptions.h"
 #include "tf2/time.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
+namespace
+{
+
+const std::regex kUtmFrame("^utm_([0-9]{1,2})_([C-HJ-NP-X])$");
+
+// Same bands as geodesy.utm.gridZone. X is the wide band from 72 N to 84 N.
+char latitude_band(double latitude)
+{
+  if (latitude < -80.0 || latitude > 84.0) {
+    throw std::invalid_argument("latitude out of UTM range");
+  }
+  if (latitude >= 72.0) {
+    return 'X';
+  }
+  static const char bands[] = "CDEFGHJKLMNPQRSTUVWX";
+  const int index = static_cast<int>(std::floor((latitude + 80.0) / 8.0));
+  return bands[index];
+}
+
+int longitude_zone(double longitude)
+{
+  if (longitude < -180.0 || longitude > 180.0) {
+    throw std::invalid_argument("invalid longitude");
+  }
+  return static_cast<int>(std::floor((longitude + 180.0) / 6.0)) + 1;
+}
+
+bool match_utm_frame(const std::string & frame, int & zone, char & band)
+{
+  std::smatch match;
+  if (!std::regex_match(frame, match, kUtmFrame)) {
+    return false;
+  }
+  zone = std::stoi(match[1].str());
+  if (zone < 1 || zone > 60) {
+    return false;
+  }
+  band = match[2].str()[0];
+  return true;
+}
+
+}  // namespace
 
 GeorefUtils::GeorefUtils(rclcpp::Node * node)
 {
@@ -76,8 +124,6 @@ geographic_msgs::msg::GeoPoint GeorefUtils::point_stamped_to_geopoint(
 
 GeorefUtils::UtmFrame GeorefUtils::find_utm_frame()
 {
-  static const std::regex utm_regex("^utm_([0-9]{1,2})_([C-HJ-NP-X])$");
-
   std::lock_guard<std::mutex> lock(mutex_);
   if (utm_frame_) {
     return *utm_frame_;
@@ -85,15 +131,12 @@ GeorefUtils::UtmFrame GeorefUtils::find_utm_frame()
 
   std::vector<UtmFrame> found;
   for (const auto & frame : tf_buffer_->getAllFrameNames()) {
-    std::smatch match;
-    if (!std::regex_match(frame, match, utm_regex)) {
+    int zone;
+    char band;
+    if (!match_utm_frame(frame, zone, band)) {
       continue;
     }
-    const int zone = std::stoi(match[1].str());
-    if (zone < 1 || zone > 60) {
-      continue;
-    }
-    found.push_back(UtmFrame{frame, zone, match[2].str()[0]});
+    found.push_back(UtmFrame{frame, zone, band});
   }
 
   if (found.empty()) {
@@ -128,4 +171,72 @@ bool GeorefUtils::can_transform(
   return tf_buffer_->canTransform(
     target_frame, source_frame, tf2::TimePointZero,
     tf2::durationFromSec(timeout_sec));
+}
+
+geometry_msgs::msg::PointStamped convert_latlon_to_utm(
+  const geographic_msgs::msg::GeoPoint & geopoint)
+{
+  const int zone = longitude_zone(geopoint.longitude);
+  const char band = latitude_band(geopoint.latitude);
+
+  int forward_zone;
+  bool northp;
+  double easting;
+  double northing;
+  double gamma;
+  double k;
+  GeographicLib::UTMUPS::Forward(
+    geopoint.latitude, geopoint.longitude, forward_zone, northp,
+    easting, northing, gamma, k, zone);
+  // geodesy.utm reports southern northing as negative. GeographicLib adds the
+  // 10e6 false northing instead.
+  if (!northp) {
+    northing -= GeographicLib::UTMUPS::UTMShift();
+  }
+
+  geometry_msgs::msg::PointStamped point;
+  point.header.frame_id = "utm_" + std::to_string(zone) + "_" + band;
+  point.point.x = easting;
+  point.point.y = northing;
+  point.point.z = geopoint.altitude;
+  return point;
+}
+
+geographic_msgs::msg::GeoPoint convert_utm_to_latlon(
+  const geometry_msgs::msg::PointStamped & utm)
+{
+  int zone;
+  char band;
+  if (!match_utm_frame(utm.header.frame_id, zone, band)) {
+    throw std::invalid_argument(
+            "UTM frame_id must be utm_<zone>_<band>, got '" + utm.header.frame_id + "'");
+  }
+
+  const bool northp = band >= 'N';
+  double northing = utm.point.y;
+  if (!northp) {
+    northing += GeographicLib::UTMUPS::UTMShift();
+  }
+
+  geographic_msgs::msg::GeoPoint geopoint;
+  GeographicLib::UTMUPS::Reverse(
+    zone, northp, utm.point.x, northing, geopoint.latitude, geopoint.longitude);
+  geopoint.altitude = utm.point.z;
+  return geopoint;
+}
+
+double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose)
+{
+  const auto & q = enu_pose.orientation;
+  tf2::Quaternion quat(q.x, q.y, q.z, q.w);
+  double roll;
+  double pitch;
+  double yaw;
+  tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+  const double yaw_deg = yaw * (180.0 / std::acos(-1.0));
+  double heading = std::fmod(90.0 - yaw_deg, 360.0);
+  if (heading < 0.0) {
+    heading += 360.0;
+  }
+  return heading;
 }

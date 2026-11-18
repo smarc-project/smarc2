@@ -9,6 +9,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geographic_msgs/msg/geo_point.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -75,5 +76,20 @@ private:
   std::optional<UtmFrame> utm_frame_;  // Cached by find_utm_frame()
   std::mutex mutex_;  // Only one thread is allowed to access variables at a time
 };
+
+// Lat lon to UTM using the point's own zone and band, not the tf tree. frame_id is
+// "utm_{zone}_{band}". Southern northing is negative, matching geodesy.utm. Throws
+// std::invalid_argument if latitude or longitude is outside the UTM range.
+geometry_msgs::msg::PointStamped convert_latlon_to_utm(
+  const geographic_msgs::msg::GeoPoint & geopoint);
+
+// The reverse of convert_latlon_to_utm. frame_id must be "utm_{zone}_{band}". z is copied
+// to altitude. Throws std::invalid_argument if the frame id is not that form.
+geographic_msgs::msg::GeoPoint convert_utm_to_latlon(
+  const geometry_msgs::msg::PointStamped & utm);
+
+// Compass heading in degrees, 0 north, 90 east, from an ENU pose. The yaw is the ENU
+// yaw of the orientation.
+double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose);
 
 #endif  // SMARC_GEOREF_CPP__GEOREF_UTILS_HPP_

@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import  PointStamped, PoseStamped
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import convert_latlon_to_utm
 from alars_auv_search_planner.search_planner_controller import SearchPlannerController
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped

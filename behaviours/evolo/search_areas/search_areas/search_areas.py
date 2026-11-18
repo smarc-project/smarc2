@@ -8,7 +8,6 @@ from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 
 from smarc_msgs.action import BaseAction
-from smarc_utilities import georef_utils
 from geographic_msgs.msg import GeoPoint
 from smarc_msgs.msg import Topics as smarcTopics
 from smarc_action_base.gentler_action_server import GentlerActionServer

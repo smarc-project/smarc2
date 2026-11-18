@@ -20,7 +20,7 @@ from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import convert_latlon_to_utm
 from smarc_utilities.node_utils import typed_param_declare
 
 from dji_msgs.msg import Topics as DJITopics

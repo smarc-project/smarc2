@@ -31,7 +31,7 @@ from dji_msgs.msg import Topics as DjiTopics
 from dji_msgs.msg import PsdkTopics as PSDKTopics
 
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
+from smarc_georef_cpp import convert_latlon_to_utm, convert_utm_to_latlon
 from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 

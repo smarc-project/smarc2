@@ -17,7 +17,7 @@ from rclpy.time import Duration, Time
 from nav_msgs.msg import Path, Odometry
 from geometry_msgs.msg import TwistStamped, PoseStamped, Quaternion, Point, PointStamped
 from tf2_ros import Buffer, TransformListener
-from smarc_utilities import georef_utils
+from smarc_georef_cpp import GeorefUtils
 from evolo_msgs.msg import Topics as evoloTopics
 from smarc_msgs.msg import Topics as smarcTopics
 from dubins_planner.dubins import Waypoint, calc_dubins_path, dubins_traj
@@ -140,6 +140,7 @@ class EvoloMovePath:
         self._tf_buffer   = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self._node,
                                               spin_thread=True)
+        self._georef = GeorefUtils(node=self._node)
 
         self.robot_position        = PoseStamped()
         self.robot_position_time   = None
@@ -1084,14 +1085,14 @@ class EvoloMovePath:
         geopoint.latitude  = point_list[0]
         geopoint.longitude = point_list[1]
         geopoint.altitude  = 0.0
-        utm_pt = georef_utils.convert_latlon_to_utm(geopoint)
-        ps = PoseStamped()
-        ps.header        = utm_pt.header
-        ps.pose.position = utm_pt.point
-        yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
-        q = euler2quat(0, 0, yaw, axes='sxyz')
-        ps.pose.orientation = Quaternion(x=q[1], y=q[2], z=q[3], w=q[0])
         try:
+            utm_pt = self._georef.geopoint_to_point_stamped(geopoint)
+            ps = PoseStamped()
+            ps.header        = utm_pt.header
+            ps.pose.position = utm_pt.point
+            yaw = math.radians(point_list[2]) if len(point_list) > 2 else 0.0
+            q = euler2quat(0, 0, yaw, axes='sxyz')
+            ps.pose.orientation = Quaternion(x=q[1], y=q[2], z=q[3], w=q[0])
             t = self._tf_buffer.lookup_transform(
                 target_frame=self.frame_id,
                 source_frame=ps.header.frame_id,
@@ -1133,7 +1134,7 @@ class EvoloMovePath:
 def main():
     rclpy.init()
     node = Node('evolo_move_path_action_server')
-    EvoloMovePath(node, 'move_path')
+    server = EvoloMovePath(node, 'move_path')
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:
@@ -1141,6 +1142,7 @@ def main():
     except KeyboardInterrupt:
         node.get_logger().info('Shutting down')
     finally:
+        server._georef.shutdown()
         executor.shutdown()
         node.destroy_node()
         rclpy.shutdown()

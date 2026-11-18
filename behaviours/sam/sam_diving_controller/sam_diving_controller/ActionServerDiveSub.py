@@ -17,7 +17,8 @@ from smarc_msgs.msg import Topics as SMaRCTopics
 
 from nav_msgs.msg import Odometry, Path
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils
+from smarc_georef_cpp import TransformException as GeorefTransformException
 
 from geometry_msgs.msg import PoseStamped 
 from geographic_msgs.msg import GeoPoint
@@ -111,6 +112,7 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
 
         self._goal_frame = None
         self._goal_handle = None
+        self._georef = GeorefUtils(node=self._node)
 
         self._loginfo("Dive Action Server started")
 
@@ -151,8 +153,13 @@ class DiveActionServerSub(SMARCActionServer, DiveSub):
         self._target_rpm = float(fmt_dict["waypoint"]["rpm"])
         self._target_depth = float(fmt_dict["waypoint"]["target_depth"])
         self._goal_tolerance = float(fmt_dict["waypoint"]["tolerance"])
-        
-        self._waypoint_point = convert_latlon_to_utm(geopoint)
+
+        try:
+            self._waypoint_point = self._georef.geopoint_to_point_stamped(geopoint)
+        except GeorefTransformException as err:
+            self.set_mission_state(MissionStates.REJECTED, "AS")
+            self._node.get_logger().error(f"Failed to convert waypoint to UTM: {err}")
+            return GoalResponse.REJECT
 
         if self._target_depth < 0:
             self.set_mission_state(MissionStates.REJECTED, "AS")

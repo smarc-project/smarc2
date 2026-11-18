@@ -3,13 +3,10 @@ import math
 import json
 
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from smarc_msgs.msg import Topics as smarcTopics
-from smarc_utilities import georef_utils
-from tf2_ros import Buffer, TransformListener
-from tf2_geometry_msgs import do_transform_pose_stamped
-from rclpy.time import Time, Duration
+from smarc_georef_cpp import GeorefUtils
 
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -122,8 +119,7 @@ class SearchArea(Node):
             loop_frequency=5.0,
         )
 
-        self._tf_buffer   = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self)
+        self._georef = GeorefUtils(node=self)
         self._robot_pose_raw: PoseStamped | None = None
 
         self.robot_sub = self.create_subscription(
@@ -326,18 +322,10 @@ class SearchArea(Node):
         if self._robot_pose_raw is None:
             return None
         try:
-            gp = GeoPoint()
-            gp.latitude, gp.longitude, gp.altitude = origin_lat, origin_lon, 0.0
-            utm_ref = georef_utils.convert_latlon_to_utm(gp)
-
-            t = self._tf_buffer.lookup_transform(
-                target_frame=utm_ref.header.frame_id,
-                source_frame=self._robot_pose_raw.header.frame_id,
-                time=Time(seconds=0),
-                timeout=Duration(seconds=1))
-            robot_pose_utm = do_transform_pose_stamped(self._robot_pose_raw, t)
-
-            geo = georef_utils.convert_utm_to_latlon(robot_pose_utm)
+            point = PointStamped()
+            point.header.frame_id = self._robot_pose_raw.header.frame_id
+            point.point = self._robot_pose_raw.pose.position
+            geo = self._georef.point_stamped_to_geopoint(point)
             return _latlon_to_xy(geo.latitude, geo.longitude, origin_lat, origin_lon)
         except Exception as e:
             self.get_logger().warn(f'[Coverage] Position of the robot is not available: {e}')
@@ -580,6 +568,7 @@ def main(args=None):
     except KeyboardInterrupt:
         node.get_logger().info('Keyboard interrupt')
     finally:
+        node._georef.shutdown()
         executor.shutdown()
         node.destroy_node()
         if rclpy.ok():

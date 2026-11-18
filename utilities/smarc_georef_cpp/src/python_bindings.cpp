@@ -18,6 +18,7 @@
 #include "rclcpp/serialization.hpp"
 #include "tf2/exceptions.h"
 
+#include "geometry_msgs/msg/pose.hpp"
 #include "smarc_georef_cpp/georef_utils.hpp"
 
 namespace py = pybind11;
@@ -177,4 +178,20 @@ PYBIND11_MODULE(_georef_cpp, m)
         rclcpp::shutdown();
       }
     }, "Shut down the rclcpp context used by the internal C++ node(s).");
+
+  m.def(
+    "convert_latlon_to_utm", [](const std::string & geopoint) {
+      auto geo = deserialize<geographic_msgs::msg::GeoPoint>(geopoint);
+      return serialize(::convert_latlon_to_utm(geo));
+    }, py::arg("geopoint"));
+  m.def(
+    "convert_utm_to_latlon", [](const std::string & utm) {
+      auto point = deserialize<geometry_msgs::msg::PointStamped>(utm);
+      return serialize(::convert_utm_to_latlon(point));
+    }, py::arg("utm"));
+  m.def(
+    "convert_enu_pose_to_heading", [](const std::string & pose) {
+      auto msg = deserialize<geometry_msgs::msg::Pose>(pose);
+      return ::convert_enu_pose_to_heading(msg);
+    }, py::arg("enu_pose"));
 }
