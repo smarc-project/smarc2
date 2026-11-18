@@ -18,13 +18,14 @@ setup(
     zip_safe=True,
     maintainer='Shekhar Devm Upadhyay',
     maintainer_email='shekharu@kth.se',
-    description='WARA-PS agent nodes: waraps_vehicle publishes level 1, waraps_officer runs one task at a time.',
+    description='WARA-PS agent nodes: waraps_vehicle publishes level 1, waraps_officer runs one task at a time, waraps_agents_to_ros republishes other agents as latlon and odom.',
     license='MIT',
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'waraps_vehicle = waraps_officer.waraps_vehicle:main',
             'waraps_officer = waraps_officer.officer:main',
+            'waraps_agents_to_ros = waraps_officer.waraps_agents_to_ros:main',
         ],
     },
 )
