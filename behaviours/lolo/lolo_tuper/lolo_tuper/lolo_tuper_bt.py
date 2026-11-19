@@ -11,7 +11,7 @@ Mission:
   2. FollowSetpoint   - UKF-consistent COURSE control toward the live UKF
                         setpoint, holding depth + min-altitude, modulating RPM
                         with a PID/bang-bang law. Fails when the estimate
-                        diverges from truth (measured delta_pos); succeeds when
+                        stays diverged past the hold window; succeeds when
                         the setpoint stops moving.
   3. MoveToLastSetpoint - settle on the last setpoint within final_arrival_tolerance.
   4. SurfaceAndReturn - delegate to auv_depth_move_to with target_depth=-1 to
@@ -55,7 +55,6 @@ from lolo_tuper.tuper_behaviours import (
 GOAL_DEFAULTS = {
     "min_rpm": 400.0,
     "max_rpm": 700.0,
-    "max_delta_pos": 5.0,
 }
 
 
@@ -199,9 +198,12 @@ class LoloTuperBT:
         self._stale_grace_period = float(gp('stale_grace_period', 10.0))
         self._pose_topic = gp('pose_topic', '/follower/ukf/pose')
         self._setpoint_topic = gp('setpoint_topic', '/follower/ukf/setpoint')
-        # Measured estimate-vs-truth divergence (std_msgs/Float32). The follow
-        # loop fails the task when this exceeds the goal's max_delta_pos.
+        # UKF estimate vs the INS fix (std_msgs/Float32), published underwater
+        # as well as on the surface. Above max_delta_pos the follow loop holds
+        # course; it fails only after delta_hold_fail_s.
         self._delta_pos_topic = gp('delta_pos_topic', '/follower/ukf/delta_pos')
+        self._max_delta_pos = float(gp('max_delta_pos', 10.0))
+        self._delta_hold_fail_s = float(gp('delta_hold_fail_s', 45.0))
         # Onboard nav (relative -> resolved in the robot namespace) used to
         # bootstrap toward the initial_setpoint before the UKF is live.
         self._odom_topic = gp('odom_topic', 'smarc/odom')
@@ -329,7 +331,9 @@ class LoloTuperBT:
             min_altitude=float(g["min_altitude"]),
             min_rpm=float(g["min_rpm"]),
             max_rpm=float(g["max_rpm"]),
-            max_delta_pos=float(g["max_delta_pos"]),
+            max_delta_pos=float(req.get("max_delta_pos", self._max_delta_pos)),
+            delta_hold_fail_s=float(req.get(
+                "delta_hold_fail_s", self._delta_hold_fail_s)),
             setpoint_stop_tolerance=float(g["setpoint_stop_tolerance"]),
             setpoint_stop_period=float(g["setpoint_stop_period"]),
             setpoint_stop_speed=float(req.get(
@@ -408,12 +412,14 @@ class LoloTuperBT:
         # return-leg timeout). Floored at a small positive value; if the budget
         # is genuinely spent, _loop_inner fails the mission on the next tick.
         leg_timeout = max(round(self._mission_remaining(), 1), 1.0)
+        # LoLo's depth-move server reads the hyphenated waypoint keys the
+        # mission planner sends (target-depth, min-altitude).
         return json.dumps({
             "waypoint": {
                 "latitude": geopoint.latitude,
                 "longitude": geopoint.longitude,
-                "target_depth": target_depth,
-                "min_altitude": g.min_altitude,
+                "target-depth": target_depth,
+                "min-altitude": g.min_altitude,
                 "rpm": rpm,
                 "timeout": leg_timeout,
                 "tolerance": tolerance,
@@ -459,7 +465,7 @@ class LoloTuperBT:
         s += "\nFollower state:"
         s += f"\n pose_fresh: {fs.pose_fresh}"
         dpos = fs.delta_pos
-        s += f"\n delta_pos: {dpos:.2f}m" if dpos is not None else "\n delta_pos: ??? (no truth)"
+        s += f"\n delta_pos: {dpos:.2f}m" if dpos is not None else "\n delta_pos: ??? (stale)"
         s += f"\n setpoint_fresh: {fs.setpoint_fresh}"
         if self._mission_timeout is not None:
             s += (f"\n mission: {self._mission_elapsed():.0f}s / "

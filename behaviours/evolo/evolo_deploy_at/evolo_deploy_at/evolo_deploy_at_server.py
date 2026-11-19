@@ -3,26 +3,13 @@ from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from wasp_bt.bt.client import BTActionClient as GentlerActionClient
-#from smarc_action_base.gentler_action_client import GentlerActionClient
-from smarc_action_base.smarc_action_base import ActionClientState, ActionType
-from smarc_msgs.action import BaseAction
+from smarc_action_base.gentler_action_client import GentlerActionClient
 from std_msgs.msg import String
 from evolo_msgs.msg import Topics as evoloTopics
 from geographic_msgs.msg import GeoPoint
 import json
-from rclpy.task import Future
-import asyncio
-import time
 
 class EvoloDeployAt():
-
-    _failure_states = [
-            ActionClientState.DISCONNECTED,
-            ActionClientState.ERROR,
-            ActionClientState.REJECTED,
-            ActionClientState.CANCELLED
-        ]
 
     def __init__(self,
                  node: Node,
@@ -51,17 +38,8 @@ class EvoloDeployAt():
         self.action_goals = []
         self.current_action = 0 #Index of currently running action
 
-        move_to_client = GentlerActionClient(
-                node=self._node, 
-                action_name='move_to', 
-                action_type=ActionType(BaseAction)
-                )
-        
-        deploy_client = GentlerActionClient(
-                node=self._node, 
-                action_name='deploy', 
-                action_type=ActionType(BaseAction)
-                )
+        move_to_client = GentlerActionClient(self._node, 'move_to')
+        deploy_client = GentlerActionClient(self._node, 'deploy')
 
         self.action_clients.append(move_to_client)
         self.action_clients.append(deploy_client)
@@ -104,22 +82,15 @@ class EvoloDeployAt():
 
             self._node.get_logger().info(f"Move to goal created")
 
-            move_to_goal = BaseAction.Goal()
-            move_to_goal.goal.data = json.dumps(move_to_goal_dict)
-
             # Deploy goal
             deploy_goal_dict = {
                 "unit": unit_to_deploy
             }
-            deploy_goal = BaseAction.Goal()
-            deploy_goal.goal.data = json.dumps(deploy_goal_dict)
 
             self._node.get_logger().info(f"Deploy goal created")
 
-            #Add goals to list
-            self.action_goals = []
-            self.action_goals.append(move_to_goal)
-            self.action_goals.append(deploy_goal)
+            #Add goals to list, one JSON string per action client
+            self.action_goals = [json.dumps(move_to_goal_dict), json.dumps(deploy_goal_dict)]
 
             self._node.get_logger().info(f"Action goals: {self.action_goals}, Action clients: {self.action_clients}")
 
@@ -135,27 +106,11 @@ class EvoloDeployAt():
     
     def _on_cancel_received(self) -> bool:
         self._node.get_logger().info("Received cancel request")
-        # Here you would typically handle the cancel request
-        # Return True to accept the cancel, False to reject it
-
-        future :Future = Future()
-        action_client : GentlerActionClient = self.action_clients[self.current_action]
-        action_client.cancel_goal(future.set_result)
-
-        for i in range(4000): #4s max sleep
-            if(future.done()): break
-            asyncio.sleep(0)
-            time.sleep(0.01)
-        #rclpy.spin_until_future_complete(self._node, future, timeout_sec=4)
-
-        response = future.result()
-        self._node.get_logger().info("future result: " + str(response))
-        if response != None and len(response.goals_canceling) > 0:
-            self._node.get_logger().info("Successfully canceled goal")
-            return True
-        else:
-            self._node.get_logger().info("Failed to cancel goal")
-            return False
+        # Cancel whatever sub-action is running. The loop sees CANCELLED as a
+        # failure state and finishes on its own.
+        if self.current_action < len(self.action_clients):
+            self.action_clients[self.current_action].cancel()
+        return True
 
     def _prepare_loop(self) -> None:
         self._node.get_logger().info("Preparing loop for action execution")
@@ -174,18 +129,17 @@ class EvoloDeployAt():
         action_client : GentlerActionClient = self.action_clients[self.current_action]
         self._node.get_logger().info(f"Action client state: {action_client.state.name}.")
 
-        if(action_client.state == ActionClientState.READY): #Action client is ready. Send goal
+        if(action_client.state == GentlerActionClient.States.READY): #Action client is ready. Send goal
             #Send goal
-            goal = self.action_goals[self.current_action]
-            action_client.send_goal(goal)
+            action_client.send(self.action_goals[self.current_action])
             self._node.get_logger().info("Goal sent")
 
         # Action has failed
-        if (action_client.state in self._failure_states):
+        if (action_client.state in GentlerActionClient.FAILURE_STATES):
               return False
 
         #Previous action client is done. Mone on to the next
-        if(action_client.state == ActionClientState.DONE):
+        if(action_client.state == GentlerActionClient.States.DONE):
             self.current_action += 1
         
         return None
