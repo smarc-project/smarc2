@@ -3,7 +3,6 @@ nodes:
   - name: "robot_state_publisher"
   - name: "sam_captain"
   - name: "state_estimator"
-  - name: "waraps/mqtt_bridge_cloud"
   - name: "waraps_vehicle"
   - name: "wasp_bt"
 
