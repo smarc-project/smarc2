@@ -49,11 +49,13 @@ col(
     var(DESCRIPTION_CMD)
 )"
 
-# Level 1 and the officer. The vehicle launch is the old mqtt agent.
-WARAPS_CMD="ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME $AGENT_UUID_ARG & ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
+# Level 1 and the officer, in separate panes. The vehicle launch is the old mqtt agent.
+VEHICLE_CMD="ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME $AGENT_UUID_ARG"
+OFFICER_CMD="ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
 tmux_make_layout "$SESSION" waraps "
-col(
-    var(WARAPS_CMD)
+row(
+    var(VEHICLE_CMD),
+    var(OFFICER_CMD)
 )"
 
 # Lolo Action servers
