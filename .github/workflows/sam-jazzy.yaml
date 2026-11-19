@@ -153,8 +153,9 @@ jobs:
         shell: bash
         working-directory: colcon_ws
         run: |
-          set -euo pipefail
+          set -eo pipefail
           source /opt/ros/jazzy/setup.bash
+          set -u
 
           colcon build --symlink-install --cmake-args \
             -DGTSAM_DIR:PATH=/usr/local/lib/cmake/GTSAM \
