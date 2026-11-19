@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty, Int8, Float32, Float64
@@ -18,7 +18,7 @@ from tf2_geometry_msgs import do_transform_pose
 
 from smarc_georef_cpp import (
     GeorefUtils, TransformException, compute_course_from_two_poses,
-    compute_speed_from_two_poses, convert_enu_pose_to_heading, convert_utm_to_latlon)
+    compute_speed_from_two_poses, convert_enu_pose_to_heading)
 
 class SAMSMARCPublisher(Node):
     def __init__(self):
@@ -122,7 +122,10 @@ class SAMSMARCPublisher(Node):
 
             self.heading_pub.publish(convert_enu_pose_to_heading(transform_pose.pose))
 
-            latlon_msg = convert_utm_to_latlon(transform_pose)
+            utm_point = PointStamped()
+            utm_point.header.frame_id = utm_frame
+            utm_point.point = transform_pose.pose.position
+            latlon_msg = self._georef.point_stamped_to_geopoint(utm_point)
             latlon_msg.altitude = msg.pose.pose.position.z
             self.latlon_pub.publish(latlon_msg)
             self.altitude_pub.publish(Float32(data=latlon_msg.altitude))

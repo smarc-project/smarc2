@@ -83,13 +83,13 @@ TEST(PureConversions, LatlonZoneUntilAFrameExists)
 
   const auto replaced = georef.geopoint_to_point_stamped(geopoint(59.35, 18.07, 12.5));
   EXPECT_EQ(replaced.header.frame_id, "utm_33_V");
-}
 
-TEST(PureConversions, RejectsABadFrame)
-{
-  geometry_msgs::msg::PointStamped point;
-  point.header.frame_id = "map";
-  EXPECT_THROW(convert_utm_to_latlon(point), std::invalid_argument);
+  geometry_msgs::msg::PointStamped back;
+  back.header.frame_id = replaced.header.frame_id;
+  back.point = replaced.point;
+  const auto geo = georef.point_stamped_to_geopoint(back);
+  EXPECT_NEAR(geo.latitude, 59.35, 1e-5);
+  EXPECT_NEAR(geo.longitude, 18.07, 1e-5);
 }
 
 TEST(PureConversions, EnuYawToCompassHeading)

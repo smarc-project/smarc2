@@ -82,12 +82,6 @@ private:
   std::mutex mutex_;  // Only one thread is allowed to access variables at a time
 };
 
-// PointStamped whose frame_id is "utm_{zone}_{band}" back to a GeoPoint. z is copied to
-// altitude. Southern northing is negative, matching geodesy.utm. Throws
-// std::invalid_argument if the frame id is not that form.
-geographic_msgs::msg::GeoPoint convert_utm_to_latlon(
-  const geometry_msgs::msg::PointStamped & utm);
-
 // Compass heading in degrees, 0 north, 90 east, from an ENU pose. The yaw is the ENU
 // yaw of the orientation.
 double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose);

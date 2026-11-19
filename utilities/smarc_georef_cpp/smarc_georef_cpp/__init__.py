@@ -29,7 +29,6 @@ from smarc_georef_cpp._georef_cpp import (
     compute_course_from_two_poses as _compute_course_from_two_poses,
     compute_speed_from_two_poses as _compute_speed_from_two_poses,
     convert_enu_pose_to_heading as _convert_enu_pose_to_heading,
-    convert_utm_to_latlon as _convert_utm_to_latlon,
     shutdown_context,
 )
 
@@ -39,7 +38,6 @@ __all__ = [
     'compute_course_from_two_poses',
     'compute_speed_from_two_poses',
     'convert_enu_pose_to_heading',
-    'convert_utm_to_latlon',
     'shutdown_context',
 ]
 
@@ -129,23 +127,6 @@ class GeorefUtils:
 
     def __exit__(self, *exc):
         self.shutdown()
-
-
-def convert_utm_to_latlon(utm: PointStamped | PoseStamped) -> GeoPoint:
-    """UTM PointStamped or PoseStamped to a GeoPoint.
-
-    ``header.frame_id`` must be ``utm_<zone>_<band>``. z is copied to altitude.
-    """
-    if isinstance(utm, PoseStamped):
-        point = PointStamped()
-        point.header = utm.header
-        point.point = utm.pose.position
-    elif isinstance(utm, PointStamped):
-        point = utm
-    else:
-        raise TypeError('Input must be a PointStamped or PoseStamped.')
-    data = _convert_utm_to_latlon(serialize_message(point))
-    return deserialize_message(data, GeoPoint)
 
 
 def compute_course_from_two_poses(prev_pose: PoseStamped, current_pose: PoseStamped) -> Float32:

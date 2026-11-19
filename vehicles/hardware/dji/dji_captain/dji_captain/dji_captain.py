@@ -31,7 +31,7 @@ from dji_msgs.msg import Topics as DjiTopics
 from dji_msgs.msg import PsdkTopics as PSDKTopics
 
 
-from smarc_georef_cpp import GeorefUtils, convert_utm_to_latlon
+from smarc_georef_cpp import GeorefUtils, TransformException
 from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
@@ -1058,7 +1058,11 @@ class DjiCaptain():
         base_in_utm.header.frame_id = self._utm_zb_label
         base_in_utm.point.x = self._base_pose_in_home.pose.position.x + self._home_point_in_utm.point.x
         base_in_utm.point.y = self._base_pose_in_home.pose.position.y + self._home_point_in_utm.point.y
-        base_in_geopoint = convert_utm_to_latlon(base_in_utm)
+        try:
+            base_in_geopoint = self._georef.point_stamped_to_geopoint(base_in_utm)
+        except TransformException as e:
+            self.log(f"[smarc] Cannot convert base pose to latlon: {e}")
+            return
         
         # this is specific to smarc, since we take the water level as basis for everything
         alt_above_water = self._HOME_ALT_ABOVE_WATER + self._base_pose_in_home.pose.position.z

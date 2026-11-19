@@ -180,29 +180,6 @@ bool GeorefUtils::can_transform(
     tf2::durationFromSec(timeout_sec));
 }
 
-geographic_msgs::msg::GeoPoint convert_utm_to_latlon(
-  const geometry_msgs::msg::PointStamped & utm)
-{
-  int zone;
-  char band;
-  if (!match_utm_frame(utm.header.frame_id, zone, band)) {
-    throw std::invalid_argument(
-            "UTM frame_id must be utm_<zone>_<band>, got '" + utm.header.frame_id + "'");
-  }
-
-  const bool northp = band >= 'N';
-  double northing = utm.point.y;
-  if (!northp) {
-    northing += GeographicLib::UTMUPS::UTMShift();
-  }
-
-  geographic_msgs::msg::GeoPoint geopoint;
-  GeographicLib::UTMUPS::Reverse(
-    zone, northp, utm.point.x, northing, geopoint.latitude, geopoint.longitude);
-  geopoint.altitude = utm.point.z;
-  return geopoint;
-}
-
 double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose)
 {
   const auto & q = enu_pose.orientation;
