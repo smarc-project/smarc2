@@ -13,7 +13,7 @@ from geographic_msgs.msg import GeoPoint
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_pose_stamped, do_transform_point
 from geometry_msgs.msg import PointStamped
-from smarc_georef_cpp import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils
 from transforms3d.euler import euler2quat
 
 from smarc_msgs.msg import GeofencePolygonsStamped
@@ -26,6 +26,7 @@ class EvoloMovePathClient(Node):
 
     def __init__(self):
         super().__init__('evolo_move_path_client')
+        self._georef = GeorefUtils(node=self)
         self._action_client = ActionClient(self, BaseAction, 'move_path')
 
         self._tf_buffer   = Buffer()
@@ -81,7 +82,7 @@ class EvoloMovePathClient(Node):
         geopoint.latitude  = point_list[0]
         geopoint.longitude = point_list[1]
         geopoint.altitude  = 0.0
-        utm_pt = convert_latlon_to_utm(geopoint)
+        utm_pt = self._georef.geopoint_to_point_stamped(geopoint)
         ps = PoseStamped()
         ps.header        = utm_pt.header
         ps.pose.position = utm_pt.point
@@ -383,7 +384,7 @@ class EvoloMovePathClient(Node):
         # avant la boucle d'attente
         probe = GeoPoint()
         probe.latitude, probe.longitude, probe.altitude = 58.8389422670, 17.6534623045, 0.0
-        zone_frame = convert_latlon_to_utm(probe).header.frame_id  # ex: "utm_33_V"
+        zone_frame = self._georef.geopoint_to_point_stamped(probe).header.frame_id  # ex: "utm_33_V"
 
         self.get_logger().info(f'Waiting for TF frame: {zone_frame}')
         while not self._tf_buffer.can_transform(

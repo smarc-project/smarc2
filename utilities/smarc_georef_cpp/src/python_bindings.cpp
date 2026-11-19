@@ -180,11 +180,6 @@ PYBIND11_MODULE(_georef_cpp, m)
     }, "Shut down the rclcpp context used by the internal C++ node(s).");
 
   m.def(
-    "convert_latlon_to_utm", [](const std::string & geopoint) {
-      auto geo = deserialize<geographic_msgs::msg::GeoPoint>(geopoint);
-      return serialize(::convert_latlon_to_utm(geo));
-    }, py::arg("geopoint"));
-  m.def(
     "convert_utm_to_latlon", [](const std::string & utm) {
       auto point = deserialize<geometry_msgs::msg::PointStamped>(utm);
       return serialize(::convert_utm_to_latlon(point));

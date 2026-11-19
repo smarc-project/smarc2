@@ -29,7 +29,6 @@ from smarc_georef_cpp._georef_cpp import (
     compute_course_from_two_poses as _compute_course_from_two_poses,
     compute_speed_from_two_poses as _compute_speed_from_two_poses,
     convert_enu_pose_to_heading as _convert_enu_pose_to_heading,
-    convert_latlon_to_utm as _convert_latlon_to_utm,
     convert_utm_to_latlon as _convert_utm_to_latlon,
     shutdown_context,
 )
@@ -40,7 +39,6 @@ __all__ = [
     'compute_course_from_two_poses',
     'compute_speed_from_two_poses',
     'convert_enu_pose_to_heading',
-    'convert_latlon_to_utm',
     'convert_utm_to_latlon',
     'shutdown_context',
 ]
@@ -85,7 +83,9 @@ class GeorefUtils:
                                   target_frame: str = '') -> PointStamped:
         """Convert a GeoPoint to a PointStamped in target_frame (the utm frame if empty).
 
-        Raises TransformException if there is no utm frame or more than one, or the transform
+        The zone is the utm frame in the tf tree when there is one, and this geopoint's
+        own zone when there is not. A frame that appears later replaces that guess.
+        Raises TransformException if the tree has more than one utm frame, or the transform
         to target_frame is not available.
         """
         data = self._impl.geopoint_to_point_stamped(serialize_message(geopoint), target_frame)
@@ -129,15 +129,6 @@ class GeorefUtils:
 
     def __exit__(self, *exc):
         self.shutdown()
-
-
-def convert_latlon_to_utm(geopoint: GeoPoint) -> PointStamped:
-    """GeoPoint to UTM. The zone and band come from the point, not the tf tree.
-
-    frame_id is ``utm_{zone}_{band}``. Southern northing is negative.
-    """
-    data = _convert_latlon_to_utm(serialize_message(geopoint))
-    return deserialize_message(data, PointStamped)
 
 
 def convert_utm_to_latlon(utm: PointStamped | PoseStamped) -> GeoPoint:

@@ -73,7 +73,7 @@ geometry_msgs::msg::PointStamped GeorefUtils::geopoint_to_point_stamped(
   const geographic_msgs::msg::GeoPoint & geopoint,
   const std::string & target_frame)
 {
-  const UtmFrame utm_frame = find_utm_frame();
+  const UtmFrame utm_frame = find_utm_frame(geopoint);
   const bool frame_northp = utm_frame.band >= 'N';
 
   // Force the zone of the utm frame, even if the point lies in a neighbouring zone.
@@ -122,7 +122,8 @@ geographic_msgs::msg::GeoPoint GeorefUtils::point_stamped_to_geopoint(
   return geopoint;
 }
 
-GeorefUtils::UtmFrame GeorefUtils::find_utm_frame()
+GeorefUtils::UtmFrame GeorefUtils::find_utm_frame(
+  const std::optional<geographic_msgs::msg::GeoPoint> & fallback)
 {
   std::lock_guard<std::mutex> lock(mutex_);
   if (utm_frame_) {
@@ -139,9 +140,6 @@ GeorefUtils::UtmFrame GeorefUtils::find_utm_frame()
     found.push_back(UtmFrame{frame, zone, band});
   }
 
-  if (found.empty()) {
-    throw tf2::LookupException("No utm_{zone}_{band} frame found in the tf tree");
-  }
   if (found.size() > 1) {
     std::string names;
     for (const auto & utm_frame : found) {
@@ -149,8 +147,17 @@ GeorefUtils::UtmFrame GeorefUtils::find_utm_frame()
     }
     throw tf2::TransformException("Multiple utm frames found in the tf tree: " + names);
   }
-  utm_frame_ = found.front();
-  return *utm_frame_;
+  if (found.size() == 1) {
+    utm_frame_ = found.front();
+    return *utm_frame_;
+  }
+  if (!fallback) {
+    throw tf2::LookupException("No utm_{zone}_{band} frame found in the tf tree");
+  }
+  const int zone = longitude_zone(fallback->longitude);
+  const char band = latitude_band(fallback->latitude);
+  // Not cached. The next call looks at the tree again.
+  return UtmFrame{"utm_" + std::to_string(zone) + "_" + std::string(1, band), zone, band};
 }
 
 geometry_msgs::msg::TransformStamped GeorefUtils::lookup_transform(
@@ -171,35 +178,6 @@ bool GeorefUtils::can_transform(
   return tf_buffer_->canTransform(
     target_frame, source_frame, tf2::TimePointZero,
     tf2::durationFromSec(timeout_sec));
-}
-
-geometry_msgs::msg::PointStamped convert_latlon_to_utm(
-  const geographic_msgs::msg::GeoPoint & geopoint)
-{
-  const int zone = longitude_zone(geopoint.longitude);
-  const char band = latitude_band(geopoint.latitude);
-
-  int forward_zone;
-  bool northp;
-  double easting;
-  double northing;
-  double gamma;
-  double k;
-  GeographicLib::UTMUPS::Forward(
-    geopoint.latitude, geopoint.longitude, forward_zone, northp,
-    easting, northing, gamma, k, zone);
-  // geodesy.utm reports southern northing as negative. GeographicLib adds the
-  // 10e6 false northing instead.
-  if (!northp) {
-    northing -= GeographicLib::UTMUPS::UTMShift();
-  }
-
-  geometry_msgs::msg::PointStamped point;
-  point.header.frame_id = "utm_" + std::to_string(zone) + "_" + band;
-  point.point.x = easting;
-  point.point.y = northing;
-  point.point.z = geopoint.altitude;
-  return point;
 }
 
 geographic_msgs::msg::GeoPoint convert_utm_to_latlon(

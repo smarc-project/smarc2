@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import  PointStamped, PoseStamped
-from smarc_georef_cpp import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils
 from alars_auv_search_planner.search_planner_controller import SearchPlannerController
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
@@ -15,6 +15,7 @@ class SearchPlannerAction():
                  node: Node,
                  action_name: str):
         self._node = node
+        self._georef = GeorefUtils(node=self._node)
         self.spcontroller = SearchPlannerController()
         self.point_publisher = self._node.create_publisher(
             msg_type = PoseStamped,
@@ -115,7 +116,7 @@ class SearchPlannerAction():
         # get search radius (range) and altitude 
         self.spcontroller.grid_map.w = self.spcontroller.grid_map.h = 2*self._radius
         self.spcontroller.planner.flight_height = self.spcontroller.planner.grid_map.flight_height = self._gps.altitude
-        GPS_ping_utm = convert_latlon_to_utm(self._gps)
+        GPS_ping_utm = self._georef.geopoint_to_point_stamped(self._gps)
         self.spcontroller.GPS_ping = self.spcontroller.planner.transform_point(GPS_ping_utm, self.spcontroller.model_params['frames.id.map'])
 
         # (re)initialize planner (including grid map)
