@@ -98,6 +98,7 @@ jobs:
         working-directory: colcon_ws/src/${{ github.event.repository.name }}
         run: |
             git submodule update --init navigation/dead_reckoning/hydrobatic_localization
+            git submodule update --init vehicles/smarc_modelling
 
       - name: Ignore unrelated packages
         shell: bash
