@@ -5,6 +5,7 @@ int8 VEHICLE_HEALTH_READY = 0
 int8 VEHICLE_HEALTH_WAITING = 1
 int8 VEHICLE_HEALTH_ERROR = 2
 string VEHICLE_HEALTH_TOPIC = 'smarc/vehicle_health' #int
+string OFFICER_HEALTH_TOPIC = 'smarc/officer_health' #int8, VEHICLE_HEALTH_READY / WAITING / ERROR
 
 string ODOM_TOPIC = 'smarc/odom'  #odom
 string HEADING_TOPIC = 'smarc/heading' #float32
@@ -30,11 +31,13 @@ string GEOFENCE_POLYGONS_TOPIC = 'smarc/geofence_polygons' #smarc_msgs/msg/Geofe
 ## Level 1
 string WARA_PS_HEARTBEAT_TOPIC = 'waraps/heartbeat'
 string WARA_PS_SENSOR_INFO_TOPIC = 'waraps/sensor_info'
+string WARA_PS_SENSOR_PREFIX = 'waraps/sensor'
 string WARA_PS_SENSOR_POSITION_TOPIC = 'waraps/sensor/position'
 string WARA_PS_SENSOR_HEADING_TOPIC = 'waraps/sensor/heading'
 string WARA_PS_SENSOR_COURSE_TOPIC = 'waraps/sensor/course'
 string WARA_PS_SENSOR_SPEED_TOPIC = 'waraps/sensor/speed'
 string WARA_PS_SENSOR_DEPTH_TOPIC = 'waraps/sensor/depth'
+string WARA_PS_SENSOR_ALTITUDE_TOPIC = 'waraps/sensor/altitude'
 string WARA_PS_SENSOR_ROLL_TOPIC = 'waraps/sensor/roll'
 string WARA_PS_SENSOR_PITCH_TOPIC = 'waraps/sensor/pitch'
 string WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC = 'waraps/sensor/executing_tasks'

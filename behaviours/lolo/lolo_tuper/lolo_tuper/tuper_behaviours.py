@@ -71,9 +71,10 @@ class TuperGoal:
     min_altitude: float
     min_rpm: float
     max_rpm: float
-    # Fail the task if the estimate's measured divergence from truth (the
-    # delta_pos topic) exceeds this, regardless of the filter's own covariance.
+    # Hold course while delta_pos exceeds this. Fail only after
+    # delta_hold_fail_s of continuous excess (a brief UKF walk-off resumes).
     max_delta_pos: float
+    delta_hold_fail_s: float
     setpoint_stop_tolerance: float
     setpoint_stop_period: float
     setpoint_stop_speed: float
@@ -112,8 +113,9 @@ class _CourseControlBehaviour(Behaviour):
     """Shared base: hold depth/altitude, steer toward a target, modulate RPM.
 
     Subclasses provide the target (UTM) and the success/exit condition.
-    Returns FAILURE on excessive estimate divergence (the measured delta_pos
-    error from truth) or on a UKF pose that stays stale beyond the grace period.
+    Returns FAILURE when the UKF pose stays stale beyond the grace period,
+    or when delta_pos stays above max_delta_pos longer than delta_hold_fail_s.
+    A shorter excursion holds the last healthy course.
     """
 
     def __init__(self,
@@ -144,6 +146,11 @@ class _CourseControlBehaviour(Behaviour):
         self._last_time = None
         self._stale_since = None
         self._last_bearing = 0.0
+        # Course commanded on the last tick the estimate was accepted. The
+        # hold uses this, not the UKF heading, which is the bad one mid-spike.
+        self._last_good_yaw: float | None = None
+        self._hold_yaw: float | None = None
+        self._diverge_since: float | None = None
         # Latches True once the UKF has EVER been ready (fresh pose AND fresh
         # setpoint together). Onboard-nav bootstrap is only allowed BEFORE this;
         # afterwards a UKF death must fall through to the staleness grace/fail.
@@ -213,6 +220,35 @@ class _CourseControlBehaviour(Behaviour):
         self._speed_trim = 0.0
         self._command(yaw, self._safe_hold_rpm(goal), goal)
         self._telemetry.update({'v_target': 0.0, 'reason': 'hold'})
+
+    def _healthy_yaw(self) -> float:
+        """Course to keep while the estimate is off.
+
+        Prefer the last yaw commanded while the estimate was accepted, then
+        the INS yaw. The UKF heading is the one that swings during a spike.
+        """
+        if self._last_good_yaw is not None:
+            return self._last_good_yaw
+        ins = self._fs.onboard_heading_enu
+        if ins is not None:
+            return ins
+        return self._last_bearing
+
+    def _hold_estimate(self, goal: TuperGoal, divergence: float) -> None:
+        """Keep the last healthy course at the RPM floor."""
+        if self._hold_yaw is None:
+            self._hold_yaw = self._healthy_yaw()
+        self._speed_trim = 0.0
+        self._command(self._hold_yaw, self._safe_hold_rpm(goal), goal)
+        held = 0.0 if self._diverge_since is None else self._now - self._diverge_since
+        self._telemetry.update({
+            'v_target': 0.0,
+            'reason': 'estimate_hold',
+            'delta_pos': round(divergence, 2),
+        })
+        self.feedback_message = (
+            f"delta_pos {divergence:.1f}m > {goal.max_delta_pos:.0f}m "
+            f"for {held:.1f}s, holding course.")
 
     def _speed_to_rpm(self, v_target: float, v_meas: float, dt: float,
                       goal: TuperGoal, integrate: bool) -> float:
@@ -454,17 +490,27 @@ class _CourseControlBehaviour(Behaviour):
             return Status.RUNNING
         self._stale_since = None
 
-        # 2. Divergence guard. Gate on the MEASURED error of the estimate from
-        #    truth (delta_pos), not the filter's self-reported covariance: a
-        #    confidently-wrong UKF must still fail the task. A divergence sample
-        #    is only published when a truth is available, so when it is absent we
-        #    cannot measure drift and keep going (unknown != diverged).
+        # 2. delta_pos is the UKF estimate vs the INS fix, published underwater
+        #    as well as on the surface. Above max_delta_pos, hold the last
+        #    healthy course. Fail only if that lasts longer than
+        #    delta_hold_fail_s. Resume as soon as it drops back.
         divergence = self._fs.delta_pos
         if divergence is not None and divergence > goal.max_delta_pos:
-            self.feedback_message = (
-                f"UKF diverged: delta_pos {divergence:.2f}m > "
-                f"{goal.max_delta_pos}m, failing.")
-            return Status.FAILURE
+            if self._diverge_since is None:
+                self._diverge_since = self._now
+            held = self._now - self._diverge_since
+            self._telemetry['estimate_gate'] = 'hold'
+            if held > goal.delta_hold_fail_s:
+                self.feedback_message = (
+                    f"delta_pos {divergence:.1f}m > {goal.max_delta_pos:.0f}m "
+                    f"for {held:.0f}s, failing.")
+                self._telemetry['estimate_gate'] = 'fail'
+                return Status.FAILURE
+            self._hold_estimate(goal, divergence)
+            return Status.RUNNING
+        self._diverge_since = None
+        self._hold_yaw = None
+        self._telemetry['estimate_gate'] = 'ok'
 
         # 3. Determine target.
         target_xy = self._target(goal)
@@ -476,6 +522,7 @@ class _CourseControlBehaviour(Behaviour):
         # 4. Drive, then check exit condition.
         dist = self._drive_toward(
             target_xy, goal, divergence if divergence is not None else 0.0)
+        self._last_good_yaw = self._last_bearing
         exit_status = self._check_exit(goal, target_xy, dist)
         if exit_status is not None:
             return exit_status
