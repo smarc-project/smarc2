@@ -10,12 +10,12 @@ topics:
   - topic: "robot_description"
     type: "std_msgs/msg/String"
     qos:
-      reliability: best_effort
+      reliability: reliable
       durability: transient_local
       depth: 10
   - topic: "/tf_static"
     type: "tf2_msgs/msg/TFMessage"
     qos:
-      reliability: best_effort
+      reliability: reliable
       durability: transient_local
       depth: 10
