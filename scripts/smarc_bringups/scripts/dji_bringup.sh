@@ -257,12 +257,16 @@ col(
 ############
 # 3 BTs
 ############
-WASP_BT_CMD="ros2 launch wasp_bt wasp_bt.launch \
+VEHICLE_CMD="ros2 launch waraps_officer waraps_vehicle.launch \
 robot_name:=$ROBOT_NAME \
 agent_type:=air \
 pulse_rate:=2.0 \
+use_sim_time:=$USE_SIM_TIME"
+OFFICER_CMD="ros2 launch waraps_officer waraps_officer.launch \
+robot_name:=$ROBOT_NAME \
+pulse_rate:=2.0 \
 use_sim_time:=$USE_SIM_TIME \
-bt_health_timeout:=5.0 \
+health_timeout_s:=5.0 \
 task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
 
 
@@ -294,14 +298,20 @@ ALARS_BT_STATUS_CMD="ros2 topic echo ${ROBOT_NAME}/${dji_topics[ALARS_BT_STATUS_
 
 # tmux_make_layout "$SESSION" BTs "
 # row(
-#     var(WASP_BT_CMD), 
-#     col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD)), 
+#     col(
+#         var(VEHICLE_CMD),
+#         var(OFFICER_CMD)
+#     ),
+#     col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD)),
 #     col(3:var(ALARS_PING_SEARCH_CMD), 1:var(SUCCOR_CMD))
 # )"
 
 tmux_make_layout "$SESSION" BTs "
 row(
-    var(WASP_BT_CMD), 
+    col(
+        var(VEHICLE_CMD),
+        var(OFFICER_CMD)
+    ),
     col(3:var(ALARS_BT_CMD), 1:var(ALARS_BT_STATUS_CMD))
 )"
 
