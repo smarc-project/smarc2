@@ -90,5 +90,7 @@ row(
 
 # Set default window
 tmux select-window -t $SESSION:0
-# attach to the new session
-tmux -2 attach-session -t $SESSION
+# attach only outside ci
+if [[ "${1:-}" != "testing" ]]; then
+    tmux -2 attach-session -t "$SESSION"
+fi
