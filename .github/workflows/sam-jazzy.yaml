@@ -99,6 +99,38 @@ jobs:
         run: |
             git submodule update --init navigation/dead_reckoning/hydrobatic_localization
             git submodule update --init vehicles/smarc_modelling
+      
+      - name: Build and install GTSAM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build git \
+            libboost-all-dev libeigen3-dev libtbb-dev
+
+          git clone --depth 1 --branch 4.3a2 \
+            https://github.com/borglab/gtsam.git \
+            "$RUNNER_TEMP/gtsam"
+
+          cmake -S "$RUNNER_TEMP/gtsam" \
+                -B "$RUNNER_TEMP/gtsam-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
+            -DGTSAM_USE_SYSTEM_EIGEN=ON \
+            -DGTSAM_BUILD_UNSTABLE=OFF \
+            -DGTSAM_BUILD_TESTS=OFF \
+            -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
+            -DGTSAM_BUILD_TIMING_ALWAYS=OFF \
+            -DGTSAM_BUILD_PYTHON=OFF \
+            -DGTSAM_INSTALL_CPPUNITLITE=ON
+
+          cmake --build "$RUNNER_TEMP/gtsam-build" --parallel 2
+          sudo cmake --install "$RUNNER_TEMP/gtsam-build"
+          sudo ldconfig
 
       - name: Ignore unrelated packages
         shell: bash
@@ -121,8 +153,13 @@ jobs:
         shell: bash
         working-directory: colcon_ws
         run: |
+          set -euo pipefail
           source /opt/ros/jazzy/setup.bash
-          colcon build --continue-on-error --symlink-install
+
+          colcon build --symlink-install --cmake-args \
+            -DGTSAM_DIR:PATH=/usr/local/lib/cmake/GTSAM \
+            -DGTSAMCMakeTools_DIR:PATH=/usr/local/lib/cmake/GTSAMCMakeTools \
+            -DCPPUNITLITE_LIBRARY:FILEPATH=/usr/local/lib/libCppUnitLite.a
 
       - name: Setup tmux logging
         shell: bash
