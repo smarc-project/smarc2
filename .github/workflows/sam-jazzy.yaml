@@ -122,3 +122,30 @@ jobs:
         run: |
           source /opt/ros/jazzy/setup.bash
           colcon build --continue-on-error --symlink-install
+
+      - name: Setup tmux logging
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          tmux start-server \; set-option -g exit-empty off
+          LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
+          tmux set-hook -g after-new-session \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-new-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-split-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+      - name: Run sam_bringup.sh
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run smarc_bringups 
+          echo "Waiting for dji_bringup.sh to start..."
+          sleep 10
+          echo ">>>> ROS NODES"
+          ros2 node list
