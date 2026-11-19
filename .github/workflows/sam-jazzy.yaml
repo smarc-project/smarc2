@@ -23,6 +23,10 @@ on:
     - '**/*.idl'
     - '.github/workflows/sam-jazzy.yaml'
     - '.gitmodules'
+    - '**/*.py'
+    - '**/*.launch'
+    - 'utilities/expect_topics/config/**'
+    - 'scripts/smarc_bringups/**'
   pull_request:
     branches: [jazzy, ci/sam-gh-workflow-testing]
     paths:
@@ -43,12 +47,17 @@ on:
     - '**/*.idl'
     - '.github/workflows/sam-jazzy.yaml'
     - '.gitmodules'
+    - '**/*.py'
+    - '**/*.launch'
+    - 'utilities/expect_topics/config/**'
+    - 'scripts/smarc_bringups/**'
 
 jobs:
   sam-jazzy:
     runs-on: ubuntu-24.04
     env: 
       ROS_DOMAIN_ID: 20
+      LOCAL_ROBOT_NAME: sam_auv_v1
 
     steps:
       - uses: actions/checkout@v7
@@ -59,7 +68,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y software-properties-common curl
+          sudo apt-get install -y software-properties-common curl tmux
 
           sudo add-apt-repository universe
 
@@ -184,7 +193,31 @@ jobs:
         run: |
           source install/setup.bash
           ros2 run smarc_bringups sam_bringup.sh testing
-          echo "Waiting for dji_bringup.sh to start..."
+          echo "Waiting for sam_bringup.sh to start..."
           sleep 10
           echo ">>>> ROS NODES"
           ros2 node list
+
+      - name: sam lives
+        shell: bash
+        working-directory: colcon_ws
+        timeout-minutes: 2
+        run: |
+          source install/setup.bash
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=sam_live.yaml -r __ns:=/$LOCAL_ROBOT_NAME
+
+      - name: Print tmux pane output and kill tmux server
+        if: always()
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        run: |
+          bash print_tmux_logs.sh
+          tmux kill-server
+
+      - name: Upload SAM bringup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sam-jazzy-tmux-logs
+          path: tmux-logs/
+          if-no-files-found: ignore
