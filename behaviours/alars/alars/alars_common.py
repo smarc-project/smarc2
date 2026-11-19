@@ -3,16 +3,12 @@
 import numpy as np
 
 from rclpy.node import Node
-from rclpy.time import Time
-from rclpy.duration import Duration
 
-from geometry_msgs.msg import  PointStamped, PoseStamped
+from geometry_msgs.msg import PointStamped, PoseStamped, Vector3Stamped
 from geographic_msgs.msg import GeoPoint
-from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry
 
 from tf2_geometry_msgs import PoseWithCovarianceStamped, do_transform_pose_stamped, do_transform_vector3
-from tf2_ros import Buffer, TransformListener, Vector3Stamped
 
 from yolo_msgs.msg import DetectionArray, Detection
 
@@ -89,15 +85,10 @@ class DroneState():
                 if obj.header.frame_id != self.MAP_FRAME:
                     self._loginfo(f"Received {obj.class_name} projection in frame {obj.header.frame_id}, expected {self.MAP_FRAME}. Transforming...")
                     try:
-                        if not self._tf_buffer.can_transform(self.MAP_FRAME, obj.header.frame_id, Time(seconds=0)):
+                        if not self._georef.can_transform(self.MAP_FRAME, obj.header.frame_id):
                             self._loginfo(f"Cannot transform pose in frame <{obj.header.frame_id}> to <{self.MAP_FRAME}> frame.")
                             return
-                        tf = self._tf_buffer.lookup_transform(
-                            target_frame = self.MAP_FRAME,
-                            source_frame = obj.header.frame_id,
-                            time = Time(seconds=0),
-                            timeout = Duration(seconds=1)
-                        )
+                        tf = self._georef.lookup_transform(self.MAP_FRAME, obj.header.frame_id, 1.0)
                         in_map = do_transform_pose_stamped(self.auv_projection, tf)
                         self.auv_projection.pose = in_map.pose
                         self.auv_projection.header.frame_id = self.MAP_FRAME
@@ -120,11 +111,6 @@ class DroneState():
                                        DJITopics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC,
                                        _projected_detections_cb,
                                        10)
-
-        
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
-            
 
     @property
     def drone_in_map(self) -> PoseStamped|None:
@@ -210,16 +196,10 @@ class DroneState():
         if pose.header.frame_id == target_frame:
             return pose
         else:
-            if not self._tf_buffer.can_transform(target_frame, pose.header.frame_id, Time(seconds=0)):
+            if not self._georef.can_transform(target_frame, pose.header.frame_id):
                 self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{target_frame}> frame.")
                 return None
-            
-            tf = self._tf_buffer.lookup_transform(
-                target_frame = target_frame,
-                source_frame = pose.header.frame_id,
-                time = Time(seconds=0),
-                timeout = Duration(seconds=1)
-            )
+            tf = self._georef.lookup_transform(target_frame, pose.header.frame_id, 1.0)
             in_target = do_transform_pose_stamped(pose, tf)
             return in_target
         
@@ -235,16 +215,10 @@ class DroneState():
         if vec.header.frame_id == target_frame:
             return vec
         else:
-            if not self._tf_buffer.can_transform(target_frame, vec.header.frame_id, Time(seconds=0)):
+            if not self._georef.can_transform(target_frame, vec.header.frame_id):
                 self._loginfo(f"Cannot transform vector in frame <{vec.header.frame_id}> to <{target_frame}> frame.")
                 return None
-
-            tf = self._tf_buffer.lookup_transform(
-                target_frame = target_frame,
-                source_frame = vec.header.frame_id,
-                time = Time(seconds=0),
-                timeout = Duration(seconds=1)
-            )
+            tf = self._georef.lookup_transform(target_frame, vec.header.frame_id, 1.0)
             in_target = do_transform_vector3(vec, tf)
             return in_target
 
