@@ -1,4 +1,5 @@
-"""Python wrapper around the C++ GeorefUtils.
+"""
+Python wrapper around the C++ GeorefUtils.
 
 The C++ side has its own internal rclcpp node (in its own rclcpp context) and receives tf
 on its own background thread, so nothing needs to be added to an rclpy executor. Example::
@@ -21,16 +22,15 @@ on its own background thread, so nothing needs to be added to an rclpy executor.
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped, Pose, PoseStamped, TransformStamped
 from rclpy.serialization import deserialize_message, serialize_message
-from std_msgs.msg import Float32
-
 from smarc_georef_cpp._georef_cpp import (
-    GeorefUtilsCpp,
-    TransformException,
     compute_course_from_two_poses as _compute_course_from_two_poses,
     compute_speed_from_two_poses as _compute_speed_from_two_poses,
     convert_enu_pose_to_heading as _convert_enu_pose_to_heading,
+    GeorefUtilsCpp,
     shutdown_context,
+    TransformException,
 )
+from std_msgs.msg import Float32
 
 __all__ = [
     'GeorefUtils',
@@ -49,7 +49,8 @@ class GeorefUtils:
     """Creates the C++ GeorefUtils (with an internal rclcpp node) and exposes its functions."""
 
     def __init__(self, node=None, ros_args=None):
-        """Create the C++ GeorefUtils and its internal rclcpp node.
+        """
+        Create the C++ GeorefUtils and its internal rclcpp node.
 
         :param node: optional rclpy node using this. Its use_sim_time is copied to the
             internal C++ node (once, at creation).
@@ -70,7 +71,8 @@ class GeorefUtils:
         return self._impl.node_name()
 
     def get_utm_frame(self) -> str:
-        """Name of the top level utm frame in the tf tree, e.g. 'utm_33_V'.
+        """
+        Name of the top level utm frame in the tf tree, e.g. 'utm_33_V'.
 
         Raises TransformException if there is no utm frame (e.g. no transforms received yet)
         or there are several.
@@ -79,7 +81,8 @@ class GeorefUtils:
 
     def geopoint_to_point_stamped(self, geopoint: GeoPoint,
                                   target_frame: str = '') -> PointStamped:
-        """Convert a GeoPoint to a PointStamped in target_frame (the utm frame if empty).
+        """
+        Convert a GeoPoint to a PointStamped in target_frame (the utm frame if empty).
 
         The zone is the utm frame in the tf tree when there is one, and this geopoint's
         own zone when there is not. A frame that appears later replaces that guess.
@@ -90,7 +93,8 @@ class GeorefUtils:
         return deserialize_message(data, PointStamped)
 
     def point_stamped_to_geopoint(self, point: PointStamped) -> GeoPoint:
-        """Convert a PointStamped in any frame to a GeoPoint.
+        """
+        Convert a PointStamped in any frame to a GeoPoint.
 
         Raises TransformException if there is no utm frame or more than one, or the transform
         to the utm frame is not available.
@@ -100,7 +104,8 @@ class GeorefUtils:
 
     def lookup_transform(self, target_frame: str, source_frame: str,
                          timeout_sec: float = 0.0) -> TransformStamped:
-        """Latest transform from source_frame to target_frame.
+        """
+        Latest transform from source_frame to target_frame.
 
         Raises TransformException if it is not available within timeout_sec.
         """
@@ -109,14 +114,16 @@ class GeorefUtils:
 
     def can_transform(self, target_frame: str, source_frame: str,
                       timeout_sec: float = 0.0) -> bool:
-        """Whether the latest transform from source_frame to target_frame is available.
+        """
+        Whether the latest transform from source_frame to target_frame is available.
 
         Waits up to timeout_sec for it.
         """
         return self._impl.can_transform(target_frame, source_frame, timeout_sec)
 
     def shutdown(self):
-        """Stop the tf listener and destroy the internal node.
+        """
+        Stop the tf listener and destroy the internal node.
 
         Called automatically on garbage collection.
         """

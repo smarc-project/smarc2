@@ -155,7 +155,8 @@ PYBIND11_MODULE(_georef_cpp, m)
   py::register_exception<tf2::TransformException>(m, "TransformException", PyExc_RuntimeError);
 
   py::class_<PyGeorefUtils>(m, "GeorefUtilsCpp")
-  .def(py::init<const std::vector<std::string> &>(), py::arg("ros_args") = std::vector<std::string>{})
+  .def(py::init<const std::vector<std::string> &>(),
+    py::arg("ros_args") = std::vector<std::string>{})
   .def("shutdown", &PyGeorefUtils::shutdown, py::call_guard<py::gil_scoped_release>())
   .def("node_name", &PyGeorefUtils::node_name)
   .def("get_utm_frame", &PyGeorefUtils::get_utm_frame)

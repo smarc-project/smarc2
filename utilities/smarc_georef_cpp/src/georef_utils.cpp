@@ -230,7 +230,8 @@ double compute_speed_from_two_poses(
 {
   const double dx = current_pose.pose.position.x - prev_pose.pose.position.x;
   const double dy = current_pose.pose.position.y - prev_pose.pose.position.y;
-  const double dt = stamp_seconds(current_pose.header.stamp) - stamp_seconds(prev_pose.header.stamp);
+  const double dt = stamp_seconds(current_pose.header.stamp) -
+    stamp_seconds(prev_pose.header.stamp);
   if (dt <= 0.0) {
     return 0.0;
   }
