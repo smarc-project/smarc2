@@ -67,7 +67,9 @@ tmux send-keys " ros2 launch hydrobatic_localization state_estimator.launch robo
 #tmux rename-window "bt"
 # FIXME: Ideally we want to launch the bt here already instead of last to avoid any other confusion.
 #tmux select-window -t $SESSION:2
-#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME & ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux split-window -h
+#tmux send-keys "ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:3 -n 'control'
@@ -104,7 +106,9 @@ tmux send-keys "ros2 launch sam_health_checker sam_rate_health_checker.launch ro
 
 # Launch the officer last, so the action servers are publishing heartbeats.
 #tmux select-window -t $SESSION:2
-#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME & ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux split-window -h
+#tmux send-keys "ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 #USERNAME=$(whoami)
 #if [ $USERNAME != "sam" ]
