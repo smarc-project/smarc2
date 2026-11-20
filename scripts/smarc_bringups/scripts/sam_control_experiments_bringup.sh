@@ -8,7 +8,7 @@ SSS_SAVE_PATH=/home/orin/sss_auto_save
 SESSION=${ROBOT_NAME}_bringup
 USE_SIM_TIME=False
 
-# New variables for wasp_bt.launch and wasp_mqtt_agent.launch
+# waraps_vehicle and waraps_officer
 AGENT_TYPE=subsurface
 PULSE_RATE=0.5 # Hz
 if [ "$USE_SIM_TIME" = "True" ]; then
@@ -67,7 +67,9 @@ tmux send-keys " ros2 launch hydrobatic_localization state_estimator.launch robo
 #tmux rename-window "bt"
 # FIXME: Ideally we want to launch the bt here already instead of last to avoid any other confusion.
 #tmux select-window -t $SESSION:2
-#tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME" C-m
+#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux split-window -h
+#tmux send-keys "ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 # controllers that are "constantly running"
 tmux new-window -t $SESSION:3 -n 'control'
@@ -102,9 +104,11 @@ tmux select-window -t $SESSION:7
 # tmux send-keys "ros2 topic pub -r 1 /$ROBOT_NAME/smarc/vehicle_health std_msgs/msg/Int8 '{data: 0}' " # don't use C-m here, we want to keep the command in the window
 tmux send-keys "ros2 launch sam_health_checker sam_rate_health_checker.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME" C-m
 
-# Launch the wasp_bt LAST, to give action servers time to start publishing heartbeats
+# Launch the officer last, so the action servers are publishing heartbeats.
 #tmux select-window -t $SESSION:2
-#tmux send-keys "ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux send-keys "ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
+#tmux split-window -h
+#tmux send-keys "ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME" C-m
 
 #USERNAME=$(whoami)
 #if [ $USERNAME != "sam" ]
