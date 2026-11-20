@@ -36,6 +36,11 @@ string FISHEYE_CAMERA_LINK = 'fisheye_camera_link'
 string GIMBAL_OPTICAL_FRAME = 'z1_global_optical_frame'
 string FISHEYE_OPTICAL_FRAME = 'fisheye_optical_frame'
 
+# load cell links
+string LOAD_CELL_1_LINK = 'load_cell_1_link'
+string LOAD_CELL_2_LINK = 'load_cell_2_link'
+string LOAD_CELL_3_LINK = 'load_cell_3_link'
+string LOAD_CELL_4_LINK = 'load_cell_4_link'
 
 
 # Used by projection/filter

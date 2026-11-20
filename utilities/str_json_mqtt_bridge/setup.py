@@ -20,7 +20,7 @@ setup(
     maintainer_email='ozero@kth.se',
     description='A simple json ros string to mqtt bridge',
     license='MIT',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             "waraps_bridge = str_json_mqtt_bridge.bridge:main",

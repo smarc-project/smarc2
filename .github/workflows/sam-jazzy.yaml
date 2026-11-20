@@ -1,0 +1,222 @@
+# .github/workflows/sam-jazzy.yaml
+
+name: Test SAM Bringup on Jazzy
+
+on:
+  push:
+    branches: [jazzy, ci/sam-gh-workflow-testing]
+    paths:
+    - '**/CMakeLists.txt'
+    - '**/package.xml'
+    - '**/*.cmake'
+    - '**/*.c'
+    - '**/*.cc'
+    - '**/*.cpp'
+    - '**/*.cxx'
+    - '**/*.h'
+    - '**/*.hh'
+    - '**/*.hpp'
+    - '**/*.hxx'
+    - '**/*.msg'
+    - '**/*.srv'
+    - '**/*.action'
+    - '**/*.idl'
+    - '.github/workflows/sam-jazzy.yaml'
+    - '.gitmodules'
+    - '**/*.py'
+    - '**/*.launch'
+    - 'utilities/expect_topics/config/**'
+    - 'scripts/smarc_bringups/**'
+  pull_request:
+    branches: [jazzy, ci/sam-gh-workflow-testing]
+    paths:
+    - '**/CMakeLists.txt'
+    - '**/package.xml'
+    - '**/*.cmake'
+    - '**/*.c'
+    - '**/*.cc'
+    - '**/*.cpp'
+    - '**/*.cxx'
+    - '**/*.h'
+    - '**/*.hh'
+    - '**/*.hpp'
+    - '**/*.hxx'
+    - '**/*.msg'
+    - '**/*.srv'
+    - '**/*.action'
+    - '**/*.idl'
+    - '.github/workflows/sam-jazzy.yaml'
+    - '.gitmodules'
+    - '**/*.py'
+    - '**/*.launch'
+    - 'utilities/expect_topics/config/**'
+    - 'scripts/smarc_bringups/**'
+
+jobs:
+  sam-jazzy:
+    runs-on: ubuntu-24.04
+    env: 
+      ROS_DOMAIN_ID: 20
+      LOCAL_ROBOT_NAME: sam_auv_v1
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: colcon_ws/src/${{ github.event.repository.name }}
+
+      - name: Install ROS 2 Jazzy
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common curl tmux
+
+          sudo add-apt-repository universe
+
+          export ROS_APT_SOURCE_VERSION=$(
+            curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest \
+              | grep -F "tag_name" \
+              | awk -F'"' '{print $4}'
+          )
+
+          curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+
+          sudo dpkg -i /tmp/ros2-apt-source.deb
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            ros-jazzy-ros-base \
+            ros-dev-tools
+
+      - name: Check ROS
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          ros2 wtf
+
+      - name: Get base submodules
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            git submodule update --init external_packages/mqtt_bridge/
+            git submodule update --init external_packages/ROS-TCP-Endpoint/
+
+      - name: Get SAM submodules
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            git submodule update --init navigation/dead_reckoning/hydrobatic_localization
+            git submodule update --init vehicles/smarc_modelling
+      
+      - name: Build and install GTSAM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build git \
+            libboost-all-dev libeigen3-dev libtbb-dev
+
+          git clone --depth 1 --branch 4.3a2 \
+            https://github.com/borglab/gtsam.git \
+            "$RUNNER_TEMP/gtsam"
+
+          cmake -S "$RUNNER_TEMP/gtsam" \
+                -B "$RUNNER_TEMP/gtsam-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
+            -DGTSAM_USE_SYSTEM_EIGEN=ON \
+            -DGTSAM_BUILD_UNSTABLE=OFF \
+            -DGTSAM_BUILD_TESTS=OFF \
+            -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
+            -DGTSAM_BUILD_TIMING_ALWAYS=OFF \
+            -DGTSAM_BUILD_PYTHON=OFF \
+            -DGTSAM_INSTALL_CPPUNITLITE=ON
+
+          cmake --build "$RUNNER_TEMP/gtsam-build" --parallel 2
+          sudo cmake --install "$RUNNER_TEMP/gtsam-build"
+          sudo ldconfig
+
+      - name: Ignore unrelated packages
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}
+        run: |
+            bash .github/workflows/create_colcon_ignores.sh lolo alars brov evolo proxops tank \
+            sbg_ros2_driver smarc_acomms smarc_acomms_client
+      
+      - name: Rosdep
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          sudo apt install -y python3-rosdep
+          sudo rosdep init
+          rosdep update
+          source /opt/ros/jazzy/setup.bash
+          rosdep install --from-paths src --ignore-src -r -y
+
+      - name: Build workspace
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          set -eo pipefail
+          source /opt/ros/jazzy/setup.bash
+          set -u
+
+          colcon build --symlink-install --cmake-args \
+            -DGTSAM_DIR:PATH=/usr/local/lib/cmake/GTSAM \
+            -DGTSAMCMakeTools_DIR:PATH=/usr/local/lib/cmake/GTSAMCMakeTools \
+            -DCPPUNITLITE_LIBRARY:FILEPATH=/usr/local/lib/libCppUnitLite.a
+
+      - name: Setup tmux logging
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          tmux start-server \; set-option -g exit-empty off
+          LOGGER="$GITHUB_WORKSPACE/colcon_ws/src/${{ github.event.repository.name }}/.github/workflows/log_tmux_pane.sh"
+          tmux set-hook -g after-new-session \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-new-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+          tmux set-hook -g after-split-window \
+            "run-shell '$LOGGER \"#{pane_id}\" \"#{session_name}\" \"#{window_index}\" \"#{pane_index}\"'"
+
+      - name: Run sam_bringup.sh
+        shell: bash
+        working-directory: colcon_ws
+        run: |
+          source install/setup.bash
+          ros2 run smarc_bringups sam_bringup.sh testing
+          echo "Waiting for sam_bringup.sh to start..."
+          sleep 10
+          echo ">>>> ROS NODES"
+          ros2 node list
+
+      - name: sam lives
+        shell: bash
+        working-directory: colcon_ws
+        timeout-minutes: 2
+        run: |
+          source install/setup.bash
+          ros2 run expect_topics expect_topics --ros-args -p timeout_sec:=60.0 -p topics_file:=sam_live.yaml -r __ns:=/$LOCAL_ROBOT_NAME
+
+      - name: Print tmux pane output and kill tmux server
+        if: always()
+        shell: bash
+        working-directory: colcon_ws/src/${{ github.event.repository.name }}/.github/workflows
+        run: |
+          bash print_tmux_logs.sh
+          tmux kill-server
+
+      - name: Upload SAM bringup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sam-jazzy-tmux-logs
+          path: tmux-logs/
+          if-no-files-found: ignore

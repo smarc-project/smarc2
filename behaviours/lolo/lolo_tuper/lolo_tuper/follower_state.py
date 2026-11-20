@@ -15,6 +15,7 @@ UTM zone for the operating area).
 """
 
 import math
+import threading
 from collections import deque
 
 import numpy as np
@@ -44,10 +45,9 @@ class FollowerState:
 
         self._pose: PoseWithCovarianceStamped | None = None
 
-        # Measured divergence (m) of the UKF estimate from a known truth, as
-        # published by the estimator on delta_pos. Unlike the covariance, this
-        # is the ACTUAL position error, so a confidently-wrong filter still
-        # trips it. Float32 carries no stamp, so we time the reception ourselves.
+        # Distance (m) between the UKF estimate and the INS fix, published on
+        # delta_pos underwater as well as on the surface. Float32 carries no
+        # stamp, so we time the reception ourselves.
         self._delta_pos: float | None = None
         self._delta_pos_rx_time: float | None = None
 
@@ -56,7 +56,10 @@ class FollowerState:
         self._setpoint_rx_time: float | None = None
 
         # Rolling deque of (rx_time, x, y) of fresh setpoint receptions.
+        # The action loop and the setpoint subscription run on different
+        # threads, so every read or write of this deque holds the lock.
         self._setpoint_history: deque = deque()
+        self._history_lock = threading.Lock()
 
         # --- Onboard navigation (used to bootstrap toward initial_setpoint
         # while there is no live UKF). Position from /smarc/latlon -> UTM,
@@ -98,7 +101,8 @@ class FollowerState:
         self._setpoint = None
         self._setpoint_utm = None
         self._setpoint_rx_time = None
-        self._setpoint_history.clear()
+        with self._history_lock:
+            self._setpoint_history.clear()
         self._delta_pos = None
         self._delta_pos_rx_time = None
 
@@ -143,8 +147,15 @@ class FollowerState:
         self._setpoint_utm = (float(point.x), float(point.y))
         self._setpoint_rx_time = now
 
-        self._setpoint_history.append((now, float(point.x), float(point.y)))
-        self._prune_history(now)
+        with self._history_lock:
+            self._setpoint_history.append((now, float(point.x), float(point.y)))
+            self._prune_history(now)
+
+    def _snapshot_history(self, now: float) -> list:
+        """Prune and copy the setpoint history. Safe to use off the callback."""
+        with self._history_lock:
+            self._prune_history(now)
+            return list(self._setpoint_history)
 
     def _prune_history(self, now: float) -> None:
         while (self._setpoint_history and
@@ -170,7 +181,10 @@ class FollowerState:
         age = self.pose_age
         if age is None:
             return False
-        return 0.0 <= age <= self._estimate_max_age
+        # The Pi stamps this pose. A clock that leads the vehicle by a few
+        # milliseconds makes age negative, and a strict >= 0 rejects every
+        # sample even while the filter is publishing.
+        return -0.5 <= age <= self._estimate_max_age
 
     @property
     def pose_utm(self) -> tuple[float, float] | None:
@@ -243,9 +257,8 @@ class FollowerState:
     def delta_pos_fresh(self) -> bool:
         """True only if a divergence sample arrived within estimate_max_age.
 
-        delta_pos is published only when a known truth (e.g. follower GPS) is
-        available, so it can legitimately be absent (deep dives, comms loss).
-        Callers must treat 'not fresh' as 'divergence unknown', not as zero.
+        The UKF publishes this from the INS fix, including underwater. A stale
+        sample is divergence unknown, not zero.
         """
         age = self.delta_pos_age
         if age is None:
@@ -295,13 +308,13 @@ class FollowerState:
         symmetric outliers far better than a two-point finite difference).
         """
         now = self._now
-        self._prune_history(now)
+        samples = self._snapshot_history(now)
 
         # A stale setpoint means comms loss, not a known velocity.
         if not self.setpoint_fresh:
             return None
 
-        samples = [s for s in self._setpoint_history if now - s[0] <= window]
+        samples = [s for s in samples if now - s[0] <= window]
         if len(samples) < 3:
             return None
 
@@ -347,14 +360,12 @@ class FollowerState:
         so that a comms dropout (no new samples) is NOT mistaken for a stop.
         """
         now = self._now
-        self._prune_history(now)
+        samples = self._snapshot_history(now)
 
         # Need fresh reception right now; a stale setpoint means comms loss,
         # not a genuine stop.
         if not self.setpoint_fresh:
             return False
-
-        samples = list(self._setpoint_history)
         if len(samples) < 2:
             return False
 

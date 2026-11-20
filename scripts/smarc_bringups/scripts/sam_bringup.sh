@@ -75,14 +75,19 @@ row(
 
 # SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
 SAM_CAP_CMD="ros2 launch sam_captain sam_captain.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
-MQTT_BRIDGE_CMD="ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME domain:=subsurface context:=isee realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME"
-# HEALTH_CHECKER_CMD="ros2 launch sam_health_checker sam_rate_health_checker.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
-# UTILS_CMD="ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME"
-tmux_make_layout "$SESSION" utils "
-row(
-    var(MQTT_BRIDGE_CMD),
-    var(SAM_CAP_CMD)
-)"
+if [[ "${1:-}" == "testing" ]]; then
+    # Core startup checks do not require an MQTT broker.
+    tmux_make_layout "$SESSION" utils "var(SAM_CAP_CMD)"
+else
+    MQTT_BRIDGE_CMD="ros2 launch str_json_mqtt_bridge waraps_bridge.launch broker_addr:=$MQTT_BROKER_IP broker_port:=$MQTT_BROKER_PORT robot_name:=$ROBOT_NAME domain:=subsurface context:=isee realsim:=$REALSIM use_sim_time:=$USE_SIM_TIME"
+    # HEALTH_CHECKER_CMD="ros2 launch sam_health_checker sam_rate_health_checker.launch robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+    # UTILS_CMD="ros2 launch smarc_bringups utilities.launch robot_name:=$ROBOT_NAME"
+    tmux_make_layout "$SESSION" utils "
+    row(
+        var(MQTT_BRIDGE_CMD),
+        var(SAM_CAP_CMD)
+    )"
+fi
 
 
 
@@ -90,5 +95,7 @@ row(
 
 # Set default window
 tmux select-window -t $SESSION:0
-# attach to the new session
-tmux -2 attach-session -t $SESSION
+# attach only outside ci
+if [[ "${1:-}" != "testing" ]]; then
+    tmux -2 attach-session -t "$SESSION"
+fi
