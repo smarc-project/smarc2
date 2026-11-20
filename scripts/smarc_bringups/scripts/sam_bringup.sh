@@ -88,11 +88,6 @@ else
         var(SAM_CAP_CMD)
     )"
 fi
-tmux_make_layout "$SESSION" utils "
-row(
-    var(MQTT_BRIDGE_CMD),
-    var(SAM_CAP_CMD)
-)"
 
 
 
