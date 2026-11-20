@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    landing_relative_state:
+      max_drone_age_s: 0.8
+      max_pad_age_s: 1.5
+
+    pad_odometry:
+      # Only for estimation tests (TODO: change later with FSM final descent).
+      enable_dropout_prediction: true
+      max_prediction_s: 10.0
