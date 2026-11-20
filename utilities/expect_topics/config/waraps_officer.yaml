@@ -1,9 +1,10 @@
 nodes:
-  - name: "wasp_bt"
+  - name: "waraps_officer"
+  - name: "waraps_vehicle"
 
 topics:
-  - topic: "smarc_msgs.msg::Topics.BT_HEARTBEAT_TOPIC"
-    type: "std_msgs/msg/Empty"
+  - topic: "smarc_msgs.msg::Topics.WARA_PS_HEARTBEAT_TOPIC"
+    type: "std_msgs/msg/String"
     qos:
       reliability: reliable
       durability: volatile
@@ -29,6 +30,3 @@ topics:
       reliability: reliable
       durability: volatile
       depth: 10
-
-
-
