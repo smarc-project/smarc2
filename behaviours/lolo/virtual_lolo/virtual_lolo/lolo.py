@@ -18,8 +18,7 @@
 import yaml
 import numpy as np
 
-# TODO: add this as a dependency in package.xml.
-from tf_transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
 
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
@@ -279,11 +278,11 @@ class Lolo():
         self.pos_x = msg.pose.pose.position.x
         self.pos_y = msg.pose.pose.position.y
 
-        [roll, pitch, yaw] = euler_from_quaternion([msg.pose.pose.orientation.w,
-                                                    msg.pose.pose.orientation.x,
-                                                    msg.pose.pose.orientation.y,
-                                                    msg.pose.pose.orientation.z],
-                                                   axes='sxyz')
+        [roll, pitch, yaw] = quat2euler([msg.pose.pose.orientation.w,
+                                         msg.pose.pose.orientation.x,
+                                         msg.pose.pose.orientation.y,
+                                         msg.pose.pose.orientation.z],
+                                         axes='sxyz')
         self.roll = roll
         self.pitch = pitch
         self.yaw = yaw
