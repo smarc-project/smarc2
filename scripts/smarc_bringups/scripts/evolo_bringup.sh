@@ -20,7 +20,7 @@ if tmux has-session -t $SESSION 2>/dev/null; then
     exit 1
 fi
 
-# New variables for wasp_bt.launch and wasp_mqtt_agent.launch
+# waraps_vehicle and waraps_officer
 AGENT_TYPE=surface
 PULSE_RATE=0.5 # Hz
 CONTEXT=evolo # change this to 'smarc' or something else, then connect to the same context using sim to avoid clutter
@@ -34,8 +34,6 @@ elif [[ "$(whoami)" == *"smarc"* ]]; then
 else
     AGENT_UUID_ARG=""
 fi
-
-BT_LOG_MODE=compact # can be 'compact' or 'verbose'
 
 #Dune backseat driver
 DUNE_BACKSEAT_DRIVER=False #[True , False]
@@ -169,11 +167,13 @@ col(
 )"
 
 
-# BT
-SMARC_BT_CMD="ros2 launch wasp_bt wasp_bt.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME bt_log_mode:=$BT_LOG_MODE $AGENT_UUID_ARG"
-tmux_make_layout "$SESSION" wasp-bt "
-col(
-    var(SMARC_BT_CMD)
+# Level 1 and the officer, in separate panes. The vehicle launch is the old mqtt agent.
+VEHICLE_CMD="ros2 launch waraps_officer waraps_vehicle.launch robot_name:=$ROBOT_NAME agent_type:=$AGENT_TYPE pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME $AGENT_UUID_ARG"
+OFFICER_CMD="ros2 launch waraps_officer waraps_officer.launch robot_name:=$ROBOT_NAME pulse_rate:=$PULSE_RATE use_sim_time:=$USE_SIM_TIME"
+tmux_make_layout "$SESSION" waraps "
+row(
+    var(VEHICLE_CMD),
+    var(OFFICER_CMD)
 )"
 
 
