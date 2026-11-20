@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from tkinter import W
 from sam_diving_controller.controllers.PIDControl import PIDControl
 from sam_diving_controller.IDivePub import MissionStates, ActuatorStates
 from sam_diving_controller.controllers.DiveControllerInterface import DiveControllerInterface

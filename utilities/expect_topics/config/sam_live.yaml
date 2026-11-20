@@ -1,0 +1,21 @@
+nodes:
+  - name: "diving_node"
+  - name: "robot_state_publisher"
+  - name: "sam_captain"
+  - name: "state_estimator"
+  - name: "waraps_vehicle"
+  - name: "wasp_bt"
+
+topics:
+  - topic: "robot_description"
+    type: "std_msgs/msg/String"
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 10
+  - topic: "/tf_static"
+    type: "tf2_msgs/msg/TFMessage"
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 10

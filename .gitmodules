@@ -77,7 +77,7 @@
 	url = https://github.com/smarc-project/yolo_ros.git
 [submodule "navigation/dead_reckoning/hydrobatic_localization"]
 	path = navigation/dead_reckoning/hydrobatic_localization
-	url = git@github.com:smarc-project/hydrobatic_localization.git
+	url = https://github.com/smarc-project/hydrobatic_localization.git
 [submodule "drivers/dv_sss_driver"]
 	path = drivers/dv_sss_driver
 	url = git@github.com:smarc-project/dv_sss_driver.git
@@ -86,7 +86,7 @@
 	url = https://github.com/LOEWE-emergenCITY/ros_babel_fish.git
 [submodule "vehicles/smarc_modelling"]
 	path = vehicles/smarc_modelling
-	url = git@github.com:smarc-project/smarc_modelling.git
+	url = https://github.com/smarc-project/smarc_modelling.git
 [submodule "drivers/succorfish_driver"]
 	path = drivers/succorfish_driver
 	url = https://github.com/NinjaTuna007/succorfish_driver.git
