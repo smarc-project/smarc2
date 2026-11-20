@@ -76,7 +76,7 @@ still needs the utm frame in the tree.
 available. `can_transform` never throws. Right after startup this is normal until the frames have
 been received over tf. Those calls don't wait; call `can_transform` with a timeout first.
 
-These do not use the tf tree.
+These do not use the tf tree. In C++ they are in namespace `smarc_georef`. The Python names are the same.
 
 - `convert_enu_pose_to_heading(enu_pose)`: compass heading in degrees, 0 north and 90 east,
   from the ENU yaw of the pose. Returns a `Float32`.

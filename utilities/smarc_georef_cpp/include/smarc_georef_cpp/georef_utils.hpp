@@ -82,6 +82,10 @@ private:
   std::mutex mutex_;  // Only one thread is allowed to access variables at a time
 };
 
+// Heading, course, and speed. None of these uses the tf tree.
+namespace smarc_georef
+{
+
 // Compass heading in degrees, 0 north, 90 east, from an ENU pose. The yaw is the ENU
 // yaw of the orientation.
 double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose);
@@ -96,5 +100,7 @@ double compute_course_from_two_poses(
 double compute_speed_from_two_poses(
   const geometry_msgs::msg::PoseStamped & prev_pose,
   const geometry_msgs::msg::PoseStamped & current_pose);
+
+}  // namespace smarc_georef
 
 #endif  // SMARC_GEOREF_CPP__GEOREF_UTILS_HPP_

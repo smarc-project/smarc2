@@ -58,6 +58,10 @@ geometry_msgs::msg::Pose pose_with_quat(double w, double x, double y, double z)
 
 }  // namespace
 
+using smarc_georef::compute_course_from_two_poses;
+using smarc_georef::compute_speed_from_two_poses;
+using smarc_georef::convert_enu_pose_to_heading;
+
 TEST(PureConversions, LatlonZoneUntilAFrameExists)
 {
   if (!rclcpp::ok()) {

@@ -180,6 +180,9 @@ bool GeorefUtils::can_transform(
     tf2::durationFromSec(timeout_sec));
 }
 
+namespace smarc_georef
+{
+
 double convert_enu_pose_to_heading(const geometry_msgs::msg::Pose & enu_pose)
 {
   const auto & q = enu_pose.orientation;
@@ -237,3 +240,5 @@ double compute_speed_from_two_poses(
   }
   return std::sqrt(dx * dx + dy * dy) / dt;
 }
+
+}  // namespace smarc_georef
