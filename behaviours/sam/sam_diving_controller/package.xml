@@ -7,6 +7,8 @@
   <maintainer email="ddorner@kth.se">David Doerner</maintainer>
   <license>MIT</license>
 
+  <exec_depend>smarc_georef_cpp</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

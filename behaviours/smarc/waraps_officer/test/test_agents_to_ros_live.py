@@ -8,7 +8,7 @@ from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.parameter import Parameter
 from smarc_msgs.msg import Topics
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils
 from smarc_utilities.testing import wait_for
 from std_msgs.msg import String
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
@@ -29,7 +29,8 @@ def test_a_mirrored_agent_becomes_latlon_and_odom(ros_graph):
     point.latitude = LAT
     point.longitude = LON
     point.altitude = ALT
-    utm = convert_latlon_to_utm(point)
+    with GeorefUtils(node=source) as georef:
+        utm = georef.geopoint_to_point_stamped(point)
 
     transform = TransformStamped()
     transform.header.stamp = source.get_clock().now().to_msg()

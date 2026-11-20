@@ -31,7 +31,7 @@ from dji_msgs.msg import Topics as DjiTopics
 from dji_msgs.msg import PsdkTopics as PSDKTopics
 
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
+from smarc_georef_cpp import GeorefUtils, TransformException
 from transforms3d.euler import euler2quat, quat2euler, quat2mat
 from tf2_geometry_msgs import do_transform_pose_stamped
 
@@ -41,6 +41,7 @@ from .basic_ramping_controller import BasicRampingController
 class DjiCaptain():
     def __init__(self, node: Node):
         self._node = node
+        self._georef = GeorefUtils(node=self._node)
 
         self._node.declare_parameter("robot_name", "M350")
         self.ROBOT_NAME : str = self._node.get_parameter("robot_name").get_parameter_value().string_value
@@ -107,6 +108,7 @@ class DjiCaptain():
         self.HOME_FRAME = self._TF_NS + DjiLinks.HOME_POINT
 
         self._utm_zb_label : str | None = None
+        self._utm_static_published = False
 
         self._base_pose_in_home : PoseStamped | None = None
         self._base_pose_in_map : PoseStamped | None = None
@@ -147,12 +149,6 @@ class DjiCaptain():
         self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=False)
 
         qos_best_effort10 = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT, durability=QoSDurabilityPolicy.VOLATILE)
-
-        node.create_subscription(
-            NavSatFix,
-            PSDKTopics.GPS_POSITION,
-            self._gps_callback,
-            qos_profile=qos_best_effort10)
 
         node.create_subscription(
             PositionFused,
@@ -796,7 +792,7 @@ class DjiCaptain():
             gp.latitude = math.degrees(msg.latitude) # for some reason these are in radians...
             gp.longitude = math.degrees(msg.longitude)
             gp.altitude = msg.altitude
-            utm = convert_latlon_to_utm(gp)
+            utm = self._georef.geopoint_to_point_stamped(gp)
         except Exception as e:
             self.log(f"Failed to convert home point to UTM: {e}")
             return
@@ -808,6 +804,9 @@ class DjiCaptain():
 
         self._home_point_in_utm.point.x = utm.point.x
         self._home_point_in_utm.point.y = utm.point.y
+        if not self._utm_static_published and utm.header.frame_id != self._utm_zb_label:
+            self._utm_zb_label = utm.header.frame_id
+            self.log(f"Setting UTM labeled frame to: {self._utm_zb_label}")
         # we set the altitude of home point to a constant above water level
         # since almost everything we do is relative to the water level, and not geographical altitude
         # in sim, we can _know_ this altitude, but in real life we can't, so we take it as a param from
@@ -816,19 +815,6 @@ class DjiCaptain():
         self._home_point_in_utm.header.stamp = self.now_stamp
 
 
-
-    def _gps_callback(self, msg: NavSatFix):
-        if self._utm_zb_label is None:
-            gp = GeoPoint()
-            gp.latitude = msg.latitude
-            gp.longitude = msg.longitude
-            gp.altitude = msg.altitude
-            utm = convert_latlon_to_utm(gp)
-            self._utm_zb_label = utm.header.frame_id
-            self.log(f"Setting UTM labeled frame to: {self._utm_zb_label}")
-
-
-    
 
     ############
     # Health and TF publishing
@@ -985,6 +971,7 @@ class DjiCaptain():
         # home is above water somewhere, map is at water level, so the transform is just moving down
         map_tf.transform.translation.z = -self._home_point_in_utm.point.z 
         self._static_tf_pub.sendTransform(map_tf)
+        self._utm_static_published = True
 
             
     
@@ -1071,7 +1058,11 @@ class DjiCaptain():
         base_in_utm.header.frame_id = self._utm_zb_label
         base_in_utm.point.x = self._base_pose_in_home.pose.position.x + self._home_point_in_utm.point.x
         base_in_utm.point.y = self._base_pose_in_home.pose.position.y + self._home_point_in_utm.point.y
-        base_in_geopoint = convert_utm_to_latlon(base_in_utm)
+        try:
+            base_in_geopoint = self._georef.point_stamped_to_geopoint(base_in_utm)
+        except TransformException as e:
+            self.log(f"[smarc] Cannot convert base pose to latlon: {e}")
+            return
         
         # this is specific to smarc, since we take the water level as basis for everything
         alt_above_water = self._HOME_ALT_ABOVE_WATER + self._base_pose_in_home.pose.position.z

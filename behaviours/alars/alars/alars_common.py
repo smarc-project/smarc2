@@ -6,7 +6,6 @@ from rclpy.node import Node
 from rclpy.time import Time
 from rclpy.duration import Duration
 
-from std_msgs.msg import String
 from geometry_msgs.msg import  PointStamped, PoseStamped
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PointStamped
@@ -17,7 +16,7 @@ from tf2_ros import Buffer, TransformListener, Vector3Stamped
 
 from yolo_msgs.msg import DetectionArray, Detection
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm, convert_utm_to_latlon
+from smarc_georef_cpp import GeorefUtils, TransformException
 from dji_msgs.msg import Topics as DJITopics
 from dji_msgs.msg import Links as DJILinks
 from dji_msgs.msg import ObjectPoseWithCovarianceArray
@@ -36,7 +35,7 @@ class DroneState():
         self.ODOM_FRAME : str = robot_name + '/' + DJILinks.ODOM
         self.BASE_FLAT_FRAME : str = robot_name + '/' + DJILinks.BASE_FLAT
         
-        self._utm_frame : str|None = None
+        self._georef = GeorefUtils(node=self._node)
         self._drone_in_map : None | PoseStamped = None
         self._yolo_detections : None | DetectionArray = None
         self._projected_detections : None | ObjectPoseWithCovarianceArray = None
@@ -58,16 +57,6 @@ class DroneState():
                                        DJITopics.BASE_LINK_IN_MAP_TOPIC,
                                        _pose_in_map_cb,
                                        10)
-
-
-        def _utm_frame_cb(msg: String):
-            self._utm_frame = msg.data
-
-        self._node.create_subscription(String,
-                                       DJITopics.LABELED_UTM_TOPIC,
-                                       _utm_frame_cb,
-                                       10)
-
 
 
         def _yolo_detections_cb(msg: DetectionArray):
@@ -189,51 +178,33 @@ class DroneState():
         return False
 
     def geopoint_to_pose_stamped_map(self, gp: GeoPoint) -> PoseStamped|None:
-        in_utm : PointStamped = convert_latlon_to_utm(gp)
-        in_utm_pose : PoseStamped = PoseStamped()
-        in_utm_pose.header = in_utm.header
-        in_utm_pose.pose.position = in_utm.point
-        in_utm_pose.pose.position.z = gp.altitude  # keep the altitude from the GeoPoint as is
-
-        if not self._tf_buffer.can_transform(self.MAP_FRAME, in_utm_pose.header.frame_id, Time(seconds=0)):
-            self._loginfo(f"Cannot transform pose in frame <{in_utm_pose.header.frame_id}> to <{self.MAP_FRAME}> frame.")
+        try:
+            in_map_pt = self._georef.geopoint_to_point_stamped(gp, self.MAP_FRAME)
+        except TransformException as e:
+            self._loginfo(f"Cannot transform geopoint to <{self.MAP_FRAME}>: {e}")
             return None
-
-        tf = self._tf_buffer.lookup_transform(
-            target_frame = self.MAP_FRAME,
-            source_frame = in_utm.header.frame_id,
-            time = Time(seconds=0),
-            timeout = Duration(seconds=1)
-        )
-        in_map = do_transform_pose_stamped(in_utm_pose, tf)
-        in_map.pose.position.z = gp.altitude  # ensure altitude is preserved
+        in_map = PoseStamped()
+        in_map.header = in_map_pt.header
+        in_map.pose.position = in_map_pt.point
+        in_map.pose.position.z = gp.altitude
         return in_map
-    
+
 
     def pose_to_geopoint(self, pose: PoseStamped | PoseWithCovarianceStamped) -> GeoPoint|None:
-        if self._utm_frame is None:
-            self._loginfo("UTM frame not set yet, cannot convert pose to geopoint.")
-            return None
-
-        if not self._tf_buffer.can_transform(self._utm_frame, pose.header.frame_id, Time(seconds=0)):
-            self._loginfo(f"Cannot transform pose in frame <{pose.header.frame_id}> to <{self._utm_frame}> frame.")
-            return None
-
-        tf = self._tf_buffer.lookup_transform(
-            target_frame = self._utm_frame,
-            source_frame = pose.header.frame_id,
-            time = Time(seconds=0),
-            timeout = Duration(seconds=1)
-        )
         if isinstance(pose, PoseWithCovarianceStamped):
-            ps = PoseStamped()
-            ps.header = pose.header
-            ps.pose = pose.pose.pose
+            header = pose.header
+            position = pose.pose.pose.position
         else:
-            ps = pose
-
-        in_utm = do_transform_pose_stamped(ps, tf)
-        return convert_utm_to_latlon(in_utm)
+            header = pose.header
+            position = pose.pose.position
+        point = PointStamped()
+        point.header.frame_id = header.frame_id
+        point.point = position
+        try:
+            return self._georef.point_stamped_to_geopoint(point)
+        except TransformException as e:
+            self._loginfo(f"Cannot convert pose in frame <{header.frame_id}> to a geopoint: {e}")
+            return None
     
     def _pose_in_frame(self, pose: PoseStamped, target_frame: str) -> PoseStamped|None:
         if pose.header.frame_id == target_frame:

@@ -56,7 +56,9 @@ parameters and launch remaps don't reach it (pass ROS arguments for it with `ros
   and cached after that.
 - `geopoint_to_point_stamped(geopoint, target_frame = "")`: lat lon -> utm easting/northing, with
   altitude copied to z, then transformed to `target_frame` (e.g. `lolo/base_link`). An empty
-  `target_frame` returns the point in the utm frame. (Example 1)
+  `target_frame` returns the point in the utm frame. The zone is the utm frame in the tf tree
+  when there is one, and the geopoint's own zone when there is not. A frame that appears later
+  replaces that guess. (Example 1)
 - `point_stamped_to_geopoint(point)`: a `PointStamped` in any frame -> lat lon, with z copied to
   altitude. Uses the timestamp in the point's header (zero means latest). (Example 2)
 - `lookup_transform(target_frame, source_frame, timeout_sec = 0.0)`: the latest transform from
@@ -64,12 +66,25 @@ parameters and launch remaps don't reach it (pass ROS arguments for it with `ros
 - `can_transform(target_frame, source_frame, timeout_sec = 0.0)`: whether that transform is
   available, waiting up to `timeout_sec`. Never throws.
 
-All utm conversions use the zone and band of the utm frame, also for points in a neighbouring zone.
+`geopoint_to_point_stamped` uses the zone of the utm frame in the tree, also for a point in a
+neighbouring zone. If the tree has no utm frame, it uses the geopoint's own zone. That guess is
+not kept: a frame that shows up later replaces it. Transforming into some other `target_frame`
+still needs the utm frame in the tree.
 
-The other functions throw `tf2::TransformException` (`TransformException` in Python) if there is no
-utm frame or more than one, or a transform is not available. Right after startup this is normal
-until the frames have been received over tf. The conversions don't wait; call `can_transform` with
-a timeout first to wait for a frame.
+`point_stamped_to_geopoint`, `get_utm_frame`, and `lookup_transform` throw
+`tf2::TransformException` (`TransformException` in Python) if the frame or the transform is not
+available. `can_transform` never throws. Right after startup this is normal until the frames have
+been received over tf. Those calls don't wait; call `can_transform` with a timeout first.
+
+These do not use the tf tree. In C++ they are in namespace `smarc_georef`. The Python names are the same.
+
+- `convert_enu_pose_to_heading(enu_pose)`: compass heading in degrees, 0 north and 90 east,
+  from the ENU yaw of the pose. Returns a `Float32`.
+- `compute_course_from_two_poses(prev, current)`: course in degrees from the two positions.
+  0 is +x and 90 is +y. Returns a `Float32`.
+- `compute_speed_from_two_poses(prev, current)`: speed in metres per second from the two
+  positions and their header stamps. A stamp that does not move forward gives 0. Returns a
+  `Float32`.
 
 ## tf in Python without a tf listener
 Get transforms with `lookup_transform` and apply them in Python with `tf2_geometry_msgs`

@@ -88,6 +88,11 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_pure_conversions test/test_pure_conversions.cpp)
+  target_link_libraries(test_pure_conversions ${PROJECT_NAME})
+  ament_target_dependencies(test_pure_conversions tf2_ros)
 endif()
 
 ament_package()

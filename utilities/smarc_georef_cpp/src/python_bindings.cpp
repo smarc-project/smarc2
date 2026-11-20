@@ -18,6 +18,7 @@
 #include "rclcpp/serialization.hpp"
 #include "tf2/exceptions.h"
 
+#include "geometry_msgs/msg/pose.hpp"
 #include "smarc_georef_cpp/georef_utils.hpp"
 
 namespace py = pybind11;
@@ -154,7 +155,8 @@ PYBIND11_MODULE(_georef_cpp, m)
   py::register_exception<tf2::TransformException>(m, "TransformException", PyExc_RuntimeError);
 
   py::class_<PyGeorefUtils>(m, "GeorefUtilsCpp")
-  .def(py::init<const std::vector<std::string> &>(), py::arg("ros_args") = std::vector<std::string>{})
+  .def(py::init<const std::vector<std::string> &>(),
+    py::arg("ros_args") = std::vector<std::string>{})
   .def("shutdown", &PyGeorefUtils::shutdown, py::call_guard<py::gil_scoped_release>())
   .def("node_name", &PyGeorefUtils::node_name)
   .def("get_utm_frame", &PyGeorefUtils::get_utm_frame)
@@ -177,4 +179,22 @@ PYBIND11_MODULE(_georef_cpp, m)
         rclcpp::shutdown();
       }
     }, "Shut down the rclcpp context used by the internal C++ node(s).");
+
+  m.def(
+    "convert_enu_pose_to_heading", [](const std::string & pose) {
+      auto msg = deserialize<geometry_msgs::msg::Pose>(pose);
+      return smarc_georef::convert_enu_pose_to_heading(msg);
+    }, py::arg("enu_pose"));
+  m.def(
+    "compute_course_from_two_poses", [](const std::string & prev, const std::string & current) {
+      auto prev_pose = deserialize<geometry_msgs::msg::PoseStamped>(prev);
+      auto current_pose = deserialize<geometry_msgs::msg::PoseStamped>(current);
+      return smarc_georef::compute_course_from_two_poses(prev_pose, current_pose);
+    }, py::arg("prev_pose"), py::arg("current_pose"));
+  m.def(
+    "compute_speed_from_two_poses", [](const std::string & prev, const std::string & current) {
+      auto prev_pose = deserialize<geometry_msgs::msg::PoseStamped>(prev);
+      auto current_pose = deserialize<geometry_msgs::msg::PoseStamped>(current);
+      return smarc_georef::compute_speed_from_two_poses(prev_pose, current_pose);
+    }, py::arg("prev_pose"), py::arg("current_pose"));
 }

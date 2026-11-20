@@ -8,10 +8,6 @@ from rclpy.time import Time, Duration
 from rclpy.executors import MultiThreadedExecutor
 from builtin_interfaces.msg import Time as TimeMsg
 
-from tf2_geometry_msgs import do_transform_point
-from tf2_ros import Buffer, TransformListener
-
-
 from geographic_msgs.msg import GeoPoint, GeoPath, GeoPointStamped
 from geographic_msgs.srv import GetGeoPath
 from geometry_msgs.msg import Point, Point32, Polygon
@@ -20,7 +16,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from smarc_msgs.msg import Topics as SmarcTopics
 from smarc_msgs.msg import GeofenceStatusStamped, GeofencePolygonsStamped
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils, TransformException
 
 
 class PointInPolyResults(Enum):
@@ -81,13 +77,12 @@ class GeofenceNode():
         self._floor_altitude : float | None = None # aka depth for underwater vehicles
         self._fence_start_time : TimeMsg | None = None
 
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node)
+        self._georef = GeorefUtils(node=self._node)
+        self._logged_utm_frame = False
 
         self._node.declare_parameter('map_frame', 'M350/map')
         self._map_frame : str = self._node.get_parameter('map_frame').get_parameter_value().string_value
         self._node.get_logger().info(f"Using map frame: {self._map_frame}")
-        self._utm_frame : str | None = None # will be set on first position message
 
         self._node.declare_parameter('check_period', 0.5)
         self._check_period = self._node.get_parameter('check_period').get_parameter_value().double_value
@@ -111,10 +106,13 @@ class GeofenceNode():
         self._robot_position_time = self._node.get_clock().now()
         self._robot_position = msg
 
-        if self._utm_frame is None:
-            ps = convert_latlon_to_utm(msg)
-            self._utm_frame = ps.header.frame_id
-            self._node.get_logger().info(f"Setting UTM frame to {self._utm_frame} based on first received robot latlon position")
+        if not self._logged_utm_frame:
+            try:
+                frame = self._georef.get_utm_frame()
+            except TransformException:
+                return
+            self._logged_utm_frame = True
+            self._node.get_logger().info(f"Using UTM frame {frame}")
 
 
     def publish_geofence_ok(self):
@@ -172,21 +170,14 @@ class GeofenceNode():
         self._geofence_polygons_msg.header.frame_id = self._map_frame
 
         def geopoint_poly_to_map(poly: list[GeoPoint]) -> list[tuple[float, float, float]]:
-            if self._utm_frame is None:
-                self._node.get_logger().error("Cannot transform geofence polygon to map frame because UTM frame is not set yet")
-                return []
-            
             transformed_poly = []
-            utm_to_map_transform = self._tf_buffer.lookup_transform(self._map_frame, self._utm_frame, Time())
             for point in poly:
-                ps = convert_latlon_to_utm(point)
                 try:
-                    transformed_ps = do_transform_point(ps, utm_to_map_transform)
-                    transformed_poly.append((transformed_ps.point.x, transformed_ps.point.y, point.altitude))
-                except Exception as e:
+                    ps = self._georef.geopoint_to_point_stamped(point, self._map_frame)
+                except TransformException as e:
                     self._node.get_logger().error(f"Error transforming geofence polygon point to map frame: {e}")
                     return []
-            
+                transformed_poly.append((ps.point.x, ps.point.y, point.altitude))
             return transformed_poly
 
         map_fences = [geopoint_poly_to_map(fence) for fence in self._fences]
@@ -391,7 +382,11 @@ def main():
         executor.spin()
     except KeyboardInterrupt:
         node.get_logger().info("Shutting down")
+    finally:
+        geofence_node._georef.shutdown()
         node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 def test_action():

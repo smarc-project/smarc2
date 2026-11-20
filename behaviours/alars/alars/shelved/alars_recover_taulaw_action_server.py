@@ -20,7 +20,7 @@ from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
 
-from smarc_utilities.georef_utils import convert_latlon_to_utm
+from smarc_georef_cpp import GeorefUtils
 from smarc_utilities.node_utils import typed_param_declare
 
 from dji_msgs.msg import Topics as DJITopics
@@ -31,6 +31,7 @@ class RecoverAction():
     def __init__(self,
                  node: Node):
         self._node : Node = node
+        self._georef = GeorefUtils(node=self._node)
 
         self._declare_parameters()
         self._read_parameters()
@@ -88,8 +89,8 @@ class RecoverAction():
             return False
 
         try:
-            SAM_pose_utm = convert_latlon_to_utm(geopoint_SAM)
-            buoy_pose_utm = convert_latlon_to_utm(geopoint_buoy)
+            SAM_pose_utm = self._georef.geopoint_to_point_stamped(geopoint_SAM)
+            buoy_pose_utm = self._georef.geopoint_to_point_stamped(geopoint_buoy)
         except:
             self._loginfo(f"Failed to convert geopoint to UTM, received:\n SAM: {geopoint_SAM}\n Buoy: {geopoint_buoy}")
             return False
