@@ -2,7 +2,6 @@
 
 import rclpy
 from rclpy.node import Node
-from rclpy.time import Duration, Time
 from rclpy.executors import MultiThreadedExecutor
 
 import traceback
@@ -16,7 +15,6 @@ from nav_msgs.msg import Odometry
 
 
 from tf2_geometry_msgs import do_transform_pose_stamped
-from tf2_ros import Buffer, TransformListener
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
 
@@ -44,8 +42,6 @@ class RecoverAction():
 
         self._node.create_subscription(Odometry, SmarcTopics.ODOM_TOPIC, self._odom_cb, 10)
 
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self._node, spin_thread=True)
 
         self._as = GentlerActionServer(
             node,
@@ -416,12 +412,7 @@ class RecoverAction():
         Returns:
             PoseStamped in specified frame
         """
-        t = self._tf_buffer.lookup_transform(
-            target_frame=target,
-            source_frame=pose_stamped.header.frame_id,
-            time=Time(seconds=0),
-            timeout=Duration(seconds=1),
-        )
+        t = self._georef.lookup_transform(target, pose_stamped.header.frame_id, 1.0)
         return do_transform_pose_stamped(pose_stamped, t)
 
     
