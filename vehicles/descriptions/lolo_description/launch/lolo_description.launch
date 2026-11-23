@@ -2,21 +2,24 @@
   <arg name="robot_name" default="lolo"/>
   <arg name="robot_urdf" default="lolo_auv.urdf"/>
   <arg name="prefix" default="$(var robot_name)/"/>
+  <arg name="use_sim_time" default="false"/>
 
   <group>
     <push-ros-namespace namespace="$(var robot_name)"/>
-    
-    <node name="joint_state_publisher" pkg="joint_state_publisher" exec="joint_state_publisher">
-      <param name="rate" value="5"/> 
-      <!-- TODO: <param name="source_list" value="['command_states']"/>-->
-    </node>
-    
+
     <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher" respawn="true" output="screen">
       <param name="frame_prefix" value="$(var prefix)"/>
-      <param name="robot_description" 
+      <param name="robot_description"
            value="$(command '$(find-exec cat) $(find-pkg-share lolo_description)/urdf/$(var robot_urdf)')"/>
+      <param name="use_sim_time" value="$(var use_sim_time)"/>
     </node>
 
+    <!-- Convert measured actuator feedback into joint states -->
+    <node pkg="lolo_description" exec="joint_state_converter.py" name="joint_state_converter" output="screen">
+        <param name="use_sim_time" value="$(var use_sim_time)"/>
+    </node>
   </group>
 
 </launch>
+
+
