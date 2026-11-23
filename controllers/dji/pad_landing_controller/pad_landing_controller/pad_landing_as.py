@@ -24,6 +24,7 @@ from transforms3d.quaternions import mat2quat
 from dji_msgs.msg import (
     ObjectEkfStatusArray,
     ObjectEkfStatus,
+    ObjectPoseWithCovariance,
     ObjectPoseWithCovarianceArray,
     Topics as DJITopics,
     Links as DJILinks,
@@ -77,6 +78,9 @@ class PadLandingAS:
         self.LANDING_GEAR_FRAME: str = self._TF_NS + DJILinks.LANDING_GEAR_CENTER
 
         self._georef: GeorefUtils = GeorefUtils(node=self._node)
+        self._drone_input: Odometry | None = None
+        self._pad_input: ObjectPoseWithCovariance | None = None
+        self._pad_received_at: Time | None = None
         self._drone_odom: Odometry | None = None
         self._pad_odom: Odometry | None = None
         self._status: ObjectEkfStatus | None = None
@@ -111,7 +115,7 @@ class PadLandingAS:
 
         # TODO: Publisher for cmd_vel and landing_status (might be useful for FSM and control).
         
-        # Refresh predictions and detect stale inputs.
+        # Process the inputs, refresh predictions and detect stale data.
         node.create_timer(0.05, self._update_relative_state)
 
     @property
@@ -214,6 +218,32 @@ class PadLandingAS:
     ### Callbacks
 
     def _drone_odom_callback(self, message: Odometry):
+        self._drone_input = message
+
+    def _pose_array_callback(self, message: ObjectPoseWithCovarianceArray):
+        target = self.PAD_CLASS_NAME
+        estimate = next((item for item in message.objects if item.class_name == target), None)
+        if estimate is None:
+            return
+
+        pad_estimate = deepcopy(estimate)
+        if not pad_estimate.header.frame_id:
+            pad_estimate.header.frame_id = message.header.frame_id
+        if Time.from_msg(pad_estimate.header.stamp).nanoseconds == 0:
+            pad_estimate.header.stamp = deepcopy(message.header.stamp)
+        if self._pad_input is not None and pad_estimate.header.stamp == self._pad_input.header.stamp:
+            return
+        self._pad_input = pad_estimate
+        self._pad_received_at = self.now
+
+    def _status_array_callback(self, message: ObjectEkfStatusArray):
+        target = self.PAD_CLASS_NAME
+        self._status = next((status for status in message.statuses if status.class_name == target), None)
+        self._status_stamp = Time.from_msg(message.header.stamp)
+
+    ### Input processing
+
+    def _process_drone_odometry(self, message: Odometry):
         try:
             position, orientation, pose_cov, pose_rotation = self._pose_to_map(message.pose, message.header.frame_id)
 
@@ -243,19 +273,11 @@ class PadLandingAS:
             self._drone_odom = None
             self._node.get_logger().info(f'drone transform failed: {error}', throttle_duration_sec=1.0)
 
-    def _pose_array_callback(self, message: ObjectPoseWithCovarianceArray):
+    def _process_pad_estimate(self, estimate: ObjectPoseWithCovariance, received_at: Time):
         target = self.PAD_CLASS_NAME
-        estimate = next((item for item in message.objects if item.class_name == target), None)
-        if estimate is None:
-            return
-
         try:
             # Validate the pad estimate, convert it to map and update its motion history.
-            header = deepcopy(estimate.header)
-            if not header.frame_id:
-                header.frame_id = message.header.frame_id
-            if Time.from_msg(header.stamp).nanoseconds == 0:
-                header.stamp = deepcopy(message.header.stamp)
+            header = estimate.header
             stamp = Time.from_msg(header.stamp)
             
             # Other classes can cause the ekf array to repeat this old track.
@@ -264,7 +286,7 @@ class PadLandingAS:
                 return
             now = self.now
             age = (now - stamp).nanoseconds * 1e-9
-            if stamp.nanoseconds == 0 or not 0 <= age <= self._pad_tracker.max_observation_age_s:
+            if (stamp.nanoseconds == 0 or stamp > received_at or not 0 <= age <= self._pad_tracker.max_observation_age_s):
                 raise ValueError('pad timestamp is stale or in the future')
             if not self._is_ekf_status_valid(now):
                 self._pad_tracker.reject_observation()
@@ -277,7 +299,7 @@ class PadLandingAS:
 
             odometry = self._make_odometry(header, self._TF_NS + target, position, orientation,
                 covariance, np.zeros(3))
-            self._pad_tracker.observe(odometry, now)
+            self._pad_tracker.observe(odometry, received_at)
             self._pad_input_valid = True
     
         except (TransformException, ValueError) as error:
@@ -285,11 +307,10 @@ class PadLandingAS:
             self._pad_input_valid = False
             self._node.get_logger().info(f'pad data invalid: {error}', throttle_duration_sec=1.0)
 
-    def _status_array_callback(self, message: ObjectEkfStatusArray):
-        target = self.PAD_CLASS_NAME
-        self._status = next((status for status in message.statuses
-                                if status.class_name == target), None)
-        self._status_stamp = Time.from_msg(message.header.stamp)
+    ### Relative state update (only a logger for now, might need a proper topic later with FSM)
+
+    def _update_relative_state(self):
+        """Update the relative position and velocity of the drone with respect to the pad."""
         now = self.now
         if self._status is None or not self._status.initialized:
             # The ekf reset must not clear a bounded forecast that remains authorized.
@@ -300,11 +321,13 @@ class PadLandingAS:
         if not self._is_ekf_status_valid(now):
             self._pad_tracker.reject_observation()
 
-    ### Relative state update (only a logger for now, might need a proper topic later with FSM)
+        if self._drone_input is not None:
+            self._process_drone_odometry(self._drone_input)
+            self._drone_input = None
+        if self._pad_input is not None:
+            self._process_pad_estimate(self._pad_input, self._pad_received_at)
+            self._pad_input = None
 
-    def _update_relative_state(self):
-        """Update the relative position and velocity of the drone with respect to the pad."""
-        now = self.now
         prediction = self._pad_tracker.predict(now, enabled=self._enable_dropout_prediction)
         self._pad_odom = (prediction if prediction is not None
                             else self._pad_tracker.last_observation)
