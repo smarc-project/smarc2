@@ -22,11 +22,6 @@ install(
 )
 
 install(
-  DIRECTORY robots/
-  DESTINATION share/${PROJECT_NAME}/robots/
-)
-
-install(
   DIRECTORY urdf/
   DESTINATION share/${PROJECT_NAME}/urdf/
 )
