@@ -1,6 +1,6 @@
 # The ALARS Actions
 
-These are action servers implementing [The gentler action server](../smarc_action_base/smarc_action_base/gentler_action_server.py) and thus compatible with the [wasp bt](../wasp_bt/README.md)
+These are action servers implementing [The gentler action server](../smarc_action_base/smarc_action_base/gentler_action_server.py). The officer starts them.
 
 ## Alars search
 Implements different kinds of search patterns in order to find the object of interest in the water.

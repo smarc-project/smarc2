@@ -3,7 +3,7 @@ All example code and nodes should live here. Also list them here with a couple l
 
 
 ## SuperSimpleActionServer.py
-An example implementation of how to write an action server that interfaces with the wasp_bt. 
+An example implementation of how to write an action server that the officer can start. 
 
 
 ## ros2_python_examples

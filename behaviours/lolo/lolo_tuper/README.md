@@ -596,7 +596,7 @@ lolo_tuper/
 
 `rclpy`, `smarc_action_base`, `smarc_msgs`, `virtual_lolo`, `geographic_msgs`,
 `sensor_msgs`, `geometry_msgs`, `std_msgs`, `geodesy`, `numpy`, plus the BT stack
-(`py_trees`, `wasp_bt`) used by `smarc_action_base`'s BT action client.
+`py_trees`, used by `smarc_action_base`'s behaviour-tree action leaf.
 
 ## Notes / current defaults
 

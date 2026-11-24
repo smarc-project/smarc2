@@ -6,7 +6,7 @@ Everything is plain `std_msgs/String` carrying JSON, for `str_json_mqtt_bridge` 
 
 ## waraps_vehicle
 
-Runs in the robot namespace. Replaces `wasp_bt.waraps.waraps_vehicle`, which goes when `wasp_bt` is deleted with the rest of the behaviour tree; until then the bringups pick one.
+Runs in the robot namespace. The bringups launch this.
 
 ```bash
 ros2 launch waraps_officer waraps_vehicle.launch robot_name:=sam0 agent_type:=underwater pulse_rate:=1.0 use_sim_time:=true
