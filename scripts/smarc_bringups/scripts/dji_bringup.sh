@@ -112,7 +112,7 @@ AUV_WIDTH_M=0.16
 
 EKF_STALENESS_SECONDS=3.0 # how old do we consider the ekf estimate usable
 ALARS_RECOVER_SETPOINT_TOLERANCE=0.2 
-WASP_BT_TASK_LIVELINESS_TIMEOUT=10.0 # Grace period before WASP BT drops stale action servers from available task list.
+OFFICER_TASK_LIVELINESS_TIMEOUT=10.0 # Grace period before the officer drops a stale action server from the available task list.
 
 
 # TOPICS
@@ -267,7 +267,7 @@ robot_name:=$ROBOT_NAME \
 pulse_rate:=2.0 \
 use_sim_time:=$USE_SIM_TIME \
 health_timeout_s:=5.0 \
-task_liveliness_timeout:=$WASP_BT_TASK_LIVELINESS_TIMEOUT"
+task_liveliness_timeout:=$OFFICER_TASK_LIVELINESS_TIMEOUT"
 
 
 ALARS_BT_CMD="ros2 run alars alars_bt --ros-args -r __ns:=/$ROBOT_NAME \

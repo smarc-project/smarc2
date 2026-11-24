@@ -35,7 +35,7 @@ The main consideration is: where will this run, who will this be run by?
 ## Stuff in this repo
 
 ### [Behaviours](/behaviours/)
-High-level constructs like action servers and behaviour trees.
+High-level constructs like action servers and the WARA-PS officer.
 These usually rely on many other packages to function.
 
 ### [Docker](/docker/)
