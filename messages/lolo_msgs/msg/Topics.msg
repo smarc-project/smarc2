@@ -25,29 +25,29 @@ string RPM_SETPOINT = "ctrl/rpm_setpoint"
 string RUDDER_CMD = "actuators/rudder_cmd"
 string ELEVATOR_CMD = "actuators/elevator_cmd"
 string ELEVON_PORT_CMD = "actuators/elevon_port_cmd"
-string ELEVON_STRB_CMD = "actuators/elevon_strb_cmd"
+string ELEVON_STBD_CMD = "actuators/elevon_stbd_cmd"
 
 #Control surfaces feedback. All Float32s.
 string RUDDER_FB = "actuators/rudder_fb"
 string ELEVATOR_FB = "actuators/elevator_fb"
 string ELEVON_PORT_FB = "actuators/elevon_port_fb"
-string ELEVON_STRB_FB = "actuators/elevon_strb_fb"
+string ELEVON_STBD_FB = "actuators/elevon_stbd_fb"
 
 #Thrusters setpoint. All Float32s.
 string THRUSTER_PORT_CMD = "actuators/thruster_port_cmd"
-string THRUSTER_STRB_CMD = "actuators/thruster_strb_cmd"
+string THRUSTER_STBD_CMD = "actuators/thruster_stbd_cmd"
 string VERTICAL_THRUSTER_BACK_PORT_CMD = "actuators/vertical_thruster_back_port_cmd"
-string VERTICAL_THRUSTER_BACK_STRB_CMD = "actuators/vertical_thruster_back_strb_cmd"
+string VERTICAL_THRUSTER_BACK_STBD_CMD = "actuators/vertical_thruster_back_stbd_cmd"
 string VERTICAL_THRUSTER_FRONT_PORT_CMD = "actuators/vertical_thruster_front_port_cmd"
-string VERTICAL_THRUSTER_FRONT_STRB_CMD = "actuators/vertical_thruster_front_strb_cmd"
+string VERTICAL_THRUSTER_FRONT_STBD_CMD = "actuators/vertical_thruster_front_stbd_cmd"
 
 #Thrusters feedback
 string THRUSTER_PORT_FB = "actuators/thruster_port_fb"
-string THRUSTER_STRB_FB = "actuators/thruster_strb_fb"
+string THRUSTER_STBD_FB = "actuators/thruster_stbd_fb"
 string VERTICAL_THRUSTER_BACK_PORT_FB = "actuators/vertical_thruster_back_port_fb"
-string VERTICAL_THRUSTER_BACK_STRB_FB = "actuators/vertical_thruster_back_strb_fb"
+string VERTICAL_THRUSTER_BACK_STBD_FB = "actuators/vertical_thruster_back_stbd_fb"
 string VERTICAL_THRUSTER_FRONT_PORT_FB = "actuators/vertical_thruster_front_port_fb"
-string VERTICAL_THRUSTER_FRONT_STRB_FB = "actuators/vertical_thruster_front_strb_fb"
+string VERTICAL_THRUSTER_FRONT_STBD_FB = "actuators/vertical_thruster_front_stbd_fb"
 
 
 #Extended interface
@@ -59,13 +59,13 @@ string EXTENDED_INTERNAL_PRESSURE_TOPIC = "extended/internal_pressure"
 string EXTENDED_RUDDER_FB_TOPIC = "extended/actuators/rudder_fb"
 string EXTENDED_ELEVATOR_FB_TOPIC = "extended/actuators/elevator_fb"
 string EXTENDED_PORT_ELEVON_FB_TOPIC = "extended/actuators/elevon_port_fb"
-string EXTENDED_STRB_ELEVON_FB_TOPIC = "extended/actuators/elevon_strb_fb"
+string EXTENDED_STBD_ELEVON_FB_TOPIC = "extended/actuators/elevon_stbd_fb"
 string EXTENDED_PORT_THRUSTER_FB_TOPIC = "extended/actuators/thruster_port_fb"
-string EXTENDED_STRB_THRUSTER_FB_TOPIC = "extended/actuators/thruster_strb_fb"
+string EXTENDED_STBD_THRUSTER_FB_TOPIC = "extended/actuators/thruster_stbd_fb"
 string EXTENDED_VERTICAL_THRUSTER_FRONT_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_front_port_fb"
-string EXTENDED_VERTICAL_THRUSTER_FRONT_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_front_strb_fb"
+string EXTENDED_VERTICAL_THRUSTER_FRONT_STBD_FB_TOPIC = "extended/actuators/vertical_thruster_front_stbd_fb"
 string EXTENDED_VERTICAL_THRUSTER_BACK_PORT_FB_TOPIC = "extended/actuators/vertical_thruster_back_port_fb"
-string EXTENDED_VERTICAL_THRUSTER_BACK_STRB_FB_TOPIC = "extended/actuators/vertical_thruster_back_strb_fb"
+string EXTENDED_VERTICAL_THRUSTER_BACK_STBD_FB_TOPIC = "extended/actuators/vertical_thruster_back_stbd_fb"
 
 #Extended Battery topics
 string EXTENDED_BATTERY_1_TOPIC = "extended/battery1"

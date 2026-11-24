@@ -138,13 +138,13 @@ public:
     publisher_elevator = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::ELEVATOR_CMD, 10);
     publisher_rudder = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::RUDDER_CMD, 10);
     publisher_elevon_port = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::ELEVON_PORT_CMD, 10);
-    publisher_elevon_strb = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::ELEVON_STRB_CMD, 10);
+    publisher_elevon_stbd = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::ELEVON_STBD_CMD, 10);
     publisher_thruster_port = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::THRUSTER_PORT_CMD, 10);
-    publisher_thruster_strb = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::THRUSTER_STRB_CMD, 10);
+    publisher_thruster_stbd = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::THRUSTER_STBD_CMD, 10);
     publisher_vertical_thruster_front_port = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_FRONT_PORT_CMD, 10);
-    publisher_vertical_thruster_front_strb = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_FRONT_STRB_CMD, 10);
+    publisher_vertical_thruster_front_stbd = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_FRONT_STBD_CMD, 10);
     publisher_vertical_thruster_back_port = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_BACK_PORT_CMD, 10);
-    publisher_vertical_thruster_back_strb = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_BACK_STRB_CMD, 10);
+    publisher_vertical_thruster_back_stbd = this->create_publisher<std_msgs::msg::Float32>(lolo_msgs::msg::Topics::VERTICAL_THRUSTER_BACK_STBD_CMD, 10);
 
     //Diagnostic publisher
     updater_.setHardwareID("lolo_controllers");
@@ -454,13 +454,13 @@ private:
     std_msgs::msg::Float32 elevator;
     std_msgs::msg::Float32 rudder;
     std_msgs::msg::Float32 elevon_port;
-    std_msgs::msg::Float32 elevon_strb;
+    std_msgs::msg::Float32 elevon_stbd;
     std_msgs::msg::Float32 thruster_port;
-    std_msgs::msg::Float32 thruster_strb;
+    std_msgs::msg::Float32 thruster_stbd;
     std_msgs::msg::Float32 vertical_thruster_front_port;
-    std_msgs::msg::Float32 vertical_thruster_front_strb;
+    std_msgs::msg::Float32 vertical_thruster_front_stbd;
     std_msgs::msg::Float32 vertical_thruster_back_port;
-    std_msgs::msg::Float32 vertical_thruster_back_strb;
+    std_msgs::msg::Float32 vertical_thruster_back_stbd;
 
     bool diving = robot_position.pose.pose.position.z <= -0.8;
 
@@ -470,7 +470,7 @@ private:
       if(robot_position.pose.pose.position.z > 0.75 and depth_cmd > 0.1) {
         //vertical thrusters
         vertical_thruster_front_port.data = -2000.0;
-        vertical_thruster_front_strb.data = -2000.0;
+        vertical_thruster_front_stbd.data = -2000.0;
       }
     }
     */
@@ -499,10 +499,10 @@ private:
       //Only use thrusters if speed / rpm setpoint is acive
       if(speed_set && (!diving || yaw_error_bucket > yaw_error_bucket_limit) ) {
         thruster_port.data = -1 * differential_thrust_gain*yaw_actuation_filtered;
-        thruster_strb.data = differential_thrust_gain*yaw_actuation_filtered;
+        thruster_stbd.data = differential_thrust_gain*yaw_actuation_filtered;
         if(diving) { //Clamp differential thrust when diving
           thruster_port.data = std::clamp(thruster_port.data, -dive_diff_thrust_limit, dive_diff_thrust_limit);
-          thruster_strb.data = std::clamp(thruster_strb.data, -dive_diff_thrust_limit, dive_diff_thrust_limit);
+          thruster_stbd.data = std::clamp(thruster_stbd.data, -dive_diff_thrust_limit, dive_diff_thrust_limit);
         } else { //reduce forward speed if steering error is big on the surface
           double scaling_factor = std::max(0.0, 1.0 - 1.5*(std::abs(yaw_actuation_filtered)));
           thruster_actuation *= scaling_factor;
@@ -515,27 +515,27 @@ private:
     if(depth_set) {
       elevator.data = -pitch_actuation;
       elevon_port.data = -pitch_actuation;
-      elevon_strb.data = -pitch_actuation;
+      elevon_stbd.data = -pitch_actuation;
       //TODO static diving with vertical thrusters
     }
 
     //Roll
     if(roll_set) {
       elevon_port.data += -roll_actuation;
-      elevon_strb.data += roll_actuation;
+      elevon_stbd.data += roll_actuation;
       //TODO staic roll contol using vertical thrusters
     }
 
     //thrusters
     if(speed_set) {
       thruster_port.data += thruster_actuation;
-      thruster_strb.data += thruster_actuation;
+      thruster_stbd.data += thruster_actuation;
 
       thruster_port.data = std::clamp(thruster_port.data, -max_rpm, max_rpm);
-      thruster_strb.data = std::clamp(thruster_strb.data, -max_rpm, max_rpm);
+      thruster_stbd.data = std::clamp(thruster_stbd.data, -max_rpm, max_rpm);
 
       if(std::abs(thruster_port.data) < 50) thruster_port.data = 0;
-      if(std::abs(thruster_strb.data) < 50) thruster_strb.data = 0;
+      if(std::abs(thruster_stbd.data) < 50) thruster_stbd.data = 0;
     }
 
     thruster_counter+=1;
@@ -545,15 +545,15 @@ private:
     publisher_elevator->publish(elevator);
     publisher_rudder->publish(rudder);
     publisher_elevon_port->publish(elevon_port);
-    publisher_elevon_strb->publish(elevon_strb);
+    publisher_elevon_stbd->publish(elevon_stbd);
     if(thruster_counter == 0) {
       publisher_thruster_port->publish(thruster_port);
-      publisher_thruster_strb->publish(thruster_strb);
+      publisher_thruster_stbd->publish(thruster_stbd);
     }
     publisher_vertical_thruster_front_port->publish(vertical_thruster_front_port);
-    publisher_vertical_thruster_front_strb->publish(vertical_thruster_front_strb);
+    publisher_vertical_thruster_front_stbd->publish(vertical_thruster_front_stbd);
     publisher_vertical_thruster_back_port->publish(vertical_thruster_back_port);
-    publisher_vertical_thruster_back_strb->publish(vertical_thruster_back_strb);
+    publisher_vertical_thruster_back_stbd->publish(vertical_thruster_back_stbd);
 
   }
 
@@ -680,13 +680,13 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_elevator;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_rudder;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_elevon_port;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_elevon_strb;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_elevon_stbd;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_thruster_port;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_thruster_strb;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_thruster_stbd;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_front_port;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_front_strb;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_front_stbd;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_back_port;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_back_strb;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_vertical_thruster_back_stbd;
 
   //Timer
   rclcpp::TimerBase::SharedPtr timer_;

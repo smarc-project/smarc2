@@ -33,7 +33,7 @@ install(
 
 install(
   PROGRAMS
-    scripts/joint_state_converter.py
+    #scripts/joint_state_converter.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
