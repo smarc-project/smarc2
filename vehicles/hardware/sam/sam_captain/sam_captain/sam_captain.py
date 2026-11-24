@@ -10,7 +10,7 @@ from std_msgs.msg import Float32, Int8, String
 
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
 from sam_captain.SAMSimpleController import SAMSimpleController
-from sam_captain.control_type import ControlState, ControlReference
+from sam_captain.control_type import ActuatorCmd, ControlState, ControlReference
 
 from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
@@ -65,6 +65,7 @@ class SAMCaptain(Node):
         # call controller
         self.control_state: ControlState | None = None
         self.control_reference: ControlReference | None = None
+        self.control_command: ActuatorCmd | None = None
         self.control_dt = 0.0
 
         self._last_control_time: Time | None = None
@@ -154,8 +155,8 @@ class SAMCaptain(Node):
         self.latest_geofence_status = msg
         self._last_geofence_status_time = self.get_clock().now()
     
-    # TODO control callback
     def _control_callback(self) -> None:
+        """Compute elapsed time and store the active or neutral actuator command."""
         now = self.get_clock().now()
         previous = self._last_control_time
         self._last_control_time = now
@@ -166,15 +167,21 @@ class SAMCaptain(Node):
 
         # get dt
         self.control_dt = (now - previous).nanoseconds * 1e-9
-        # get reference
-        ref = self.control_reference
+        
+        # check if control is ready
+        if self._control_is_ready():
+            self.control_command = self._controller.update()
+        else:
+            self._controller.reset()
+            self.control_command = self._controller.alloc.neutral()
 
-        # TODO: if control not ready, reset andd puublish neutral control alloc
-
-        pass
-    # TODO: function to check if control is ready, return bool
-    def _control_is_ready(self):
-        pass
+    def _control_is_ready(self) -> bool:
+        """Run control when a state and an enabled reference are available."""
+        return (
+            self.control_state is not None
+            and self.control_reference is not None
+            and self.control_reference.enabled
+        )
 
 
     def _odom_to_utm(self, msg: Odometry) -> PoseStamped | None:
