@@ -6,7 +6,6 @@
   <description>Full active and static diving controller</description>
   <maintainer email="ddorner@kth.se">David Doerner</maintainer>
   <license>MIT</license>
-  <exec_depend>sam_captain</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
