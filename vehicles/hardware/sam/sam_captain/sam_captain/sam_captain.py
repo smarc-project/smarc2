@@ -9,6 +9,9 @@ from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Float32, Int8, String
 
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
+from sam_captain.SAMSimpleController import SAMSimpleController
+from sam_captain.control_type import ControlState, ControlReference
+
 from dead_reckoning_msgs.msg import Topics as DRTopics
 from sam_msgs.msg import Topics as SamTopics
 from smarc_msgs.msg import DVL, GeofenceStatusStamped, Topics as SmarcTopics
@@ -20,8 +23,6 @@ from smarc_utilities.georef_utils import (
 from smarc_georef_cpp import GeorefUtils, TransformException
 from tf2_geometry_msgs import do_transform_pose
 from tf2_ros import ConnectivityException, ExtrapolationException, LookupException
-from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
 
 class SAMCaptain(Node):
     def __init__(self) -> None:
@@ -60,8 +61,21 @@ class SAMCaptain(Node):
 
         # status publisher
         self._status_publisher = SAMStatusPublisher(self)
-        # TODO: call controller
-        # TODO: control timer
+
+        # call controller
+        self.control_state: ControlState | None = None
+        self.control_reference: ControlReference | None = None
+        self.control_dt = 0.0
+
+        self._last_control_time: Time | None = None
+        self._last_control_state_time: Time | None = None
+        self._last_control_reference_time: Time | None = None
+
+        self._controller = SAMSimpleController(self)
+
+        # control timer
+        self.control_period = 0.1
+        self._control_timer = self.create_timer(self.control_period, self._control_callback)
         self.get_logger().info("SAMStatusPublisher has been created.")
 
     def _create_status_subscribers(self) -> None:
@@ -139,6 +153,29 @@ class SAMCaptain(Node):
     def _geofence_status_callback(self, msg: GeofenceStatusStamped) -> None:
         self.latest_geofence_status = msg
         self._last_geofence_status_time = self.get_clock().now()
+    
+    # TODO control callback
+    def _control_callback(self) -> None:
+        now = self.get_clock().now()
+        previous = self._last_control_time
+        self._last_control_time = now
+
+        # if first time return
+        if previous is None:
+            return
+
+        # get dt
+        self.control_dt = (now - previous).nanoseconds * 1e-9
+        # get reference
+        ref = self.control_reference
+
+        # TODO: if control not ready, reset andd puublish neutral control alloc
+
+        pass
+    # TODO: function to check if control is ready, return bool
+    def _control_is_ready(self):
+        pass
+
 
     def _odom_to_utm(self, msg: Odometry) -> PoseStamped | None:
         if not self.utm_frame:
@@ -191,8 +228,6 @@ class SAMCaptain(Node):
             and self.latest_geofence_status.status == GeofenceStatusStamped.STATUS_OUTSIDE
         )
 
-    # TODO control callback
-    
 def main(args=None):
     rclpy.init(args=args)
 
