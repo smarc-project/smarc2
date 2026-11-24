@@ -34,7 +34,8 @@ class LoloJointStateConverter(Node):
         self.stbd_rpm = 0.0
         self.last_time = self.get_clock().now()
 
-        self.publisher = self.create_publisher(JointState, "joint_states", 10)
+        self.publisher = self.create_publisher(JointState,
+                Topics.JOINT_STATE_FB, 10)
 
         # Control-surface feedback (angles in radians).
         self.create_subscription(

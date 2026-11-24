@@ -32,6 +32,7 @@ string RUDDER_FB = "actuators/rudder_fb"
 string ELEVATOR_FB = "actuators/elevator_fb"
 string ELEVON_PORT_FB = "actuators/elevon_port_fb"
 string ELEVON_STBD_FB = "actuators/elevon_stbd_fb"
+string JOINT_STATE_FB = "joint_states"
 
 #Thrusters setpoint. All Float32s.
 string THRUSTER_PORT_CMD = "actuators/thruster_port_cmd"
