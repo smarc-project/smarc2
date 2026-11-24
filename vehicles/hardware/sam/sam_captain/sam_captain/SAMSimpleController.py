@@ -2,38 +2,39 @@
 # pitch-depth control
 # velocity control
 from sam_diving_controller.controllers.PIDControl import PIDControl
-from sam_captain.control_type import ControlState, ActuatorCmd
+from sam_captain.SAMControlAlloc import SAMControlAlloc
+from sam_captain.control_type import ControlState, ActuatorCmd, ControlReference, RequestedEffort
 
 class SAMSimpleController:
     """Run SAM's PIDs and allocate their requested effort to actuator commands."""
 
     def __init__(self, cap) -> None:
         self.cap = cap
-        # TODO: Import SAMControlAlloc from .SAMControlAlloc and create one
-        # self.alloc = SAMControlAlloc(cap), owned by this controller.
-        # TODO: independent PID instances
-        # TODO: surge pid
+        # independent PID instances
         self.surge_pid = PIDControl(Kp=1.0, Ki=0.1, Kd=2.0, Kaw=0.0, u_neutral = 0.0, u_min = -1.0, u_max = 1.0)
-        # TODO: depth pid
         self.depth_pid = PIDControl(Kp=1.0, Ki=0.1, Kd=2.0, Kaw=0.0, u_neutral = 0.0, u_min = -1.0, u_max = 1.0)
-        # TODO: pitch pid
         self.pitch_pid = PIDControl(Kp=1.0, Ki=0.1, Kd=2.0, Kaw=0.0, u_neutral = 0.0, u_min = -1.0, u_max = 1.0)
-        pass
+        self.alloc = SAMControlAlloc(cap)
 
     def update(self):
-        """Compute PID efforts, allocate them, and return ActuatorCmd to captain."""
-        # TODO: Get current state, desired state and dt from captain's interface.
-        # Define that interface before adding calls to cap.
-        # TODO: Run the three PIDs in this controller:
-        # surge PID -> X [N], depth PID -> Z [N], pitch PID -> M [N m].
-        # Configure their gains/limits in effort units; the present placeholders
-        # and the diving controller's actuator-unit tuning need conversion.
-        # TODO: Import RequestedEffort from .control_type and finish with:
-        # requested = RequestedEffort(surge=X, heave=Z, pitch=M)
-        # return self.alloc.allocate(requested)
-        # Captain calls only controller.update() and publishes its ActuatorCmd;
-        # the controller owns the call to allocate().
-        pass
+        """
+        Read the captain's inputs, compute X/Z/M, and return actuator commands.
+        The captain supplies control_state, control_reference, and control_dt,
+        and checks enable, input validity, freshness, and dt before calling.
+        """
+        state: ControlState = self.cap.control_state
+        reference: ControlReference = self.cap.control_reference
+        dt = self.cap.control_dt
+
+        surge, _, _ = self.surge_pid.get_control(
+            state.surge_m_s, reference.surge_m_s, dt)
+        heave, _, _ = self.depth_pid.get_control(
+            state.depth_m, reference.depth_m, dt)
+        pitch, _, _ = self.pitch_pid.get_control(
+            state.pitch_rad, reference.pitch_rad, dt)
+
+        requested = RequestedEffort(surge=surge, heave=heave, pitch=pitch)
+        return self.alloc.allocate(requested)
 
     def reset(self):
         """Resets PID"""
