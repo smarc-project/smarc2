@@ -11,7 +11,12 @@ from alars.alars_common import DroneState
 
 from tf2_ros import Vector3Stamped
 
+LOOP_FREQUENCY = 10  # Hz
+
 class FollowRopeAction():
+    """
+    Keeps the rope vector parallel to the drone's vertical axis by moving the drone in the horizontal plane.
+    """
     def __init__(self,
                  node: Node):
         self._node = node
@@ -19,7 +24,7 @@ class FollowRopeAction():
         self._robot_name = self._node.get_parameter('robot_name').get_parameter_value().string_value
         self.BASE_FLAT_FRAME = self._robot_name +'/' + DJILinks.BASE_FLAT
         # Initialize the action server with the node and action name
-        self._node.declare_parameter('topic_rope', 'rope_force')
+        self._node.declare_parameter('topic_rope', DJITopics.ROPE_FORCE_ESTIMATE_TOPIC)
         self._topic_rope = self._node.get_parameter('topic_rope').get_parameter_value().string_value
         self._rope_force_sub = self._node.create_subscription(WrenchStamped, self._topic_rope, self._sub_cb, 10)
         self._rope_force_timeout = 0.5 # seconds
@@ -38,8 +43,11 @@ class FollowRopeAction():
         self._min_force_magnitude = 1 # minimum force magnitude to start moving [N]
         self._min_angle = 0.3 # minimum angle to start moving [rad]
         self.max_vel = 1.0
-        self._pd_p = 0.5 
-        self._pd_d = 0.05
+        # PD controller gains
+        self._node.declare_parameter('K_p', 0.5)
+        self._K_p = self._node.get_parameter('K_p').get_parameter_value().double_value
+        self._node.declare_parameter('K_d', 0.05)
+        self._K_d = self._node.get_parameter('K_d').get_parameter_value().double_value
 
         self._as = GentlerActionServer(
             node,
@@ -49,7 +57,7 @@ class FollowRopeAction():
             self._prepare_loop,
             self._loop_inner,
             self._give_feedback,
-            loop_frequency=10
+            loop_frequency=LOOP_FREQUENCY
         )
 
     def _on_goal_received(self, goal_request: dict) -> bool:
@@ -58,6 +66,7 @@ class FollowRopeAction():
     
     def _on_cancel_received(self) -> bool:
         self._node.get_logger().info("Received cancel request")
+        self._publish_velocity(0, 0) # stop the drone when canceling the action
         return True
     
     def _prepare_loop(self) -> None:
@@ -82,11 +91,12 @@ class FollowRopeAction():
             self._publish_velocity(0, 0)
             self._last_angle = angle
             return None
-        amplitude = self._pd_p * angle + self._pd_d * (angle - self._last_angle)/(1/10)  # !assuming loop frequency is 10 Hz
+        amplitude = self._K_p * (angle - self._min_angle) + self._K_d * (angle - self._last_angle)/(1/LOOP_FREQUENCY)
         self._last_angle = angle
         # limit the amplitude to max_vel
         amplitude = np.clip(amplitude, -self.max_vel, self.max_vel)
-        vel = amplitude * self._rope_force[:2] / f_xy
+        # create a velocity vector in the direction of the rope
+        vel = amplitude * self._rope_force[:2] / f_xy 
         self._publish_velocity(vel[0], vel[1])
         return None
     
