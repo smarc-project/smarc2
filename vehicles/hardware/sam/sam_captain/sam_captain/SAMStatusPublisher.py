@@ -39,7 +39,7 @@ class SAMStatusPublisher:
     def status_str(self) -> str:
         """Create a status string for SAM status and nav data."""
         battery = (
-            f"{self.cap.latest_battery_percent:.1f}%"
+            f"{self.cap.latest_battery_percent * 100:.1f}%"
             if self.cap.latest_battery_percent is not None
             else "N/A"
         )
