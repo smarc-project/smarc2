@@ -40,9 +40,12 @@ class FollowRopeAction():
         )
         # control variables
         self._last_angle = None # error for the PD controller
-        self._min_force_magnitude = 1 # minimum force magnitude to start moving [N]
-        self._min_angle = 0.3 # minimum angle to start moving [rad]
-        self.max_vel = 1.0
+        self._node.declare_parameter('min_force_magnitude', 1.0)
+        self._min_force_magnitude = self._node.get_parameter('min_force_magnitude').get_parameter_value().double_value
+        self._node.declare_parameter('min_angle', 0.3)
+        self._min_angle = self._node.get_parameter('min_angle').get_parameter_value().double_value
+        self._node.declare_parameter('max_vel', 1.0)
+        self.max_vel = self._node.get_parameter('max_vel').get_parameter_value().double_value
         # PD controller gains
         self._node.declare_parameter('K_p', 0.5)
         self._K_p = self._node.get_parameter('K_p').get_parameter_value().double_value
