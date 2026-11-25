@@ -2,12 +2,14 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
     robot_name = LaunchConfiguration("robot_name")
     use_sim_time = LaunchConfiguration("use_sim_time")
     log_level = LaunchConfiguration("log_level")
+    control_output_enabled = LaunchConfiguration("control_output_enabled")
 
     return LaunchDescription(
         [
@@ -26,6 +28,11 @@ def generate_launch_description():
                 default_value="false",
                 description="Whether to use simulation time.",
             ),
+            DeclareLaunchArgument(
+                "control_output_enabled",
+                default_value="false",
+                description="Enable Captain actuator output only when other command sources are stopped.",
+            ),
             Node(
                 package="sam_captain",
                 executable="sam_captain",
@@ -36,6 +43,9 @@ def generate_launch_description():
                     {
                         "robot_name": robot_name,
                         "use_sim_time": use_sim_time,
+                        "control_output_enabled": ParameterValue(
+                            control_output_enabled, value_type=bool
+                        ),
                     }
                 ],
                 arguments=["--ros-args", "--log-level", log_level],

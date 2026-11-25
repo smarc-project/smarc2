@@ -3,10 +3,10 @@ from std_msgs.msg import Float32, String, Int8
 from geographic_msgs.msg import GeoPoint
 
 from sam_msgs.msg import Topics as SamTopics
-from smarc_msgs.msg import PercentStamped, ThrusterRPM, Topics as SmarcTopics
+from smarc_msgs.msg import Topics as SmarcTopics
 
 class SAMStatusPublisher:
-    """Publish status and actuator commands for the SAM Captain node."""
+    """Publish status and navigation for the SAM Captain node."""
     def __init__(self, cap) -> None:
         self.cap = cap
 
@@ -30,33 +30,7 @@ class SAMStatusPublisher:
         self._status_string_pub = cap.create_publisher(String, SamTopics.STATUS_STRING_TOPIC, 10)
         self._vehicle_health_pub = cap.create_publisher(Int8, SmarcTopics.VEHICLE_HEALTH_TOPIC, 10)
 
-        self._vbs_pub = cap.create_publisher(PercentStamped, SamTopics.VBS_CMD_TOPIC, 10)
-        self._lcg_pub = cap.create_publisher(PercentStamped, SamTopics.LCG_CMD_TOPIC, 10)
-        self._rpm_front_pub = cap.create_publisher(ThrusterRPM, SamTopics.THRUSTER1_CMD_TOPIC, 10)
-        self._rpm_back_pub = cap.create_publisher(ThrusterRPM, SamTopics.THRUSTER2_CMD_TOPIC, 10)
-
         self._publish_timer = cap.create_timer(0.1, self._publish_status)
-
-    def _publish_control(self) -> None:
-        """Publish the latest allocated command, when one is available."""
-        command = self.cap.control_command
-        if command is None:
-            return
-
-        stamp = self.cap.get_clock().now().to_msg()
-
-        vbs = PercentStamped()
-        vbs.header.stamp = stamp
-        vbs.value = float(command.vbs)
-
-        lcg = PercentStamped()
-        lcg.header.stamp = stamp
-        lcg.value = float(command.lcg)
-
-        self._vbs_pub.publish(vbs)
-        self._lcg_pub.publish(lcg)
-        self._rpm_front_pub.publish(ThrusterRPM(rpm=int(command.rpm_front)))
-        self._rpm_back_pub.publish(ThrusterRPM(rpm=int(command.rpm_back)))
 
     def _value_or_na(self, value: float | None, unit: str) -> str:
         """Return a formatted string for a value or 'N/A' if None."""
@@ -98,7 +72,6 @@ class SAMStatusPublisher:
 
     def _publish_status(self) -> None:
         """Publish the latest available captain state on SMaRC status topics."""
-        self._publish_control()
         # self.cap.get_logger().info("Publishing SAM status and navigation data.")
         if self.cap.latest_battery_percent is not None:
             self._battery_percent_pub.publish(Float32(data=self.cap.latest_battery_percent))

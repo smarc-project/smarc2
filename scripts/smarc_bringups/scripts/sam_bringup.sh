@@ -74,7 +74,8 @@ row(
 )"
 
 # SMARC_PUB_CMD="ros2 launch sam_smarc_publisher default.launch robot_name:=$ROBOT_NAME"
-SAM_CAP_CMD="ros2 launch sam_captain sam_captain.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME"
+# The diving controller owns actuators; Captain only publishes status.
+SAM_CAP_CMD="ros2 launch sam_captain sam_captain.launch.py robot_name:=$ROBOT_NAME use_sim_time:=$USE_SIM_TIME control_output_enabled:=false"
 if [[ "${1:-}" == "testing" ]]; then
     # Core startup checks do not require an MQTT broker.
     tmux_make_layout "$SESSION" utils "var(SAM_CAP_CMD)"

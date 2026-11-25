@@ -1,6 +1,7 @@
 import math
 import rclpy
 from rclpy.time import Time
+from rcl_interfaces.msg import ParameterDescriptor
 from geographic_msgs.msg import GeoPoint
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -9,6 +10,7 @@ from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Float32, Int8, String
 
 from sam_captain.SAMStatusPublisher import SAMStatusPublisher
+from sam_captain.SAMActuatorPublisher import SAMActuatorPublisher
 from sam_captain.SAMSimpleController import SAMSimpleController
 from sam_captain.control_type import ActuatorCmd, ControlState, ControlReference
 
@@ -34,6 +36,13 @@ class SAMCaptain(Node):
             self.get_parameter('robot_name').get_parameter_value().string_value
         )
         self.odom_frame = f'{self.robot_name}/odom'
+        self.control_output_enabled = self.declare_parameter(
+            'control_output_enabled', False,
+            descriptor=ParameterDescriptor(
+                read_only=True,
+                description='Allow actuator output; enable only with other command sources stopped.',
+            ),
+        ).value
 
         self.latest_battery_percent: float | None = None
         self.latest_odom: Odometry | None = None
@@ -72,12 +81,22 @@ class SAMCaptain(Node):
         self._last_control_state_time: Time | None = None
         self._last_control_reference_time: Time | None = None
 
-        self._controller = SAMSimpleController(self)
-
-        # control timer
-        self.control_period = 0.1
-        self._control_timer = self.create_timer(self.control_period, self._control_callback)
-        self.get_logger().info("SAMStatusPublisher has been created.")
+        self._control_active = False
+        self._controller = None
+        self._actuator_publisher = None
+        self._control_timer = None
+        if self.control_output_enabled:
+            self._controller = SAMSimpleController(self)
+            self._actuator_publisher = SAMActuatorPublisher(self)
+            self.control_period = 0.1
+            self._control_timer = self.create_timer(
+                self.control_period, self._control_callback
+            )
+            self.get_logger().warn(
+                'Captain actuator output enabled. Other command sources must be stopped.'
+            )
+        else:
+            self.get_logger().info('Captain running in status-only mode; actuator output disabled.')
 
     def _create_status_subscribers(self) -> None:
         """Create subscriptions that feed the status and navigation callbacks."""
@@ -156,7 +175,13 @@ class SAMCaptain(Node):
         self._last_geofence_status_time = self.get_clock().now()
     
     def _control_callback(self) -> None:
-        """Compute elapsed time and store the active or neutral actuator command."""
+        """Publish control directly; neutralize once when active control disengages."""
+        if not self.control_output_enabled:
+            self.control_command = None
+            self._control_active = False
+            self._last_control_time = None
+            return
+
         now = self.get_clock().now()
         previous = self._last_control_time
         self._last_control_time = now
@@ -171,9 +196,14 @@ class SAMCaptain(Node):
         # check if control is ready
         if self._control_is_ready():
             self.control_command = self._controller.update()
+            self._actuator_publisher.publish(self.control_command)
+            self._control_active = True
         else:
-            self._controller.reset()
-            self.control_command = self._controller.alloc.neutral()
+            self.control_command = None
+            if self._control_active:
+                self._controller.reset()
+                self._actuator_publisher.publish(self._controller.alloc.neutral())
+                self._control_active = False
 
     def _control_is_ready(self) -> bool:
         """Run control when a state and an enabled reference are available."""
