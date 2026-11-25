@@ -1,12 +1,14 @@
-"""Officer.step against a fake client, one row of the status table at a time."""
+"""WarapsOfficer.advance_tasks against a fake client, one row of the status table at a time."""
 
 import json
+from collections.abc import Callable
 from types import SimpleNamespace
 
 from smarc_action_base.smarc_action_base import ActionClientState
 from smarc_msgs.msg import Topics
 
-from waraps_officer.officer import Officer
+from waraps_officer.commands import ExecReply, StartReply
+from waraps_officer.officer import WarapsOfficer
 from waraps_officer.tasks import WaraPSTaskStates
 
 ROS = '/sam0/move_to'
@@ -14,7 +16,7 @@ NAME = 'move-to'
 
 
 class FakeClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self.state = ActionClientState.READY
         self.feedback = ''
         self.timed_out = False
@@ -24,17 +26,17 @@ class FakeClient:
         self.refuse_cancel = False
         self.error_on_cancel = False
 
-    def poll(self):
+    def poll(self) -> SimpleNamespace:
         return SimpleNamespace(
             state=self.state, feedback=self.feedback, timed_out=self.timed_out,
             cancel_refused=self.cancel_refused)
 
-    def send(self, goal_json, timeout_s):
+    def send(self, goal_json: str, timeout_s: float | None) -> bool:
         self.sent.append((goal_json, timeout_s))
         self.state = ActionClientState.SENT
         return True
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self.state is ActionClientState.CANCELLING:
             return
         self.cancel_refused = False
@@ -48,325 +50,391 @@ class FakeClient:
             return
         self.state = ActionClientState.CANCELLING
 
-    def get_ready(self):
+    def get_ready(self) -> None:
         self.state = ActionClientState.READY
 
-    def server_alive(self, timeout_s=0.0):
+    def server_alive(self, timeout_s: float = 0.0) -> bool:
         self.state = ActionClientState.READY
         return True
 
 
-def officer_with(state=ActionClientState.READY):
+class Published:
+    """What the officer published since the last clear(), one list per output topic."""
+
+    def __init__(self) -> None:
+        self.clear()
+
+    def clear(self) -> None:
+        self.aborts = 0
+        self.health = []
+        self.exec_response = []
+        self.tst_response = []
+        self.exec_feedback = []
+        self.tst_feedback = []
+        self.direct_execution_info = []
+        self.tst_execution_info = []
+        self.executing_tasks = []
+
+    def count_abort(self) -> None:
+        self.aborts += 1
+
+
+def officer_for(client_factory: Callable[[str], FakeClient], published: Published) -> WarapsOfficer:
+    return WarapsOfficer(
+        client_factory=client_factory,
+        name='sam0',
+        rate_hz=1.0,
+        liveliness_s=10.0,
+        health_timeout_s=10.0,
+        publish_abort=published.count_abort,
+        publish_health=lambda level: published.health.append(level),
+        publish_exec_response=lambda reply: published.exec_response.append(reply),
+        publish_tst_response=lambda reply: published.tst_response.append(reply),
+        publish_exec_feedback=lambda message: published.exec_feedback.append(message),
+        publish_tst_feedback=lambda message: published.tst_feedback.append(message),
+        publish_direct_execution_info=lambda info: published.direct_execution_info.append(info),
+        publish_tst_execution_info=lambda info: published.tst_execution_info.append(info),
+        publish_executing_tasks=lambda rows: published.executing_tasks.append(rows),
+    )
+
+
+def officer_with(state: ActionClientState = ActionClientState.READY) -> tuple[WarapsOfficer, FakeClient, Published]:
     client = FakeClient()
     client.state = state
-    officer = Officer(lambda ros_name: client, 'sam0', 1.0, 10.0, 10.0)
-    officer.on_health(Topics.VEHICLE_HEALTH_READY, 0.0)
-    officer.on_action_heartbeat(ROS, 0.0)
-    return officer, client
+    published = Published()
+    officer = officer_for(lambda ros_name: client, published)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 0.0)
+    officer.track_action_server(ROS, 0.0)
+    return officer, client, published
 
 
-def officer_with_clients(ros_names):
+def officer_with_clients(ros_names: list[str]) -> tuple[WarapsOfficer, dict[str, FakeClient], Published]:
     clients = {ros_name: FakeClient() for ros_name in ros_names}
-    officer = Officer(lambda ros_name: clients[ros_name], 'sam0', 1.0, 10.0, 10.0)
-    officer.on_health(Topics.VEHICLE_HEALTH_READY, 0.0)
+    published = Published()
+    officer = officer_for(lambda ros_name: clients[ros_name], published)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 0.0)
     for ros_name in ros_names:
-        officer.on_action_heartbeat(ros_name, 0.0)
-    return officer, clients
+        officer.track_action_server(ros_name, 0.0)
+    return officer, clients, published
 
 
-def start(officer, now=1.0, task_uuid='t1', name=NAME):
+def start(
+    officer: WarapsOfficer,
+    published: Published,
+    now: float = 1.0,
+    task_uuid: str = 't1',
+    name: str = NAME,
+) -> StartReply | ExecReply:
+    """Send a start-task; return the exec response it got."""
     text = json.dumps({'command': 'start-task', 'com-uuid': 'c', 'task-uuid': task_uuid,
                         'task': {'name': name, 'params': {'rpm': 300, 'timeout': 8}}})
-    return officer.on_exec(text, now)
+    published.clear()
+    officer.handle_exec_command(text, now)
+    return published.exec_response[-1]
 
 
-def test_started_and_ready_sends_the_goal_then_a_busy_client_rejects_the_next():
-    officer, client = officer_with()
-    out = start(officer)
-    assert out[0][1].status == 'started'
+def test_started_and_ready_sends_the_goal_then_a_busy_client_rejects_the_next() -> None:
+    officer, client, published = officer_with()
+    started = start(officer, published)
+    assert started.status == 'started'
     assert officer.executing[0].status == WaraPSTaskStates.STARTED
 
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     assert client.sent == [('{"rpm": 300, "timeout": 8}', 8.0)]
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
 
-    refused = start(officer, task_uuid='t2')
-    assert refused[0][1].response == 'task already executing on move-to'
+    refused = start(officer, published, task_uuid='t2')
+    assert refused.response == 'task already executing on move-to'
 
 
-def test_paused_cancels_and_stays_resumed_sends_again():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_paused_cancels_and_stays_resumed_sends_again() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     officer.executing[0].status = WaraPSTaskStates.PAUSED
-    officer.step(1.0)
+    officer.advance_tasks(1.0)
     assert client.cancels == 1
     assert officer.executing[0].status == WaraPSTaskStates.PAUSED
 
     client.state = ActionClientState.CANCELLED
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     assert client.state is ActionClientState.READY
 
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$continue'}), 1.2)
-    officer.step(1.3)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$continue'}), 1.2)
+    officer.advance_tasks(1.3)
     assert len(client.sent) == 1
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
 
 
-def test_abort_waits_until_the_server_accepts_and_blocks_a_new_start():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
-    officer.step(1.1)
+def test_abort_waits_until_the_server_accepts_and_blocks_a_new_start() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    officer.advance_tasks(1.1)
     assert client.cancels == 1
     assert client.state is ActionClientState.CANCELLING
     assert [task.uuid for task in officer.executing] == ['t1']
-    refused = start(officer, now=1.2, task_uuid='t2')
-    assert refused[0][1].response == 'task already executing on move-to'
+    refused = start(officer, published, now=1.2, task_uuid='t2')
+    assert refused.response == 'task already executing on move-to'
 
     client.state = ActionClientState.CANCELLED
-    out = officer.step(1.3)
+    published.clear()
+    officer.advance_tasks(1.3)
     assert officer.executing == []
-    assert out[0][1].feedback == 'cancelled'
-    assert out[0][1].status == 'aborted'
+    assert published.exec_feedback[0].feedback == 'cancelled'
+    assert published.exec_feedback[0].status == 'aborted'
 
-    officer.on_health(Topics.VEHICLE_HEALTH_READY, 2.0)
-    start(officer, now=2.1)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 2.0)
+    start(officer, published, now=2.1)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
     client.state = ActionClientState.RUNNING
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$enough'}), 2.2)
-    officer.step(2.3)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$enough'}), 2.2)
+    officer.advance_tasks(2.3)
     assert officer.executing
     client.state = ActionClientState.CANCELLED
-    officer.step(2.4)
+    officer.advance_tasks(2.4)
     assert officer.executing == []
 
 
-def test_officer_health_is_waiting_then_error_then_ready():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_officer_health_is_waiting_then_error_then_ready() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     assert officer.health() == Topics.VEHICLE_HEALTH_READY
 
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
-    out = officer.step(1.1)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    published.clear()
+    officer.advance_tasks(1.1)
     assert officer.health() == Topics.VEHICLE_HEALTH_WAITING
-    assert out[-1] == ('officer_health', Topics.VEHICLE_HEALTH_WAITING)
-    assert all(kind != 'abort' for kind, _ in out)
+    assert published.health[-1] == Topics.VEHICLE_HEALTH_WAITING
+    assert published.aborts == 0
 
     client.refuse_cancel = True
     client.state = ActionClientState.RUNNING
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.2)
-    officer.step(1.3)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.2)
+    officer.advance_tasks(1.3)
     assert officer.health() == Topics.VEHICLE_HEALTH_ERROR
 
     client.refuse_cancel = False
     client.state = ActionClientState.CANCELLED
-    officer.step(1.4)
+    officer.advance_tasks(1.4)
     assert officer.executing == []
     assert officer.health() == Topics.VEHICLE_HEALTH_READY
 
 
-def test_a_refused_cancel_stays_running_and_is_reported():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_a_refused_cancel_stays_running_and_is_reported() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.refuse_cancel = True
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
-    out = officer.step(1.1)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    published.clear()
+    officer.advance_tasks(1.1)
     assert client.cancels == 1
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
-    assert out[0][1].feedback == 'cancel refused: action still running'
-    assert all(kind != 'abort' for kind, _ in out)
-    refused = start(officer, now=1.2, task_uuid='t2')
-    assert refused[0][1].response == 'task already executing on move-to'
-    officer.step(1.3)
+    assert published.exec_feedback[0].feedback == 'cancel refused: action still running'
+    assert published.aborts == 0
+    refused = start(officer, published, now=1.2, task_uuid='t2')
+    assert refused.response == 'task already executing on move-to'
+    officer.advance_tasks(1.3)
     assert client.cancels == 1
 
 
-def test_a_refused_pause_is_reported_once():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_a_refused_pause_is_reported_once() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.refuse_cancel = True
     officer.executing[0].status = WaraPSTaskStates.PAUSED
-    officer.step(1.0)
+    officer.advance_tasks(1.0)
     assert client.cancels == 1
-    out = officer.step(1.1)
-    assert out[0][1].feedback == 'cancel refused: action still running'
+    published.clear()
+    officer.advance_tasks(1.1)
+    assert published.exec_feedback[0].feedback == 'cancel refused: action still running'
     assert officer.executing[0].status == WaraPSTaskStates.PAUSED
-    officer.step(1.2)
+    officer.advance_tasks(1.2)
     assert client.cancels == 1
 
 
-def test_health_reports_a_refusal_instead_of_asking_again():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_health_reports_a_refusal_instead_of_asking_again() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
-    officer.on_health(Topics.VEHICLE_HEALTH_ERROR, 1.0)
-    officer.step(1.1)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_ERROR, 1.0)
+    officer.advance_tasks(1.1)
     assert client.cancels == 1
     client.state = ActionClientState.RUNNING
     client.cancel_refused = True
-    out = officer.step(1.2)
+    published.clear()
+    officer.advance_tasks(1.2)
     assert client.cancels == 1
-    assert out[0][1].feedback == 'cancel refused: action still running'
+    assert published.exec_feedback[0].feedback == 'cancel refused: action still running'
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
 
 
-def test_health_asks_once_after_a_different_stop_was_refused():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_health_asks_once_after_a_different_stop_was_refused() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.refuse_cancel = True
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
-    officer.step(1.1)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    officer.advance_tasks(1.1)
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
     assert client.cancels == 1
     client.refuse_cancel = False
-    officer.on_health(Topics.VEHICLE_HEALTH_ERROR, 2.0)
-    officer.step(2.1)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_ERROR, 2.0)
+    officer.advance_tasks(2.1)
     assert client.cancels == 2
     assert client.state is ActionClientState.CANCELLING
 
 
-def test_a_refused_pause_that_finishes_leaves_the_list():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_a_refused_pause_that_finishes_leaves_the_list() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.refuse_cancel = True
     officer.executing[0].status = WaraPSTaskStates.PAUSED
-    officer.step(1.0)
-    officer.step(1.1)
+    officer.advance_tasks(1.0)
+    officer.advance_tasks(1.1)
     assert officer.executing[0].status == WaraPSTaskStates.PAUSED
     client.state = ActionClientState.DONE
     client.feedback = 'there'
-    out = officer.step(1.2)
+    published.clear()
+    officer.advance_tasks(1.2)
     assert officer.executing == []
-    assert out[0][1].status == 'finished'
-    assert out[0][1].feedback == 'there'
+    assert published.exec_feedback[0].status == 'finished'
+    assert published.exec_feedback[0].feedback == 'there'
 
 
-def test_continue_after_a_refused_pause_keeps_the_running_goal():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_continue_after_a_refused_pause_keeps_the_running_goal() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.refuse_cancel = True
     officer.executing[0].status = WaraPSTaskStates.PAUSED
-    officer.step(1.0)
-    officer.step(1.1)
+    officer.advance_tasks(1.0)
+    officer.advance_tasks(1.1)
     assert officer.executing[0].status == WaraPSTaskStates.PAUSED
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$continue'}), 1.2)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$continue'}), 1.2)
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
-    officer.step(1.3)
+    officer.advance_tasks(1.3)
     assert client.sent == []
     assert client.cancels == 1
 
 
-def test_a_refused_timeout_is_reported_and_the_task_stays():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_a_refused_timeout_is_reported_and_the_task_stays() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
     client.timed_out = True
     client.cancel_refused = True
-    out = officer.step(1.0)
-    assert out[0][1].feedback == 'cancel refused: action still running'
+    published.clear()
+    officer.advance_tasks(1.0)
+    assert published.exec_feedback[0].feedback == 'cancel refused: action still running'
     assert officer.executing
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
 
 
-def test_a_cancel_that_errors_is_reported_on_the_task():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
+def test_a_cancel_that_errors_is_reported_on_the_task() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
     client.error_on_cancel = True
-    officer.on_exec(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
-    out = officer.step(1.1)
+    officer.handle_exec_command(json.dumps({'command': 'signal-task', 'com-uuid': 'c', 'task-uuid': 't1', 'signal': '$abort'}), 1.0)
+    published.clear()
+    officer.advance_tasks(1.1)
     assert officer.executing == []
-    assert out[0][1].status == 'error'
-    assert 'ERROR' in out[0][1].feedback
-    assert all(kind != 'abort' for kind, _ in out)
+    assert published.exec_feedback[0].status == 'error'
+    assert 'ERROR' in published.exec_feedback[0].feedback
+    assert published.aborts == 0
 
 
-def test_done_finishes_and_error_reports_the_client_state():
-    officer, client = officer_with(ActionClientState.DONE)
+def test_done_finishes_and_error_reports_the_client_state() -> None:
+    officer, client, published = officer_with(ActionClientState.DONE)
     client.feedback = 'there'
-    start(officer)
+    start(officer, published)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
-    out = officer.step(1.0)
+    published.clear()
+    officer.advance_tasks(1.0)
     assert officer.executing == []
-    assert out[0][1].status == 'finished'
-    assert out[0][1].feedback == 'there'
+    assert published.exec_feedback[0].status == 'finished'
+    assert published.exec_feedback[0].feedback == 'there'
 
     client.state = ActionClientState.ERROR
     client.feedback = ''
-    start(officer, now=2.0)
-    officer.on_health(Topics.VEHICLE_HEALTH_READY, 2.0)
+    start(officer, published, now=2.0)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 2.0)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
-    out = officer.step(2.1)
-    assert out[0][1].status == 'error'
-    assert 'ERROR' in out[0][1].feedback
+    published.clear()
+    officer.advance_tasks(2.1)
+    assert published.exec_feedback[0].status == 'error'
+    assert 'ERROR' in published.exec_feedback[0].feedback
 
 
-def test_timeout_waits_for_the_cancel_then_is_an_error():
-    officer, client = officer_with(ActionClientState.RUNNING)
+def test_timeout_waits_for_the_cancel_then_is_an_error() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
     client.timed_out = True
-    start(officer)
+    start(officer, published)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
-    officer.step(1.0)
+    officer.advance_tasks(1.0)
     assert officer.executing
     client.state = ActionClientState.CANCELLED
-    out = officer.step(1.1)
-    assert out[0][1].status == 'error'
+    published.clear()
+    officer.advance_tasks(1.1)
+    assert published.exec_feedback[0].status == 'error'
     assert officer.executing == []
 
 
-def test_a_second_server_runs_beside_the_first_and_both_can_finish():
-    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
-    start(officer)
-    other = start(officer, now=1.1, task_uuid='t2', name='wait')
-    assert other[0][1].status == 'started'
+def test_a_second_server_runs_beside_the_first_and_both_can_finish() -> None:
+    officer, clients, published = officer_with_clients([ROS, '/sam0/wait'])
+    start(officer, published)
+    other = start(officer, published, now=1.1, task_uuid='t2', name='wait')
+    assert other.status == 'started'
     assert [task.uuid for task in officer.executing] == ['t1', 't2']
-    officer.step(1.2)
+    officer.advance_tasks(1.2)
     assert len(clients[ROS].sent) == 1
     assert len(clients['/sam0/wait'].sent) == 1
     clients[ROS].state = ActionClientState.DONE
     clients['/sam0/wait'].state = ActionClientState.DONE
-    out = officer.step(1.3)
+    published.clear()
+    officer.advance_tasks(1.3)
     assert officer.executing == []
-    assert [item[1].status for item in out if item[0] == 'exec_feedback'] == ['finished', 'finished']
+    assert [message.status for message in published.exec_feedback] == ['finished', 'finished']
 
 
-def test_a_third_start_on_a_busy_server_is_rejected():
-    officer, _clients = officer_with_clients([ROS, '/sam0/wait'])
-    start(officer)
-    refused = start(officer, now=1.1, task_uuid='t2')
-    assert refused[0][1].response == 'task already executing on move-to'
-    other = start(officer, now=1.2, task_uuid='t3', name='wait')
-    assert other[0][1].status == 'started'
+def test_a_third_start_on_a_busy_server_is_rejected() -> None:
+    officer, _clients, published = officer_with_clients([ROS, '/sam0/wait'])
+    start(officer, published)
+    refused = start(officer, published, now=1.1, task_uuid='t2')
+    assert refused.response == 'task already executing on move-to'
+    other = start(officer, published, now=1.2, task_uuid='t3', name='wait')
+    assert other.status == 'started'
     assert [task.uuid for task in officer.executing] == ['t1', 't3']
 
 
-def test_stop_on_first_cancels_the_slower_task_and_waits():
-    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
+def test_stop_on_first_cancels_the_slower_task_and_waits() -> None:
+    officer, clients, published = officer_with_clients([ROS, '/sam0/wait'])
     text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
         'name': 'conc', 'tst-uuid': 'm', 'params': {'stop-on-first': True}, 'children': [
             {'name': NAME, 'task-uuid': 'a', 'params': {}},
             {'name': 'wait', 'task-uuid': 'b', 'params': {}},
         ]}})
-    out = officer.on_tst(text, 1.0)
-    assert out[0][1].response == 'accepted'
+    published.clear()
+    officer.handle_tst_command(text, 1.0)
+    assert published.tst_response[0].response == 'accepted'
     assert [task.uuid for task in officer.executing] == ['a', 'b']
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     clients[ROS].state = ActionClientState.DONE
-    out = officer.step(1.2)
+    published.clear()
+    officer.advance_tasks(1.2)
     assert [task.uuid for task in officer.executing] == ['b']
     assert clients['/sam0/wait'].cancels == 1
     assert clients['/sam0/wait'].state is ActionClientState.CANCELLING
     assert officer.health() == Topics.VEHICLE_HEALTH_WAITING
-    assert any(item[1].feedback == 'cancelling: stop-on-first' for item in out)
+    assert any(message.feedback == 'cancelling: stop-on-first' for message in published.tst_feedback)
     clients['/sam0/wait'].state = ActionClientState.CANCELLED
-    out = officer.step(1.3)
+    published.clear()
+    officer.advance_tasks(1.3)
     assert officer.executing == []
-    assert out[0][1].feedback == 'cancelled: stop-on-first'
+    assert published.tst_feedback[0].feedback == 'cancelled: stop-on-first'
     assert officer.health() == Topics.VEHICLE_HEALTH_READY
 
 
-def test_a_seq_inside_a_conc_runs_in_order():
-    officer, clients = officer_with_clients([ROS, '/sam0/wait'])
+def test_a_seq_inside_a_conc_runs_in_order() -> None:
+    officer, clients, published = officer_with_clients([ROS, '/sam0/wait'])
     text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
         'name': 'conc', 'tst-uuid': 'm', 'children': [
             {'name': 'seq', 'children': [
@@ -375,89 +443,94 @@ def test_a_seq_inside_a_conc_runs_in_order():
             ]},
             {'name': 'wait', 'task-uuid': 'c', 'params': {}},
         ]}})
-    officer.on_tst(text, 1.0)
+    officer.handle_tst_command(text, 1.0)
     assert [task.uuid for task in officer.executing] == ['a', 'c']
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     clients[ROS].state = ActionClientState.DONE
-    officer.step(1.2)
+    officer.advance_tasks(1.2)
     assert [task.uuid for task in officer.executing] == ['c', 'b']
     assert clients['/sam0/wait'].cancels == 0
-    officer.step(1.3)
+    officer.advance_tasks(1.3)
     assert len(clients[ROS].sent) == 2
     assert [task.status for task in officer.executing if task.uuid == 'b'] == [WaraPSTaskStates.RUNNING]
 
 
-def test_seq_starts_the_next_leaf_when_the_current_one_finishes():
-    officer, client = officer_with()
+def test_seq_starts_the_next_leaf_when_the_current_one_finishes() -> None:
+    officer, client, published = officer_with()
     text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
         'name': 'seq', 'tst-uuid': 'm', 'children': [
             {'name': NAME, 'task-uuid': 'a', 'params': {'n': 1}},
             {'name': NAME, 'task-uuid': 'b', 'params': {'n': 2}},
         ]}})
-    out = officer.on_tst(text, 1.0)
-    assert out[0][1].response == 'accepted'
+    published.clear()
+    officer.handle_tst_command(text, 1.0)
+    assert published.tst_response[0].response == 'accepted'
     assert officer.executing[0].uuid == 'a'
 
-    officer.step(1.1)                              # send the first goal
+    officer.advance_tasks(1.1)                              # send the first goal
     client.state = ActionClientState.DONE
-    officer.step(1.2)
+    officer.advance_tasks(1.2)
     assert [task.uuid for task in officer.executing] == ['b']
     assert officer.executing[0].status == WaraPSTaskStates.STARTED
-    officer.step(1.3)
+    officer.advance_tasks(1.3)
     assert len(client.sent) == 2
     assert officer.executing[0].status == WaraPSTaskStates.RUNNING
 
 
-def test_health_not_ready_rejects_a_start_and_cancels_what_is_running():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    refused = start(officer, now=100.0)            # the ready sample at 0.0 is stale
-    assert refused[0][1].response == 'rejected: vehicle health status is not ok'
+def test_health_not_ready_rejects_a_start_and_cancels_what_is_running() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    refused = start(officer, published, now=100.0)            # the ready sample at 0.0 is stale
+    assert refused.response == 'rejected: vehicle health status is not ok'
 
-    officer.on_health(Topics.VEHICLE_HEALTH_READY, 0.0)
-    start(officer, now=1.0)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 0.0)
+    start(officer, published, now=1.0)
     officer.executing[0].status = WaraPSTaskStates.RUNNING
-    officer.on_health(Topics.VEHICLE_HEALTH_ERROR, 2.0)
-    out = officer.step(2.1)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_ERROR, 2.0)
+    published.clear()
+    officer.advance_tasks(2.1)
     assert [task.uuid for task in officer.executing] == ['t1']
-    assert out[0][1].feedback == 'cancelling: vehicle health ERROR'
+    assert published.exec_feedback[0].feedback == 'cancelling: vehicle health ERROR'
     assert client.cancels == 1
-    assert all(kind != 'abort' for kind, _ in out)
+    assert published.aborts == 0
     client.state = ActionClientState.CANCELLED
-    out = officer.step(2.2)
+    published.clear()
+    officer.advance_tasks(2.2)
     assert officer.executing == []
-    assert out[0][1].feedback == 'cancelled: vehicle health ERROR'
+    assert published.exec_feedback[0].feedback == 'cancelled: vehicle health ERROR'
 
 
-def test_signal_unit_on_exec_replies_there_and_aborts():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
-    out = officer.on_exec(json.dumps({'command': 'signal-unit', 'com-uuid': 'c', 'signal': '$abort'}), 1.0)
+def test_signal_unit_on_exec_replies_there_and_aborts() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
+    published.clear()
+    officer.handle_exec_command(json.dumps({'command': 'signal-unit', 'com-uuid': 'c', 'signal': '$abort'}), 1.0)
     assert [task.uuid for task in officer.executing] == ['t1']
     assert client.state is ActionClientState.CANCELLING
-    assert out[0][0] == 'exec_response'
-    assert out[0][1].response == 'ok'
-    assert ('abort', None) in out
+    assert published.exec_response[0].response == 'ok'
+    assert published.aborts == 1
 
 
-def test_unit_abort_cancels_and_publishes_the_smarc_abort():
-    officer, client = officer_with(ActionClientState.RUNNING)
-    start(officer)
-    out = officer.on_waraps_abort(1.0)
+def test_unit_abort_cancels_and_publishes_the_smarc_abort() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
+    published.clear()
+    officer.abort_all(1.0)
     assert [task.uuid for task in officer.executing] == ['t1']
-    assert ('abort', None) in out
+    assert published.aborts == 1
     client.state = ActionClientState.CANCELLED
-    officer.step(1.1)
+    officer.advance_tasks(1.1)
     assert officer.executing == []
 
 
-def test_a_task_that_stops_heartbeating_is_forgotten():
-    officer, _ = officer_with()
-    officer.pulse(20.0)
+def test_a_task_that_stops_heartbeating_is_forgotten() -> None:
+    officer, _, published = officer_with()
+    officer.publish_status(20.0)
     assert officer.available == {}
 
 
-def test_unknown_task_is_rejected():
-    officer, _ = officer_with()
+def test_unknown_task_is_rejected() -> None:
+    officer, _, published = officer_with()
     text = json.dumps({'command': 'start-task', 'com-uuid': 'c', 'task-uuid': 't', 'task': {'name': 'nope', 'params': {}}})
-    out = officer.on_exec(text, 1.0)
-    assert out[0][1].response == 'task not available'
+    published.clear()
+    officer.handle_exec_command(text, 1.0)
+    assert published.exec_response[0].response == 'task not available'

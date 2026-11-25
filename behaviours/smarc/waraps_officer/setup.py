@@ -24,7 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'waraps_vehicle = waraps_officer.waraps_vehicle:main',
-            'waraps_officer = waraps_officer.officer:main',
+            'waraps_officer = waraps_officer.ros2waraps_officer:main',
             'waraps_agents_to_ros = waraps_officer.waraps_agents_to_ros:main',
         ],
     },
