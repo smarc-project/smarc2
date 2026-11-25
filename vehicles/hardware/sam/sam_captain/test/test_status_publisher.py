@@ -67,7 +67,8 @@ def test_status_publisher_registers_outputs_and_publish_timer():
         Int8,
         SmarcTopics.VEHICLE_HEALTH_TOPIC,
     )
-    captain.create_timer.assert_called_once_with(10.0, status._publish_status)
+    assert captain.create_publisher.call_count == 10
+    captain.create_timer.assert_called_once_with(0.1, status._publish_status)
 
 
 def test_publish_status_reads_current_state_from_the_captain():

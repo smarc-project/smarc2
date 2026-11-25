@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import pytest
+
 from rclpy.node import Node
 from sam_captain.sam_captain import SAMCaptain
 from sensor_msgs.msg import BatteryState
@@ -47,7 +49,8 @@ def test_battery_callback_stores_percentage_and_receipt_time():
     assert captain._last_battery_time is received_at
 
 
-def test_constructor_initializes_the_internal_state_used_by_callbacks():
+@pytest.mark.parametrize('output_enabled', [False, True])
+def test_constructor_initializes_the_internal_state_used_by_callbacks(output_enabled):
     """Keep initialization aligned with the callback and freshness code."""
     logger = Mock()
     robot_parameter = SimpleNamespace(
@@ -58,14 +61,31 @@ def test_constructor_initializes_the_internal_state_used_by_callbacks():
     with (
         patch.object(Node, '__init__', return_value=None),
         patch.object(Node, 'get_logger', return_value=logger),
-        patch.object(SAMCaptain, 'declare_parameter'),
+        patch.object(SAMCaptain, 'declare_parameter', return_value=SimpleNamespace(value=output_enabled)) as declare,
+        patch.object(SAMCaptain, 'create_timer') as timer,
         patch.object(SAMCaptain, 'get_parameter', return_value=robot_parameter),
-        patch.object(SAMCaptain, '_create_tf_listener'),
+        patch('sam_captain.sam_captain.GeorefUtils'),
+        patch('sam_captain.sam_captain.SAMSimpleController') as controller,
+        patch('sam_captain.sam_captain.SAMActuatorPublisher') as actuator,
         patch.object(SAMCaptain, '_create_status_subscribers'),
         patch('sam_captain.sam_captain.SAMStatusPublisher'),
     ):
         captain = SAMCaptain()
 
+    assert captain.control_output_enabled is output_enabled
+    output_parameter = declare.call_args_list[1]
+    assert output_parameter.args == ('control_output_enabled', False)
+    assert output_parameter.kwargs['descriptor'].read_only
+    if output_enabled:
+        controller.assert_called_once_with(captain)
+        actuator.assert_called_once_with(captain)
+        timer.assert_called_once_with(0.1, captain._control_callback)
+    else:
+        controller.assert_not_called()
+        actuator.assert_not_called()
+        timer.assert_not_called()
+        assert captain._controller is None
+        assert captain._actuator_publisher is None
     assert captain._previous_pose_utm is None
     assert captain._current_pose_utm is None
     assert captain._last_battery_time is None
