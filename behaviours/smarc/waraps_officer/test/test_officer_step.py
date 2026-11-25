@@ -534,3 +534,34 @@ def test_unknown_task_is_rejected() -> None:
     published.clear()
     officer.handle_exec_command(text, 1.0)
     assert published.exec_response[0].response == 'task not available'
+
+
+def test_a_mission_times_out_on_the_officers_clock() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    text = json.dumps({'command': 'start-tst', 'com-uuid': 'c', 'tst': {
+        'name': 'seq', 'tst-uuid': 'm', 'params': {'timeout': 5}, 'children': [
+            {'name': NAME, 'task-uuid': 'a', 'params': {}},
+        ]}})
+    officer.handle_tst_command(text, 1.0)
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 5.0)
+
+    officer.advance_tasks(5.9)
+    assert client.cancels == 0
+
+    published.clear()
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 6.1)
+    officer.advance_tasks(6.1)
+    assert client.cancels == 1
+    assert published.tst_feedback[0].feedback == 'cancelling: mission timeout exceeded'
+
+
+def test_a_server_running_our_task_is_not_forgotten_when_it_skips_heartbeats() -> None:
+    officer, client, published = officer_with(ActionClientState.RUNNING)
+    start(officer, published)
+
+    officer.publish_status(20.0)
+
+    assert ROS in officer.available
+    officer.update_vehicle_health(Topics.VEHICLE_HEALTH_READY, 20.0)
+    refused = start(officer, published, now=20.0, task_uuid='t2')
+    assert refused.response == 'task already executing on move-to'

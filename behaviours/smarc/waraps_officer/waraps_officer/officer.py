@@ -24,6 +24,7 @@ from waraps_officer.commands import (
     Ping,
     QueryTask,
     Rejection,
+    Run,
     SignalTask,
     SignalUnit,
     StartReply,
@@ -96,7 +97,7 @@ class WarapsOfficer:
         self.clients: dict[str, object] = {}
         self.executing: list[ExecutingTask] = []
         self._mission: Mission | None = None
-        self._run = None
+        self._run: Run | None = None
         self._mission_started_s: float | None = None
         self._health_value: int | None = None
         self._health_stamp_s: float | None = None
@@ -142,7 +143,7 @@ class WarapsOfficer:
     # ---- time ---------------------------------------------------------------
 
     def publish_status(self, now_s: float) -> None:
-        self._prune(now_s)
+        self._forget_silent_servers(now_s)
         available = list(self.available.values())
         self._publish_direct_execution_info(
             direct_execution_info(self._name, self._rate_hz, now_s, available, self.executing))
@@ -151,7 +152,7 @@ class WarapsOfficer:
         self._publish_executing_tasks(executing_tasks(self.executing))
         for task in self.executing:
             text = getattr(task.client.poll(), 'feedback', '')
-            self._feedback(task, text)
+            self._send_feedback(task, text)
         self._publish_health(self.health())
 
     def health(self) -> int:
@@ -165,7 +166,7 @@ class WarapsOfficer:
         if self._mission_expired(now_s):
             self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded')
         for task in list(self.executing):
-            self._advance(task, now_s)
+            self._advance_task(task, now_s)
         self._publish_health(self.health())
 
     # ---- commands -----------------------------------------------------------
@@ -194,15 +195,22 @@ class WarapsOfficer:
 
     def _start_one(self, task: StartTask, now_s: float, tst_uuid: str | None) -> None:
         respond = self._publish_tst_response if tst_uuid is not None else self._publish_exec_response
-        refusal = self._refuse(task.name, now_s)
+        refusal = self._refusal_for(task.name, now_s)
         if refusal is not None:
             respond(exec_response(self.agent_uuid, task.com_uuid, refusal))
             return
-        available = self._find(task.name)
+        server = self._server_for(task.name)
         self.executing.append(ExecutingTask(
-            uuid=task.task_uuid, name=task.name, ros_name=available.ros_name, params=task.params,
-            description=task.description, status=WaraPSTaskStates.STARTED, client=self.clients[available.ros_name],
-            com_uuid=task.com_uuid, tst_uuid=tst_uuid, timeout_s=task.timeout_s,
+            uuid=task.task_uuid,
+            name=task.name,
+            ros_name=server.ros_name,
+            params=task.params,
+            description=task.description,
+            status=WaraPSTaskStates.STARTED,
+            client=self.clients[server.ros_name],
+            com_uuid=task.com_uuid,
+            tst_uuid=tst_uuid,
+            timeout_s=task.timeout_s,
         ))
         if tst_uuid is not None:
             respond(exec_response(self.agent_uuid, task.com_uuid, 'accepted'))
@@ -217,11 +225,11 @@ class WarapsOfficer:
             reject('task already executing on a mission')
             return
         for leaf in each_leaf(mission.root):
-            available = self._find(leaf.name)
-            if available is None:
+            server = self._server_for(leaf.name)
+            if server is None:
                 reject('task not available')
                 return
-            busy = self._busy(available.ros_name)
+            busy = self._task_on_server(server.ros_name)
             if busy is not None:
                 reject(f'task already executing on {busy.name}')
                 return
@@ -231,7 +239,7 @@ class WarapsOfficer:
         run, follow = open_run(mission.root)
         seen = set()
         for leaf in follow.start:
-            ros_name = self._find(leaf.name).ros_name
+            ros_name = self._server_for(leaf.name).ros_name
             if ros_name in seen:
                 reject(f'rejected: {leaf.name} would run twice at once')
                 return
@@ -245,20 +253,20 @@ class WarapsOfficer:
             self._run = None
             return
         for leaf in follow.start:
-            self._begin(leaf, now_s)
+            self._start_leaf(leaf, now_s)
 
-    def _refuse(self, name: str, now_s: float) -> str | None:
+    def _refusal_for(self, name: str, now_s: float) -> str | None:
         if not self._health_ready(now_s):
             return 'rejected: vehicle health status is not ok'
-        available = self._find(name)
-        if available is None:
+        server = self._server_for(name)
+        if server is None:
             return 'task not available'
-        busy = self._busy(available.ros_name)
+        busy = self._task_on_server(server.ros_name)
         if busy is not None:
             return f'task already executing on {busy.name}'
         return None
 
-    def _busy(self, ros_name: str) -> ExecutingTask | None:
+    def _task_on_server(self, ros_name: str) -> ExecutingTask | None:
         for task in self.executing:
             if task.ros_name == ros_name:
                 return task
@@ -272,14 +280,12 @@ class WarapsOfficer:
         if signal.signal == WaraPSCommandSignals.PAUSE:
             task.status = WaraPSTaskStates.PAUSED
         elif signal.signal == WaraPSCommandSignals.CONTINUE and task.status == WaraPSTaskStates.PAUSED:
-            task.status = _continued(task)
+            task.status = _status_after_continue(task)
         elif signal.signal in _STOP_STATUS:
             task.cancel_refused = False
-            task.status = _STOP_STATUS[signal.signal]
-            task.stop_reason = None
             self._mission = None
             self._run = None
-            _cancel(task)
+            self._mark_stopping(task, _STOP_STATUS[signal.signal], reason=None)
         self._publish_exec_response(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
 
     def _signal_unit(self, signal: SignalUnit, respond: Callable[[ExecReply], None]) -> None:
@@ -289,7 +295,7 @@ class WarapsOfficer:
         elif signal.signal == WaraPSCommandSignals.CONTINUE:
             for task in self.executing:
                 if task.status == WaraPSTaskStates.PAUSED:
-                    task.status = _continued(task)
+                    task.status = _status_after_continue(task)
         respond(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
         if signal.signal in _STOP:
             self._stop_all(
@@ -320,28 +326,31 @@ class WarapsOfficer:
                     continue
                 _cancel(task)
                 continue
-            task.status = status
-            task.stop_reason = text
-            _cancel(task)
+            self._mark_stopping(task, status, text)
             if text is not None:
-                self._feedback(task, f'cancelling: {text}')
+                self._send_feedback(task, f'cancelling: {text}')
         self._mission = None
         self._run = None
 
     # ---- one executing task -------------------------------------------------
 
-    def _advance(self, task: ExecutingTask, now_s: float) -> None:
+    def _advance_task(self, task: ExecutingTask, now_s: float) -> None:
         report = task.client.poll()
         state = report.state
+        # The server refused the cancel and keeps the goal running. Report that once and
+        # treat the task as running again; only a new stop (health, abort, timeout) asks again.
         if report.cancel_refused and not task.cancel_refused:
             if task.status != WaraPSTaskStates.PAUSED:
                 task.status = WaraPSTaskStates.RUNNING
             task.cancel_refused = True
-            self._feedback(task, 'cancel refused: action still running')
+            self._send_feedback(task, 'cancel refused: action still running')
             return
+        # A stop was asked for; the task only leaves once the server answers the cancel.
         if task.status in (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH):
-            self._advance_stop(task, report, now_s)
+            self._see_cancel_through(task, report, now_s)
             return
+        # WARA-PS pause has no action-level equivalent: a paused task cancels its goal and
+        # sends a fresh one on continue. READY after a pause just waits for that continue.
         if task.status == WaraPSTaskStates.PAUSED:
             if state in SMARCActionClient.RUNNING_STATES:
                 if not task.cancel_refused:
@@ -352,6 +361,8 @@ class WarapsOfficer:
                 return
             if state is SMARCActionClient.States.READY:
                 return
+        # A new or resumed task has no goal out yet. A server that went quiet is pinged
+        # instead of sent to, so the goal is not lost into a dead server.
         if task.status in (WaraPSTaskStates.STARTED, WaraPSTaskStates.RESUMED):
             if state is SMARCActionClient.States.DISCONNECTED:
                 task.client.server_alive(timeout_s=0.0)
@@ -359,6 +370,8 @@ class WarapsOfficer:
                 if task.client.send(json.dumps(task.params), task.timeout_s):
                     task.status = WaraPSTaskStates.RUNNING
             return
+        # The client has already asked a timed-out goal to cancel. Until the server lets
+        # go it is still moving the vehicle, so it stays on the list.
         if report.timed_out and state in SMARCActionClient.RUNNING_STATES:
             return
         if report.timed_out or state in SMARCActionClient.FAILURE_STATES or state is SMARCActionClient.States.DONE:
@@ -366,42 +379,46 @@ class WarapsOfficer:
             text = report.feedback or f'Action client in failure state: {state}.'
             if state is SMARCActionClient.States.DONE:
                 text = report.feedback
-            self._feedback(task, text)
-            self._retire(task)
-            self._joined(task, now_s)
+            self._send_feedback(task, text)
+            self._remove_from_executing(task)
+            self._continue_mission_after(task, now_s)
 
-    def _advance_stop(self, task: ExecutingTask, report: ClientReport, now_s: float) -> None:
+    def _see_cancel_through(self, task: ExecutingTask, report: ClientReport, now_s: float) -> None:
         """A cancel is a request. The task leaves when the server answers it."""
         state = report.state
+        # Still running: the cancel has not landed yet. _cancel re-sends only when the goal
+        # is not already CANCELLING, so this does not repeat a cancel that is in flight.
         if state in SMARCActionClient.RUNNING_STATES:
             _cancel(task)
             return
+        # The server let go of the goal: this stop is done.
         if state is SMARCActionClient.States.CANCELLED or state is SMARCActionClient.States.READY:
             text = f'cancelled: {task.stop_reason}' if task.stop_reason else 'cancelled'
+        # It finished before the cancel arrived, so it is reported as finished, not cancelled.
         elif state is SMARCActionClient.States.DONE:
             task.status = WaraPSTaskStates.FINISHED
             text = report.feedback
         else:
             task.status = WaraPSTaskStates.ERROR
             text = report.feedback or f'Action client in failure state: {state}.'
-        self._feedback(task, text)
-        self._retire(task)
-        self._joined(task, now_s)
+        self._send_feedback(task, text)
+        self._remove_from_executing(task)
+        self._continue_mission_after(task, now_s)
 
-    def _joined(self, task: ExecutingTask, now_s: float) -> None:
+    def _continue_mission_after(self, task: ExecutingTask, now_s: float) -> None:
         if self._run is None or task.uuid not in self._run.by_uuid:
             return
-        self._follow(after_leaf(self._run, task.uuid, task.status), now_s)
+        self._apply_mission_step(after_leaf(self._run, task.uuid, task.status), now_s)
 
-    def _follow(self, step: Follow, now_s: float) -> None:
-        self._stop_these(step.cancel)
+    def _apply_mission_step(self, step: Follow, now_s: float) -> None:
+        self._cancel_siblings(step.cancel)
         for leaf in step.start:
-            self._begin(leaf, now_s)
+            self._start_leaf(leaf, now_s)
         if step.done:
             self._mission = None
             self._run = None
 
-    def _stop_these(self, uuids: list[str]) -> None:
+    def _cancel_siblings(self, uuids: list[str]) -> None:
         """Ask those tasks to cancel, and wait. Same path as any other cancel."""
         if not uuids:
             return
@@ -410,34 +427,44 @@ class WarapsOfficer:
             if task.uuid not in wanted:
                 continue
             task.cancel_refused = False
-            task.status = WaraPSTaskStates.ENOUGH
-            task.stop_reason = 'stop-on-first'
-            _cancel(task)
-            self._feedback(task, 'cancelling: stop-on-first')
+            self._mark_stopping(task, WaraPSTaskStates.ENOUGH, 'stop-on-first')
+            self._send_feedback(task, 'cancelling: stop-on-first')
 
-    def _begin(self, leaf: Leaf, now_s: float) -> None:
+    def _mark_stopping(self, task: ExecutingTask, status: WaraPSTaskStates, reason: str | None) -> None:
+        task.status = status
+        task.stop_reason = reason
+        _cancel(task)
+
+    def _start_leaf(self, leaf: Leaf, now_s: float) -> None:
         mission = self._mission
-        available = self._find(leaf.name) if mission is not None else None
-        busy = None if available is None else self._busy(available.ros_name)
-        if available is None or busy is not None:
+        server = self._server_for(leaf.name) if mission is not None else None
+        busy = None if server is None else self._task_on_server(server.ros_name)
+        if server is None or busy is not None:
             reason = 'task not available' if busy is None else f'task already executing on {busy.name}'
             tst = None if mission is None else mission.tst_uuid
             self._publish_tst_feedback(feedback(self.agent_uuid, leaf.task_uuid, reason, WaraPSTaskStates.ERROR, tst))
             if self._run is not None and leaf.task_uuid in self._run.by_uuid:
-                self._follow(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s)
+                self._apply_mission_step(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s)
             return
         self.executing.append(ExecutingTask(
-            uuid=leaf.task_uuid, name=leaf.name, ros_name=available.ros_name, params=leaf.params,
-            description=leaf.description, status=WaraPSTaskStates.STARTED, client=self.clients[available.ros_name],
-            com_uuid=mission.com_uuid, tst_uuid=mission.tst_uuid, timeout_s=leaf.timeout_s,
+            uuid=leaf.task_uuid,
+            name=leaf.name,
+            ros_name=server.ros_name,
+            params=leaf.params,
+            description=leaf.description,
+            status=WaraPSTaskStates.STARTED,
+            client=self.clients[server.ros_name],
+            com_uuid=mission.com_uuid,
+            tst_uuid=mission.tst_uuid,
+            timeout_s=leaf.timeout_s,
         ))
 
-    def _retire(self, task: ExecutingTask) -> None:
+    def _remove_from_executing(self, task: ExecutingTask) -> None:
         if task in self.executing:
             self.executing.remove(task)
         task.client.get_ready()
 
-    def _feedback(self, task: ExecutingTask, text: str) -> None:
+    def _send_feedback(self, task: ExecutingTask, text: str) -> None:
         """A task from a mission reports on the TST feedback topic, a direct one on exec."""
         message = feedback(self.agent_uuid, task.uuid, text, task.status, task.tst_uuid)
         if task.tst_uuid:
@@ -447,7 +474,7 @@ class WarapsOfficer:
 
     # ---- lookups ------------------------------------------------------------
 
-    def _find(self, name: str) -> AvailableTask | None:
+    def _server_for(self, name: str) -> AvailableTask | None:
         for task in self.available.values():
             if task.name == name:
                 return task
@@ -459,10 +486,11 @@ class WarapsOfficer:
                 return task.status
         return 'task not found'
 
-    def _prune(self, now_s: float) -> None:
+    def _forget_silent_servers(self, now_s: float) -> None:
+        # A server busy with one of our goals stays known even if it skips heartbeats.
+        busy = {item.ros_name for item in self.executing}
         stale = [ros_name for ros_name, task in self.available.items()
-                 if now_s - task.last_seen > self._liveliness_s
-                 and ros_name not in {item.ros_name for item in self.executing}]
+                 if now_s - task.last_seen > self._liveliness_s and ros_name not in busy]
         for ros_name in stale:
             self.available.pop(ros_name, None)
 
@@ -483,7 +511,7 @@ def _load(text: str) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _continued(task: ExecutingTask) -> WaraPSTaskStates:
+def _status_after_continue(task: ExecutingTask) -> WaraPSTaskStates:
     """A refused pause left the goal running. Continue means that, not a new send.
 
     Read ``state`` directly. ``poll()`` cancels a goal that has timed out.
