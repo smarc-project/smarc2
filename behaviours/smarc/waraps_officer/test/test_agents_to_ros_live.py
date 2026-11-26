@@ -7,6 +7,7 @@ from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.parameter import Parameter
+from rclpy.time import Time
 from smarc_msgs.msg import Topics
 from smarc_georef_cpp import GeorefUtils
 from smarc_utilities.testing import wait_for
@@ -89,6 +90,10 @@ def test_a_mirrored_agent_becomes_latlon_and_odom(ros_graph):
     source.create_subscription(GeoPoint, absolute(ROBOT, latlon_name), keep('own'), 10)
 
     assert wait_for(lambda: heard.get('odom_n', 0) >= 2, timeout_s=8.0)
+    # Each odom carries its position's arrival stamp, not the static transform's.
+    first = Time.from_msg(heard['odom'].header.stamp)
+    assert first > Time.from_msg(transform.header.stamp)
+    assert wait_for(lambda: Time.from_msg(heard['odom'].header.stamp) > first, timeout_s=4.0)
     latlon = heard['latlon']
     odom = heard['odom']
     assert abs(latlon.latitude - LAT) < 1e-9
