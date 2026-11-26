@@ -613,6 +613,11 @@ class DjiCaptain():
     
 
     def _move_towards_velocity_setpoint_FLUvel(self):
+        if self._move_to_velocity_setpoint is None:
+            self.log("Velocity setpoint is None, cancelling joy timer.")
+            self._cancel_joy_timer()
+            return
+        
         if not self._setpoint_still_usable(self._move_to_velocity_setpoint):
             self.log("Velocity setpoint is not usable, cancelling joy timer.")
             self._cancel_joy_timer()
@@ -630,6 +635,11 @@ class DjiCaptain():
 
 
     def _move_towards_position_setpoint_FLUvel(self):
+        if self._move_to_position_setpoint is None:
+            self.log("Position setpoint is None, cancelling joy timer.")
+            self._cancel_joy_timer()
+            return
+        
         if not self._setpoint_still_usable(self._move_to_position_setpoint):
             self.log("Position setpoint is not usable, cancelling joy timer.")
             self._cancel_joy_timer()
@@ -1020,7 +1030,6 @@ class DjiCaptain():
             odom = Odometry()
             odom.header.stamp = self.now_stamp
             odom.header.frame_id = self.ODOM_FRAME
-            odom.child_frame_id = self.BASE_FRAME
 
             odom.pose.pose.position.x = self._base_pose_in_home.pose.position.x
             odom.pose.pose.position.y = self._base_pose_in_home.pose.position.y
@@ -1028,11 +1037,13 @@ class DjiCaptain():
             odom.pose.pose.orientation = self._base_pose_in_home.pose.orientation
 
             if self._velocity_ground is not None:
+                odom.child_frame_id = self._velocity_ground.header.frame_id # should be same as odom
                 odom.twist.twist.linear.x = self._velocity_ground.vector.x
                 odom.twist.twist.linear.y = self._velocity_ground.vector.y
                 odom.twist.twist.linear.z = self._velocity_ground.vector.z
 
             if self._angular_rate_ground is not None:
+                if odom.child_frame_id == "": odom.child_frame_id = self._angular_rate_ground.header.frame_id
                 odom.twist.twist.angular.x = self._angular_rate_ground.vector.x
                 odom.twist.twist.angular.y = self._angular_rate_ground.vector.y
                 odom.twist.twist.angular.z = self._angular_rate_ground.vector.z
