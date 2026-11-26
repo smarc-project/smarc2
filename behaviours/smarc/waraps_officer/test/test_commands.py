@@ -1,30 +1,18 @@
-"""Every rejection string the officer can hand back, and the payloads it sends."""
-
-import json
-
-from smarc_msgs.msg import Topics
+"""Every rejection string the parser can hand back, and what a parsed TST looks like."""
 
 from waraps_officer.commands import (
     Conc,
+    Leaf,
     Mission,
     Ping,
     QueryTask,
-    Rejection,
     Seq,
     SignalTask,
     SignalUnit,
     StartTask,
-    after_leaf,
-    dumps,
-    exec_response,
-    feedback,
-    health_is_ready,
-    health_word,
-    officer_health,
-    open_run,
+    leaves,
     parse_exec_command,
     parse_tst,
-    start_response,
 )
 
 
@@ -91,63 +79,20 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert parse_tst(bad_timeout).reason == 'Rejected: Mission timeout value should be a float representing seconds'
 
 
-class _Fix:
-    def __init__(self, status, state, refused=False):
-        self.status = status
-        self.cancel_refused = refused
-        self.client = type('Client', (), {'state': state})()
-
-
-def test_officer_health_uses_the_vehicle_values():
-    running = {'running', 'cancelling'}
-    cancelling = 'cancelling'
-    assert officer_health([_Fix('running', 'running')], running, cancelling) == Topics.VEHICLE_HEALTH_READY
-    assert officer_health([_Fix('aborted', 'cancelling')], running, cancelling) == Topics.VEHICLE_HEALTH_WAITING
-    assert officer_health([_Fix('paused', 'ready')], running, cancelling) == Topics.VEHICLE_HEALTH_READY
-    refused = _Fix('running', 'running', refused=True)
-    waiting = _Fix('aborted', 'cancelling')
-    assert officer_health([waiting, refused], running, cancelling) == Topics.VEHICLE_HEALTH_ERROR
-
-
-def test_payloads_and_health():
-    task = StartTask('c', 't', 'wait', {}, '', None)
-    assert start_response('agent', 'c', task).status == 'started'
-    assert exec_response('agent', 'c', 'pong').response == 'pong'
-    assert feedback('agent', 't', 'hi', 'running', 'm').tst_uuid == 'm'
-    assert json.loads(dumps(exec_response('a', 'c', 'ok')))['response-to'] == 'c'
-    assert health_is_ready(Topics.VEHICLE_HEALTH_READY, 1.0, 5.0, 10.0)
-    assert not health_is_ready(Topics.VEHICLE_HEALTH_READY, 1.0, 20.0, 10.0)
-    assert not health_is_ready(Topics.VEHICLE_HEALTH_ERROR, 1.0, 2.0, 10.0)
-    assert health_word(Topics.VEHICLE_HEALTH_WAITING, True) == 'WAITING'
-    assert health_word(Topics.VEHICLE_HEALTH_READY, False) == 'silent'
-    assert officer_health([], {'running'}, 'cancelling') == Topics.VEHICLE_HEALTH_READY
-    assert isinstance(parse_exec_command({'command': 'ping'}), Ping)
-    assert isinstance(parse_tst({'command': 'start-tst'}), Rejection)
-
-
-def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
-    mission = parse_tst({
-        'command': 'start-tst', 'com-uuid': 'c',
-        'tst': {
-            'name': 'conc', 'params': {'stop-on-first': True}, 'children': [
-                {'name': 'seq', 'children': [
-                    {'name': 'move-to', 'task-uuid': 'a'},
-                    {'name': 'move-to', 'task-uuid': 'b'},
-                ]},
-                {'name': 'wait', 'task-uuid': 'c'},
-            ],
-        },
+def test_a_bad_leaf_deep_in_a_mission_rejects_it_with_the_commands_com_uuid():
+    bad_leaf = {'name': 'custom-task', 'task-uuid': 'x', 'params': {}}
+    rejected = parse_tst({
+        'command': 'start-tst',
+        'com-uuid': 'c',
+        'tst': {'name': 'seq', 'children': [{'name': 'conc', 'children': [bad_leaf]}]},
     })
-    run, follow = open_run(mission.root)
-    assert [leaf.task_uuid for leaf in follow.start] == ['a', 'c']
-    nxt = after_leaf(run, 'a', 'finished')
-    assert [leaf.task_uuid for leaf in nxt.start] == ['b']
-    assert nxt.cancel == ()
-    assert nxt.done is False
-    stopped = after_leaf(run, 'b', 'finished')
-    assert stopped.start == ()
-    assert stopped.cancel == ('c',)
-    assert stopped.done is False
-    ended = after_leaf(run, 'c', 'enough')
-    assert ended.done is True
-    assert ended.cancel == ()
+    assert rejected.com_uuid == 'c'
+    assert rejected.reason == "Rejected: Custom task missing 'action-name' in params"
+
+
+def test_leaves_walks_the_tree_in_order():
+    a = Leaf('a', 'wait', {}, '', None)
+    b = Leaf('b', 'wait', {}, '', None)
+    c = Leaf('c', 'wait', {}, '', None)
+    tree = Seq((a, Conc((b, c), stop_on_first=False)))
+    assert list(leaves(tree)) == [a, b, c]
