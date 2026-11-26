@@ -1,6 +1,6 @@
 """WARA-PS sensor strings to a lat/lon and an ENU yaw. No rclpy.
 
-``agent_roots`` finds other agents the bridge has mirrored. The bridge
+``mirrored_agents`` finds other agents the bridge has mirrored. The bridge
 publishes ``/<agent>/waraps/sensor/*`` from our vehicle's namespace, so the
 publisher-under-root filter in ``node_string_topics_under`` hides every one
 of them. The prefix and the position topic are the Topics constants, matched
@@ -9,6 +9,7 @@ whole.
 
 import json
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from smarc_utilities.topic_utils import STRING_MSG, string_topics_under
@@ -32,19 +33,12 @@ class MirroredAgent:
     position: str
 
 
-def absolute(root, name):
+def namespaced(root: str, name: str) -> str:
+    """``root/name`` with no leading or doubled slash: a topic under an agent, or a frame under a robot."""
     return f"{root.strip('/')}/{name.strip('/')}"
 
 
-def odom_frame(robot_name, odom_link):
-    return f"{robot_name.strip('/')}/{odom_link.strip('/')}"
-
-
-def child_frame(root, base_link):
-    return f"{root.strip('/')}/{base_link.strip('/')}"
-
-
-def geopoint(text):
+def parse_geopoint(text: str) -> GeoSample | None:
     """A WARA-PS GeoPoint JSON object, or None when the three fields are missing.
 
     A ``type`` other than ``GeoPoint`` is kept on ``unexpected_type`` and the
@@ -58,9 +52,9 @@ def geopoint(text):
         return None
     if not all(key in payload for key in ('latitude', 'longitude', 'altitude')):
         return None
-    latitude = _number(payload['latitude'])
-    longitude = _number(payload['longitude'])
-    altitude = _number(payload['altitude'])
+    latitude = _as_float(payload['latitude'])
+    longitude = _as_float(payload['longitude'])
+    altitude = _as_float(payload['altitude'])
     if latitude is None or longitude is None or altitude is None:
         return None
     kind = payload.get('type')
@@ -68,13 +62,13 @@ def geopoint(text):
     return GeoSample(latitude, longitude, altitude, unexpected)
 
 
-def scalar(text):
+def parse_scalar(text: str) -> float | None:
     """A JSON number, a JSON string of a number, or a bare float. None otherwise."""
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
         parsed = text.strip()
-    number = _number(parsed)
+    number = _as_float(parsed)
     if number is not None:
         return number
     if isinstance(parsed, str):
@@ -85,34 +79,30 @@ def scalar(text):
     return None
 
 
-def _number(value):
+def _as_float(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     return float(value)
 
 
-def _in_radians(unit):
-    return unit in ('rad', 'radian', 'radians')
-
-
-def to_radians(angle, unit):
-    if _in_radians(unit):
+def to_radians(angle: float, unit: str) -> float:
+    if unit in ('rad', 'radian', 'radians'):
         return angle
     return math.radians(angle)
 
 
-def enu_yaw(angle, unit):
+def enu_yaw(angle: float, unit: str) -> float:
     """Heading to ENU yaw. 0 (north) is pi/2. 90 degrees (east) is 0."""
     return math.pi / 2.0 - to_radians(angle, unit)
 
 
-def chosen_heading(heading, course, prefer_heading):
+def chosen_heading(heading: float | None, course: float | None, prefer_heading: bool) -> float | None:
     if prefer_heading:
         return heading if heading is not None else course
     return course if course is not None else heading
 
 
-def body_velocity(speed, facing_yaw, course_yaw):
+def body_velocity(speed: float, facing_yaw: float, course_yaw: float | None) -> tuple[float, float]:
     """WARA-PS speed is along the course. The twist is in the body frame.
 
     ``facing_yaw`` is the body x axis, ENU yaw in radians. A missing course
@@ -124,24 +114,24 @@ def body_velocity(speed, facing_yaw, course_yaw):
     return speed * math.cos(delta), speed * math.sin(delta)
 
 
-def pose_altitude(altitude):
+def pose_altitude(altitude: float) -> float:
     """Non-finite UTM altitude is pose z 0. The GeoPoint keeps the raw value."""
     if math.isfinite(altitude):
         return altitude
     return 0.0
 
 
-def covariance_diagonal(ellipse_x, ellipse_y, ellipse_z):
+def covariance_diagonal(ellipse_x: float, ellipse_y: float, ellipse_z: float) -> tuple[float, float, float]:
     return ellipse_x ** 2, ellipse_y ** 2, ellipse_z ** 2
 
 
-def orientation(roll, pitch, yaw):
+def quaternion_xyzw(roll: float, pitch: float, yaw: float) -> tuple[float, float, float, float]:
     """``tf2`` setRPY order. Returns x, y, z, w."""
     w, x, y, z = euler2quat(roll, pitch, yaw, axes='sxyz')
     return x, y, z, w
 
 
-def _roots_before(topics, prefix):
+def _namespaces_with_prefix(topics: Sequence[tuple[str, Sequence[str]]], prefix: str) -> list[str]:
     """Namespaces that have a String topic under ``prefix``, with a name after it."""
     head = [part for part in prefix.split('/') if part]
     if not head:
@@ -160,7 +150,12 @@ def _roots_before(topics, prefix):
     return roots
 
 
-def agent_roots(topics, prefix, position_topic, own_root):
+def mirrored_agents(
+    topics: Sequence[tuple[str, Sequence[str]]],
+    prefix: str,
+    position_topic: str,
+    own_root: str,
+) -> list[MirroredAgent]:
     """Agents whose position string is on the graph. ``own_root`` is skipped.
 
     ``prefix`` is ``Topics.WARA_PS_SENSOR_PREFIX``. ``position_topic`` is
@@ -170,10 +165,10 @@ def agent_roots(topics, prefix, position_topic, own_root):
     own = own_root.strip('/')
     found = []
     seen = set()
-    for root in _roots_before(topics, prefix):
+    for root in _namespaces_with_prefix(topics, prefix):
         if not root or root == own or root in seen:
             continue
-        wanted = absolute(root, position_topic)
+        wanted = namespaced(root, position_topic)
         under = string_topics_under(topics, root, prefix)
         match = next((item for item in under if item.absolute.strip('/') == wanted), None)
         if match is None:
