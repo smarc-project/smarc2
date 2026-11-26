@@ -125,5 +125,5 @@ ROS params:
    From end of flat pass, climb along vector defined by `raise_horizontal` and `raise_vertical`.
 
 
-## Alars follow rope
-A simple PD controller which subscribes onto estimated rope force topic and tries to keep the rope parallel to the ground.
+## Alars Balloon mode
+A simple PD controller which subscribes onto estimated rope force topic and tries to keep the rope vertical.

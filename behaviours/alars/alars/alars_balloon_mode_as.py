@@ -13,7 +13,7 @@ from tf2_ros import Vector3Stamped
 
 LOOP_FREQUENCY = 10  # Hz
 
-class FollowRopeAction():
+class BalloonModeAction():
     """
     Keeps the rope vector parallel to the drone's vertical axis by moving the drone in the horizontal plane.
     """
@@ -54,7 +54,7 @@ class FollowRopeAction():
 
         self._as = GentlerActionServer(
             node,
-            "follow_rope",
+            "alars_balloon_mode",
             self._on_goal_received,
             self._on_cancel_received,
             self._prepare_loop,
@@ -135,16 +135,16 @@ class FollowRopeAction():
 
 def main():
     rclpy.init()
-    node = Node("follow_rope_action_server")
+    node = Node("alars_balloon_mode_action_server")
     
-    FollowRopeAction(node)
+    BalloonModeAction(node)
 
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:
         executor.spin()
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down Follow Rope Action server")
+        node.get_logger().info("Shutting down alars_balloon_mode_action_server")
     finally:
         executor.shutdown()
         node.destroy_node()
