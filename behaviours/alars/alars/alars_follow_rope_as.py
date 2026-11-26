@@ -69,7 +69,6 @@ class FollowRopeAction():
     
     def _on_cancel_received(self) -> bool:
         self._node.get_logger().info("Received cancel request")
-        self._publish_velocity(0, 0) # stop the drone when canceling the action
         return True
     
     def _prepare_loop(self) -> None:
@@ -81,17 +80,14 @@ class FollowRopeAction():
         f_xy = np.linalg.norm(self._rope_force[:2])
         angle = np.arctan2(f_xy, -self._rope_force[2])
         if self._node.get_clock().now() - self._last_sub_time > rclpy.duration.Duration(seconds=self._rope_force_timeout):
-                self._publish_velocity(0, 0)
                 self._node.get_logger().warn("Rope force data timeout. Stopping the drone.")
                 return False
         if self._last_angle is None:
             self._last_angle = angle
         if angle < self._min_angle:
-            self._publish_velocity(0, 0)
             self._last_angle = angle
             return None
         if np.linalg.norm(self._rope_force) < self._min_force_magnitude:
-            self._publish_velocity(0, 0)
             self._last_angle = angle
             return None
         amplitude = self._K_p * (angle - self._min_angle) + self._K_d * (angle - self._last_angle)/(1/LOOP_FREQUENCY)
