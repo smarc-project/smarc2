@@ -7,10 +7,10 @@ import pytest
 
 from waraps_officer.level1 import (
     Agent,
-    finite,
+    agent_levels,
+    all_finite,
     fresh,
     heartbeat_json,
-    levels,
     position_json,
     scalar_json,
     sensor_info_json,
@@ -60,15 +60,15 @@ def test_sensor_info_shape():
     (True, True, ['sensor', 'direct_execution', 'tst_execution']),
 ])
 def test_levels_follow_who_is_there(direct, tst, expected):
-    assert levels(direct, tst) == expected
+    assert agent_levels(direct, tst) == expected
 
 
 def test_finite_rejects_nan_inf_and_non_numbers():
-    assert finite(1.0, -2, 0.0)
-    assert not finite(math.nan)
-    assert not finite(1.0, math.inf)
-    assert not finite(None)
-    assert not finite('1.0')
+    assert all_finite(1.0, -2, 0.0)
+    assert not all_finite(math.nan)
+    assert not all_finite(1.0, math.inf)
+    assert not all_finite(None)
+    assert not all_finite('1.0')
 
 
 def test_fresh_window():

@@ -7,6 +7,7 @@ bridge forwards it unchanged.
 
 import json
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 SENSOR_LEVEL = 'sensor'
@@ -39,16 +40,16 @@ class LatLon:
     stamp_s: float
 
 
-def finite(*values) -> bool:
+def all_finite(*values: object) -> bool:
     return all(isinstance(v, (int, float)) and math.isfinite(v) for v in values)
 
 
-def fresh(stamp_s, now_s, stale_after_s) -> bool:
+def fresh(stamp_s: float | None, now_s: float, stale_after_s: float) -> bool:
     """True while a reading stamped ``stamp_s`` is young enough to publish."""
     return stamp_s is not None and 0.0 <= now_s - stamp_s <= stale_after_s
 
 
-def levels(direct_execution: bool, tst_execution: bool) -> list:
+def agent_levels(direct_execution: bool, tst_execution: bool) -> list[str]:
     out = [SENSOR_LEVEL]
     if direct_execution:
         out.append(DIRECT_EXECUTION_LEVEL)
@@ -57,11 +58,11 @@ def levels(direct_execution: bool, tst_execution: bool) -> list:
     return out
 
 
-def scalar_json(value) -> str:
+def scalar_json(value: float) -> str:
     return json.dumps(float(value))
 
 
-def position_json(latitude, longitude, altitude) -> str:
+def position_json(latitude: float, longitude: float, altitude: float) -> str:
     return json.dumps({
         'latitude': float(latitude),
         'longitude': float(longitude),
@@ -70,11 +71,11 @@ def position_json(latitude, longitude, altitude) -> str:
     })
 
 
-def heartbeat_json(agent: Agent, agent_levels, stamp_s) -> str:
+def heartbeat_json(agent: Agent, levels: Sequence[str], stamp_s: float) -> str:
     return json.dumps({
         'agent-type': agent.agent_type,
         'agent-uuid': agent.agent_uuid,
-        'levels': list(agent_levels),
+        'levels': list(levels),
         'name': agent.name,
         'rate': agent.rate_hz,
         'stamp': stamp_s,
@@ -82,7 +83,7 @@ def heartbeat_json(agent: Agent, agent_levels, stamp_s) -> str:
     })
 
 
-def sensor_info_json(agent: Agent, sensor_names, stamp_s) -> str:
+def sensor_info_json(agent: Agent, sensor_names: Sequence[str], stamp_s: float) -> str:
     return json.dumps({
         'name': agent.name,
         'rate': agent.rate_hz,
