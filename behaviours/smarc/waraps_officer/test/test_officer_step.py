@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from smarc_action_base.smarc_action_base import ActionClientState
 from smarc_msgs.msg import Topics
 
-from waraps_officer.commands import ExecReply, StartReply
+from waraps_officer.replies import ExecReply, StartReply
 from waraps_officer.officer import WarapsOfficer
 from waraps_officer.tasks import WaraPSTaskStates
 

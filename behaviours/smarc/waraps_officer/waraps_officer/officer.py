@@ -9,40 +9,36 @@ its children together.
 
 import json
 from collections.abc import Callable
+from dataclasses import replace
 
 from smarc_action_base.gentler_action_client import ClientReport
 from smarc_action_base.smarc_action_base import SMARCActionClient
 
 from waraps_officer.commands import (
-    ExecReply,
-    ExecutingRow,
-    ExecutionInfo,
-    Feedback,
-    Follow,
     Leaf,
     Mission,
     Ping,
     QueryTask,
     Rejection,
-    Run,
     SignalTask,
     SignalUnit,
-    StartReply,
     StartTask,
-    after_leaf,
-    direct_execution_info,
-    each_leaf,
-    exec_response,
-    executing_tasks,
-    feedback,
-    health_is_ready,
-    health_word,
-    officer_health,
-    open_run,
+    leaves,
     parse_exec_command,
     parse_tst,
+)
+from waraps_officer.health import health_is_ready, health_label, officer_health
+from waraps_officer.mission_run import MissionRun, NextSteps, next_after_leaf, start_run
+from waraps_officer.replies import (
+    ExecReply,
+    ExecutingRow,
+    ExecutionInfo,
+    ExecutionInfoKind,
+    Feedback,
+    StartReply,
+    execution_info,
+    executing_tasks,
     start_response,
-    tst_execution_info,
 )
 from waraps_officer.level1 import fresh
 from waraps_officer.tasks import (
@@ -97,7 +93,7 @@ class WarapsOfficer:
         self.clients: dict[str, object] = {}
         self.executing: list[ExecutingTask] = []
         self._mission: Mission | None = None
-        self._run: Run | None = None
+        self._run: MissionRun | None = None
         self._mission_started_s: float | None = None
         self._health_value: int | None = None
         self._health_stamp_s: float | None = None
@@ -145,10 +141,10 @@ class WarapsOfficer:
     def publish_status(self, now_s: float) -> None:
         self._forget_silent_servers(now_s)
         available = list(self.available.values())
-        self._publish_direct_execution_info(
-            direct_execution_info(self._name, self._rate_hz, now_s, available, self.executing))
-        self._publish_tst_execution_info(
-            tst_execution_info(self._name, self._rate_hz, now_s, available, self.executing))
+        direct = execution_info(ExecutionInfoKind.DIRECT, self._name, self._rate_hz, now_s, available, self.executing)
+        tst = replace(direct, kind=ExecutionInfoKind.TST)
+        self._publish_direct_execution_info(direct)
+        self._publish_tst_execution_info(tst)
         self._publish_executing_tasks(executing_tasks(self.executing))
         for task in self.executing:
             text = getattr(task.client.poll(), 'feedback', '')
@@ -161,7 +157,7 @@ class WarapsOfficer:
 
     def advance_tasks(self, now_s: float) -> None:
         if not self._health_ready(now_s) and self.executing:
-            word = health_word(self._health_value, fresh(self._health_stamp_s, now_s, self._health_timeout_s))
+            word = health_label(self._health_value, fresh(self._health_stamp_s, now_s, self._health_timeout_s))
             self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text=f'vehicle health {word}')
         if self._mission_expired(now_s):
             self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded')
@@ -179,11 +175,11 @@ class WarapsOfficer:
     ) -> None:
         respond = self._publish_tst_response if tst else self._publish_exec_response
         if isinstance(command, Rejection):
-            respond(exec_response(self.agent_uuid, command.com_uuid, command.reason))
+            respond(ExecReply(self.agent_uuid, command.com_uuid, command.reason))
         elif isinstance(command, Ping):
-            respond(exec_response(self.agent_uuid, command.com_uuid, 'pong'))
+            respond(ExecReply(self.agent_uuid, command.com_uuid, 'pong'))
         elif isinstance(command, QueryTask):
-            respond(exec_response(self.agent_uuid, command.com_uuid, self._status_of(command.task_uuid)))
+            respond(ExecReply(self.agent_uuid, command.com_uuid, self._status_of(command.task_uuid)))
         elif isinstance(command, SignalTask):
             self._signal_task(command)
         elif isinstance(command, SignalUnit):
@@ -197,7 +193,7 @@ class WarapsOfficer:
         respond = self._publish_tst_response if tst_uuid is not None else self._publish_exec_response
         refusal = self._refusal_for(task.name, now_s)
         if refusal is not None:
-            respond(exec_response(self.agent_uuid, task.com_uuid, refusal))
+            respond(ExecReply(self.agent_uuid, task.com_uuid, refusal))
             return
         server = self._server_for(task.name)
         self.executing.append(ExecutingTask(
@@ -213,18 +209,18 @@ class WarapsOfficer:
             timeout_s=task.timeout_s,
         ))
         if tst_uuid is not None:
-            respond(exec_response(self.agent_uuid, task.com_uuid, 'accepted'))
+            respond(ExecReply(self.agent_uuid, task.com_uuid, 'accepted'))
             return
         self._publish_exec_response(start_response(self.agent_uuid, task.com_uuid, task))
 
     def _start_mission(self, mission: Mission, now_s: float) -> None:
         def reject(reason: str) -> None:
-            self._publish_tst_response(exec_response(self.agent_uuid, mission.com_uuid, reason))
+            self._publish_tst_response(ExecReply(self.agent_uuid, mission.com_uuid, reason))
 
         if self._mission is not None:
             reject('task already executing on a mission')
             return
-        for leaf in each_leaf(mission.root):
+        for leaf in leaves(mission.root):
             server = self._server_for(leaf.name)
             if server is None:
                 reject('task not available')
@@ -236,9 +232,9 @@ class WarapsOfficer:
         if not self._health_ready(now_s):
             reject('rejected: vehicle health status is not ok')
             return
-        run, follow = open_run(mission.root)
+        run, first_steps = start_run(mission.root)
         seen = set()
-        for leaf in follow.start:
+        for leaf in first_steps.start:
             ros_name = self._server_for(leaf.name).ros_name
             if ros_name in seen:
                 reject(f'rejected: {leaf.name} would run twice at once')
@@ -247,12 +243,12 @@ class WarapsOfficer:
         self._mission = mission
         self._mission_started_s = now_s
         self._run = run
-        self._publish_tst_response(exec_response(self.agent_uuid, mission.com_uuid, 'accepted'))
-        if follow.done:
+        self._publish_tst_response(ExecReply(self.agent_uuid, mission.com_uuid, 'accepted'))
+        if first_steps.done:
             self._mission = None
             self._run = None
             return
-        for leaf in follow.start:
+        for leaf in first_steps.start:
             self._start_leaf(leaf, now_s)
 
     def _refusal_for(self, name: str, now_s: float) -> str | None:
@@ -275,7 +271,7 @@ class WarapsOfficer:
     def _signal_task(self, signal: SignalTask) -> None:
         task = next((item for item in self.executing if item.uuid == signal.task_uuid), None)
         if task is None:
-            self._publish_exec_response(exec_response(self.agent_uuid, signal.com_uuid, 'task not in current tasks'))
+            self._publish_exec_response(ExecReply(self.agent_uuid, signal.com_uuid, 'task not in current tasks'))
             return
         if signal.signal == WaraPSCommandSignals.PAUSE:
             task.status = WaraPSTaskStates.PAUSED
@@ -286,7 +282,7 @@ class WarapsOfficer:
             self._mission = None
             self._run = None
             self._mark_stopping(task, _STOP_STATUS[signal.signal], reason=None)
-        self._publish_exec_response(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
+        self._publish_exec_response(ExecReply(self.agent_uuid, signal.com_uuid, 'ok'))
 
     def _signal_unit(self, signal: SignalUnit, respond: Callable[[ExecReply], None]) -> None:
         if signal.signal == WaraPSCommandSignals.PAUSE:
@@ -296,7 +292,7 @@ class WarapsOfficer:
             for task in self.executing:
                 if task.status == WaraPSTaskStates.PAUSED:
                     task.status = _status_after_continue(task)
-        respond(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
+        respond(ExecReply(self.agent_uuid, signal.com_uuid, 'ok'))
         if signal.signal in _STOP:
             self._stop_all(
                 _STOP_STATUS[signal.signal],
@@ -408,9 +404,9 @@ class WarapsOfficer:
     def _continue_mission_after(self, task: ExecutingTask, now_s: float) -> None:
         if self._run is None or task.uuid not in self._run.by_uuid:
             return
-        self._apply_mission_step(after_leaf(self._run, task.uuid, task.status), now_s)
+        self._apply_mission_step(next_after_leaf(self._run, task.uuid, task.status), now_s)
 
-    def _apply_mission_step(self, step: Follow, now_s: float) -> None:
+    def _apply_mission_step(self, step: NextSteps, now_s: float) -> None:
         self._cancel_siblings(step.cancel)
         for leaf in step.start:
             self._start_leaf(leaf, now_s)
@@ -442,9 +438,15 @@ class WarapsOfficer:
         if server is None or busy is not None:
             reason = 'task not available' if busy is None else f'task already executing on {busy.name}'
             tst = None if mission is None else mission.tst_uuid
-            self._publish_tst_feedback(feedback(self.agent_uuid, leaf.task_uuid, reason, WaraPSTaskStates.ERROR, tst))
+            self._publish_tst_feedback(Feedback(
+                agent_uuid=self.agent_uuid,
+                task_uuid=leaf.task_uuid,
+                feedback=reason,
+                status=WaraPSTaskStates.ERROR,
+                tst_uuid=tst,
+            ))
             if self._run is not None and leaf.task_uuid in self._run.by_uuid:
-                self._apply_mission_step(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s)
+                self._apply_mission_step(next_after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s)
             return
         self.executing.append(ExecutingTask(
             uuid=leaf.task_uuid,
@@ -466,7 +468,13 @@ class WarapsOfficer:
 
     def _send_feedback(self, task: ExecutingTask, text: str) -> None:
         """A task from a mission reports on the TST feedback topic, a direct one on exec."""
-        message = feedback(self.agent_uuid, task.uuid, text, task.status, task.tst_uuid)
+        message = Feedback(
+            agent_uuid=self.agent_uuid,
+            task_uuid=task.uuid,
+            feedback=text,
+            status=task.status,
+            tst_uuid=task.tst_uuid,
+        )
         if task.tst_uuid:
             self._publish_tst_feedback(message)
         else:

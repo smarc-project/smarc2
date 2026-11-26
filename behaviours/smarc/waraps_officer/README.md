@@ -114,7 +114,7 @@ A goal sent to an action server is `json.dumps` of the task's `params`. `params.
 | `health_timeout_s` | `10.0` | a health sample older than this means the vehicle is not ready |
 | `use_sim_time` | | stamps follow the ROS clock |
 
-`officer.py` (`WarapsOfficer`, the logic) and `commands.py` create no nodes, topics or timers; the health numbers they compare are `Topics.VEHICLE_HEALTH_*`. `ros2waraps_officer.py` (`Ros2WarapsOfficer`) is the node: it gives the officer one publish function per output topic. `WarapsOfficer.advance_tasks` is run against a fake client. The live tests run on a private ROS domain: one rejects a start while health is `ERROR`, one drives a `GentlerActionServer` through `start-task` until `tasks-executing` is empty.
+`officer.py` (`WarapsOfficer`, the logic), `commands.py` (parsing exec and TST commands), `mission_run.py` (the running TST), `replies.py` (the published records and their JSON) and `health.py` create no nodes, topics or timers; the health numbers they compare are `Topics.VEHICLE_HEALTH_*`. `ros2waraps_officer.py` (`Ros2WarapsOfficer`) is the node: it gives the officer one publish function per output topic. `WarapsOfficer.advance_tasks` is run against a fake client. The live tests run on a private ROS domain: one rejects a start while health is `ERROR`, one drives a `GentlerActionServer` through `start-task` until `tasks-executing` is empty.
 
 ## waraps_agents_to_ros
 

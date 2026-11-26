@@ -9,7 +9,7 @@ from rclpy.node import Node
 from smarc_msgs.msg import Topics
 from std_msgs.msg import Empty, Int8, String
 
-from waraps_officer.commands import dumps
+from waraps_officer.replies import dumps
 from waraps_officer.officer import WarapsOfficer
 
 
