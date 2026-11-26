@@ -220,6 +220,10 @@ def _node(task, inherited):
         children = task.get('children')
         if not isinstance(children, list):
             return Rejection('', 'task not found')
+        # An empty seq or conc means the mission was sent before it was fully planned.
+        # Running the rest would do something nobody planned, so the whole TST is refused.
+        if not children:
+            return Rejection('', 'Rejected: empty seq or conc in mission')
         merged = dict(inherited)
         if isinstance(task.get('common-params'), dict):
             merged.update(task['common-params'])
@@ -228,11 +232,6 @@ def _node(task, inherited):
             parsed = _node(child, merged)
             if isinstance(parsed, Rejection):
                 return parsed
-            # An empty seq or conc has nothing to run, so it is dropped. Kept in, it ends its
-            # parent at once or leaves it waiting for the timeout. A stop-on-first conc does
-            # not count a dropped child as the first to finish.
-            if isinstance(parsed, (Seq, Conc)) and not parsed.children:
-                continue
             built.append(parsed)
         if name == 'conc':
             params = task.get('params') if isinstance(task.get('params'), dict) else {}

@@ -5,7 +5,6 @@ import json
 from smarc_msgs.msg import Topics
 
 from waraps_officer.commands import (
-    Conc,
     Mission,
     Ping,
     QueryTask,
@@ -78,13 +77,6 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert mission.root.children[1].params == {'rpm': 300}
     assert mission.root.children[1].timeout_s is None
 
-    empty = parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}})
-    assert isinstance(empty, Mission)
-    assert isinstance(empty.root, Conc)
-    assert empty.root.stop_on_first is False
-    nested = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{'name': 'seq', 'task-uuid': 'a', 'children': []}]}}
-    parsed = parse_tst(nested)
-    assert parsed.root.children == ()   # an empty container has nothing to run
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c'}).reason == 'task not found'
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{}]}}).reason == 'Rejected: malformed task in mission'
     bad_timeout = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'params': {'timeout': 'soon'}, 'children': []}}
@@ -153,36 +145,17 @@ def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
     assert ended.cancel == ()
 
 
-def test_an_empty_container_inside_a_seq_is_dropped():
-    def mission(children):
-        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': children}})
 
-    empty_first = mission([{'name': 'conc', 'children': []}, {'name': 'wait', 'task-uuid': 'x'}])
-    run, follow = open_run(empty_first.root)
-    assert [leaf.task_uuid for leaf in follow.start] == ['x']
-    assert follow.done is False
+def test_a_tst_with_an_empty_seq_or_conc_anywhere_is_refused():
+    def mission(tst):
+        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': tst})
 
-    empty_between = mission([
-        {'name': 'wait', 'task-uuid': 'x'},
-        {'name': 'seq', 'children': [{'name': 'conc', 'children': []}]},
-        {'name': 'wait', 'task-uuid': 'y'},
-    ])
-    run, follow = open_run(empty_between.root)
-    after_x = after_leaf(run, 'x', 'finished')
-    assert [leaf.task_uuid for leaf in after_x.start] == ['y']
-    assert after_leaf(run, 'y', 'finished').done is True
-
-
-def test_an_empty_child_of_a_conc_is_dropped_and_does_not_stop_it_first():
-    def mission(params):
-        children = [{'name': 'seq', 'children': []}, {'name': 'wait', 'task-uuid': 'x'}, {'name': 'wait', 'task-uuid': 'y'}]
-        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'params': params, 'children': children}})
-
-    run, follow = open_run(mission({}).root)
-    assert [leaf.task_uuid for leaf in follow.start] == ['x', 'y']
-    assert after_leaf(run, 'x', 'finished').done is False
-    assert after_leaf(run, 'y', 'finished').done is True
-
-    run, follow = open_run(mission({'stop-on-first': True}).root)
-    assert [leaf.task_uuid for leaf in follow.start] == ['x', 'y']
-    assert follow.done is False
+    wait = {'name': 'wait', 'task-uuid': 'x'}
+    for tst in (
+        {'name': 'conc', 'children': []},
+        {'name': 'seq', 'children': [{'name': 'conc', 'children': []}, wait]},
+        {'name': 'seq', 'children': [wait, {'name': 'seq', 'children': [{'name': 'conc', 'children': []}]}]},
+        {'name': 'conc', 'params': {'stop-on-first': True}, 'children': [{'name': 'seq', 'children': []}, wait]},
+    ):
+        refused = mission(tst)
+        assert refused == Rejection('c', 'Rejected: empty seq or conc in mission')
