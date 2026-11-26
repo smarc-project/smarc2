@@ -28,9 +28,9 @@ client.get_ready()                # forget this goal, allow the next send()
 ```
 
 - `server_alive()` waits once for the server and moves the client to `READY` or `DISCONNECTED`.
-- `send()` only works from `READY` and returns `False` otherwise.
+- `send()` only works from `READY` and returns `False` otherwise. `send(goal_json, timeout_s)` gives that one goal its own timeout; without it the goal uses the client's `timeout_s`.
 - `cancel()` asks the server to stop. A cancel sent before the server has answered the goal request is kept and sent once the goal is accepted.
-- `poll()` returns a `ClientReport` (`state`, `feedback`, `elapsed_s`, `timed_out`). With `timeout_s` set, `poll()` cancels the goal client-side when the server takes longer than that.
+- `poll()` returns a `ClientReport` (`state`, `feedback`, `elapsed_s`, `timed_out`). When the goal has a timeout (its own from `send()`, otherwise the client's), `poll()` cancels the goal client-side once it runs past it.
 - `GentlerActionClient.RUNNING_STATES` and `GentlerActionClient.FAILURE_STATES` are the two sets of states a loop cares about; `GentlerActionClient.States.DONE` is the only success. One import covers all of it.
 
 `A_ActionClient` in `bt_action_client_action.py` wraps this client as a py_trees behaviour for the trees that still use one.

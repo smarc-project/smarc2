@@ -278,6 +278,52 @@ def test_timeout_cancels_from_the_client_side(ros_graph):
     assert server.cancels == 1
 
 
+def test_a_goal_timeout_is_for_that_goal_only(ros_graph):
+    """send(goal, timeout_s) overrides the client's timeout for that one goal.
+    The next goal without one is back on the client's own timeout."""
+    server = ScriptedServer(ros_graph('server'), outcome=None)
+    client = GentlerActionClient(ros_graph('client'), ACTION, timeout_s=0.3)
+    assert client.server_alive()
+
+    assert client.send('{}', timeout_s=30.0)
+    time.sleep(0.8)
+    report = client.poll()
+    assert report.timed_out is False
+    assert report.running
+    client.cancel()
+    assert wait_for(lambda: finished(client))
+    assert client.poll().timed_out is False
+
+    client.get_ready()
+    assert client.send('{}')
+    assert wait_for(lambda: finished(client))
+    report = client.poll()
+    assert report.timed_out is True
+    assert report.state is ActionClientState.CANCELLED
+    assert server.cancels == 2
+
+
+def test_a_goal_timeout_on_a_client_without_one(ros_graph):
+    """The officer builds its clients with no timeout and gives each goal its own."""
+    server = ScriptedServer(ros_graph('server'), outcome=None)
+    client = GentlerActionClient(ros_graph('client'), ACTION)
+    assert client.server_alive()
+
+    assert client.send('{}', timeout_s=0.3)
+    assert wait_for(lambda: finished(client))
+    report = client.poll()
+    assert report.timed_out is True
+    assert report.state is ActionClientState.CANCELLED
+
+    client.get_ready()
+    assert client.send('{}')
+    time.sleep(0.8)
+    assert client.poll().timed_out is False
+    client.cancel()
+    assert wait_for(lambda: finished(client))
+    assert server.cancels == 2
+
+
 def test_timeout_follows_the_ros_clock(ros_graph):
     """Wall time passing does not expire a goal while the sim clock is held."""
     from rclpy.parameter import Parameter
