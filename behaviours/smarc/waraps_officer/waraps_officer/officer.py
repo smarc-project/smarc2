@@ -1,6 +1,6 @@
 """WARA-PS levels 2 and 3 over GentlerActionClient: the officer's logic.
 
-``WarapsOfficer`` holds the tasks and decides. It has no rclpy: the node in
+``WarapsOfficer`` holds the tasks and decides. It makes no node: the node in
 ``ros2waraps_officer.py`` hands it one function per output topic and calls it
 on a timer. A second task is rejected while its action server is busy. A TST
 ``seq`` starts its next leaf when the current one finishes. A ``conc`` starts
@@ -10,7 +10,7 @@ its children together.
 import json
 from collections.abc import Callable
 
-from smarc_action_base.gentler_action_client import ClientReport
+from smarc_action_base.gentler_action_client import ClientReport, GentlerActionClient
 from smarc_action_base.smarc_action_base import SMARCActionClient
 
 from waraps_officer.commands import (
@@ -63,7 +63,7 @@ _STOP_STATUS = {
 class WarapsOfficer:
     def __init__(
         self,
-        client_factory: Callable[[str], object],
+        client_factory: Callable[[str], GentlerActionClient],
         name: str,
         rate_hz: float,
         liveliness_s: float,
@@ -94,7 +94,7 @@ class WarapsOfficer:
         self._publish_executing_tasks = publish_executing_tasks
         self.agent_uuid = ''
         self.available: dict[str, AvailableTask] = {}
-        self.clients: dict[str, object] = {}
+        self.clients: dict[str, GentlerActionClient] = {}
         self.executing: list[ExecutingTask] = []
         self._mission: Mission | None = None
         self._run: Run | None = None

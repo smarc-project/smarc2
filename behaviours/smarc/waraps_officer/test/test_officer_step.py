@@ -16,6 +16,8 @@ NAME = 'move-to'
 
 
 class FakeClient:
+    """Stands in for GentlerActionClient: the same calls the officer makes."""
+
     def __init__(self) -> None:
         self.state = ActionClientState.READY
         self.feedback = ''
@@ -31,7 +33,7 @@ class FakeClient:
             state=self.state, feedback=self.feedback, timed_out=self.timed_out,
             cancel_refused=self.cancel_refused)
 
-    def send(self, goal_json: str, timeout_s: float | None) -> bool:
+    def send(self, goal_json: str, timeout_s: float | None = None) -> bool:
         self.sent.append((goal_json, timeout_s))
         self.state = ActionClientState.SENT
         return True

@@ -6,6 +6,7 @@ officer, and each output the officer has is a publisher here.
 
 import rclpy
 from rclpy.node import Node
+from smarc_action_base.gentler_action_client import GentlerActionClient
 from smarc_msgs.msg import Topics
 from std_msgs.msg import Empty, Int8, String
 
@@ -33,7 +34,8 @@ class Ros2WarapsOfficer:
         self._health_pub = node.create_publisher(Int8, Topics.OFFICER_HEALTH_TOPIC, 10)
 
         self._officer = WarapsOfficer(
-            client_factory=lambda ros_name: gentler_client(node, ros_name),
+            # No client-wide timeout: each task's own timeout goes with its goal in send().
+            client_factory=lambda ros_name: GentlerActionClient(node, ros_name),
             name=robot_name,
             rate_hz=pulse_rate,
             liveliness_s=gp('task_liveliness_timeout', 10.0).value,
@@ -98,39 +100,6 @@ class Ros2WarapsOfficer:
         if self._officer.learn_agent_uuid(msg.data) and self._level1_sub is not None:
             self._node.destroy_subscription(self._level1_sub)
             self._level1_sub = None
-
-
-def gentler_client(node: Node, ros_name: str) -> object:
-    from smarc_action_base.gentler_action_client import ClientReport, GentlerActionClient
-    from smarc_action_base.smarc_action_base import ActionClientState
-
-    class _Client:
-        """Hands the goal its own timeout. The client keeps one timeout_s for its life."""
-
-        def __init__(self) -> None:
-            self._client = GentlerActionClient(node, ros_name, timeout_s=None)
-
-        @property
-        def state(self) -> ActionClientState:
-            return self._client.state
-
-        def poll(self) -> ClientReport:
-            return self._client.poll()
-
-        def send(self, goal_json: str, timeout_s: float | None) -> bool:
-            self._client._timeout_s = timeout_s
-            return self._client.send(goal_json)
-
-        def cancel(self) -> None:
-            self._client.cancel()
-
-        def get_ready(self) -> None:
-            self._client.get_ready()
-
-        def server_alive(self, timeout_s: float = 0.0) -> bool:
-            return self._client.server_alive(timeout_s=timeout_s)
-
-    return _Client()
 
 
 def main(args: list[str] | None = None) -> None:
