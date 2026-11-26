@@ -123,3 +123,7 @@ ROS params:
 
 4. **Inclined Fly-Out**  
    From end of flat pass, climb along vector defined by `raise_horizontal` and `raise_vertical`.
+
+
+## Alars Balloon mode
+A simple PD controller which subscribes onto estimated rope force topic and tries to keep the rope vertical.
