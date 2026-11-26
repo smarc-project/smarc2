@@ -202,6 +202,10 @@ def _parse_subtree(task: dict, inherited: dict, com_uuid: str) -> Leaf | Seq | C
         children = task.get('children')
         if not isinstance(children, list):
             return Rejection(com_uuid, 'task not found')
+        # An empty seq or conc means the mission was sent before it was fully planned.
+        # Running the rest would do something nobody planned, so the whole TST is refused.
+        if not children:
+            return Rejection(com_uuid, 'Rejected: empty seq or conc in mission')
         merged = dict(inherited)
         if isinstance(task.get('common-params'), dict):
             merged.update(task['common-params'])

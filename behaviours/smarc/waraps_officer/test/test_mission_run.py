@@ -30,10 +30,3 @@ def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
     ended = next_after_leaf(run, 'c', 'enough')
     assert ended.done is True
     assert ended.cancel == ()
-
-
-def test_an_empty_tst_is_done_before_it_starts():
-    mission = parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}})
-    _, first_steps = start_run(mission.root)
-    assert first_steps.start == ()
-    assert first_steps.done is True

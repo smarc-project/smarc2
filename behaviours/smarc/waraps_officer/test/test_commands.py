@@ -6,6 +6,7 @@ from waraps_officer.commands import (
     Mission,
     Ping,
     QueryTask,
+    Rejection,
     Seq,
     SignalTask,
     SignalUnit,
@@ -66,13 +67,6 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert mission.root.children[1].params == {'rpm': 300}
     assert mission.root.children[1].timeout_s is None
 
-    empty = parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}})
-    assert isinstance(empty, Mission)
-    assert isinstance(empty.root, Conc)
-    assert empty.root.stop_on_first is False
-    nested = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{'name': 'seq', 'task-uuid': 'a', 'children': []}]}}
-    parsed = parse_tst(nested)
-    assert isinstance(parsed.root.children[0], Seq)
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c'}).reason == 'task not found'
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{}]}}).reason == 'Rejected: malformed task in mission'
     bad_timeout = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'params': {'timeout': 'soon'}, 'children': []}}
@@ -96,3 +90,17 @@ def test_leaves_walks_the_tree_in_order():
     c = Leaf('c', 'wait', {}, '', None)
     tree = Seq((a, Conc((b, c), stop_on_first=False)))
     assert list(leaves(tree)) == [a, b, c]
+
+
+def test_a_tst_with_an_empty_seq_or_conc_anywhere_is_refused():
+    def mission(tst):
+        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': tst})
+
+    wait = {'name': 'wait', 'task-uuid': 'x'}
+    for tst in (
+        {'name': 'conc', 'children': []},
+        {'name': 'seq', 'children': [{'name': 'conc', 'children': []}, wait]},
+        {'name': 'seq', 'children': [wait, {'name': 'seq', 'children': [{'name': 'conc', 'children': []}]}]},
+        {'name': 'conc', 'params': {'stop-on-first': True}, 'children': [{'name': 'seq', 'children': []}, wait]},
+    ):
+        assert mission(tst) == Rejection('c', 'Rejected: empty seq or conc in mission')
