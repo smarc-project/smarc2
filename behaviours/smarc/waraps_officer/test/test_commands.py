@@ -5,7 +5,6 @@ import json
 from smarc_msgs.msg import Topics
 
 from waraps_officer.commands import (
-    Conc,
     Mission,
     Ping,
     QueryTask,
@@ -78,13 +77,6 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert mission.root.children[1].params == {'rpm': 300}
     assert mission.root.children[1].timeout_s is None
 
-    empty = parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'children': []}})
-    assert isinstance(empty, Mission)
-    assert isinstance(empty.root, Conc)
-    assert empty.root.stop_on_first is False
-    nested = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{'name': 'seq', 'task-uuid': 'a', 'children': []}]}}
-    parsed = parse_tst(nested)
-    assert isinstance(parsed.root.children[0], Seq)
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c'}).reason == 'task not found'
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{}]}}).reason == 'Rejected: malformed task in mission'
     bad_timeout = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'params': {'timeout': 'soon'}, 'children': []}}
@@ -151,3 +143,19 @@ def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
     ended = after_leaf(run, 'c', 'enough')
     assert ended.done is True
     assert ended.cancel == ()
+
+
+
+def test_a_tst_with_an_empty_seq_or_conc_anywhere_is_refused():
+    def mission(tst):
+        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': tst})
+
+    wait = {'name': 'wait', 'task-uuid': 'x'}
+    for tst in (
+        {'name': 'conc', 'children': []},
+        {'name': 'seq', 'children': [{'name': 'conc', 'children': []}, wait]},
+        {'name': 'seq', 'children': [wait, {'name': 'seq', 'children': [{'name': 'conc', 'children': []}]}]},
+        {'name': 'conc', 'params': {'stop-on-first': True}, 'children': [{'name': 'seq', 'children': []}, wait]},
+    ):
+        refused = mission(tst)
+        assert refused == Rejection('c', 'Rejected: empty seq or conc in mission')

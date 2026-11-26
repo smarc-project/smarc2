@@ -220,6 +220,10 @@ def _node(task, inherited):
         children = task.get('children')
         if not isinstance(children, list):
             return Rejection('', 'task not found')
+        # An empty seq or conc means the mission was sent before it was fully planned.
+        # Running the rest would do something nobody planned, so the whole TST is refused.
+        if not children:
+            return Rejection('', 'Rejected: empty seq or conc in mission')
         merged = dict(inherited)
         if isinstance(task.get('common-params'), dict):
             merged.update(task['common-params'])
