@@ -1,4 +1,4 @@
-"""WarapsVehicle against a real rclpy graph on a private domain."""
+"""Ros2WarapsVehicle against a real rclpy graph on a private domain."""
 
 import json
 import math
@@ -13,7 +13,7 @@ from smarc_utilities.testing import wait_for
 from std_msgs.msg import Float32, String
 from transforms3d.euler import euler2quat
 
-from waraps_officer.waraps_vehicle import WarapsVehicle
+from waraps_officer.waraps_vehicle import Ros2WarapsVehicle
 
 ROOT = '/sam0'
 PREFIX = Topics.WARA_PS_SENSOR_PREFIX
@@ -74,13 +74,13 @@ def vehicle(ros_graph):
         Parameter('pulse_rate', value=10.0),
         Parameter('stale_after_s', value=0.5),
     ])
-    WarapsVehicle(node)
+    Ros2WarapsVehicle(node)
     return node
 
 
 def test_robot_name_is_required(ros_graph):
     with pytest.raises(ValueError, match='robot_name'):
-        WarapsVehicle(ros_graph('waraps_vehicle', ROOT))
+        Ros2WarapsVehicle(ros_graph('waraps_vehicle', ROOT))
 
 
 def test_heartbeat_sensors_and_sensor_info(ros_graph, vehicle):
