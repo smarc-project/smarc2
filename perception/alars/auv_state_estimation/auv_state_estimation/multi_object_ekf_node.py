@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
 from rclpy.duration import Duration
+from rclpy.executors import MultiThreadedExecutor
 
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
@@ -21,11 +22,11 @@ from visualization_msgs.msg import Marker, MarkerArray
 from .object_ekf import ObjectEKF
 
 class MultiObjectEKFNode(Node):
-    def __init__(self):
-        super().__init__("multi_object_ekf_node")
+    def __init__(self, **node_kwargs):
+        super().__init__("multi_object_ekf_node", **node_kwargs)
 
         # Input
-        self.declare_parameter("topics.input_detections", "yolo/detections")
+        self.declare_parameter("topics.input_detections", Topics.YOLO_DETECTIONS)
 
         # Outputs for all estimated objects.
         self.declare_parameter("topics.output_poses_array", Topics.PROJECTED_OBJECT_POSES_ARRAY_TOPIC)
@@ -92,6 +93,15 @@ class MultiObjectEKFNode(Node):
         for class_name, cfg in classes.items():
             if not cfg.get("enabled", True):
                 continue
+
+            defaults = {**base_params, **ObjectEKF.flatten_params(cfg.get("parameters", {}))}
+            environment = cfg.setdefault("environment", {})
+            height = self.declare_parameter(
+                f"classes.{class_name}.environment.water_surface_height",
+                float(environment.get("water_surface_height", defaults.get("environment.water_surface_height", 0.0)))).value
+            if not math.isfinite(height):
+                raise ValueError(f"{class_name}: height must be finite")
+            environment["water_surface_height"] = height
 
             self.tracks[class_name] = ObjectEKF(
                 class_name=class_name,
@@ -166,7 +176,12 @@ class MultiObjectEKFNode(Node):
     def detections_cb(self, msg: DetectionArray):
         # Shared detection callback.
         # Each configured ObjectEKF selects the best detection for its class.
-        transform = self.lookup_camera_transform()
+        stamp = msg.header.stamp
+
+        if stamp.sec == 0 and stamp.nanosec == 0:
+            stamp = self.get_clock().now().to_msg()
+
+        transform = self.lookup_camera_transform(stamp)
 
         if transform is None:
             return
@@ -186,18 +201,13 @@ class MultiObjectEKFNode(Node):
 
             track.z(
                 det=best_det,
-                stamp=msg.header.stamp,
+                stamp=stamp,
                 cam_pos_map=cam_pos_map,
                 R_map_cam=R_map_cam,
                 lin_vel_map=self.lin_vel_map,
                 ang_vel_map=self.ang_vel_map,
                 now=now,
             )
-
-        stamp = msg.header.stamp
-
-        if stamp.sec == 0 and stamp.nanosec == 0:
-            stamp = self.get_clock().now().to_msg()
 
         self.publish_pose_array(stamp)
 
@@ -223,13 +233,13 @@ class MultiObjectEKFNode(Node):
 
         return best_det
 
-    def lookup_camera_transform(self):
-        # Use latest available TF instead of exact measurement time.
-        # This avoids lookup-in-the-future problems when images arrive faster than TF.
-        check_time = Time(seconds=0)
-        check_duration = Duration(seconds=1)
+    def lookup_camera_transform(self, stamp):
+        # Use the image acquisition timestamp.
+        measurement_time = Time.from_msg(stamp)
         try:
-            return self.tf_buffer.lookup_transform(self.map_frame, self.cam_frame, check_time, check_duration)
+            return self.tf_buffer.lookup_transform(
+                self.map_frame, self.cam_frame, measurement_time, Duration(seconds=0.25)
+            )
         except Exception as e:
             self.get_logger().warn(
                 f"Cant transform from {self.cam_frame} to {self.map_frame}, dropping msg."
@@ -269,7 +279,11 @@ class MultiObjectEKFNode(Node):
         marker_id = 0
 
         for track in self.tracks.values():
-            pose_msg = track.create_estimate_msg(stamp, self.map_frame)
+            track_stamp = (
+                Time(nanoseconds=track.state_stamp_ns).to_msg()
+                if track.state_stamp_ns is not None else stamp
+            )
+            pose_msg = track.create_estimate_msg(track_stamp, self.map_frame)
 
             if pose_msg is None:
                 continue
@@ -473,9 +487,18 @@ class MultiObjectEKFNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = MultiObjectEKFNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

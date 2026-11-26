@@ -231,6 +231,10 @@ robot_name:=$ROBOT_NAME \
 use_sim_time:=$USE_SIM_TIME \
 camera_calibration_file:=$CAM_CALIBRATION_FILE"
 
+PAD_LANDING_CMD="ros2 launch pad_landing_controller pad_landing_controller.launch.py \
+robot_name:=$ROBOT_NAME \
+use_sim_time:=$USE_SIM_TIME"
+
 # ENABLE_LQG=False flies the ZVD feedforward OPEN LOOP - the known-good
 # baseline, and the A/B test for whether the feedback helps. The first
 # closed-loop flight (2026-07-26) diverged, so start here when in doubt:
@@ -249,7 +253,8 @@ col(
     ),
     row(
         var(ESTIMATE_LENGTH_AND_DAMPING_CMD),
-        var(HOOK_KF_CMD)
+        var(HOOK_KF_CMD),
+        var(PAD_LANDING_CMD)
     )
 )"
 
@@ -327,9 +332,10 @@ else
 
     YOLO_MODEL="yolo_model_4cls_august.pt" # Options: alars_labeling_training/trained_models
     PROJECTION_EKF_CONFIG="object_estimation.yaml" # Config file to edit each object's parameters for the EKF 
-    
+    LANDING_PAD_HEIGHT=${LANDING_PAD_HEIGHT:-1.88} # Nominal pad Z in the map frame [m].
+
     if [[ $USE_SIM_TIME = "True" ]]; then
-        YOLO_DEVICE="cpu"
+        YOLO_DEVICE="cpu" # In case you have GPU, might be better to use "cuda:0" for the landing on pad.
     fi
 
     YOLO_CMD="ros2 launch yolo_bringup yolocustom.launch.py \
@@ -348,6 +354,7 @@ else
     use_sim_time:=$USE_SIM_TIME \
     camera_calibration_file:=$CAM_CALIBRATION_FILE \
     object_config_file:=$PROJECTION_EKF_CONFIG \
+    landing_pad_height:=$LANDING_PAD_HEIGHT \
     visualization_enable:=True
     "
 fi
