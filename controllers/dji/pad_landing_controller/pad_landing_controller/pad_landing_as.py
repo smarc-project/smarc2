@@ -75,6 +75,7 @@ class PadLandingAS:
 
         self._TF_NS: str = f"{self.ROBOT_NAME}/"
         self.MAP_FRAME: str = self._TF_NS + DJILinks.MAP
+        self.BASE_FRAME: str = self._TF_NS + DJILinks.BASE_LINK
         self.LANDING_GEAR_FRAME: str = self._TF_NS + DJILinks.LANDING_GEAR_CENTER
 
         self._georef: GeorefUtils = GeorefUtils(node=self._node)
@@ -247,11 +248,25 @@ class PadLandingAS:
         try:
             position, orientation, pose_cov, pose_rotation = self._pose_to_map(message.pose, message.header.frame_id)
 
-            # Rotate velocity from the odometry header frame into map.
-            velocity = pose_rotation @ vector3_to_numpy(message.twist.twist.linear)
-            angular = pose_rotation @ vector3_to_numpy(message.twist.twist.angular)
-            twist_cov = rotate_covariance(message.twist.covariance, pose_rotation)
-            child_frame = message.child_frame_id
+            # Get the latest rotation from child_frame_id into map
+            # No problem in unity using forward=north
+            twist_tf = self._georef.lookup_transform(self.MAP_FRAME, message.child_frame_id, timeout_sec=0.02)
+            twist_rotation = rotation(twist_tf.transform.rotation)
+
+            # Unity: Temporal fix for different headings (need to check)
+            
+            # Unity local ENU -> body FLU.
+            # transformation_to_body = np.array([
+            #     [0.0, 1.0, 0.0],
+            #     [-1.0, 0.0, 0.0],
+            #     [0.0, 0.0, 1.0],
+            # ])
+            # twist_rotation = orientation @ transformation_to_body
+               
+            velocity = twist_rotation @ vector3_to_numpy(message.twist.twist.linear)
+            angular = twist_rotation @ vector3_to_numpy(message.twist.twist.angular)
+            twist_cov = rotate_covariance(message.twist.covariance, twist_rotation)
+            child_frame = self.BASE_FRAME
             if self.LANDING_GEAR_FRAME != child_frame:
                 gear_tf = self._georef.lookup_transform(child_frame, self.LANDING_GEAR_FRAME, timeout_sec=0.02)
                 offset = orientation @ vector3_to_numpy(gear_tf.transform.translation)
@@ -373,6 +388,6 @@ def main(args=None):
     finally:
         executor.shutdown()
         action._georef.shutdown()
-        action._as._server.destroy()
+        # action._as._server.destroy()
         node.destroy_node()
         rclpy.try_shutdown()
