@@ -224,7 +224,10 @@ class AgentsToRos:
 
         odom_pose = do_transform_pose_stamped(pose, transform)
         odom = Odometry()
-        odom.header = odom_pose.header
+        # The transformed header carries the cached transform's stamp, which never moves.
+        # The odom keeps the position's own stamp and takes only the frame.
+        odom.header.stamp = pose.header.stamp
+        odom.header.frame_id = odom_pose.header.frame_id
         odom.child_frame_id = child_frame(root, self._base_link)
         odom.pose.pose = odom_pose.pose
         odom.pose.covariance[0] = self._cov[0]
