@@ -3,7 +3,8 @@
 The server side of BaseAction is GentlerActionServer. This is the matching
 client: it hides the four SMARCActionClient callbacks, keeps the last feedback
 string, and lets a loop ask "what is up" with poll(). An optional timeout
-cancels the goal from the client side when the server takes too long.
+cancels the goal from the client side when the server takes too long; a
+goal can bring its own timeout to send().
 
     client = GentlerActionClient(node, 'move_to', timeout_s=120.0)
     if client.server_alive() and client.send(json.dumps(goal)):
@@ -50,6 +51,8 @@ class GentlerActionClient(SMARCActionClient):
     def __init__(self, node: Node, action_name: str, timeout_s: float | None = None):
         super().__init__(node, action_name, ActionType(BaseAction))
         self._timeout_s = timeout_s
+        # This goal's timeout. send() sets it; _timeout_s is only the default.
+        self._goal_timeout_s: float | None = timeout_s
         self.feedback_message = ''
         self._sent_at: Time | None = None
         self._timed_out = False
@@ -76,8 +79,11 @@ class GentlerActionClient(SMARCActionClient):
         self._result_seen = False
         self.state = ActionClientState.READY
 
-    def send(self, goal_json: str) -> bool:
-        """Send a goal. False when the client is not READY."""
+    def send(self, goal_json: str, timeout_s: float | None = None) -> bool:
+        """Send a goal. False when the client is not READY.
+
+        ``timeout_s`` is this goal's timeout. None uses the one the client was built with.
+        """
         if self.state is not ActionClientState.READY:
             self._logerr(f'Not sending a goal while {self.state}.')
             return False
@@ -89,6 +95,7 @@ class GentlerActionClient(SMARCActionClient):
         self._cancel_refused = False
         self._cancel_open = False
         self._result_seen = False
+        self._goal_timeout_s = self._timeout_s if timeout_s is None else timeout_s
         self._goal_handle = None        # the previous goal's handle must not be cancelled by mistake
         self._sent_at = self._node.get_clock().now()
         self.send_goal(goal)
@@ -146,7 +153,7 @@ class GentlerActionClient(SMARCActionClient):
     def poll(self) -> ClientReport:
         """Current state and feedback. Cancels the goal if the timeout has passed."""
         elapsed = 0.0 if self._sent_at is None else self._elapsed_s()
-        if (self._timeout_s is not None and elapsed > self._timeout_s
+        if (self._goal_timeout_s is not None and elapsed > self._goal_timeout_s
                 and self.state in self.RUNNING_STATES and not self._timed_out):
             self._logerr(f'No result after {elapsed:.1f} s, cancelling.')
             self._timed_out = True
