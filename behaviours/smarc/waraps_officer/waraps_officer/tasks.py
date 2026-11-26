@@ -1,6 +1,11 @@
 """WARA-PS task names and the officer's records. No rclpy."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # For the annotation only: this module stays free of rclpy at run time.
+    from smarc_action_base.gentler_action_client import GentlerActionClient
 
 
 class WaraPSTaskStates:
@@ -53,7 +58,7 @@ class ExecutingTask:
     params: dict
     description: str
     status: str
-    client: object
+    client: 'GentlerActionClient'
     com_uuid: str
     tst_uuid: str | None
     timeout_s: float | None
