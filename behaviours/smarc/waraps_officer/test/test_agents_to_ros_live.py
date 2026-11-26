@@ -14,7 +14,7 @@ from std_msgs.msg import String
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from transforms3d.euler import quat2euler
 
-from waraps_officer.waraps_agents_encoding import absolute, body_velocity, enu_yaw
+from waraps_officer.waraps_agents_encoding import body_velocity, enu_yaw, namespaced
 from waraps_officer.waraps_agents_to_ros import AgentsToRos
 
 ROBOT = 'evolo'
@@ -54,7 +54,7 @@ def test_a_mirrored_agent_becomes_latlon_and_odom(ros_graph):
     publishers = []
     for root in (AGENT, ROBOT):
         for constant in pubs:
-            publishers.append(source.create_publisher(String, absolute(root, constant), 10))
+            publishers.append(source.create_publisher(String, namespaced(root, constant), 10))
 
     def tick():
         index = 0
@@ -84,9 +84,9 @@ def test_a_mirrored_agent_becomes_latlon_and_odom(ros_graph):
 
     latlon_name = node.get_parameter('latlon_name').value
     odom_name = node.get_parameter('odom_name').value
-    source.create_subscription(GeoPoint, absolute(AGENT, latlon_name), keep('latlon'), 10)
-    source.create_subscription(Odometry, absolute(AGENT, odom_name), keep('odom'), 10)
-    source.create_subscription(GeoPoint, absolute(ROBOT, latlon_name), keep('own'), 10)
+    source.create_subscription(GeoPoint, namespaced(AGENT, latlon_name), keep('latlon'), 10)
+    source.create_subscription(Odometry, namespaced(AGENT, odom_name), keep('odom'), 10)
+    source.create_subscription(GeoPoint, namespaced(ROBOT, latlon_name), keep('own'), 10)
 
     assert wait_for(lambda: heard.get('odom_n', 0) >= 2, timeout_s=8.0)
     latlon = heard['latlon']
