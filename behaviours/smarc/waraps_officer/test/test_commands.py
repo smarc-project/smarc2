@@ -84,7 +84,7 @@ def test_tst_flat_seq_merges_common_params_and_rejects_the_rest():
     assert empty.root.stop_on_first is False
     nested = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{'name': 'seq', 'task-uuid': 'a', 'children': []}]}}
     parsed = parse_tst(nested)
-    assert isinstance(parsed.root.children[0], Seq)
+    assert parsed.root.children == ()   # an empty container has nothing to run
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c'}).reason == 'task not found'
     assert parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': [{}]}}).reason == 'Rejected: malformed task in mission'
     bad_timeout = {'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'params': {'timeout': 'soon'}, 'children': []}}
@@ -151,3 +151,38 @@ def test_stop_on_first_cancels_the_sibling_after_a_seq_runs_in_order():
     ended = after_leaf(run, 'c', 'enough')
     assert ended.done is True
     assert ended.cancel == ()
+
+
+def test_an_empty_container_inside_a_seq_is_dropped():
+    def mission(children):
+        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'seq', 'children': children}})
+
+    empty_first = mission([{'name': 'conc', 'children': []}, {'name': 'wait', 'task-uuid': 'x'}])
+    run, follow = open_run(empty_first.root)
+    assert [leaf.task_uuid for leaf in follow.start] == ['x']
+    assert follow.done is False
+
+    empty_between = mission([
+        {'name': 'wait', 'task-uuid': 'x'},
+        {'name': 'seq', 'children': [{'name': 'conc', 'children': []}]},
+        {'name': 'wait', 'task-uuid': 'y'},
+    ])
+    run, follow = open_run(empty_between.root)
+    after_x = after_leaf(run, 'x', 'finished')
+    assert [leaf.task_uuid for leaf in after_x.start] == ['y']
+    assert after_leaf(run, 'y', 'finished').done is True
+
+
+def test_an_empty_child_of_a_conc_is_dropped_and_does_not_stop_it_first():
+    def mission(params):
+        children = [{'name': 'seq', 'children': []}, {'name': 'wait', 'task-uuid': 'x'}, {'name': 'wait', 'task-uuid': 'y'}]
+        return parse_tst({'command': 'start-tst', 'com-uuid': 'c', 'tst': {'name': 'conc', 'params': params, 'children': children}})
+
+    run, follow = open_run(mission({}).root)
+    assert [leaf.task_uuid for leaf in follow.start] == ['x', 'y']
+    assert after_leaf(run, 'x', 'finished').done is False
+    assert after_leaf(run, 'y', 'finished').done is True
+
+    run, follow = open_run(mission({'stop-on-first': True}).root)
+    assert [leaf.task_uuid for leaf in follow.start] == ['x', 'y']
+    assert follow.done is False

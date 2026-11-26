@@ -228,6 +228,11 @@ def _node(task, inherited):
             parsed = _node(child, merged)
             if isinstance(parsed, Rejection):
                 return parsed
+            # An empty seq or conc has nothing to run, so it is dropped. Kept in, it ends its
+            # parent at once or leaves it waiting for the timeout. A stop-on-first conc does
+            # not count a dropped child as the first to finish.
+            if isinstance(parsed, (Seq, Conc)) and not parsed.children:
+                continue
             built.append(parsed)
         if name == 'conc':
             params = task.get('params') if isinstance(task.get('params'), dict) else {}
