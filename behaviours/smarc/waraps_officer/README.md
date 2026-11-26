@@ -109,12 +109,12 @@ A goal sent to an action server is `json.dumps` of the task's `params`. `params.
 |---|---|---|
 | `robot_name` | required | `name` in the execution info; the node refuses to start without it |
 | `pulse_rate` | `1.0` | Hz; execution info, feedback, `tasks-executing` |
-| `tick_rate` | `10.0` | Hz; `step()` polls the action clients |
+| `tick_rate` | `10.0` | Hz; `advance_tasks()` polls the action clients |
 | `task_liveliness_timeout` | `10.0` | seconds without an action-server heartbeat before it is forgotten |
 | `health_timeout_s` | `10.0` | a health sample older than this means the vehicle is not ready |
 | `use_sim_time` | | stamps follow the ROS clock |
 
-`commands.py` has no rclpy; the health numbers it compares are `Topics.VEHICLE_HEALTH_*`. `Officer.step` is run against a fake client. The live tests run on a private ROS domain: one rejects a start while health is `ERROR`, one drives a `GentlerActionServer` through `start-task` until `tasks-executing` is empty.
+`officer.py` (`WarapsOfficer`, the logic) and `commands.py` create no nodes, topics or timers; the health numbers they compare are `Topics.VEHICLE_HEALTH_*`. `ros2waraps_officer.py` (`Ros2WarapsOfficer`) is the node: it gives the officer one publish function per output topic. `WarapsOfficer.advance_tasks` is run against a fake client. The live tests run on a private ROS domain: one rejects a start while health is `ERROR`, one drives a `GentlerActionServer` through `start-task` until `tasks-executing` is empty.
 
 ## waraps_agents_to_ros
 

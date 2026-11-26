@@ -1,30 +1,35 @@
-"""WARA-PS levels 2 and 3 over GentlerActionClient.
+"""WARA-PS levels 2 and 3 over GentlerActionClient: the officer's logic.
 
-``Officer`` holds the tasks and decides. ``WarapsOfficer`` is the node: it
-subscribes, publishes, and calls ``Officer`` on a timer. A second task is
-rejected while its action server is busy. A TST ``seq`` starts its next leaf
-when the current one finishes. A ``conc`` starts its children together.
+``WarapsOfficer`` holds the tasks and decides. It has no rclpy: the node in
+``ros2waraps_officer.py`` hands it one function per output topic and calls it
+on a timer. A second task is rejected while its action server is busy. A TST
+``seq`` starts its next leaf when the current one finishes. A ``conc`` starts
+its children together.
 """
 
 import json
+from collections.abc import Callable
 
-import rclpy
-from rclpy.node import Node
+from smarc_action_base.gentler_action_client import ClientReport
 from smarc_action_base.smarc_action_base import SMARCActionClient
-from smarc_msgs.msg import Topics
-from std_msgs.msg import Empty, Int8, String
 
 from waraps_officer.commands import (
+    ExecReply,
+    ExecutingRow,
+    ExecutionInfo,
+    Feedback,
+    Follow,
+    Leaf,
     Mission,
     Ping,
     QueryTask,
     Rejection,
     SignalTask,
     SignalUnit,
+    StartReply,
     StartTask,
     after_leaf,
     direct_execution_info,
-    dumps,
     each_leaf,
     exec_response,
     executing_tasks,
@@ -54,31 +59,56 @@ _STOP_STATUS = {
 }
 
 
-class Officer:
-    def __init__(self, client_factory, name, rate_hz, liveliness_s, health_timeout_s):
+class WarapsOfficer:
+    def __init__(
+        self,
+        client_factory: Callable[[str], object],
+        name: str,
+        rate_hz: float,
+        liveliness_s: float,
+        health_timeout_s: float,
+        publish_abort: Callable[[], None],
+        publish_health: Callable[[int], None],
+        publish_exec_response: Callable[[ExecReply | StartReply], None],
+        publish_tst_response: Callable[[ExecReply], None],
+        publish_exec_feedback: Callable[[Feedback], None],
+        publish_tst_feedback: Callable[[Feedback], None],
+        publish_direct_execution_info: Callable[[ExecutionInfo], None],
+        publish_tst_execution_info: Callable[[ExecutionInfo], None],
+        publish_executing_tasks: Callable[[list[ExecutingRow]], None],
+    ) -> None:
         self._client_factory = client_factory
         self._name = name
         self._rate_hz = rate_hz
         self._liveliness_s = liveliness_s
         self._health_timeout_s = health_timeout_s
+        self._publish_abort = publish_abort
+        self._publish_health = publish_health
+        self._publish_exec_response = publish_exec_response
+        self._publish_tst_response = publish_tst_response
+        self._publish_exec_feedback = publish_exec_feedback
+        self._publish_tst_feedback = publish_tst_feedback
+        self._publish_direct_execution_info = publish_direct_execution_info
+        self._publish_tst_execution_info = publish_tst_execution_info
+        self._publish_executing_tasks = publish_executing_tasks
         self.agent_uuid = ''
         self.available: dict[str, AvailableTask] = {}
         self.clients: dict[str, object] = {}
         self.executing: list[ExecutingTask] = []
-        self._mission = None
+        self._mission: Mission | None = None
         self._run = None
         self._mission_started_s: float | None = None
-        self._health_value = None
-        self._health_stamp_s = None
+        self._health_value: int | None = None
+        self._health_stamp_s: float | None = None
 
     # ---- things other nodes say --------------------------------------------
 
-    def on_level1_heartbeat(self, text) -> bool:
-        """Take agent-uuid from the first heartbeat. True means unsubscribe."""
+    def learn_agent_uuid(self, heartbeat_json: str) -> bool:
+        """Take agent-uuid from the first heartbeat. True once it is known."""
         if self.agent_uuid:
             return True
         try:
-            payload = json.loads(text)
+            payload = json.loads(heartbeat_json)
         except (json.JSONDecodeError, TypeError):
             return False
         uuid = payload.get('agent-uuid') if isinstance(payload, dict) else None
@@ -87,7 +117,7 @@ class Officer:
         self.agent_uuid = uuid
         return True
 
-    def on_action_heartbeat(self, ros_name, now_s):
+    def track_action_server(self, ros_name: str, now_s: float) -> None:
         ros_name = (ros_name or '').strip()
         if not ros_name:
             return
@@ -96,79 +126,78 @@ class Officer:
         if ros_name not in self.clients:
             self.clients[ros_name] = self._client_factory(ros_name)
 
-    def on_health(self, value, now_s):
-        self._health_value = value
+    def update_vehicle_health(self, level: int, now_s: float) -> None:
+        self._health_value = level
         self._health_stamp_s = now_s
 
-    def on_exec(self, text, now_s):
-        return self._dispatch(parse_exec_command(_load(text)), now_s, tst=False)
+    def handle_exec_command(self, command_json: str, now_s: float) -> None:
+        self._dispatch(parse_exec_command(_load(command_json)), now_s, tst=False)
 
-    def on_tst(self, text, now_s):
-        return self._dispatch(parse_tst(_load(text)), now_s, tst=True)
+    def handle_tst_command(self, command_json: str, now_s: float) -> None:
+        self._dispatch(parse_tst(_load(command_json)), now_s, tst=True)
 
-    def on_waraps_abort(self, now_s):
-        return self._stop_all(WaraPSTaskStates.ABORTED, unit=True, retry=True)
+    def abort_all(self, now_s: float) -> None:
+        self._stop_all(WaraPSTaskStates.ABORTED, unit=True, retry=True)
 
     # ---- time ---------------------------------------------------------------
 
-    def pulse(self, now_s):
+    def publish_status(self, now_s: float) -> None:
         self._prune(now_s)
         available = list(self.available.values())
-        out = [
-            ('direct_info', direct_execution_info(self._name, self._rate_hz, now_s, available, self.executing)),
-            ('tst_info', tst_execution_info(self._name, self._rate_hz, now_s, available, self.executing)),
-            ('executing', executing_tasks(self.executing)),
-        ]
+        self._publish_direct_execution_info(
+            direct_execution_info(self._name, self._rate_hz, now_s, available, self.executing))
+        self._publish_tst_execution_info(
+            tst_execution_info(self._name, self._rate_hz, now_s, available, self.executing))
+        self._publish_executing_tasks(executing_tasks(self.executing))
         for task in self.executing:
             text = getattr(task.client.poll(), 'feedback', '')
-            out.append(self._feedback(task, text))
-        out.append(self._health_msg())
-        return out
+            self._feedback(task, text)
+        self._publish_health(self.health())
 
     def health(self) -> int:
         return officer_health(
             self.executing, SMARCActionClient.RUNNING_STATES, SMARCActionClient.States.CANCELLING)
 
-    def _health_msg(self):
-        return ('officer_health', self.health())
-
-    def step(self, now_s):
-        out = []
+    def advance_tasks(self, now_s: float) -> None:
         if not self._health_ready(now_s) and self.executing:
             word = health_word(self._health_value, fresh(self._health_stamp_s, now_s, self._health_timeout_s))
-            out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text=f'vehicle health {word}'))
+            self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text=f'vehicle health {word}')
         if self._mission_expired(now_s):
-            out.extend(self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded'))
+            self._stop_all(WaraPSTaskStates.ABORTED, unit=False, text='mission timeout exceeded')
         for task in list(self.executing):
-            out.extend(self._advance(task, now_s))
-        out.append(self._health_msg())
-        return out
+            self._advance(task, now_s)
+        self._publish_health(self.health())
 
     # ---- commands -----------------------------------------------------------
 
-    def _dispatch(self, command, now_s, tst):
-        channel = 'tst_response' if tst else 'exec_response'
+    def _dispatch(
+        self,
+        command: Rejection | Ping | QueryTask | SignalTask | SignalUnit | StartTask | Mission,
+        now_s: float,
+        tst: bool,
+    ) -> None:
+        respond = self._publish_tst_response if tst else self._publish_exec_response
         if isinstance(command, Rejection):
-            return [(channel, exec_response(self.agent_uuid, command.com_uuid, command.reason))]
-        if isinstance(command, Ping):
-            return [(channel, exec_response(self.agent_uuid, command.com_uuid, 'pong'))]
-        if isinstance(command, QueryTask):
-            return [(channel, exec_response(self.agent_uuid, command.com_uuid, self._status_of(command.task_uuid)))]
-        if isinstance(command, SignalTask):
-            return self._signal_task(command)
-        if isinstance(command, SignalUnit):
-            return self._signal_unit(command, channel)
-        if isinstance(command, StartTask):
-            return self._start_one(command, now_s, tst_uuid=None)
-        if isinstance(command, Mission):
-            return self._start_mission(command, now_s)
-        return []
+            respond(exec_response(self.agent_uuid, command.com_uuid, command.reason))
+        elif isinstance(command, Ping):
+            respond(exec_response(self.agent_uuid, command.com_uuid, 'pong'))
+        elif isinstance(command, QueryTask):
+            respond(exec_response(self.agent_uuid, command.com_uuid, self._status_of(command.task_uuid)))
+        elif isinstance(command, SignalTask):
+            self._signal_task(command)
+        elif isinstance(command, SignalUnit):
+            self._signal_unit(command, respond)
+        elif isinstance(command, StartTask):
+            self._start_one(command, now_s, tst_uuid=None)
+        elif isinstance(command, Mission):
+            self._start_mission(command, now_s)
 
-    def _start_one(self, task: StartTask, now_s, tst_uuid):
-        channel = 'tst_response' if tst_uuid is not None else 'exec_response'
+    def _start_one(self, task: StartTask, now_s: float, tst_uuid: str | None) -> None:
+        respond = self._publish_tst_response if tst_uuid is not None else self._publish_exec_response
         refusal = self._refuse(task.name, now_s)
         if refusal is not None:
-            return [(channel, exec_response(self.agent_uuid, task.com_uuid, refusal))]
+            respond(exec_response(self.agent_uuid, task.com_uuid, refusal))
+            return
         available = self._find(task.name)
         self.executing.append(ExecutingTask(
             uuid=task.task_uuid, name=task.name, ros_name=available.ros_name, params=task.params,
@@ -176,41 +205,49 @@ class Officer:
             com_uuid=task.com_uuid, tst_uuid=tst_uuid, timeout_s=task.timeout_s,
         ))
         if tst_uuid is not None:
-            return [(channel, exec_response(self.agent_uuid, task.com_uuid, 'accepted'))]
-        return [('exec_response', start_response(self.agent_uuid, task.com_uuid, task))]
+            respond(exec_response(self.agent_uuid, task.com_uuid, 'accepted'))
+            return
+        self._publish_exec_response(start_response(self.agent_uuid, task.com_uuid, task))
 
-    def _start_mission(self, mission, now_s):
+    def _start_mission(self, mission: Mission, now_s: float) -> None:
+        def reject(reason: str) -> None:
+            self._publish_tst_response(exec_response(self.agent_uuid, mission.com_uuid, reason))
+
         if self._mission is not None:
-            return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'task already executing on a mission'))]
+            reject('task already executing on a mission')
+            return
         for leaf in each_leaf(mission.root):
             available = self._find(leaf.name)
             if available is None:
-                return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'task not available'))]
+                reject('task not available')
+                return
             busy = self._busy(available.ros_name)
             if busy is not None:
-                return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, f'task already executing on {busy.name}'))]
+                reject(f'task already executing on {busy.name}')
+                return
         if not self._health_ready(now_s):
-            return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'rejected: vehicle health status is not ok'))]
+            reject('rejected: vehicle health status is not ok')
+            return
         run, follow = open_run(mission.root)
         seen = set()
         for leaf in follow.start:
             ros_name = self._find(leaf.name).ros_name
             if ros_name in seen:
-                return [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, f'rejected: {leaf.name} would run twice at once'))]
+                reject(f'rejected: {leaf.name} would run twice at once')
+                return
             seen.add(ros_name)
         self._mission = mission
         self._mission_started_s = now_s
         self._run = run
-        accepted = [('tst_response', exec_response(self.agent_uuid, mission.com_uuid, 'accepted'))]
+        self._publish_tst_response(exec_response(self.agent_uuid, mission.com_uuid, 'accepted'))
         if follow.done:
             self._mission = None
             self._run = None
-            return accepted
+            return
         for leaf in follow.start:
-            accepted.extend(self._begin(leaf, now_s))
-        return accepted
+            self._begin(leaf, now_s)
 
-    def _refuse(self, name, now_s):
+    def _refuse(self, name: str, now_s: float) -> str | None:
         if not self._health_ready(now_s):
             return 'rejected: vehicle health status is not ok'
         available = self._find(name)
@@ -221,16 +258,17 @@ class Officer:
             return f'task already executing on {busy.name}'
         return None
 
-    def _busy(self, ros_name):
+    def _busy(self, ros_name: str) -> ExecutingTask | None:
         for task in self.executing:
             if task.ros_name == ros_name:
                 return task
         return None
 
-    def _signal_task(self, signal: SignalTask):
+    def _signal_task(self, signal: SignalTask) -> None:
         task = next((item for item in self.executing if item.uuid == signal.task_uuid), None)
         if task is None:
-            return [('exec_response', exec_response(self.agent_uuid, signal.com_uuid, 'task not in current tasks'))]
+            self._publish_exec_response(exec_response(self.agent_uuid, signal.com_uuid, 'task not in current tasks'))
+            return
         if signal.signal == WaraPSCommandSignals.PAUSE:
             task.status = WaraPSTaskStates.PAUSED
         elif signal.signal == WaraPSCommandSignals.CONTINUE and task.status == WaraPSTaskStates.PAUSED:
@@ -242,9 +280,9 @@ class Officer:
             self._mission = None
             self._run = None
             _cancel(task)
-        return [('exec_response', exec_response(self.agent_uuid, signal.com_uuid, 'ok'))]
+        self._publish_exec_response(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
 
-    def _signal_unit(self, signal: SignalUnit, channel):
+    def _signal_unit(self, signal: SignalUnit, respond: Callable[[ExecReply], None]) -> None:
         if signal.signal == WaraPSCommandSignals.PAUSE:
             for task in self.executing:
                 task.status = WaraPSTaskStates.PAUSED
@@ -252,15 +290,24 @@ class Officer:
             for task in self.executing:
                 if task.status == WaraPSTaskStates.PAUSED:
                     task.status = _continued(task)
-        elif signal.signal in _STOP:
-            return [(channel, exec_response(self.agent_uuid, signal.com_uuid, 'ok'))] + \
-                self._stop_all(_STOP_STATUS[signal.signal], unit=signal.signal == WaraPSCommandSignals.ABORT,
-                               retry=True)
-        return [(channel, exec_response(self.agent_uuid, signal.com_uuid, 'ok'))]
+        respond(exec_response(self.agent_uuid, signal.com_uuid, 'ok'))
+        if signal.signal in _STOP:
+            self._stop_all(
+                _STOP_STATUS[signal.signal],
+                unit=signal.signal == WaraPSCommandSignals.ABORT,
+                retry=True,
+            )
 
-    def _stop_all(self, status, unit, text=None, retry=False):
+    def _stop_all(
+        self,
+        status: WaraPSTaskStates,
+        unit: bool,
+        text: str | None = None,
+        retry: bool = False,
+    ) -> None:
         """Ask every executing task to stop. The task stays until the server answers."""
-        out = [('abort', None)] if unit else []
+        if unit:
+            self._publish_abort()
         for task in list(self.executing):
             if task.cancel_refused and not retry:
                 if task.stop_reason == text:
@@ -277,98 +324,88 @@ class Officer:
             task.stop_reason = text
             _cancel(task)
             if text is not None:
-                out.append(self._feedback(task, f'cancelling: {text}'))
+                self._feedback(task, f'cancelling: {text}')
         self._mission = None
         self._run = None
-        return out
 
     # ---- one executing task -------------------------------------------------
 
-    def _advance(self, task: ExecutingTask, now_s):
+    def _advance(self, task: ExecutingTask, now_s: float) -> None:
         report = task.client.poll()
         state = report.state
         if report.cancel_refused and not task.cancel_refused:
             if task.status != WaraPSTaskStates.PAUSED:
                 task.status = WaraPSTaskStates.RUNNING
             task.cancel_refused = True
-            return [self._feedback(task, 'cancel refused: action still running')]
+            self._feedback(task, 'cancel refused: action still running')
+            return
         if task.status in (WaraPSTaskStates.ABORTED, WaraPSTaskStates.ENOUGH):
-            return self._advance_stop(task, report, now_s)
+            self._advance_stop(task, report, now_s)
+            return
         if task.status == WaraPSTaskStates.PAUSED:
             if state in SMARCActionClient.RUNNING_STATES:
                 if not task.cancel_refused:
                     task.client.cancel()
-                return []
+                return
             if state is SMARCActionClient.States.CANCELLED:
                 task.client.get_ready()
-                return []
+                return
             if state is SMARCActionClient.States.READY:
-                return []
+                return
         if task.status in (WaraPSTaskStates.STARTED, WaraPSTaskStates.RESUMED):
             if state is SMARCActionClient.States.DISCONNECTED:
                 task.client.server_alive(timeout_s=0.0)
             elif state is SMARCActionClient.States.READY:
                 if task.client.send(json.dumps(task.params), task.timeout_s):
                     task.status = WaraPSTaskStates.RUNNING
-            return []
+            return
         if report.timed_out and state in SMARCActionClient.RUNNING_STATES:
-            return []
+            return
         if report.timed_out or state in SMARCActionClient.FAILURE_STATES or state is SMARCActionClient.States.DONE:
             task.status = WaraPSTaskStates.FINISHED if state is SMARCActionClient.States.DONE else WaraPSTaskStates.ERROR
             text = report.feedback or f'Action client in failure state: {state}.'
             if state is SMARCActionClient.States.DONE:
                 text = report.feedback
-            out = [self._feedback(task, text)]
+            self._feedback(task, text)
             self._retire(task)
-            out.extend(self._joined(task, now_s))
-            return out
-        return []
+            self._joined(task, now_s)
 
-    def _advance_stop(self, task: ExecutingTask, report, now_s):
+    def _advance_stop(self, task: ExecutingTask, report: ClientReport, now_s: float) -> None:
         """A cancel is a request. The task leaves when the server answers it."""
         state = report.state
         if state in SMARCActionClient.RUNNING_STATES:
             _cancel(task)
-            return []
+            return
         if state is SMARCActionClient.States.CANCELLED or state is SMARCActionClient.States.READY:
             text = f'cancelled: {task.stop_reason}' if task.stop_reason else 'cancelled'
-            out = [self._feedback(task, text)]
-            self._retire(task)
-            out.extend(self._joined(task, now_s))
-            return out
-        if state is SMARCActionClient.States.DONE:
+        elif state is SMARCActionClient.States.DONE:
             task.status = WaraPSTaskStates.FINISHED
-            out = [self._feedback(task, report.feedback)]
-            self._retire(task)
-            out.extend(self._joined(task, now_s))
-            return out
-        task.status = WaraPSTaskStates.ERROR
-        text = report.feedback or f'Action client in failure state: {state}.'
-        out = [self._feedback(task, text)]
+            text = report.feedback
+        else:
+            task.status = WaraPSTaskStates.ERROR
+            text = report.feedback or f'Action client in failure state: {state}.'
+        self._feedback(task, text)
         self._retire(task)
-        out.extend(self._joined(task, now_s))
-        return out
+        self._joined(task, now_s)
 
-    def _joined(self, task, now_s):
+    def _joined(self, task: ExecutingTask, now_s: float) -> None:
         if self._run is None or task.uuid not in self._run.by_uuid:
-            return []
-        return self._follow(after_leaf(self._run, task.uuid, task.status), now_s)
+            return
+        self._follow(after_leaf(self._run, task.uuid, task.status), now_s)
 
-    def _follow(self, step, now_s):
-        out = self._stop_these(step.cancel)
+    def _follow(self, step: Follow, now_s: float) -> None:
+        self._stop_these(step.cancel)
         for leaf in step.start:
-            out.extend(self._begin(leaf, now_s))
+            self._begin(leaf, now_s)
         if step.done:
             self._mission = None
             self._run = None
-        return out
 
-    def _stop_these(self, uuids):
+    def _stop_these(self, uuids: list[str]) -> None:
         """Ask those tasks to cancel, and wait. Same path as any other cancel."""
         if not uuids:
-            return []
+            return
         wanted = set(uuids)
-        out = []
         for task in list(self.executing):
             if task.uuid not in wanted:
                 continue
@@ -376,67 +413,69 @@ class Officer:
             task.status = WaraPSTaskStates.ENOUGH
             task.stop_reason = 'stop-on-first'
             _cancel(task)
-            out.append(self._feedback(task, 'cancelling: stop-on-first'))
-        return out
+            self._feedback(task, 'cancelling: stop-on-first')
 
-    def _begin(self, leaf, now_s):
+    def _begin(self, leaf: Leaf, now_s: float) -> None:
         mission = self._mission
         available = self._find(leaf.name) if mission is not None else None
         busy = None if available is None else self._busy(available.ros_name)
         if available is None or busy is not None:
             reason = 'task not available' if busy is None else f'task already executing on {busy.name}'
             tst = None if mission is None else mission.tst_uuid
-            out = [('tst_feedback', feedback(self.agent_uuid, leaf.task_uuid, reason, WaraPSTaskStates.ERROR, tst))]
+            self._publish_tst_feedback(feedback(self.agent_uuid, leaf.task_uuid, reason, WaraPSTaskStates.ERROR, tst))
             if self._run is not None and leaf.task_uuid in self._run.by_uuid:
-                out.extend(self._follow(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s))
-            return out
+                self._follow(after_leaf(self._run, leaf.task_uuid, WaraPSTaskStates.ERROR), now_s)
+            return
         self.executing.append(ExecutingTask(
             uuid=leaf.task_uuid, name=leaf.name, ros_name=available.ros_name, params=leaf.params,
             description=leaf.description, status=WaraPSTaskStates.STARTED, client=self.clients[available.ros_name],
             com_uuid=mission.com_uuid, tst_uuid=mission.tst_uuid, timeout_s=leaf.timeout_s,
         ))
-        return []
 
-    def _retire(self, task):
+    def _retire(self, task: ExecutingTask) -> None:
         if task in self.executing:
             self.executing.remove(task)
         task.client.get_ready()
 
-    def _feedback(self, task, text):
-        kind = 'tst_feedback' if task.tst_uuid else 'exec_feedback'
-        return (kind, feedback(self.agent_uuid, task.uuid, text, task.status, task.tst_uuid))
+    def _feedback(self, task: ExecutingTask, text: str) -> None:
+        """A task from a mission reports on the TST feedback topic, a direct one on exec."""
+        message = feedback(self.agent_uuid, task.uuid, text, task.status, task.tst_uuid)
+        if task.tst_uuid:
+            self._publish_tst_feedback(message)
+        else:
+            self._publish_exec_feedback(message)
 
     # ---- lookups ------------------------------------------------------------
 
-    def _find(self, name):
+    def _find(self, name: str) -> AvailableTask | None:
         for task in self.available.values():
             if task.name == name:
                 return task
         return None
 
-    def _status_of(self, task_uuid):
+    def _status_of(self, task_uuid: str) -> str:
         for task in self.executing:
             if task.uuid == task_uuid:
                 return task.status
         return 'task not found'
 
-    def _prune(self, now_s):
+    def _prune(self, now_s: float) -> None:
         stale = [ros_name for ros_name, task in self.available.items()
                  if now_s - task.last_seen > self._liveliness_s
                  and ros_name not in {item.ros_name for item in self.executing}]
         for ros_name in stale:
             self.available.pop(ros_name, None)
 
-    def _health_ready(self, now_s):
+    def _health_ready(self, now_s: float) -> bool:
         return health_is_ready(self._health_value, self._health_stamp_s, now_s, self._health_timeout_s)
 
-    def _mission_expired(self, now_s):
+    def _mission_expired(self, now_s: float) -> bool:
         if self._mission is None or self._mission_started_s is None:
             return False
         return now_s - self._mission_started_s > self._mission.timeout_s
 
 
-def _load(text):
+def _load(text: str) -> dict:
     try:
         payload = json.loads(text)
     except (json.JSONDecodeError, TypeError):
@@ -444,7 +483,7 @@ def _load(text):
     return payload if isinstance(payload, dict) else {}
 
 
-def _continued(task):
+def _continued(task: ExecutingTask) -> WaraPSTaskStates:
     """A refused pause left the goal running. Continue means that, not a new send.
 
     Read ``state`` directly. ``poll()`` cancels a goal that has timed out.
@@ -454,131 +493,7 @@ def _continued(task):
     return WaraPSTaskStates.RESUMED
 
 
-def _cancel(task):
+def _cancel(task: ExecutingTask) -> None:
     report = task.client.poll()
     if report.state in SMARCActionClient.RUNNING_STATES and report.state is not SMARCActionClient.States.CANCELLING:
         task.client.cancel()
-
-
-def gentler_client(node, ros_name):
-    from smarc_action_base.gentler_action_client import GentlerActionClient
-
-    class _Client:
-        """Hands the goal its own timeout. The client keeps one timeout_s for its life."""
-
-        def __init__(self):
-            self._client = GentlerActionClient(node, ros_name, timeout_s=None)
-
-        @property
-        def state(self):
-            return self._client.state
-
-        def poll(self):
-            return self._client.poll()
-
-        def send(self, goal_json, timeout_s):
-            self._client._timeout_s = timeout_s
-            return self._client.send(goal_json)
-
-        def cancel(self):
-            self._client.cancel()
-
-        def get_ready(self):
-            self._client.get_ready()
-
-        def server_alive(self, timeout_s=0.0):
-            return self._client.server_alive(timeout_s=timeout_s)
-
-    return _Client()
-
-
-class WarapsOfficer:
-    def __init__(self, node: Node):
-        gp = node.declare_parameter
-        robot_name = gp('robot_name', '').value
-        if not robot_name:
-            raise ValueError('robot_name parameter is required')
-        pulse_rate = gp('pulse_rate', 1.0).value
-        self._node = node
-        self._officer = Officer(
-            client_factory=lambda ros_name: gentler_client(node, ros_name),
-            name=robot_name,
-            rate_hz=pulse_rate,
-            liveliness_s=gp('task_liveliness_timeout', 10.0).value,
-            health_timeout_s=gp('health_timeout_s', 10.0).value,
-        )
-        self._publishers = {
-            'direct_info': node.create_publisher(String, Topics.WARA_PS_DIRECT_EXECUTION_INFO_TOPIC, 10),
-            'tst_info': node.create_publisher(String, Topics.WARA_PS_TST_EXEC_INFO_TOPIC, 10),
-            'exec_response': node.create_publisher(String, Topics.WARA_PS_EXEC_RESPONSE_TOPIC, 10),
-            'exec_feedback': node.create_publisher(String, Topics.WARA_PS_EXEC_FEEDBACK_TOPIC, 10),
-            'tst_response': node.create_publisher(String, Topics.WARA_PS_TST_RESPONSE_TOPIC, 10),
-            'tst_feedback': node.create_publisher(String, Topics.WARA_PS_TST_FEEDBACK_TOPIC, 10),
-            'executing': node.create_publisher(String, Topics.WARA_PS_SENSOR_EXECUTING_TASKS_TOPIC, 10),
-            'abort': node.create_publisher(Empty, Topics.ABORT_TOPIC, 10),
-            'officer_health': node.create_publisher(Int8, Topics.OFFICER_HEALTH_TOPIC, 10),
-        }
-        node.create_subscription(String, Topics.WARA_PS_EXEC_COMMAND_TOPIC, self._exec_cb, 10)
-        node.create_subscription(String, Topics.WARA_PS_TST_COMMAND_TOPIC, self._tst_cb, 10)
-        node.create_subscription(String, Topics.WARA_PS_ABORT_TOPIC, self._abort_cb, 10)
-        node.create_subscription(String, Topics.WARA_PS_ACTION_SERVER_HB_TOPIC, self._action_hb_cb, 10)
-        node.create_subscription(Int8, Topics.VEHICLE_HEALTH_TOPIC, self._health_cb, 10)
-        self._level1_sub = node.create_subscription(String, Topics.WARA_PS_HEARTBEAT_TOPIC, self._level1_cb, 10)
-        node.create_timer(1.0 / pulse_rate, self._pulse)
-        node.create_timer(1.0 / gp('tick_rate', 10.0).value, self._step)
-        node.get_logger().info(f"waraps_officer '{robot_name}', pulse {pulse_rate} Hz")
-
-    def _now(self):
-        return self._node.get_clock().now().nanoseconds * 1e-9
-
-    def _emit(self, outgoing):
-        for kind, payload in outgoing:
-            if kind == 'abort':
-                self._publishers['abort'].publish(Empty())
-            elif kind == 'officer_health':
-                self._publishers['officer_health'].publish(Int8(data=payload))
-            else:
-                self._publishers[kind].publish(String(data=dumps(payload)))
-
-    def _exec_cb(self, msg):
-        self._emit(self._officer.on_exec(msg.data, self._now()))
-
-    def _tst_cb(self, msg):
-        self._emit(self._officer.on_tst(msg.data, self._now()))
-
-    def _abort_cb(self, msg):
-        self._emit(self._officer.on_waraps_abort(self._now()))
-
-    def _health_cb(self, msg):
-        self._officer.on_health(msg.data, self._now())
-
-    def _action_hb_cb(self, msg):
-        self._officer.on_action_heartbeat(msg.data, self._now())
-
-    def _level1_cb(self, msg):
-        if self._officer.on_level1_heartbeat(msg.data) and self._level1_sub is not None:
-            self._node.destroy_subscription(self._level1_sub)
-            self._level1_sub = None
-
-    def _pulse(self):
-        self._emit(self._officer.pulse(self._now()))
-
-    def _step(self):
-        self._emit(self._officer.step(self._now()))
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = Node('waraps_officer')
-    WarapsOfficer(node)
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-
-
-if __name__ == '__main__':
-    main()

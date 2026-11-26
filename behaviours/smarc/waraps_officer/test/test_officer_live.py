@@ -1,4 +1,4 @@
-"""WarapsOfficer on a private graph, with a GentlerActionServer as the task."""
+"""Ros2WarapsOfficer on a private graph, with a GentlerActionServer as the task."""
 
 import json
 
@@ -9,7 +9,7 @@ from smarc_msgs.msg import Topics
 from smarc_utilities.testing import wait_for
 from std_msgs.msg import Int8, String
 
-from waraps_officer.officer import WarapsOfficer
+from waraps_officer.ros2waraps_officer import Ros2WarapsOfficer
 
 ROOT = '/sam0'
 
@@ -31,13 +31,13 @@ def _officer(ros_graph, **params):
                  Parameter('tick_rate', value=20.0), Parameter('health_timeout_s', value=5.0)]
     overrides += [Parameter(name, value=value) for name, value in params.items()]
     node = ros_graph('waraps_officer', ROOT, parameter_overrides=overrides)
-    WarapsOfficer(node)
+    Ros2WarapsOfficer(node)
     return node
 
 
 def test_robot_name_is_required(ros_graph):
     with pytest.raises(ValueError, match='robot_name'):
-        WarapsOfficer(ros_graph('waraps_officer', ROOT))
+        Ros2WarapsOfficer(ros_graph('waraps_officer', ROOT))
 
 
 def test_health_error_rejects_the_start(ros_graph):
